@@ -775,7 +775,7 @@ i.e. &%Liquids and &%Gases.")
 
 (=>
    (and
-      (instance ?TANK TankContainer)
+      (instance ?TANK FluidContainer)
       (contains ?TANK ?STUFF))
    (attribute ?STUFF Fluid))
 
@@ -1633,6 +1633,12 @@ is used to relate a &%Human to a &%GroupOfPeople of which he/she is a
 provide medical care for for &%Humans who reside there, either permanently 
 or temporarily.")  
 
+(instance medicalPatient BinaryPredicate)
+(documentation medicalPatient "A relation between a &%Human and a 
+&%CareOrganization that treats the patient.")
+(domain medicalPatient 1 Human)
+(domain medicalPatient 2 CareOrganization)
+
 (=>
    (instance ?ORG CareOrganization)
    (hasPurpose ?ORG (exists (?PATIENT) (medicalPatient ?PATIENT ?ORG))))
@@ -1733,9 +1739,25 @@ goods exclusively to &%Corporations.")
 
 (subclass RetailStore MercantileOrganization)
 (disjoint RetailStore WholesaleStore)
-(documentation RetailStore "The complement of &%WholesaleStore, i.e. 
+(documentation RetailStore "A &%Store where individuals who are not
+representing an &%Organization purchase items.  This distinguishes
+retail stores from wholesale establishments, where the purchasers
+are businesses or their representatives, as well as mail order or
+office buildings where transactions are facillitated but the consumer
+does not take possession of the item on the premises.  More succinctly,
+the complement of &%WholesaleStore, i.e. 
 &%MercantileOrganizations that sell their goods to the general public.")
-
+                                                    
+(=>
+  (instance ?X RetailStore)
+  (and 
+    (capability Selling located ?X)
+    (exists (?LOC ?EV)
+      (and
+        (instance ?EV Selling)
+        (destination ?EV ?P)
+        (instance ?P Human)))))
+        
 (subclass GroceryStore RetailStore)
 (documentation GroceryStore "A &%RetailStore that sells &%Food, and perhaps 
 other items as well.")
@@ -1763,7 +1785,7 @@ other items as well.")
                         (agent ?SELL ?AGENT)))))
 
 (subclass BargainSale Offering)
-(documentation Sale "&%Offering to sell something to someone at a 
+(documentation BargainSale "&%Offering to sell something to someone at a 
 reduced price.")
 
 (=>
@@ -2041,7 +2063,7 @@ property of the &%Organization.")
 (=>
    (and
       (instance ?UNIT SecurityUnit)
-      (subOrganization (OrganizationFn ?UNIT) ?ORG))
+      (subOrganization ?UNIT ?ORG))
    (holdsObligation (exists (?MAINTAIN)
                        (and
                           (instance ?MAINTAIN Maintaining)
@@ -2141,9 +2163,31 @@ Note that this general class covers petroleum oil, vegetable oil, animal fat, et
          (instance ?WATER Water)
          (part ?OIL ?MIX)))))
 
-(subclass Detergent Mixture)
-(documentation Detergent "Any &%Mixture whose purpose is to remove &%Soil 
-and/or other undesirable substances from the surfaces of objects.")
+(subclass Surfactant Substance)
+
+(documentation Surfactant "Surfactants, also known as wetting agents, 
+lower the surface tension of a &%Liquid, allowing easier spreading.  The 
+term surfactant is a compression of 'Surface active agent'.  Surfactants 
+are usually organic compounds that contain both hydrophobic and 
+hydrophilic groups, and are thus semi-soluble in both organic and aqueous 
+solvents.") 
+
+(subclass Detergent Surfactant)
+
+(documentation Detergent "A detergent is a compound, or a mixture of 
+compounds, whose molecules have two distinct regions: one that is 
+hydrophilic, and dissolves easily in water, and another region that is 
+hydrophobic, with little (if any) affinity for water.  As a consequence, 
+these compounds can aid in the solubilization of hydrophobic compounds in 
+water, and usually are optimized for this property.  Though &%Soap also has 
+these properties, soaps in general are not considered detergents.  &%Soap is 
+a particular type of surfactant that is derived from oils and fats.  They 
+are created through the saponification process whereby the ester linkage 
+in a vegetable oil or fat is hydrolytically cleaved, creating a sodium or 
+potassium salt of a fatty acid (i.e.  soap).  Both detergents and soaps 
+are considered to be surfactants.  Surfactants that are not soaps are 
+considered to be detergents.  Detergents are also commonly known as any 
+cleaning mixture containing surfactants.  (from Wikipedia)") 
 
 (=>
    (instance ?DETERGENT Detergent)
@@ -2731,7 +2775,7 @@ lungs and stomach.")
          (holdsDuring ?TIME (part ?HAIR ?MAMMAL)))))
 
 (subclass HairRemoval Removing)
-(docmentation HairRemoval "&%Removing (some or all) the &%Hair from the 
+(documentation HairRemoval "&%Removing (some or all) the &%Hair from the 
 body of an &%Animal.  Note that this covers shaving hair, cutting hair, 
 pulling hair out by the roots, etc.")
 
@@ -3992,7 +4036,7 @@ where the waves have a wavelength between 5 milimeters and 30,000 meters.")
          (instrument ?BROADCAST ?DEVICE))))
 
 (subclass RadioBroadcasting Broadcasting)
-(documentation RadioBraodcasting "Any instance of &%Broadcasting which is 
+(documentation RadioBroadcasting "Any instance of &%Broadcasting which is 
 intended to be received by a &%Radio.")
 
 (=>
@@ -4000,7 +4044,7 @@ intended to be received by a &%Radio.")
       (capability RadioBroadcasting patient ?RADIO))
 
 (subclass TelevisionBroadcasting Broadcasting)
-(documentation TelevisionBraodcasting "Any instance of &%Broadcasting which 
+(documentation TelevisionBroadcasting "Any instance of &%Broadcasting which 
 is intended to be received by a &%Television.")
 
 (=>
@@ -4777,16 +4821,6 @@ another, where the thing transferred is a &%Liquid.")
          (attribute ?LIQUID Liquid)
          (instance ?LIQUID Substance))))
 
-(subclass WaterMotion LiquidMotion)
-(documentation "Any &%LiquidMotion where the &%Liquid is &%Water.")
-
-(=>
-   (instance ?MOTION WaterMotion)
-   (exists (?WATER)
-      (and
-         (patient ?MOTION ?WATER)
-         (instance ?WATER Water))))
-
 (subclass WaterWave LiquidMotion)
 (documentation WaterWave "A &%WaterWave is a raised ridge of water 
 moving along the surface of a body of water.  The &%WaterWave moves 
@@ -4840,7 +4874,7 @@ else is an &%Animal or a self-powered &%TransportationDevice.")
    (instance ?LAND LandTransportation)
    (exists (?CRAFT ?AREA)
       (and
-         (instance ?CRAFT LandCraft)
+         (instance ?CRAFT LandVehicle)
          (instance ?AREA LandArea)
          (instrument ?LAND ?CRAFT)
          (located ?CRAFT ?AREA))))
@@ -4849,8 +4883,8 @@ else is an &%Animal or a self-powered &%TransportationDevice.")
    (instance ?VEHICLE LandVehicle)
    (capability LandTransportation instrument ?VEHICLE))
 
-(subclass StageCoach Wagon)
-(documentation StageCoach "A &%Wagon that is pulled by &%Horses and whose purpose 
+(subclass StageCoach Trailer)
+(documentation StageCoach "A &%Trailer that is pulled by &%Horses and whose purpose 
 was to transport &%Humans and their luggage from one &%City to the next, especially 
 in areas which did not have an established transportation system, e.g. the old west.")
 
@@ -5265,7 +5299,7 @@ and is partially overlapped by the horizon line.")
          (meetsTemporally ?SATURDAY ?SUNDAY))))
 
 (subclass SeasonOfYear TimeInterval)
-(partition Season WinterSeason SpringSeason SummerSeason FallSeason)
+(partition SeasonOfYear WinterSeason SpringSeason SummerSeason FallSeason)
 (documentation SeasonOfYear "&%SeasonOfYear is the class of four 
 seasons correlated with the calendar &%Year and associated with 
 changes in the length of daylight and with overall temperature 
@@ -6134,7 +6168,7 @@ degree.")
 (=>
    (and
       (or
-         (instance ?ROLE SkilledTrade)
+         (instance ?ROLE OccupationalTrade)
          (instance ?ROLE Profession))
       (attribute ?HUMAN ?ROLE))
    (exists (?FIELD)
@@ -6223,10 +6257,12 @@ the individual, as does &%Psychology.")
 functioning of &%Organisms.")
 
 (subField Physiology Biology)
+(instance Physiology Science)
 (documentation Physiology "The part of &%Biology dealing with the functioning of 
 &%Organisms.")
 
 (subField MedicalScience Biology)
+(instance MedicalScience Science)
 (documentation MedicalScience "The field of medicine.")
 
 (instance Chemistry Science)
