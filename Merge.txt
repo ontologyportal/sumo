@@ -38,8 +38,8 @@
 
 ;; Any questions or comments about this ontology can be directed to the
 ;; Technical editor, Adam Pease, adampease@earthlink.net  
-;; Version date: July, 2004
-;; Version number: 1.71
+;; Version date: November, 2004
+;; Version number: 1.71a 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The SUMO incorporates elements of John Sowa's upper ontology (as described at 
 ;; http://www.bestweb.net/~sowa/ontology/toplevel.htm and in Chapter 2 of his 
@@ -87,11 +87,11 @@
 ;;                             /       |   |       \
 ;;                            +        +   +        +
 ;;             SET/CLASS THEORY   NUMERIC  TEMPORAL  MEREOTOPOLOGY
-;;                                     |        |           |
-;;                                     |        |           |
-;;                                     |        |           |
-;;                                     +        +           +
-;;                                MEASURE   PROCESSES +--+ OBJECTS
+;;                               /     |        |           |
+;;                              /      |        |           |
+;;                             /       |        |           |
+;;                            +        +        +           +
+;;                        GRAPH   MEASURE   PROCESSES +--+ OBJECTS
 ;;                                              +           +
 ;;                                               \         /
 ;;                                                \       /
@@ -509,8 +509,8 @@ For example, (&%contraryAttribute &%Pliable &%Rigid) means that nothing can be b
 
 (=>
    (and
-      (contraryAttribute @ROW)
-      (identicalListItems (ListFn @ROW) (ListFn @ROW2)))
+      (contraryAttribute @ROW1)
+      (identicalListItems (ListFn @ROW1) (ListFn @ROW2)))
    (contraryAttribute @ROW2)) 
 
 (=>
@@ -1053,6 +1053,13 @@ dissolved in water, milk, wood, and concrete. ")
       (not (instance ?SUBSTANCE Mixture)))
    (instance ?SUBSTANCE PureSubstance))
 
+(subclass Solution Mixture) 
+(documentation Solution "A liquid mixture. The most abundant component in 
+a solution is called the solvent. Other components are called solutes. 
+A solution, though homogeneous, may nonetheless have variable composition. 
+Any amount of salt, up to a maximum limit, can be dissolved in a given 
+amount of water.") 
+
 (subclass CorpuscularObject SelfConnectedObject)
 (disjoint CorpuscularObject Substance)
 (documentation CorpuscularObject "A &%SelfConnectedObject whose parts have 
@@ -1166,6 +1173,11 @@ musical content.")
 which are not part of a &%Language and which have some sort of similarity 
 with the &%Objects that they represent.  This &%Class would include symbolic 
 roadway signs, representational art works, photographs, etc.")
+
+(subclass MotionPicture Text)
+(documentation MotionPicture "A &%ContentBearingObject which depicts motion 
+(and which may have an audio or text component as well).  This &%Class covers 
+films, videos, etc.")
 
 (subclass LinguisticExpression ContentBearingObject)
 (disjoint LinguisticExpression Icon)
@@ -4255,6 +4267,428 @@ axiomatic support for it.")
 
 ;; BEGIN FILE
 
+;;;;;;;;;;;;;;;;;;;;;
+;;  GRAPH THEORY   ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+(subclass Graph Abstract)
+(documentation Graph "The &%Class of graphs, where a graph is understood 
+to be a set of &%GraphNodes connected by &%GraphArcs.  Note that this 
+&%Class includes only connected graphs, i.e. graphs in which there is a 
+&%GraphPath between any two &%GraphNodes.  Note too that every &%Graph 
+is assumed to contain at least two &%GraphArcs and three &%GraphNodes.")
+
+(=>
+   (and
+      (instance ?GRAPH Graph)
+      (instance ?NODE1 GraphNode)
+      (instance ?NODE2 GraphNode)
+      (graphPart ?NODE1 ?GRAPH)
+      (graphPart ?NODE2 ?GRAPH)
+      (not (equal ?NODE1 ?NODE2)))
+   (exists (?ARC ?PATH)
+      (or
+         (links ?NODE1 ?NODE2 ?ARC)
+         (and
+            (subGraph ?PATH ?GRAPH)
+            (instance ?PATH GraphPath)
+            (or
+               (and
+                  (equal (BeginNodeFn ?PATH) ?NODE1)
+                  (equal (EndNodeFn ?PATH) ?NODE2))
+               (and
+                  (equal (BeginNodeFn ?PATH) ?NODE2)
+                  (equal (EndNodeFn ?PATH) ?NODE1)))))))
+
+(=>
+   (instance ?GRAPH Graph)
+   (exists (?NODE1 ?NODE2 ?NODE3 ?ARC1 ?ARC2)
+      (and
+         (graphPart ?NODE1 ?GRAPH)
+         (graphPart ?NODE2 ?GRAPH)
+         (graphPart ?NODE3 ?GRAPH)
+         (graphPart ?ARC1 ?GRAPH)
+         (graphPart ?ARC2 ?GRAPH)
+         (links ?ARC1 ?NODE1 ?NODE2)
+         (links ?ARC2 ?NODE2 ?NODE3)
+         (not (equal ?NODE1 ?NODE2))
+         (not (equal ?NODE2 ?NODE3))
+	   (not (equal ?NODE1 ?NODE3))
+         (not (equal ?ARC1 ?ARC2)))))
+
+(subclass DirectedGraph Graph)
+(documentation DirectedGraph "The &%Class of directed graphs.  A 
+directed graph is a &%Graph in which all &%GraphArcs
+have direction, i.e. every &%GraphArc has an initial node (see 
+&%InitialNodeFn) and a terminal node (see &%TerminalNodeFn).")
+
+(=>
+   (and
+      (instance ?GRAPH DirectedGraph)
+      (instance ?ARC GraphArc)
+      (graphPart ?ARC ?GRAPH))
+   (exists (?NODE1 ?NODE2)
+      (and
+         (equal (InitialNodeFn ?ARC) ?NODE1)
+         (equal (TerminalNodeFn ?ARC) ?NODE2))))
+
+(subclass Tree Graph)
+(documentation Tree "A Tree is a &%DirectedGraph that has no 
+&%GraphLoops.")
+
+(=>
+   (instance ?GRAPH Tree)
+   (not (exists (?LOOP)
+      (and
+         (instance ?LOOP GraphLoop)
+         (graphPart ?LOOP ?GRAPH)))))
+
+(subclass GraphPath DirectedGraph)
+(documentation GraphPath "Informally, a single, directed route between 
+two &%GraphNodes in a &%Graph.  Formally, a &%DirectedGraph that is a 
+&%subGraph of the original &%Graph and such that no two &%GraphArcs in 
+the &%DirectedGraph have the same intial node (see &%InitialNodeFn) or 
+the same terminal node (see &%TerminalNodeFn).")
+
+(=>
+   (and
+      (instance ?GRAPH GraphPath)
+      (instance ?ARC GraphArc)
+      (graphPart ?ARC ?GRAPH))
+   (=>
+      (equal (InitialNodeFn ?ARC) ?NODE)
+      (not (exists (?OTHER)
+         (and
+            (equal (InitialNodeFn ?OTHER) ?NODE)
+            (not (equal ?OTHER ?ARC)))))))
+
+(=>
+   (and
+      (instance ?GRAPH GraphPath)
+      (instance ?ARC GraphArc)
+      (graphPart ?ARC ?GRAPH))
+   (=>
+      (equal (TerminalNodeFn ?ARC) ?NODE)
+      (not (exists (?OTHER)
+         (and
+            (equal (TerminalNodeFn ?OTHER) ?NODE)
+            (not (equal ?OTHER ?ARC)))))))
+
+(subclass GraphCircuit GraphPath)
+(documentation GraphCircuit "A &%GraphPath that begins (see 
+&%BeginNodeFn) and ends (see &%EndNodeFn) at the same 
+&%GraphNode.")
+
+(<=>
+   (instance ?GRAPH GraphCircuit)
+   (exists (?NODE)
+      (and
+         (equal (BeginNodeFn ?GRAPH) ?NODE)
+         (equal (EndNodeFn ?GRAPH) ?NODE))))
+
+(subclass MultiGraph Graph)
+(documentation MultiGraph "The &%Class of multigraphs.  A multigraph 
+is a &%Graph containing at least one pair of &%GraphNodes that are 
+connected by more than one &%GraphArc.")
+
+(<=>
+   (instance ?GRAPH MultiGraph)
+   (exists (?ARC1 ?ARC2 ?NODE1 ?NODE2)
+      (and
+         (graphPart ?ARC1 ?GRAPH)
+         (graphPart ?ARC2 ?GRAPH)
+         (graphPart ?NODE1 ?GRAPH)
+         (graphPart ?NODE2 ?GRAPH)
+         (links ?NODE1 ?NODE2 ?ARC1)
+         (links ?NODE1 ?NODE2 ?ARC2)
+         (not (equal ?ARC1 ?ARC2)))))
+
+(subclass PseudoGraph Graph)
+(documentation PseudoGraph "The &%Class of pseudographs.  A pseudograph 
+is a &%Graph containing at least one &%GraphLoop.")
+
+(<=>
+   (instance ?GRAPH PseudoGraph)
+   (exists (?LOOP)
+      (and
+         (instance ?LOOP GraphLoop)
+         (graphPart ?LOOP ?GRAPH))))
+
+(subclass GraphElement Abstract)
+(partition GraphElement GraphNode GraphArc)
+(documentation GraphElement "Noncompositional parts of &%Graphs.  
+These parts are restricted to &%GraphNodes and &%GraphArcs.")
+
+(=>
+   (instance ?PART GraphElement)
+   (exists (?GRAPH)
+      (and
+         (instance ?GRAPH Graph)
+         (graphPart ?PART ?GRAPH))))
+
+(subclass GraphNode GraphElement)
+(documentation GraphNode "&%Graphs are comprised of &%GraphNodes 
+and &%GraphArcs.  Every &%GraphNode is linked by a &%GraphArc.")
+
+(=>
+   (instance ?NODE GraphNode)
+   (exists (?OTHER ?ARC)
+      (links ?NODE ?OTHER ?ARC)))
+
+(subclass GraphArc GraphElement)
+(documentation GraphArc "&%Graphs are comprised of &%GraphNodes 
+and &%GraphArcs.  Every &%GraphArc links two &%GraphNodes.")
+
+(=>
+   (instance ?ARC GraphArc)
+   (exists (?NODE1 ?NODE2)
+      (links ?NODE1 ?NODE2 ?ARC)))
+
+(subclass GraphLoop GraphArc)
+(documentation GraphLoop "A &%GraphArc in which a &%GraphNode is 
+linked to itself.")
+
+(<=>
+   (instance ?LOOP GraphLoop)
+   (exists (?NODE)
+      (links ?NODE ?NODE ?LOOP)))
+
+(=>
+   (and
+      (equal (InitialNodeFn ?ARC) ?NODE)
+      (equal (TerminalNodeFn ?ARC) ?NODE))
+   (instance ?ARC GraphLoop))
+
+(instance links TernaryPredicate)
+(domain links 1 GraphNode)
+(domain links 2 GraphNode)
+(domain links 3 GraphArc)
+(documentation links "a &%TernaryPredicate that specifies the 
+&%GraphArc connecting two &%GraphNodes.")
+
+(=>
+   (links ?NODE1 ?NODE2 ?ARC)
+   (links ?NODE2 ?NODE1 ?ARC))
+
+(instance graphPart BinaryPredicate)
+(instance graphPart AsymmetricRelation)
+(instance graphPart IrreflexiveRelation)
+(domain graphPart 1 GraphElement)
+(domain graphPart 2 Graph)
+(documentation graphPart "A basic relation for &%Graphs and their 
+parts.  (&%graphPart ?PART ?GRAPH) means that ?PART is a &%GraphArc 
+or &%GraphNode of the &%Graph ?GRAPH.")
+
+(instance subGraph BinaryPredicate)
+(instance subGraph ReflexiveRelation)
+(instance subGraph TransitiveRelation)
+(domain subGraph 1 Graph)
+(domain subGraph 2 Graph)
+(documentation subGraph "The relation between two &%Graphs when one 
+&%Graph is a part of the other.  (&%subGraph ?GRAPH1 ?GRAPH2) means 
+that ?GRAPH1 is a part of ?GRAPH2.")
+
+(=>
+   (and
+      (subGraph ?GRAPH1 ?GRAPH2)
+      (graphPart ?ELEMENT ?GRAPH1))
+   (graphPart ?ELEMENT ?GRAPH2))
+
+(instance pathLength BinaryPredicate)
+(instance pathLength AsymmetricRelation)
+(instance pathLength IrreflexiveRelation)
+(domain pathLength 1 GraphPath)
+(domain pathLength 2 PositiveInteger)
+(documentation pathLength "A &%BinaryPredicate that specifies the 
+length (in number of &%GraphNodes) of a &%GraphPath.
+(&%pathLength ?PATH ?NUMBER) means that there are ?NUMBER nodes in 
+the &%GraphPath ?PATH.")
+
+(instance InitialNodeFn UnaryFunction)
+(instance InitialNodeFn PartialValuedRelation)
+(domain InitialNodeFn 1 GraphArc)
+(range InitialNodeFn GraphNode)
+(documentation InitialNodeFn "A &%UnaryFunction that maps a 
+&%GraphArc to the initial node of the &%GraphArc.  Note
+that this is a partial function.  In particular, the function is 
+undefined for &%GraphArcs that are not part of a &%DirectedGraph.")
+
+(instance TerminalNodeFn UnaryFunction)
+(instance TerminalNodeFn PartialValuedRelation)
+(domain TerminalNodeFn 1 GraphArc)
+(range TerminalNodeFn GraphNode)
+(documentation TerminalNodeFn "A &%UnaryFunction that maps a 
+&%GraphArc to the terminal node of the &%GraphArc.  Note that this 
+is a partial function.  In particular, the function is undefined 
+for &%GraphArcs that are not part of a &%DirectedGraph.")
+
+(instance BeginNodeFn UnaryFunction)
+(instance BeginNodeFn TotalValuedRelation)
+(domain BeginNodeFn 1 GraphPath)
+(range BeginNodeFn GraphNode)  
+(relatedInternalConcept BeginNodeFn InitialNodeFn)
+(documentation BeginNodeFn "A &%UnaryFunction that maps a &%GraphPath 
+to the &%GraphNode that is the beginning of the &%GraphPath.  Note that, 
+unlike &%InitialNodeFn (which relates a &%GraphArc to a &%GraphNode),  
+&%BeginNodeFn is a total function - every &%GraphPath has a beginning.")
+
+(instance EndNodeFn UnaryFunction)
+(instance EndNodeFn TotalValuedRelation)
+(domain EndNodeFn 1 GraphPath)
+(range EndNodeFn GraphNode) 
+(relatedInternalConcept EndNodeFn TerminalNodeFn)
+(documentation EndNodeFn "A &%UnaryFunction that maps a &%GraphPath 
+to the &%GraphNode that is the end of the &%GraphPath.  Note that, unlike 
+&%TerminalNodeFn (which relates a &%GraphArc to a &%GraphNode),  
+&%EndNodeFn is a total function - every &%GraphPath has a end.")
+
+(instance arcWeight BinaryPredicate)
+(instance arcWeight SingleValuedRelation)
+(domain arcWeight 1 GraphArc)
+(domain arcWeight 2 RealNumber)
+(documentation arcWeight "This predicate indicates the value of a 
+&%GraphArc in a &%Graph.  This could map to the length of a road in 
+a road network or the flow rate of a pipe in a plumbing system.")
+
+(instance PathWeightFn UnaryFunction)
+(domain PathWeightFn 1 GraphPath)
+(range PathWeightFn RealNumber)
+(documentation PathWeightFn "A &%UnaryFunction that maps a 
+&%GraphPath to the sum of the &%arcWeights on the &%GraphArcs in 
+the &%GraphPath.")
+
+(=>
+   (and
+      (equal (PathWeightFn ?PATH) ?SUM)
+      (subGraph ?SUBPATH ?PATH)
+      (graphPart ?ARC1 ?PATH)
+      (arcWeight ?ARC1 ?NUMBER1)
+      (forall (?ARC2)
+         (=>
+            (graphPart ?ARC2 ?PATH)
+            (or
+               (graphPart ?ARC2 ?SUBPATH)
+               (equal ?ARC2 ?ARC1)))))
+   (equal ?SUM (AdditionFn (PathWeightFn ?SUBPATH) ?NUMBER1)))
+
+(=>
+   (and
+      (equal (PathWeightFn ?PATH) ?SUM)
+      (graphPart ?ARC1 ?PATH)
+      (graphPart ?ARC2 ?PATH)
+      (arcWeight ?ARC1 ?NUMBER1)
+      (arcWeight ?ARC2 ?NUMBER2) 
+      (forall (?ARC3)
+         (=>
+            (graphPart ?ARC3 ?PATH)
+            (or
+               (equal ?ARC3 ?ARC1)
+               (equal ?ARC3 ?ARC2)))))
+   (equal (PathWeightFn ?PATH) (AdditionFn ?NUMBER1 ?NUMBER2)))
+
+(instance MinimalWeightedPathFn BinaryFunction)
+(domain MinimalWeightedPathFn 1 GraphNode)
+(domain MinimalWeightedPathFn 2 GraphNode)
+(range MinimalWeightedPathFn GraphPath)
+(documentation MinimalWeightedPathFn "This &%BinaryFunction assigns two 
+&%GraphNodes to the &%GraphPath with the smallest sum of weighted arcs 
+between the two &%GraphNodes.")
+
+(=>
+   (equal (MinimalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
+   (instance ?PATH (GraphPathFn ?NODE1 ?NODE2)))
+
+(=>
+   (and
+      (equal (MinimalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
+      (equal (PathWeightFn ?PATH) ?NUMBER))
+   (forall (?PATH2)
+      (=>
+         (and
+            (instance ?PATH2 (GraphPathFn ?NODE1 ?NODE2))
+            (equal (PathWeightFn ?PATH2) ?NUMBER2))
+         (greaterThanOrEqualTo ?NUMBER2 ?NUMBER1))))
+
+(instance MaximalWeightedPathFn BinaryFunction)
+(domain MaximalWeightedPathFn 1 GraphNode)
+(domain MaximalWeightedPathFn 2 GraphNode)
+(range MaximalWeightedPathFn GraphPath)
+(documentation MaximalWeightedPathFn "This &%BinaryFunction assigns two 
+&%GraphNodes to the &%GraphPath with the largest sum of weighted arcs 
+between the two &%GraphNodes.")
+
+(=>
+   (equal (MaximalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
+   (instance ?PATH (GraphPathFn ?NODE1 ?NODE2)))
+
+(=>
+   (and
+      (equal (MaximalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
+      (equal (PathWeightFn ?PATH) ?NUMBER))
+   (forall (?PATH2)
+      (=>
+         (and
+            (instance ?PATH2 (GraphPathFn ?NODE1 ?NODE2))
+            (equal (PathWeightFn ?PATH2) ?NUMBER2))
+         (lessThanOrEqualTo ?NUMBER2 ?NUMBER1))))
+
+(instance GraphPathFn BinaryFunction)
+(instance GraphPathFn TotalValuedRelation)
+(domain GraphPathFn 1 GraphNode)
+(domain GraphPathFn 2 GraphNode)
+(rangeSubclass GraphPathFn GraphPath)
+(documentation GraphPathFn "A &%BinaryFunction that maps two &%GraphNodes 
+to the &%Class of &%GraphPaths between those two nodes.  Note that the two 
+&%GraphNodes must belong to the same &%Graph.")
+
+(=>
+   (and
+      (graphPart ?PATH ?GRAPH)
+      (not (instance ?GRAPH DirectedGraph)))
+   (<=>
+      (equal (GraphPathFn ?NODE1 ?NODE2) ?PATH)
+      (equal (GraphPathFn ?NODE2 ?NODE1) ?PATH)))
+
+(instance CutSetFn UnaryFunction)
+(domain CutSetFn 1 Graph)
+(rangeSubclass CutSetFn GraphPath)
+(documentation CutSetFn "A &%UnaryFunction that assigns a &%Graph the 
+&%Class of &%GraphPaths that partition the graph into two separate 
+graphs if cut.  There may be more than one cutset for a given graph.")
+
+(instance MinimalCutSetFn UnaryFunction)
+(domain MinimalCutSetFn 1 Graph)
+(rangeSubclass MinimalCutSetFn GraphPath)
+(relatedInternalConcept MinimalCutSetFn CutSetFn)
+(documentation MinimalCutSetFn "A &%UnaryFunction that assigns a &%Graph 
+the &%Class of &%GraphPaths which comprise cutsets for the &%Graph and 
+which have the least number of &%GraphArcs.")
+
+(=>
+   (instance ?GRAPH Graph)
+   (subclass (MinimalCutSetFn ?GRAPH) (CutSetFn ?GRAPH)))
+
+(=>
+   (equal (MinimalCutSetFn ?GRAPH) ?PATHCLASS)
+   (exists (?NUMBER)
+      (forall (?PATH)
+         (=>
+            (instance ?PATH ?PATHCLASS)
+            (pathLength ?PATH ?NUMBER)))))
+
+(not (exists (?PATH1 ?PATH2)
+   (and
+      (instance ?PATH1 (CutSetFn ?GRAPH))
+      (instance ?PATH2 (MinimalCutSetFn ?GRAPH))
+      (pathLength ?PATH1 ?NUMBER1)
+      (pathLength ?PATH2 ?NUMBER2)
+      (lessThan ?NUMBER1 ?NUMBER2))))
+
+;; END FILE
+
+;; BEGIN FILE
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  UNITS OF MEASURE   ;;
@@ -4568,6 +5002,18 @@ follows: the &%SecondDuration is the duration of 9192631770 periods of
 the radiation corresponding to the transition between the two hyperfine 
 levels of the ground state of the cesium 133 atom.")
 
+;; Electric Current Base Unit
+
+(subclass Ampere FunctionQuantity)
+(instance Ampere SystemeInternationalUnit)
+(documentation Ampere "SI electric current measure.  Symbol: A. It is 
+one of the base units in SI. It is defined as follows: the &%Ampere is 
+that constant current which, if maintained in two straight parallel 
+conductors of infinite length, of negligible circular cross-section, and 
+placed 1 &%Meter apart in a vacuum, would produce between these conductors 
+a force equal to 2*10^(-7) &%Newton per &%Meter of length.") 
+
+
 ;; Thermodynamic Temperature Base Unit
 
 (subclass KelvinDegree TemperatureMeasure)
@@ -4578,6 +5024,30 @@ Kelvin differs from the Celsius scale in that the triple point of water
 is defined to be 273.16 &%KelvinDegrees while it is 0 &%CelsiusDegrees.  
 The magnitudes of intervals in the two scales are the same.  By definition 
 the conversion constant is 273.15.")
+
+;; Amount Of Substance Base Unit
+
+(subclass Mole MassMeasure)
+(instance Mole SystemeInternationalUnit)
+(documentation Mole "SI amount of substance unit. symbol: mol. It is one 
+of the base units in SI. It is defined as follows:  the &%Mole is the 
+amount of substance of a system which contains as many elementary entities 
+as there are atoms in 0.012 &%Kilograms of carbon 12.  Note that, when this 
+&%UnitOfMeasure is used, the elementary entities must be specified - they 
+may be atoms, molecules, ions, electrons, etc. or groups of such 
+particles.")
+
+;; Luminosity Intensity Base Unit
+
+(subclass Candela FunctionQuantity)
+(instance Candela SystemeInternationalUnit)
+(documentation Candela "SI luminosity intensity measure.  Symbol: cd. 
+It is one of the base units in SI, and it is currently defined as 
+follows:  the &%Candela is the luminous intensity, in a given direction, 
+of a source that emits monochromatic radiation of frequency 540*10^12 
+&%Hertz and that has a radiant intensity in that direction of 1/683 
+&%Watt per &%Steradian.")
+
 
 (subclass Liter VolumeMeasure)
 (instance Liter UnitOfMeasure)
@@ -4629,6 +5099,121 @@ m^2/m^2 = 1.")
 number of cycles per second.  &%Hertz = s^(-1).  Note that &%Hertz 
 does not have a conversion function.")
 
+; Force Unit
+
+(subclass Newton FunctionQuantity)
+(instance Newton SystemeInternationalUnit)
+(documentation Newton "SI force measure.  Symbol: N. It is that force 
+which gives to a mass of 1 kilogram an acceleration of 1 &%Meter per 
+&%SecondDuration.  &%Newton = m*kg*s^(-2).")
+
+; Pressure unit
+
+(subclass Pascal FunctionQuantity)
+(instance Pascal SystemeInternationalUnit)
+(documentation Pascal "SI pressure measure.  Symbol:Pa. It is the 
+pressure of one &%Newton per square &%Meter.  &%Pascal = N/m^2 
+= m^(-1)*kg*s^(-2).")
+
+; Energy Unit
+
+(subclass Joule FunctionQuantity)
+(instance Joule SystemeInternationalUnit)
+(documentation Joule "SI energy measure.  Symbol: J.  It is the work 
+done when the point of application of 1 &%Newton is displaced a distance 
+of 1 &%Meter in the direction of the force.  &%Joule = N*m = 
+m^2*kg*s^(-2).")
+
+; Power Units
+
+(subclass Watt FunctionQuantity)
+(instance Watt SystemeInternationalUnit)
+(documentation Watt "SI power measure.  Symbol: W.  A &%UnitOfMeasure 
+that measures power, i.e. energy produced or expended divided by 
+&%TimeDuration. It is the power which gives rise to the production 
+of energy (or work) at the rate of one &%Joule per &%SecondDuration.  
+&%Watt = J/s = m^2*kg*s^(-3).")
+
+;;; Note: According to SI one should not use the expression "per unit of." 
+
+; Electric Charge Units
+
+(subclass Coulomb TimeDependentQuantity)
+(instance Coulomb SystemeInternationalUnit)
+(documentation Coulomb "SI electric charge measure.  Symbol: C. It is 
+the quantity of electric charge transported through a cross section of 
+a conductor in an electric circuit during each &%SecondDuration by a 
+current of 1 &%Ampere.  Coulomb = s*A.")
+
+; Electric Potential Units
+
+(subclass Volt FunctionQuantity)
+(instance Volt SystemeInternationalUnit)
+(documentation Volt "SI electric potential measure.  Symbol: V.  It is 
+the difference of electric potential between two points of a conducting 
+wire carrying a constant current of 1 &%Ampere, when the power dissipated 
+between these points is equal to 1 &%Watt.  &%Volt = W/A = 
+m^2*kg*s^(-3)*A^(-1).")
+
+; Capacitance Units
+
+(subclass Farad FunctionQuantity)
+(instance  Farad SystemeInternationalUnit)
+(documentation Farad "SI capacitance measure.  Symbol: F.  It is the 
+capacitance of a capacitator between the plates of which there appears 
+a difference of potential of 1 &%Volt when it is charged by a quantity 
+of electricity equal to 1 Coulomb.  &%Farad = C/V = 
+m^(-2)*kg(-1)*s^4*A^2.")
+
+;Electric Resistance Units
+
+(subclass Ohm FunctionQuantity)
+(instance Ohm SystemeInternationalUnit)
+(documentation Ohm "SI electric resistance measure. It is the electric
+resistance between two points of a conductor when a constant difference 
+of potential of 1 &%Volt, applied between these two points,
+produces in this conductor a current of 1 &%Ampere, this conductor not
+being the force of any electromotive force.  &%Ohm = V/A = 
+m^2*kg*s^(-3)*A^(-2).")
+
+; Electric Conductance Units
+
+(subclass Siemens FunctionQuantity)
+(instance Siemens SystemeInternationalUnit)
+(documentation Siemens "SI electric conductance measure.  Symbol:  S.  
+In the case of direct current, the conductance in &%Siemens is the 
+reciprocal of the resistance in &%Ohms; in the case of alternating current, 
+it is the reciprocal of the impedance in ohms.  siemens = A/V = 
+m^(-2)*kg(-1)*s^(3)*A^2.")
+
+; Magnetic Flux Units
+
+(subclass Weber FunctionQuantity)
+(instance  Weber SystemeInternationalUnit)
+(documentation Weber "SI magnetic flux measure.  Symbol: Wb. It is the 
+magnetic flux which, linking a circuit of one turn, produces in it an
+electromotive force of 1 &%Volt as it is reduced to zero at a uniform
+rate in 1 &%SecondDuration.  &%Weber = V*s = m^2*kg*s^(-2)*A^(-1)." )
+
+; Magnetic Flux Density Units
+
+(subclass Tesla FunctionQuantity)
+(instance Tesla SystemeInternationalUnit)
+(documentation Tesla "SI magnetic flux density measure.  Symbol:  T.
+One &%Tesla equals one &%Weber per square &%Meter.  &%Tesla = Wb/m^2 = 
+kg*s^(-2)*A^(-1).")
+
+; Inductance Units
+
+(subclass Henry FunctionQuantity)
+(instance Henry SystemeInternationalUnit)
+(documentation Henry "SI inductance measure.  Symbol: H.  One &%Henry 
+is equivalent to one &%Volt divided by one &%Ampere per &%SecondDuration. 
+If a current changing at the rate of one &%Ampere per &%SecondDuration 
+induces an electromotive force of one &%Volt, the circuit has an 
+inductance of one &%Henry.  &%Henry = Wb/A = m^2*kg*s^(-2)*A^(-2).")
+
+
 ; Celsius Temperature unit
 
 (subclass CelsiusDegree TemperatureMeasure)
@@ -4648,6 +5233,63 @@ and the boiling point of water are, respectively, 0 &%CelsiusDegrees and 100
    (equal 
         (MeasureFn ?NUMBER CelsiusDegree)
         (MeasureFn (DivisionFn (SubtractionFn ?NUMBER 32) 1.8) FahrenheitDegree)))
+
+; Luminous Flux Units
+
+(subclass Lumen FunctionQuantity)
+(instance Lumen SystemeInternationalUnit)
+(documentation Lumen "SI luminous flux measure.  Symbol: lm.  It is the 
+amount streaming outward through one solid angle of 1 &%Steradian from a 
+uniform point source having an intensity of one &%Candela.  &%Lumen = 
+cd*sr = cd * 1.")
+
+; Illuminance Units
+
+(subclass Lux FunctionQuantity)
+(instance Lux SystemeInternationalUnit)
+(documentation Lux "SI illuminance measure.  Symbol: lx.  It is the 
+amount of illumination provided when one &%Lumen is evenly distributed 
+over an area of 1 square &%Meter. This is also equivalent to the 
+illumination that would exist on a surface all points of which are one 
+&%Meter from a point source of one &%Candela.  &%Lux = lm/m^2 = 
+m^(-2)*cd.")
+
+; Activity Units
+
+(subclass Becquerel TimeDependentQuantity)
+(instance Becquerel SystemeInternationalUnit)
+(documentation Becquerel "SI activity measure.  Symbol: Bq.  It measures 
+the amount of radioactivity contained in a given sample of matter. It is 
+that quantity of a radioactive element in which there is one atomic 
+disintegration per &%SecondDuration.  &%Becquerel = s^(-1).")
+
+; Absorbed Dose Units
+
+(subclass Gray FunctionQuantity)
+(instance Gray SystemeInternationalUnit)
+(documentation Gray "SI absorbed dose measure.  Symbol: Gy.  It measures 
+the dose of radiation absorbed in living tissue. It is equal approximately 
+to the absorbed dose delivered when the energy per unit mass imparted to
+matter by ionizing radiation is 1 &%Joule per kilogram.  &%Gray = J/kg 
+= m^2*s^(-2).")
+
+; Dose Equivalent Units
+
+(subclass Sievert FunctionQuantity)
+(instance Sievert SystemeInternationalUnit)
+(documentation Sievert "SI dose equivalent measure.  Symbol: Sv.  It is 
+a unit of biologic dose of ionizing radiation.  The &%Sievert makes it 
+possible to normalize doses of different types of radiation. It takes 
+into account the relative biologic effectiveness of ionizing radiation, 
+since each form of such radiation--e.g., X rays, gamma rays, neutrons--
+has a slightly different effect on living tissue for a given absorbed 
+dose. The dose equivalent of a given type of radiation (in &%Sievert) is 
+the dose of the radiation in &%Gray multiplied by a quality factor that 
+is based on the relative biologic effectiveness of the radiation. 
+Accordingly, one &%Sievert is generally defined as the amount of radiation 
+roughly equivalent in biologic effectiveness to one &%Gray of gamma 
+radiation.  &%Sievert = J/kg = m^2*s^(-2)")
+
 
 ; Units that are accepted for -use- with SI
 
@@ -4701,6 +5343,46 @@ and the boiling point of water are, respectively, 0 &%CelsiusDegrees and 100
    (equal
 	(MeasureFn ?NUMBER YearDuration)
 	(MeasureFn (MultiplicationFn ?NUMBER 365) DayDuration)))
+        
+;; What follows are units that are also accepted for use with SI.  The 
+;; SI equivalents for these units are obtained experimentally.
+
+(subclass Amu MassMeasure)
+(instance Amu UnitOfMeasure)
+(documentation Amu "Atomic mass unit.  Symbol: u. It is the mass of 
+the twelfth part of an atom of the Carbon 12 isotope.")
+
+(=>
+   (instance ?NUMBER RealNumber)
+   (equal
+        (MeasureFn ?NUMBER Amu)
+        (MeasureFn (MultiplicationFn ?NUMBER 1.6605402E-24) Gram))) 
+
+(subclass ElectronVolt FunctionQuantity)
+(instance ElectronVolt UnitOfMeasure)
+(documentation ElectronVolt "The &%ElectronVolt is an energy measure.  
+Symbol: eV.  It is the kinetic energy acquired by an electron in passing 
+through a potential difference of 1 &%Volt in a vacuum.")
+
+(=>
+   (instance ?NUMBER RealNumber)
+   (equal
+        (MeasureFn ?NUMBER ElectronVolt)
+        (MeasureFn (MultiplicationFn ?NUMBER 1.60217733E-19) Joule)))
+
+;; The following units have been temporarily accepted for use with 
+;; SI units.
+
+(subclass Angstrom LengthMeasure)
+(instance Angstrom UnitOfMeasure)
+(documentation Angstrom "The &%Angstrom is a &%LengthMeasure. 
+1 &%Angstrom = 10^(-10) m")
+
+(=>
+   (instance ?NUMBER RealNumber)
+   (equal
+        (MeasureFn ?NUMBER Angstrom)
+        (MeasureFn (MultiplicationFn ?NUMBER 1.0E-10) Meter)))
 
 ;; The following units are unacceptable in SI but are part of other 
 ;; systems of measurement that are widely used.
@@ -4741,6 +5423,7 @@ and the boiling point of water are, respectively, 0 &%CelsiusDegrees and 100
 
 (subclass UnitedStatesGallon VolumeMeasure)
 (instance UnitedStatesGallon UnitOfMeasure)
+(relatedInternalConcept UnitedStatesGallon UnitedKingdomGallon)
 (documentation UnitedStatesGallon "Unit of volume commonly used in the 
 United States.")
 
@@ -4794,7 +5477,27 @@ United States.")
         (MeasureFn ?NUMBER Ounce)
         (MeasureFn (DivisionFn ?NUMBER 8) Cup)))
 
+(subclass UnitedKingdomGallon VolumeMeasure)
+(instance UnitedKingdomGallon UnitOfMeasure)
+(documentation UnitedKingdomGallon "Unit of volume commonly used in the 
+United Kingdom.")
+
+(=>
+   (instance ?NUMBER RealNumber)
+   (equal
+        (MeasureFn ?NUMBER UnitedKingdomGallon)
+        (MeasureFn (MultiplicationFn ?NUMBER 4.54609) Liter))) 
+
 ;; More Mass units
+
+(subclass AtomGram MassMeasure)
+(instance AtomGram UnitOfMeasure)
+(documentation AtomGram "&%MassMeasure that is also known as the gram-atom.  
+Defined as the mass in grams of 1 &%Mole of pure substance.  For example, 
+1 &%AtomGram of Carbon 12 will be 12 &%Grams of pure Carbon 12.  2 &%AtomGrams 
+of the same substance will be 24 &%Grams of it.  This is an unusual unit in 
+that it is essentially 1 &%Mole of 'stuff' measured in grams, so that the 
+actual value (i.e. mass) depends on the type of substance.")
 
 (subclass PoundMass MassMeasure)
 (instance PoundMass UnitOfMeasure)
@@ -4805,6 +5508,17 @@ United States.")
    (equal
         (MeasureFn ?NUMBER PoundMass)
         (MeasureFn (MultiplicationFn ?NUMBER 453.59237) Gram)))
+
+(subclass Slug MassMeasure)
+(instance Slug UnitOfMeasure)
+(documentation Slug "English mass unit of slugs.")
+
+(=>
+   (instance ?NUMBER RealNumber)
+   (equal
+        (MeasureFn ?NUMBER Slug)
+        (MeasureFn (MultiplicationFn ?NUMBER 14593.90) Gram)))
+
 
 ;; More Temperature units
 
@@ -4827,15 +5541,45 @@ used in the United States.  On the Fahrenheit scale, the freezing point
 of water is 32 &%FahrenheitDegrees, and the boiling point of water is 
 212 &%FahrenheitDegrees.")
 
+;; More Force units
+
+(subclass PoundForce FunctionQuantity)
+(instance PoundForce UnitOfMeasure)
+(documentation PoundForce "English pound of force. The conversion
+factor depends on the local value of the acceleration of free fall. A
+mean value is used in the conversion axiom associated with this 
+constant.")
+
+(=>
+   (instance ?NUMBER RealNumber)
+   (equal
+        (MeasureFn ?NUMBER PoundForce)
+        (MeasureFn (MultiplicationFn ?NUMBER 4.448222) Newton)))
+
+
 ;; More Energy units
 
 (subclass Calorie FunctionQuantity)
 (instance Calorie UnitOfMeasure)
 (documentation Calorie "A &%Calorie is an energy measure.")
 
+(=>
+   (instance ?NUMBER RealNumber)
+   (equal
+        (MeasureFn ?NUMBER Calorie)
+        (MeasureFn (MultiplicationFn ?NUMBER 4.1868) Joule)))
+
+
 (subclass BritishThermalUnit FunctionQuantity)
 (instance BritishThermalUnit UnitOfMeasure)
 (documentation BritishThermalUnit "An energy measure.")
+
+(=>
+   (instance ?NUMBER RealNumber)
+   (equal
+        (MeasureFn ?NUMBER BritishThermalUnit)
+        (MeasureFn (MultiplicationFn ?NUMBER 1055.05585262) Joule)))
+
 
 ;; More plane angle units
 
@@ -6475,11 +7219,18 @@ and not to ?OBJ2.")
 &%surface an &%Object.")
 
 (subclass Hole Region)
+
 (documentation Hole "A hole is an immaterial body located at the surface 
 of an &%Object.  Since every &%Hole is ontologically dependent on its host 
 (i.e., the object in which it is a hole), being a &%Hole is defined as 
 being a &%hole in something.  Note that two &%Holes may occupy the same 
-region, or part of the same region, without sharing any parts.")
+region, or part of the same region, without sharing any parts.  Any two hosts of a hole have a common proper part that entirely hosts 
+the hole. A common host of two holes hosts all parts of the sum of those holes.
+Any object that includes the host of a hole is a host of that hole, 
+unless its parts also include parts of that very hole. 
+Overlapping holes have overlapping hosts. No hole is atomic. 
+Holes are connected with their hosts. No hole can have a proper part that 
+is externally connected with exactly the same things as the hole itself.")
 
 (<=> 
 	(instance ?HOLE Hole)
@@ -6571,7 +7322,9 @@ when the argument is a hole).")
 
 (instance Fillable ShapeAttribute)
 (documentation Fillable "Something is &%Fillable if it can be filled by 
-something else.  Note that 'filled' here means perfectly filled.")
+something else.  Note that 'filled' here means perfectly filled.
+Something is fillable just in case it is part of a hole; i.e., 
+fillability is an exclusive property of holes and their parts.")
 
 (=>
    (exists (?TIME)
@@ -6615,7 +7368,10 @@ means that ?HOLE is properly (though perhaps incompletely) filled by
 &%properlyFills is the dual of &%completelyFills, and is so 
 related to &%partiallyFills that ?OBJ &%properlyFills ?HOLE just in 
 case ?OBJ &%partiallyFills every part of ?HOLE.  (Thus, every perfect 
-filler is both complete and proper in this sense).")
+filler is both complete and proper in this sense). 
+Every hole is connected with everything with which a proper filler 
+of the hole is connected. Every proper part of a perfect filler of (a part of) a hole properly 
+fills (that part of) that hole.")
 
 (=> 
 	(properlyFills ?OBJ ?HOLE1)
@@ -6629,7 +7385,11 @@ filler is both complete and proper in this sense).")
 (documentation completelyFills "(&%completelyFills ?OBJ ?HOLE) 
 means that some &%part of the &%Object ?OBJ fills the &%Hole ?HOLE.  
 Note that if (&%completelyFills ?OBJ1 ?HOLE) and (&%part 
-?OBJ1 ?OBJ2), then (&%completelyFills ?OBJ2 ?HOLE).")
+?OBJ1 ?OBJ2), then (&%completelyFills ?OBJ2 ?HOLE). 
+A complete filler of (a part of) a hole is connected with everything 
+with which (that part of) the hole itself is connected. 
+A perfect filler of (a part of) a hole completely fills every proper 
+part of (that part of) that hole.")
 
 (=> 
 	(completelyFills ?OBJ1 ?HOLE)
@@ -6646,7 +7406,8 @@ Note that if (&%completelyFills ?OBJ1 ?HOLE) and (&%part
 (relatedInternalConcept fills Fillable)
 (documentation fills "Holes can be filled.  (&%fills ?OBJ ?HOLE) 
 means that the &%Object ?OBJ fills the &%Hole ?HOLE.  Note that 
-&%fills here means perfectly filled.")
+&%fills here means perfectly filled. Perfect fillers and fillable entities have no parts in common (rather, 
+they may occupy the same spatial region).")
 
 (=> 
 	(and 
@@ -6976,6 +7737,29 @@ of the organism being injured, it is a subclass of &%BiologicalProcess.")
          (and
             (instance ?ORGANISM Organism)
             (patient ?INJ ?ORGANISM)))))
+
+(subclass Poisoning Injuring)
+(documentation Poisoning "A &%Poisoning is caused by an external 
+substance.  Since &%Poisoning is not possible without some biologic 
+function which affects the &%Organism being injured, it is a subclass 
+of &%BiologicalProcess.")
+
+(=>
+    (instance ?POISON Poisoning)
+    (exists (?THING)
+        (and
+            (patient ?POISON ?THING)
+            (or
+                (instance ?THING Organism)
+                (instance ?THING AnatomicalStructure)))))
+
+(=>
+    (instance ?POISON Poisoning)
+    (exists (?SUBSTANCE)
+        (and
+		(instance ?SUBSTANCE BiologicallyActiveSubstance)
+            (instrument ?POISON ?SUBSTANCE))))
+
 
 (subclass IntentionalProcess Process)
 (documentation IntentionalProcess "A &%Process that has a specific 
@@ -7405,6 +8189,24 @@ period of time.")
       (holdsDuring (WhenFn ?RUN) (measure ?AGENT (SpeedFn ?LENGTH2 ?TIME))))
    (greaterThan ?LENGTH2 ?LENGTH1))
 
+(subclass Swimming BodyMotion)
+(documentation Swimming "Any deliberate and controlled &%BodyMotion 
+through water that is accomplished by an &%Organism.")
+
+(=>
+   (and
+      (instance ?SWIM Swimming)
+      (agent ?SWIM ?AGENT))
+   (exists (?AREA)
+      (and
+         (instance ?AREA WaterArea)
+         (located ?AGENT ?AREA))))
+
+(subclass Dancing BodyMotion)
+(documentation Dancing "Any &%BodyMotion of &%Humans which is 
+deliberately coordinated with music.")
+
+
 (subclass GeologicalProcess Motion)
 (disjoint GeologicalProcess IntentionalProcess)
 (documentation GeologicalProcess "The class of activities that 
@@ -7609,6 +8411,21 @@ a situation where the &%agent &%grasps the &%patient of the &%Touching.")
    (and
       (holdsDuring (BeginFn (WhenFn ?GRAB)) (not (grasps ?AGENT ?THING)))
       (holdsDuring (EndFn (WhenFn ?GRAB)) (grasps ?AGENT ?THING))))
+
+(subclass Releasing Transfer)
+(documentation Releasing "Any instance of &%Transfer which results in 
+a situation where it is not the case that the &%agent &%grasps something 
+which he/she &%grasps previously.")
+
+(=>
+   (and
+      (instance ?RELEASE Releasing)
+      (agent ?GRAB ?AGENT)
+      (patient ?GRAB ?THING))
+   (and
+      (holdsDuring (BeginFn (WhenFn ?RELEASE)) (grasps ?AGENT ?THING))
+      (holdsDuring (EndFn (WhenFn ?RELEASE)) (not (grasps ?AGENT ?THING)))))
+
 
 (subclass Impacting Touching)
 (documentation Impacting "Any &%Touching where something comes into 
@@ -8206,7 +9023,7 @@ incision in the &%Animal that is the &%patient of the &%TherapeuticProcess.")
       (and
          (instance ?SUBACT Cutting)
          (instance ?ANIMAL Animal)
-         (patient ?ANIMAL ?CUTTING)
+         (patient ?SUBACT ?ANIMAL)
          (subProcess ?SUBACT ?ACT))))
 
 (subclass Damaging InternalChange)
@@ -8496,22 +9313,24 @@ the properties that apply to the surface of an &%Object.")
 
 (subclass Coloring SurfaceChange)
 (documentation Coloring "The &%subclass of &%SurfaceChange where a 
-&%ColorAttribute of the &%patient is altered.")
+&%ColorAttribute of the &%patient is altered.  Note that the change in
+color may apply to just part of the object.")
 
 (=>
    (and
       (instance ?COLORING Coloring)
       (patient ?COLORING ?OBJ))
-   (exists (?PROPERTY)
+   (exists (?PROPERTY ?PART)
       (and
+         (part ?PART ?OBJ)
          (instance ?PROPERTY ColorAttribute)
          (or
             (and
-               (holdsDuring (BeginFn (WhenFn ?ALT)) (attribute ?PART ?PROPERTY))
-               (holdsDuring (EndFn (WhenFn ?ALT)) (not (attribute ?PART ?PROPERTY))))
+               (holdsDuring (BeginFn (WhenFn ?COLORING)) (attribute ?PART ?PROPERTY))
+               (holdsDuring (EndFn (WhenFn ?COLORING)) (not (attribute ?PART ?PROPERTY))))
             (and 
-               (holdsDuring (BeginFn (WhenFn ?ALT)) (not (attribute ?PART ?PROPERTY)))
-               (holdsDuring (EndFn (WhenFn ?ALT)) (attribute ?PART ?PROPERTY)))))))
+               (holdsDuring (BeginFn (WhenFn ?COLORING)) (not (attribute ?PART ?PROPERTY)))
+               (holdsDuring (EndFn (WhenFn ?COLORING)) (attribute ?PART ?PROPERTY)))))))
 
 (subclass ShapeChange InternalChange) 
 (documentation ShapeChange "The &%Process of changing the shape of an &%Object.") 
@@ -8847,6 +9666,19 @@ i.e. is a member of the audience, of the performance event ?DEMO.")
 (subclass Gesture BodyMotion)
 (documentation Gesture "Any &%BodyMotion, e.g. a hand wave, a nod of the 
 head, a smile, which is also an instance of &%Communication.")
+(subclass Advertising Disseminating)
+(documentation Advertising "A &%Disseminating whose purpose is to 
+promote the sale of an &%Object represented in a &%Text or &%Icon 
+(the advertisement).")
+
+(=>
+   (instance ?ADVERT Advertising)
+   (exists (?OBJ)
+      (and
+         (refers ?ADVERT ?OBJ)
+         (hasPurpose ?ADVERT (exists (?SALE) (and (instance ?SALE Selling) (patient ?SALE ?OBJ)))))))
+
+
 
 (subclass Expressing Communication)
 (documentation Expressing "Instances of this &%Class express a state of the &%agent. 
@@ -9202,13 +10034,40 @@ sensing is done by an ocular &%Organ.")
 (documentation Smelling "The &%subclass of &%Perception in which the 
 sensing is done by an olefactory &%Organ.")
 
+(=>
+   (and
+      (instance ?SMELL Smelling)
+      (patient ?SMELL ?OBJ))
+   (exists (?ATTR)
+      (and
+         (instance ?ATTR OlfactoryAttribute)
+         (attribute ?OBJ ?ATTR))))
 (subclass Tasting Perception)
 (documentation Tasting "The &%subclass of &%Perception in which the 
 sensing is done by of an &%Organ which can discriminate various tastes.")
 
+   (and
+      (instance ?TASTE Tasting)
+      (patient ?TASTE ?OBJ))
+   (exists (?ATTR)
+      (and
+         (instance ?ATTR TasteAttribute)
+         (attribute ?OBJ ?ATTR))))
+
+Imaginary Buffer Line
 (subclass Hearing Perception)
 (documentation Hearing "The &%subclass of &%Perception in which the 
 sensing is done by an auditory &%Organ.")
+
+(=>
+   (and
+      (instance ?HEAR Hearing)
+      (patient ?HEAR ?OBJ))
+   (exists (?ATTR)
+      (and
+         (instance ?ATTR SoundAttribute)
+         (attribute ?OBJ ?ATTR))))
+
 
 (subclass Listening Hearing)
 (subclass Listening IntentionalProcess)
@@ -9251,9 +10110,23 @@ and glittering.")
 sound waves are given off or absorbed.  Some examples include creaking, 
 roaring, and whistling.")
 
+(=>
+   (and
+      (instance ?EMIT RadiatingSound)
+      (agent ?EMIT ?SOUND))
+   (exists (?ATTR)
+      (and
+         (instance ?ATTR SoundAttribute)
+         (attribute ?SOUND ?ATTR))))
 (subclass Music RadiatingSound)
 (documentation Music "The &%subclass of &%RadiatingSound where the 
 sound is intended to be melodic and is produced deliberately.")  
+
+(subclass RadiatingElectromagnetic Radiating)
+(documentation RadiatingElectromagnetic "&%RadiatingElectromagnetic 
+is the subclass of &%Radiating processes in which electromagnetic 
+radiation is transmitted or absorbed.")
+
 
 (subclass RadiatingNuclear Radiating)
 (documentation RadiatingNuclear "Releasing atomic energy, i.e. energy from 
@@ -9978,6 +10851,11 @@ in the biologic functioning of the &%Organism.")
 (documentation Protein "A &%Nutrient made up of amino acids joined by 
 peptide bonds.")
 
+(subclass Enzyme Protein)
+(documentation Enzyme "A complex &%Protein that is produced by living 
+cells and which catalyzes specific biochemical reactions. There are six 
+main types of enzymes:  oxidoreductases, transferases, hydrolases, 
+lyases, isomerases, and ligases.")
 (subclass Carbohydrate Nutrient)
 (documentation Carbohydrate "An element of living cells and a source of 
 energy for &%Animals.  This class includes both simple &%Carbohydrates, 
@@ -10070,7 +10948,7 @@ produced by &%Combustion.")
                (part ?WATER ?CLOUD)
                (measure ?WATER ?MEASURE1)
                (measure ?PART ?MEASURE2)
-               (greaterThan ?WATER ?PART))))))
+               (greaterThan ?MEASURE1 ?MEASURE2))))))
 
 (subclass Air GasMixture)
 (documentation Air "&%Air is the gaseous stuff that makes up the 
@@ -10110,6 +10988,25 @@ exclusively by &%Plants.")
       (instance ?PLANT Organism)
       (part ?SUBSTANCE ?PLANT))
    (instance ?PLANT Plant))
+
+(subclass Hormone BodySubstance)
+(subclass Hormone BiologicallyActiveSubstance)
+(documentation Hormone "In &%Animals, a chemical secreted by an 
+endocrine gland whose products are released into the circulating fluid.  
+&%Plant hormones or synthetic hormones which are used only to alter or 
+control various physiologic processes, e.g., reproductive control agents, 
+are assigned to the &%Class &%BiologicallyActiveSubstance. &%Hormones act as 
+chemical messengers and regulate various physiologic processes such as 
+growth, reproduction, metabolism, etc.  They usually fall into two broad 
+categories, viz. steroid hormones and peptide hormones.")
+
+(=>
+   (instance ?HORMONE Hormone)
+   (exists (?PROCESS ?GLAND)
+      (and
+         (instance ?GLAND Gland)
+         (instrument ?PROCESS ?GLAND)
+         (result ?PROCESS ?HORMONE))))
 
 (subclass Blood BodySubstance)
 (documentation Blood "A fluid present in &%Animals that transports 
@@ -10206,7 +11103,7 @@ goiters, etc.")
    (exists (?PROC)
       (and
          (instance ?PROC PathologicProcess)
-         (result ?PROC ?PART))))
+         (result ?PROC ?STRUCTURE))))
 
 (subclass BodyPart AnatomicalStructure)
 (documentation BodyPart "A collection of &%Cells and &%Tissues which 
@@ -10220,7 +11117,7 @@ to small components of complex &%Organs.")
         (and
             (instance ?ORGANISM Organism)
             (temporalPart ?TIME (WhenFn ?ORGANISM))
-            (holdsDuring ?TIME (component ?ANAT ?ORGANISM)))))
+            (holdsDuring ?TIME (component ?PART ?ORGANISM)))))
 
 (=>
    (instance ?PART BodyPart)
@@ -10346,6 +11243,10 @@ systems, e.g. the digestive system or the central nervous system.")
    (instance ?ORGAN Organ)
    (exists (?PURP)
       (hasPurpose ?ORGAN ?PURP)))
+
+(subclass Gland Organ)
+(documentation Gland "An &%Organ that removes &%Substances from the &%Blood, 
+alters them in some way, and then releases them.")
 
 (subclass Tissue BodySubstance)
 (disjointDecomposition Tissue Bone Muscle FatTissue)
@@ -10908,7 +11809,7 @@ where people have a &%home.")
 (=>
    (instance ?RESIDENCE PermanentResidence)
    (exists (?PERSON)
-      (home ?PERSON ?HOTEL)))
+      (home ?PERSON ?RESIDENCE)))
 
 (subclass TemporaryResidence Residence)
 (documentation TemporaryResidence "A &%Residence which is strictly temporary, 
@@ -11903,7 +12804,7 @@ that concern compass directions.")
 		(instance ?DIRECT DirectionalAttribute)
 		(orientation ?OBJ1 ?OBJ2 ?DIRECT)
 		(orientation ?OBJ2 ?OBJ3 ?DIRECT))
-	(between ?OBJ1 ?OBJ2 ?OBJ33))
+	(between ?OBJ1 ?OBJ2 ?OBJ3))
 
 (instance North DirectionalAttribute)
 (contraryAttribute North South East West)
@@ -12039,6 +12940,39 @@ Greenwich Mean Time, and the Western European time zone.  Note that whenever
 a &%TimeZone is not specified, the &%TimePosition is understood to be with 
 respect to the &%CoordinatedUniversalTimeZone.") 
 
+(instance PacificTimeZone TimeZone)
+(documentation PacificTimeZone "A &%TimeZone that covers much of the 
+western part of the United States.")
+
+(=>
+   (equal (RelativeTimeFn ?TIME1 PacificTimeZone) ?TIME2) 
+   (equal ?TIME2 (AdditionFn ?TIME1 8)))
+
+(instance MountainTimeZone TimeZone)
+(documentation MountainTimeZone "A &%TimeZone that covers much of the 
+Rocky Mountain region of the United States.")
+
+(=>
+   (equal (RelativeTimeFn ?TIME1 MountainTimeZone) ?TIME2) 
+   (equal ?TIME2 (AdditionFn ?TIME1 7)))
+
+(instance CentralTimeZone TimeZone)
+(documentation CentralTimeZone "A &%TimeZone that covers much of the 
+midwestern United States.")
+
+(=>
+   (equal (RelativeTimeFn ?TIME1 CentralTimeZone) ?TIME2) 
+   (equal ?TIME2 (AdditionFn ?TIME1 6)))
+
+(instance EasternTimeZone TimeZone)
+(documentation EasternTimeZone "A &%TimeZone that covers much of the 
+eastern United States.")
+
+(=>
+   (equal (RelativeTimeFn ?TIME1 EasternTimeZone) ?TIME2) 
+   (equal ?TIME2 (AdditionFn ?TIME1 5)))
+
+
 (instance RelativeTimeFn BinaryFunction)
 (instance RelativeTimeFn TemporalRelation)
 (instance RelativeTimeFn TotalValuedRelation)
@@ -12048,7 +12982,9 @@ respect to the &%CoordinatedUniversalTimeZone.")
 (documentation RelativeTimeFn "A means of converting &%TimePositions 
 between different &%TimeZones.  (&%RelativeTimeFn ?TIME ?ZONE) 
 denotes the &%TimePosition in &%CoordinatedUniversalTime that is 
-contemporaneous with the &%TimePosition ?TIME in &%TimeZone ?ZONE.")  
+contemporaneous with the &%TimePosition ?TIME in &%TimeZone ?ZONE.
+For example, (&%RelativeTimeFn (&%MeasureFn 14 &%Hour) &%EasternTimeZone) 
+would return the value (&%MeasureFn 19 &%Hour).")  
 
 (subclass SocialRole RelationalAttribute) 
 (documentation SocialRole "The &%Class of all &%Attributes that 
@@ -12224,6 +13160,23 @@ They may be expressed in a written or verbal or gestural manner.")
 (documentation Contract "&%Attribute that applies to &%Propositions where 
 something is promised in return, i.e. a reciprocal promise.") 
 
+(subAttribute PurchaseContract Contract)
+(documentation PurchaseContract "A &%Contract between two &%Agents in 
+which one &%Agent agrees to render the other some good or service in 
+exchange for currency.")
+
+(subAttribute ServiceContract Contract)
+(documentation ServiceContract "A &%Contract where an &%Agent agrees to 
+perform a service for another &%Agent (usually for a price).")
+
+(subAttribute Warranty ServiceContract)
+(documentation Warranty "A &%Contract that states the cirumstances 
+under which defects in the product will be corrected for no charge.  
+A &%Warranty is usually limited to a length of time that is specified 
+in the &%Warranty itself.  A &%Warranty also includes information about 
+what is not covered and actions that invalidate the &%Warranty.")
+
+
 (subAttribute NakedPromise Promise)
 (contraryAttribute NakedPromise Contract)
 (documentation NakedPromise "A &%Promise where nothing is promised in return, 
@@ -12318,6 +13271,48 @@ neither a fixed volume nor a fixed shape.")
 of atomic nuclei stripped of electrons.  That is, a plasma is composed of 
 positive ions and free electrons.  &%Plasma behaves differently enough from 
 &%Gas that it is referred to as the fourth state of matter.") 
+(subclass PerceptualAttribute InternalAttribute)
+(documentation PerceptualAttribute "Any &%Attribute whose presence is detected 
+by an act of &%Perception.")
+
+(=>
+   (and
+      (instance ?PERCEPTION Perception)
+      (patient ?PERCEPTION ?OBJ))
+   (exists (?PROP)
+      (and
+         (instance ?PROP PerceptualAttribute)
+         (attribute ?OBJ ?PROP))))
+
+(subclass TasteAttribute PerceptualAttribute)
+(documentation TasteAttribute "The &%Class of &%Attributes relating to 
+the taste of &%Objects.")
+
+(=>
+   (instance ?OBJ Food)
+   (exists (?ATTR)
+      (and
+         (instance ?ATTR TasteAttribute)
+         (attribute ?OBJ ?ATTR))))
+
+(subclass OlfactoryAttribute PerceptualAttribute)
+(documentation OlfactoryAttribute "The &%Class of properties that are 
+detectable by smell.")
+
+(subclass VisualAttribute PerceptualAttribute)
+(documentation VisualAttribute "The &%Class of visually discernible 
+properties.")
+
+(instance Illuminated VisualAttribute)
+(documentation Illuminated "The &%Attribute of &%Regions that are 
+illuminated to some degree, i.e. in which some shapes are visually 
+discernable.")
+
+(instance Unilluminated VisualAttribute)
+(contraryAttribute Unilluminated Illuminated)
+(documentation Unilluminated "The &%Attribute of &%Regions that are 
+unilluminated, i.e in which no shapes are visually discernable.")
+Imaginary Buffer Line
 
 (subclass ColorAttribute InternalAttribute)
 (documentation ColorAttribute "The &%Class of &%Attributes relating to the 
@@ -12390,6 +13385,23 @@ shape of an &%Object.")
       (attribute ?OBJ ?ATTRIBUTE)
       (surface ?SURFACE ?OBJ))
    (attribute ?SURFACE ?ATTRIBUTE))
+(instance Pliable InternalAttribute)
+(documentation Pliable "The shape of an &%Object with this &%Attribute 
+can easily be altered.")
+
+(=>
+   (exists (?CHANGE)
+      (and
+         (instance ?CHANGE ShapeChange)
+         (patient ?CHANGE ?OBJ)))
+   (attribute ?OBJ Pliable))
+
+(instance Rigid InternalAttribute)
+(contraryAttribute Rigid Pliable)
+(documentation Rigid "The shape of an &%Object with this &%Attribute 
+cannot be altered without breaking.")
+
+Imaginary Buffer Line
 
 (subclass GeometricFigure ShapeAttribute)
 (partition GeometricFigure GeometricPoint OneDimensionalFigure TwoDimensionalFigure ThreeDimensionalFigure)
