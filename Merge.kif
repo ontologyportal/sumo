@@ -1122,17 +1122,28 @@ the &%Collection ?COLL1 is a proper part of the &%Collection ?COLL2.")
             (member ?MEMBER ?COLL1)
             (member ?MEMBER ?COLL2)))))
 
+(subclass ContentBearingPhysical Physical)
+(documentation ContentBearingPhysical "Any &%Object or &%Process that
+expresses content.  This covers &%Objects that contain a &%Proposition,
+such as a book, as well as &%ManualSignLanguage, which may similarly
+contain a &%Proposition.")
+
+(=>
+   (instance ?OBJ ContentBearingPhysical)
+   (exists (?THING)
+      (represents ?OBJ ?THING)))
+      
+(subclass ContentBearingProcess ContentBearingPhysical)
+(documentation ContentBearingProcess "Any &%Process, for example 
+&%ManualHumanLanguage, which may contain a &%Proposition.") 
+                                                      
 (subclass ContentBearingObject CorpuscularObject)
+(subclass ContentBearingObject ContentBearingPhysical)
 (relatedInternalConcept ContentBearingObject containsInformation)
 (documentation ContentBearingObject "Any &%SelfConnectedObject that expresses 
 content.  This content may be a &%Proposition, e.g. when the &%ContentBearingObject 
 is a &%Sentence or &%Text, or it may be a representation of an abstract or 
 physical object, as with an &%Icon, a &%Word or a &%Phrase.")
-
-(=>
-   (instance ?OBJ ContentBearingObject)
-   (exists (?THING)
-      (represents ?OBJ ?THING)))
 
 (subclass SymbolicString ContentBearingObject)
 (documentation SymbolicString "The &%Class of alphanumeric sequences.")
@@ -1153,16 +1164,16 @@ an alphanumeric sequence consisting of a single element.")
 (instance containsInformation BinaryPredicate)
 (instance containsInformation AsymmetricRelation)
 (subrelation containsInformation represents)
-(domain containsInformation 1 ContentBearingObject)
+(domain containsInformation 1 ContentBearingPhysical)
 (domain containsInformation 2 Proposition)
 (documentation containsInformation "A subrelation of &%represents.  This 
-predicate relates a &%ContentBearingObject to the &%Proposition that is 
-expressed by the &%ContentBearingObject. Examples include the relationships 
+predicate relates a &%ContentBearingPhysical to the &%Proposition that is 
+expressed by the &%ContentBearingPhysical. Examples include the relationships 
 between a physical novel and its story and between a printed score and its 
 musical content.")
 
-(subclass Icon ContentBearingObject)
-(documentation Icon "This is the subclass of &%ContentBearingObjects 
+(subclass Icon ContentBearingPhysical)
+(documentation Icon "This is the subclass of &%ContentBearingPhysical 
 which are not part of a &%Language and which have some sort of similarity 
 with the &%Objects that they represent.  This &%Class would include symbolic 
 roadway signs, representational art works, photographs, etc.")
@@ -1172,10 +1183,10 @@ roadway signs, representational art works, photographs, etc.")
 (and which may have an audio or text component as well).  This &%Class covers 
 films, videos, etc.")
 
-(subclass LinguisticExpression ContentBearingObject)
+(subclass LinguisticExpression ContentBearingPhysical)
 (disjoint LinguisticExpression Icon)
 (documentation LinguisticExpression "This is the subclass of 
-&%ContentBearingObjects which are language-related.  Note that this &%Class 
+&%ContentBearingPhysical which are language-related.  Note that this &%Class 
 encompasses both &%Language and the the elements of &%Languages, 
 e.g. &%Words.")
 
@@ -5326,6 +5337,24 @@ radiation.  &%Sievert = J/kg = m^2*s^(-2)")
         (MeasureFn ?NUMBER WeekDuration)
         (MeasureFn (MultiplicationFn ?NUMBER 7) DayDuration)))
 
+(subclass MonthDuration TimeDuration)
+(instance MonthDuration UnitOfMeasure)
+(documentation MonthDuration "Time unit.  A month's duration is at least
+28 days, and no more than 31 days.  Note that this unit is a range, rather
+than an exact amount, unlike most other units.")
+
+(=>
+   (instance ?NUMBER RealNumber)
+   (greaterThanOrEqualTo
+        (MeasureFn ?NUMBER MonthDuration)
+        (MeasureFn (MultiplicationFn ?NUMBER 28) DayDuration)))
+        
+(=>
+   (instance ?NUMBER RealNumber)
+   (lessThanOrEqualTo
+        (MeasureFn ?NUMBER MonthDuration)
+        (MeasureFn (MultiplicationFn ?NUMBER 31) DayDuration)))
+        
 (subclass YearDuration TimeDuration)
 (instance YearDuration UnitOfMeasure)
 (documentation YearDuration "Time unit. one calendar year. 1 year =
@@ -8237,6 +8266,16 @@ liquid or frozen state.")
       (instance ?MOTION LiquidMotion)
       (patient ?MOTION ?OBJ))
    (attribute ?OBJ Liquid))
+   
+(subclass WaterMotion LiquidMotion)
+(documentation WaterMotion "Any &%LiquidMotion where the &%Liquid is &%Water.")
+
+(=>
+   (instance ?MOTION WaterMotion)
+   (exists (?WATER)
+      (and
+         (patient ?MOTION ?WATER)
+         (instance ?WATER Water))))
 
 (subclass GasMotion Motion)
 (documentation GasMotion "Any &%Motion where the &%patient is a 
@@ -8467,6 +8506,19 @@ not necessary; &%Ambulating is a kind of &%Translocation.")
 			(not (equal ?PLACE1 ?PLACE2))
 			(subProcess ?STAGE ?MOVEMENT)
 			(located ?STAGE ?PLACE2))))
+
+(subclass Falling Translocation)
+
+(documentation Falling "&%Falling is the class of events in 
+which something moves from a higher location to a lower location 
+under the force of gravity.")
+
+(=>
+	(and
+		(instance ?DROP Falling)
+		(origin ?DROP ?START)
+		(destination ?DROP ?FINISH))
+	(orientation ?FINISH ?START Below))
 
 (subclass Transportation Translocation)
 (relatedInternalConcept Transportation TransportationDevice)
@@ -9614,6 +9666,7 @@ examples.")
          (true ?PROP True))))
 
 (subclass Communication SocialInteraction)
+(subclass Communication ContentBearingProcess)
 (partition Communication Stating Supposing Directing Committing Expressing Declaring)
 (relatedInternalConcept Communication ContentDevelopment)
 (documentation Communication "A &%SocialInteraction that involves 
@@ -9727,6 +9780,26 @@ For example, John claimed that the moon is made of green cheese.")
       (patient ?STATE ?FORMULA)
       (instance ?FORMULA Formula))
    (holdsDuring (WhenFn ?STATE) (believes ?AGENT ?FORMULA)))
+
+(subclass Disagreeing Stating)
+(documentation Disagreeing "A &%Stating in which two &%Agents have
+contradictory statements.  This is distinguished from &%Arguing in
+that the statement in dispute may be a simple assertion, rather than
+a chain of deduction, and that two entities must be disagreeing with
+each other, whereas a single entity may craft an argument for a given
+point of view, without the need for another agent to disagree with.")
+(=>
+  (instance ?DIS Disagreeing)
+  (exists (?A1 ?A2 ?STATE1 ?STATE2 ?STMT1 ?STMT2)
+    (and
+      (subProcess ?STATE1 ?DIS)
+      (subProcess ?STATE2 ?DIS)
+      (agent ?STATE1 ?A1)
+      (agent ?STATE2 ?A2)
+      (containsInformation ?STATE1 ?STMT1)
+      (containsInformation ?STATE2 ?STMT2)
+      (not
+        (consistent ?STMT1 ?STMT2)))))
 
 (subclass Supposing LinguisticCommunication)
 (documentation Supposing "Instances of this &%Class suppose, for the sake of 
@@ -10075,6 +10148,26 @@ sensing is done by an auditory &%Organ.")
          (attribute ?OBJ ?ATTR))))
 
 
+(subclass SoundAttribute RelationalAttribute)
+(documentation SoundAttribute "The volume of sound relative to a listener.")
+(instance Audible SoundAttribute)
+(documentation Audible "A sound level capable of being heard by a &%Human.")
+(=>
+  (and
+    (instance ?SOUND RadiatingSound)
+    (agent ?SOUND ?OBJ)
+    (attribute ?SOUND Audible))
+  (exists (?HUMAN)
+    (and
+      (instance ?HUMAN Human)
+      (capability 
+        (KappaFn ?HEAR
+          (and
+            (instance ?HEAR Hearing)
+            (agent ?HEAR ?HUMAN)
+            (destination ?HEAR ?HUMAN)
+            (origin ?HEAR ?OBJ))) agent ?HUMAN))))
+            
 (subclass Listening Hearing)
 (subclass Listening IntentionalProcess)
 (documentation Listening "Any instance of &%Hearing which is intentional.")
@@ -11732,8 +11825,7 @@ linked by a chemical bond.")
          (result ?MAKING ?ARTIFACT))))
 
 (subclass Product Artifact)
-(documentation Product "An &%Artifact that is produced by &%Manufacture and 
-that is intended to be sold.")
+(documentation Product "An &%Artifact that is produced by &%Manufacture.")
 
 (=>
    (instance ?PRODUCT Product)
@@ -13141,6 +13233,49 @@ necessary, i.e. true in every possible world.")
    (modalAttribute ?FORMULA Necessity)
    (modalAttribute ?FORMULA Possibility))
 
+(instance holdsRight BinaryPredicate)
+(instance holdsRight AsymmetricRelation)
+(domain holdsRight 1 Formula)
+(domain holdsRight 2 CognitiveAgent)
+(documentation holdsRight "Expresses a relationship between a &%Formula 
+and a &%CognitiveAgent whereby the &%CognitiveAgent has the right to 
+bring it about that the &%Formula is true.")
+
+(instance confersRight TernaryPredicate)
+(domain confersRight 1 Formula)
+(domain confersRight 2 Entity)
+(domain confersRight 3 CognitiveAgent)
+(documentation confersRight "Expresses the relationship between a &%Formula, 
+an &%Entity, and a &%CognitiveAgent when the &%Entity authorizes the 
+&%CognitiveAgent to bring it about that the &%Formula is true.")
+
+(=>
+   (confersRight ?FORMULA ?AGENT1 ?AGENT2)
+   (holdsRight ?FORMULA ?AGENT2))
+
+(instance holdsObligation BinaryPredicate)
+(instance holdsObligation AsymmetricRelation)
+(domain holdsObligation 1 Formula)
+(domain holdsObligation 2 CognitiveAgent)
+(relatedInternalConcept holdsObligation holdsRight)
+(documentation holdsObligation "Expresses a relationship between a 
+&%Formula and a &%CognitiveAgent whereby the &%CognitiveAgent has 
+the obligation to bring it about that the &%Formula is true.")
+
+(instance confersObligation TernaryPredicate)
+(domain confersObligation 1 Formula)
+(domain confersObligation 2 Entity)
+(domain confersObligation 3 CognitiveAgent)
+(relatedInternalConcept confersObligation confersRight)
+(documentation confersObligation "Expresses the relationship between a 
+a &%Formula, an &%Entity, and a &%CognitiveAgent when the &%Entity 
+obligates the &%CognitiveAgent to bring it about that the &%Formula is 
+true.")
+
+(=>
+   (confersObligation ?FORMULA ?AGENT1 ?AGENT2)
+   (holdsObligation ?FORMULA ?AGENT2))
+   
 (subclass DeonticAttribute ObjectiveNorm)
 (documentation DeonticAttribute "A &%Class containing all of the &%Attributes 
 relating to the notions of permission, obligation, and prohibition.")
