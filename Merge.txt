@@ -8,6 +8,39 @@
 ;; the basis of various knowledge engineering projects and input from the SUO 
 ;; Working Group.
 
+;; The SUMO is freely available, subject to the following IEEE license.  
+;; The Chair notes that prior permission from the Manager has already been granted 
+;; for third parties to download and use the SUMO.
+
+;; Copyright © 2004 by the Institute of Electrical and Electronics Engineers, Inc.
+;; Three Park Avenue
+;; New York, NY 10016-5997, USA
+;; All rights reserved.
+
+;; This document is an unapproved draft of a proposed IEEE Standard Working Group 
+;; procedure. As such, this document is subject to change. USE AT YOUR OWN RISK! 
+;; Because this is an unapproved draft, this document must not be utilized for any 
+;; conformance/compliance purposes. Permission is hereby granted for IEEE Standards 
+;; Committee participants to reproduce this document for purposes of IEEE standardization
+;; activities only. Prior to submitting this document to another standards development 
+;; organization for standardization activities, permission must first be obtained from 
+;; the Manager, Standards Licensing and Contracts, IEEE Standards Activities Department.
+;; Other entities seeking permission to reproduce this document, in whole or in part, 
+;; must obtain permission from the Manager, Standards Licensing and Contracts, 
+;; IEEE Standards Activities Department
+
+;; IEEE Standards Activities Department
+;; Standards Licensing and Contracts
+;; 445 Hoes Lane, P.O. Box 1331
+;; Piscataway, NJ 08855-1331, USA
+
+;; The SUMO was initially developed at Teknowledge Corp.
+
+;; Any questions or comments about this ontology can be directed to the
+;; Technical editor, Adam Pease, adampease@earthlink.net  
+;; Version date: July, 2004
+;; Version number: 1.71
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The SUMO incorporates elements of John Sowa's upper ontology (as described at 
 ;; http://www.bestweb.net/~sowa/ontology/toplevel.htm and in Chapter 2 of his 
 ;; book _Knowledge Representation_, Brooks/Cole, 2000), Russell and Norvig's 
@@ -39,7 +72,7 @@
 ;; header, and the dependencies between the subontologies are specified with 
 ;; statements of the form ";; INCLUDES '<SUBONTOLOGY>'".  These statements are 
 ;; found at the beginning of each section.  The dependencies between the 
-;; various subontologies can also be graphed informally as follows:
+;; various subontologies can also be graphed as follows:
 ;;
 ;;                             STRUCTURAL ONTOLOGY
 ;;                                      +
@@ -54,11 +87,11 @@
 ;;                             /       |   |       \
 ;;                            +        +   +        +
 ;;             SET/CLASS THEORY   NUMERIC  TEMPORAL  MEREOTOPOLOGY
-;;                               /     |        |           |
-;;                              /      |        |           |
-;;                             /       |        |           |
-;;                            +        +        +           +
-;;                        GRAPH   MEASURE   PROCESSES +--+ OBJECTS
+;;                                     |        |           |
+;;                                     |        |           |
+;;                                     |        |           |
+;;                                     +        +           +
+;;                                MEASURE   PROCESSES +--+ OBJECTS
 ;;                                              +           +
 ;;                                               \         /
 ;;                                                \       /
@@ -73,6 +106,12 @@
 ;; bidirectional.  Separating ontologies in cases like these is useful when 
 ;; their respective topics can be cleanly differentiated.
 
+;; We ask the people using or referencing SUMO cite our primary paper:
+
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
+;; Proceedings of the 2nd International Conference on Formal Ontology in 
+;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
+;; Ogunquit, Maine, October 17-19, 2001.  
 
 ;; BEGIN FILE
 
@@ -99,14 +138,15 @@ assumption in the meaning of &%instance about specificity or uniqueness.")
 (instance immediateInstance AsymmetricRelation)
 (instance immediateInstance IntransitiveRelation)
 (documentation immediateInstance "An object is an &%immediateInstance of 
-a &%SetOrClass if it is an instance of the &%SetOrClass and there does not exist a 
-subclass of &%SetOrClass such that it is an instance of the subclass.")
+a &%SetOrClass if it is an instance of the &%SetOrClass and it is not an 
+instance of a proper subclass of &%SetOrClass.")
 
 (=>
    (immediateInstance ?ENTITY ?CLASS)
    (not (exists (?SUBCLASS)
       (and
          (subclass ?SUBCLASS ?CLASS)
+         (not (equal ?SUBCLASS ?CLASS))
          (instance ?ENTITY ?SUBCLASS)))))
                  
 (instance inverse BinaryPredicate)
@@ -468,6 +508,12 @@ For example, (&%contraryAttribute &%Pliable &%Rigid) means that nothing can be b
       (instance ?ELEMENT Attribute)))
 
 (=>
+   (and
+      (contraryAttribute @ROW)
+      (identicalListItems (ListFn @ROW) (ListFn @ROW2)))
+   (contraryAttribute @ROW2)) 
+
+(=>
    (contraryAttribute @ROW)
    (forall (?ATTR1 ?ATTR2)
       (=>
@@ -485,8 +531,8 @@ For example, (&%contraryAttribute &%Pliable &%Rigid) means that nothing can be b
 (documentation exhaustiveAttribute "This predicate relates a &%Class to a 
 set of &%Attributes, and it means that the elements of this set exhaust the 
 instances of the &%Class.  For example, (&%exhaustiveAttribute &%PhysicalState 
-&%Solid &%Liquid &%Gas) means that there are only three instances of the class 
-&%PhysicalState, viz. &%Solid, &%Liquid, and &%Gas.")
+&%Solid &%Fluid &%Liquid &%Gas) means that there are only three instances of 
+the class &%PhysicalState, viz. &%Solid, &%Fluid, &%Liquid, and &%Gas.")
 
 (=>
    (exhaustiveAttribute ?CLASS @ROW)
@@ -496,7 +542,7 @@ instances of the &%Class.  For example, (&%exhaustiveAttribute &%PhysicalState
 
 (=>
    (exhaustiveAttribute ?CLASS @ROW)
-   (forall (?OBJ)
+   (forall (?ATTR1)
       (=>
          (instance ?ATTR1 ?CLASS)
          (exists (?ATTR2)
@@ -509,10 +555,10 @@ instances of the &%Class.  For example, (&%exhaustiveAttribute &%PhysicalState
 (domain exhaustiveDecomposition 1 Class)
 (relatedInternalConcept exhaustiveDecomposition partition)
 (documentation exhaustiveDecomposition "An &%exhaustiveDecomposition of a 
-&%Class C is a set of subclasses of C such that every subclass of C either 
-is an element of the set or is a subclass of an element of the set.  Note: 
-this does not necessarily mean that the elements of the set are disjoint 
-(see &%partition - a &%partition is a disjoint exhaustive decomposition.)")
+&%Class C is a set of subclasses of C such that every instance of C is an 
+instance of one of the subclasses in the set.  Note:  this does not necessarily 
+mean that the elements of the set are disjoint (see &%partition - a &%partition 
+is a disjoint exhaustive decomposition).")
 
 (=>
    (exhaustiveDecomposition @ROW)
@@ -638,48 +684,7 @@ that there is a chain of &%successorAttribute assertions connecting
    (successorAttribute ?ATTR1 ?ATTR2)
    (successorAttributeClosure ?ATTR1 ?ATTR2))
 
-(instance and VariableArityRelation)
-(instance and LogicalOperator)
-(domain and 1 Formula)
-(domain and 2 Formula)
-(documentation and "The truth-functional connective of conjunction.")
-
-(instance or VariableArityRelation)
-(instance or LogicalOperator)
-(domain or 1 Formula)
-(domain or 2 Formula)
-(documentation or "The truth-functional connective of disjunction.")
-
-(instance => BinaryPredicate)
-(instance => LogicalOperator)
-(domain => 1 Formula)
-(domain => 2 Formula)
-(documentation => "The truth-functional connective of implication.")
-
-(instance <=> BinaryPredicate)
-(instance <=> LogicalOperator)
-(domain <=> 1 Formula)
-(domain <=> 2 Formula)
-(documentation <=> "The truth-functional connective of bi-implication.")
-
-(instance not LogicalOperator)
-(domain not 1 Formula)
-(documentation not "The truth-functional connective of negation.")
-
-(instance forall BinaryPredicate)
-(instance forall LogicalOperator)
-(domain forall 1 List)
-(domain forall 2 Formula)
-(documentation forall "The universal quantifier of predicate logic.")
-
-(instance exists BinaryPredicate)
-(instance exists LogicalOperator)
-(domain exists 1 List)
-(domain exists 2 Formula)
-(documentation exists "The existential quantifier of predicate logic.")
-
 (instance entails BinaryPredicate)
-(instance entails LogicalOperator)
 (domain entails 1 Formula)
 (domain entails 2 Formula)
 (documentation entails "The operator of logical entailment.  (&%entails 
@@ -697,10 +702,10 @@ by means of the proof theory of SUO-KIF.")
 (instance AssignmentFn VariableArityRelation)
 (domain AssignmentFn 1 Function)
 (range AssignmentFn Entity)
-(documentation AssignmentFn "If F is a function with a value for the 
-objects denoted by N1,..., NK, then the term (AssignmentFn F N1 ... NK) 
-denotes the value of applying F to the objects denoted by N1,..., NK.  
-Otherwise, the value is undefined.")
+(documentation AssignmentFn "If F is a &%Function with a value for the 
+objects denoted by N1,..., NK, then (&%AssignmentFn F N1 ... NK) is the 
+value of applying F to the objects denoted by N1,..., NK.  Otherwise, 
+the value is undefined.")
 
 (instance holds Predicate)
 (instance holds VariableArityRelation)
@@ -844,7 +849,7 @@ of the &%Object ?WHOLE.  Note that, since &%part is a
 (domain piece 2 Substance)
 (documentation piece "A specialized common sense notion of part for 
 arbitrary parts of &%Substances.  Quasi-synonyms are: chunk, hunk, bit, 
-etc.  Compare &%component, the other subrelation of &%part.")
+etc.  Compare &%component, another subrelation of &%part.")
 
 (=>
    (piece ?SUBSTANCE1 ?SUBSTANCE2)
@@ -892,6 +897,8 @@ a space (i.e. a &%Hole) which is at least partially filled by ?OBJ2.")
          (properlyFills ?OBJ2 ?HOLE))))
 
 (subclass Substance SelfConnectedObject)
+(partition Substance PureSubstance Mixture)
+(partition Substance SyntheticSubstance NaturalSubstance)
 (documentation Substance "An &%Object in which every part is similar to 
 every other in every relevant respect.  More precisely, something is a 
 &%Substance when it has only arbitrary pieces as parts - any parts have 
@@ -913,6 +920,22 @@ to another.  An example would be a body of water.")
       (attribute ?OBJ ?ATTR)
       (part ?PART ?OBJ))
    (attribute ?PART ?ATTR))
+
+(subclass SyntheticSubstance Substance)
+(documentation SyntheticSubstance "Any &%Substance that is the result of an 
+&%IntentionalProcess, i.e. any substance that is created by &%Humans.")
+
+(<=>
+   (instance ?SUBSTANCE SyntheticSubstance)
+   (exists (?PROCESS)
+      (and
+         (instance ?PROCESS IntentionalProcess)
+         (result ?PROCESS ?SUBSTANCE)
+         (instance ?SUBSTANCE Substance))))
+
+(subclass NaturalSubstance Substance)
+(documentation NaturalSubstance "Any &%Substance that is not the result of 
+an &%IntentionalProcess, i.e. any substance that occurs naturally.")
 
 (subclass PureSubstance Substance) 
 (partition PureSubstance CompoundSubstance ElementalSubstance) 
@@ -1030,13 +1053,6 @@ dissolved in water, milk, wood, and concrete. ")
       (not (instance ?SUBSTANCE Mixture)))
    (instance ?SUBSTANCE PureSubstance))
 
-(subclass Solution Mixture) 
-(documentation Solution "A liquid mixture. The most abundant component in 
-a solution is called the solvent. Other components are called solutes. 
-A solution, though homogeneous, may nonetheless have variable composition. 
-Any amount of salt, up to a maximum limit, can be dissolved in a given 
-amount of water.") 
-
 (subclass CorpuscularObject SelfConnectedObject)
 (disjoint CorpuscularObject Substance)
 (documentation CorpuscularObject "A &%SelfConnectedObject whose parts have 
@@ -1109,7 +1125,14 @@ the &%Collection ?COLL1 is a proper part of the &%Collection ?COLL2.")
 (subclass ContentBearingObject CorpuscularObject)
 (relatedInternalConcept ContentBearingObject containsInformation)
 (documentation ContentBearingObject "Any &%SelfConnectedObject that expresses 
-information.")
+content.  This content may be a &%Proposition, e.g. when the &%ContentBearingObject 
+is a &%Sentence or &%Text, or it may be a representation of an abstract or 
+physical object, as with an &%Icon, a &%Word or a &%Phrase.")
+
+(=>
+   (instance ?OBJ ContentBearingObject)
+   (exists (?THING)
+      (represents ?OBJ ?THING)))
 
 (subclass SymbolicString ContentBearingObject)
 (documentation SymbolicString "The &%Class of alphanumeric sequences.")
@@ -1143,11 +1166,6 @@ musical content.")
 which are not part of a &%Language and which have some sort of similarity 
 with the &%Objects that they represent.  This &%Class would include symbolic 
 roadway signs, representational art works, photographs, etc.")
-
-(subclass MotionPicture Text)
-(documentation MotionPicture "A &%ContentBearingObject which depicts motion 
-(and which may have an audio or text component as well).  This &%Class covers 
-films, videos, etc.")
 
 (subclass LinguisticExpression ContentBearingObject)
 (disjoint LinguisticExpression Icon)
@@ -1278,10 +1296,14 @@ chimpanzees, gorillas, dolphins, whales, and some extraterrestrials
 (instance leader BinaryPredicate)
 (instance leader AsymmetricRelation)
 (instance leader SingleValuedRelation)
-(domain leader 2 Agent)
-(domain leader 1 CognitiveAgent)
-(documentation leader "(&%leader ?ORGANIZATION ?PERSON)
-means that the leader of ?ORGANIZATION is ?PERSON.")
+(domain leader 1 Agent)
+(domain leader 2 Human)
+(documentation leader "(&%leader ?INSTITUTION ?PERSON)
+means that the leader of ?INSTITUTION is ?PERSON.")
+
+(=>
+	(leader ?X ?Y)
+	(attribute ?Y Living))
 
 (subclass Process Physical)
 (documentation Process "Intuitively, the class of things that happen 
@@ -1307,7 +1329,7 @@ nonidentical &%patients.")
          (not (equal ?OBJ1 ?OBJ2)))))
     
 (subclass Abstract Entity)
-(disjointDecomposition Abstract Quantity Attribute SetOrClass Relation Proposition Graph GraphElement)
+(disjointDecomposition Abstract Quantity Attribute SetOrClass Relation Proposition)
 (documentation Abstract "Properties or qualities as distinguished from any 
 particular embodiment of the properties/qualities in a physical medium.  
 Instances of Abstract can be said to exist in the same sense as mathematical 
@@ -1339,7 +1361,7 @@ reify into subclasses of &%Object.")
 (domain property 1 Entity)
 (domain property 2 Attribute)
 (documentation property "This &%Predicate holds between an instance of 
-&%Entity and an instance of &%Attribute.  (property ?ENTITY ?ATTR) 
+&%Entity and an instance of &%Attribute.  (&%property ?ENTITY ?ATTR) 
 means that ?ENTITY has the &%Attribute ?ATTR.")
 
 (instance attribute AsymmetricRelation)
@@ -1630,39 +1652,26 @@ point-like and not interval-like.  That is, it doesn't make sense to talk
 about how long a &%TimePoint lasts.")
 
 (subclass FunctionQuantity PhysicalQuantity)
-(subclass FunctionQuantity Function)
-(documentation FunctionQuantity "A &%FunctionQuantity is a &%Function that 
-maps from one or more instances of &%ConstantQuantity to another instance 
-of &%ConstantQuantity.  For example, the velocity of a particle would be 
-represented by a &%FunctionQuantity mapping values of time (which are 
-&%ConstantQuantities) to values of distance (also &%ConstantQuantities).  
-Note that all instances of &%FunctionQuantity are &%Functions with a fixed 
-arity.  Note too that all elements of the range of a &%FunctionQuantity 
-have the same physical dimension as the &%FunctionQuantity itself.")
+(documentation FunctionQuantity "A &%FunctionQuantity is a &%PhysicalQuantity 
+that is returned by a &%Function that maps from one or more instances of 
+&%ConstantQuantity to another instance of &%ConstantQuantity.  For example, 
+the velocity of a particle would be represented by a &%FunctionQuantity 
+relating values of time (which are &%ConstantQuantities) to values of distance 
+(also &%ConstantQuantities).  Note that all elements of the range of the 
+&%Function corresponding to a &%FunctionQuantity have the same physical 
+dimension as the &%FunctionQuantity itself.")
 
 (subclass UnaryConstantFunctionQuantity FunctionQuantity)
-(subclass UnaryConstantFunctionQuantity UnaryFunction)
-(documentation UnaryConstantFunctionQuantity "The class of &%UnaryFunctions 
-that map from the &%Class &%ConstantQuantity to the &%Class 
-&%ConstantQuantity.")
-
-(=>
-   (instance ?FUNCTION UnaryConstantFunctionQuantity)
-   (and
-      (domain ?FUNCTION 1 ConstantQuantity)
-      (range ?FUNCTION ConstantQuantity)))
+(documentation UnaryConstantFunctionQuantity "The class of &%FunctionQuantities 
+that are returned by &%UnaryFunctions that map from the &%Class &%ConstantQuantity 
+to the &%Class &%ConstantQuantity.")
 
 (subclass TimeDependentQuantity UnaryConstantFunctionQuantity)
-(subclass TimeDependentQuantity ContinuousFunction)
-(documentation TimeDependentQuantity "A &%UnaryConstantFunction of continuous 
-time.  All instances of this &%Class map a time quantity into another 
-&%ConstantQuantity such as temperature.  For example, 'the temperature at 
-the top of the Empire State Building' is a &%TimeDependentQuantity since 
-its value depends on the time.")
-
-(=>
-   (instance ?FUNCTION TimeDependentQuantity)
-   (domain ?FUNCTION 1 TimeMeasure))
+(documentation TimeDependentQuantity "A &%UnaryConstantFunctionQuantity of 
+continuous time.  All instances of this &%Class are returned by &%Functions 
+that map a time quantity into another &%ConstantQuantity such as temperature.  
+For example, 'the temperature at the top of the Empire State Building' is a 
+&%TimeDependentQuantity since its value depends on the time.")
 
 (subclass SetOrClass Abstract)
 (partition SetOrClass Set Class)
@@ -1926,10 +1935,8 @@ substance in a burning process, or the water that falls in rain.")
 (domain agent 2 Agent)
 (documentation agent "(&%agent ?PROCESS ?AGENT) means that ?AGENT is 
 an active determinant, either animate or inanimate, of the &%Process 
-?PROCESS, with or without voluntary intention.  For example, water is 
-the &%agent of erosion in the following proposition:  the water 
-eroded the coastline.  For another example, Eve is an &%agent in the 
-following proposition: Eve bit an apple.")
+?PROCESS, with or without voluntary intention.  For example, Eve is an 
+&%agent in the following proposition: Eve bit an apple.")
 
 (=>
    (instance ?PROCESS Process)
@@ -2171,11 +2178,12 @@ scope of interest of ?AGENT.  Note that the interest indicated can be
 either positive or negative, i.e. the ?AGENT can have an interest in 
 avoiding or promoting ?ENTITY.")
 
-(=>
-   (and
-      (instance ?PROCESS IntentionalProcess)
-      (agent ?PROCESS ?AGENT)
-      (patient ?PROCESS ?OBJECT))
+(<=>
+   (exists (?PROCESS)
+      (and
+         (instance ?PROCESS IntentionalProcess)
+         (agent ?PROCESS ?AGENT)
+         (patient ?PROCESS ?OBJECT)))
    (inScopeOfInterest ?AGENT ?OBJECT))
 
 (instance needs ObjectAttitude)
@@ -2536,6 +2544,18 @@ which (&%ListOrderFn ?LIST1 ?NUMBER) is defined.")
 
 (initialList (ListFn @ROW) (ListFn @ROW ?ITEM))
 
+(instance identicalListItems BinaryPredicate)
+(instance identicalListItems EquivalenceRelation)
+(domain identicalListItems 1 List)
+(domain identicalListItems 2 List)
+(documentation identicalListItems "(&%identicalListItems ?LIST1 ?LIST2) means that ?LIST1 and ?LIST2 have exactly the same items in their respective lists.  Although ?LIST1 and ?LIST2 are required to share exactly the same items, they may order these items differently.")
+
+(=>
+   (identicalListItems ?LIST1 ?LIST2)
+   (<=>
+      (inList ?ITEM ?LIST1)
+      (inList ?ITEM ?LIST2)))
+
 (subclass Predicate Relation)
 (instance Predicate InheritableRelation)
 (documentation Predicate "A &%Predicate is a sentence-forming &%Relation.  
@@ -2661,10 +2681,6 @@ exactly four arguments.")
 (documentation ContinuousFunction "&%Functions which are continuous.  
 This concept is taken as primitive until representations for limits 
 are devised.")
-
-(subclass LogicalOperator Predicate)
-(documentation LogicalOperator "This &%Class currently comprises all 
-of the logical operators (viz. 'and', 'or', 'not', '=>', and '<=>').")
 
 (subclass BinaryPredicate Predicate)
 (subclass BinaryPredicate BinaryRelation)
@@ -2912,7 +2928,7 @@ for all ?INST1, ?INST2, and ?INST3.")
 (relatedInternalConcept causes causesSubclass)
 (documentation causes "The causation relation between instances of &%Process.  
 (&%causes ?PROCESS1 ?PROCESS2) means that the instance of &%Process ?PROCESS1 
-brings about the instance of &%Process ?PROCESS2, e.g. (&%causes &%Killing &%Death).")
+brings about the instance of &%Process ?PROCESS2.")
 
 (=>
    (instance ?PROC1 Process)
@@ -2925,7 +2941,8 @@ brings about the instance of &%Process ?PROCESS2, e.g. (&%causes &%Killing &%Dea
 (domainSubclass causesSubclass 2 Process)
 (documentation causesSubclass "The causation relation between subclasses of &%Process.  
 (&%causesSubclass ?PROCESS1 ?PROCESS2) means that the subclass of &%Process ?PROCESS1 
-brings about the subclass of &%Process ?PROCESS2, e.g. (&%causes &%Killing &%Death).")
+brings about the subclass of &%Process ?PROCESS2, e.g. (&%causesSubclass &%Killing 
+&%Death).")
 
 (=>
    (causesSubclass ?PROC1 ?PROC2)
@@ -2958,11 +2975,15 @@ location.")
 (instance time AsymmetricRelation)
 (domain time 1 Physical)
 (domain time 2 TimePosition)
+(relatedInternalConcept time located)
+(relatedInternalConcept time holdsDuring)
 (documentation time "This relation holds between an instance of 
 &%Physical and an instance of &%TimePosition just in case the temporal 
-lifespan of the former includes the latter.  The constants &%located 
-and &%time are the basic spatial and temporal predicates, 
-respectively.")
+lifespan of the former includes the latter.  In other words, (&%time
+?THING ?TIME) means that ?THING existed or occurred at ?TIME.  Note 
+that &%time does for instances of &%Physical what &%holdsDuring does 
+for instances of &%Formula.  The constants &%located and &%time are 
+the basic spatial and temporal predicates, respectively.")
 
 (instance holdsDuring BinaryPredicate)
 (instance holdsDuring AsymmetricRelation)
@@ -3060,48 +3081,34 @@ demonstrated to some measurable degree.")
    (hasSkill ?PROC ?AGENT)
    (capability ?PROC agent ?AGENT))
 
-(instance holdsRight BinaryPredicate)
-(instance holdsRight AsymmetricRelation)
-(domain holdsRight 1 Formula)
-(domain holdsRight 2 CognitiveAgent)
-(documentation holdsRight "Expresses a relationship between a &%Formula 
-and a &%CognitiveAgent whereby the &%CognitiveAgent has the right to 
-bring it about that the &%Formula is true.")
-
-(instance confersRight TernaryPredicate)
-(domain confersRight 1 Formula)
-(domain confersRight 2 Entity)
-(domain confersRight 3 CognitiveAgent)
-(documentation confersRight "Expresses the relationship between a &%Formula, 
-an &%Entity, and a &%CognitiveAgent when the &%Entity authorizes the 
-&%CognitiveAgent to bring it about that the &%Formula is true.")
+(instance confersNorm TernaryPredicate)
+(domain confersNorm 1 Entity)
+(domain confersNorm 2 Formula)
+(domain confersNorm 3 ObjectiveNorm)
+(documentation confersNorm "Expresses the relationship between a &%Formula, 
+an &%Entity, and an &%ObjectiveNorm when the &%Entity brings it about that 
+the &%Formula has the &%ObjectiveNorm.")
 
 (=>
-   (confersRight ?FORMULA ?AGENT1 ?AGENT2)
-   (holdsRight ?FORMULA ?AGENT2))
+   (holdsDuring ?TIME (confersNorm ?ENTITY ?FORMULA ?NORM))
+   (and
+      (holdsDuring (ImmediatePastFn ?TIME) (not (modalAttribute ?FORMULA ?NORM)))
+      (holdsDuring (ImmediateFutureFn ?TIME) (modalAttribute ?FORMULA ?NORM))))
 
-(instance holdsObligation BinaryPredicate)
-(instance holdsObligation AsymmetricRelation)
-(domain holdsObligation 1 Formula)
-(domain holdsObligation 2 CognitiveAgent)
-(relatedInternalConcept holdsObligation holdsRight)
-(documentation holdsObligation "Expresses a relationship between a 
-&%Formula and a &%CognitiveAgent whereby the &%CognitiveAgent has 
-the obligation to bring it about that the &%Formula is true.")
-
-(instance confersObligation TernaryPredicate)
-(domain confersObligation 1 Formula)
-(domain confersObligation 2 Entity)
-(domain confersObligation 3 CognitiveAgent)
-(relatedInternalConcept confersObligation confersRight)
-(documentation confersObligation "Expresses the relationship between a 
-a &%Formula, an &%Entity, and a &%CognitiveAgent when the &%Entity 
-obligates the &%CognitiveAgent to bring it about that the &%Formula is 
-true.")
+(instance deprivesNorm TernaryPredicate)
+(disjointRelation deprivesNorm confersNorm)
+(domain deprivesNorm 1 Entity)
+(domain deprivesNorm 2 Formula)
+(domain deprivesNorm 3 ObjectiveNorm)
+(documentation deprivesNorm "Expresses the relationship between an 
+&%Entity, a &%Formula, and an &%ObjectiveNorm when the &%Entity 
+brings it about that the &%Formula does not have the &%ObjectiveNorm.") 
 
 (=>
-   (confersObligation ?FORMULA ?AGENT1 ?AGENT2)
-   (holdsObligation ?FORMULA ?AGENT2))
+   (holdsDuring ?TIME (deprivesNorm ?ENTITY ?FORMULA ?NORM))
+   (and
+      (holdsDuring (ImmediatePastFn ?TIME) (modalAttribute ?FORMULA ?NORM))
+      (holdsDuring (ImmediateFutureFn ?TIME) (not (modalAttribute ?FORMULA ?NORM)))))
 
 (instance partlyLocated SpatialRelation)
 (instance partlyLocated AntisymmetricRelation)
@@ -3175,6 +3182,7 @@ spatially located between ?OBJ1 and ?OBJ3.  Note that this implies that
 ?OBJ2 is directly between ?OBJ1 and ?OBJ3, i.e. the projections of ?OBJ1 
 and ?OBJ3 overlap with ?OBJ2.")
 
+(instance traverses BinaryPredicate)
 (instance traverses SpatialRelation)
 (domain traverses 1 Object)
 (domain traverses 2 Object)
@@ -3228,7 +3236,7 @@ an &%Object when the &%Agent has ownership of the &%Object.")
 
 (=>
    (possesses ?PERSON ?OBJ)
-   (holdsRight (uses ?OBJ ?PERSON) ?PERSON))
+   (modalAttribute (uses ?OBJ ?PERSON) Permission))
 
 (=>
    (and
@@ -3241,7 +3249,8 @@ an &%Object when the &%Agent has ownership of the &%Object.")
 (instance PropertyFn TotalValuedRelation)
 (domain PropertyFn 1 Agent)
 (range PropertyFn Set)
-(documentation PropertyFn "A &%UnaryFunction that maps an &%Agent to the &%Set of &%Property owned by the &%Agent.")
+(documentation PropertyFn "A &%UnaryFunction that maps an &%Agent to the 
+&%Set of &%Objects owned by the &%Agent.")
 
 (<=> 
    (instance ?OBJ (PropertyFn ?PERSON))
@@ -3299,7 +3308,7 @@ of &%Processes, not between instances.")
          (not (holdsDuring ?TIME (exists (?INST2) (and (instance ?INST2 ?PROC2) (located ?INST2 ?PLACE))))))))
 
 (instance refers BinaryPredicate)
-(domain refers 1 Physical)
+(domain refers 1 Entity)
 (domain refers 2 Entity)
 (documentation refers "(&%refers ?OBJ1 ?OBJ2) means that ?OBJ1 
 mentions or includes a reference to ?OBJ2. Note that &%refers is 
@@ -3336,13 +3345,12 @@ represent something else only if it refers to this other thing.  See the
 documentation string for &%names.") 
 
 (instance representsForAgent TernaryPredicate)
-(domain representsForAgent 1 Physical)
+(domain representsForAgent 1 Entity)
 (domain representsForAgent 2 Entity)
 (domain representsForAgent 3 Agent)
 (documentation representsForAgent "A very general predicate.  
-(&%representsForAgent ?THING ?ENTITY ?AGENT) means that the ?AGENT 
-chooses to use the &%instance of &%Physical ?THING to 'stand for' 
-?ENTITY.")
+(&%representsForAgent ?ENTITY1 ?ENTITY2 ?AGENT) means that the ?AGENT 
+chooses to use ?ENTITY1 to 'stand for' ?ENTITY2.")
 
 (=>
    (representsForAgent ?REP ?ENTITY ?AGENT)
@@ -3475,7 +3483,8 @@ reading of a poem.")
 (domain expressedInLanguage 1 LinguisticExpression)
 (domain expressedInLanguage 2 Language)
 (documentation expressedInLanguage "(&%expressedInLanguage ?EXPRESS ?LANG) 
-means that ?EXPRESS is expressed in &%Language ?LANG.")
+means that the &%LinguisticExpression ?EXPRESS is part of the &%Language 
+?LANG.")
 
 (<=> 
 	(expressedInLanguage ?EXPRESS ?LANGUAGE) 
@@ -3589,8 +3598,9 @@ exception occurs when ?NUMBER1 is equal to 0, in which case
 (range DivisionFn Quantity)
 (documentation DivisionFn "If ?NUMBER1 and ?NUMBER2 are &%Numbers, then 
 (&%DivisionFn ?NUMBER1 ?NUMBER2) is the result of dividing ?NUMBER1 by 
-?NUMBER2.  An exception occurs when ?NUMBER1 = 1, in which case 
-(&%DivisionFn ?NUMBER1 ?NUMBER2) is the reciprocal of ?NUMBER2.")
+?NUMBER2.  Note that when ?NUMBER1 = 1 (&%DivisionFn ?NUMBER1 ?NUMBER2) 
+is the reciprocal of ?NUMBER2.  Note too that (&%DivisionFn ?NUMBER1 
+?NUMBER2) is undefined when ?NUMBER2 = 0.")
 
 (=>
    (instance ?NUMBER RationalNumber)
@@ -3949,7 +3959,7 @@ square root of ?NUMBER.")
    (equal (MultiplicationFn ?NUMBER2 ?NUMBER2) ?NUMBER1))
 
 (instance TangentFn UnaryFunction)
-(instance TangenFn TotalValuedRelation)
+(instance TangentFn TotalValuedRelation)
 (domain TangentFn 1 PlaneAngleMeasure)
 (range TangentFn RealNumber)
 (documentation TangentFn "(&%TangentFn ?DEGREE) is the tangent of the 
@@ -4100,7 +4110,7 @@ of two &%SetOrClasses just in case it is an &%instance of either &%SetOrClass.")
 (domain IntersectionFn 2 SetOrClass)
 (range IntersectionFn SetOrClass)
 (documentation IntersectionFn "A &%BinaryFunction that maps two 
-%SetOrClasses to the intersection of these &%SetOrClasses.  An object is 
+&%SetOrClasses to the intersection of these &%SetOrClasses.  An object is 
 an instance of the intersection of two &%SetOrClasses just in case it is 
 an instance of both of those &%SetOrClasses.")
 
@@ -4149,7 +4159,8 @@ instances of the original &%SetOrClass.")
 (domain CardinalityFn 1 (UnionFn SetOrClass Collection))
 (range CardinalityFn Number)
 (documentation CardinalityFn "(CardinalityFn ?CLASS) returns the 
-number of instances in the &%SetOrClass or &%Collection ?CLASS.")
+number of instances in the &%SetOrClass ?CLASS or the number of 
+members in the ?CLASS &%Collection.")
 
 (subclass NullSet SetOrClass)
 (documentation NullSet "Any &%SetOrClass that contains no instances.")
@@ -4239,428 +4250,6 @@ axiomatic support for it.")
 ;;				 <formula>))))
 ;;
 
-
-;; END FILE
-
-;; BEGIN FILE
-
-
-;;;;;;;;;;;;;;;;;;;;;
-;;  GRAPH THEORY   ;;
-;;;;;;;;;;;;;;;;;;;;;
-
-(subclass Graph Abstract)
-(documentation Graph "The &%Class of graphs, where a graph is understood 
-to be a set of &%GraphNodes connected by &%GraphArcs.  Note that this 
-&%Class includes only connected graphs, i.e. graphs in which there is a 
-&%GraphPath between any two &%GraphNodes.  Note too that every &%Graph 
-is assumed to contain at least two &%GraphArcs and three &%GraphNodes.")
-
-(=>
-   (and
-      (instance ?GRAPH Graph)
-      (instance ?NODE1 GraphNode)
-      (instance ?NODE2 GraphNode)
-      (graphPart ?NODE1 ?GRAPH)
-      (graphPart ?NODE2 ?GRAPH)
-      (not (equal ?NODE1 ?NODE2)))
-   (exists (?ARC ?PATH)
-      (or
-         (links ?NODE1 ?NODE2 ?ARC)
-         (and
-            (subGraph ?PATH ?GRAPH)
-            (instance ?PATH GraphPath)
-            (or
-               (and
-                  (equal (BeginNodeFn ?PATH) ?NODE1)
-                  (equal (EndNodeFn ?PATH) ?NODE2))
-               (and
-                  (equal (BeginNodeFn ?PATH) ?NODE2)
-                  (equal (EndNodeFn ?PATH) ?NODE1)))))))
-
-(=>
-   (instance ?GRAPH Graph)
-   (exists (?NODE1 ?NODE2 ?NODE3 ?ARC1 ?ARC2)
-      (and
-         (graphPart ?NODE1 ?GRAPH)
-         (graphPart ?NODE2 ?GRAPH)
-         (graphPart ?NODE3 ?GRAPH)
-         (graphPart ?ARC1 ?GRAPH)
-         (graphPart ?ARC2 ?GRAPH)
-         (links ?ARC1 ?NODE1 ?NODE2)
-         (links ?ARC2 ?NODE2 ?NODE3)
-         (not (equal ?NODE1 ?NODE2))
-         (not (equal ?NODE2 ?NODE3))
-	   (not (equal ?NODE1 ?NODE3))
-         (not (equal ?ARC1 ?ARC2)))))
-
-(subclass DirectedGraph Graph)
-(documentation DirectedGraph "The &%Class of directed graphs.  A 
-directed graph is a &%Graph in which all &%GraphArcs
-have direction, i.e. every &%GraphArc has an initial node (see 
-&%InitialNodeFn) and a terminal node (see &%TerminalNodeFn).")
-
-(=>
-   (and
-      (instance ?GRAPH DirectedGraph)
-      (instance ?ARC GraphArc)
-      (graphPart ?ARC ?GRAPH))
-   (exists (?NODE1 ?NODE2)
-      (and
-         (equal (InitialNodeFn ?ARC) ?NODE1)
-         (equal (TerminalNodeFn ?ARC) ?NODE2))))
-
-(subclass Tree Graph)
-(documentation Tree "A Tree is a &%DirectedGraph that has no 
-&%GraphLoops.")
-
-(=>
-   (instance ?GRAPH Tree)
-   (not (exists (?LOOP)
-      (and
-         (instance ?LOOP GraphLoop)
-         (graphPart ?LOOP ?GRAPH)))))
-
-(subclass GraphPath DirectedGraph)
-(documentation GraphPath "Informally, a single, directed route between 
-two &%GraphNodes in a &%Graph.  Formally, a &%DirectedGraph that is a 
-&%subGraph of the original &%Graph and such that no two &%GraphArcs in 
-the &%DirectedGraph have the same intial node (see &%InitialNodeFn) or 
-the same terminal node (see &%TerminalNodeFn).")
-
-(=>
-   (and
-      (instance ?GRAPH GraphPath)
-      (instance ?ARC GraphArc)
-      (graphPart ?ARC ?GRAPH))
-   (=>
-      (equal (InitialNodeFn ?ARC) ?NODE)
-      (not (exists (?OTHER)
-         (and
-            (equal (InitialNodeFn ?OTHER) ?NODE)
-            (not (equal ?OTHER ?ARC)))))))
-
-(=>
-   (and
-      (instance ?GRAPH GraphPath)
-      (instance ?ARC GraphArc)
-      (graphPart ?ARC ?GRAPH))
-   (=>
-      (equal (TerminalNodeFn ?ARC) ?NODE)
-      (not (exists (?OTHER)
-         (and
-            (equal (TerminalNodeFn ?OTHER) ?NODE)
-            (not (equal ?OTHER ?ARC)))))))
-
-(subclass GraphCircuit GraphPath)
-(documentation GraphCircuit "A &%GraphPath that begins (see 
-&%BeginNodeFn) and ends (see &%EndNodeFn) at the same 
-&%GraphNode.")
-
-(<=>
-   (instance ?GRAPH GraphCircuit)
-   (exists (?NODE)
-      (and
-         (equal (BeginNodeFn ?GRAPH) ?NODE)
-         (equal (EndNodeFn ?GRAPH) ?NODE))))
-
-(subclass MultiGraph Graph)
-(documentation MultiGraph "The &%Class of multigraphs.  A multigraph 
-is a &%Graph containing at least one pair of &%GraphNodes that are 
-connected by more than one &%GraphArc.")
-
-(<=>
-   (instance ?GRAPH MultiGraph)
-   (exists (?ARC1 ?ARC2 ?NODE1 ?NODE2)
-      (and
-         (graphPart ?ARC1 ?GRAPH)
-         (graphPart ?ARC2 ?GRAPH)
-         (graphPart ?NODE1 ?GRAPH)
-         (graphPart ?NODE2 ?GRAPH)
-         (links ?NODE1 ?NODE2 ?ARC1)
-         (links ?NODE1 ?NODE2 ?ARC2)
-         (not (equal ?ARC1 ?ARC2)))))
-
-(subclass PseudoGraph Graph)
-(documentation PseudoGraph "The &%Class of pseudographs.  A pseudograph 
-is a &%Graph containing at least one &%GraphLoop.")
-
-(<=>
-   (instance ?GRAPH PseudoGraph)
-   (exists (?LOOP)
-      (and
-         (instance ?LOOP GraphLoop)
-         (graphPart ?LOOP ?GRAPH))))
-
-(subclass GraphElement Abstract)
-(partition GraphElement GraphNode GraphArc)
-(documentation GraphElement "Noncompositional parts of &%Graphs.  
-These parts are restricted to &%GraphNodes and &%GraphArcs.")
-
-(=>
-   (instance ?PART GraphElement)
-   (exists (?GRAPH)
-      (and
-         (instance ?GRAPH Graph)
-         (graphPart ?PART ?GRAPH))))
-
-(subclass GraphNode GraphElement)
-(documentation GraphNode "&%Graphs are comprised of &%GraphNodes 
-and &%GraphArcs.  Every &%GraphNode is linked by a &%GraphArc.")
-
-(=>
-   (instance ?NODE GraphNode)
-   (exists (?OTHER ?ARC)
-      (links ?NODE ?OTHER ?ARC)))
-
-(subclass GraphArc GraphElement)
-(documentation GraphArc "&%Graphs are comprised of &%GraphNodes 
-and &%GraphArcs.  Every &%GraphArc links two &%GraphNodes.")
-
-(=>
-   (instance ?ARC GraphArc)
-   (exists (?NODE1 ?NODE2)
-      (links ?NODE1 ?NODE2 ?ARC)))
-
-(subclass GraphLoop GraphArc)
-(documentation GraphLoop "A &%GraphArc in which a &%GraphNode is 
-linked to itself.")
-
-(<=>
-   (instance ?LOOP GraphLoop)
-   (exists (?NODE)
-      (links ?NODE ?NODE ?LOOP)))
-
-(=>
-   (and
-      (equal (InitialNodeFn ?ARC) ?NODE)
-      (equal (TerminalNodeFn ?ARC) ?NODE))
-   (instance ?ARC GraphLoop))
-
-(instance links TernaryPredicate)
-(domain links 1 GraphNode)
-(domain links 2 GraphNode)
-(domain links 3 GraphArc)
-(documentation links "a &%TernaryPredicate that specifies the 
-&%GraphArc connecting two &%GraphNodes.")
-
-(=>
-   (links ?NODE1 ?NODE2 ?ARC)
-   (links ?NODE2 ?NODE1 ?ARC))
-
-(instance graphPart BinaryPredicate)
-(instance graphPart AsymmetricRelation)
-(instance graphPart IrreflexiveRelation)
-(domain graphPart 1 GraphElement)
-(domain graphPart 2 Graph)
-(documentation graphPart "A basic relation for &%Graphs and their 
-parts.  (&%graphPart ?PART ?GRAPH) means that ?PART is a &%GraphArc 
-or &%GraphNode of the &%Graph ?GRAPH.")
-
-(instance subGraph BinaryPredicate)
-(instance subGraph ReflexiveRelation)
-(instance subGraph TransitiveRelation)
-(domain subGraph 1 Graph)
-(domain subGraph 2 Graph)
-(documentation subGraph "The relation between two &%Graphs when one 
-&%Graph is a part of the other.  (&%subGraph ?GRAPH1 ?GRAPH2) means 
-that ?GRAPH1 is a part of ?GRAPH2.")
-
-(=>
-   (and
-      (subGraph ?GRAPH1 ?GRAPH2)
-      (graphPart ?ELEMENT ?GRAPH1))
-   (graphPart ?ELEMENT ?GRAPH2))
-
-(instance pathLength BinaryPredicate)
-(instance pathLength AsymmetricRelation)
-(instance pathLength IrreflexiveRelation)
-(domain pathLength 1 GraphPath)
-(domain pathLength 2 PositiveInteger)
-(documentation pathLength "A &%BinaryPredicate that specifies the 
-length (in number of &%GraphNodes) of a &%GraphPath.
-(&%pathLength ?PATH ?NUMBER) means that there are ?NUMBER nodes in 
-the &%GraphPath ?PATH.")
-
-(instance InitialNodeFn UnaryFunction)
-(instance InitialNodeFn PartialValuedRelation)
-(domain InitialNodeFn 1 GraphArc)
-(range InitialNodeFn GraphNode)
-(documentation InitialNodeFn "A &%UnaryFunction that maps a 
-&%GraphArc to the initial node of the &%GraphArc.  Note
-that this is a partial function.  In particular, the function is 
-undefined for &%GraphArcs that are not part of a &%DirectedGraph.")
-
-(instance TerminalNodeFn UnaryFunction)
-(instance TerminalNodeFn PartialValuedRelation)
-(domain TerminalNodeFn 1 GraphArc)
-(range TerminalNodeFn GraphNode)
-(documentation TerminalNodeFn "A &%UnaryFunction that maps a 
-&%GraphArc to the terminal node of the &%GraphArc.  Note that this 
-is a partial function.  In particular, the function is undefined 
-for &%GraphArcs that are not part of a &%DirectedGraph.")
-
-(instance BeginNodeFn UnaryFunction)
-(instance BeginNodeFn TotalValuedRelation)
-(domain BeginNodeFn 1 GraphPath)
-(range BeginNodeFn GraphNode)  
-(relatedInternalConcept BeginNodeFn InitialNodeFn)
-(documentation BeginNodeFn "A &%UnaryFunction that maps a &%GraphPath 
-to the &%GraphNode that is the beginning of the &%GraphPath.  Note that, 
-unlike &%InitialNodeFn (which relates a &%GraphArc to a &%GraphNode),  
-&%BeginNodeFn is a total function - every &%GraphPath has a beginning.")
-
-(instance EndNodeFn UnaryFunction)
-(instance EndNodeFn TotalValuedRelation)
-(domain EndNodeFn 1 GraphPath)
-(range EndNodeFn GraphNode) 
-(relatedInternalConcept EndNodeFn TerminalNodeFn)
-(documentation EndNodeFn "A &%UnaryFunction that maps a &%GraphPath 
-to the &%GraphNode that is the end of the &%GraphPath.  Note that, unlike 
-&%TerminalNodeFn (which relates a &%GraphArc to a &%GraphNode),  
-&%EndNodeFn is a total function - every &%GraphPath has a end.")
-
-(instance arcWeight BinaryPredicate)
-(instance arcWeight SingleValuedRelation)
-(domain arcWeight 1 GraphArc)
-(domain arcWeight 2 RealNumber)
-(documentation arcWeight "This predicate indicates the value of a 
-&%GraphArc in a &%Graph.  This could map to the length of a road in 
-a road network or the flow rate of a pipe in a plumbing system.")
-
-(instance PathWeightFn UnaryFunction)
-(domain PathWeightFn 1 GraphPath)
-(range PathWeightFn RealNumber)
-(documentation PathWeightFn "A &%UnaryFunction that maps a 
-&%GraphPath to the sum of the &%arcWeights on the &%GraphArcs in 
-the &%GraphPath.")
-
-(=>
-   (and
-      (equal (PathWeightFn ?PATH) ?SUM)
-      (subGraph ?SUBPATH ?PATH)
-      (graphPart ?ARC1 ?PATH)
-      (arcWeight ?ARC1 ?NUMBER1)
-      (forall (?ARC2)
-         (=>
-            (graphPart ?ARC2 ?PATH)
-            (or
-               (graphPart ?ARC2 ?SUBPATH)
-               (equal ?ARC2 ?ARC1)))))
-   (equal ?SUM (AdditionFn (PathWeightFn ?SUBPATH) ?NUMBER1)))
-
-(=>
-   (and
-      (equal (PathWeightFn ?PATH) ?SUM)
-      (graphPart ?ARC1 ?PATH)
-      (graphPart ?ARC2 ?PATH)
-      (arcWeight ?ARC1 ?NUMBER1)
-      (arcWeight ?ARC2 ?NUMBER2) 
-      (forall (?ARC3)
-         (=>
-            (graphPart ?ARC3 ?PATH)
-            (or
-               (equal ?ARC3 ?ARC1)
-               (equal ?ARC3 ?ARC2)))))
-   (equal (PathWeightFn ?PATH) (AdditionFn ?NUMBER1 ?NUMBER2)))
-
-(instance MinimalWeightedPathFn BinaryFunction)
-(domain MinimalWeightedPathFn 1 GraphNode)
-(domain MinimalWeightedPathFn 2 GraphNode)
-(range MinimalWeightedPathFn GraphPath)
-(documentation MinimalWeightedPathFn "This &%BinaryFunction assigns two 
-&%GraphNodes to the &%GraphPath with the smallest sum of weighted arcs 
-between the two &%GraphNodes.")
-
-(=>
-   (equal (MinimalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
-   (instance ?PATH (GraphPathFn ?NODE1 ?NODE2)))
-
-(=>
-   (and
-      (equal (MinimalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
-      (equal (PathWeightFn ?PATH) ?NUMBER))
-   (forall (?PATH2)
-      (=>
-         (and
-            (instance ?PATH2 (GraphPathFn ?NODE1 ?NODE2))
-            (equal (PathWeightFn ?PATH2) ?NUMBER2))
-         (greaterThanOrEqualTo ?NUMBER2 ?NUMBER1))))
-
-(instance MaximalWeightedPathFn BinaryFunction)
-(domain MaximalWeightedPathFn 1 GraphNode)
-(domain MaximalWeightedPathFn 2 GraphNode)
-(range MaximalWeightedPathFn GraphPath)
-(documentation MaximalWeightedPathFn "This &%BinaryFunction assigns two 
-&%GraphNodes to the &%GraphPath with the largest sum of weighted arcs 
-between the two &%GraphNodes.")
-
-(=>
-   (equal (MaximalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
-   (instance ?PATH (GraphPathFn ?NODE1 ?NODE2)))
-
-(=>
-   (and
-      (equal (MaximalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
-      (equal (PathWeightFn ?PATH) ?NUMBER))
-   (forall (?PATH2)
-      (=>
-         (and
-            (instance ?PATH2 (GraphPathFn ?NODE1 ?NODE2))
-            (equal (PathWeightFn ?PATH2) ?NUMBER2))
-         (lessThanOrEqualTo ?NUMBER2 ?NUMBER1))))
-
-(instance GraphPathFn BinaryFunction)
-(instance GraphPathFn TotalValuedRelation)
-(domain GraphPathFn 1 GraphNode)
-(domain GraphPathFn 2 GraphNode)
-(rangeSubclass GraphPathFn GraphPath)
-(documentation GraphPathFn "A &%BinaryFunction that maps two &%GraphNodes 
-to the &%Class of &%GraphPaths between those two nodes.  Note that the two 
-&%GraphNodes must belong to the same &%Graph.")
-
-(=>
-   (and
-      (graphPart ?PATH ?GRAPH)
-      (not (instance ?GRAPH DirectedGraph)))
-   (<=>
-      (equal (GraphPathFn ?NODE1 ?NODE2) ?PATH)
-      (equal (GraphPathFn ?NODE2 ?NODE1) ?PATH)))
-
-(instance CutSetFn UnaryFunction)
-(domain CutSetFn 1 Graph)
-(rangeSubclass CutSetFn GraphPath)
-(documentation CutSetFn "A &%UnaryFunction that assigns a &%Graph the 
-&%Class of &%GraphPaths that partition the graph into two separate 
-graphs if cut.  There may be more than one cutset for a given graph.")
-
-(instance MinimalCutSetFn UnaryFunction)
-(domain MinimalCutSetFn 1 Graph)
-(rangeSubclass MinimalCutSetFn GraphPath)
-(relatedInternalConcept MinimalCutSetFn CutSetFn)
-(documentation MinimalCutSetFn "A &%UnaryFunction that assigns a &%Graph 
-the &%Class of &%GraphPaths which comprise cutsets for the &%Graph and 
-which have the least number of &%GraphArcs.")
-
-(=>
-   (instance ?GRAPH Graph)
-   (subclass (MinimalCutSetFn ?GRAPH) (CutSetFn ?GRAPH)))
-
-(=>
-   (equal (MinimalCutSetFn ?GRAPH) ?PATHCLASS)
-   (exists (?NUMBER)
-      (forall (?PATH)
-         (=>
-            (instance ?PATH ?PATHCLASS)
-            (pathLength ?PATH ?NUMBER)))))
-
-(not (exists (?PATH1 ?PATH2)
-   (and
-      (instance ?PATH1 (CutSetFn ?GRAPH))
-      (instance ?PATH2 (MinimalCutSetFn ?GRAPH))
-      (pathLength ?PATH1 ?NUMBER1)
-      (pathLength ?PATH2 ?NUMBER2)
-      (lessThan ?NUMBER1 ?NUMBER2))))
 
 ;; END FILE
 
@@ -4825,7 +4414,7 @@ into a &%UnitOfMeasure that is equal to 1,000,000,000,000 units of the original
 (range MilliFn UnitOfMeasure)
 (documentation MilliFn "A &%UnaryFunction that maps a &%UnitOfMeasure into 
 a &%UnitOfMeasure that is equal to .001 units of the original &%UnitOfMeasure.  
-For example, (&%MilliFn &%Ampere) is .001 &%Amperes.")
+For example, (&%MilliFn &%Gram) is .001 &%Grams.")
 
 (=>
    (instance ?UNIT UnitOfMeasure)
@@ -4862,8 +4451,8 @@ a &%UnitOfMeasure that is equal to .000000001 units of the original
 (range PicoFn UnitOfMeasure)
 (documentation PicoFn "A &%UnaryFunction that maps a &%UnitOfMeasure into 
 a &%UnitOfMeasure that is equal to .000000000001 units of the original 
-&%UnitOfMeasure.  For example, (&%PicoFn &%Ampere) is .000000000001 
-&%Amperes.")
+&%UnitOfMeasure.  For example, (&%PicoFn &%SecondDuration) is .000000000001 
+&%SecondDurations.")
 
 (=>
    (instance ?UNIT UnitOfMeasure)
@@ -4979,17 +4568,6 @@ follows: the &%SecondDuration is the duration of 9192631770 periods of
 the radiation corresponding to the transition between the two hyperfine 
 levels of the ground state of the cesium 133 atom.")
 
-;; Electric Current Base Unit
-
-(subclass Ampere FunctionQuantity)
-(instance Ampere SystemeInternationalUnit)
-(documentation Ampere "SI electric current measure.  Symbol: A. It is 
-one of the base units in SI. It is defined as follows: the &%Ampere is 
-that constant current which, if maintained in two straight parallel 
-conductors of infinite length, of negligible circular cross-section, and 
-placed 1 &%Meter apart in a vacuum, would produce between these conductors 
-a force equal to 2*10^(-7) &%Newton per &%Meter of length.") 
-
 ;; Thermodynamic Temperature Base Unit
 
 (subclass KelvinDegree TemperatureMeasure)
@@ -5000,29 +4578,6 @@ Kelvin differs from the Celsius scale in that the triple point of water
 is defined to be 273.16 &%KelvinDegrees while it is 0 &%CelsiusDegrees.  
 The magnitudes of intervals in the two scales are the same.  By definition 
 the conversion constant is 273.15.")
-
-;; Amount Of Substance Base Unit
-
-(subclass Mole MassMeasure)
-(instance Mole SystemeInternationalUnit)
-(documentation Mole "SI amount of substance unit. symbol: mol. It is one 
-of the base units in SI. It is defined as follows:  the &%Mole is the 
-amount of substance of a system which contains as many elementary entities 
-as there are atoms in 0.012 &%Kilograms of carbon 12.  Note that, when this 
-&%UnitOfMeasure is used, the elementary entities must be specified - they 
-may be atoms, molecules, ions, electrons, etc. or groups of such 
-particles.")
-
-;; Luminosity Intensity Base Unit
-
-(subclass Candela FunctionQuantity)
-(instance Candela SystemeInternationalUnit)
-(documentation Candela "SI luminosity intensity measure.  Symbol: cd. 
-It is one of the base units in SI, and it is currently defined as 
-follows:  the &%Candela is the luminous intensity, in a given direction, 
-of a source that emits monochromatic radiation of frequency 540*10^12 
-&%Hertz and that has a radiant intensity in that direction of 1/683 
-&%Watt per &%Steradian.")
 
 (subclass Liter VolumeMeasure)
 (instance Liter UnitOfMeasure)
@@ -5074,120 +4629,6 @@ m^2/m^2 = 1.")
 number of cycles per second.  &%Hertz = s^(-1).  Note that &%Hertz 
 does not have a conversion function.")
 
-; Force Unit
-
-(subclass Newton FunctionQuantity)
-(instance Newton SystemeInternationalUnit)
-(documentation Newton "SI force measure.  Symbol: N. It is that force 
-which gives to a mass of 1 kilogram an acceleration of 1 &%Meter per 
-&%SecondDuration.  &%Newton = m*kg*s^(-2).")
-
-; Pressure unit
-
-(subclass Pascal FunctionQuantity)
-(instance Pascal SystemeInternationalUnit)
-(documentation Pascal "SI pressure measure.  Symbol:Pa. It is the 
-pressure of one &%Newton per square &%Meter.  &%Pascal = N/m^2 
-= m^(-1)*kg*s^(-2).")
-
-; Energy Unit
-
-(subclass Joule FunctionQuantity)
-(instance Joule SystemeInternationalUnit)
-(documentation Joule "SI energy measure.  Symbol: J.  It is the work 
-done when the point of application of 1 &%Newton is displaced a distance 
-of 1 &%Meter in the direction of the force.  &%Joule = N*m = 
-m^2*kg*s^(-2).")
-
-; Power Units
-
-(subclass Watt FunctionQuantity)
-(instance Watt SystemeInternationalUnit)
-(documentation Watt "SI power measure.  Symbol: W.  A &%UnitOfMeasure 
-that measures power, i.e. energy produced or expended divided by 
-&%TimeDuration. It is the power which gives rise to the production 
-of energy (or work) at the rate of one &%Joule per &%SecondDuration.  
-&%Watt = J/s = m^2*kg*s^(-3).")
-
-;;; Note: According to SI one should not use the expression "per unit of." 
-
-; Electric Charge Units
-
-(subclass Coulomb TimeDependentQuantity)
-(instance Coulomb SystemeInternationalUnit)
-(documentation Coulomb "SI electric charge measure.  Symbol: C. It is 
-the quantity of electric charge transported through a cross section of 
-a conductor in an electric circuit during each &%SecondDuration by a 
-current of 1 &%Ampere.  Coulomb = s*A.")
-
-; Electric Potential Units
-
-(subclass Volt FunctionQuantity)
-(instance Volt SystemeInternationalUnit)
-(documentation Volt "SI electric potential measure.  Symbol: V.  It is 
-the difference of electric potential between two points of a conducting 
-wire carrying a constant current of 1 &%Ampere, when the power dissipated 
-between these points is equal to 1 &%Watt.  &%Volt = W/A = 
-m^2*kg*s^(-3)*A^(-1).")
-
-; Capacitance Units
-
-(subclass Farad FunctionQuantity)
-(instance  Farad SystemeInternationalUnit)
-(documentation Farad "SI capacitance measure.  Symbol: F.  It is the 
-capacitance of a capacitator between the plates of which there appears 
-a difference of potential of 1 &%Volt when it is charged by a quantity 
-of electricity equal to 1 Coulomb.  &%Farad = C/V = 
-m^(-2)*kg(-1)*s^4*A^2.")
-
-;Electric Resistance Units
-
-(subclass Ohm FunctionQuantity)
-(instance Ohm SystemeInternationalUnit)
-(documentation Ohm "SI electric resistance measure. It is the electric
-resistance between two points of a conductor when a constant difference 
-of potential of 1 &%Volt, applied between these two points,
-produces in this conductor a current of 1 &%Ampere, this conductor not
-being the force of any electromotive force.  &%Ohm = V/A = 
-m^2*kg*s^(-3)*A^(-2).")
-
-; Electric Conductance Units
-
-(subclass Siemens FunctionQuantity)
-(instance Siemens SystemeInternationalUnit)
-(documentation Siemens "SI electric conductance measure.  Symbol:  S.  
-In the case of direct current, the conductance in &%Siemens is the 
-reciprocal of the resistance in &%Ohms; in the case of alternating current, 
-it is the reciprocal of the impedance in ohms.  siemens = A/V = 
-m^(-2)*kg(-1)*s^(3)*A^2.")
-
-; Magnetic Flux Units
-
-(subclass Weber FunctionQuantity)
-(instance  Weber SystemeInternationalUnit)
-(documentation Weber "SI magnetic flux measure.  Symbol: Wb. It is the 
-magnetic flux which, linking a circuit of one turn, produces in it an
-electromotive force of 1 &%Volt as it is reduced to zero at a uniform
-rate in 1 &%SecondDuration.  &%Weber = V*s = m^2*kg*s^(-2)*A^(-1)." )
-
-; Magnetic Flux Density Units
-
-(subclass Tesla FunctionQuantity)
-(instance Tesla SystemeInternationalUnit)
-(documentation Tesla "SI magnetic flux density measure.  Symbol:  T.
-One &%Tesla equals one &%Weber per square &%Meter.  &%Tesla = Wb/m^2 = 
-kg*s^(-2)*A^(-1).")
-
-; Inductance Units
-
-(subclass Henry FunctionQuantity)
-(instance Henry SystemeInternationalUnit)
-(documentation Henry "SI inductance measure.  Symbol: H.  One &%Henry 
-is equivalent to one &%Volt divided by one &%Ampere per &%SecondDuration. 
-If a current changing at the rate of one &%Ampere per &%SecondDuration 
-induces an electromotive force of one &%Volt, the circuit has an 
-inductance of one &%Henry.  &%Henry = Wb/A = m^2*kg*s^(-2)*A^(-2).")
-
 ; Celsius Temperature unit
 
 (subclass CelsiusDegree TemperatureMeasure)
@@ -5207,62 +4648,6 @@ and the boiling point of water are, respectively, 0 &%CelsiusDegrees and 100
    (equal 
         (MeasureFn ?NUMBER CelsiusDegree)
         (MeasureFn (DivisionFn (SubtractionFn ?NUMBER 32) 1.8) FahrenheitDegree)))
-
-; Luminous Flux Units
-
-(subclass Lumen FunctionQuantity)
-(instance Lumen SystemeInternationalUnit)
-(documentation Lumen "SI luminous flux measure.  Symbol: lm.  It is the 
-amount streaming outward through one solid angle of 1 &%Steradian from a 
-uniform point source having an intensity of one &%Candela.  &%Lumen = 
-cd*sr = cd * 1.")
-
-; Illuminance Units
-
-(subclass Lux FunctionQuantity)
-(instance Lux SystemeInternationalUnit)
-(documentation Lux "SI illuminance measure.  Symbol: lx.  It is the 
-amount of illumination provided when one &%Lumen is evenly distributed 
-over an area of 1 square &%Meter. This is also equivalent to the 
-illumination that would exist on a surface all points of which are one 
-&%Meter from a point source of one &%Candela.  &%Lux = lm/m^2 = 
-m^(-2)*cd.")
-
-; Activity Units
-
-(subclass Becquerel TimeDependentQuantity)
-(instance Becquerel SystemeInternationalUnit)
-(documentation Becquerel "SI activity measure.  Symbol: Bq.  It measures 
-the amount of radioactivity contained in a given sample of matter. It is 
-that quantity of a radioactive element in which there is one atomic 
-disintegration per &%SecondDuration.  &%Becquerel = s^(-1).")
-
-; Absorbed Dose Units
-
-(subclass Gray FunctionQuantity)
-(instance Gray SystemeInternationalUnit)
-(documentation Gray "SI absorbed dose measure.  Symbol: Gy.  It measures 
-the dose of radiation absorbed in living tissue. It is equal approximately 
-to the absorbed dose delivered when the energy per unit mass imparted to
-matter by ionizing radiation is 1 &%Joule per kilogram.  &%Gray = J/kg 
-= m^2*s^(-2).")
-
-; Dose Equivalent Units
-
-(subclass Sievert FunctionQuantity)
-(instance Sievert SystemeInternationalUnit)
-(documentation Sievert "SI dose equivalent measure.  Symbol: Sv.  It is 
-a unit of biologic dose of ionizing radiation.  The &%Sievert makes it 
-possible to normalize doses of different types of radiation. It takes 
-into account the relative biologic effectiveness of ionizing radiation, 
-since each form of such radiation--e.g., X rays, gamma rays, neutrons--
-has a slightly different effect on living tissue for a given absorbed 
-dose. The dose equivalent of a given type of radiation (in &%Sievert) is 
-the dose of the radiation in &%Gray multiplied by a quality factor that 
-is based on the relative biologic effectiveness of the radiation. 
-Accordingly, one &%Sievert is generally defined as the amount of radiation 
-roughly equivalent in biologic effectiveness to one &%Gray of gamma 
-radiation.  &%Sievert = J/kg = m^2*s^(-2)")
 
 ; Units that are accepted for -use- with SI
 
@@ -5317,46 +4702,6 @@ radiation.  &%Sievert = J/kg = m^2*s^(-2)")
 	(MeasureFn ?NUMBER YearDuration)
 	(MeasureFn (MultiplicationFn ?NUMBER 365) DayDuration)))
 
-;; What follows are units that are also accepted for use with SI.  The 
-;; SI equivalents for these units are obtained experimentally.
-
-(subclass Amu MassMeasure)
-(instance Amu UnitOfMeasure)
-(documentation Amu "Atomic mass unit.  Symbol: u. It is the mass of 
-the twelfth part of an atom of the Carbon 12 isotope.")
-
-(=>
-   (instance ?NUMBER RealNumber)
-   (equal
-        (MeasureFn ?NUMBER Amu)
-        (MeasureFn (MultiplicationFn ?NUMBER 1.6605402E-24) Gram))) 
-
-(subclass ElectronVolt FunctionQuantity)
-(instance ElectronVolt UnitOfMeasure)
-(documentation ElectronVolt "The &%ElectronVolt is an energy measure.  
-Symbol: eV.  It is the kinetic energy acquired by an electron in passing 
-through a potential difference of 1 &%Volt in a vacuum.")
-
-(=>
-   (instance ?NUMBER RealNumber)
-   (equal
-        (MeasureFn ?NUMBER ElectronVolt)
-        (MeasureFn (MultiplicationFn ?NUMBER 1.60217733E-19) Joule)))
-
-;; The following units have been temporarily accepted for use with 
-;; SI units.
-
-(subclass Angstrom LengthMeasure)
-(instance Angstrom UnitOfMeasure)
-(documentation Angstrom "The &%Angstrom is a &%LengthMeasure. 
-1 &%Angstrom = 10^(-10) m")
-
-(=>
-   (instance ?NUMBER RealNumber)
-   (equal
-        (MeasureFn ?NUMBER Angstrom)
-        (MeasureFn (MultiplicationFn ?NUMBER 1.0E-10) Meter)))
-
 ;; The following units are unacceptable in SI but are part of other 
 ;; systems of measurement that are widely used.
 
@@ -5396,7 +4741,6 @@ through a potential difference of 1 &%Volt in a vacuum.")
 
 (subclass UnitedStatesGallon VolumeMeasure)
 (instance UnitedStatesGallon UnitOfMeasure)
-(relatedInternalConcept UnitedStatesGallon UnitedKingdomGallon)
 (documentation UnitedStatesGallon "Unit of volume commonly used in the 
 United States.")
 
@@ -5450,27 +4794,7 @@ United States.")
         (MeasureFn ?NUMBER Ounce)
         (MeasureFn (DivisionFn ?NUMBER 8) Cup)))
 
-(subclass UnitedKingdomGallon VolumeMeasure)
-(instance UnitedKingdomGallon UnitOfMeasure)
-(documentation UnitedKingdomGallon "Unit of volume commonly used in the 
-United Kingdom.")
-
-(=>
-   (instance ?NUMBER RealNumber)
-   (equal
-        (MeasureFn ?NUMBER UnitedKingdomGallon)
-        (MeasureFn (MultiplicationFn ?NUMBER 4.54609) Liter))) 
-
 ;; More Mass units
-
-(subclass AtomGram MassMeasure)
-(instance AtomGram UnitOfMeasure)
-(documentation AtomGram "&%MassMeasure that is also known as the gram-atom.  
-Defined as the mass in grams of 1 &%Mole of pure substance.  For example, 
-1 &%AtomGram of Carbon 12 will be 12 &%Grams of pure Carbon 12.  2 &%AtomGrams 
-of the same substance will be 24 &%Grams of it.  This is an unusual unit in 
-that it is essentially 1 &%Mole of 'stuff' measured in grams, so that the 
-actual value (i.e. mass) depends on the type of substance.")
 
 (subclass PoundMass MassMeasure)
 (instance PoundMass UnitOfMeasure)
@@ -5481,16 +4805,6 @@ actual value (i.e. mass) depends on the type of substance.")
    (equal
         (MeasureFn ?NUMBER PoundMass)
         (MeasureFn (MultiplicationFn ?NUMBER 453.59237) Gram)))
-
-(subclass Slug MassMeasure)
-(instance Slug UnitOfMeasure)
-(documentation Slug "English mass unit of slugs.")
-
-(=>
-   (instance ?NUMBER RealNumber)
-   (equal
-        (MeasureFn ?NUMBER Slug)
-        (MeasureFn (MultiplicationFn ?NUMBER 14593.90) Gram)))
 
 ;; More Temperature units
 
@@ -5513,42 +4827,15 @@ used in the United States.  On the Fahrenheit scale, the freezing point
 of water is 32 &%FahrenheitDegrees, and the boiling point of water is 
 212 &%FahrenheitDegrees.")
 
-;; More Force units
-
-(subclass PoundForce FunctionQuantity)
-(instance PoundForce UnitOfMeasure)
-(documentation PoundForce "English pound of force. The conversion
-factor depends on the local value of the acceleration of free fall. A
-mean value is used in the conversion axiom associated with this 
-constant.")
-
-(=>
-   (instance ?NUMBER RealNumber)
-   (equal
-        (MeasureFn ?NUMBER PoundForce)
-        (MeasureFn (MultiplicationFn ?NUMBER 4.448222) Newton)))
-
 ;; More Energy units
 
 (subclass Calorie FunctionQuantity)
 (instance Calorie UnitOfMeasure)
 (documentation Calorie "A &%Calorie is an energy measure.")
 
-(=>
-   (instance ?NUMBER RealNumber)
-   (equal
-        (MeasureFn ?NUMBER Calorie)
-        (MeasureFn (MultiplicationFn ?NUMBER 4.1868) Joule)))
-
 (subclass BritishThermalUnit FunctionQuantity)
 (instance BritishThermalUnit UnitOfMeasure)
 (documentation BritishThermalUnit "An energy measure.")
-
-(=>
-   (instance ?NUMBER RealNumber)
-   (equal
-        (MeasureFn ?NUMBER BritishThermalUnit)
-        (MeasureFn (MultiplicationFn ?NUMBER 1055.05585262) Joule)))
 
 ;; More plane angle units
 
@@ -5591,8 +4878,7 @@ equal to .01 &%UnitedStatesDollars.")
 
 (subclass EuroDollar CurrencyMeasure)
 (instance EuroDollar UnitOfMeasure)
-(documentation EuroDollar "A currency measure of most European Union countries.  
-It is based on the &%UnitedStatesDollar.")
+(documentation EuroDollar "A currency measure of most European Union countries.")
 
 (subclass EuroCent CurrencyMeasure)
 (instance EuroCent UnitOfMeasure)
@@ -5669,6 +4955,12 @@ of the &%Function &%MeasureFn.")
 (documentation age "Simply relates an &%Object to a &%ConstantQuantity 
 specifying the age of the &%Object.")
 
+(=>
+   (and
+      (instance ?TIME TimePoint)
+      (holdsDuring ?TIME (age ?OBJ ?DURATION)))
+   (duration (TimeIntervalFn (BeginFn (WhenFn ?OBJ)) ?TIME) ?DURATION))
+
 (subrelation length measure)
 (domain length 2 LengthMeasure)
 (documentation length "&%BinaryPredicate that is used to state the measure 
@@ -5682,6 +4974,12 @@ separates two distinct objects")
 (subrelation width length)
 (documentation width "&%BinaryPredicate that is used to state the measure 
 of an &%Object from side to side at its widest span.")
+
+(subrelation height length)
+(domain height 1 SelfConnectedObject)
+(domain height 2 LengthMeasure)
+(documentation height "The height of an &%Object is the distance between 
+its &%top and its &%bottom.")
 
 (subrelation diameter width)
 (documentation diameter "&%BinaryPredicate that is used to state the 
@@ -5747,7 +5045,7 @@ be used to specify, for example, the depth of marine life or submarines, for exa
 (instance larger IrreflexiveRelation)
 (domain larger 1 Object)
 (domain larger 2 Object)
-(documentation larger "(&%larger ?OBJ1 ?OBJ2) simply means that ?OBJ1 is 
+(documentation larger "(&%larger ?OBJ1 ?OBJ2) means that ?OBJ1 is 
 larger, with respect to all &%LengthMeasures, than ?OBJ2.")
 
 (=>
@@ -5766,15 +5064,16 @@ larger, with respect to all &%LengthMeasures, than ?OBJ2.")
 (domain smaller 1 Object)
 (domain smaller 2 Object)
 (inverse smaller larger)
-(documentation smaller "(&%smaller ?OBJ1 ?OBJ2) simply means that ?OBJ1 
+(documentation smaller "(&%smaller ?OBJ1 ?OBJ2) means that ?OBJ1 
 is smaller, with respect to all &%LengthMeasures, than ?OBJ2.")
 
 (instance monetaryValue SingleValuedRelation)
 (subrelation monetaryValue measure)
-(domain monetaryValue 1 Object)
+(domain monetaryValue 1 Physical)
 (domain monetaryValue 2 CurrencyMeasure)
 (documentation monetaryValue "A &%BinaryPredicate that associates an 
-&%Object with its value expressed as an instance of &%CurrencyMeasure.")
+&%Object or &%Process with its value expressed as an instance of 
+&%CurrencyMeasure.")
 
 (instance WealthFn UnaryFunction)
 (domain WealthFn 1 Agent)
@@ -5856,7 +5155,7 @@ to specify the duration of any instance of &%Physical.")
 (instance frequency AsymmetricRelation)
 (domainSubclass frequency 1 Process)
 (domain frequency 2 TimeDuration)
-(documentation frequency "(frequency ?PROC ?TIME) means that the 
+(documentation frequency "(&%frequency ?PROC ?TIME) means that the 
 &%Process type of ?PROC recurs after every interval of ?TIME.")
 
 (=>
@@ -5956,7 +5255,7 @@ the &%TimePoint at which the interval ends.")
           (holdsDuring (EndFn (WhenFn ?PROC)) (measure ?OBJ ?QUANT2)))
      (greaterThan ?QUANT1 ?QUANT2))
 
-(instance starts BinaryPredicate)
+(subrelation starts temporalPart)
 (instance starts TemporalRelation)
 (instance starts TransitiveRelation)
 (instance starts IrreflexiveRelation)
@@ -5976,7 +5275,7 @@ initial &%TimePoint and that ?INTERVAL1 ends before ?INTERVAL2.")
          (EndFn ?INTERVAL1)
   	   (EndFn ?INTERVAL2))))
 
-(instance finishes BinaryPredicate)
+(subrelation finishes temporalPart)
 (instance finishes TemporalRelation)
 (instance finishes TransitiveRelation)
 (instance finishes IrreflexiveRelation)
@@ -6357,7 +5656,7 @@ a subclass of &%Months to the &%Days within each &%Month corresponding to that
 &%PositiveRealNumber.  For example, (&%DayFn 16 &%August) is the &%Class of all 
 sixteenth days of August.  For another example, (&%DayFn 9 &%Month) would return 
 the class of all ninth days of any month.  For still another example, (&%DayFn 18 
-(&%MonthFn 8 (YearFn 1912))) denotes the 18th day of August 1912.")
+(&%MonthFn &%August (&%YearFn 1912))) denotes the 18th day of August 1912.")
 
 (=>
    (instance ?DAY (DayFn ?NUMBER ?MONTH))
@@ -6380,8 +5679,8 @@ a subclass of &%Days to the &%Hours within each &%Day corresponding to that
 &%PositiveRealNumber.  For example, (&%HourFn 12 &%Thursday) is the &%Class of all 
 instances of noon Thursday.  For another example, (&%HourFn 24 &%Day) would return 
 the class of all instances of midnight.  For still another example, (&%HourFn 14 
-(&%DayFn 18 (&%MonthFn 8 (YearFn 1912)))) denotes 2 PM on the 18th day of August 
-1912.")
+(&%DayFn 18 (&%MonthFn &%August (&%YearFn 1912)))) denotes 2 PM on the 18th day of 
+August 1912.")
 
 (=>
    (instance ?HOUR (HourFn ?NUMBER ?DAY))
@@ -6404,8 +5703,8 @@ a subclass of &%Hours to the &%Minutes within each &%Hour corresponding to that
 &%PositiveRealNumber.  For example, (&%MinuteFn 30 (&%HourFn 17 &%Day)) is the &%Class 
 of all 5:30's in the afternoon.  For another example, (&%MinuteFn 15 &%Hour) would return 
 the class of all instances of quarter past the hour.  For still another example, 
-(&%MinuteFn 15 (&%HourFn 14 (&%DayFn 18 (&%MonthFn 8 (YearFn 1912))))) denotes 15 
-minutes after 2 PM on the 18th day of August 1912.")
+(&%MinuteFn 15 (&%HourFn 14 (&%DayFn 18 (&%MonthFn &%August (&%YearFn 1912))))) denotes 
+15 minutes after 2 PM on the 18th day of August 1912.")
 
 (=>
    (instance ?MINUTE (MinuteFn ?NUMBER ?HOUR))
@@ -6428,9 +5727,9 @@ subclass of &%Minutes to the &%Seconds within each &%Minute corresponding to tha
 &%PositiveRealNumber.  For example, (&%SecondFn 4 (&%MinuteFn 5 &%Hour)) is the &%Class 
 of all fourth &%Seconds of every fifth &%Minute of every hour.  For another example, 
 (&%SecondFn 8 &%Minute) would return the eighth second of every minute.  For still 
-another example, (&%SecondFn 9 (&%MinuteFn 15 (&%HourFn 14 (&%DayFn 18 (&%MonthFn 8 
-(YearFn 1912)))))) denotes 9 seconds and 15 minutes after 2 PM on the 18th day of 
-August 1912.")
+another example, (&%SecondFn 9 (&%MinuteFn 15 (&%HourFn 14 (&%DayFn 18 (&%MonthFn 
+&%August (&%YearFn 1912)))))) denotes 9 seconds and 15 minutes after 2 PM on the 18th 
+day of August 1912.")
 
 (=>
    (instance ?SECOND (SecondFn ?NUMBER ?MINUTE))
@@ -7095,12 +6394,6 @@ as opposed to the &%top or &%bottom.")
 			(side ?SIDE2 ?OBJECT)
 			(distance ?SIDE1 ?SIDE2 ?WIDTH))))
 
-(subrelation height length)
-(domain height 1 SelfConnectedObject)
-(domain height 2 LengthMeasure)
-(documentation height "The height of an &%Object is the distance between 
-its &%top and its &%bottom.")
-
 (=>
 	(and
 		(height ?OBJECT ?HEIGHT)
@@ -7203,9 +6496,6 @@ region, or part of the same region, without sharing any parts.")
           (not 
 		 (overlapsSpatially ?HOLE ?OBJ)))
 
-;; Any two hosts of a hole have a common proper part that entirely hosts 
-;; the hole. 
-
 (=> 
 	(and 
 		(hole ?HOLE ?OBJ1)
@@ -7214,8 +6504,6 @@ region, or part of the same region, without sharing any parts.")
              (and 
 			(properPart ?OBJ3 (MereologicalProductFn ?OBJ1 ?OBJ2))
                   (hole ?HOLE ?OBJ3))))
-
-;; A common host of two holes hosts all parts of the sum of those holes.
 
 (=> 
 	(and 
@@ -7226,9 +6514,6 @@ region, or part of the same region, without sharing any parts.")
 			(part ?HOLE3 (MereologicalSumFn ?HOLE1 ?HOLE2))
                   (hole ?HOLE3 ?OBJ))))
 
-;; Any object that includes the host of a hole is a host of that hole, 
-;; unless its parts also include parts of that very hole.
-
 (=> 
 	(and 
 		(hole ?HOLE ?OBJ1)
@@ -7237,8 +6522,6 @@ region, or part of the same region, without sharing any parts.")
 		(overlapsSpatially ?HOLE ?OBJ2)
             (hole ?HOLE ?OBJ2)))
 
-;; Overlapping holes have overlapping hosts.
-
 (=> 
 	(and 
 		(hole ?HOLE1 ?OBJ1)
@@ -7246,30 +6529,24 @@ region, or part of the same region, without sharing any parts.")
             (overlapsSpatially ?HOLE1 ?HOLE2))
       (overlapsSpatially ?OBJ1 ?OBJ2))
 
-;; No hole is atomic 
-            
 (=> 
 	(instance ?HOLE1 Hole)
       (exists (?HOLE2)
       	(properPart ?HOLE2 ?HOLE1)))
 
-;; Topological Definitions
-
-;; Definition of 'PrincipalHostFn'
-
-(instance PrincipalHostFn SpatialRelation)
-(instance PrincipalHostFn UnaryFunction)
-(instance PrincipalHostFn TotalValuedRelation)
-(instance PrincipalHostFn AsymmetricRelation)
-(domain PrincipalHostFn 1 Hole)
-(range PrincipalHostFn Object)
-(documentation PrincipalHostFn "A &%UnaryFunction that maps a &%Hole to 
+(instance HoleHostFn SpatialRelation)
+(instance HoleHostFn UnaryFunction)
+(instance HoleHostFn TotalValuedRelation)
+(instance HoleHostFn AsymmetricRelation)
+(domain HoleHostFn 1 Hole)
+(range HoleHostFn Object)
+(documentation HoleHostFn "A &%UnaryFunction that maps a &%Hole to 
 the &%Object which is its principal host.  The principle host of a &%Hole 
 is its maximally connected host (a notion taken here to be defined only 
 when the argument is a hole).")
 
 (=>
-     (equal ?OBJ1 (PrincipalHostFn ?HOLE))
+     (equal ?OBJ1 (HoleHostFn ?HOLE))
      (forall (?OBJ2)
 		(<=> 
 			(overlapsSpatially ?OBJ2 ?OBJ1)
@@ -7278,14 +6555,9 @@ when the argument is a hole).")
 					(hole ?HOLE ?OBJ3)
 				      (overlapsSpatially ?OBJ2 ?OBJ3))))))
 
-;; Holes are connected with their hosts.
-
 (=> 
 	(hole ?HOLE ?OBJ)
       (connected ?HOLE ?OBJ))
-
-;; No hole can have a proper part that is externally connected 
-;; with exactly the same things as the hole itself.
 
 (=> 
 	(and 
@@ -7306,9 +6578,6 @@ something else.  Note that 'filled' here means perfectly filled.")
       (holdsDuring ?TIME
          (fills ?OBJ ?HOLE)))
      (attribute ?HOLE Fillable))
-
-;; Something is fillable just in case it is part of a hole; i.e., 
-;; fillability is an exclusive property of holes and their parts.
 
 (<=> 
 	(attribute ?HOLE1 Fillable)
@@ -7379,18 +6648,12 @@ Note that if (&%completelyFills ?OBJ1 ?HOLE) and (&%part
 means that the &%Object ?OBJ fills the &%Hole ?HOLE.  Note that 
 &%fills here means perfectly filled.")
 
-;; Perfect fillers and fillable entities have no parts in common (rather, 
-;; they may occupy the same spatial region).
-
 (=> 
 	(and 
 		(fills ?OBJ1 ?HOLE)
            	(attribute ?OBJ2 Fillable))
       (not 
 		(overlapsSpatially ?OBJ1 ?OBJ2)))
-
-;; A complete filler of (a part of) a hole is connected with everything 
-;; with which (that part of) the hole itself is connected.
 
 (=> 
    (completelyFills ?OBJ1 ?HOLE)
@@ -7399,17 +6662,11 @@ means that the &%Object ?OBJ fills the &%Hole ?HOLE.  Note that
 	      (connected ?OBJ2 ?HOLE)
             (connected ?OBJ2 ?OBJ1))))
 
-;; Every hole is connected with everything with which a proper filler 
-;; of the hole is connected. 
-
 (=> 
 	(and 
 		(properlyFills ?OBJ1 ?HOLE)
           	(connected ?OBJ2 ?OBJ1))
      	(connected ?HOLE ?OBJ2))
-
-;; A perfect filler of (a part of) a hole completely fills every proper 
-;; part of (that part of) that hole.
 
 (=> 
 	(and 
@@ -7417,34 +6674,31 @@ means that the &%Object ?OBJ fills the &%Hole ?HOLE.  Note that
             (properPart ?HOLE2 ?HOLE1))
      	(completelyFills ?OBJ ?HOLE2))
 
-;; Every proper part of a perfect filler of (a part of) a hole properly 
-;; fills (that part of) that hole.
-
 (=> 
 	(and 
 		(fills ?OBJ1 ?HOLE)
             (properPart ?OBJ2 ?OBJ1))
      	(properlyFills ?OBJ2 ?HOLE))
 
-(instance SkinFn SpatialRelation)
-(instance SkinFn UnaryFunction)
-(instance SkinFn TotalValuedRelation)
-(instance SkinFn AsymmetricRelation)
-(domain SkinFn 1 Hole)
-(range SkinFn Object)
-(documentation SkinFn "A &%UnaryFunction that maps a &%Hole to the skin 
+(instance HoleSkinFn SpatialRelation)
+(instance HoleSkinFn UnaryFunction)
+(instance HoleSkinFn TotalValuedRelation)
+(instance HoleSkinFn AsymmetricRelation)
+(domain HoleSkinFn 1 Hole)
+(range HoleSkinFn Object)
+(documentation HoleSkinFn "A &%UnaryFunction that maps a &%Hole to the skin 
 of the &%Hole.  The skin of a &%Hole is the fusion of those superficial 
 parts (see &%superficialPart) of the &%Hole's principal host (see 
-&%PrincipalHostFn) with which the &%Hole is externally connected.")
+&%HoleHostFn) with which the &%Hole is externally connected.")
 
 (=>
-     (equal ?OBJ1 (SkinFn ?HOLE))
+     (equal ?OBJ1 (HoleSkinFn ?HOLE))
      (forall (?OBJ2)
 		(<=> 
 			(overlapsSpatially ?OBJ2 ?OBJ1)
 			(exists (?OBJ3)
 				(and 
-				      (superficialPart ?OBJ3 (PrincipalHostFn ?HOLE))
+				      (superficialPart ?OBJ3 (HoleHostFn ?HOLE))
 				      (meetsSpatially ?HOLE ?OBJ3)
 				      (overlapsSpatially ?OBJ2 ?OBJ3))))))
 
@@ -7471,9 +6725,7 @@ distinguished part (proper or not) of a &%Process.")
 
 (=>
    (subProcess ?SUBPROC ?PROC)
-      (or
-         (equal (WhenFn ?SUBPROC) (WhenFn ?PROC))
-         (during (WhenFn ?SUBPROC) (WhenFn ?PROC))))
+   (temporalPart (WhenFn ?SUBPROC) (WhenFn ?PROC)))
 
 (=>
    (subProcess ?SUBPROC ?PROC)
@@ -7481,8 +6733,6 @@ distinguished part (proper or not) of a &%Process.")
       (=>
          (located ?PROC ?REGION)
          (located ?SUBPROC ?REGION))))
-
-;; Each temporal part of a Process exists at some timepoint.
 
 (=> 
 	(and 
@@ -7518,6 +6768,20 @@ or part of an &%Organism.")
 (disjoint AutonomicProcess IntentionalProcess)
 (documentation AutonomicProcess "The class of &%PhysiologicProcesses of 
 which there is not conscious awareness and control.")
+
+(subclass OrganOrTissueProcess AutonomicProcess)
+(disjoint OrganOrTissueProcess OrganismProcess)
+(documentation OrganOrTissueProcess "A &%PhysiologicProcess of a 
+particular &%Organ or &%Tissue.")
+
+(=>
+    (instance ?PROC OrganOrTissueProcess)
+    (exists (?THING)
+        (and
+            (located ?PROC ?THING)
+            (or
+                (instance ?THING Organ)
+                (instance ?THING Tissue)))))
 
 (subclass OrganismProcess PhysiologicProcess)
 (documentation OrganismProcess "A physiologic function of the 
@@ -7558,6 +6822,7 @@ which there is not conscious awareness and control.")
          (holdsDuring ?TIME (attribute ?AGENT Living)))))
 
 (subclass Breathing OrganismProcess)
+(subclass Breathing AutonomicProcess)
 (documentation Breathing "The &%Process of respiration, by which oxygen 
 is made available to an &%Animal.  This covers processes of inhalation, 
 exhalation, and alternations between the two.")
@@ -7587,6 +6852,7 @@ incorporated into an &%Animal.")
 &%Beverages, are incorporated into an &%Animal.")
 
 (subclass Digesting OrganismProcess)
+(subclass Digesting AutonomicProcess)
 (documentation Digesting "The &%Process by which &%Food that has been 
 ingested is broken down into simpler chemical compounds and absorbed by 
 the &%Organism.")
@@ -7608,7 +6874,7 @@ the &%Organism.")
          (instance ?DECOMP ChemicalDecomposition)
          (subProcess ?DECOMP ?DIGEST))))
 
-(subclass Growth OrganismProcess)
+(subclass Growth AutonomicProcess)
 (documentation Growth "The &%Process of biological development in which 
 an &%Organism or part of an &%Organism changes its form or its size.")
 
@@ -7670,20 +6936,6 @@ of the &%Organism.")
             (instance ?ANIMAL Animal)
             (experiencer ?PROCESS ?ANIMAL))))
 
-(subclass OrganOrTissueProcess PhysiologicProcess)
-(disjoint OrganOrTissueProcess OrganismProcess)
-(documentation OrganOrTissueProcess "A &%PhysiologicProcess of a 
-particular &%Organ or &%Tissue.")
-
-(=>
-    (instance ?PROC OrganOrTissueProcess)
-    (exists (?THING)
-        (and
-            (located ?PROC ?THING)
-            (or
-                (instance ?THING Organ)
-                (instance ?THING Tissue)))))
-
 (subclass PathologicProcess BiologicalProcess)
 (disjoint PathologicProcess PhysiologicProcess)
 (documentation PathologicProcess "A disordered process, activity, or 
@@ -7724,28 +6976,6 @@ of the organism being injured, it is a subclass of &%BiologicalProcess.")
          (and
             (instance ?ORGANISM Organism)
             (patient ?INJ ?ORGANISM)))))
-
-(subclass Poisoning Injuring)
-(documentation Poisoning "A &%Poisoning is caused by an external 
-substance.  Since &%Poisoning is not possible without some biologic 
-function which affects the &%Organism being injured, it is a subclass 
-of &%BiologicalProcess.")
-
-(=>
-    (instance ?POISON Poisoning)
-    (exists (?THING)
-        (and
-            (patient ?POISON ?THING)
-            (or
-                (instance ?THING Organism)
-                (instance ?THING AnatomicalStructure)))))
-
-(=>
-    (instance ?POISON Poisoning)
-    (exists (?SUBSTANCE)
-        (and
-		(instance ?SUBSTANCE BiologicallyActiveSubstance)
-            (instrument ?POISON ?SUBSTANCE))))
 
 (subclass IntentionalProcess Process)
 (documentation IntentionalProcess "A &%Process that has a specific 
@@ -7942,6 +7172,27 @@ where the merits of a &%LegalAction are decided.")
       (agent ?PROCESS ?ORG)
       (instance ?ORG Organization))
    (instance ?ORG JudicialOrganization))
+
+(subclass LegalDecision JudicialProcess)
+(subclass LegalDecision Declaring)
+(documentation LegalDecision "A decision issued by a court with respect to 
+a &%LegalAction.  Note that a &%LegalDecision is the act of &%Declaring a 
+decision of a court; it is not the act of judge or jury &%Deciding the merits 
+of a particular &%LegalAction.")
+
+(=>
+   (instance ?DECISION LegalDecision)
+   (exists (?ACTION)
+      (and
+         (instance ?ACTION LegalAction)
+         (refers ?DECISION ?ACTION))))
+
+(=>
+   (instance ?DECISION LegalDecision)
+   (exists (?DECIDE)
+      (and
+         (instance ?DECIDE Deciding)
+         (earlier (WhenFn ?DECIDE) (WhenFn ?DECISION)))))
 
 (subclass MilitaryProcess PoliticalProcess)
 (documentation MilitaryProcess "Any &%Process that is carried out by a 
@@ -8154,28 +7405,30 @@ period of time.")
       (holdsDuring (WhenFn ?RUN) (measure ?AGENT (SpeedFn ?LENGTH2 ?TIME))))
    (greaterThan ?LENGTH2 ?LENGTH1))
 
-(subclass Swimming BodyMotion)
-(documentation Swimming "Any deliberate and controlled &%BodyMotion 
-through water that is accomplished by an &%Organism.")
-
-(=>
-   (and
-      (instance ?SWIM Swimming)
-      (agent ?SWIM ?AGENT))
-   (exists (?AREA)
-      (and
-         (instance ?AREA WaterArea)
-         (located ?AGENT ?AREA))))
-
-(subclass Dancing BodyMotion)
-(documentation Dancing "Any &%BodyMotion of &%Humans which is 
-deliberately coordinated with music.")
-
 (subclass GeologicalProcess Motion)
 (disjoint GeologicalProcess IntentionalProcess)
 (documentation GeologicalProcess "The class of activities that 
 are caused by geological forces and affect geological features, 
 and which may affect the biosphere as well.")
+
+(subclass WeatherProcess Motion)
+(disjoint WeatherProcess IntentionalProcess)
+(documentation WeatherProcess "&%WeatherProcess is the broadest class of 
+processes that involve weather, including weather seasons (not to be confused 
+with instances of &%SeasonOfYear), weather systems, and short-term weather 
+events.")
+
+(subclass Precipitation WeatherProcess)
+(documentation Precipitation "&%Precipitation is the process of 
+water molecules falling from the air to the ground, in either a 
+liquid or frozen state.")
+
+(=>
+	(instance ?PROCESS Precipitation)
+	(exists (?STUFF)
+		(and
+			(instance ?STUFF Water)
+			(patient ?PROCESS ?STUFF))))
 
 (subclass LiquidMotion Motion)
 (documentation LiquidMotion "Any &%Motion where the &%patient is a 
@@ -8228,7 +7481,7 @@ an &%Animal or &%Human.")
    (exists (?ANIMAL)
       (and
          (instance ?ANIMAL Animal)
-         (instrument ?TRANS ?ANIMAL))))
+         (instrument ?CARRY ?ANIMAL))))
 
 (subclass Removing Transfer)
 (documentation Removing "The &%Class of &%Processes where something is 
@@ -8267,19 +7520,6 @@ in a location.  Note that the location is specified with the &%CaseRole
 (documentation Covering "The &%Class of &%Putting processes where the &%agent 
 covers the &%patient, either completely or only partially, with something 
 else.") 
-
-(subclass Dressing Covering)
-(documentation Dressing "The &%Process of putting on &%Clothing.")
-
-(=>
-   (and
-      (instance ?DRESS Dressing)
-      (agent ?DRESS ?AGENT)
-      (patient ?DRESS ?CLOTHING))
-   (and
-      (instance ?CLOTHING Clothing)
-      (holdsDuring (BeginFn (WhenFn ?DRESS)) (not (wears ?AGENT ?CLOTHING)))
-      (holdsDuring (EndFn (WhenFn ?DRESS)) (wears ?AGENT ?CLOTHING))))
 
 (subclass Inserting Putting)
 (documentation Inserting "&%Putting one thing inside of another thing.")
@@ -8357,6 +7597,7 @@ brought into immediate physical contact with one another.")
 on to the &%Object ?OBJ.")
 
 (subclass Grabbing Touching)
+(subclass Grabbing Attaching)
 (documentation Grabbing "Any instance of &%Touching which results in 
 a situation where the &%agent &%grasps the &%patient of the &%Touching.")
 
@@ -8368,20 +7609,6 @@ a situation where the &%agent &%grasps the &%patient of the &%Touching.")
    (and
       (holdsDuring (BeginFn (WhenFn ?GRAB)) (not (grasps ?AGENT ?THING)))
       (holdsDuring (EndFn (WhenFn ?GRAB)) (grasps ?AGENT ?THING))))
-
-(subclass Releasing Transfer)
-(documentation Releasing "Any instance of &%Transfer which results in 
-a situation where it is not the case that the &%agent &%grasps something 
-which he/she &%grasps previously.")
-
-(=>
-   (and
-      (instance ?RELEASE Releasing)
-      (agent ?GRAB ?AGENT)
-      (patient ?GRAB ?THING))
-   (and
-      (holdsDuring (BeginFn (WhenFn ?RELEASE)) (grasps ?AGENT ?THING))
-      (holdsDuring (EndFn (WhenFn ?RELEASE)) (not (grasps ?AGENT ?THING)))))
 
 (subclass Impacting Touching)
 (documentation Impacting "Any &%Touching where something comes into 
@@ -8431,19 +7658,19 @@ of a &%TransportationDevice.")
 
 (subclass Guiding IntentionalProcess)
 (documentation Guiding "Any &%IntentionalProcess where the &%agent tries to 
-direct the movements of another &%Object, whether an &%Agent or not.")
+direct the behavior of another &%Object, whether an &%Agent or not.")
 
-(subclass Steering Guiding)
-(documentation Steering "Controlling the direction and/or speed of a 
-&%TransportationDevice.  This includes navigating a ship, driving a car 
-or truck, operating a train, etc.")
+(subclass Driving Guiding)
+(documentation Driving "Controlling the direction and/or speed of a 
+&%Vehicle.  This includes navigating a ship, driving a car or truck, 
+operating a train, etc.")
 
 (=>
-   (instance ?STEER Steering)
+   (instance ?DRIVE Driving)
    (exists (?VEHICLE)
       (and
-         (instance ?VEHICLE TransportationDevice)
-         (patient ?STEER ?VEHICLE))))
+         (instance ?VEHICLE Vehicle)
+         (patient ?DRIVE ?VEHICLE))))
 
 (subclass EducationalProcess Guiding)
 (documentation EducationalProcess "Any &%Process which is intended to result 
@@ -8510,12 +7737,11 @@ ownership of something is transferred from one &%Agent to another.")
 
 (subclass Funding Giving)
 (documentation Funding "Any instance of &%Giving where the &%patient is an 
-instance of &%Currency.  Note that this class covers both 
-&%FinancialTransactions, e.g. where a firm funds a software company with 
-venture capital with the agreement that a certain percentage of the profits 
-on the investment will be returned to the firm, and instances of 
-&%UnilateralGiving, e.g. a stipend provided to a student as part of 
-scholarship or fellowship.")
+instance of &%Currency.  Note that this class covers both financing, e.g. 
+where a firm funds a software company with venture capital with the agreement 
+that a certain percentage of the profits on the investment will be returned 
+to the firm, and instances of &%UnilateralGiving, e.g. providing a tuition 
+waiver and/or a stipend to a student as part of scholarship or fellowship.")
 
 (=>
    (instance ?FUND Funding)
@@ -8632,14 +7858,14 @@ something is exchanged for something else.")
 
 (subclass FinancialTransaction Transaction)
 (documentation FinancialTransaction "A &%Transaction where an instance 
-of &%CurrencyMeasure is exchanged for something else.")
+of &%Currency is exchanged for something else.")
 
 (=>
    (instance ?TRANS FinancialTransaction)
    (exists (?OBJ)
       (and
          (patient ?TRANS ?OBJ)
-         (instance ?OBJ CurrencyMeasure))))
+         (instance ?OBJ Currency))))
 
 (instance transactionAmount BinaryPredicate) 
 (instance transactionAmount SingleValuedRelation) 
@@ -8773,11 +7999,13 @@ evidence, that a particular &%Proposition or &%Sentence is true.")
 
 (subclass Selecting IntentionalPsychologicalProcess)
 (documentation Selecting "The &%Class of &%IntentionalPsychologicalProcesses 
-which involve opting for one or more &%Entity out of a larger set of &%Entities.")
+which involve opting for one or more &%Entity out of a larger set of &%Entities.  
+Note that this covers all cases of judging or evaluating.")
 
 (subclass Deciding Selecting)
 (documentation Deciding "The subclass of &%Selecting where the &%agent 
-opts for one course of action out of a set of multiple possibilities.")
+opts for one course of action out of a set of multiple possibilities 
+that are open to him/her.")
 
 (=>
    (and
@@ -8788,26 +8016,7 @@ opts for one course of action out of a set of multiple possibilities.")
       (instance ?PROCESS IntentionalProcess)
       (agent ?PROCESS ?AGENT)))
 
-(subclass LegalDecision Deciding)
-(subclass LegalDecision Declaring)
-(documentation LegalDecision "A decision issued by a court with respect to 
-a &%LegalAction.")
-
-(=>
-   (instance ?DECISION LegalDecision)
-   (exists (?ACTION)
-      (and
-         (instance ?ACTION LegalAction)
-         (refers ?DECISION ?ACTION))))
-
-(=>
-   (instance ?DECISION LegalDecision)
-   (exists (?PROCESS)
-      (and
-         (instance ?PROCESS JudicialProcess)
-         (subProcess ?DECISION ?PROCESS))))
-
-(subclass Voting Selecting)
+(subclass Voting Deciding)
 (documentation Voting "&%Voting is the activity of voting in an 
 &%Election.  Voting is typically done by individuals, while &%Elections 
 are conducted by &%Organizations.  The voting process by an individual 
@@ -8819,6 +8028,20 @@ voter is part of an &%Election process.")
 		(and
 			(instance ?ELECT Election)
 			(subProcess ?VOTE ?ELECT))))
+
+(subclass Judging Selecting)
+(documentation Judging "The subclass of &%Selecting where the &%agent opts 
+for one belief out of a set of multiple possibilities that are available to 
+him/her.")
+
+(=>
+   (and
+      (instance ?JUDGE Judging)
+      (agent ?JUDGE ?AGENT)
+      (patient ?JUDGE ?PROPOSITION))
+   (and
+      (holdsDuring (BeginFn (WhenFn ?JUDGE)) (not (believes ?AGENT ?PROPOSITION)))
+      (holdsDuring (EndFn (WhenFn ?JUDGE)) (believes ?AGENT ?PROPOSITION))))
 
 (subclass Comparing IntentionalPsychologicalProcess)
 (subclass Comparing DualObjectProcess)
@@ -9003,7 +8226,7 @@ one of extent.")
    (exists (?PATIENT)
       (and 
          (patient ?PROCESS ?PATIENT)
-         (time ?PATIENT (BeginFn(WhenFn ?PROCESS))) 
+         (time ?PATIENT (BeginFn (WhenFn ?PROCESS))) 
          (not 
             (time ?PATIENT (EndFn (WhenFn ?PROCESS)))))))
 
@@ -9060,7 +8283,12 @@ involve a sharp &%instrument.")
 (relatedInternalConcept Attaching Putting)
 (documentation Attaching "A &%Process where one &%Object becomes attached 
 to another &%Object.  Note that this differs from &%Putting in that two 
-things which are attached may already be in the same location.")
+things which are attached may already be in the same location.  Note that 
+&%Combining is different from &%Attaching in that the former applies to 
+&%Substances, while the latter applies to &%CorpuscularObjects.  Note too 
+that &%Attaching is different from &%Putting in that one or both of the 
+two things which are attached may or may not be moved from the location 
+where they were combined.")
 
 (=>
    (and 
@@ -9071,11 +8299,19 @@ things which are attached may already be in the same location.")
       (holdsDuring (BeginFn (WhenFn ?ATTACH)) (not (connected ?OBJ1 ?OBJ2)))
       (holdsDuring (EndFn (WhenFn ?ATTACH)) (connected ?OBJ1 ?OBJ2)))) 
 
+(=>
+   (instance ?ATTACH Attaching)
+   (exists (?OBJ)
+      (and
+         (instance ?OBJ CorpuscularObject)
+         (patient ?ATTACH ?OBJ))))
+
 (subclass Detaching DualObjectProcess)
 (documentation Detaching "A &%Process where the &%agent detaches one thing 
-from something else.  Note that this is different from &%Removing in that 
-neither of the two things which are detached may be removed from the location 
-where it was attached.") 
+from something else.  Note that &%Detaching is different from &%Separating 
+in that the latter applies to &%Substances, while the former applies to &%CorpuscularObjects.  Note too that &%Detaching is different from &%Removing 
+in that one or both of the two things which are detached may or may not be 
+moved from the location where they were attached.") 
 
  (=>
    (and 
@@ -9086,9 +8322,35 @@ where it was attached.")
       (holdsDuring (BeginFn (WhenFn ?DETACH)) (connected ?OBJ1 ?OBJ2))
       (holdsDuring (EndFn (WhenFn ?DETACH)) (not (connected ?OBJ1 ?OBJ2)))))
 
+(=>
+   (instance ?DETACH Detaching)
+   (exists (?OBJ)
+      (and
+         (instance ?OBJ CorpuscularObject)
+         (patient ?DETACH ?OBJ))))
+
+(subclass Ungrasping Detaching)
+(documentation Ungrasping "Any instance of &%Detaching which results in 
+a situation where it is not the case that the &%agent &%grasps something 
+which he/she &%grasps previously.")
+
+(=>
+   (and
+      (instance ?RELEASE Ungrasping)
+      (agent ?GRAB ?AGENT)
+      (patient ?GRAB ?THING))
+   (and
+      (holdsDuring (BeginFn (WhenFn ?RELEASE)) (grasps ?AGENT ?THING))
+      (holdsDuring (EndFn (WhenFn ?RELEASE)) (not (grasps ?AGENT ?THING)))))
+
 (subclass Combining DualObjectProcess)
-(documentation Combining "A &%Process where two or more &%Substances are 
-combined into a single &%Substance.")
+(documentation Combining "A &%Process where two or more &%SelfConnectedObjects 
+are incorporated into a single &%SelfConnectedObject.  Note that &%Combining 
+is different from &%Attaching in that the former results in one of the objects 
+being &%part of the other, while &%Attaching only results in the two objects 
+being &%connected with one another.  Note too that &%Combining is different 
+from &%Putting in that one or both of the two things which are combined may or 
+may not be moved from the location where they were combined.")
 
 (<=>
    (and 
@@ -9096,13 +8358,31 @@ combined into a single &%Substance.")
       (resource ?COMBINE ?OBJ1)
       (result ?COMBINE ?OBJ2))
    (and
-      (holdsDuring (BeginFn (WhenFn ?COMBINE)) (not (piece ?OBJ1 ?OBJ2)))
-      (holdsDuring (EndFn (WhenFn ?COMBINE)) (piece ?OBJ1 ?OBJ2))))
+      (holdsDuring (BeginFn (WhenFn ?COMBINE)) (not (part ?OBJ1 ?OBJ2)))
+      (holdsDuring (EndFn (WhenFn ?COMBINE)) (part ?OBJ1 ?OBJ2))))
+
+(=>
+   (instance ?COMBINE Combining)
+   (exists (?OBJ)
+      (and
+         (instance ?OBJ SelfConnectedObject)
+         (patient ?COMBINE ?OBJ))))
 
 (subclass Separating DualObjectProcess)
 (disjoint Separating Combining)
-(documentation Separating "A &%Process where a &%Substance is separated 
-into (some of) its &%pieces.")
+(documentation Separating "A &%Process where a &%SelfConnectedObject is 
+separated into (some of) its &%parts.  Note that &%Separating is different 
+from &%Detaching in that the latter only results in the two objects not 
+being &%connected.  Note too that &%Separating is different from 
+&%Removing in that one or both of the two things which are separated 
+may or may not be moved from the location where they were separated.")
+
+(=>
+   (instance ?SEPARATE Separating)
+   (exists (?OBJ)
+      (and
+         (instance ?OBJ SelfConnectedObject)
+         (patient ?SEPARATE ?OBJ))))
 
 (subclass ChemicalProcess InternalChange) 
 (partition ChemicalProcess ChemicalSynthesis ChemicalDecomposition)
@@ -9194,25 +8474,6 @@ spatial or temporal location.")
          (and
             (holdsDuring (BeginFn (WhenFn ?CHANGE)) (not (attribute ?OBJ ?PROPERTY)))
             (holdsDuring (EndFn (WhenFn ?CHANGE)) (attribute ?OBJ ?PROPERTY))))))
-
-(subclass WeatherProcess InternalChange)
-(documentation WeatherProcess "&%WeatherProcess is the broadest class of 
-processes that involve weather, including weather seasons (not to be confused 
-with instances of &%SeasonOfYear), weather systems, and short-term weather 
-events.")
-
-(subclass Precipitation WeatherProcess)
-(subclass Precipitation WaterMotion)
-(documentation Precipitation "&%Precipitation is the process of 
-water molecules falling from the air to the ground, in either a 
-liquid or frozen state.")
-
-(=>
-	(instance ?PROCESS Precipitation)
-	(exists (?STUFF)
-		(and
-			(instance ?STUFF Water)
-			(patient ?PROCESS ?STUFF))))
 
 (subclass SurfaceChange InternalChange)
 (documentation SurfaceChange "&%Processes which involve altering 
@@ -9330,7 +8591,8 @@ relatively large number of speakers.")
 
 (subclass Translating ContentDevelopment)
 (subclass Translating DualObjectProcess)
-(documentation Translating "Converting content from one &%Language into another.")
+(documentation Translating "Converting content from one &%Language into another.  
+This covers oral translation (i.e. interpreting) as well as written translation.")
 
 (=>
    (and
@@ -9390,7 +8652,7 @@ with the &%result &%CaseRole.")
    (exists (?PATIENT)
       (and 
          (patient ?PROCESS ?PATIENT)
-         (time ?PATIENT (EndFn(WhenFn ?PROCESS))) 
+         (time ?PATIENT (EndFn (WhenFn ?PROCESS))) 
          (not 
             (time ?PATIENT (BeginFn (WhenFn ?PROCESS)))))))
 
@@ -9427,7 +8689,10 @@ distribution, when it occurs, is an instance of &%Dissemination.")
    (subclass ?TEXT Text))
 
 (subclass Cooking Making)
-(documentation Cooking "The &%Making of an &%instance of &%Food.")
+(documentation Cooking "The &%Making of an &%instance of &%Food.  Note 
+that this can cover any preparation of &%Food, e.g. making a salad, 
+cutting up fruit, etc.  It does not necessarily involve the application 
+of heat.")
 
 (=>
    (instance ?COOK Cooking)
@@ -9479,6 +8744,11 @@ by a &%Formula).")
       (patient ?INVESTIGATE ?PROP))
    (holdsDuring (WhenFn ?INVESTIGATE) (not (knows ?AGENT ?PROP))))
 
+(subclass Experimenting Investigating)
+(documentation Experimenting "&%Investigating the truth of a &%Proposition 
+by constructing and observing a trial.  Note that the trial may be either 
+controlled or uncontrolled, blind or not blind.")
+
 (subclass DiagnosticProcess Investigating)
 (documentation DiagnosticProcess "A &%Process that is carried out for 
 the purpose of determining the nature of a &%DiseaseOrSyndrome.")
@@ -9520,6 +8790,7 @@ examples.")
          (true ?PROP True))))
 
 (subclass Communication SocialInteraction)
+(partition Communication Stating Supposing Directing Committing Expressing Declaring)
 (relatedInternalConcept Communication ContentDevelopment)
 (documentation Communication "A &%SocialInteraction that involves 
 the transfer of information between two or more &%CognitiveAgents.  
@@ -9572,20 +8843,12 @@ exhibitions, etc.")
 (documentation attends "(&%attends ?DEMO ?PERSON) means that ?PERSON attends, 
 i.e. is a member of the audience, of the performance event ?DEMO.")
 
-(subclass Advertising Disseminating)
-(documentation Advertising "A &%Disseminating whose purpose is to 
-promote the sale of an &%Object represented in a &%Text or &%Icon 
-(the advertisement).")
-
-(=>
-   (instance ?ADVERT Advertising)
-   (exists (?OBJ)
-      (and
-         (refers ?ADVERT ?OBJ)
-         (hasPurpose ?ADVERT (exists (?SALE) (and (instance ?SALE Selling) (patient ?SALE ?OBJ)))))))
+(subclass Gesture Communication)
+(subclass Gesture BodyMotion)
+(documentation Gesture "Any &%BodyMotion, e.g. a hand wave, a nod of the 
+head, a smile, which is also an instance of &%Communication.")
 
 (subclass Expressing Communication)
-(partition Expressing Gesture ExpressingInLanguage)
 (documentation Expressing "Instances of this &%Class express a state of the &%agent. 
 For example, Jane thanked Barbara for the present she had given her.  The thanking 
 in this case expresses the gratitude of Jane towards Barbara.  Note that &%Expressing, 
@@ -9603,29 +8866,7 @@ smiling.")
          (attribute ?AGENT ?STATE)
          (represents ?EXPRESS ?STATE))))
 
-(subclass Gesture Expressing)
-(subclass Gesture BodyMotion)
-(documentation Gesture "Any &%BodyMotion, e.g. a hand wave, a nod of the 
-head, a smile, which expresses a &%StateOfMind.")
-
-(=>
-   (and
-      (instance ?GESTURE Gesture)
-      (agent ?GESTURE ?AGENT))
-   (exists (?STATE)
-      (and
-         (instance ?STATE StateOfMind)
-         (attribute ?AGENT ?STATE)
-         (represents ?GESTURE ?STATE))))
-
-(subclass ExpressingInLanguage Expressing)
-(subclass ExpressingInLanguage LinguisticCommunication)
-(documentation ExpressingInLanguage "Any instance of &%Expressing that is also an 
-instance of &%LinguisticCommunication, e.g. thanking someone, expressing condolence, 
-expressing disapproval with an utterance rather than a &%Gesture, etc.")
-
 (subclass LinguisticCommunication Communication)
-(partition LinguisticCommunication Stating Supposing Directing Committing ExpressingInLanguage Declaring)
 (documentation LinguisticCommunication "A &%Communication that involves 
 the transfer of information via a &%LinguisticExpression.")
 
@@ -9718,25 +8959,23 @@ effect an institutional alteration when performed by competent authority.
 Some examples are nominating, marrying, and excommunicating.")
 
 (=>
-   (and
-      (instance ?DECLARE Declaring)
-      (agent ?DECLARE ?AGENT1))
-   (exists (?PROC ?AGENT2)
+   (instance ?DECLARE Declaring)
+   (exists (?PROP ?NORM)
       (or
-         (confersRight ?PROC ?DECLARE ?AGENT2)
-         (confersObligation ?PROC ?DECLARE ?AGENT2)))) 
+         (confersNorm ?DECLARE ?PROP ?NORM)
+         (deprivesNorm ?DECLARE ?PROP ?NORM)))) 
 
 (subclass Wedding Declaring)
 (documentation Wedding "Any &%Declaring that leads to one person being 
 the &%spouse of another.")
 
-(=>
+(<=>
    (instance ?WED Wedding)
    (exists (?PERSON1 ?PERSON2)
       (result ?WED (spouse ?PERSON1 ?PERSON2))))
 
 (subclass Naming Declaring)
-(documentation "The &%Process of assigning a name to someone or something.")
+(documentation Naming "The &%Process of assigning a name to someone or something.")
 
 (=>
    (and
@@ -9963,40 +9202,13 @@ sensing is done by an ocular &%Organ.")
 (documentation Smelling "The &%subclass of &%Perception in which the 
 sensing is done by an olefactory &%Organ.")
 
-(=>
-   (and
-      (instance ?SMELL Smelling)
-      (patient ?SMELL ?OBJ))
-   (exists (?ATTR)
-      (and
-         (instance ?ATTR OlfactoryAttribute)
-         (attribute ?OBJ ?ATTR))))
-
 (subclass Tasting Perception)
 (documentation Tasting "The &%subclass of &%Perception in which the 
 sensing is done by of an &%Organ which can discriminate various tastes.")
 
-(=>
-   (and
-      (instance ?TASTE Tasting)
-      (patient ?TASTE ?OBJ))
-   (exists (?ATTR)
-      (and
-         (instance ?ATTR TasteAttribute)
-         (attribute ?OBJ ?ATTR))))
-
 (subclass Hearing Perception)
 (documentation Hearing "The &%subclass of &%Perception in which the 
 sensing is done by an auditory &%Organ.")
-
-(=>
-   (and
-      (instance ?HEAR Hearing)
-      (patient ?HEAR ?OBJ))
-   (exists (?ATTR)
-      (and
-         (instance ?ATTR SoundAttribute)
-         (attribute ?OBJ ?ATTR))))
 
 (subclass Listening Hearing)
 (subclass Listening IntentionalProcess)
@@ -10039,23 +9251,9 @@ and glittering.")
 sound waves are given off or absorbed.  Some examples include creaking, 
 roaring, and whistling.")
 
-(=>
-   (and
-      (instance ?EMIT RadiatingSound)
-      (agent ?EMIT ?SOUND))
-   (exists (?ATTR)
-      (and
-         (instance ?ATTR SoundAttribute)
-         (attribute ?SOUND ?ATTR))))
-
 (subclass Music RadiatingSound)
 (documentation Music "The &%subclass of &%RadiatingSound where the 
 sound is intended to be melodic and is produced deliberately.")  
-
-(subclass RadiatingElectromagnetic Radiating)
-(documentation RadiatingElectromagnetic "&%RadiatingElectromagnetic 
-is the subclass of &%Radiating processes in which electromagnetic 
-radiation is transmitted or absorbed.")
 
 (subclass RadiatingNuclear Radiating)
 (documentation RadiatingNuclear "Releasing atomic energy, i.e. energy from 
@@ -10264,7 +9462,7 @@ e.g. rivers, lakes, oceans, etc.")
    (instance ?AREA WaterArea)
    (exists (?BED ?HOLE ?WATER)
       (and
-         (equal (PrincipalHostFn ?HOLE) ?BED)
+         (equal (HoleHostFn ?HOLE) ?BED)
          (instance ?WATER Water)
          (properlyFills ?WATER ?HOLE)
          (equal (MereologicalSumFn ?BED ?WATER) ?AREA))))
@@ -10319,8 +9517,8 @@ sloughs, and marshes.")
 (subclass Continent LandArea)
 (documentation Continent "One of the seven largest land masses on earth, 
 viz. Africa, North America, South America, Antarctica, Europe, Asia, and 
-Oceania (also known by the &%Nation which is coextensive with the 
-&%Continent - Australia).")
+Oceania.  Note that this naming scheme is the one used in the CIA World 
+Factbook.")
 
 (equal (CardinalityFn Continent) 7)
 
@@ -10404,7 +9602,6 @@ regions, and it includes both natural and artificial transitways.")
                      (path ?TRANSPORT ?WAY)))))
 
 (subclass Roadway LandTransitway)
-(subclass Roadway LandArea)
 (documentation Roadway "&%Roadway is the subclass of &%LandTransitways 
 that are areas intended for surface travel by self-powered, wheeled 
 vehicles, excluding those that travel on tracks.  &%Roadways have been 
@@ -10416,7 +9613,7 @@ expressways.")
 (documentation Water "The &%Class of samples of the compound H20.  Note 
 that this &%Class covers both pure and impure &%Water.")
 
-(subclass Mineral Mixture)
+(subclass Mineral Substance)
 (documentation Mineral " Any of various naturally occurring homogeneous substances (such as stone, coal, salt, sulfur, sand, petroleum), or synthetic substances having the chemical composition and crystalline form and properties of a naturally occurring mineral.")
 
 (instance developmentalForm BinaryPredicate)
@@ -10440,6 +9637,7 @@ of frogs and butterflies, respectively.")
          (holdsDuring ?TIME2 (developmentalForm ?OBJ ?ATTR2)))))
    
 (subclass OrganicObject CorpuscularObject)
+(disjoint OrganicObject Artifact)
 (partition OrganicObject Organism AnatomicalStructure)
 (documentation OrganicObject "This class encompasses &%Organisms, 
 &%CorpuscularObjects that are parts of &%Organisms, i.e. &%BodyParts, 
@@ -10464,144 +9662,34 @@ and &%CorpuscularObjects that are nonintentionally produced by
 (domain inhabits 1 Organism)
 (domain inhabits 2 Object)
 (documentation inhabits "A very basic notion of living within something 
-else.  (&%inhabits ?ORGANISM ?OBJECT) means that ?OBJECT is the residence, 
-nest, home, etc. of ?ORGANISM.")
+else.  (&%inhabits ?ORGANISM ?OBJECT) means that ?OBJECT is the residence 
+(either permanent or temporary), nest, etc. of ?ORGANISM.")
 
 (=>
    (inhabits ?ORGANISM ?OBJ)
    (exists (?TIME)
       (holdsDuring ?TIME (located ?ORGANISM ?OBJ))))
 
+(=>
+   (and
+      (inhabits ?PERSON ?PLACE)
+      (instance ?PERSON Human))
+   (or
+      (home ?PERSON ?PLACE)
+      (stays ?PERSON ?PLACE)))
+
 (subrelation home inhabits)
 (domain home 1 Human)
-(domain home 2 StationaryArtifact)
-(documentation home "The relation between a &%Human and a home of the 
-&%Human.")
+(domain home 2 PermanentResidence)
+(documentation home "The relation between a &%Human and a &%PermanentResidence 
+of the &%Human.")
 
-(instance parent BinaryPredicate)
-(subrelation parent familyRelation)
-(instance parent AsymmetricRelation)
-(instance parent IntransitiveRelation)
-(domain parent 1 Organism)
-(domain parent 2 Organism)
-(documentation parent "The general relationship of parenthood.  
-(&%parent ?CHILD ?PARENT) means that ?PARENT is a biological parent 
-of ?CHILD.")
-
-(=>
-   (parent ?CHILD ?PARENT)
-   (before (BeginFn (WhenFn ?PARENT)) (BeginFn (WhenFn ?CHILD))))
-
-(=>
-   (and
-      (parent ?CHILD ?PARENT)
-      (subclass ?CLASS Organism)
-      (instance ?PARENT ?CLASS))
-   (instance ?CHILD ?CLASS))
-
-(=>
-   (parent ?CHILD ?PARENT)
-   (or
-      (mother ?CHILD ?PARENT)
-      (father ?CHILD ?PARENT)))
-
-(=>
-   (instance ?ORGANISM Organism)
-   (exists (?PARENT)
-      (parent ?ORGANISM ?PARENT)))
-
-(instance mother SingleValuedRelation)
-(subrelation mother parent)
-(domain mother 1 Organism)
-(domain mother 2 Organism)
-(documentation mother "The general relationship of motherhood.  
-(&%mother ?CHILD ?MOTHER) means that ?MOTHER is the biological mother 
-of ?CHILD.")
-
-(=>
-   (mother ?CHILD ?MOTHER)
-   (attribute ?MOTHER Female))
-
-(instance father SingleValuedRelation)
-(subrelation father parent)
-(domain father 1 Organism)
-(domain father 2 Organism)
-(documentation father "The general relationship of fatherhood.  
-(&%father ?CHILD ?FATHER) means that ?FATHER is the biological father
-of ?CHILD.")
-
-(=>
-   (father ?CHILD ?FATHER)
-   (attribute ?FATHER Male))
-
-(instance sibling BinaryPredicate)
-(subrelation sibling familyRelation)
-(instance sibling SymmetricRelation)
-(instance sibling IrreflexiveRelation)
-(domain sibling 1 Organism)
-(domain sibling 2 Organism)
-(documentation sibling "The relationship between two &%Organisms that 
-have the same &%mother and &%father.  Note that this relationship does 
-not hold between half-brothers, half-sisters, etc.")
-
-(<=>
-   (sibling ?ANIMAL1 ?ANIMAL2)
-   (and
-      (not (equal ?ANIMAL1 ?ANIMAL2))
-      (exists (?FATHER ?MOTHER)
-         (and
-            (father ?ANIMAL1 ?FATHER)
-            (father ?ANIMAL2 ?FATHER)
-            (mother ?ANIMAL1 ?MOTHER)
-            (mother ?ANIMAL2 ?MOTHER)))))
-
-(subrelation daughter parent)
-(domain daughter 1 Woman)
-(domain daughter 2 Human)
-(documentation daughter "The general relationship of daughterhood.  
-(&%daughter ?CHILD ?PARENT) means that ?CHILD is the biological daughter
-of ?PARENT.")
-
-(subrelation son parent)
-(domain son 1 Man)
-(domain son 2 Human)
-(documentation son "The general relationship of being a son.  
-(&%son ?CHILD ?PARENT) means that ?CHILD is the biological 
-son of ?PARENT.")
-
-(subrelation brother sibling)
-(instance brother IrreflexiveRelation)
-(instance brother TransitiveRelation)
-(domain brother 1 Man)
-(domain brother 2 Human)
-(documentation brother "The general relationship of being a brother.  
-(&%brother ?MAN ?PERSON) means that ?MAN is the brother of ?PERSON.")
-
-(subrelation sister sibling)
-(instance sister IrreflexiveRelation)
-(instance sister TransitiveRelation)
-(domain sister 1 Woman)
-(domain sister 2 Human)
-(documentation sister "The general relationship of being a sister.  
-(&%sister ?WOMAN ?PERSON) means that ?WOMAN is the sister of ?PERSON.")
-
-(subrelation ancestor familyRelation)
-(instance ancestor TransitiveRelation)
-(instance ancestor IrreflexiveRelation)
-(domain ancestor 1 Organism)
-(domain ancestor 2 Organism)
-(documentation ancestor "The transitive closure of the &%parent predicate.  
-(&%ancestor ?DESCENDANT ?ANCESTOR) means that ?ANCESTOR is either the 
-&%parent of ?DESCENDANT or the &%parent of the &%parent of &%DESCENDANT or 
-etc.")
-
-(=>
-   (parent ?PARENT ?CHILD)
-   (ancestor ?PARENT ?CHILD))
-
-;; The following formulas incorporate the content in the Natural-Kinds 
-;; ontology developed by ITBM-CNR.  This content is essentially a set of 
-;; high-level biological categories.
+(subrelation stays inhabits)
+(disjointRelation stays home)
+(domain stays 1 Human)
+(domain stays 2 TemporaryResidence)
+(documentation stays "The relation between a &%Human and a &%TemporaryResidence 
+of the &%Human.")
 
 (subclass Plant Organism)
 (documentation Plant "An &%Organism having cellulose cell walls, growing 
@@ -10852,6 +9940,7 @@ ancestors of &%Humans.")
 
 (subclass Human Hominid)
 (subclass Human CognitiveAgent)
+(partition Human Man Woman)
 (documentation Human "Modern man, the only remaining species of the Homo 
 genus.")
 
@@ -10889,12 +9978,6 @@ in the biologic functioning of the &%Organism.")
 (documentation Protein "A &%Nutrient made up of amino acids joined by 
 peptide bonds.")
 
-(subclass Enzyme Protein)
-(documentation Enzyme "A complex &%Protein that is produced by living 
-cells and which catalyzes specific biochemical reactions. There are six 
-main types of enzymes:  oxidoreductases, transferases, hydrolases, 
-lyases, isomerases, and ligases.")
-
 (subclass Carbohydrate Nutrient)
 (documentation Carbohydrate "An element of living cells and a source of 
 energy for &%Animals.  This class includes both simple &%Carbohydrates, 
@@ -10905,13 +9988,55 @@ i.e. sugars, and complex &%Carbohydrates, i.e. starches.")
 synthetically, which is essential in the diet of &%Humans and other higher 
 &%Animals.  Included here are &%Vitamin precursors and provitamins.")
 
+(subclass LiquidMixture Mixture)
+(partition LiquidMixture Solution Suspension)
+(documentation LiquidMixture "Any &%Mixture that satisfies two conditions, 
+viz. it is made up predominantly of things which are a &%Liquid and any 
+component other than &%Liquid in the &%Mixture is in the form of fine particles 
+which are suspended in the &%Liquid.")
+
+(=>  
+   (instance ?MIX LiquidMixture)
+   (exists (?PART)
+      (and
+         (part ?PART ?MIX)
+         (attribute ?PART Liquid))))
+
+(subclass Solution LiquidMixture) 
+(documentation Solution "A liquid mixture. The most abundant component in 
+a solution is called the solvent. Other components are called solutes. 
+A solution, though homogeneous, may nonetheless have variable composition. 
+Any amount of salt, up to a maximum limit, can be dissolved in a given 
+amount of water.")
+
+(subclass Suspension LiquidMixture)
+(documentation Suspension "A &%LiquidMixture where at least one of the 
+components of the &%Mixture is equally distributed throughout the &%Mixture 
+but is not dissolved in it.") 
+
 (subclass GasMixture Mixture)
+(disjoint GasMixture LiquidMixture)
 (documentation GasMixture "Any &%Mixture that satisfies two conditions, 
 viz. it is made up predominantly of things which are a &%Gas and any 
 component other than &%Gas in the &%Mixture is in the form of fine particles 
 which are suspended in the &%Gas.") 
 
-(subclass Smoke GasMixture)
+(=>  
+   (instance ?MIX GasMixture)
+   (exists (?PART)
+      (and
+         (part ?PART ?MIX)
+         (attribute ?PART Gas))))
+
+(subclass Cloud GasMixture)
+(documentation Cloud "Any &%GasMixture that is visible, e.g. &%Smoke produced 
+by a fire or clouds of water vapor in the sky.")
+
+(=>
+   (instance ?CLOUD Cloud)
+   (capability Seeing patient ?CLOUD))
+
+(subclass Smoke Cloud)
 (documentation Smoke "A mixture of fine particles suspended in a gas that is 
 produced by &%Combustion.")
 
@@ -10921,14 +10046,6 @@ produced by &%Combustion.")
       (and
          (instance ?BURNING Combustion)
          (result ?BURNING ?SMOKE))))
-
-(subclass Cloud GasMixture)
-(documentation Cloud "Any &%GasMixture that is visible, e.g. clouds of &%Smoke 
-produced by a fire or clouds of water vapor in the sky.")
-
-(=>
-   (instance ?CLOUD Cloud)
-   (capability Seeing patient ?CLOUD))
 
 (subclass WaterCloud Cloud)
 (documentation WaterCloud "Any &%Cloud that is composed primarily of water vapor.")
@@ -10993,25 +10110,6 @@ exclusively by &%Plants.")
       (instance ?PLANT Organism)
       (part ?SUBSTANCE ?PLANT))
    (instance ?PLANT Plant))
-
-(subclass Hormone BodySubstance)
-(subclass Hormone BiologicallyActiveSubstance)
-(documentation Hormone "In &%Animals, a chemical secreted by an 
-endocrine gland whose products are released into the circulating fluid.  
-&%Plant hormones or synthetic hormones which are used only to alter or 
-control various physiologic processes, e.g., reproductive control agents, 
-are assigned to the &%Class &%BiologicallyActiveSubstance. &%Hormones act as 
-chemical messengers and regulate various physiologic processes such as 
-growth, reproduction, metabolism, etc.  They usually fall into two broad 
-categories, viz. steroid hormones and peptide hormones.")
-
-(=>
-   (instance ?HORMONE Hormone)
-   (exists (?PROCESS ?GLAND)
-      (and
-         (instance ?GLAND Gland)
-         (instrument ?PROCESS ?GLAND)
-         (result ?PROCESS ?HORMONE))))
 
 (subclass Blood BodySubstance)
 (documentation Blood "A fluid present in &%Animals that transports 
@@ -11122,7 +10220,7 @@ to small components of complex &%Organs.")
         (and
             (instance ?ORGANISM Organism)
             (temporalPart ?TIME (WhenFn ?ORGANISM))
-            (holdsDuring ?TIME (part ?ANAT ?ORGANISM)))))
+            (holdsDuring ?TIME (component ?ANAT ?ORGANISM)))))
 
 (=>
    (instance ?PART BodyPart)
@@ -11221,23 +10319,17 @@ meet or connect.")
 
 (=>
     (instance ?JUNCT BodyJunction)
-    (exists (?STRUCT)
+    (exists (?OBJ1 ?OBJ2)
         (and
-            (instance ?STRUCT BodyPart)
-            (component ?JUNCT ?STRUCT))))
+            (instance ?OBJ1 BodyPart)
+            (instance ?OBJ2 BodyPart)
+            (connects ?JUNCT ?OBJ1 ?OBJ2))))
 
-(=>
-    (instance ?JUNCT BodyJunction)
-    (exists (?STRUCT1 ?STRUCT2)
-        (and
-            (connected ?JUNCT ?STRUCT1)
-	      (connected ?JUNCT ?STRUCT2)
-            (instance ?STRUCT1 BodyPart)
-            (instance ?STRUCT2 BodyPart)
-            (not
-                (equal ?STRUCT1 ?STRUCT2))))) 
+(subclass BodyCavity BodyPart)
+(documentation BodyCavity "Any &%BodyPart which contains an unfilled space, 
+e.g. &%BodyVessels, the atria and ventricles of the heart, the lungs, etc.")
 
-(subclass BodyVessel BodyPart)
+(subclass BodyVessel BodyCavity)
 (documentation BodyVessel "Any tube-like structure which occurs naturally in 
 an &%Organism and through which a &%BodySubstance can circulate.")
 
@@ -11254,10 +10346,6 @@ systems, e.g. the digestive system or the central nervous system.")
    (instance ?ORGAN Organ)
    (exists (?PURP)
       (hasPurpose ?ORGAN ?PURP)))
-
-(subclass Gland Organ)
-(documentation Gland "An &%Organ that removes &%Substances from the &%Blood, 
-alters them in some way, and then releases them.")
 
 (subclass Tissue BodySubstance)
 (disjointDecomposition Tissue Bone Muscle FatTissue)
@@ -11283,6 +10371,7 @@ same granularity are instances of &%Tissue as well).")
             (part ?STUFF ?ORGANISM))))
 
 (subclass Bone Tissue)
+(subclass Bone AnimalSubstance)
 (documentation Bone "Rigid &%Tissue composed largely of calcium that makes up 
 the skeleton of &%Vertebrates.  Note that this &%Class also includes teeth.")
 
@@ -11294,6 +10383,7 @@ the skeleton of &%Vertebrates.  Note that this &%Class also includes teeth.")
          (part ?BONE ?VERT))))
 
 (subclass Muscle Tissue)
+(subclass Muscle AnimalSubstance)
 (documentation Muscle "Nonrigid &%Tissue appearing only in &%Animals and 
 composed largely of contractile cells.")
 
@@ -11302,7 +10392,7 @@ composed largely of contractile cells.")
 fat cells.")
 
 (subclass Noun Word)
-(partition Word Noun Verb Adjective Adverb Particle)
+(partition Word Noun Verb Adjective Adverb ParticleWord)
 (documentation Noun "One of the parts of speech.  The &%Class of &%Words 
 that conventionally denote &%Objects.")
 
@@ -11318,12 +10408,12 @@ that conventionally denote &%Processes.")
 (documentation Adverb "One of the parts of speech.  The &%Class of &%Words 
 that conventionally denote &%Attributes of &%Processes.")
 
-(subclass Particle Word)
-(documentation Particle "An umbrella &%Class for any &%Word that does not 
-fit into the other subclasses of &%Word.  A &%Particle is generally a small 
+(subclass ParticleWord Word)
+(documentation ParticleWord "An umbrella &%Class for any &%Word that does not 
+fit into the other subclasses of &%Word.  A &%ParticleWord is generally a small 
 term that serves a grammatical or logical function, e.g. 'and', 'of', 
 'since', etc.  At some point, this class might be broken up into the 
-subclasses 'Connective', 'Preposition', etc.  Note that the class &%Particle 
+subclasses 'Connective', 'Preposition', etc.  Note that the class &%ParticleWord 
 includes both personal and possessive pronouns, e.g. 'she', 'hers', 'it', 'its', 
 etc.")
 
@@ -11409,7 +10499,7 @@ preposition and that functions as an &%Adjective or an &%Adverb.")
    (instance ?PHRASE PrepositionalPhrase)
    (exists (?PREP)
       (and
-         (instance ?PREP Particle)
+         (instance ?PREP ParticleWord)
          (part ?PREP ?PHRASE))))
 
 (subclass Text LinguisticExpression)
@@ -11651,13 +10741,11 @@ need not be a legal one, as in the case of an academic diploma that grants
 certain privileges in the professional world.")
 
 (=>
-   (and
-      (instance ?DOC Certificate)
-      (possesses ?AGENT ?DOC))
-   (exists (?PROC)
+   (instance ?DOC Certificate)
+   (exists (?PROP ?NORM)
       (or
-         (confersRight ?PROC ?DOC ?AGENT)
-         (confersObligation ?PROC ?DOC ?AGENT))))
+         (confersNorm ?DOC ?PROP ?NORM)
+         (deprivesNorm ?DOC ?PROP ?NORM))))
 
 (subclass FinancialInstrument Certificate)
 (documentation FinancialInstrument "A document having monetary value 
@@ -12026,16 +11114,6 @@ the &%resource into the &%result.")
                (resource ?PROC ?RESOURCE)
                (result ?PROC ?RESULT))))))
 
-(=>
-   (instance ?MACHINE Machine)
-   (exists (?COMP1 ?COMP2)
-      (and
-         (instance ?COMP1 EngineeringComponent)
-         (instance ?COMP2 EngineeringComponent)
-         (not (equal ?COMP1 ?COMP2))
-         (part ?COMP1 ?MACHINE)
-         (part ?COMP2 ?MACHINE))))
-
 (subclass EngineeringComponent Device)
 (documentation EngineeringComponent "A fundamental concept that applies 
 in many engineering domains.  An &%EngineeringComponent is an element of 
@@ -12053,12 +11131,22 @@ system with a stable identity.")
          (instance ?DEVICE Device)
          (component ?COMP ?DEVICE))))
 
+(=>
+   (instance ?MACHINE Machine)
+   (exists (?COMP1 ?COMP2)
+      (and
+         (instance ?COMP1 EngineeringComponent)
+         (instance ?COMP2 EngineeringComponent)
+         (not (equal ?COMP1 ?COMP2))
+         (part ?COMP1 ?MACHINE)
+         (part ?COMP2 ?MACHINE))))
+
 (subrelation engineeringSubcomponent properPart)
 (domain engineeringSubcomponent 1 EngineeringComponent)
 (domain engineeringSubcomponent 2 EngineeringComponent)
 (documentation engineeringSubcomponent "(&%engineeringSubcomponent ?SUB 
 ?SUPER) means that the &%EngineeringComponent ?SUB is structurally a 
-&%properPart ?SUPER.  This relation is an &%AsymmetricRelation, since 
+&%properPart of ?SUPER.  This relation is an &%AsymmetricRelation, since 
 two &%EngineeringComponents cannot be subcomponents of each other.")
 
 (instance connectedEngineeringComponents SymmetricRelation)
@@ -12084,18 +11172,6 @@ with the connection.")
       (not
          (engineeringSubcomponent ?COMP2 ?COMP1))))
 
-(=> 
-   (connectedEngineeringComponents ?COMP1 ?COMP2)
-   (not 
-      (or 
-         (instance ?COMP1 EngineeringConnection) 
-         (instance ?COMP2 EngineeringConnection))))
-
-(<=>
-   (connectedEngineeringComponents ?COMP1 ?COMP2)
-   (exists (?CONNECTION)
-      (connectsEngineeringComponents ?CONNECTION ?COMP1 ?COMP2))) 
-         
 (subclass EngineeringConnection EngineeringComponent)
 (documentation EngineeringConnection "An &%EngineeringConnection is an 
 &%EngineeringComponent that represents a connection relationship between 
@@ -12119,6 +11195,18 @@ several pairs of &%EngineeringComponents.")
    (instance ?CONNECTION EngineeringConnection)
    (exists (?COMP1 ?COMP2)
       (connectsEngineeringComponents ?CONNECTION ?COMP1 ?COMP2)))
+
+(=> 
+   (connectedEngineeringComponents ?COMP1 ?COMP2)
+   (not 
+      (or 
+         (instance ?COMP1 EngineeringConnection) 
+         (instance ?COMP2 EngineeringConnection))))
+
+(<=>
+   (connectedEngineeringComponents ?COMP1 ?COMP2)
+   (exists (?CONNECTION)
+      (connectsEngineeringComponents ?CONNECTION ?COMP1 ?COMP2))) 
 
 (subrelation connectsEngineeringComponents connects)
 (domain connectsEngineeringComponents 1 EngineeringConnection)
@@ -12153,13 +11241,13 @@ corporation's operation.")
    (instance ?ORG Manufacturer)
    (hasPurpose (exists (?MANUFACTURE)
                   (and
-                     (instance ?MANUFACTURE Manufacturing)
+                     (instance ?MANUFACTURE Manufacture)
                      (instance ?MANUFACTURE CommercialService)
                      (agent ?MANUFACTURE ?ORG)))))
                        
 (subclass MercantileOrganization Corporation)
 (documentation MercantileOrganization "Any &%Corporation which sells 
-physical goods to customers for a profit.")
+goods or services to customers for a profit.")
 
 (=>
    (instance ?ORG MercantileOrganization)
@@ -12190,8 +11278,9 @@ exclusively &%Humans.")
       (member ?MEMBER ?GROUP))
    (instance ?MEMBER Human))
 
-(subclass AgeGroup Group) 
-(documentation AgeGroup "A &%Group whose &%members all have the same &%age.")
+(subclass AgeGroup GroupOfPeople) 
+(documentation AgeGroup "A &%GroupOfPeople whose &%members all have the 
+same &%age.")
  
 (=> 
    (instance ?GROUP AgeGroup) 
@@ -12204,8 +11293,8 @@ exclusively &%Humans.")
             (age ?MEMB2 ?AGE2)) 
          (equal ?AGE1 ?AGE2)))) 
 
-(subclass FamilyGroup Group) 
-(documentation FamilyGroup "A &%Group whose &%members bear 
+(subclass FamilyGroup GroupOfPeople) 
+(documentation FamilyGroup "A &%GroupOfPeople whose &%members bear 
 &%familyRelations to one another.")
  
 (=> 
@@ -12217,8 +11306,8 @@ exclusively &%Humans.")
             (member ?MEMB2 ?GROUP)) 
          (familyRelation ?MEMB1 ?MEMB2)))) 
 
-(subclass SocialUnit Group)
-(documentation SocialUnit "A group of people who all have the same &%home.")
+(subclass SocialUnit GroupOfPeople)
+(documentation SocialUnit "A &%GroupOfPeople who all have the same &%home.")
 
 (=>
    (instance ?UNIT SocialUnit)
@@ -12257,25 +11346,138 @@ relationships. (&%familyRelation ?ORGANISM1 ?ORGANISM2) means that
    (familyRelation ?ORGANISM1 ?ORGANISM2) 
    (exists (?ORGANISM3) 
       (and 
-         (familyRelation ?ORGANISM3 ?ORGANISM1) 
-         (familyRelation ?ORGANISM3 ?ORGANISM2)))) 
+         (ancestor ?ORGANISM3 ?ORGANISM1) 
+         (ancestor ?ORGANISM3 ?ORGANISM2)))) 
+
+(subrelation ancestor familyRelation)
+(instance ancestor TransitiveRelation)
+(instance ancestor IrreflexiveRelation)
+(domain ancestor 1 Organism)
+(domain ancestor 2 Organism)
+(documentation ancestor "The transitive closure of the &%parent predicate.  
+(&%ancestor ?DESCENDANT ?ANCESTOR) means that ?ANCESTOR is either the 
+&%parent of ?DESCENDANT or the &%parent of the &%parent of &%DESCENDANT or 
+etc.")
+
+(=>
+   (parent ?PARENT ?CHILD)
+   (ancestor ?PARENT ?CHILD))
+
+(instance parent BinaryPredicate)
+(subrelation parent familyRelation)
+(instance parent AsymmetricRelation)
+(instance parent IntransitiveRelation)
+(domain parent 1 Organism)
+(domain parent 2 Organism)
+(documentation parent "The general relationship of parenthood.  
+(&%parent ?CHILD ?PARENT) means that ?PARENT is a biological parent 
+of ?CHILD.")
+
+(=>
+   (parent ?CHILD ?PARENT)
+   (before (BeginFn (WhenFn ?PARENT)) (BeginFn (WhenFn ?CHILD))))
+
+(=>
+   (and
+      (parent ?CHILD ?PARENT)
+      (subclass ?CLASS Organism)
+      (instance ?PARENT ?CLASS))
+   (instance ?CHILD ?CLASS))
+
+(=>
+   (parent ?CHILD ?PARENT)
+   (or
+      (mother ?CHILD ?PARENT)
+      (father ?CHILD ?PARENT)))
+
+(=>
+   (instance ?ORGANISM Organism)
+   (exists (?PARENT)
+      (parent ?ORGANISM ?PARENT)))
+
+(instance mother SingleValuedRelation)
+(subrelation mother parent)
+(domain mother 1 Organism)
+(domain mother 2 Organism)
+(documentation mother "The general relationship of motherhood.  
+(&%mother ?CHILD ?MOTHER) means that ?MOTHER is the biological mother 
+of ?CHILD.")
+
+(=>
+   (mother ?CHILD ?MOTHER)
+   (attribute ?MOTHER Female))
+
+(instance father SingleValuedRelation)
+(subrelation father parent)
+(domain father 1 Organism)
+(domain father 2 Organism)
+(documentation father "The general relationship of fatherhood.  
+(&%father ?CHILD ?FATHER) means that ?FATHER is the biological father
+of ?CHILD.")
+
+(=>
+   (father ?CHILD ?FATHER)
+   (attribute ?FATHER Male))
+
+(subrelation daughter parent)
+(domain daughter 1 Woman)
+(domain daughter 2 Human)
+(documentation daughter "The general relationship of daughterhood.  
+(&%daughter ?CHILD ?PARENT) means that ?CHILD is the biological daughter
+of ?PARENT.")
+
+(subrelation son parent)
+(domain son 1 Man)
+(domain son 2 Human)
+(documentation son "The general relationship of being a son.  
+(&%son ?CHILD ?PARENT) means that ?CHILD is the biological 
+son of ?PARENT.")
+
+(instance sibling BinaryPredicate)
+(subrelation sibling familyRelation)
+(instance sibling SymmetricRelation)
+(instance sibling IrreflexiveRelation)
+(domain sibling 1 Organism)
+(domain sibling 2 Organism)
+(documentation sibling "The relationship between two &%Organisms that 
+have the same &%mother and &%father.  Note that this relationship does 
+not hold between half-brothers, half-sisters, etc.")
+
+(<=>
+   (sibling ?ANIMAL1 ?ANIMAL2)
+   (and
+      (not (equal ?ANIMAL1 ?ANIMAL2))
+      (exists (?FATHER ?MOTHER)
+         (and
+            (father ?ANIMAL1 ?FATHER)
+            (father ?ANIMAL2 ?FATHER)
+            (mother ?ANIMAL1 ?MOTHER)
+            (mother ?ANIMAL2 ?MOTHER)))))
+
+(subrelation brother sibling)
+(instance brother IrreflexiveRelation)
+(instance brother TransitiveRelation)
+(domain brother 1 Man)
+(domain brother 2 Human)
+(documentation brother "The general relationship of being a brother.  
+(&%brother ?MAN ?PERSON) means that ?MAN is the brother of ?PERSON.")
+
+(subrelation sister sibling)
+(instance sister IrreflexiveRelation)
+(instance sister TransitiveRelation)
+(domain sister 1 Woman)
+(domain sister 2 Human)
+(documentation sister "The general relationship of being a sister.  
+(&%sister ?WOMAN ?PERSON) means that ?WOMAN is the sister of ?PERSON.")
 
 (instance legalRelation BinaryPredicate)
 (instance legalRelation SymmetricRelation)
 (domain legalRelation 1 CognitiveAgent)
 (domain legalRelation 2 CognitiveAgent)
 (documentation legalRelation "(&%legalRelation ?AGENT1 ?AGENT2) means 
-there is a relationship involving legal obligations between ?AGENT1 and 
-?AGENT2.  Some examples include marriage, adoption, etc.")
+that ?AGENT1 and ?AGENT2 are relatives by virtue of a legal relationship.  
+Some examples include marriage, adoption, etc.")
 
-(=>
-   (legalRelation ?AGENT1 ?AGENT2)
-   (exists (?DECLARE ?OBLIGATION)
-      (and
-         (instance ?DECLARE Declaring)
-         (confersObligation ?OBLIGATION ?DECLARE ?AGENT1)
-         (confersObligation ?OBLIGATION ?DECLARE ?AGENT2))))
-          
 (subrelation spouse legalRelation)
 (instance spouse IrreflexiveRelation)
 (instance spouse SymmetricRelation)
@@ -12300,14 +11502,14 @@ husband of ?WOMAN.")
 (documentation wife "(&%wife ?WOMAN ?MAN) means that ?WOMAN is the wife of 
 ?MAN.")
 
-(subclass EthnicGroup Group) 
-(documentation EthnicGroup "A &%Group whose &%members originate from 
-the same &%GeographicArea or share the same &%Language and/or cultural 
+(subclass EthnicGroup GroupOfPeople) 
+(documentation EthnicGroup "A &%GroupOfPeople whose &%members originate 
+from the same &%GeographicArea or share the same &%Language and/or cultural 
 practices.") 
 
-(subclass BeliefGroup Group)
-(documentation BeliefGroup "A &%Group whose &%members share a belief or 
-set of beliefs.")
+(subclass BeliefGroup GroupOfPeople)
+(documentation BeliefGroup "A &%GroupOfPeople whose &%members share a belief 
+or set of beliefs.")
 
 (=> 
    (instance ?GROUP BeliefGroup) 
@@ -12347,18 +11549,14 @@ should be assumed.")
 (domain employs 1 Organization)
 (domain employs 2 CognitiveAgent)
 (documentation employs "(&%employs ?ORG ?PERSON) means that ?ORG has 
-hired ?PERSON and currently retains ?PERSON, on a salaried or 
-contractual basis, to provide services in exchange for monetary 
+hired ?PERSON and currently retains ?PERSON, on a salaried, hourly 
+or contractual basis, to provide services in exchange for monetary 
 compensation.")
 
-(=>
-   (employs ?ORG ?PERSON)
-   (member ?PERSON ?ORG))
-
 (subclass PoliticalOrganization Organization)
-(documentation PoliticalOrganization "An &%Organization that is a &%Government, 
-a &%subOrganization of a &%Government, or an &%Organization that is attempting 
-to bring about some sort of political change.")
+(documentation PoliticalOrganization "An &%Organization that is a &%subOrganization 
+of a &%Government, or an &%Organization that is attempting to bring about some sort 
+of political change.")
 
 (=>
    (instance ?POL PoliticalOrganization)
@@ -12367,20 +11565,46 @@ to bring about some sort of political change.")
          (instance ?PROC PoliticalProcess)
          (agent ?PROC ?POL)))) 
 
+(subclass MilitaryForce PoliticalOrganization)
+(documentation MilitaryForce "&%MilitaryForce is the subclass of 
+&%Organizations that are organized along military lines and for the 
+purpose of either defensive or offensive combat, whether or not 
+the force is an official &%GovernmentOrganization.")
+
+(=>
+	(instance ?ORG MilitaryForce)
+	(capability ViolentContest agent ?ORG))
+
+(subclass MilitaryOrganization MilitaryForce)
+(subclass MilitaryOrganization GovernmentOrganization)
+(documentation MilitaryOrganization "Any heavily armed &%Organization 
+that is part of a &%Government and that is charged with representing the 
+&%Government in international conflicts.") 
+
+(subclass ParamilitaryOrganization MilitaryForce)
+(disjoint ParamilitaryOrganization GovernmentOrganization)
+(documentation ParamilitaryOrganization "An &%Organization which is much like 
+a &%MilitaryOrganization, e.g. it is made up of armed fighters, except that it 
+is not associated with a &%Government.")
+
 (subclass GovernmentOrganization Organization)
 (documentation GovernmentOrganization "&%GovernmentOrganization is the 
 class of official &%Organizations that are concerned with the government 
-of a &%GeopoliticalArea at some level.  They may be a &%Government or the 
-&%subOrganization of a government.") 
+of a &%GeopoliticalArea at some level.  They may be a &%subOrganization 
+of a government.") 
 
 (<=>
    (instance ?ORG GovernmentOrganization)
-      (or
-	   (instance ?ORG Government)
-	   (exists (?GOV)
-	      (and
-		   (instance ?GOV Government)
-		   (subOrganization ?ORG ?GOV)))))
+   (exists (?GOV)
+      (and
+         (instance ?GOV Government)
+         (subOrganization ?ORG ?GOV))))
+
+(=>
+   (and
+      (subOrganization ?ORG ?GOV)
+	(instance ?GOV GovernmentOrganization))
+   (instance ?ORG GovernmentOrganization))
 
 (subclass Government GovernmentOrganization)
 (documentation Government "The ruling body of a &%GeopoliticalArea.") 
@@ -12394,11 +11618,6 @@ of a &%GeopoliticalArea at some level.  They may be a &%Government or the
 the United States; (&%GovernmentFn &%PuertoRico) denotes the government of 
 the Commonwealth of Puerto Rico.") 
 
-(subclass MilitaryOrganization GovernmentOrganization)
-(documentation MilitaryOrganization "Any heavily armed &%Organization 
-that is part of a &%Government and that is charged with representing the 
-&%Government in international conflicts.") 
-
 (subclass PoliceOrganization GovernmentOrganization)
 (documentation PoliceOrganization "Any &%GovernmentOrganization  
 that is charged with domestic enforcement of the laws of the &%Government.")
@@ -12409,13 +11628,6 @@ of &%Organizations whose primary purpose is to render judgments according
 to the statutes or regulations of a government or other organization.  
 Judicial bodies are not necessarily government organizations, for example, 
 those associated with sporting associations.") 
-
-(=>
-	(and
-		(instance ?ORG JudicialOrganization)
-		(subOrganization ?ORG ?GOV)
-		(instance ?GOV GovernmentOrganization))
-	(instance ?ORG GovernmentOrganization))
 
 (subclass EducationalOrganization Organization) 
 (documentation EducationalOrganization "A &%EducationalOrganization is 
@@ -12428,13 +11640,13 @@ schools, and colleges and universities.")
 share a set of religious beliefs.") 
 
 (subrelation subOrganization subCollection)
-(instance subOrganization IrreflexiveRelation)
-(instance subOrganization TransitiveRelation) 
+(instance subOrganization PartialOrderingRelation)
 (domain subOrganization 1 Organization) 
 (domain subOrganization 2 Organization) 
 (documentation subOrganization "(&%subOrganization ?ORG1 ?ORG2) means 
-that ?ORG1 is an &%Organization which is a proper part of the 
-&%Organization ?ORG2.") 
+that ?ORG1 is an &%Organization which is a part of the &%Organization 
+?ORG2.  Note that &%subOrganization is a &%ReflexiveRelation, so every 
+&%Organization is a &%subOrganization of itself.") 
 
 (instance citizen BinaryPredicate)
 (instance citizen AsymmetricRelation) 
@@ -12494,6 +11706,7 @@ is intended to satisfy a specified purpose at some future time.")
         (hasPurpose ?PLAN ?PURP)))
 
 (subclass Argument Proposition)
+(partition Argument DeductiveArgument InductiveArgument)
 (documentation Argument "Any proposition which has the form of a deductive 
 or inductive argument, i.e. a set of premises which, it is claimed, imply 
 a conclusion.") 
@@ -12543,6 +11756,11 @@ in fact &%entails the &%conclusion.")
 observed fact and the premises are other facts which collectively imply 
 the conclusion.  Note that this is the they hypothetico-deductive model 
 of explanation.")
+
+(subclass InductiveArgument Argument)
+(documentation InductiveArgument "An &%Argument which is inductive, i.e. it is 
+claimed that a set of specific cases makes the &%conclusion, which generalizes 
+these cases, more likely to be true.")
 
 (instance premise BinaryPredicate)
 (instance premise TotalValuedRelation)
@@ -12654,23 +11872,6 @@ intersected with its back (see &%BackFn).")
 (instance False TruthValue)
 (contraryAttribute False True)
 (documentation False "The &%TruthValue of being false.")
-
-(instance Likely TruthValue)
-(contraryAttribute Likely Unlikely)
-(documentation Likely "The &%TruthValue of being probable, i.e. more likely than 
-not to be &%True.")
-
-(=>
-   (property ?FORMULA Likely)
-   (greaterThan (ProbabilityFn (true ?FORMULA True)) (ProbabilityFn (true ?FORMULA False))))
-
-(instance Unlikely TruthValue)
-(documentation Unlikely "The &%TruthValue of being improbable, i.e. more likely 
-than not to be &%False.")
-
-(=>
-   (property ?FORMULA Unlikely)
-   (greaterThan (ProbabilityFn (true ?FORMULA False)) (ProbabilityFn (true ?FORMULA True))))
 
 (subrelation true property)
 (domain true 1 Sentence)
@@ -12838,38 +12039,6 @@ Greenwich Mean Time, and the Western European time zone.  Note that whenever
 a &%TimeZone is not specified, the &%TimePosition is understood to be with 
 respect to the &%CoordinatedUniversalTimeZone.") 
 
-(instance PacificTimeZone TimeZone)
-(documentation PacificTimeZone "A &%TimeZone that covers much of the 
-western part of the United States.")
-
-(=>
-   (equal (RelativeTimeFn ?TIME1 PacificTimeZone) ?TIME2) 
-   (equal ?TIME2 (AdditionFn ?TIME1 8)))
-
-(instance MountainTimeZone TimeZone)
-(documentation MountainTimeZone "A &%TimeZone that covers much of the 
-Rocky Mountain region of the United States.")
-
-(=>
-   (equal (RelativeTimeFn ?TIME1 MountainTimeZone) ?TIME2) 
-   (equal ?TIME2 (AdditionFn ?TIME1 7)))
-
-(instance CentralTimeZone TimeZone)
-(documentation CentralTimeZone "A &%TimeZone that covers much of the 
-midwestern United States.")
-
-(=>
-   (equal (RelativeTimeFn ?TIME1 CentralTimeZone) ?TIME2) 
-   (equal ?TIME2 (AdditionFn ?TIME1 6)))
-
-(instance EasternTimeZone TimeZone)
-(documentation EasternTimeZone "A &%TimeZone that covers much of the 
-eastern United States.")
-
-(=>
-   (equal (RelativeTimeFn ?TIME1 EasternTimeZone) ?TIME2) 
-   (equal ?TIME2 (AdditionFn ?TIME1 5)))
-
 (instance RelativeTimeFn BinaryFunction)
 (instance RelativeTimeFn TemporalRelation)
 (instance RelativeTimeFn TotalValuedRelation)
@@ -12879,9 +12048,7 @@ eastern United States.")
 (documentation RelativeTimeFn "A means of converting &%TimePositions 
 between different &%TimeZones.  (&%RelativeTimeFn ?TIME ?ZONE) 
 denotes the &%TimePosition in &%CoordinatedUniversalTime that is 
-contemporaneous with the &%TimePosition ?TIME in &%TimeZone ?ZONE.  
-For example, (&%RelativeTimeFn (&%MeasureFn 14 &%Hour) &%EasternTimeZone) 
-would return the value (&%MeasureFn 19 &%Hour).")  
+contemporaneous with the &%TimePosition ?TIME in &%TimeZone ?ZONE.")  
 
 (subclass SocialRole RelationalAttribute) 
 (documentation SocialRole "The &%Class of all &%Attributes that 
@@ -12899,8 +12066,10 @@ specify the position or status of a &%CognitiveAgent within an
 he/she is unemployed.")
 
 (<=>
-   (forall (?ORG)
-      (not (employs ?ORG ?PERSON)))
+   (and
+      (instance ?PERSON Human)
+      (forall (?ORG)
+         (not (employs ?ORG ?PERSON))))
    (attribute ?PERSON Unemployed))
 
 (subclass Position SocialRole) 
@@ -12921,10 +12090,14 @@ For example, (&%occupiesPosition &%TomSmith &%ResearchDirector
 	(occupiesPosition ?AGENT ?POSITION ?ORG)
 	(attribute ?AGENT ?POSITION))
 
-(<=> 
+(=> 
    (employs ?ORG ?PERSON)
    (exists (?POSITION)
       (occupiesPosition ?PERSON ?POSITION ?ORG)))
+
+(=>
+   (occupiesPosition ?PERSON ?POSITION ?ORGANIZATION)
+   (member ?PERSON ?ORGANIZATION))
 
 (subclass NormativeAttribute RelationalAttribute)
 (documentation NormativeAttribute "A &%Class containing all of the 
@@ -12953,22 +12126,8 @@ Tom something.")
    (modalAttribute ?FORMULA2 ?PROP))
 
 (=>
-   (modalAttribute ?FORMULA Obligation)
-   (exists (?AGENT)
-      (holdsObligation ?FORMULA ?AGENT)))
-
-(=>
-   (modalAttribute ?FORMULA Permission)
-   (exists (?AGENT)
-      (holdsRight ?FORMULA ?AGENT)))
-
-(=>
-    (holdsRight ?FORMULA ?AGENT)
+    (modalAttribute ?FORMULA Permission)
     (modalAttribute ?FORMULA Possibility))
-
-(=>
-    (holdsObligation ?FORMULA ?AGENT)
-    (modalAttribute ?FORMULA Obligation))
 
 (subclass SubjectiveAssessmentAttribute NormativeAttribute)
 (disjoint SubjectiveAssessmentAttribute ObjectiveNorm)
@@ -12986,9 +12145,11 @@ associated with an objective criterion for their attribution, i.e. there is
 broad consensus about the cases where these attributes are applicable.")
 
 (subclass ContestAttribute ObjectiveNorm)
-(documentation ContestAttribute "A &%Class containing all of the 
-&%Attributes that are specific to participants in a &%Contest.  Some 
-of these &%Attributes are winning, losing, won, lost, etc.")
+(documentation ContestAttribute "A &%Class containing &%Attributes that are 
+specific to participants in a &%Contest.  In particular, these &%Attributes 
+indicate the position of one of the &%agents in the &%Contest with respect 
+to other &%agent(s) in the &%Contest.   Some examples of these &%Attributes 
+are winning, losing, won, lost, etc.")
 
 (=>
    (and
@@ -13063,30 +12224,45 @@ They may be expressed in a written or verbal or gestural manner.")
 (documentation Contract "&%Attribute that applies to &%Propositions where 
 something is promised in return, i.e. a reciprocal promise.") 
 
-(subAttribute PurchaseContract Contract)
-(documentation PurchaseContract "A &%Contract between two &%Agents in 
-which one &%Agent agrees to render the other some good or service in 
-exchange for currency.")
-
-(subAttribute ServiceContract Contract)
-(documentation ServiceContract "A &%Contract where an &%Agent agrees to 
-perform a service for another &%Agent (usually for a price).")
-
-(subAttribute Warranty ServiceContract)
-(documentation Warranty "A &%Contract that states the cirumstances 
-under which defects in the product will be corrected for no charge.  
-A &%Warranty is usually limited to a length of time that is specified 
-in the &%Warranty itself.  A &%Warranty also includes information about 
-what is not covered and actions that invalidate the &%Warranty.")
-
 (subAttribute NakedPromise Promise)
 (contraryAttribute NakedPromise Contract)
 (documentation NakedPromise "A &%Promise where nothing is promised in return, 
 i.e. a nudum pactum.")
 
+(instance Prohibition DeonticAttribute)
+(documentation Prohibition "&%Prohibition is the &%DeonticAttribute that 
+applies to &%Formulas that an &%Agent is forbidden, by some authority, 
+to make true.")
+
+(<=>
+	(modalAttribute ?FORMULA Prohibition)
+	(not (modalAttribute ?FORMULA Permission)))
+
+(subclass ProbabilityAttribute ObjectiveNorm)
+(documentation ProbabilityAttribute "A class containing all of the &%Attributes 
+relating to objective, qualitative assessments of probability, e.g. &%Likely and 
+&%Unlikely.")
+
+(instance Likely ProbabilityAttribute)
+(contraryAttribute Likely Unlikely)
+(documentation Likely "The &%ProbabilityAttribute of being probable, i.e. more 
+likely than not to be &%True.")
+
+(=>
+   (modalAttribute ?FORMULA Likely)
+   (greaterThan (ProbabilityFn (true ?FORMULA True)) (ProbabilityFn (true ?FORMULA False))))
+
+(instance Unlikely ProbabilityAttribute)
+(documentation Unlikely "The &%ProbabilityAttribute of being improbable, i.e. more 
+likely than not to be &%False.")
+
+(=>
+   (modalAttribute ?FORMULA Unlikely)
+   (greaterThan (ProbabilityFn (true ?FORMULA False)) (ProbabilityFn (true ?FORMULA True))))
+
 (subclass PhysicalState InternalAttribute)
-(contraryAttribute Solid Liquid Gas)
-(exhaustiveAttribute PhysicalState Solid Fluid Liquid Gas)
+(contraryAttribute Solid Liquid Gas Plasma)
+(exhaustiveAttribute PhysicalState Solid Fluid Liquid Gas Plasma)
 (documentation PhysicalState "The physical state of an &%Object.  There 
 are three reified instances of this &%Class:  &%Solid, &%Liquid, and &%Gas.  
 Physical changes are not characterized by the transformation of one 
@@ -13136,51 +12312,16 @@ neither a fixed volume nor a fixed shape.")
       (patient ?MOTION ?OBJ))
    (attribute ?OBJ Gas))
 
-(subclass PerceptualAttribute InternalAttribute)
-(documentation PerceptualAttribute "Any &%Attribute whose presence is detected 
-by an act of &%Perception.")
+(instance Plasma PhysicalState)
+(subAttribute Plasma Fluid)
+(documentation Plasma "An extremely energetic &%PhysicalState that consists 
+of atomic nuclei stripped of electrons.  That is, a plasma is composed of 
+positive ions and free electrons.  &%Plasma behaves differently enough from 
+&%Gas that it is referred to as the fourth state of matter.") 
 
-(=>
-   (and
-      (instance ?PERCEPTION Perception)
-      (patient ?PERCEPTION ?OBJ))
-   (exists (?PROP)
-      (and
-         (instance ?PROP PerceptualAttribute)
-         (attribute ?OBJ ?PROP))))
-
-(subclass TasteAttribute PerceptualAttribute)
-(documentation TasteAttribute "The &%Class of &%Attributes relating to 
-the taste of &%Objects.")
-
-(=>
-   (instance ?OBJ Food)
-   (exists (?ATTR)
-      (and
-         (instance ?ATTR TasteAttribute)
-         (attribute ?OBJ ?ATTR))))
-
-(subclass OlfactoryAttribute PerceptualAttribute)
-(documentation OlfactoryAttribute "The &%Class of properties that are 
-detectable by smell.")
-
-(subclass VisualAttribute PerceptualAttribute)
-(documentation VisualAttribute "The &%Class of visually discernible 
-properties.")
-
-(instance Illuminated VisualAttribute)
-(documentation Illuminated "The &%Attribute of &%Regions that are 
-illuminated to some degree, i.e. in which some shapes are visually 
-discernable.")
-
-(instance Unilluminated VisualAttribute)
-(contraryAttribute Unilluminated Illuminated)
-(documentation Unilluminated "The &%Attribute of &%Regions that are 
-unilluminated, i.e in which no shapes are visually discernable.")
-
-(subclass ColorAttribute VisualAttribute)
-(documentation ColorAttribute "The &%Class of &%VisualAttributes 
-relating to the color of &%Objects.")
+(subclass ColorAttribute InternalAttribute)
+(documentation ColorAttribute "The &%Class of &%Attributes relating to the 
+color of &%Objects.")
 
 (subclass PrimaryColor ColorAttribute)
 (documentation PrimaryColor "Colors which can be blended to form any 
@@ -13243,27 +12384,12 @@ different colors on different parts of its surface.")
 (documentation ShapeAttribute "Any &%Attribute that relates to the 
 shape of an &%Object.")
 
-(instance Pliable ShapeAttribute)
-(documentation Pliable "The shape of an &%Object with this &%Attribute 
-can be altered.")
-
 (=>
-   (exists (?CHANGE)
-      (and
-         (instance ?CHANGE ShapeChange)
-         (patient ?CHANGE ?OBJ)))
-   (attribute ?OBJ Pliable))
-
-(instance Rigid ShapeAttribute)
-(contraryAttribute Rigid Pliable)
-(documentation Rigid "The shape of an &%Object with this &%Attribute 
-cannot be altered.")
-
-(=>
-   (instance ?OBJ SelfConnectedObject)
-   (or
-      (attribute ?OBJ Pliable)
-      (attribute ?OBJ Rigid)))
+   (and
+      (instance ?ATTRIBUTE ShapeAttribute)
+      (attribute ?OBJ ?ATTRIBUTE)
+      (surface ?SURFACE ?OBJ))
+   (attribute ?SURFACE ?ATTRIBUTE))
 
 (subclass GeometricFigure ShapeAttribute)
 (partition GeometricFigure GeometricPoint OneDimensionalFigure TwoDimensionalFigure ThreeDimensionalFigure)
@@ -13294,77 +12420,9 @@ are not &%ClosedTwoDimensionalFigures.")
 (documentation TwoDimensionalAngle "Any two &%OneDimensionalFigures (i.e. 
 straight lines) meeting at a single &%GeometricPoint.")
 
-(subclass RightAngle TwoDimensionalAngle)
-(documentation RightAngle "Any &%TwoDimensionalAngle that has the 
-&%angularMeasure of 90 &%AngularDegrees.")
-
-(=>
-   (instance ?ANGLE RightAngle)
-   (angularMeasure ?ANGLE (MeasureFn 90 AngularDegree)))
-
 (subclass ClosedTwoDimensionalFigure TwoDimensionalFigure)
 (documentation ClosedTwoDimensionalFigure "Any &%TwoDimensionalFigure which 
 has a well defined interior and exterior.")
-
-(subclass Polygon ClosedTwoDimensionalFigure)
-(documentation Polygon "A &%ClosedTwoDimensionalFigure that is composed 
-exclusively of straight lines, i.e. &%OneDimensionalFigures.")
-
-(=>
-   (instance ?POLYGON Polygon)
-   (=>
-      (geometricPart ?PART ?POLYGON)
-      (or
-         (sideOfFigure ?PART ?POLYGON)
-         (exists (?SIDE)
-            (and
-               (sideOfFigure ?SIDE ?POLYGON)
-               (geometricPart ?PART ?SIDE))))))
-
-(subclass Triangle Polygon)
-(documentation Triangle "Any three-sided &%Polygon.")
-
-(=>
-   (instance ?TRIANGLE Triangle)
-   (equal (CardinalityFn (KappaFn ?SIDE (sideOfFigure ?SIDE ?TRIANGLE))) 3))
-
-(subclass Quadrilateral Polygon)
-(documentation Quadrilateral "Any four-sided &%Polygon.")
-
-(=>
-   (instance ?QUAD Quadrilateral)
-   (equal (CardinalityFn (KappaFn ?SIDE (sideOfFigure ?SIDE ?QUAD))) 4))
-
-(subclass Rectangle Quadrilateral)
-(documentation Rectangle "Any &%Quadrilateral whose angles are all 
-&%RightAngles.")
-
-(=>
-   (instance ?RECTANGLE Rectangle)
-   (=>
-      (angleOfFigure ?ANGLE ?RECTANGLE)
-      (instance ?ANGLE RightAngle)))
-
-(subclass Square Rectangle)
-(documentation Square "Any &%Rectangle whose sides are all equal.")
-
-(=>
-   (instance ?SQUARE Square)
-   (exists (?LENGTH)
-      (forall (?SIDE)
-         (=>
-            (sideOfFigure ?SIDE ?SQUARE)
-            (lineMeasure ?SIDE ?LENGTH)))))
-
-(subclass Circle ClosedTwoDimensionalFigure)
-(documentation Circle "The class of &%ClosedTwoDimensionalFigures such that 
-all &%GeometricPoints that make up the &%Circle are equidistant from a 
-single &%GeometricPoint, known as the center of the &%Circle.")
-
-(=>
-   (instance ?CIRCLE Circle)
-   (exists (?RADIUS)
-      (radius ?CIRCLE ?RADIUS)))
 
 (subclass ThreeDimensionalFigure GeometricFigure)
 (documentation ThreeDimensionalFigure "The class of &%GeometricFigures that 
@@ -13383,12 +12441,6 @@ like polyhedrons and cylinders.")
 (domain pointOfFigure 2 GeometricFigure)
 (documentation pointOfFigure "(&%pointOfFigure ?POINT ?FIGURE) means that 
 the &%GeometricPoint ?POINT is part of the &%GeometricFigure ?FIGURE.")
-
-(subrelation sideOfFigure geometricPart)
-(domain sideOfFigure 1 OneDimensionalFigure)
-(domain sideOfFigure 2 GeometricFigure)
-(documentation sideOfFigure "(&%sideOfFigure ?SIDE ?FIGURE) means that the 
-&%OneDimensionalFigure ?POINT is a side of the &%GeometricFigure ?FIGURE.")
 
 (subrelation angleOfFigure geometricPart)
 (domain angleOfFigure 1 TwoDimensionalAngle)
@@ -13451,74 +12503,6 @@ straight line ?LINE has the &%LengthMeasure of ?MEASURE.")
    (geometricDistance ?POINT1 ?POINT2 ?LENGTH)
    (geometricDistance ?POINT2 ?POINT1 ?LENGTH))
 
-(instance radius BinaryPredicate)
-(instance radius SingleValuedRelation)
-(instance radius TotalValuedRelation)
-(domain radius 1 Circle)
-(domain radius 2 LengthMeasure)
-(documentation radius "(&%radius ?CIRCLE ?LENGTH) means that the radius of 
-the &%Circle ?CIRCLE has a length of ?LENGTH.")
-
-(=>
-   (radius ?CIRCLE ?RADIUS)
-   (exists (?POINT)
-      (forall (?PART)
-         (=>
-            (pointOfFigure ?PART ?CIRCLE)
-            (geometricDistance ?PART ?POINT ?RADIUS)))))
-
-(instance diameter BinaryPredicate)
-(instance diameter SingleValuedRelation)
-(instance diameter TotalValuedRelation)
-(domain diameter 1 Circle)
-(domain diameter 2 LengthMeasure) 
-(documentation diameter "(&%diameter ?CIRCLE ?LENGTH) means that the diameter 
-of the &%Circle ?CIRCLE has a length of ?LENGTH.")
-
-(=>
-   (diameter ?CIRCLE ?LENGTH)
-   (exists (?HALF)
-      (and
-         (radius ?CIRCLE ?HALF)
-         (equal (MultiplicationFn ?HALF 2) ?LENGTH))))
-
-(instance tangent BinaryPredicate)
-(domain tangent 1 OneDimensionalFigure)
-(domain tangent 2 Circle)
-(documentation tangent "(&%tangent ?LINE ?CIRCLE) means that the straight line 
-?LINE is tangent to the &%Circle ?CIRCLE, i.e. ?LINE touches ?CIRCLE without 
-intersecting it.")
-
-(=>
-   (tangent ?LINE ?CIRCLE)
-   (exists (?POINT1)
-      (and
-         (pointOfFigure ?POINT1 ?LINE)
-         (pointOfFigure ?POINT1 ?CIRCLE)
-         (forall (?POINT2)
-            (=>
-               (and
-                  (pointOfFigure ?POINT2 ?LINE)
-                  (pointOfFigure ?POINT2 ?CIRCLE))
-               (equal ?POINT1 ?POINT2))))))
-
-(subclass TextureAttribute PerceptualAttribute)
-(subclass TextureAttribute ShapeAttribute)
-(documentation TextureAttribute "Any &%Attribute that characterizes the 
-texture of an &%Object.  Note that a &%TextureAttribute always applies 
-to the surface of an object whenever it applies to the object itself.")
-
-(=>
-   (and
-      (instance ?ATTRIBUTE TextureAttribute)
-      (attribute ?OBJ ?ATTRIBUTE)
-      (surface ?SURFACE ?OBJ))
-   (attribute ?SURFACE ?ATTRIBUTE))
-
-(subclass SoundAttribute PerceptualAttribute)
-(documentation SoundAttribute "Any &%Attribute that characterizes the 
-sound made by an &%Object.")
-
 (subclass SaturationAttribute InternalAttribute)
 (documentation SaturationAttribute "A &%Class of &%Attributes that specify, in 
 a qualitative manner, the extent of the presence of one kind of &%Object in 
@@ -13557,26 +12541,6 @@ every part of the &%Object has a subpart which is a &%Liquid.")
                (part ?SUBPART ?PART)
                (attribute ?SUBPART Liquid))))))
          
-(subclass BreakabilityAttribute InternalAttribute)
-(documentation BreakabilityAttribute "A &%subclass of &%Attributes for 
-characterizing the breakability of &%CorpuscularObjects.")
-
-(instance Fragile BreakabilityAttribute)
-(documentation Fragile "An &%Attribute which indicates that the 
-associated &%Object is very breakable.")
-
-(instance Unbreakable BreakabilityAttribute)
-(contraryAttribute Unbreakable Fragile)
-(documentation Unbreakable "An &%Attribute which indicates that the 
-associated &%Object cannot be broken.")
-
-(=>
-   (attribute ?OBJ Unbreakable)
-   (not (exists (?DAMAGE)
-      (and
-         (instance ?DAMAGE Damaging)
-         (patient ?DAMAGE ?OBJ)))))
-
 (subclass BiologicalAttribute InternalAttribute)
 (documentation BiologicalAttribute "&%Attributes that apply specifically 
 to instances of &%Organism.")
@@ -13716,7 +12680,6 @@ the end of its growth phase.")
          (instance ?ATTR DevelopmentalAttribute)
          (attribute ?ORG ?ATTR))))
 
-(instance Larval DevelopmentalAttribute)
 (subAttribute Larval NonFullyFormed)
 (documentation Larval "Form of most &%Invertebrates, &%Amphibians, and 
 &%Fish immediately after they hatch.  This form is fundamentally unlike 
@@ -13726,7 +12689,6 @@ the adult form, and metamorphosis is required to reach the latter form.")
    (holdsDuring ?TIME (attribute ?ORG Larval))
    (holdsDuring (PastFn ?TIME) (exists (?BIRTH) (and (instance ?BIRTH Birth) (experiencer ?BIRTH ?ORG)))))
 
-(instance Embryonic DevelopmentalAttribute)
 (subAttribute Embryonic NonFullyFormed)
 (contraryAttribute Embryonic Larval)
 (documentation Embryonic "The stage of an &%Organism or an 
@@ -13791,18 +12753,18 @@ an &%Organism.")
          (instance ?ATTR ConsciousnessAttribute)
          (attribute ?AGENT ?ATTR))))
 
-(subAttribute Asleep Unconscious)
-(documentation Asleep "This &%Attribute applies to &%Organisms that are 
+(instance Asleep ConsciousnessAttribute)
+(documentation Asleep "&%Attribute that applies to &%Organisms that are 
 sleeping.")
 
 (instance Unconscious ConsciousnessAttribute)
 (contraryAttribute Unconscious Awake)
-(documentation Unconscious "This &%Attribute applies to &%Organisms that 
+(documentation Unconscious "&%Attribute that applies to &%Organisms that 
 are unconscious.  An &%Organism may be &%Unconscious because it is &%Dead 
-or &%Asleep or because of a blow to the head, a drug, etc.")
+or because of a blow to the head, a drug, etc.")
 
 (instance Awake ConsciousnessAttribute)
-(documentation Awake "This &%Attribute applies to &%Organisms that are 
+(documentation Awake "&%Attribute that applies to &%Organisms that are 
 neither &%Unconscious nor &%Asleep.")
 
 (=>
@@ -13831,77 +12793,57 @@ or manifestations.")
 ;;    Sequestered Axioms    ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;  This section is not a subontology of the SUMO.  It contains axioms that relate 
-;;  to other sections of the ontology but that should not be used by the inference 
-;;  engine, because they can be used to construct arbitrarily complex terms that often 
-;;  appear in proofs with unhelpful conclusions.  Before this file is loaded into the 
-;;  inference engine, the axioms in this section should be commented out.
+;;  This section is not a subontology of the SUMO.  It contains axioms from 
+;;  other sections of the ontology that may cause problems for the inference 
+;;  engine.  In particular, they can be used to construct arbitrarily complex 
+;;  terms that often appear in proofs with unhelpful conclusions.  Before this 
+;;  file is loaded into the inference engine, the axioms in this section should 
+;;  be commented out.
 
-;; (<=> 
-;;    (instance ?ENTITY (UnionFn ?CLASS1 ?CLASS2))
-;;    (or 
-;;       (instance ?ENTITY ?CLASS1)
-;;       (instance ?ENTITY ?CLASS2)))
+(<=> 
+   (instance ?ENTITY (UnionFn ?CLASS1 ?CLASS2))
+   (or 
+      (instance ?ENTITY ?CLASS1)
+      (instance ?ENTITY ?CLASS2)))
 
-;; (<=> 
-;;    (instance ?ENTITY (IntersectionFn ?CLASS1 ?CLASS2))
-;;    (and 
-;;       (instance ?ENTITY ?CLASS1)
-;;       (instance ?ENTITY ?CLASS2)))
+(<=> 
+   (instance ?ENTITY (IntersectionFn ?CLASS1 ?CLASS2))
+   (and 
+      (instance ?ENTITY ?CLASS1)
+      (instance ?ENTITY ?CLASS2)))
 
-;; (<=> 
-;;    (instance ?ENTITY (ComplementFn ?CLASS))
-;;    (not 
-;;       (instance ?ENTITY ?CLASS)))
-
-;; (=>
-;;    (and
-;;       (instance ?CLASS1 SetOrClass)
-;;       (instance ?CLASS2 SetOrClass))
-;;    (equal (RelativeComplementFn ?CLASS1 ?CLASS2) (IntersectionFn ?CLASS1 (ComplementFn ?CLASS2))))
-
-;; (<=> 
-;;    (instance ?ENTITY (GeneralizedUnionFn ?SUPERCLASS))
-;;    (exists (?CLASS)
-;;       (and
-;;          (instance ?CLASS ?SUPERCLASS)
-;;          (instance ?ENTITY ?CLASS))))
-
-;; (<=> 
-;;    (instance ?ENTITY (GeneralizedIntersectionFn ?SUPERCLASS))
-;;    (forall (?CLASS)
-;;          (=>
-;;             (instance ?CLASS ?SUPERCLASS)
-;;             (instance ?ENTITY ?CLASS))))
-
-;; (<=>
-;;    (instance ?SUBCLASS (PowerSetFn ?CLASS))
-;;    (subclass ?SUBCLASS ?CLASS))
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    Augmentatory Axioms   ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; There are axioms that are not strictly necessary, but are included to
-;; help with inference with particular theorem provers that may not
-;; implement particular functions.
+(<=> 
+   (instance ?ENTITY (ComplementFn ?CLASS))
+   (not 
+      (instance ?ENTITY ?CLASS)))
 
 (=>
-  (and
-    (domain ?REL 1 ?CLASS)
-    (?REL ?INST))
-  (instance ?INST ?CLASS))
+   (and
+      (instance ?CLASS1 SetOrClass)
+      (instance ?CLASS2 SetOrClass))
+   (equal (RelativeComplementFn ?CLASS1 ?CLASS2) (IntersectionFn ?CLASS1 (ComplementFn ?CLASS2))))
 
-  
-(=>
-  (and
-    (domain ?REL 1 ?CLASS)
-    (?REL ?INST @ROW))
-  (instance ?INST ?CLASS))
+(<=> 
+   (instance ?ENTITY (GeneralizedUnionFn ?SUPERCLASS))
+   (exists (?CLASS)
+      (and
+         (instance ?CLASS ?SUPERCLASS)
+         (instance ?ENTITY ?CLASS))))
 
-    
+(<=> 
+   (instance ?ENTITY (GeneralizedIntersectionFn ?SUPERCLASS))
+   (forall (?CLASS)
+         (=>
+            (instance ?CLASS ?SUPERCLASS)
+            (instance ?ENTITY ?CLASS))))
+
+(<=>
+   (instance ?SUBCLASS (PowerSetFn ?CLASS))
+   (subclass ?SUBCLASS ?CLASS))
+
+
+
+
 
 
 
