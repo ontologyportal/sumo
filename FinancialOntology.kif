@@ -1,0 +1,4518 @@
+;; Access to and use of these products is governed by the GNU General Public 
+;; License <http://www.gnu.org/copyleft/gpl.html>. 
+;; By using these products, you agree to be bound by the terms 
+;; of the GPL.
+
+;; We ask that people using or referencing this work cite our primary paper:
+
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
+;; Proceedings of the 2nd International Conference on Formal Ontology in 
+;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
+;; Ogunquit, Maine, October 17-19, 2001.  
+
+;; =======================
+;; Financial Organizations
+;; =======================  
+
+
+;; definition of FinancialOrganization
+
+(subclass FinancialOrganization Organization)
+(documentation FinancialOrganization "The class &%FinancialOrganization includes, 
+as subclasses, &%Bank-FinancialOrganization, &%CreditUnion and &%SavingsAnLoans.")
+
+
+;; definition of Bank-FinancialOrganization
+
+(subclass Bank-FinancialOrganization FinancialOrganization)
+(documentation Bank-FinancialOrganization "An organization, chartered by a state or 
+federal government, which does most or all of the following: receives &%Deposits, 
+honors &%FinancialInstruments drawn on them, and pays &%Interest on them; discounts 
+&%Notes, makes &%Loans,  and invests in &%SecuredLoans; collects &%Checks, &%Drafts 
+and &%Notes, certifies depositor's checks; and issues drafts and Cashier's checks.")
+
+
+;; definition of CreditUnion
+
+(subclass CreditUnion FinancialOrganization)
+(documentation CreditUnion "Credit unions are non-profit, member-owned, financial 
+cooperatives. They are operated entirely by and for their members. When you deposit 
+money in a credit union, you become a member of the union because your deposit is 
+considered partial ownership in the credit union. Many large organizations have 
+established credit unions for their employees.") 
+
+
+;; definition of SavingsAndLoans
+
+(subclass SavingsAndLoans FinancialOrganization)
+(documentation SavingsAndLoans "A federally or state chartered &%FinancialOrganization 
+that takes &%Deposits from individuals, funds &%Mortgages, and pays &%Dividends.")
+
+
+;;   Financial Accounts and instruments 
+
+
+;; definition of FinancialAsset
+
+(instance FinancialAsset Physical)
+(documentation FinancialAsset "Any item of economic value owned by an individual or 
+corporation, especially that which could be converted to cash.  Examples are cash, 
+securities, accounts receivable, inventory, office equipment, a house, a car, and 
+other property.") 
+
+(=>
+	(instance ?Asset FinancialAsset)
+	(exists (?Value)
+		(monetaryValue ?Asset ?Value)))
+
+
+;; definition of FinancialContract
+
+(subAttribute FinancialContract Contract)
+(documentation FinancialContract "A financial agreement between two or more parties")
+
+
+;; definition of FinancialAccount
+
+(subclass FinancialAccount FinancialTransaction)
+(documentation FinancialAccount "A formal banking, brokerage, or business relationship 
+established to provide for regular services, dealings, and other financial 
+transactions.")
+
+(=>
+    (instance ?Account FinancialAccount)
+    (and
+         (property ?Account FinancialContract)
+         (property ?Account ServiceContract)))
+
+(=> 
+    (instance ?Account FinancialAccount)
+    (exists (?Organization)
+	    (and
+		(instance ?Organization FinancialOrganization)
+		(accountAt ?Account ?Organization))))
+
+(=>
+	(and
+		(property ?Account FinancialAccount)
+		(accountAt ?Account ?Bank))
+	(exists (?Activity)
+		(and
+			(instance ?Activity ControllingAnAccount)
+			(patient ?Activity ?Account)
+			(agent ?Activity ?Bank))))
+
+;; definition of Note
+
+(subclass Note FinancialInstrument)
+(documentation Note "A legal document that obligates a borrower to repay a loan 
+at a specified interestRate during a specified period of time or on demand")
+
+
+;; definition of Check
+
+(subclass Check FinancialInstrument)  
+(documentation Check "A &%FinancialInstrument drawn against deposited funds, 
+to pay a specified amount of money to a specific person upon demand.")
+
+(=>
+	(instance ?Check Check)
+	(exists (?Value)
+		(monetaryValue ?Check ?Value)))
+
+(=>
+	(instance ?Check Check)
+	(exists (?Account)
+		(checkAccount ?Check ?Account)))
+
+(=>
+	(and
+		(monetaryValue ?Check ?Amount)
+		(checkAccount ?Check ?Account)
+		(instance ?Processing ProcessingACheck)
+		(patient ?Processing ?Check)
+		(equal (WhenFn ?Processing) ?ProcessingTime))
+	(exists (?Withdrawal)
+		(and
+			(instance ?Withdrawal Withdrawal)
+			(instrument ?Withdrawal ?Check)
+			(equal (WhenFn ?Withdrawal) ?WithdrawalTime)
+			(meetsTemporally ?ProcessingTime ?WithdrawalTime)
+			(transactionAmount ?Withdrawal ?Amount)
+			(origin ?Withdrawal ?Account))))
+
+(=>
+	(and
+		(monetaryValue ?Check ?Amount)
+		(instance ?Processing ProcessingACheck)
+		(patient ?Processing ?Check)
+		(destination ?Processing (CurrencyFn ?Account))
+		(instance ?Account FinancialAccount)
+		(equal (WhenFn ?Processing) ?ProcessingTime))
+	(exists (?Deposit)
+		(and
+			(instance ?Deposit Deposit)
+			(instrument ?Deposit ?Check)
+			(equal (WhenFn ?Deposit) ?DepositTime)
+			(meetsTemporally ?ProcessingTime ?DepositTime)
+			(transactionAmount ?Deposit ?Amount)
+			(destination ?Deposit (CurrencyFn ?Account)))))
+
+(=>
+	(and
+		(instance ?Check Check)
+		(instance ?Processing ProcessingACheck)
+		(patient ?Processing ?Check))
+	(exists (?Depositing)
+		(and
+			(instance ?Depositing DepositingACheck)
+			(patient ?Depositing ?Check)
+			(time ?Depositing (ImmediatePastFn (WhenFn ?Processing))))))
+
+(=>
+	(and
+		(instance ?Depositing DepositingACheck)
+		(instance ?Check Check)
+		(agent ?Depositing ?Agent))
+	(signedBy ?Check ?Agent))
+
+(=>
+	(and
+		(instance ?Drawing DrawingACheck)
+		(patient ?Drawing ?Check)
+		(instance ?Processing ProcessingACheck)
+		(patient ?Processing ?Check)
+		(equal (WhenFn ?Drawing) ?DrawingTime)
+		(equal (WhenFn ?Procesing) ?ProcessingTime)
+		(meetsTemporally ?DrawingTime ?Time)
+		(meetsTemporally ?Time ?ProcessingTime)
+                (duration ?Time ?Duation))
+	(lessThan ?Duration (MeasureFn 6 MonthDuration)))
+
+
+;; Definition of PayCheck.
+
+(subclass PayCheck Check)
+(documentation PayCheck "A check issued to an employee in payment of salary or wages")
+
+(=>
+	(and
+		(instance ?Check Paycheck)
+		(issuedBy ?Check ?Organization)
+            (instance ?Give Giving)
+            (destination ?Give ?Agent))
+	(employs ?Agent ?Organization))
+
+
+;; definition of BankCard
+
+(subclass BankCard FinancialInstrument)
+(documentation BankCard "A &%CreditCard or a &%DebitCard issued by a 
+&%FinancialOrganization.")
+
+(=>
+	(instance ?Card BankCard)
+	(exists (?Organization)
+		(issuedBy ?Card ?Organization)))
+
+(=>
+	(and
+		(instance ?Card BankCard)
+		(issuedBy ?Card ?Bank))
+	(exists (?Account)
+		(and
+			(instance ?Account FinancialAccount)
+			(cardAccount ?Card ?Account)
+			(accountAt ?Account ?Bank))))
+
+
+;; definition of DebitCard
+
+(subclass DebitCard BankCard)
+(documentation DebitCard "A card which allows customers to access their funds 
+immediately, electronically. Unlike a credit card, a debit card does not have 
+any float.") 
+
+(=>
+	(and
+		(instance ?Card DebitCard)
+		(possesses ?Agent ?Card))
+	(exists (?Account)
+		(and
+			(instance ?Account DepositAccount)
+			(cardAccount ?Card ?Account)
+			(accountHolder ?Account ?Agent))))
+
+
+;; definition of CreditCard
+
+(subclass CreditCard BankCard)
+(documentation CreditCard "Any card that may be used repeatedly to borrow money 
+or buy products and services on credit.  Issued by banks, savings and loans, retail 
+stores, and other businesses.")
+
+(=>
+	(and
+		(instance ?Card CreditCard)
+		(possesses ?Agent ?Card))
+	(exists (?Account)
+		(and
+			(instance ?Account CreditCardAccount)
+			(cardAccount ?Card ?Account)
+			(accountHolder ?Account ?Agent)))) 
+
+
+;; definition of accountAt
+
+(subrelation accountAt agreementMember)
+(domain accountAt 1 FinancialAccount)
+(domain accountAt 2 FinancialOrganization)
+(documentation accountAt "(&%accountAt ?Account ?Bank) means that ?Account is a 
+&%FinancialAccount opened in the &%FinancialOrganization ?Bank.") 
+
+
+;; definition of cardAccount
+
+(instance cardAccount BinaryPredicate)
+(domain cardAccount 1 BankCard)
+(domain cardAccount 2 FinancialAccount)
+(documentation cardAccount "(&%cardAccount ?Card ?Account) means that ?Account is 
+the &%FinancialAccount linked to a BankCard ?Card.")
+
+
+;; definition of checkAccount
+
+(instance checkAccount BinaryPredicate)
+(domain checkAccount 1 Check)
+(domain checkAccount 2 FinancialAccount)
+(documentation checkAccount "(&%checkAccount ?Check ?Account) means that ?Account 
+is the &%FinancialAccount from which the amount specifed on the check is paid.")
+
+
+;; definition of accountHolder
+
+(subrelation accountHolder agreementMember)
+(domain accountHolder 1 FinancialAccount)
+(domain accountHolder 2 CognitiveAgent)
+(documentation accountHolder "(&%accountHolder ?Account ?Agent) means that ?Agent 
+is the account holder of the &%FinancialAccount ?Account.")
+
+
+;; definition of issuedBy
+
+(instance issuedBy BinaryPredicate)
+(domain issuedBy 1 FinancialInstrument)
+(domain issuedBy 2 CognitiveAgent)
+(documentation issuedBy "(&%issuedBy ?Instrument ?Agent) means that a 
+&%FinancialInstrument ?Instrument is produced and offered by ?Agent.")
+
+
+;; definition of signedBy
+
+(instance signedBy BinaryPredicate)
+(domain signedBy 1 FinancialInstrument)
+(domain signedBy 2 CognitiveAgent)
+(documentation signedBy "(&%signedBy ?Instrument ?Agent) means that ?Instrument 
+has been signed by ?Agent.")
+
+
+;; definition of agreementMember
+
+(instance agreementMember BinaryPredicate)
+(domain agreementMember 1 Contract)
+(domain agreementMember 2 CognitiveAgent)
+(documentation agreementMember "(&%agreementMember ?Agreement ?Agent) means that 
+?Agent is one of the participants of the Agreement.")
+
+
+;; definition of CurrencyFn
+
+(instance CurrencyFn UnaryFunction)
+(domain CurrencyFn 1 FinancialAccount)
+(range CurrencyFn FinancialInstrument)
+(documentation CurrencyFn "A unary function that maps a &%FinancialAccount to the 
+currency linked to the account.")  
+
+
+;;   Financial Activities   
+
+
+;; Definition of OpeningAnAccount.	
+
+
+(subclass OpeningAnAccount FinancialTransaction)
+(documentation OpeningAnAccount "An activity of opening a financial account")
+
+(=>
+	(and
+		(instance ?Opening OpeningAnAccount)
+		(located ?Opening ?Bank)
+		(instance ?Bank FinancialOrganization)
+		(agent ?Opening ?Agent)
+		(equal (WhenFn ?Opening) ?OpeningTime))
+	(exists (?Account ?AccountPeriod)
+		(and
+			(agreementPeriod ?Account ?AccountPeriod)
+			(meetsTemporally ?OpeningTime ?AccountPeriod)
+			(instance ?Account FinancialAccount)
+			(accountAt ?Account ?Bank)
+			(accountHolder ?Account ?Agent))))
+
+
+;; Definition of UsingAnAccount.		
+
+
+(subclass UsingAnAccount FinancialTransaction)
+(documentation UsingAnAccount "An activity of using a financial account")
+
+
+(=>
+	(and
+		(instance ?Using UsingAnAccount)
+		(patient ?Using ?Account)
+		(accountHolder ?Account ?Agent))
+	(agent ?Using ?Agent))
+
+
+;; definition of DrawingACheck
+
+(subclass DrawingACheck UsingAnAccount)
+(documentation DrawingACheck "An activity of paying by a check.")
+
+(=>
+	(and
+		(instance ?Drawing DrawingACheck)
+		(patient ?Drawing ?Check)
+		(agent ?Drawing ?Agent)
+		(checkAccount ?Check ?Account))
+	(accountHolder ?Account ?Agent))
+
+
+;; definition of DepositingACheck
+
+(subclass DepositingACheck UsingAnAccount)
+(documentation DepositingACheck "An activity of depositing a check into a 
+&%FinancialOrganization.")
+
+(=>
+	(instance ?Depositing DepositingACheck)
+	(exists (?Check)
+		(and
+			(instance ?Check Check)
+			(patient ?Depositing ?Check))))
+
+(=>
+	(and
+		(instance ?Depositing DepositingACheck)
+		(patient ?Depositing ?Check)
+		(instance ?Check Check)
+		(checkAccount ?Check ?Account)
+		(monetaryValue ?Check ?Amount))
+	(exists (?Deposit)
+		(and
+			(instance ?Deposit Deposit)
+			(destination ?Deposit (CurrencyFn ?Account))
+			(transactionAmount ?Deposit ?Amount))))
+
+
+;; definition of ControllingAnAccount
+
+(subclass ControllingAnAccount	FinancialTransaction)
+(documentation ControllingAnAccount "An activity of controlling a financial account")
+
+(=>
+	(and
+		(instance ?Controlling ControllingAnAccount)
+		(patient ?Controlling ?Account)
+		(accountAt ?Account ?Bank))
+	(agent ?Controlling ?Bank))
+
+
+;; definition of ProcessingACheck
+
+(subclass ProcessingACheck ControllingAnAccount)
+(documentation ProcessingACheck "An activity of paying the amount specified on the 
+check from funds on deposit.")
+
+(=>
+	(instance ?Processing ProcessingACheck)
+	(exists (?Check)
+		(and
+			(instance ?Check Check)
+			(patient ?Procesing ?Check))))
+
+(=>
+	(instance ?Processing ProcessingACheck)
+	(exists (?Authorization)
+		(and
+			(instance ?Authorization AuthorizationOfTransaction)
+			(subProcess ?Authorization ?Processing))))
+
+
+;; definition of AuthorizationOfTransaction
+
+(subclass AuthorizationOfTransaction ControllingAnAccount)
+(subclass AuthorizationOfTransaction RegulatoryProcess)
+(documentation AuthorizationOfTransaction "An activity which approves or 
+disapproves a transaction.")
+
+
+;; definition of ClosingAnAccount	
+
+(subclass ClosingAnAccount FinancialTransaction)
+(documentation ClosingAnAccount "An activity of closing a financial account")
+
+(=>
+	(and
+		(instance ?Closing ClosingAnAccount)
+		(patient ?Closing ?Account))
+        (and
+                (holdsDuring (ImmediatePastFn (WhenFn ?Closing)) (instance ?Account FinancialAccount))
+		(holdsDuring (ImmediateFutureFn (WhenFn ?Closing)) (not (instance ?Account FinancialAccount)))))
+
+
+;; definition of Payment
+
+(subclass Payment FinancialTransaction)
+(documentation Payment "The partial or complete discharge of an obligation by 
+its settlement in the form of the transfer of funds, assets, or services equal 
+to the monetary value of part or all of the debtor's obligation.")
+
+(=>
+	(and
+		(instance ?Payment Payment)
+		(origin ?Payment (CurrencyFn ?Account))
+		(instance ?Account FinancialAccount)
+		(transactionAmount ?Payment ?Amount)
+		(currentAccountBalance ?Account (ImmediatePastFn (WhenFn ?Payment)) ?Balance1)
+		(equal ?Balance2 (SubtractionFn ?Balance1 ?Amount)))
+	(currentAccountBalance ?Account (ImmediateFutureFn (WhenFn ?Payment)) ?Balance2))
+
+
+;; definition of Deposit
+
+(subclass Deposit FinancialTransaction)
+(disjoint Deposit Withdrawal)
+(documentation Deposit "An Activity of money being transferred into a customer's 
+account at a financial institution.")
+
+(=>
+	(instance ?Deposit Deposit)
+	(exists (?Account)
+		(destination ?Deposit (CurrencyFn ?Account))))
+
+
+(=>
+	(and
+		(instance ?Deposit Deposit)
+		(time ?Deposit ?TimeOfDeposit)
+		(instance ?Account FinancialAccount)
+		(destination ?Deposit (CurrencyFn ?Account))
+		(transactionAmount ?Deposit ?Amount)
+		(currentAccountBalance ?Account (ImmediatePastFn (WhenFn ?Deposit)) ?Balance1)
+		(equal ?Balance2 (AdditionFn ?Balance1 ?Amount)))
+	(currentAccountBalance ?Account (ImmediateFutureFn (FutureFn ?Deposit)) ?Balance2))
+
+
+;; definition of Withdrawal
+
+(subclass Withdrawal FinancialTransaction)
+(documentation Withdrawal "An activity of money being transferred from a customer's 
+account at a financial institution.")
+
+(=>
+	(instance ?Withdrawal Withdrawal)
+	(exists (?Account)
+		(and
+			(instance ?Account FinancialAccount)
+			(origin ?Withdrawal (CurrencyFn ?Account)))))
+
+(=>
+	(and
+		(instance ?Withdrawal Withdrawal)
+		(time ?Withdrawal ?TimeOfWithdrawal)
+		(instance ?Account FinancialAccount)
+		(origin ?Withdrawal ?Account)
+		(transactionAmount ?Withdrawal ?Amount)
+		(currentAccountBalance ?Account (ImmediatePastFn (WhenFn ?Withdrawal)) ?Balance1)
+		(equal ?Balance2 (SubtractionFn ?Balance1 ?Amount)))
+	(currentAccountBalance ?Account (ImmediateFutureFn (FutureFn ?Withdrawal)) ?Balance2))
+
+
+;; definition of Investing
+
+(subclass Investing FinancialTransaction)
+(documentation Investing "An activity of commiting money or capital in order to 
+gain a financial return.")
+
+(=>
+	(and
+		(agent ?Purchase ?Buyer)
+		(origin ?Purchase ?Seller)
+		(patient ?Purchase ?Object)
+		(monetaryValue ?Object ?Money))
+	(exists (?Payment)
+		(and
+			(subProcess ?Payment ?Purchase)
+			(instance ?Payment Payment)
+			(transactionAmount ?Payment ?Money)
+			(destination ?Payment ?Seller))))
+
+
+;; Definition of AutomaticTransaction.
+
+(subclass AutomaticTransaction FinancialTransaction)
+(documentation AutomaticTransaction "&%Transactions which occur through computer 
+networks and which do not require direct management.") 
+
+
+;; Interest and Interest Rates   
+
+
+;; Definition of Interest.
+
+(subclass Interest CurrencyMeasure)
+(documentation Interest "Money paid for the use of money.")
+
+;; definition of InterestRate
+
+(subclass InterestRate ConstantQuantity)
+(subclass InterestRate EconomicIndicator)
+(documentation InterestRate "The usual way of calculating Interest, as a 
+percentage of the sum borrowed.")
+
+;; definition of interestEarned
+
+(instance interestEarned TernaryPredicate)
+(domain  interestEarned 1 FinancialAccount)
+(domain  interestEarned 2 Interest)
+(domain  interestEarned 3 TimeInterval)
+(documentation interestEarned "(&%interestEarned ?Account ?Interest ?Period) means 
+that ?Interest is the amount earned on the &%FinancialAccount ?Account, for the 
+duration ?Period.")
+
+;; Definition of simpleInterest.
+
+(instance simpleInterest TernaryPredicate)
+(subrelation simpleInterest interestEarned)
+(domain  simpleInterest 1 FinancialAccount)
+(domain  simpleInterest 2 Interest)
+(domain  simpleInterest 3 TimeInterval)
+(documentation simpleInterest "(&%simpleInterest ?Account ?Amount ?Time) means 
+that ?Amount is the interest calculated on a principal sum, not compounded on 
+earned interest, for the duration ?Time.")
+
+(=>
+	(and
+		(principalAmount ?Account ?Balance)
+		(fixedInterestRate ?Account ?Rate)
+		(simpleInterest ?Account ?Amount ?Period)
+		(equal ?Rate-Decimal (DivisionFn (MagnitudeFn ?Rate) 100)))
+	(equal ?Amount (MultiplicationFn (MultiplicationFn (MagnitudeFn ?Period) ?Balance) ?Rate-Decimal)))
+
+;; Definition of compoundInterest.
+
+(instance compoundInterest TernaryPredicate)
+(subrelation compoundInterest interestEarned)
+(domain compoundInterest 1 FinancialAccount)
+(domain compoundInterest 2 Interest)
+(domain compoundInterest 3 TimeInterval)
+(documentation compoundInterest "(&%compoundInterest ?Account ?Amount ?Time) means 
+that ?Amount is the interest which is calculated not only on the initial principal 
+but also the accumulated interest of prior periods. Compound interest can be 
+calculated annually, semi-annually, quartely, monthly, or daily.")
+
+(=>
+	(and
+		(principalAmount ?Account ?Balance)
+		(fixedInterestRate ?Account ?Rate)
+		(compoundInterest ?Account ?Interest ?Period)
+		(equal ?Rate-Decimal (DivisionFn ?Rate 100))
+		(equal ?Add (AdditionFn 1 ?Rate-Decimal))
+		(equal ?Exponent (ExponentiationFn ?Add  (MagnitudeFn ?Period)))
+		(equal ?Multiply (MultiplicationFn ?Exponent ?Balance)))
+	(equal ?Interest (SubtractionFn ?Multiply ?Balance)))
+
+;; Definition of interestRatePerPeriod.
+
+(instance interestRatePerPeriod TernaryPredicate)
+(domain interestRatePerPeriod 1  FinancialAccount)
+(domain interestRatePerPeriod 2 InterestRate)
+(domain interestRatePerPeriod 3 TimeInterval)
+(documentation interestRatePerPeriod
+"(interestRatePerPeriod ?ACCOUNT ?RATE ?TIME) means that ?RATE is the interest 
+per the period TIME divided by principal amount, expressed as a percentage")
+
+(=>
+	(and
+		(simpleInterest ?Account ?Interest ?Period)
+		(principalAmount ?Account ?Principal)
+		(equal ?Rate-Decimal (DivisionFn ?Interest ?Principal))
+		(equal ?Rate (MultiplicationFn ?Rate-Decimal 100)))
+	(interestRatePerPeriod ?Account ?Rate ?Period))
+
+;; Definition of primeInterestRate.
+
+(instance primeInterestRate BinaryPredicate)
+(domain primeInterestRate  1 Day)
+(domain primeInterestRate  2 InterestRate)
+(documentation primeInterestRate "The interest rate that commercial banks charge 
+their most creditworthy borrowers, such as large corporations.  The prime rate is 
+a lagging indicator.")	
+
+(=>	
+	(and
+		(instance ?Account PersonalAccount)
+		(currentInterestRate ?Account ?Date ?Rate)
+		(primeInterestRate ?Date ?PrimeRate))
+	(greaterThan ?Rate ?PrimeRate))
+
+;; Definition of currentInterestRate.
+
+(instance currentInterestRate TernaryPredicate)
+(domain currentInterestRate 1 FinancialAccount)
+(domain currentInterestRate 2 Day)
+(domain currentInterestRate 3 InterestRate)
+(documentation currentInterestRate "(&%currentInterestRate ?Account ?Day ?Rate) 
+means that ?Rate is the interest rate of the Account on a specific day ?Day.")
+
+;; Definition of fixedInterestRate.
+
+(instance fixedInterestRate BinaryPredicate)
+(domain fixedInterestRate 1 FinancialAccount)
+(domain fixedInterestRate 2 InterestRate)
+(documentation fixedInterestRate "(&%fixedInterestRate ?Account ?Rate) holds if 
+?Rate is the interest rate that does not change during the entire term of the 
+account.")
+
+;; dates	
+
+;; definition of agreementActive
+
+(instance agreementActive BinaryPredicate)
+(domain agreementActive 1 Contract)
+(domain agreementActive 2 TimePosition)
+(documentation agreementActive "(&%agreementActive ?Agreement ?Date) holds if 
+?Agreement is in force at the time specified by ?Date.")
+
+(<=>
+	(and
+		(agreementPeriod ?Agreement ?Period)
+		(overlapsTemporally ?Date ?Period))
+	(agreementActive ?Agreement ?Date))
+
+;; Definition of maturityDate.
+
+(instance maturityDate BinaryPredicate)
+(subrelation maturityDate expirationDate)
+(domain maturityDate 1 FinancialAccount)
+(domain  maturityDate  2 Day)
+(documentation maturityDate "The date on which the principal amount of the account 
+becomes due and payable.")
+
+(=>	
+	(and
+		(maturityDate ?Account ?Date)
+		(principalAmount ?Account ?Principal))
+	(amountDue ?Account ?Principal ?Date))
+
+(<=>
+	(and
+		(agreementPeriod ?Account ?Period)
+		(finishes ?End ?Period))
+	(maturityDate ?Account ?End))
+
+;; Definition of amountDue.
+
+(instance amountDue TernaryPredicate)
+(domain amountDue  1 FinancialAccount)
+(domain amountDue 2 CurrencyMeasure)
+(domain amountDue 3 TimePosition)
+(documentation amountDue "(&%amountDue ?ACCOUNT ?AMOUNT ?DATE) means ?DATE is the 
+date on which the amount of Money ?AMOUNT of a particular ?ACCOUNT is due and payable")
+
+(=>	
+	(and
+		(amountDue ?Account ?Amount ?DueDate)
+		(accountHolder ?Account ?Agent))
+	(holdsObligation (KappaFn ?Payment
+				  (and
+					(instance ?Payment Payment)
+					(transactionAmount ?Payment ?Amount)
+					(or
+						(destination ?Payment (CurrencyFn ?Account))
+						(origin ?Payment (CurrencyFn ?Account)))
+					(date ?Payment ?Date)
+					(beforeEq (EndFn ?Date) (BeginFn ?DueDate)))) ?Agent))
+
+;; definition of agreementPeriod
+
+(instance agreementPeriod BinaryPredicate)
+(domain agreementPeriod 1 Contract)
+(domain agreementPeriod  2 TimeInterval)
+(documentation agreementPeriod "(&%agreementPeriod ?Agreement ?Period) holds if 
+?Period specifies a Time interval during which ?Agreement is in force.")
+
+
+;; Balances and payments		
+
+;; definition of currentAccountBalance
+
+(instance currentAccountBalance TernaryPredicate)
+(domain currentAccountBalance 1 FinancialAccount)
+(domain currentAccountBalance 2 Day)
+(domain currentAccountBalance 3 CurrencyMeasure)
+(documentation currentAccountBalance "(&%currentAccountBalance ?Account ?Date ?Amount) means that ?Amount is the balance of the FinancialAccount ?Account as of the date 
+?Date.")
+
+;; Definition of minimumBalance.
+
+
+(instance minimumBalance TernaryPredicate)
+(domain  minimumBalance 1 FinancialAccount)
+(domainSubclass  minimumBalance 2 FinancialTransaction)  
+(domain minimumBalance 3 CurrencyMeasure)
+(documentation minimumBalance "(&%minimumBalance ?Account ?ActivityType ?Amount) 
+means that ?Amount is the mimimum amount required by the type of 
+&%FinancialTransaction ?ActivityType.") 
+
+(=>
+	(and
+		(instance ?Account ?FinancialAccount)
+		(minimumBalance ?Account OpeningAnAccount ?Balance))
+	(exists (?Payment)
+		(and
+			(destination ?Payment (CurrencyFn ?Account))
+			(transactionAmount ?Payment ?Amount)
+			(greaterThanOrEqualTo ?Amount ?Balance)
+			(effectiveDate ?Account ?Date)
+			(date ?Payment ?Date))))
+
+(=>
+	(exists (?Date)
+		(and
+			(instance ?Account ?FinancialAccount)
+			(minimumBalance ?Account UsingAnAccount ?Balance)
+			(currentAccountBalance ?Account ?Date ?Amount)
+			(lessThan ?Amount ?Balance)))
+	(exists (?Penalty)
+		(and
+			(instance ?Penalty Penalty)
+			(date ?Penalty ?Date)
+			(destination ?Penalty (CurrencyFn ?Account)))))
+
+;; Definition of originalBalance.
+
+(instance originalBalance BinaryPredicate)
+(domain originalBalance 1 FinancialAccount)
+(domain originalBalance 2 CurrencyMeasure)
+(documentation originalBalance "(&%originalBalance ?ACCOUNT ?BALANCE) means that 
+?BALANCE is the balance of the account at the time the account is opened.")
+
+(=>
+	(and
+		(effectiveDate  ?Account ?Date)
+		(currentAccountBalance ?Account ?Date ?Balance))
+	(originalBalance ?Account ?Balance))
+
+;; Definition of principalAmount.
+
+(instance principalAmount BinaryPredicate)
+(domain principalAmount 1 FinancialAccount)
+(domain principalAmount 2 CurrencyMeasure)
+(documentation principalAmount "(&%principalAmount ?ACCOUNT ?BALANCE) means 
+that ?BALANCE is the amount borrowed, or the part of the amount borrowed 
+which remains unpaid (excluding interest).") 
+
+;; Definition of periodicPayment.
+
+(instance periodicPayment TernaryPredicate)
+(domain periodicPayment 1 FinancialAccount)
+(domain periodicPayment 2 CurrencyMeasure)
+(domain periodicPayment 3 TimeDuration)
+(documentation periodicPayment "(&%periodicPayment ?Pay ?Amount ?Period) holds if 
+?Pay is one of the periodic payments for the amount ?Amount.") 
+
+(=>
+	(periodicPayment ?Account ?Amount ?Period)
+	(exists (?Payment)
+		(and
+			(instance ?Payment Payment)
+			(origin ?Payment (CurrencyFn ?Account))
+			(transactionAmount ?Payment ?Amount)
+			(frequency ?Payment ?Period))))
+
+;; Definition of minimumPayment.
+
+(instance minimumPayment TernaryPredicate)
+(domain minimumPayment 1 LiabilityAccount)
+(domain minimumPayment 2 CurrencyMeasure)
+(domain minimumPayment 3 TimeDuration)	
+(documentation minimumPayment "The smallest amount which can be paid on a revolving 
+charge account to avoid a penalty.") 
+
+(=>
+	(and
+		(instance ?Account LiabilityAccount)
+		(minimumPayment ?Account ?MinPayment MonthDuration)
+		(exists (?Payment ?Month)
+			(and
+				(instance ?Month Month)
+				(destination ?Payment (CurrencyFn ?Account))
+				(paymentsPerPeriod ?Account ?Amount ?Month)
+				(lessThan ?Amount ?MinPayment))))
+	(exists (?Penalty)
+		(and
+			(instance ?Penalty Penalty)
+			(destination ?Penalty (CurrencyFn ?Account)))))
+
+;; definition of overdraft
+
+(instance overdraft TernaryPredicate)
+(domain overdraft 1 FinancialAccount)
+(domain overdraft 2 CurrencyMeasure)
+(domain overdraft 3 Day)
+(documentation overdraft "The amount by which withdrawals exceed deposits.")
+
+(=>
+	(and
+		(currentAccountBalance ?Account ?Date (MeasureFn ?Balance UnitedStatesDollar))
+		(lessThan ?Balance 0)
+		(equal ?Overdraft (SubtractionFn 0 ?Balance)))
+	(overdraft ?Account (MeasureFn ?Overdraft UnitedStatesDollar) ?Date))  
+
+;; Definition of creditLimit.
+
+(instance creditLimit BinaryPredicate)
+(domain creditLimit 1 CreditAccount)
+(domain creditLimit 2 CurrencyMeasure)
+(documentation creditLimit "(&%creditLimit ?ACCOUNT ?AMNT) holds if ?AMNT is the 
+maximum amount of credit that a bank or other lender will extend to a customer.")
+
+;; definition of floorLoan 
+
+(instance floorLoan BinaryPredicate)
+(domain floorLoan 1 Loan)
+(domain floorLoan 2 CurrencyMeasure)
+(documentation floorLoan "A minimum amount that a lender is willing to loan")
+
+;; Definition of downPayment.
+
+(instance downPayment BinaryPredicate)
+(domain downPayment 1 Loan)
+(domain downPayment 2 CurrencyMeasure)
+(documentation downPayment "The part of the purchase price paid in cash up front, 
+reducing the amount of the loan or mortgage.") 
+
+(=>
+	(and
+		(downPayment ?Loan ?Amount)
+		(effectiveDate ?Loan ?Date))
+	(exists (?Payment)
+		(and
+			(transactionAmount ?Payment ?Amount)
+			(date ?Payment ?Date)
+			(destination ?Payment (CurrencyFn ?Loan)))))
+
+(=>
+	(and
+		(downPayment ?Loan ?Amount)
+		(loanForPurchase ?Loan ?Purchase)
+		(monetaryValue ?Purchase ?Value)
+		(equal ?Balance (SubtractionFn ?Value ?Amount)))
+	(originalBalance ?Loan ?Balance))
+
+;; definition of Prepayment
+
+(subclass Prepayment Payment)
+(documentation Prepayment "Prepayment is the payment of all or part of a debt 
+prior to its due date.")
+
+(=>
+	(and
+		(transactionAmount ?Payment ?Amount)
+		(date ?Payment ?Date)
+		(instance ?Account FinancialAccount)
+		(destination ?Payment (CurrencyFn ?Account))
+		(amountDue ?Account ?AmountDue ?DueDate)
+		(before (EndFn ?Date) (BeginFn ?DueDate)))
+	(instance ?Payment Prepayment)) 
+
+;; definition of accountsBalance
+;;
+;;(instance accountsBalance TernaryPredicate)
+;;(domainSubclass accountsBalance 1 FinancialAccount)
+;;(domain accountsBalance 2 CurrencyMeasure)
+;;(domain accountsBalance 3 Day)
+;;
+;(=>
+;;	(and
+;;		(equal ?Total 0)
+;;		(forall (?Account)
+;;			(=>
+;;				(and
+;;					(member ?Account ?SetOfAccounts)
+;;					(currentAccountBalance ?Account ?Date ?Balance))
+;;				(and
+;;					(equal NewTotal (AdditionFn ?Total ?Balance))
+;;					(equal Total NewTotal))))
+;;	(accountsBalance ?SetOfAccounts ?Total ?Date))	
+;;
+;; definition of netWorth
+
+
+(instance netWorth TernaryPredicate)
+(instance netWorth SingleValuedRelation)
+(domain netWorth 1 CognitiveAgent)
+(domain netWorth 2 CurrencyMeasure)
+(domain netWorth 3 Day)
+(documentation netWorth "Total assets minus total liabilities of an individual or company.") 
+
+(=>
+	(netWorth ?Agent ?Amount ?Date)
+	(holdsDuring ?Date (equal ?Amount (WealthFn ?Agent))))
+
+;;(=>
+;;  (and
+;;		(accountsBalance 
+;;			(KappaFn ?Assets
+;;				(and
+;;					(possesses ?Agent ?Assets) 
+;;					(instance ?Assets DepositAccount))) ?TotalAssets ?Date)
+;;			(KappaFn ?Debt
+;;				(and
+;;					(accountHolder ?Debt ?Agent) 
+;;					(instance ?Debt LiabilityAccount))) ?TotalDebt ?Date)		
+;;  (equal ?Net (SubtractionFn ?TotalAssets ?TotalDebt))))
+;;
+;;
+;;	fees		
+
+
+;; definition of ChargingAFee
+
+(subclass ChargingAFee FinancialTransaction)
+(documentation ChargingAFee "An activity of a fee being charged")
+
+;; Definition of serviceFee.
+
+(instance serviceFee TernaryPredicate)
+(domain serviceFee 1 FinancialOrganization)
+(domain serviceFee 2 FinancialTransaction)
+(domain serviceFee 3 CurrencyMeasure)
+(documentation serviceFee "A charge to the customer levied by a &%FinancialOrganization 
+for a &%FinancialTransaction, such as &%OpeningAnAccount or &%UsingAnAccount.")
+
+(=>
+	(serviceFee ?Bank ?Action ?Amount)
+	(exists (?Fee)
+		(and
+			(instance ?Fee ChargingAFee)
+			(agent ?Fee ?Bank)
+			(causes ?Action ?fee)
+			(amountCharged ?Fee ?Amount))))
+
+;; definition of amountCharged
+
+(subrelation amountCharged transactionAmount)   
+(domain  amountCharged 1 ChargingAFee)
+(domain amountCharged 2 CurrencyMeasure)  
+(documentation amountCharged "(&%amountCharged ?Fee ?Amount) means that ?Amount is the amount of 
+the fee charged.") 
+
+;; definition of Penalty
+
+(subclass Penalty ChargingAFee)
+(documentation Penalty "A fee charged as a penalty.")
+
+;; definition of Tax
+
+(subclass Tax ChargingAFee)
+(documentation Tax "A fee charged by a government on a product, income, or activity.")
+
+(=>
+	(instance ?Tax Tax)
+	(exists (?Org)
+		(and
+			(instance ?Org Government)
+			(agent ?Tax ?Org))))
+
+
+;;	Types of Accounts    
+
+
+;; Definition of InterestBearingAccount.
+
+(subclass InterestBearingAccount FinancialAccount)
+(documentation InterestBearingAccount "FinancialAccounts that have a fixed or adjustable interest rate.")
+
+(=>
+	(instance ?Account InterestBearingAccount)
+	(exists (?Rate ?Period)
+		(interestRate ?Account ?Rate ?Period)))
+
+;; Definition of FixedRateAccount.
+
+(subclass FixedRateAccount InterestBearingAccount)
+(disjoint FixedRateAccount AdjustableRateAccount)
+(documentation FixedRateAccount "An &%InterestBearingAccount in which the interest rate does not 
+change during the entire term of the loan.")
+
+
+(<=>	
+       (exists (?Rate)
+	       (fixedInterestRate ?Account ?Rate))
+       (instance ?Account FixedRateAccount))
+
+;; Definition of AdjustableRateAccount.
+
+(subclass AdjustableRateAccount InterestBearingAccount)
+(documentation AdjustableRateAccount "An &%InterestBearingAccount in which 
+the interest rate is adjusted periodically, usually based on a standard 
+market rate outside the control of the bank or savings institution, such 
+as that prevailing on &%TreasuryBill or the &%primeInterestRate.") 
+
+;; Definition of PersonalAccount.
+
+(subclass PersonalAccount FinancialAccount)
+(documentation PersonalAccount "This is the class of personal accounts, as opposed to 
+&%CorporateAccounts.")
+
+(<=>
+	(and
+		(accountHolder ?Account ?Agent)
+		(instance ?Agent Human))
+	(instance ?Account PersonalAccount))
+
+;; Definition of JointAccount.
+
+(subclass JointAccount PersonalAccount)
+(documentation JointAccount "An account owned by two or more people, usually sharing a household 
+and expenses. Each co-owner has equal access to the account. Most types of accounts, whether it's 
+basic checking, savings or money market, allow for joint use")
+
+(<=>
+	(and
+		(instance ?Account PersonalAccount)
+		(greaterThan (CardinalityFn (KappaFn ?Agent (accountHolder ?Account ?Agent))) 1))
+	(instance ?Account JointAccount))
+
+;; Definition of CorporateAccount.
+
+(subclass CorporateAccount FinancialAccount)
+(disjoint CorporateAccount PersonalAccount)
+(documentation CorporateAccount "This is the class of accounts held by corporations.  This class 
+is disjoint with &%PersonalAccounts.")
+
+(<=>
+	(and
+		(accountHolder ?Account ?Agent)
+		(instance ?Agent Corporation))
+	(instance ?Account CorporateAccount))
+
+;; definition of DepositAccount
+
+(subclass DepositAccount FinancialAccount)
+(documentation DepositAccount "An account where money is deposited for checking, savings or 
+brokerage use.")
+
+;; Definition of SavingsAccount.
+
+
+(subclass SavingsAccount InterestBearingAccount)
+(subclass SavingsAccount DepositAccount)
+(documentation SavingsAccount "An account in a bank on which interest is usually paid and from 
+which withdrawals can be made usually only by presentation of a passbook or by written authorization 
+on a prescribed form.") 
+
+(=>
+	(and
+		(instance ?Account SavingsAccount)
+		(instance ?Transaction FinancialTransaction)
+		(origin ?Transaction (CurrencyFn ?Account)))  
+	(exists (?Authorization)
+		(and
+			(instance ?Authorization AuthorizationOfTransaction)
+			(subProcess ?Authorization ?Transaction))))
+
+(=>
+	(and
+		(instance ?Account SavingsAccount)
+		(accountHolder ?Account ?Agent)
+		(interestEarned ?Account ?Interest ?Period))
+	(exists (?Payment)
+		(and
+			(destination ?Payment (CurrencyFn ?Account))
+			(transactionAmount ?Payment ?Interest)
+			(destination ?Payment ?Agent))))
+
+;; Definition of MoneyMarket.
+
+(subclass MoneyMarket SavingsAccount)
+(documentation MoneyMarket "&%MoneyMarket is for borrowing and lending money for three years 
+or less. The securities in a money market can be U.S. government bonds, TreasuryBills and commercial 
+paper from banks and companies.")
+
+(=>
+	(instance ?Account MoneyMarket)
+	(liquidity ?Account HighLiquidity))
+
+(=>
+	(instance ?Account MoneyMarket)
+	(riskLevel ?Account LowRisk))
+
+;; Definition of TreasuryBill.		
+
+(subclass TreasuryBill SavingsAccount)
+(documentation TreasuryBill "A negotiable debt obligation issued by the U.S. government and backed 
+by its full faith and credit, having a maturity of one year or less. Exempt from state and local taxes") 
+
+(=>
+	(instance ?Account TreasuryBill)
+	(riskLevel ?Account LowRisk))
+
+;; Definition of  CertificateOfDeposit.
+
+(subclass CertificateOfDeposit SavingsAccount)
+(documentation CertificateOfDeposit "CDs (certificates of deposit) are bank, credit union or savings 
+and loan instruments that allow the depositor to lock in an interest rate for a specific period of 
+time (e.g. six months, one year, five years).  If the money is withdrawn from the CD before the CD 
+matures, there is likely to be an early-withdrawal penalty -- often three month's interest. Generally, 
+the longer the time period of the CD, the higher the interest paid.") 
+
+(=>
+	(instance ?CD CertificateOfDeposit)
+	(exists (?Date)
+		(maturityDate ?CD ?Date)))
+
+(=>
+	(and
+		(instance ?CD CertificateOfDeposit)
+		(maturityDate ?CD ?MaturityDate)
+		(instance ?Withdrawal Withdrawal)
+		(origin ?Withdrawal (CurrencyFn ?CD))
+		(date ?Withdrawal ?DateOfWithdrawal)
+		(before (EndFn ?DateOfWithdrawal) (BeginFn ?MaturityDate)))
+	(exists (?Penalty)
+		(and
+			(instance ?Penalty Penalty)
+			(destination ?Penalty (CurrencyFn ?CD))
+			(causes ?Withdrawal ?Penalty)))) 
+
+;; Definition of  TraditionalSavingsAccount.
+
+(subclass TraditionalSavingsAccount SavingsAccount)
+(documentation TraditionalSavingsAccount "Accounts that pay interest, usually at below-market 
+interest rates, that do not have a specific maturity, and that usually can be withdrawn upon demand")
+
+(=>
+	(instance ?Account TraditionalSavingsAccount)
+	(liquidity ?Account HighLiquidity))
+
+(=>
+	(instance ?Account TraditionalSavingsAccount)
+	(not
+		(exists (?Date)
+			(maturityDate ?Account ?Date))))
+
+(=>
+	(and
+		(instance ?Account TraditionalSavingsAccount)
+		(instance ?Withdrawal Withdrawal)
+		(origin ?Withdrawal (CurrencyFn ?Account)))
+	(not (exists (?Penalty)
+	     (and
+		(instance ?Penalty Penalty)
+		(destination ?Penalty (CurrencyFn ?Account))
+		(causes ?Withdrawal ?Penalty)))))
+
+;; Definition of CheckingAccount
+
+(subclass CheckingAccount DepositAccount)
+(documentation CheckingAccount "A bank account against which the depositor can draw checks") 
+
+(=>
+	(and
+		(instance ?Account CheckingAccount)
+		(instance ?Transaction FinancialTransaction)
+		(origin ?Transaction (CurrencyFn ?Account)))  
+	(or
+		(exists (?Check)
+			(and
+				(instance ?Check Check)
+				(instrument ?Transaction ?Check)))
+		(exists (?DebitCard)
+			(and 
+				(instance ?DebitCard DebitCard)
+				(instrument ?Transaction ?DebitCard)))))
+
+;; definition of InvestmentAccount
+
+(subclass InvestmentAccount DepositAccount)
+(documentation InvestmentAccount "An account acquired for future financial return or benefit")
+
+;; definition of MutualFundAccount
+
+(subclass MutualFundAccount InvestmentAccount)
+(documentation MutualFundAccount "An open-ended fund operated by an investment company which 
+raises money from shareholders and invests in a group of assets, in accordance with a stated 
+set of objectives. Benefits include diversification and professional money management. Shares 
+are issued and redeemed on demand, based on the fund's net asset value which is determined at 
+the end of each trading session.") 
+
+;; definition of Liability
+
+(subclass Liability FinancialContract)
+(documentation Liability "A financial obligation, debt, claim, or potential loss")
+
+;; definition of LiabilityAccount
+
+(subclass LiabilityAccount FinancialAccount)
+(documentation LiabilityAccount "An account for which a person is liable")
+
+(=>
+	(and
+		(instance ?Account LiabilityAccount)
+		(accountHolder ?Account ?Agent)
+		(accountAt ?Account ?Bank))
+	(exists (?Debt)
+		(and
+			(instance ?Debt Liability)
+			(agreementMember ?Debt ?Agent)
+			(agreementMember ?Debt ?Bank))))
+
+;; Definition of CreditAccount.
+
+(subclass CreditAccount LiabilityAccount)
+(documentation CreditAccount "Credit extended by a business to a customer")
+
+(=>
+	(and
+		(instance ?Account CreditAccount)
+		(accountAt ?Account ?Organization)
+		(accountHolder ?Account ?Agent)
+		(interestEarned ?Account ?Interest ?Period))
+	(exists (?Payment)
+		(and
+			(origin ?Payment ?Agent)
+			(transactionAmount ?Payment ?Interest)
+			(destination ?Payment ?Organization))))
+
+(=>
+	(and
+		(instance ?Account CreditAccount)
+		(accountHolder ?Account ?Agent)
+		(principalAmount ?Account ?Principal)
+		(agreementPeriod ?Account ?Period)
+		(interestEarned ?Account ?Interest ?Period)
+		(equal ?Total (AdditionFn ?Principal ?Interest)))
+	(holdsObligation (KappaFn  ?Payment	
+				   (transactionAmount ?Payment ?Total)) ?Agent))
+
+;; Definition of CreditCardAccount.
+
+(subclass CreditCardAccount CreditAccount)
+(documentation CreditCardAccount "A type of &%CreditAccount which uses a &%CreditCard for 
+&%FinancialTransactions.")
+
+(=>
+	(and
+		(instance ?Account CreditCardAccount)
+		(instance ?Transaction FinancialTransaction)
+		(origin ?Transaction (CurrencyFn ?Account))) 
+	(exists (?Card)
+		(and
+			(instance ?Card CreditCard) 
+			(instrument ?Transaction ?Card))))
+
+;; definition of Loan
+
+(subclass Loan LiabilityAccount)
+(documentation Loan "An arrangement in which a lender gives money or property to a borrower, 
+and the borrower agrees to return the property or repay the money, usually along with interest, 
+at some future point(s) in time.")
+
+(=>
+   (instance ?Loan Loan)
+   (exists (?Borrower ?Lender)
+      (and
+         (borrower ?Loan ?Borrower)
+         (lender ?Loan ?Lender)))) 
+
+(=>
+	(and
+		(borrower ?Loan ?Borrower)
+		(lender ?Loan ?Lender)
+		(agreementPeriod ?Loan ?Period)
+		(interestEarned ?Loan ?Interest ?Period))
+	(exists (?Payment)
+		(and
+			(origin ?Payment ?Borrower)
+			(transactionAmount ?Payment ?Interest)
+			(destination ?Payment ?Lender))))
+
+(=>
+	(and
+		(instance ?Account Loan)
+		(borrower ?Account ?Agent)
+		(principalAmount ?Account ?Principal)
+		(agreementPeriod ?Account ?Period)
+		(interestEarned ?Account ?Interest ?Period)
+		(equal ?Total (AdditionFn ?Principal ?Interest)))
+	(holdsObligation (KappaFn ?Payment	
+			 (transactionAmount ?Payment ?Total)) ?Agent))
+
+;; definition of lender
+
+(subrelation lender agreementMember)
+(domain lender 1 Loan)
+(domain lender 2 CognitiveAgent)
+(documentation lender "(&%lender ?Loan ?Agent) means that ?Agent is a private, public or 
+institutional entity that put up the funds for the ?Loan.") 
+
+(=>
+   (lender ?Loan ?Agent)
+   (exists (?Lending)
+      (and
+         (instance ?Lending Lending)
+         (agent ?Lending ?Agent))))
+
+;; definition of borrower
+
+(subrelation borrower agreementMember)
+(domain borrower 1 Loan)
+(domain borrower 2 CognitiveAgent)
+(documentation borrower "(&%borrower ?Loan ?Agent) means that ?Agent is a borrower of the ?Loan")
+
+(=>
+   (borrower ?Loan ?Agent)
+   (exists (?Borrowing)
+      (and
+         (instance ?Borrowing Borrowing)
+         (agent ?Borrowing ?Agent))))
+
+;; Definition of loanForPurchase.
+
+(instance loanForPurchase BinaryPredicate)
+(domain loanForPurchase 1 Loan)
+(domain loanForPurchase 2 Object)
+(documentation loanForPurchase "(&%loanForPurchase ?ACCOUNT ?PRODUCT) means that ?ACCOUNT is a 
+loan to finance the purchase of ?PRODUCT.")
+
+;; definition of Collateral
+
+(subclass Collateral FinancialAsset)
+(documentation Collateral "Assets pledged by a borrower to secure a loan or other credit, and 
+subject to seizure in the event of &%FinancialDefault.") 
+
+(<=>
+	(instance ?Collateral Collateral)
+	(exists (?Loan)
+		(and
+			(instance ?Loan SecuredLoan)
+			(securedBy ?Loan ?Collateral))))
+
+;; definition of securedBy
+
+(instance securedBy BinaryPredicate)
+(domain securedBy 1 FinancialAccount)
+(domain securedBy 2 Collateral) 
+
+(=>
+	(and
+		(instance ?Loan Loan)
+		(securedBy ?Loan ?Security)
+		(lender ?Loan ?Bank)
+		(exists (?Default)
+			(and
+				(instance ?Default FinancialDefault)
+				(patient ?Default ?Loan))))
+	(holdsDuring (ImmediateFutureFn (WhenFn ?Default)) (possesses ?Bank ?Security)))
+
+;; definition of SecuredLoan
+
+(subclass SecuredLoan Loan)
+(disjoint SecuredLoan UnsecuredLoan)
+
+(<=>
+	(instance ?Loan SecuredLoan)
+	(exists (?Security)
+		(securedBy ?Loan ?Security)))
+
+;; definition of UnsecuredLoan
+
+(subclass UnsecuredLoan Loan)
+
+;; definition of RealEstate
+
+(subclass RealEstate Region)
+(subclass RealEstate FinancialAsset)
+(documentation RealEstate "Land, including all the natural resources and permanent buildings on it.")
+
+(=>
+   (instance ?Estate RealEstate)
+   (or 
+      (instance ?Estate StationaryArtifact)
+      (instance ?Estate LandArea)
+      (exists (?Artifact ?Area)
+         (and 
+            (instance ?Artifact StationaryArtifact)
+            (instance ?Area LandArea)
+            (equal ?Estate (MereologicalSumFn ?Artifact ?Area))))))
+
+;; Definition of Mortgage.
+
+(subclass Mortgage SecuredLoan)
+(documentation Mortgage "A loan to finance the purchase of real estate, usually with specified payment 
+periods and interest rates.") 
+
+(=>
+	(instance ?Loan Mortgage)
+	(exists (?Estate)
+		(and
+			(instance ?Estate RealEstate)
+			(loanForPurchase ?Loan ?Estate))))
+
+(=>
+	(and
+		(instance ?Loan Mortgage)
+		(loanForPurchase ?Loan ?RealEstate))
+	(securedBy ?Loan ?RealEstate))
+
+;; definition of BalloonLoan
+
+(subclass BalloonLoan Loan)
+(documentation BalloonLoan "A long-term loan, often a mortgage, that has 
+one large payment (the balloon payment) due upon maturity.  Often done 
+when refinancing or a major cash flow event is anticipated") 
+
+(=>
+	(and
+		(instance ?Loan BalloonLoan)
+		(maturityDate ?Loan ?Date)
+		(totalBalance ?Loan ?Amount)
+		(borrower ?Loan ?Agent))
+	(holdsObligation (KappaFn ?Payment
+			 (and
+				(date ?Payment ?Date)
+				(transactionAmount ?Payment ?Amount)
+				(destination ?Payment (CurrencyFn ?Loan)))) ?Agent))
+
+;; definition of Call
+
+(subclass Call FinancialTransaction)
+
+;; definition of CallableLoan 
+
+(subclass CallableLoan Loan)
+(documentation CallableLoan "A loan that must repaid upon the lender's demand")
+
+(=>
+	(and
+		(instance ?Loan CallableLoan)
+		(lender ?Loan ?Lender)
+		(borrower ?Loan ?Borrower)
+		(totalBalance ?Loan ?Amount)
+		(exists (?Call)
+			(and
+				(instance ?Call Call)
+				(agent ?Call ?Lender)
+				(time ?Call ?Time)
+				(patient ?Call ?Loan))))  		
+	(holdsObligation (KappaFn ?Payment
+			 (and
+				(destination ?Payment ?Lender)
+				(time ?Payment (ImmediateFutureFn (WhenFn ?Call)))
+				(transactionAmount ?Payment ?Amount))) ?Borrower))
+
+;; definition of Refinancing
+
+(subclass Refinancing FinancialTransaction)
+(documentation Refinancing "Paying off an existing loan with the proceeds from a new loan, using 
+the same property as collateral.")
+
+(=>
+	(and
+		(instance ?Refinancing Refinancing)
+		(time ?Refinancing ?Time)
+		(instance ?Loan Loan)
+		(securedBy ?Loan ?Collateral)
+		(borrower ?Loan ?Borrower)
+		(currentAccountBalance ?Loan ?Date ?Amount)
+		(patient ?Refinancing ?Loan))
+	(exists (?NewLoan ?Payment)
+		(and
+			(instance ?NewLoan Loan)
+			(borrower ?NewLoan ?Borrower)
+			(securedBy ?Loan ?Collateral)
+			(destination ?Payment (CurrencyFn ?Loan))
+			(time ?Payment ?Time)
+			(origin ?Payment (CurrencyFn ?NewLoan))
+			(transactionAmount ?Payment ?Amount)))) 
+
+;; definition of LoanCommitment
+
+(subclass LoanCommitment Contract)
+(documentation LoanCommitment "A formal offer by a lender making explicit 
+the terms under which it agrees to lend money to a borrower over a certain 
+period of time.") 
+
+(=>
+	(instance ?Commitment LoanCommitment)
+	(exists (?Loan ?Lender ?Borrower)
+		(and
+			(instance ?Loan Loan)
+			(lender ?Loan ?Lender)
+			(borrower ?Loan ?Borrower)
+			(agreementMember ?Commitment ?Lender)
+			(agreementMember ?Commitment ?Borrower))))
+
+;; definition of appraisedValue
+
+(subrelation appraisedValue monetaryValue)
+(domain appraisedValue 1 Collateral)
+(domain appraisedValue 2 CurrencyMeasure)
+
+;; definition of BankTermLoan 
+
+(subclass BankTermLoan Loan)
+(documentation BankTermLoan "A bank loan terminating in one year or more.")
+
+(=>
+	(and
+		(instance ?Loan BankTermLoan)
+		(lender ?Loan ?Lender))
+	(instance ?Lender Bank-FinancialOrganization))
+
+(=>
+	(and
+		(instance ?Loan BankTermLoan)
+		(agreementPeriod ?Loan ?Period)
+		(duration ?Period (MeasureFn ?Duration YearDuration)))
+	(greaterThanOrEqualTo ?Duration 1))
+
+;; definition of BridgeLoan
+
+(subclass BridgeLoan Loan)
+(documentation BridgeLoan "Short-term financing which is expected to be paid back relatively 
+quickly, such as by a subsequent longer-term loan.") 
+
+;; definition of BrokerLoan
+
+(subclass BrokerLoan Loan)
+(documentation BrokerLoan "Money lent to brokers by banks, for financing 
+the underwriting of new issues, financing customer margin accounts, and 
+other purposes.") 
+
+(=>
+	(and
+		(instance ?Loan BrokerLoan)
+		(borrower ?Loan ?Borrower))
+	(instance ?Borrower Broker))
+
+;; definition of ConsolidationLoan
+
+(subclass ConsolidationLoan Loan)
+(documentation ConsolidationLoan "The replacement of multiple loans with a single loan, often 
+with a lower monthly payment and a longer repayment period.")
+
+(=>
+	(instance ?Loan ConsolidationLoan)
+	(exists (?Loan1 ?Loan2 ?Payment1 ?Payment2)
+		(and
+			(instance ?Loan1 Loan)
+			(instance ?Loan2 Loan)
+			(destination ?Payment1 (CurrencyFn ?Loan1))
+			(destination ?Payment2 (CurrencyFn ?Loan2))
+			(origin ?Payment1 (CurrencyFn ?Loan))
+			(origin ?Payment2 (CurrencyFn ?Loan)))))
+
+;; definition of FHALoan
+
+(subclass FHALoan Mortgage)
+(disjoint FHALoan ConventionalMortgage)
+(documentation FHALoan  "A government mortgage that is insured by the Federal Housing 
+Administration (FHA).") 
+
+(=>
+	(instance ?Loan FHALoan)
+	(insured ?Loan FederalHousingAdministration))
+
+;; definition of insured
+
+(instance insured BinaryPredicate)
+(instance insured AsymmetricRelation)
+(domain insured 1 Contract)
+(domain insured 2 Organization)
+(documentation insured "(insured ?Contract ?Org) means that ?Contract is insured 
+by the ?Organization.")
+
+;; definition of FederalHousingAdministration
+
+(subclass FederalHousingAdministration Government)
+
+;; definition of ConventionalMortgage
+
+(subclass ConventionalMortgage Mortgage)
+(documentation ConventionalMortgage "A mortgage that is not insured or guaranteed 
+by the government.")
+
+(=>
+   (instance ?Mortgage ConventionalMortgage)
+   (not (exists (?Government)
+      (and
+         (instance ?Government Government)
+         (insured ?Mortgage ?Government)))))
+
+;; definition of DayLoan
+
+(subclass DayLoan Loan)
+(documentation DayLoan "A bank loan to a broker for the purchase of securities pending delivery 
+through clearing later the same day.")
+
+(=>
+	(and
+		(instance ?Loan DayLoan)
+		(lender ?Loan ?Lender))
+	(instance ?Lender Bank-FinancialOrganization))
+
+(=>
+	(and
+		(instance ?Loan DayLoan)
+		(borrower ?Loan ?Borrower))
+	(instance ?Borrower Broker))
+
+(=>
+	(instance ?Loan DayLoan)
+	(and
+		(agreementPeriod ?Loan ?Period)
+		(duration ?Period (MeasureFn 1 DayDuration))))
+
+;; definition of PiggybankLoan
+
+(subclass PiggybankLoan Loan)
+(documentation PiggybankLoan "Two lenders participating in the same loan.")
+
+(=>
+	(instance ?Loan PiggybankLoan)
+	(equal (CardinalityFn (KappaFn ?Lender (lender ?Loan ?Lender))) 2))
+
+;; definition of SinglePaymentLoan
+
+(subclass SinglePaymentLoan Loan)
+(documentation SinglePaymentLoan "A loan whose principal is due in total with a single 
+payment at maturity.")
+
+(=>
+	(and
+		(instance ?Loan SinglePaymentLoan)
+		(principalAmount ?Loan ?Principal)
+		(maturityDate ?Loan ?Maturity))
+	(amountDue ?Loan ?Principal ?Maturity)) 
+
+;; definition EvergreenLoan
+
+(subclass EvergreenLoan Loan)
+(documentation EvergreenLoan "A short-term loan which is continually renewed rather than repaid.")
+
+;; definition of IndexedLoan
+
+(subclass IndexedLoan Loan)
+(documentation IndexedLoan "A loan in which payments change in response to 
+changes in an index such as the Consumer Price Index.") 
+
+;; definition of InterestOnlyLoan
+
+(subclass InterestOnlyLoan Loan)
+(documentation InterestOnlyLoan "A non-amortized loan in which interest is 
+due at regular intervals until maturity, when the full principal on the 
+loan is due.") 
+
+(=>
+	(and
+		(instance ?Loan InterestOnlyLoan)
+		(agreementPeriod ?Loan ?Period)
+		(principalAmount ?Loan ?Principal)
+		(interestEarned ?Loan ?Interest ?Period))
+	(and
+		(amountDue ?Loan ?Principal (EndFn ?Period))
+		(amountDue ?Loan ?Interest ?Date)
+		(before (EndFn ?Date) (EndFn ?Period))))  
+
+
+;;   indexes    
+
+
+;; definition of Index 
+
+(subclass Index PerformanceMeasure) 
+(documentation Index "A benchmark against which financial or economic performance is measured, 
+such as the S&P 500 or the Consumer Price Index.")
+
+(=>
+	(instance ?Index Index)
+	(exists (?Performance)
+		(and
+			(benchmark ?Performance ?Index)
+			(instance ?Performance EconomicIndicator))))
+
+;; definition of EconomicIndicator
+
+(subclass EconomicIndicator Proposition)
+(documentation EconomicIndicator "Data which provide information about or 
+predict the overall health of the economy or the financial markets; 
+examples are inflation, interest rates, employment, etc.") 
+
+;; definition of PerformanceMeasure
+
+(subclass PerformanceMeasure PhysicalQuantity)
+
+;; definition of benchmark
+
+(instance benchmark BinaryPredicate)
+(domain benchmark 1 Abstract)
+(domain benchmark 2 PerformanceMeasure)
+(documentation benchmark "A standard by which something can be measured or judged.")
+
+;; definition of Inflation
+
+(subclass Inflation EconomicIndicator)
+(documentation Inflation "The overall general upward price movement of 
+goods and services in an economy, usually as measured by the Consumer 
+Price Index and the Producer Price Index.") 
+
+(=>
+	(instance ?Inflation Inflation)
+	(or
+		(and
+			(benchmark ?Inflation ?CPI)
+			(instance ?CPI ConsumerPriceIndex))
+		(and
+			(benchmark ?Inflation ?PPI)
+			(instance ?PPI ProducerPriceIndex)))) 
+
+;; definition of InflationIndex
+
+(subclass InflationIndex Index)
+
+(<=>
+	(instance ?Index InflationIndex)
+	(exists (?Inflation)
+		(and
+			(instance ?Inflation Inflation)
+			(benchmark ?Inflation ?Index))))
+
+;; definition of inflationRate
+
+(instance inflationRate BinaryPredicate)
+(domain inflationRate 1 Inflation)
+(domain inflationRate 2 RealNumber)
+(documentation inflationRate "The percentage increase in the price of goods and services, 
+usually annually.")
+
+;; definition of ConsumerPriceIndex 
+
+(subclass ConsumerPriceIndex InflationIndex)
+(documentation ConsumerPriceIndex "An inflationary indicator that measures 
+the change in the cost of a fixed basket of products and services, 
+including housing, electricity, food, and transportation.  The CPI is 
+published monthly.") 
+
+;; definition of ProducerPriceIndex 
+(subclass ProducerPriceIndex InflationIndex)
+(documentation ProducerPriceIndex "An inflationary indicator published by the U.S. Bureau 
+of Labor Statistics to evaluate wholesale price levels in the economy.") 
+
+;; definition of StockIndex
+
+(subclass StockIndex Index)
+(documentation StockIndex "Any index which is intended to gauge upward or downward trends 
+in stock prices.")
+
+
+
+(<=>
+	(instance ?Index StockIndex)
+	(exists (?Stock)
+		(and
+			(instance ?Stock Stock)
+			(benchmark ?Index ?Stock)))) 
+
+;; definition of listedOn
+
+(instance listedOn AsymmetricRelation)
+(domain listedOn 1 Stock)
+(domain listedOn 2 Organization)
+
+;; definition of NASDAQCompositeIndex
+
+(subclass NASDAQCompositeIndex Index)
+(documentation NASDAQCompositeIndex "A market-value weighted index of all common stocks 
+listed on NASDAQ.")
+
+(=>
+	(and
+		(instance ?Index  NASDAQCompositeIndex)
+		(benchmark ?Index ?Stock))
+	(listedOn ?Stock NASDAQ))
+
+;; definition of NASDAQ 
+
+(instance NASDAQ Organization)
+(documentation NASDAQ "National Association of Securities Dealers Automated Quotations 
+system.")
+
+;; definition of MarketShareWeightedIndex
+
+(subclass MarketShareWeightedIndex Index)
+(documentation MarketShareWeightedIndex "A stock index in which each stock affects the 
+index in proportion to its number of shares outstanding.") 
+
+;; definition of MarketValueWeightedIndex 
+
+(subclass MarketValueWeightedIndex Index)
+(documentation MarketValueWeightedIndex "A stock index in which each stock 
+affects the index in proportion to its market value.  Examples include 
+NASDAQ Composite Index, S&P 500, Wilshire 5000 Equity Index, Hang Seng 
+Index, and EAFE Index.") 
+
+;; definition of StockMarket
+
+(subclass StockMarket Organization)
+(documentation StockMarket "General term for the organized trading of stocks through 
+exchanges and over-the-counter.") 
+
+;; definition of PriceWeightedIndex
+
+(subclass PriceWeightedIndex Index)
+(documentation PriceWeightedIndex "A stock index in which each stock affects the index 
+in proportion to its price per share.")
+
+;; definition of NikkeiIndex
+
+(subclass NikkeiIndex Index)
+(documentation NikkeiIndex "Index of 225 leading stocks traded on the Tokyo Stock 
+Exchange.")
+
+
+;;	Investment management     
+
+
+;; definition of Investment
+
+(subclass Investment FinancialAsset)
+(documentation Investment "An item of value purchased for income or capital appreciation.")
+
+(=>
+	(instance ?Investment Investment)
+	(exists (?Investing ?Agent)
+		(and
+			(agent ?Investing ?Agent)
+			(possesses ?Agent ?Investment))))
+
+;; definition of Investor
+
+(subclass Investor CognitiveAgent)
+(documentation Investor "A person who purchases income-producing assets.")
+
+(<=>
+	(instance ?Agent Investor)
+	(exists (?Investing)
+		(agent ?Investing ?Agent)))
+
+(<=>
+	(instance ?Agent Investor)
+	(exists (?Investment)
+		(and
+			(instance ?Investment Investment)
+			(possesses ?Agent ?Investment))))
+
+;; definition of profit
+
+(instance profit AsymmetricRelation)
+(domain profit 1 FinancialTransaction)
+(domain profit 2 CurrencyMeasure)
+(documentation profit "The positive gain from an investment or business operation after 
+subtracting for all expenses.") 
+
+(=>
+	(instance ?Investing Investing)
+	(hasPurpose ?Investing
+		    (exists (?Profit)
+			    (profit ?Investing ?Profit))))
+
+;; definition of AsssetAllocation
+
+(subclass AssetAllocation FinancialTransaction)
+(documentation AssetAllocation "The process of dividing investments among different kinds of 
+assets, such as Stocks, Bonds, RealEstate and cash, to optimize the risk/reward tradeoff based 
+on an individual's or institution's specific situation and goals.")
+
+;; instance InvestmentAttribute
+
+(subclass InvestmentAttribute Attribute)
+
+(=>
+	(instance ?Attribute InvestmentAttribute)
+	(exists (?Account)
+		(and
+			(attribute ?Account ?Attribute)
+			(instance ?Account InvestmentAccount))))
+
+;; definition of liquidity
+
+(instance liquidity AsymmetricRelation)
+(domain liquidity 1 FinancialAccount)
+(domain liquidity 2 LiquidtityAttribute)
+(documentation liquidity "Degree to which accounts can be easily converted to cash.")
+
+(<=>
+	(and
+		(instance ?Withdrawal Withdrawal)
+		(instance ?Account FinancialAccount)
+		(origin ?Withdrawal (CurrencyFn ?Account))
+		(not (exists (?Penalty)
+		     (and
+			   (instance ?Penalty Penalty)
+			   (destination ?Penalty (CurrencyFn ?Account))
+			   (causes ?Withdrawal ?Penalty)))))
+	(liquidity ?Account HighLiquidity)) 
+
+;; definition of LiquidityAttribute
+
+(subclass LiquidityAttribute Attribute)
+(exhaustiveAttribute LiquidityAttribute HighLiquidity LowLiquidity)
+(documentation LiquidityAttribute "A class of attributes which describe the degree to 
+which accounts can be easily converted to cash.")
+
+(instance HighLiquidity LiquidityAttribute)
+(contraryAttribute HighLiquidity LowLiquidity)
+(documentation HighLiquidity "An &%Attribute of &%FinancialAccounts which can be easily 
+converted to cash.")
+
+(instance LowLiquidity LiquidityAttribute)
+(documentation LowLiquidity "An &%Attribute of &%FinancialAccounts which cannot be easily 
+converted to cash.")
+
+
+;; definition of riskLevel
+
+(instance riskLevel AsymmetricRelation)
+(domain riskLevel 1 Investment)
+(domain riskLevel 2 RiskAttribute)
+(documentation riskLevel "Relates an instance of &%Investing to the level of risk associated 
+with the investment.")
+
+
+;; definition of RiskAttribute
+
+(subclass RiskAttribute Attribute)
+(exhaustiveAttribute RiskAttribute HighRisk LowRisk)
+(documentation RiskAttribute "A class of attributes which describe the degree of risk 
+of a particular investment.")
+
+(instance HighRisk RiskAttribute)
+(contraryAttribute HighRisk LowRisk)
+(documentation HighRisk "An &%Attribute that characterizes investments which are likely 
+to lose their principal.")
+
+
+(instance LowRisk RiskAttribute)
+
+;; definition of yieldLevel 
+
+(instance yieldLevel AsymmetricRelation)
+(domain yieldLevel 1 FinancialAccount)
+(domain yieldLevel 2 YieldAttribute)
+(documentation yieldLevel "A profit obtained from an investment.")
+(documentation yieldLevel "Relates a &%FinancialAccount to the yield level (i.e. the type of profit) 
+which can be expected from the account.")
+
+
+;; definition of YieldAttribute
+
+(subclass YieldAttribute Attribute)
+(exhaustiveAttribute YieldAttribute HighYield LowYield)
+(documentation YieldAttribute "A class of attributes which describe the degree to which 
+accounts are profitable.")
+
+(instance HighYield YieldAttribute)
+(contraryAttribute HighYield LowYield)
+(documentation HighYield "An &%Attribute that characterizes accounts that are very profitable.")
+
+(instance LowYield YieldAttribute)
+(documentation LowYield "An &%Attribute that characterizes accounts that are not very profitable.")
+
+;; definition of potentialLoss
+
+(instance potentialLoss TernaryPredicate)
+(domain potentialLoss 1 CognitiveAgent)
+(domain potentialLoss 2 Investment)
+(domain potentialLoss 3 CurrencyMeasure)
+(documentation potentialLoss "The maximum amount of money the Agent can lose by choosing 
+this type of Investment.")
+
+;; definition of price
+
+(instance price TernaryPredicate)
+(domain price 1 Physical)
+(domain price 2 CurrencyMeasure)
+(domain price 3 Agent)
+(documentation price "(&%price ?Obj ?Money ?Agent) means that ?Agent pays the amount of 
+money ?Money for ?Obj.")
+
+(=>
+   (price ?Obj ?Money ?Agent)
+   (exists (?Buying)
+      (and
+         (instance ?Buying Buying)
+         (agent ?Buying ?Agent)
+         (patient ?Buying ?Obj)
+         (transactionAmount ?Buying ?Money))))
+
+
+;; definition of bidPrice
+
+(subrelation bidPrice price)
+(domain bidPrice 1 Object)
+(domain bidPrice 2 CurrencyMeasure)
+(domain bidPrice 3 Agent)
+(documentation bidPrice "(bidPrice ?Obj ?Money ?Agent) means that ?Agent offers to buy 
+?Obj for the amount of ?Money.")
+
+(=>
+   (bidPrice ?Obj ?Money ?Agent)
+   (exists (?Offering)
+      (and
+         (instance ?Offering Offering)
+         (patient ?Offering (exists (?Buying)
+                               (and
+                                  (instance ?Buying Buying)
+                                  (agent ?Buying ?Agent)
+         				    (patient ?Buying ?Obj)
+         				    (transactionAmount ?Buying ?Money)))))))
+
+;; definition of askPrice
+
+(subrelation askPrice price)
+(domain askPrice 1 Object)
+(domain askPrice 2 CurrencyMeasure)
+(domain askPrice 3 Agent)
+
+(documentation askPrice "(askPrice ?Obj ?Money ?Agent) means that ?Agent offers to sell 
+?Obj for the amount of ?Money.")
+
+(=>
+   (askPrice ?Obj ?Money ?Agent)
+   (exists (?Offering)
+      (and
+         (instance ?Offering Offering)
+         (patient ?Offering (exists (?Selling)
+                               (and
+                                  (instance ?Selling Selling)
+                                  (agent ?Selling ?Agent)
+         				    (patient ?Selling ?Obj)
+         				    (transactionAmount ?Selling ?Money)))))))
+
+;; definition of Order
+
+(subclass Order ServiceContract)
+(documentation Order "A request from a client to a broker to buy (buy order) or sell 
+(sell order) a specified amount of a particular security or commodity at a specific 
+price or at the market price.") 
+
+;; definition of PlacingAnOrder
+
+(subclass PlacingAnOrder FinancialTransaction)
+
+(=>	
+     (and
+		(instance ?Place PlacingAnOrder)
+		(equal (WhenFn ?Place) ?Time))
+     (exists (?Order ?Period)
+	        (and
+			(equal (WhenFn ?Order) ?Period)
+			(meetsTemporally ?Time ?Period))))
+
+;; definition of MarketOrder
+
+(subclass MarketOrder Order)
+(documentation MarketOrder "An order to buy or sell security at the best prices available.")
+
+;; definition of orderFor
+
+(instance orderFor TernaryPredicate)
+(domain orderFor 1 FinancialTransaction)
+(domainSubclass orderFor 2 FinancialTransaction)
+(domain orderFor 3 Security)
+(documentation orderFor "(&%orderFor ?Order ?Transaction ?Security) means that the content of ?Order 
+is to realize an instance of ?Transaction where ?Security is the patient of ?Transaction.")
+
+(=>
+	(and
+		(instance ?Order PlacingAnOrder)
+		(orderFor ?Order ?TransactionType ?Shares))
+	(hasPurpose ?Order
+		    (exists (?Transaction)
+			    (and
+				(instance ?Transaction ?TransactionType)
+				(patient ?Transaction ?Shares)))))
+
+(=>
+	(and
+		(instance ?Order MarketOrder)
+		(instance ?Broker Broker)
+		(agreementMember ?Order ?Broker)
+		(orderFor ?Order ?TransactionType ?Shares))
+	(holdsObligation (KappaFn ?Transaction
+			 (and
+				(instance ?Transaction ?TransactionType)
+				(patient ?Transaction ?Shares))) ?Broker))
+
+;; definition of LimitOrder
+
+(subclass limitOrder Order)
+(documentation LimitOrder "LimitOrder is an order to a Broker  to buy a specified quantity 
+of a Security at or below a specified price, or to sell it at or above a specified limitPrice.")
+
+;; definition of limitPrice
+
+(instance limitPrice BinaryPredicate)
+(instance limitPrice AsymmetricRelation)
+(domain limitPrice 1 LimitOrder)
+(domain limitPrice 2 CurrencyMeasure)
+(documentation limitPrice "(&%limitPrice ?Order ?Money) means that ?Money is the limit price 
+for the limit order ?Order.  If ?Order is a buy order, then ?Money specifies the maximum price
+to be paid.  If ?Order is a sell order, then ?Money specifies the minimum price to be paid.")
+
+(=>
+	(instance ?Order LimitOrder)
+	(exists (?Price)
+		(limitPrice ?Order ?Price)))
+
+(=>	
+	(and
+		(instance ?Order LimitOrder)
+		(agreementMember ?Order ?Broker)
+		(instance ?Broker Broker)
+		(orderFor ?Order Buying ?Object)
+		(measure ?Object ?Quantity)
+		(limitPrice ?Order ?LimitPrice)
+		(exists (?Time)
+			(and
+				(askPrice ?Object ?Price ?Time)
+				(lessThanOrEqualTo ?Price ?LimitPrice))))
+		(holdsObligation (KappaFn ?Buy
+				 (and
+					(instance ?Buy Buying)
+					(patient ?Buy ?Object)
+					(measure ?Object ?Quantity)
+					(equal (WhenFn ?Buy) ?BuyingTime)
+					(overlapsTemporally ?Time ?BuyingTime))) ?Broker))
+
+(=>	
+	(and
+		(instance ?Order LimitOrder)
+		(agreementMember ?Order ?Broker)
+		(instance ?Broker Broker)
+		(orderFor ?Order Selling ?Object)
+		(measure ?Object ?Quantity)
+		(limitPrice ?Order ?LimitPrice)
+		(exists (?Time)
+			(and
+				(bidPrice ?Object ?Price ?Time)
+				(greaterThanOrEqualTo ?Price ?LimitPrice))))
+	(holdsObligation (KappaFn ?Sell 
+			 (and
+				(instance ?Sell Selling)
+				(patient ?Sell ?Object)
+				(measure ?Object ?Quantity)
+				(equal (WhenFn ?Sell) ?SellingTime)
+				(overlapsTemporally ?SellingTime ?Time))) ?Broker))
+
+;; definition of Broker
+
+(subclass Broker CognitiveAgent)
+(documentation broker "An individual or firm which acts as an intermediary between 
+a buyer and seller, usually charging a commisssion.")
+
+(=>
+	(instance ?Broker Broker)
+	(exists (?Contract)
+		(and
+			(instance ?Contract ServiceContract)
+			(agreementMember ?Contract ?Broker))))
+
+;; definition of StopOrder
+
+(subclass StopOrder Order)
+(documentation StopOrder "A market order to buy or sell a certain quantity of 
+a certain security if a specified price (the stopPrice) is reached or passed.")
+
+;; definition of Liquidation
+
+(subclass Liquidation FinancialTransaction)
+(documentation Liquidation "The class of events of selling all of a company's assets, 
+paying outstanding debts, and distribution of the remainder to shareholders, and them 
+going out of business.")
+
+;; definition of Dividend
+
+(subclass Dividend Payment)
+(documentation Dividend "A taxable payment declared by a company's board of directors 
+and given to its &%shareHolders out of the company's current or retained earnings. 
+Usually quarterly. Usually given as cash, but it can also take the form of &%Stock or 
+other property.") 
+
+;; definition of Security
+
+(subclass Security FinancialInstrument)
+(documentation Security "An investment instrument, other than an insurance policy or 
+&%FixedAnnuity insurance policy or fixed annuity issued by a corporation, government, 
+or other organization which offers evidence of debt or equity.")
+
+;; definition of Annuity
+
+(subclass Annuity FinancialContract)
+(documentation Annuity "A contract sold by an insurance company designed to provide 
+payments to the holder at specified intervals, usually after retirement. &%FixedAnnuities 
+guarantee a certain payment amount, while &%VariableAnnuities do not, but do have the 
+potential for greater returns; but both are relatively safe, low-yielding investments.") 
+
+;; definition of FixedAnnuity
+
+(subclass FixedAnnuity Annuity) 
+(documentation FixedAnnuity "An investment vehicle offered by an insurance company, that 
+guarantees a stream of fixed payments over the life of the annuity. The insurer, not the 
+insured, takes the investment risk.")
+
+(subclass VariableAnnuity Annuity)
+(documentation VariableAnnuity "An investment vehicle offered by an insurance company that 
+does not guarantee a payment amount but does have the potential for greater returns than  
+a &%FixedAnnuity.")
+;; definition of Share
+
+(subclass Share Security)
+(instance Share UnitOfMeasure)
+(documentation Share "Certificate, representing one unit of ownership in a corporation, 
+&%MutualFund, or limited partnership.")
+
+;; definition of shareOf
+
+(subrelation shareOf BinaryPredicate)
+(domain shareOf 1 Share)
+(domain shareOf 2 Organization)
+
+;; definition of shareHolder
+
+(instance shareHolder BinaryPredicate)
+(domain shareHolder 1 Share)
+(domain shareHolder 2 CognitiveAgent)
+(documentation shareHolder "(&%shareHolder ?Stock ?Agent) means that ?Agent possesses 
+shares of &%Stock in a corporation or mutual fund.")
+
+;; definition of TaxFreeInvestment
+
+(subclass TaxFreeInvestment Investment)
+
+(=>
+	(instance ?Investment TaxFreeInvestment)
+	(not
+		(exists (?Tax)
+			(and
+				(instance ?Tax Tax)
+				(origin ?Tax ?Investment)))))
+
+;; definition of TaxableInvestment
+
+(subclass TaxableInvestment Investment)
+
+(=>
+	(instance ?Investment TaxableInvestment)
+	(exists (?Tax)
+		(and
+			(instance ?Tax Tax)
+			(origin ?Tax ?Investment))))
+
+;; definition of FinancialDefault
+
+(subclass FinancialDefault FinancialTransaction)
+(documentation FinancialDefault "Failure to make required debt payments on a timely basis 
+or to comply with other conditions of an obligation or agreement.")
+
+
+;;  Types of Stocks  
+
+
+;; definition of Stock
+
+(subclass Stock FinancialInstrument)
+(subclass Stock Investment)
+(documentation Stock "An instrument that signifies an ownership position, 
+or equity, in a &%Corporation, and represents a claim on its proportionate 
+share in the corporation's assets and profits.") 
+
+;; definition of CommonStock
+
+(subclass CommonStock Stock)
+(documentation CommonStock "Securities representing equity, ownership in a 
+Corporation, providing voting rights, and entitling the holder to a share 
+of the company's success through dividends and/or capital appreciation.  
+In the event of liquidation, common stock holders have rights to a 
+company's assets only after bondholders, other debt holders, and 
+&%PreferredStock holders have been satisfied.") 
+
+;; definition of PreferredStock
+
+(subclass PreferredStock Stock)
+(documentation PreferredStock "&%CapitalStock which provides a specific &%Dividend 
+that is paid before any dividends are paid to common stock holders, and which takes 
+precedence over common stock in the event of a liquidation.  Usually does not carry 
+voting rights.")
+
+(=>
+	(instance ?Stock PreferredStock)
+	(exists (?Dividend ?Amount)
+		(and
+			(instance ?Dividend Dividend)
+			(transactionAmount ?Dividend ?Amount))))
+
+;; definition of BlueChipStock
+
+(subclass BlueChipStock Stock)
+(documentation BlueChipStock "&%Stock with a solid and stable earnings record from a 
+company that either leads or dominates or is a major player in a specific industry.")
+
+;; definition of GrowthStock
+
+(subclass GrowthStock Stock)
+(documentation GrowthStock "Investment term that is applied to a &%Stock that is expected 
+to appreciate in value at a high rate, pay big dividends or split.")
+
+;; definition of ValueStock
+
+(subclass ValueStock Stock)
+(documentation ValueStock "When the shares in a company are considered attractive because 
+the company is undervalue, usually because it has a low P/E ratio.")
+
+;; definition of DefensiveStock
+
+(subclass DefensiveStock Stock)
+(documentation DefensiveStock "&%DefensiveStocks are stocks of food companies, drug 
+manufacturers and utility companies.")
+
+;; definition of RestrictedStock
+
+(subclass RestrictedStock Stock)
+(documentation RestrictedStock "&%Securities, usually issued in private placements, that 
+have limited transferability.")
+
+;; definition of PennyStock
+
+(subclass PennyStock Stock)
+(documentation PennyStock "Extremely speculative, high-risk &%Stock, usually 
+with a price of less than 5 dollars per share.  In the U.S., nearly all 
+are traded on the over-the-counter bulletin board.") 
+
+(=>
+	(instance ?Stock PennyStock)
+	(riskLevel ?Stock HighRisk))
+
+(=>
+	(and
+		(instance ?Stock PennyStock)
+		(askPrice ?Stock (MeasureFn ?Price UnitedStatesDollar) ?Date))
+	(lessThan ?Price 5))
+
+;; definition of StockSplit
+
+(subclass StockSplit FinancialTransaction)
+(documentation StockSplit "Exchange of the number of shares of stock outstanding 
+for a larger number.")
+
+;; definition of splitFor
+
+(instance splitFor TernaryPredicate)
+(domain splitFor 1 StockSplit)
+(domain splitFor 2 Integer)
+(domain splitFor 3 Integer)
+
+(=>
+	(and
+		(possesses ?Agent ?Stocks)
+		(measure ?Stocks (MeasureFn ?Number Shares))
+		(exists (?Event)
+			(splitFor ?Event ?N1 ?N2)))
+	(and
+		(holdsDuring (ImmediateFutureFn (WhenFn ?Event))
+			     (and 
+				  (equal ?N3 (MultiplicationFn ?Number ?N2))
+				  (equal ?NewNumber (DivisionFn ?N3 ?N1))
+				  (measure ?Stocks (MeasureFn ?NewNumber Shares))))))
+
+(=>
+	(and
+		(price ?Stocks (MeasureFn ?Number UnitedStatesDollar) ?Time)
+		(exists (?Event)
+			(and
+				(splitFor ?Event ?N1 ?N2)
+				(equal (WhenFn ?Event) ?TimeOfSplit))))
+	(and
+		(equal ?N3 (MultiplicationFn ?Number ?N1))
+		(equal ?NewNumber (DivisionFn ?N3 ?N2))
+		(price ?Stocks (MeasureFn ?NewNumber UnitedStatesDollar) ?TimeAfterSplit)
+		(meetsTemporally ?Time ?TimeOfSplit)
+		(meetsTemporally ?TimeOfSplit ?TimeAfterSplit)))
+
+
+;;  Bonds  
+
+
+;; Definition of Bond.
+
+(subclass Bond Investment)
+(subclass Bond FinancialInstrument)
+(documentation Bond "A debt instrument issued for a period of more than one year with 
+the purpose of raising capital by borrowing. The Federal government, states, cities, 
+corporations, and many other types of institutions sell bonds. A bond is generally a 
+promise to repay the principal along with interest on a specified &%maturityDate.") 
+
+(=>
+	(instance ?Bond Bond)
+	(exists (?Date)
+		(maturityDate ?Bond ?Date)))
+
+
+(=>	
+	(and
+		(instance ?Bond Bond)
+		(couponInterest ?Bond ?Interest)
+		(possesses ?BondHolder ?Bond))
+	(exists (?Period ?Payment)
+		(and
+			(periodicPayment (AccountFn ?Bond) ?Interest ?Period)
+			(destination ?Payment ?BondHolder))))
+
+;; definition of yield 
+
+(instance yield BinaryPredicate)
+(domain yield 1 Investment)
+(domain yield 2 FunctionQuantity)
+(documentation yield "The annual rate of return on an investment, expressed as a 
+percentage. For bonds and notes, it is the coupon rate divided by the market price.") 
+
+;; Definition of couponInterest.
+
+(instance couponInterest BinaryPredicate)
+(domain couponInterest 1 Bond)
+(domain couponInterest 2 Interest)
+(documentation couponInterest "(&%couponInterest ?BOND ?INTEREST) means that ?INTEREST is 
+the periodic interest payment made to bondholders during the life of the ?BOND.")
+
+;; Definition of accruedInterest.
+
+(instance accruedInterest BinaryPredicate)
+(domain accruedInterest 1 Bond)
+(domain accruedInterest 2 Interest)
+(documentation accruedInterest "The accumulated coupon interest, paid to the seller of a 
+bond by the buyer unless the bond is in default.")
+
+;; definition of faceValue
+
+(instance faceValue BinaryPredicate)
+(domain faceValue 1 Collateral)
+(domain faceValue 2 CurrencyMeasure)
+(documentation faceValue "The nominal dollar amount assigned to a security by the issuer. 
+For an equity security, par is usually a very small amount that bears no relationship to 
+its market price, except for preferred stock, in which case par is used to calculate dividend 
+payments. For a debt security, par is the amount repaid to the investor when the bond matures 
+(usually, corporate bonds have a par value of $1000, municipal bonds $5000, and federal bonds 
+$10,000).")
+
+;; Definition of CouponBond 
+
+(subclass CouponBond Bond)
+(documentation CouponBond "An unregistered, negotiable bond on which interest and principal 
+are payable to the holder, regardless of whom it was originally issued to. The coupons are 
+attached to the bond, and each coupon represents a single interest payment. The holder submits 
+a coupon, usually semi-annually, to the issuer or paying agent to receive payment. Coupon bonds 
+are being phased out in favor of registered bonds.")
+
+;; definition of AccountFn
+
+(instance AccountFn UnaryFunction)
+(domain AccountFn 1 FinancialAsset)
+(range AccountFn FinancialAccount)
+(documentation AccountFn "A unary function that maps a &%FinancialAsset to the &%FinancialAccount 
+associated with the Asset.")
+
+(<=>
+	(and
+		(instance ?Account FinancialAccount)
+		(possesses ?Agent ?Asset)
+		(equal ?Account (AccountFn ?Asset)))
+	(accountHolder ?Account ?Agent))
+
+;; Definition of ZeroCouponBond.
+
+(subclass ZeroCouponBond Bond)
+(documentation ZeroCouponBond "A bond in which no periodic coupon is paid over the 
+life of the contract. Instead, both the principal and the interest are paid at the 
+maturity date.")
+
+(=>
+	(and
+		(instance ?Bond ZeroCouponBond)
+		(maturityDate (AccountFn ?Bond) ?Date)
+		(possesses ?BondHolder ?Bond)
+		(principalAmount (AccountFn ?Bond) ?Principal)
+		(agreementPeriod (AccountFn ?Bond) ?Period)
+		(interestEarned (AccountFn ?Bond) ?Interest ?Period)
+		(equal ?Total (AdditionFn ?Principal ?Interest)))
+	(exists (?Payment)
+		(and
+			(instance ?Payment Payment)
+			(destination ?Payment ?BondHolder)
+			(origin ?Payment (CurrencyFn ?BondAccount))
+			(transactionAmount ?Payment ?Total)))) 
+
+;; Definition of RegisteredBond
+
+(subclass RegisteredBond Bond)
+(documentation RegisteredBond "A bond issued with the name of the owner printed on the 
+face of the certificate. It can be transferred to another individual only with the 
+owner's endorsement.") 
+
+;; definition of MunicipalBond 
+
+(subclass MunicipalBond Bond)
+(subclass MunicipalBond TaxFreeInvestment)
+(documentation MunicipalBond "Bond issued by a state, city, or local government to 
+finance operations or special projects; interest on it is often tax-free.")
+
+(=>
+	(instance ?Bond MunicipalBond)
+	(exists (?Agent)
+		(and
+			(instance ?Agent Government)
+			(issuedBy ?Bond ?Agent))))
+
+;; definition of CorporateBond
+
+(subclass CorporateBond Bond)
+(subclass CorporateBond TaxableInvestment)
+(documentation CorporateBond "A bond issued by a corporation. Such bonds usually have 
+a par value of $1,000, are taxable, have a term maturity, are paid for out of a sinking 
+fund accumulated for that purpose, and are traded on major exchanges.")
+
+(=>
+	(instance ?Bond CorporateBond)
+	(exists (?Agent)
+		(and
+			(instance ?Agent Corporation)
+			(issuedBy ?Bond ?Agent))))
+
+;; definition of SecuredBond
+
+(subclass SecuredBond Bond) 
+(documentation SecuredBond "Bond backed by collateral, such as a mortgage 
+or lien, the title to which would be transferred to the bondholders in the 
+event of default.")
+
+(=>
+	(instance ?Bond SecuredBond)
+	(exists (?Security)
+		(securedBy ?Bond ?Security)))
+
+(=>
+	(and
+		(instance ?Bond SecuredBond)
+		(securedBy ?Bond ?Security)
+		(possesses ?Agent ?Bond)
+		(exists (?Default)
+			(and
+				(instance ?Default FinancialDefault)
+				(patient ?Default ?Bond))))
+	(holdsDuring (ImmediateFutureFn (WhenFn ?Default))  (possesses ?Agent ?Security)))
+
+;; definition of MortgageBond
+
+(subclass MortgageBond CorporateBond)
+(documentation MortgageBond "These are bonds generally bought through a 
+government agency that deals in the real estate market.  They are bonds 
+issued by mortgage lenders.")
+
+;; definition of JunkBond
+
+(subclass JunkBond CorporateBond)
+(documentation JunkBond "A high-risk, non-investment-grade bond with a low 
+credit rating, usually BB or lower; as a consequence, it usually has a high 
+yield.")
+
+(=>
+	(instance ?Bond JunkBond)
+	(riskLevel ?Bond HighRisk))
+
+(=>	
+	(instance ?Bond JunkBond)
+	(yieldLevel ?Bond HighYield))
+
+(=>	
+	(instance ?Bond JunkBond)
+	(bondRating ?Bond D-Rating))
+
+;; definition of GovernmentBond
+
+(subclass GovernmentBond Bond)
+(documentation GovernmentBond "A bond sold by the U.S. government.")
+
+(=>
+	(instance ?Bond GovernmentBond)
+	(exists (?Agent)
+		(and
+			(issuedBy ?Bond ?Agent)
+			(instance ?Agent Government))))
+
+(=>
+	(instance ?Bond GovernmentBond)
+	(riskLevel ?Bond LowRisk))
+
+(=>	
+	(instance ?Bond GovernmentBond)
+	(yieldLevel ?Bond LowYield))
+
+(=>	
+	(instance ?Bond GovernmentBond)
+	(bondRating ?Bond AAA-Rating))
+
+;; definition of IndexBond 
+
+(subclass IndexBond Bond)
+(documentation IndexBond "A bond whose cash flow is inflation-adjusted, by 
+being linked to the purchasing power of a particular currency.")
+
+;; definition of PerformanceBond
+
+(subclass PerformanceBond Bond)
+(documentation PerformanceBond "A bond issued by an insurance company to 
+guarantee satisfactory completion of a project by a contractor.")
+
+;; definition of TreasuryBond 
+
+(subclass TreasuryBond Bond)
+(documentation TreasuryBond "A negotiable, coupon-bearing debt obligation 
+issued by the U.S. government and backed by its full faith and credit, having 
+a maturity of more than 7 years. Interest is paid semi-annually. Exempt from 
+state and local taxes.")  
+
+(=>
+	(instance ?Bond TreasuryBond)
+	(exists (?Agent)
+		(and
+			(issuedBy ?Bond ?Agent)
+			(instance ?Agent Government))))
+
+;; definition of CallableBond 
+
+(subclass CallableBond Bond)
+(documentation CallableBond "A bond which the issuer has the right to redeem 
+prior to its maturity date, under certain conditions.") 
+
+(=>
+   (and
+      (instance ?Bond CallableBond)
+      (issuedBy ?Bond ?Agent))
+   (capability Call agent ?Agent))
+;; definition of callDate
+
+(instance callDate BinaryPredicate)
+(domain callDate 1 Bond)
+(domain callDate 2 Day)
+(documentation callDate "Date, prior to maturity, on which a callable bond 
+may be redeemed.")
+
+(=>
+	(and
+		(instance ?Bond CallableBond)
+		(currentAccountBalance (AccountFn ?Bond) ?Date ?Amount)
+		(callDate ?Bond ?Date))
+	(amountDue (AccountFn ?Bond) ?Amount ?Date))
+
+;; definition of FinancialRating
+
+(subclass FinancialRating Attribute)
+(documentation FinancialRating "The highest rating is usually AAA-Rating, 
+and the lowest is D-Rating.")
+
+;; definition of creditRating
+
+(instance creditRanking BinaryPredicate)
+(subrelation creditRanking attribute) 
+(domain creditRanking 1 CognitiveAgent)
+(domain creditRanking 2 FinancialRating)
+(documentation creditRanking "(&%creditRanking ?Agent ?Rating) holds if 
+?Rating is a &%FinancialRating based on financial analysis by a credit 
+bureau, of one's financial history, specifically as it relates to one's 
+ability to meet debt obligations. Lenders use this information to decide 
+whether to approve a loan.") 
+
+;; definition of bondRating
+
+(subrelation bondRating attribute)
+(domain bondRating 1 Bond)
+(domain bondRating 2 FinancialRating)
+(documentation bondRating "A measure of the quality and safety of a bond, 
+based on the issuer's financial condition.  More specifically, an 
+evaluation from a rating service indicating the likelihood that a debt 
+issuer will be able to meet scheduled interest and principal repayments.  
+Typically, AAA is highest (best), and D is lowest (worst).") 
+
+;; definition of AAA-Rating
+
+(instance AAA-Rating FinancialRating)
+(documentation AAA-Rating "The highest rating given by bond rating agencies")
+
+(instance B-Rating FinancialRating)
+(documentation B-Rating "A mid-range rating given by bond rating agencies.")
+
+(instance C-Rating FinancialRating)
+(documentation C-Rating "A mid-range rating given by bond rating agencies.")
+
+(instance D-Rating FinancialRating)
+(documentation D-Rating "The lowest rating given by bond rating agencies.")
+
+
+;;  Options  
+
+
+;; Definition of Option.
+
+(subclass Option FinancialContract)
+(documentation Option "An option is a contract to buy or sell 100 shares 
+of a stock at a fixed price (the strike price) on or before a fixed date.")   
+
+(=>
+	(instance ?Option Option)
+	(exists (?Type ?Date ?Stock ?Price)
+		(and
+			(or
+				(equal ?Type CallOption)
+				(equal ?Type PutOption))
+			(instance ?Option ?Type)
+			(expirationDate ?Option ?Date)
+			(strikePrice ?Option ?Price)
+			(underlier ?Option ?Stocks)
+			(measure ?Stock (MeasureFn 100 Shares)))))
+
+;; definition of ConventionalOption
+
+(subclass ConventionalOption Option)
+(documentation ConventionalOption "Short-term option contracts.")
+
+(=>
+	(instance ?Option ConventionalOption)
+	(exists (?Number)
+		(and
+			(agreementPeriod ?Option ?Period)
+			(duration ?Period (MeasureFn ?Number MonthDuration))
+			(lessThan ?Number 9))))
+
+;; definition of LEAPS
+
+(subclass LEAPS Option)
+(documentation LEAPS "Calls and puts with an expiration as long as 
+thirty-nine months. Currently, equity LEAPS have two series at any 
+time with a January expiration. For example, in October 2000, LEAPS 
+are available with expirations of January 2002 and January 2003.")
+
+(=>
+	(instance ?Option ConventionalOption)
+	(exists (?Number)
+		(and
+			(agreementPeriod ?Option ?Period)
+			(duration ?Period (MeasureFn ?Number MonthDuration))
+			(lessThan ?Number 39))))
+
+;; optionHolder
+
+(subrelation optionHolder agreementMember)
+(domain optionHolder 1 Option)
+(domain optionHolder 2 CognitiveAgent) 
+(documentation optionHolder "(&%optionHolder ?Option ?Agent) means that 
+?Agent is the holder of the option.")
+
+;; optionSeller
+
+(subrelation optionSeller agreementMember)
+(domain optionSeller 1 Option)
+(domain optionSeller 2 CognitiveAgent)
+(documentation optionSeller "(&%optionSeller ?Option ?Agent) means that 
+?Agent is the writer of the option.")
+
+;; Definition of strikePrice
+
+(instance strikePrice BinaryPredicate)
+(domain strikePrice 1 FinancialInstrument)
+(domain strikePrice 2 CurrencyMeasure)
+(documentation strikePrice "The specified price on an option contract at 
+which the contract may be exercised, whereby a call option buyer can buy 
+the underlier or a put option buyer can sell the underlier.") 
+
+;; definition of expirationDate
+
+(subrelation expirationDate date)
+(domain expirationDate 1 Contract)
+(domain expirationDate 2 Day)
+(documentation expirationDate "(&%expirationDate ?Contract ?Date) means that 
+?Date is the date on which ?Contract expires.")
+
+(=>
+	(expirationDate ?Contract ?Date)
+	(exists (?Period)
+		(and
+			(agreementPeriod ?Contract ?Period)
+			(finishes ?Date ?Period))))
+
+;; Definition of  CallOption 
+
+(subclass CallOption Option)
+(documentation CallOption "An option contract that gives the holder the 
+right to buy a certain quantity (usually 100 shares) of an underlying 
+security from the writer of the option, at a specified price (the strike 
+price) up to a specified date (the expiration date).") 
+
+(=>
+	(and
+		(instance ?Option Option)
+		(optionHolder ?Option ?Agent)
+		(strikePrice ?Option ?Price)
+		(expirationDate ?Option ?ExpDate)
+		(underlier ?Option ?Stocks)
+		(price ?Stocks ?Price ?Time)
+		(instance ?Time TimeInterval)
+		(before (EndFn ?Time) (BeginFn ?ExpDate)))
+	(holdsAuthority (KappaFn ?Buy
+		(and
+			(instance ?Buy Buying)
+			(patient ?Buy ?Stocks)
+			(time ?Buy ?Time)
+			(measure ?Stocks (MeasureFn 100 Shares))
+			(agent ?Buy ?Agent))) ?Agent))
+
+(=>
+	(and
+		(instance ?Option Option)
+		(optionSeller ?Option ?Seller)
+		(strikePrice ?Option ?Price)
+		(expirationDate ?Option ?ExpDate)
+		(underlier ?Option ?Stocks)
+		(price ?Stocks ?Price ?Time)
+		(instance ?Time TimeInterval)
+		(before (EndFn ?Time) (BeginFn ?ExpDate)))
+	(holdsObligation (KappaFn ?Sell 
+		(and
+			(instance ?Sell Selling)
+			(patient ?Sell ?Stocks)
+			(time ?Sell ?Time)
+			(measure ?Stocks (MeasureFn 100 Shares))
+			(agent ?Sell ?Agent))) ?Seller))
+
+;; Definition of PutOption
+
+(subclass PutOption Option)
+(documentation PutOption "An option contract that gives the holder the 
+right to sell a certain quantity of an underlying security to the writer 
+of the option, at a specified price (strike price) up to a specified date 
+(expiration date).") 
+
+(=>
+	(and
+		(instance ?Option Option)
+		(optionHolder ?Option ?Agent)
+		(strikePrice ?Option ?Price)
+		(expirationDate ?Option ?ExpDate)
+		(price ?Stocks ?Price ?Time)
+		(instance ?Time TimeInterval)
+		(before (EndFn ?Time) (BeginFn ?ExpDate)) 
+		(underlier ?Option ?Stocks))
+	(holdsAuthority (KappaFn ?Sell
+		(and
+			(instance ?Sell Selling)
+			(patient ?Sell ?Stocks)
+			(time ?Sell ?Time)
+			(measure ?Stocks (MeasureFn 100 Shares))
+			(agent ?Sell ?Agent))) ?Agent))
+
+(=>
+	(and
+		(instance ?Option Option)
+		(optionSeller ?Option ?Agent)
+		(strikePrice ?Option ?Price)
+		(expirationDate ?Option ?ExpDate)
+		(price ?Stocks ?Price ?Time)
+		(instance ?Time TimeInterval)
+		(before (EndFn ?Time) (BeginFn ?ExpDate)) 
+		(underlier ?Option ?Stocks))
+	(holdsObligation (KappaFn ?Buy
+		(and
+			(instance ?Buy Buying)
+			(patient ?Buy ?Stocks)
+			(time ?Buy ?Time)
+			(measure ?Stocks (MeasureFn 100 Shares))
+			(agent ?Buy ?Agent))) ?Agent))
+
+;; definition of StockOption
+
+(subclass StockOption Option)
+(documentation StockOption "An option in which the underlier is the 
+common stock of a corporation, giving the holder the right to buy or 
+sell its stock, at a specified price, by a specific date.")
+
+(=>
+   (and
+      (instance ?Option StockOption)
+      (underlier ?Option ?Stock))
+   (instance ?Stock CommonStock))
+
+;; definition of premium
+
+(instance premium BinaryPredicate)
+(domain premium 1 Option)
+(domain premium 2 CurrencyMeasure)
+(documentation premium "Total price of an option.")
+
+(=>
+	(and
+		(premium ?Option ?Premium)
+		(optionHolder ?Option ?Agent))
+	(potentialLoss ?Agent ?Option ?Premium))
+
+;; definition of underlier
+
+(instance underlier BinaryPredicate)
+(domain underlier 1 Option)
+(domain underlier 2 FinancialInstrument)
+(documentation underlier "(&%underlier ?Option ?Instrument) means that 
+?Instrument is a security which is subject to delivery upon exercise of 
+?Option.") 
+
+;; definition of ExerciseAnOption
+
+(instance ExerciseAnOption FinancialTransaction)
+(documentation ExerciseAnOption "An activity when the owner of the the &%Option 
+contract invokes his rights.  In the case of a call, the option owner buys the 
+underlying stock. In the case of a put, the option owner sells the underlying stock.") 
+
+(=>
+	(and
+		(instance ?Exercise ExerciseAnOption)
+		(patient ?Exercise ?Option)
+		(instance ?Option CallOption) 
+		(time ?Exercise ?Time)
+		(underlier ?Option ?Stocks))
+	(exists (?Buy)
+		(and
+			(instance ?Buy Buying)
+			(patient ?Buy ?Stocks)
+			(time ?Buy ?Time)
+			(measure ?Stocks (MeasureFn 100 Shares)))))
+
+(=>
+	(and
+		(instance ?Exercise ExerciseAnOption)
+		(patient ?Exercise ?Option)
+		(instance ?Option PutOption) 
+		(time ?Exercise ?Time)
+		(underlier ?Option ?Stocks))
+	(exists (?Sell)
+		(and
+			(instance ?Sell Selling)
+			(patient ?Sell ?Stocks)
+			(time ?Sell ?Time)
+			(measure ?Stocks (MeasureFn 100 Shares)))))
+
+;; definition of AmericanStyleOption
+
+(instance AmericanStyleOption Option)
+(documentation AmericanStyleOption "An option that can be exercised at any time 
+prior to its expiration date")
+
+(=>
+   (and
+      (instance ?Option AmericanStyleOption)
+      (optionHolder ?Option ?Agent)
+      (expirationDate ?Option ?Day))
+   (holdsRight (exists (?Exercise)
+                    (and
+                         (instance ?Exercise ExerciseAnOption)
+                         (patient ?Exercise ?Option)
+                         (before (EndFn (WhenFn ?Exercise)) (EndFn ?Day)))) ?Agent)) 
+
+;; definition of EuropeanStyleOption  
+
+(instance EuropeanStyleOption Option)
+(documentation EuropeanStyleOption "An option that can be exercised only during 
+a specified period of time just prior to its expiration.") 
+
+(=>
+	(and
+		(instance ?Option EuropeanStyleOption)
+		(expirationDate ?Option ?Date))
+	(exists (?Period)
+		(and
+			(instance ?Period TimeInterval)
+			(finishes ?Period ?Date)
+			(=>
+				(exists (?Time)
+					(and
+						(instance ?Exercise ExerciseAnOption)
+						(equal (WhenFn ?Exercise) ?Time)))
+				(temporalPart ?Time ?Period)))))
+
+;; definition of EquityOption
+
+(subclass EquityOption Option)
+(documentation EquityOption "An option on shares of an individual common stock.") 
+
+;;    Types of Orders   
+
+
+;; definition of FillingAnOrder
+
+(subclass FillingAnOrder FinancialTransaction)
+(documentation FillingAnOrder "Execute an order or buy or sell a security 
+or commodity.")
+
+;; definition of CancellingAnOrder
+
+(subclass CancellingAnOrder FinancialTransaction)
+
+(=>
+	(and
+		(instance ?Kill CancellingAnOrder)
+		(patient ?Kill ?Order))
+	(not (agreementActive ?Order (ImmediateFutureFn (WhenFn ?Kill)))))
+
+;; definition of IOCOrder 
+
+(subclass IOCOrder Order)  
+(documentation IOCOrder "Immediate or cancel Order is a type of option order 
+which gives the trading crowd one opportunity to take the other side of the 
+trade. After being announced, the order will be either partially or totally 
+filled with any remaining balance immediately cancelled. An IOC order, which 
+can be considered a type of day order, cannot be used as part of a GTC order 
+since it will be cancelled shortly after being entered. The difference between 
+fill-or-kill (FOK) orders and IOC orders is that a IOC order may be partially 
+executed.")
+
+(=>
+	(and
+		(instance ?Order IOCOrder)
+		(agreementPeriod ?Order ?Period))
+	(or
+		(exists (?Fill ?Time1)
+			(and
+				(instance ?Fill FillingAnOrder)
+				(patient ?Fill ?Order)
+				(equal (WhenFn ?Fill) ?Time1)
+				(starts ?Time1 ?Period)))
+		(exists (?Kill ?Time2)
+			(and
+				(instance ?Kill CancellingAnOrder)
+				(patient ?Kill ?Order)
+				(equal (WhenFn ?Kill) ?Time2)
+				(starts ?Time2 ?Period)))))
+
+;; definition of FOKOrder 
+
+(subclass FOKOrder Order)
+(documentation FOKOrder "Fill-or-kill order is a type of option order 
+which requires that the order be executed completely or not at all.  A 
+fill-or-kill order is similar to an all-or-none (AON) order.  The 
+difference is that if the order cannot be completely executed (i.e., 
+filled in its entirety) as soon as it is announced in the trading crowd, 
+it is to be 'killed' (i.e., cancelled) immediately.  Unlike an AON order, 
+a FOK order cannot be used as part of a GTC order.") 
+
+(=>
+	(and
+		(instance ?Order FOKOrder)
+		(agreementPeriod ?Order ?Period))
+	(or
+		(exists (?Fill ?Time1)
+			(and
+				(instance ?Fill FillingAnOrder)
+				(patient ?Fill ?Order)
+				(equal (WhenFn ?Fill) ?Time1)
+				(starts ?Time1 ?Period)))
+		(exists (?Kill ?Time2)
+			(and
+				(instance ?Kill CancellingAnOrder)
+				(patient ?Kill ?Order)
+				(equal (WhenFn ?Kill) ?Time2)
+				(starts ?Time2 ?Period)))))
+
+;; definition of AONOrder
+
+(subclass AONOrder Order)
+(documentation AONOrder "All-or-none order (AON) is a type of option order 
+which requires that the order be executed completely or not at all. An AON 
+order may be either a day order or a GTC order.") 
+
+(=>
+	(instance ?Order AONOrder)
+	(or
+		(instance ?Order DayOrder)
+		(instance ?Order GTCOrder)))
+
+;; definition of GTCOrder
+
+(subclass GTCOrder Order)
+(documentation GTCOrder "Good-'til-cancelled (GTC) order is a type of limit order 
+that remains in effect until it is either executed (filled) or cancelled, as opposed 
+to a day order, which expires if not executed by the end of the trading day. A GTC 
+option order is an order which if not executed will be automatically cancelled at the 
+option's expiration") 
+
+(=>
+	(and
+		(instance ?Order GTCOrder)
+		(agreementPeriod ?Order ?Period))
+	(or
+		(exists (?Execute)
+			(and
+				(instance ?Execute FillingAnOrder)
+				(patient ?Execute ?Order)
+				(equal (WhenFn ?Execute) ?Time)
+				(overlapsTemporally ?Time ?Period)))
+		(exists (?Cancel)
+			(and
+				(instance ?Cancel CancellingAnOrder)
+				(patient ?Cancel ?Order)
+				(equal (WhenFn ?Cancel) ?End)
+				(finishes ?End ?Period)))))
+
+;; definition of DayOrder
+
+(subclass DayOrder Order)
+(documentation DayOrder "A type of option order which instructs the broker 
+to cancel any unfilled portion of the order at the close of trading on the 
+day the order is first entered.")
+
+(=>
+	(instance ?Order DayOrder)
+	(and
+		(agreementPeriod ?Order ?Period)
+		(duration ?Period (MeasureFn 1 DayDuration))))
+
+;; definition of MNHOrder   
+
+(subclass MNHOrder Order)
+(documentation MNHOrder "A Market-not-held order is a type of market order 
+which allows the investor to give discretion to the floor broker regarding 
+the price and/or time at which a trade is executed.") 
+
+;; definition of MOCOrder
+
+(subclass MOCOrder Order)
+(documentation MOCOrder "A Market-on-close order is a type of option order 
+which requires that an order be executed at or near the close of trading on 
+the day the order is entered. A MOC order, which can be considered a type of 
+day order, cannot be used as part of a GTC order")
+
+(=>
+	(instance ?Order MOCOrder)
+	(instance ?Order DayOrder))
+
+;; definition of NHOrder
+
+(subclass NHOrder Order)
+(documentation NHOrder "A not-held order is a type of order which releases 
+normal obligations implied by the other terms of the order. For example, a 
+limit order designated as "not-held" allows discretion to the floor trader in 
+filling the order when the market trades at the limit price of the order. In 
+this case, there is no obligation to provide the customer with an execution if 
+the market trades through the limit price on the order.") 
+
+;; definition of OCOOrder
+
+(subclass OCOOrder Order)
+(documentation OCOOrder "One-cancels-other order (OCO) is a type of option 
+order which treats two or more option orders as a package, whereby the execution 
+of any one of the orders causes all the orders to be reduced by the same amount. 
+For example, the investor would enter an OCO order if he/she wished to buy 
+10 May 60 calls or 10 June 60 calls or any combination of the two which when 
+summed equaled 10 contracts. An OCO order may be either a day order or a GTC order") 
+
+(=>
+	(instance ?Order OCOOrder)
+	(or
+		(instance ?Order DayOrder)
+		(instance ?Order GTCOrder)))
+
+;; definition of Bullish
+
+(subclass Bullish InvestmentAttribute)
+(documentation Bullish "An attribute describing the opinion that a stock, or the 
+market in general, will rise in price -- a positive or optimistic outlook.") 
+
+;; definition of Bearish 
+
+(subclass Bearish  InvestmentAttribute)
+(documentation Bearish "An adjective describing the opinion that a stock, or 
+a market in general, will decline in price -- a negative or pessimistic outlook.")  
+
+;; definition of IndexOption
+
+(subclass IndexOption Option)
+(documentation IndexOption "An option whose underlying interest is an index. 
+Generally, index options are cash-settled.")
+
+;; definition of inTheMoney
+
+(instance inTheMoney BinaryPredicate)
+(domain inTheMoney 1 Option)
+(domain inTheMoney 2 TimePosition)
+(documentation inTheMoney "A call option is in the money if the stock 
+price is above the strike price.  A put option is in the money if the 
+stock price is below the strike price.") 
+
+(<=>
+	(exists (?Stock ?StockPrice ?StrikePrice)
+		(and
+			(instance ?Option CallOption)
+			(underlier ?Option ?Stock)
+			(price ?Stock ?StockPrice ?Time)
+			(strikePrice ?Option ?StrikePrice)
+			(lessThan ?StrikePrice ?StockPrice)))
+	(inTheMoney ?Option ?Time))
+
+(<=>
+	(exists (?Stock ?StockPrice ?StrikePrice)
+		(and
+			(instance ?Option PutOption)
+			(underlier ?Option ?Stock)
+			(price ?Stock ?StockPrice ?Time)
+			(strikePrice ?Option ?StrikePrice)
+			(lessThan ?StockPrice ?StrikePrice)))
+	(inTheMoney ?Option ?Time))
+
+;; definition of atTheMoney
+
+(instance atTheMoney BinaryPredicate)
+(domain atTheMoney 1 Option)
+(domain atTheMoney 2 TimePosition)
+(documentation atTheMoney "A term that describes an option with a strike 
+price that is equal to the current market price of the underlying stock.") 
+
+(<=>
+	(exists (?Stock ?StockPrice ?StrikePrice)
+		(and
+			(instance ?Option Option)
+			(underlier ?Option ?Stock)
+			(price ?Stock ?StockPrice ?Time)
+			(strikePrice ?Option ?StrikePrice)
+			(equal ?StockPrice ?StrikePrice)))
+	(atTheMoney ?Option ?Time))
+
+;; definition of outOfTheMoney
+
+(instance outOfTheMoney BinaryPredicate)
+(domain outOfTheMoney 1 Option)
+(domain outOfTheMoney 2 TimePosition)
+(documentation outOfTheMoney "A call option is out of the money if the 
+stock price is below its strike price. A put option is out of the money 
+if the stock price is above its strike price.")
+
+(<=>
+	(exists (?Stock ?StockPrice ?StrikePrice)
+		(and
+			(instance ?Option CallOption)
+			(underlier ?Option ?Stock)
+			(price ?Stock ?StockPrice ?Time)
+			(strikePrice ?Option ?StrikePrice)
+			(lessThan ?StockPrice ?StrikePrice)))
+	(outOfTheMoney ?Option ?Time))
+
+(<=>
+	(exists (?Stock ?StockPrice ?StrikePrice)
+		(and
+			(instance ?Option PutOption)
+			(underlier ?Option ?Stock)
+			(price ?Stock ?StockPrice ?Time)
+			(strikePrice ?Option ?StrikePrice)
+			(lessThan ?StrikePrice ?StockPrice)))
+	(outOfTheMoney ?Option ?Time))
+
+
+;; strategies  
+
+
+;; definition of OptionStrategy
+
+(subclass OptionStrategy FinancialTransaction)
+(documentation OptionStrategy "A collection of buying/selling options 
+whose purpose is to result in an optimal profit for the investor.")
+
+;; definition of SingleOption
+
+(subclass SingleOption OptionStrategy)
+
+(documentation SingleOption "A put or call option by itself, as opposed to 
+multiple options as used in a spread or straddle.") 
+
+(=>
+	(instance ?Strategy SingleOption)
+	(equal (CardinalityFn (KappaFn ?Option (patient ?Strategy ?Option))) 1))
+
+;; definition of SpreadOption
+
+(subclass SpreadOption OptionStrategy)
+(documentation SpreadOption "The purchase of one option and the 
+simultaneous sale of a related option, such as two options of the same 
+class but different strike prices and/or expiration dates.") 
+
+(=>
+	(instance ?Spread SpreadOption)
+	(exists (?Option1 ?Option2 ?Buy ?Sell ?Time)
+		(and
+			(instance ?Option1 Option)
+			(instance ?Option2 Option)
+			(instance ?Buy Buying)
+			(instance ?Sell Selling)
+			(patient ?Buy ?Option1)
+			(patient ?Sell ?Option2)
+			(time ?Buy ?Time)
+			(time ?Sell ?Time))))
+
+;; definition of ButterflySpread
+
+(subclass ButterflySpread SpreadOption)
+(documentation ButterflySpread "A complex option strategy that involves 
+selling two calls and buying two calls on the same or different markets, 
+with several maturity dates.  One of the options has a higher exercise 
+price and the other has a lower exercise price than the other two options.  
+The payoff diagram resembles the shape of a butterfly.") 
+
+(=>
+	(instance ?Spread ButterflySpread)
+	(exists (?Call1 ?Call2 ?Call3 ?Call4 ?Price1 ?Price2 ?Price3 ?Price4)
+		(and
+			(instance ?Call1 CallOption)
+			(instance ?Call2 CallOption)
+			(instance ?Call3 CallOption)
+			(instance ?Call4 CallOption)
+			(strikePrice ?Call1 ?Price1)
+			(strikePrice ?Call2 ?Price2)
+			(strikePrice ?Call3 ?Price3)
+			(strikePrice ?Call4 ?Price4)
+			(lessThan ?Price1 ?Price2)
+			(lessThan ?Price1 ?Price3)
+			(greaterThan ?Price4 ?Price2)
+			(greaterThan ?Price4 ?Price2))))
+
+;; definition of Straddle 
+
+(subclass Straddle OptionStrategy)
+(documentation Straddle "The purchase or sale of an equal number of puts and 
+calls, with the same strike price and expiration dates.")
+
+(=>
+	(instance ?Straddle Straddle)
+	(exists (?Price ?Date ?Number)
+		(and
+			(equal (CardinalityFn (KappaFn ?Call 
+			       (and
+					(instance ?Call CallOption)
+					(part ?Call ?Straddle)))) ?Number)
+			(equal (CardinalityFn (KappaFn ?Put 
+			       (and
+					(instance ?Put PutOption)
+					(part ?Put ?Straddle)))) ?Number)
+			(forall (?Option)
+				(=>
+					(and
+						(instance ?Option Option)
+						(part ?Option ?Straddle))
+					(and
+						(expirationDate ?Option ?Date)
+						(stikePrice ?Option ?Price)))))))
+
+;; definition of LongStraddle
+
+(subclass LongStraddle Straddle)
+(documentation LongStraddle "A straddle in which a long position is taken in 
+both a put and a call option")
+
+;; definition of ShortSale
+
+(subclass ShortSale FinancialTransaction)
+(documentation ShortSale "Borrowing a security (or commodity futures 
+contract) from a broker and selling it, with the understanding that it 
+must later be bought back (hopefully at a lower price) and returned to the 
+broker.  SEC rules allow investors to sell short only on an uptick or a 
+zero-plus tick, to prevent 'pool operators' from driving down a stock 
+price through heavy short-selling, then buying the shares for a large 
+profit.") 
+
+;; definition of BorrowedStock
+
+(subclass BorrowedStock Stock) 
+(documentation BorrowedStock "Stock in a short sale.")
+
+;; definition of StockMarketTransaction
+
+(subclass StockMarketTransaction FinancialTransaction)
+(documentation StockMarketTransaction "Any &%FinancialTransaction which involves 
+&%Stock and which occurs in a &%StockMarket.")
+
+(=>
+	(instance ?Transaction StockMarketTransaction)
+	(exists (?Market)
+		(and
+			(instance ?Market StockMarket)
+			(located ?Transaction ?Market))))
+
+(=>
+	(and
+		(instance ?Transaction StockMarketTransaction)
+		(patient ?Transaction ?Stock))
+	(instance ?Stock Stock))
+
+;; definition of Uptick 
+
+(subclass Uptick StockMarketTransaction)
+(documentation Uptick "A stock market transaction (or sometimes, a quote) 
+at a price higher than the preceding one for the same security.") 
+
+(=>
+	(and
+		(instance ?Uptick Uptick)
+		(patient ?Uptick ?Stock)
+		(equal (WhenFn ?Uptick) ?Time1)
+		(price ?Stock ?Price1 ?Time1))
+	(exists (?Transaction ?Time2)
+		(and
+			(instance ?Transaction StockMarketTransaction)
+			(patient ?Transaction ?Stock)
+			(equal (WhenFn ?Transaction) ?Time2)
+			(meetsTemporally ?Time2 ?Time1)
+			(price ?Stock ?Price2 ?Time2)
+			(lessThan ?Price2 ?Price1))))
+
+;; definition of Downtick
+
+(subclass Downtick StockMarketTransaction)
+(documentation Downtick "A stock market transaction (or sometimes, a quote) 
+at a price lower than the preceding one for the same security.")
+
+(=>
+	(and
+		(instance ?Downtick Downtick)
+		(patient ?Downtick ?Stock)
+		(equal (WhenFn ?Downtick) ?Time1)
+		(price ?Stock ?Price1 ?Time1))
+	(exists (?Transaction ?Time2)
+		(and
+			(instance ?Transaction StockMarketTransaction)
+			(patient ?Transaction ?Stock)
+			(equal (WhenFn ?Transaction) ?Time2)
+			(meetsTemporally ?Time2 ?Time1)
+			(price ?Stock ?Price2 ?Time2)
+			(greaterThan ?Price2 ?Price1))))
+
+
+;; Income, employment, compensations 
+
+
+;; definition of Employment
+
+(subclass Employment ServiceContract)
+(subclass Employment FinancialContract)
+
+(<=>
+	(employs ?Org ?Agent)
+	(exists (?Employment)
+		(and
+			(instance ?Employment Employment)
+			(agreementMember ?Employment ?Org)
+			(agreementMember ?Employment ?Agent))))
+
+;; definition of income
+
+(instance income TernaryPredicate)
+(domain income 1 Human)
+(domain income 2 CurrencyMeasure)
+(domain income 3 TimeInterval)
+(documentation incomeOf "(&%incomeOf ?Agent ?Money ?Period) means that 
+?Money is the amount of money or its equivalent received during a period 
+of time in exchange for labor or services, from the sale of goods or 
+property, or as profit from financial investments")
+
+;; definition of monthlyIncome
+
+(instance monthlyIncome AsymmetricRelation)
+(domain monthlyIncome 1 Human)
+(domain monthlyIncome 2 CurrencyMeasure)
+(documentation monthlyIncome "(&%monthlyIncome ?Agent ?Money) means that 
+?Money is the amount of money received during one month period")
+
+(<=>
+	(monthlyIncome ?Agent ?Money)
+	(exists (?Month)
+		(and
+			(instance ?Month Month)
+			(income ?Agent ?Money ?Month))))
+
+;; definition of incomeEarned
+
+(instance incomeEarned TernaryPredicate)
+(domain incomeEarned 1 Human)
+(domain incomeEarned 2 CurrencyMeasure)
+(domain incomeEarned 3 OrganizationalProcess)
+(documentation incomeEarned "(&%incomeEarned ?Agent ?Money ?Action) means 
+that ?Agent earned the amount of money ?Money from performing ?Action.  Note 
+that &%incomeEarned denotes that amount of money made before taxes are 
+deducted.")
+
+(=>
+	(incomeEarned ?Agent ?Money ?Activity)
+	(agent ?Activity ?Agent))
+
+;; definition of taxDeferredIncome 
+
+(subrelation taxDeferredIncome incomeEarned)
+(domain taxDeferredIncome 1 Human)
+(domain taxDeferredIncome 2 CurrencyMeasure)
+(domain taxDeferredIncome 3 OrganizationalProcess)
+(documentation taxDeferredIncome "Income whose taxes can be postponed 
+until a later date.  Examples include IRA, 401(k), Keogh Plan, annuity, 
+Savings Bond and Employee Stock Ownership Plan.") 
+
+(=>
+	(and
+		(taxDeferredIncome ?Agent ?Income ?Activity)
+		(time ?Activity ?Time)) 
+	(not 
+	     (exists (?Tax)
+		     (and
+				(instance ?Tax Tax)
+				(causes ?Activity ?Tax)
+				(time ?Tax ?Time)))))
+
+;; definition of afterTaxIncome 
+
+(subrelation afterTaxIncome incomeEarned)
+(domain afterTaxIncome 1 Human)
+(domain afterTaxIncome 2 CurrencyMeasure)
+(domain afterTaxIncome 3 OrganizationalProcess)
+(documentation afterTaxIncome "An amount (usually income) after taxes 
+have been subtracted.")
+
+(<=>
+	(exists (?Agent ?Tax)
+		(and
+			(incomeEarned ?Agent ?Income ?Activity)
+			(amountCharged ?Tax ?TaxAmount)		
+			(causes ?Activity ?Tax)
+			(equal ?ATIncome (SubtractionFn ?Income ?TaxAmount))))
+	(afterTaxIncome ?Activity ?ATIncome))
+
+;; definition of beforeTaxIncome
+
+(subrelation beforeTaxIncome incomeEarned)
+(domain beforeTaxIncome 1 Human)
+(domain beforeTaxIncome 2 CurrencyMeasure)
+(domain beforeTaxIncome 3 OrganizationalProcess)
+(documentation beforeTaxIncome "Income before taxes are deducted")
+
+;; definition of employeeContribution 
+
+(instance employeeContribution TernaryPredicate)
+(domain employeeContribution 1 Human)
+(domain employeeContribution 2 CurrencyMeasure)
+(domain employeeContribution 3 TimeInterval)
+(documentation employeeContribution "An individual's contribution to his/her 
+own retirement plan, often tax-deferred.") 
+
+(=>
+	(employeeContribution ?Agent ?Money ?Period)
+	(exists (?Org ?Plan)
+		(and
+			(instance ?Plan PensionPlan)
+			(employs ?Org ?Agent)
+			(agent ?Plan ?Org)
+			(destination ?Plan ?Agent))))
+
+;; definition of compensationPackage
+
+(instance compensationPackage TernaryPredicate)
+(domain compensationPackage 1 Human)
+(domain compensationPackage 2 Income)
+(domain compensationPackage 3 TimePosition)
+(documentation compensationPackage "The total monetary value an employee 
+receives during a certain time period.")
+
+(=>
+	(compensationPackage ?Agent ?Money ?Period)
+	(exists (?Activity)
+		(and
+			(instance ?Activity OccupationalProcess) 
+			(agent ?Activity ?Agent)
+			(equal ?Period (WhenFn ?Activity)) 
+			(incomeEarned ?Agent ?Money ?Activity))))
+
+
+;; Retirement plans 
+
+
+;; definition of PensionPlan
+
+(subclass PensionPlan FinancialTransaction) 
+(subclass PensionPlan Planning)
+(documentation PensionPlan "A qualified retirement plan set up by a 
+corporation, labor union, government, or other organization for its 
+employees.  Examples include profit-sharing plans, stock bonus and 
+Employee Stock Ownership Plans, thrift plans, target benefit plans, money 
+purchase plans, and defined benefit plans.") 
+
+(=>
+	(and
+		(instance ?Plan PensionPlan)
+		(destination ?Plan ?Agent)
+		(instance ?Agent RetiredPerson)
+		(result ?Plan ?Currency))
+	(uses ?Agent ?Currency))
+
+(=>
+	(and
+		(instance ?Plan PensionPlan)
+		(destination ?Plan ?Agent)
+		(employs ?Org ?Agent))
+	(agent ?Plan ?Org))
+
+;;definition of ProfitSharingPlan 
+
+(subclass ProfitSharingPlan FinancialTransaction)
+(documentation ProfitSharingPlan "An arrangement in which an employer 
+shares its profits with its employees.  The compensation can be stocks, 
+bonds, or cash, and can be immediate or deferred until retirement.") 
+
+(=>
+	(and
+		(instance ?Plan ProfitSharingPlan)
+		(destination ?Plan ?Agent)
+		(employs ?Org ?Agent)
+		(profit ?Activity ?Profit)
+		(agent ?Activity ?Org))
+	(exists (?Compensation ?Payment)
+		(and
+			(instance ?Payment Payment)
+			(transactionAmount ?Payment ?Compensation)
+			(lessThan ?Compensation ?Profit)
+			(destination ?Payment ?Agent))))
+
+;; definition of IndividualRetirementAccount
+
+(subclass IndividualRetirementAccount SavingsAccount)
+(subclass IndividualRetirementAccount PersonalAccount)
+(documentation IndividualRetirementAccount "A tax-deferred retirement 
+account for an individual that permits individuals to set aside up to 
+$2,000 per year, with earnings tax-deferred until withdrawals begin at age 
+59 1/2 or later (or earlier, with a 10% penalty).  Only those who do not 
+participate in a pension plan at work or who do participate and meet 
+certain income guidelines can make deductible contributions to an IRA.  
+All others can make contributions to an IRA on a non-deductible basis.  
+Such contributions qualify as a deduction against income earned in that 
+year and interest accumulates tax-deferred until the funds are withdrawn.") 
+
+(subclass RothIRAAccount IndividualRetirementAccount)
+(documentation RothIRAAccount "An individual retirement account in which a person 
+can set aside after-tax income up to a specified amount each year. Earnings on the 
+account are tax-free, and tax-free withdrawals may be made at retirement age.")
+
+;; definition of 401K-Plan 
+
+(subclass 401K-Plan DefinedContributionPlan)
+(documentation 401K-Plan "A defined contribution plan offered by a 
+corporation to its employees, which allows employees to set aside 
+tax-deferred income for retirement purposes.  The name 401(k) comes from 
+the IRS section describing the program.") 
+
+;; definition of DefinedContributionPlan 
+
+(subclass DefinedContributionPlan PensionPlan)
+(documentation DefinedContributionPlan "A company retirement plan, such as 
+a 401(k) or 403(b), in which the employee elects to defer some amount of 
+his/her salary into the plan and bears the investment risk.") 
+
+;; definition of 403B-Plan
+
+(subclass 403B-Plan DefinedContributionPlan)
+(documentation 403B-Plan "A retirement plan similar to a 401(k) plan, but 
+one which is offered by non-profit organizations, such as universities and 
+some charitable organizations, rather than corporations.") 
+
+;; definition of SARSEPPlan 
+
+(subclass SARSEPPlan DefinedContributionPlan)
+
+;; definition of Rollover
+
+(subclass Rollover FinancialTransaction)
+(documentation Rollover  "A tax-free reinvestment of a distribution from a 
+qualified retirement plan into an IRA or other qualified plan within 60 days.  
+Also called IRA rollover. Or more generally, a movement of funds from one investment 
+to another.")
+
+;; definition of DirectRollover
+
+(subclass DirectRollover Rollover)
+(documentation DirectRollover "A distribution from qualified pension plan, 401(k)
+ plan, or 403(b) plan, that is remitted directly to the trustee, custodian, or 
+issuer of the receiving IRA and is reported to the IRS as a rollover. This can only 
+be done once per year, per account.") 
+
+;; definition of  408K-Plan
+
+(subclass 408K-Plan PensionPlan)
+(documentation 408K-Plan "A simpler alternative to a 401(k) plan available 
+only to companies with 25 or fewer employees, which gives employees the 
+opportunity to make contributions to their SEP accounts with pre-tax 
+dollars and reduce their current year's net income.") 
+
+;; definition of  accountNumber
+
+(instance accountNumber BinaryPredicate)
+(instance accountNumber AsymmetricRelation)
+(domain accountNumber 1 FinancialAccount)
+(domain accountNumber 2 PositiveInteger)
+
+;; definition of stockSymbol
+
+(instance stockSymbol BinaryPredicate)
+(instance stockSymbol AsymmetricRelation)
+(domain stockSymbol 1 Stock)
+(domain stockSymbol 2 SymbolicString)
+(documentation stockSymbol "A unique symbol assigned to a security. NYSE and 
+AMEX listed stocks have symbols of three characters or less. NASDAQ-listed 
+securities have four or five characters.")
+
+;; definition of VisaCard
+
+(subclass VisaCard CreditCard)
+
+;; definition of MasterCard
+
+(subclass MasterCard CreditCard)
+
+;; definition of DiscoverCard
+
+(subclass DiscoverCard CreditCard)
+
+;; definition of AmericanExpressCard
+
+(subclass AmericanExpressCard CreditCard)
+
+;; definition of  checkNumber
+
+(instance checkNumber AsymmetricRelation)
+(domain checkNumber 1 Check)
+(domain checkNumber 2 PositiveInteger)
+
+;; definition of  netAmount
+
+(instance netAmount BinaryPredicate)
+(instance netAmount AsymmetricRelation)
+(domain netAmount 1 Investment)
+(domain netAmount 2 CurrencyMeasure)
+(documentation netAmount "The amount due the supplier after commissions 
+have been deducted.")
+
+;; definition of BrokerageAccount
+
+(instance BrokerageAccount InvestmentAccount)
+(documentation BrokerageAccount "A fund that a customer has entrusted to 
+a securities brokerage.")
+
+;; definition of effectiveDate
+
+(subrelation effectiveDate date)
+(domain effectiveDate 1 Contract)
+(domain effectiveDate 2 Day)
+(documentation effectiveDate "Legal date an agreement or document goes into force.")
+
+(<=>
+	(effectiveDate ?Agreement ?StartDate)
+	(exists (?Period)
+		(and
+			(agreementPeriod ?Agreement ?Period)
+			(starts ?StartDate ?Period))))
+
+;; definition of closingPrice
+
+(instance closingPrice TernaryPredicate)
+(domain closingPrice 1 Stock)
+(domain closingPrice 2 CurrencyMeasure)
+(domain closingPrice 3 Day)
+(documentation closingPrice "(&%closingPrice ?Stock ?Amount ?Day) means that the closing 
+price of the &%Stock ?Stock on the &%Day ?Day was ?Amount.")
+
+;; definition of finalPrice
+
+(subrelation finalPrice monetaryValue)
+(domain finalPrice 1 Stock)
+(domain finalPrice 2 CurrencyMeasure)
+
+;; definition of Cash
+
+(subclass Cash FinancialInstrument)
+(subclass Cash FinancialAsset)
+(documentation Cash "Circulating paper money")
+
+(=>
+	(instance ?Cash Cash)
+	(exists (?Value)
+		(monetaryValue ?Cash ?Value)))
+
+;; definition of riskTolerance
+
+(instance riskTolerance BinaryPredicate)
+(instance riskTolerance AsymmetricRelation)
+(domain riskTolerance 1 Investor)
+(domain riskTolerance 2 RiskAttribute) 
+
+(=>
+	(and
+		(riskTolerance ?Agent ?Level)
+		(instance ?Investment Investment)
+		(possesses ?Agent ?Investment))
+	(riskLevel ?Investment ?Level))
+
+;; definition of cardCode
+
+(instance cardCode BinaryPredicate)
+(subrelation cardCode represents)
+(domain cardCode 1 ContentBearingObject)
+(domain cardCode 2 BankCard)
+(documentation cardCode "(&%cardCode ?Code ?Card) means that ?Code represents 
+the account number of the BankCard ?Card.")
+
+(=>
+	(and
+		(cardCode ?Code ?Card)
+		(cardAccount ?Card ?Account))
+	(exists (?Encoding)
+		(and
+			(instance ?Encoding Encoding)
+			(patient ?Encoding ?Account))))
+
+;; definition of ValidCard
+
+(subclass ValidCard BankCard)
+(documentation ValidCard "A class of valid BankCards") 
+
+(=>
+	(and
+		(instance ?Authorization AuthorizationOfTransaction)
+		(instance ?Transaction FinancialTransaction)
+		(instance ?Card BankCard)
+		(instrument ?Transaction ?Card)
+		(causes ?Authorization ?Transaction))
+	(instance ?Card ValidCard))
+
+;; definition of ExpiredCard
+
+(subclass ExpiredCard BankCard)
+(disjoint ExpiredCard ValidCard)
+(documentation ExpiredCard "A class of expired BankCards.") 
+
+(=>
+	(and
+		(holdsDuring ?Time (instance ?Card ExpiredCard))
+		(cardAccount ?Card ?Account))
+	(not (agreementActive ?Card ?Time)))
+
+;; definition of pin
+
+(instance pin BinaryPredicate)
+(subrelation pin represents)
+(domain pin 1 SymbolicString)
+(domain pin 2 BankCard)
+(documentation pin "(&%pin ?PIN ?Card) means that ?PIN is a personal identification 
+number linked to the ?Card.")
+
+(=>
+	(and
+		(instance ?Card DebitCard)
+		(possesses ?Card ?Agent)
+		(instance ?Transaction FinancialTransaction)
+		(instrument ?Transaction ?Card))
+	(exists (?PIN ?Enter)
+		(and
+			(pin ?PIN ?Card)
+			(instance ?Enter EnteringAPin)
+			(patient ?Enter ?PIN)
+			(agent ?Enter ?Agent))))
+
+;; definition of EnteringAPin
+
+(subclass EnteringAPin AuthorizationOfTransaction)
+(subclass EnteringAPing ContentDevelopment)
+(documentation EnteringAPin "A subclass of &%AuthorizationOfTransaction where 
+a customer enters his/her personal identification number.")
+
+(=>
+	(instance ?Enter EnteringAPin)
+	(exists (?Pin ?Card)
+		(and
+			(pin ?Pin ?Card)
+			(patient ?Enter ?Pin))))
+
+(subclass VerifyingCardCode AuthorizationOfTransaction)
+(documentation VerifyingCardCode "A subclass of &%AuthorizationOfTransaction 
+where an ATM machine checks the code of the BankCard inserted to this machine.")
+
+(=>
+	(and
+		(instance ?Check VerifyingCardCode)
+		(patient ?Check ?Code)
+		(codeCard ?Code ?Card))
+	(exists (?Decode)
+		(and
+			(instance ?Decode Decoding) 
+			(subProcess ?Decode ?Check)
+			(patient ?Decode ?Code))))
+
+;; definition of ATMMachine
+
+(subclass ATMMachine StationaryArtifact)
+(documentation ATMMachine "(Automatic Teller Machine) A banking terminal that 
+accepts deposits and dispenses cash. ATMs are activated by inserting a cash or 
+credit card that contains the user's account number and PIN on a magnetic stripe. 
+The ATM calls up the bank's computers to verify the balance, dispenses the cash 
+and then transmits a completed transaction notice.")
+
+(subclass OpeningAnAccount FinancialService)
+
+(subclass ClosingAnAccount FinancialService)
+
+(subclass ControllingAnAccount FinancialService)
+
+(=>
+	(and
+		(instance ?Service CommercialService)
+		(agent ?Service ?Agent)
+		(employs ?Org ?Agent)
+		(destination ?Service ?Customer))
+	(hasPurpose ?Service
+		    (exists (?Transaction)
+			    (and
+				(instance ?Transaction FinancialTransaction)
+				(destination ?Transaction ?Org)
+				(origin ?Transaction ?Customer)))))	
+
+(instance customer IrreflexiveRelation)
+(instance customer BinaryPredicate)
+(domain customer 1 CognitiveAgent)
+(domain customer 2 CognitiveAgent)
+(documentation customer "A very general relation that exists whenever there
+is a &%FinancialService between the two &%Agents such that the first is
+the &%destination of the &%FinancialService and the second is the
+&%agent.")
+
+(<=>
+	(customer ?Agent1 ?Agent2)
+	(exists (?Service)
+		(and
+			(instance ?Service FinancialService)
+			(agent ?Service ?Agent2)
+			(destination ?Service ?Agent1))))
+
+(=>
+	(and
+		(accountHolder ?Account ?Agent)
+		(accountAt ?Account ?Bank))
+	(customer ?Agent ?Bank))
+
+(instance customerRepresentative TernaryPredicate)
+(domain customerRepresentative 1 CognitiveAgent)
+(domain customerRepresentative 2 CognitiveAgent)
+(domain customerRepresentative 3 Organization)
+(documentation customerRepresentative "(&%customerRepresentative 
+?PERSON1 ?PERSON2 ?ORG) means that ?PERSON1 acts as a representative 
+of &%Organization ?ORG in a &%SocialInteraction involving ?PERSON2.")  
+
+(<=>
+	(customerRepresentative ?Person1 ?Person2 ?Org)
+	(exists (?Service)
+		(and
+			(instance ?Service FinancialService)
+			(employs ?Org ?Person1)
+			(agent ?Service ?Person1)
+			(destination ?Service ?Person2))))
+
+(instance Manager Position)
+(documentation Manager "One who directs a business or other enterprise.")
+
+(subclass ATMSlot Hole)
+(documentation ATMSlot "A narrow opening in an ATM machine where cards are inserted.")
+
+(=>
+	(instance ?Slot ATMSlot)
+	(exists (?ATM)
+		(and
+			(instance ?ATM ATMMachine)
+			(hole ?Slot ?ATM))))
+
+(=>
+	(instance ?Slot ATMSlot)
+	(exists (?Insert ?Card)
+		(and
+			(instance ?Insert Putting)
+			(patient ?Insert ?Card)
+			(instance ?Card BankCard)
+			(destination ?Insert ?Slot))))
+
+(subrelation postalCode BinaryPredicate)
+(domain postalCode 1 SymbolicString)
+(domain postalCode 1 Address)
+
+(instance phoneNumber BinaryPredicate)
+(subrelation phoneNumber refers)
+(domain phoneNumber 1 SymbolicString)
+(domain phoneNumber 2 Telephone)
+(documentation phoneNumber "(&%phoneNumber ?Phone ?Agent) holds if ?Phone is 
+a phone number corresponding to the Telephone ?Phone.")
+
+(instance dayPhone BinaryPredicate)
+(domain dayPhone 1 SymbolicString)
+(domain dayPhone 2 Agent) 
+(documentation dayPhone "(&%dayPhone ?Phone ?Agent) means that ?Phone is a phone 
+number corresponding to the location where ?Agent can be reached during the day.")
+
+(=>
+	(and
+		(dayPhone ?Number ?Agent)
+		(instance ?Day Day))
+	(exists (?Phone)
+		(and
+			(phoneNumber ?Number ?Phone)
+			(holdsDuring (HourFn ?Number ?Day) (possesses ?Agent ?Phone))
+			(lessThan ?Number 18))))
+
+(instance eveningPhone BinaryPredicate)
+(domain eveningPhone 1 SymbolicString)
+(domain eveningPhone 2 Agent) 
+(documentation eveningPhone "(&%eveningPhone ?Phone ?Agent) means that ?Phone 
+is a phone number corresponidng to the location where ?Agent can be reached 
+during the evening.")
+
+(=>
+	(and
+		(eveningPhone ?Number ?Agent)
+		(instance ?Day Day))
+	(exists (?Phone)
+		(and
+			(phoneNumber ?Number ?Phone)
+			(holdsDuring (HourFn ?Number ?Day) (possesses ?Agent ?Phone))
+			(greaterThan ?Number 18))))
+
+(instance emailAddress BinaryPredicate)
+(subrelation emailAddress refers)
+(domain emailAddress 1 SymbolicString)
+(domain emailAddress 2 Agent)
+(documentation emailAddress "(&%emailAddress ?Address ?Agent) means that ?Address is 
+an electronic address of the location where ?Agent can be reached.")
+
+(subclass Fax Communication)
+(documentation Fax "The communication of a printed page between remote locations.") 
+
+(=>
+	(instance ?Fax Fax)
+	(exists (?FaxMachine)
+		(and
+			(instance ?FaxMachine FaxMachine)
+			(instrument ?Fax ?FaxMachine))))
+
+(subclass FaxMachine Device)
+(documentation FaxMachine "Fax machines scan a paper form and transmit a coded 
+image over the telephone system. The receiving machine prints a facsimile of 
+the original. A fax machine is made up of a scanner, printer and modem with 
+fax signaling.")
+
+
+(subrelation firstName name)
+(domain firstName 1 Agent)
+(domain firstName 2 SymbolicString) 
+(documentation firstName "(firstName ?Agent ?Name) holds if ?Name is a given 
+name or the name that occurs first in a given name.")
+
+(subrelation availableBalance currentAccountBalance)
+(domain availableBalance 1 FinancialAccount)
+(domain availableBalance 2 Day)
+(domain availableBalance 3 CurrencyMeasure) 
+(documentation availableBalance "(&%availableBalance ?Account ?Day ?Amount) means 
+that ?Amount is the balance which is available for withdrawal from the &%FinancialAccount 
+?Account.")
+
+(=>
+	(exists (?Transaction)
+		(and
+			(instance ?Transaction FinancialTransaction)
+			(origin ?Transaction (CurrencyFn ?Account))
+			(transactionAmount ?Transaction ?Amount)
+			(date ?Transaction ?Day)))
+        (exists (?Amount2)
+		(and
+			(availableBalance ?Account ?Day ?Amount2)
+			(greaterThanOrEqualTo ?Amount1 ?Amount2))))
+
+(subrelation availableCash availableBalance)
+(domain availableCash 1 FinancialAccount)
+(domain availableCash 2 Day)
+(domain availableCash 3 CurrencyMeasure)
+(documentation availableCash "(&%availableCash ?Account ?Day ?Cash) holds if 
+?Cash is a cash amount available for withdrawal from the &%FinancialAccount 
+?Account.")
+
+(=>
+	(exists (?Transaction)
+		(and
+			(instance ?Transaction FinancialTransaction)
+			(origin ?Transaction (CurrencyFn ?Account))
+			(transactionAmount ?Transaction ?Amount)
+			(instance ?Cash Cash)
+			(instrument ?Transaction ?Cash)
+			(date ?Transaction ?Day)))
+        (exists (?Amount2)
+		(and
+			(availableCash ?Account ?Day ?Amount2)
+			(greaterThanOrEqualTo ?Amount1 ?Amount2))))
+	
+;; paymentsPerPeriod
+
+(instance paymentsPerPeriod TernaryPredicate)
+(domain paymentsPerPeriod 1 FinancialAccount)
+(domain paymentsPerPeriod 2  CurrencyMeasure)
+(domain paymentsPerPeriod 3 TimeInterval)
+(documentation paymentsPerPeriod "(&%paymentsPerPeriod ?Account ?Amount ?Period) 
+holds if ?Amount is the amount paid on the FinancialAccount ?Account during the 
+time period ?Period.")
+
+(instance purchasesPerPeriod TernaryPredicate)
+(domain purchasesPerPeriod 1 FinancialAccount)
+(domain purchasesPerPeriod 2 CurrencyMeasure)
+(domain purchasesPerPeriod 3 TimeInterval)
+(documentation purchasesPerPeriod "(&%purchasesPerPeriod ?Account ?Amount ?Period) 
+holds if ?Amount is the amount of purchases added to the FinancialAccount ?Account 
+during the time period ?Period.")
+
+(instance creditsPerPeriod TernaryPredicate)
+(domain creditsPerPeriod 1 FinancialAccount)
+(domain creditsPerPeriod 2 CurrencyMeasure)
+(domain creditsPerPeriod 3 TimeInterval)
+(documentation creditsPerPeriod "(&%creditsPerPeriod ?Account ?Amount ?Period) 
+holds if ?Amount is the amount credited to the FinancialAccount ?Account during 
+the time period ?Period.")
+
+(instance confirmationNumber BinaryPredicate)
+(instance confirmationNumber AsymmetricRelation)
+(domain confirmationNumber 1 FinancialTransaction)
+(domain confirmationNumber 2 SymbolicString)
+
+(subclass BankStatement Proposition)
+(documentation BankStatement "A monthly report sent to a debtor or bank depositor.")
+
+(=>
+	(and
+		(instance ?Statement BankStatement)
+		(statementAccount ?Statement ?Account))
+	(exists (?Transaction)
+		(and
+			(instance ?Transaction FinancialTransaction)
+			(or
+				(origin ?Transaction (CurrencyFn ?Account))
+				(destination ?Transaction (CurrencyFn ?Account)))
+			(realization ?Statement ?Transaction))))
+
+(instance lastStatement BinaryPredicate)
+(domain lastStatement 1 FinancialAccount)
+(domain lastStatement 2 BankStatement)
+(documentation lastStatement "(&%lastStatement ?Account ?Statement) means that 
+?Statement is the most recent monthly report sent to a debtor or bank depositor.")
+
+(=>
+	(and
+		(lastStatement ?Account ?Statement)
+		(instance ?Transaction1 FinancialTransaction)
+		(realization ?Statement ?Transaction1)
+		(instance ?Transaction2 FinancialTransaction)
+		(not (realization ?Statement ?Transaction2)))
+	(earlier (WhenFn ?Transaction2) (WhenFn ?Transaction1)))
+
+(instance loanInterest BinaryPredicate)
+(domain loanInterest 1 Loan)
+(domain loanInterest 2 CurrencyMeasure)
+
+(<=>
+	(exists (?Period)
+		(and
+			(instance ?Loan Loan)
+			(agreementPeriod ?Loan ?Period)
+			(interestEarned ?Loan ?Amount ?Period)))
+	(loanInterest ?Loan ?Amount))
+
+(subclass Title FinancialInstrument)
+(documentation Title "The instrument, such as a deed, that constitutes evidence 
+of a legal right of possession or control.")
+
+(=>
+	(instance ?Title Title)
+	(exists (?Property ?Agent)
+		(containsInformation ?Title (possesses ?Agent ?Property)))) 
+
+(instance bankAccount BinaryPredicate)
+(instance bankAccount AsymmetricRelation)
+(domainSubclass bankAccount 1 FinancialAccount)
+(domain bankAccount 2 Bank-FinancialOrganization)
+(documentation bankAccount "(&%bankAccount ?Type ?Bank) holds if ?Type is a 
+type of the financial accounts offered by the bank.") 
+
+(<=>
+	(bankAccount ?AccountType ?Bank)
+	(exists (?Account)
+		(and
+			(instance ?Account ?AccountType)
+			(accountAt ?Account ?Bank))))
+
+(subclass ServiceAttribute Attribute)
+(documentation ServiceAttribute "The class of attributes which describe 
+&%CommercialServices, such as &%OpenService and &%ClosedService.")
+
+(instance OpenService ServiceAttribute)
+(contraryAttribute OpenService ClosedService)
+(documentation OpenService "The attribute which describes services that 
+are ready to transact business.")
+
+(=>
+	(exists (?Transaction)
+		(and
+			(instance ?Transaction FinancialTransaction)
+			(destination ?Transaction ?Agent)))
+	(and
+		(instance ?Service CommercialService)
+		(agent ?Service ?Agent)
+		(attribute ?Service OpenService)))
+
+(instance ClosedService ServiceAttribute)
+(documentation ClosedService "The attribute which describes services that are 
+shut or closed.")
+
+(instance Receipt FinancialInstrument)
+(documentation Receipt "A written acknowledgment that a specified article, 
+sum of money, or shipment of merchandise has been received.")
+
+(subclass Request FinancialTransaction)
+(documentation Request "The request data being sent.") 
+
+;; definition of Response
+
+(subclass Response FinancialTransaction)
+(documentation Response "The response data.")
+
+;; definition of responseTo
+
+(instance responseTo BinaryPredicate)
+(domain responseTo 1 Response)
+(domain responseTo 2 Request)
+(documentation responseTo "(&%responseTo ?Response ?Request) means that 
+?Response is a Response to the Request ?Request.")
+
+(instance dailyLimit TernaryPredicate)
+(domain dailyLimit 1 FinancialAccount)
+(domainSubclass dailyLimit 2 FinancialTransaction)
+(domain dailyLimit 3 CurrencyMeasure)
+(documentation dailyLimit "(&%dailyLimit ?Account ?TransactionType ?Amount) 
+means that ?Amount is the daily limit of the ?Account for the type of 
+&%FinancialTransactions ?TransactionType.")
+
+(instance accountStatus BinaryPredicate)
+(domain accountStatus 1 FinancialAccount)
+(domain accountStatus 2 StatusAttribute)
+(documentation accountStatus "(&%accountStatus ?Account ?Status) holds if 
+?Status describes the status of the account, such as &%Active, &%Locked, 
+&%New or &%Pending.")
+
+(subclass StatusAttribute Attribute)
+(documentation StatusAttribute  "A class of four &%Attributes indicating the 
+status of a &%FinancialAccount, viz. &%Active, &%Locked, &%New, and &%Pending.")
+
+(instance New StatusAttribute)
+
+(instance Active StatusAttribute)
+
+(instance Locked StatusAttribute)
+
+(instance Pending StatusAttribute)
+
+(instance administrator BinaryPredicate)
+(domain administrator 1 FinancialAccount)
+(domain administrator 2 Position)
+
+(instance administratorStatus BinaryPredicate)
+(domain administratorStatus 1 Position)
+(domain administratorStatus 2 StatusAttribute)
+(documentation administratorStatus "(&%administratorStatus ?Administrator ?Status) 
+holds is ?Status describes the status of the administrator.")
+
+(instance dateOfStatement BinaryPredicate)
+(domain dateOfStatement 1 BankStatement)
+(domain dateOfStatement 2 Day)
+(documentation dateOfStatement "(&%dateOfStatement ?Statement ?Date) holds if 
+?Date is the date when BankStatement was issued.")
+
+(=>
+	(dateOfStatement ?Statement ?Date)
+	(exists (?Copy)
+		(and
+			(containsInformation ?Copy ?Statement)
+			(date ?Copy ?Date))))
+
+(instance lastStatementBalance BinaryPredicate)
+(domain lastStatementBalance 1 FinancialAccount)
+(domain lastStatementBalance 2 CurrencyMeasure)
+(documentation lastStatementBalance "(&%lastStatementBalance ?Account ?Amount) 
+holds if ?Amount is the balance shown on the last statement.")
+
+(=>
+	(lastStatementBalance ?Account ?Balance)
+	(exists (?Statement)
+		(and
+			(lastStatement ?Account ?Statement)
+			(dateOfStatement ?Statement ?Date)
+			(currentAccountBalance ?Account ?Date ?Account))))
+
+(instance statementAccount BinaryPredicate)
+(domain statementAccount 1 BankStatement)
+(domain statementAccount 2 FinancialAccount)
+(documentation statementAccount "(&%statementAccount ?Statement ?Account) means 
+that ?Account is the account of the BankStatement ?Statement.") 
+
+(instance statementPeriod BinaryPredicate)
+(domain statementPeriod 1 BankStatement)
+(domain statementPeriod 2 TimeInterval)
+(documentation statementPeriod "(&%statementPeriod ?Statement ?Period) means that 
+?Period is the time period of the BankStatement ?Statement.") 
+
+(=>
+	(and
+		(statementPeriod ?Statement ?Period)
+		(duration ?Period ?Duration))
+	(equal ?Duration MonthDuration))
+
+(=>
+	(and
+		(statementPeriod ?Statement ?Period)
+		(dateOfStatement ?Statement ?Date))
+	(finishes ?Date ?Period))
+
+(instance statementInterest BinaryPredicate)
+(domain statementInterest 1 BankStatement)
+(domain statementInterest 2 CurrencyMeasure)
+(documentation statementInterest "(&%statementInterest ?Statement ?Amount) holds 
+if ?Amount is the interest amount as shown on the BankStatement ?Statement.")
+
+(=>
+	(and
+		(statementInterest ?Statement ?Interest)
+		(statementPeriod ?Statement ?Period)
+		(statementAccount ?Statement ?Account))
+      (exists (?Amount)
+		(interestEarned ?Account ?Amount ?Period)))
+
+(instance buyingPowerAmount TernaryPredicate)
+(subrelation buyingPowerAmount availableBalance)
+(domain buyingPowerAmount 1 FinancialAccount)
+(domain buyingPowerAmount 2 Day)
+(domain buyingPowerAmount 3 CurrencyMeasure)
+(documentation buyingPowerAmount "(&%buyingPowerAmount ?Account ?Day ?Amount) holds 
+if ?Amount is the buying power amount of the &%FinancialAccount ?Account on the &%Day 
+?Day.")
+
+(instance marginBalanceAmount TernaryPredicate)
+(subrelation marginBalanceAmount availableBalance)
+(domain marginBalanceAmount 1 FinancialAccount)
+(domain marginBalanceAmount 2 Day)
+(domain marginBalanceAmount 3 CurrencyMeasure)
+(documentation marginBalanceAmount "(&%marginBalanceAmount ?Account ?Day ?Amount) 
+holds if ?Amount is the margin balance amount of the &%FinancialAccount ?Account 
+on the &%Day ?Day.")
+
+(instance shortBalanceAmount TernaryPredicate)
+(subrelation shortBalanceAmount availableBalance)
+(domain shortBalanceAmount 1 FinancialAccount)
+(domain shortBalanceAmount 2 Day)
+(domain shortBalanceAmount 3 CurrencyMeasure)
+(documentation shortBalanceAmount "(&%shortBalanceAmount ?Account ?Day ?Amount) 
+holds if ?Amount is the short balance amount of the &%FinancialAccount ?Account 
+on the &%Day ?Day.")
+
+(instance marketValueAmount TernaryPredicate)
+(subrelation marketValueAmount availableBalance)
+(domain marketValueAmount 1 FinancialAccount)
+(domain marketValueAmount 2 Day)
+(domain marketValueAmount 3 CurrencyMeasure)
+(documentation shortBalanceAmount "(&%marketvalueAmount ?Account ?Day ?Amount) holds 
+if ?Amount is the market value amount of the &%FinancialAccount ?Account on the &%Day 
+?Day.")
+
+(subclass ExternalTransfer FinancialTransaction)
+(documentation ExternalTransfer "A subclass of &%FinancialTransactions from one 
+&%FinancialOrganization to another.")
+
+(=>
+	(and
+		(instance ?Transfer ExternalTransfer)
+		(origin ?Transfer ?Organization1)
+		(instance ?Organization1 FinancialOrganization)
+		(destination ?Transfer ?Organization2)
+		(instance ?Organization2 FinancialOrganization))
+	(not (equal ?Organization1 ?Organization2)))
+
+(subclass InternalTransfer FinancialTransaction)
+(disjoint InternalTransfer ExternalTransfer)
+(documentation InternalTransfer "A subclass of &%FinancialTransactions within 
+one &%FinancialOrganization.")
+
+(=>
+	(and
+		(instance ?Transfer ExternalTransfer)
+		(origin ?Transfer ?Organization1)
+		(instance ?Organization1 FinancialOrganization)
+		(destination ?Transfer ?organization2)
+		(instance ?Organization2 FinancialOrganization))
+	(equal ?Organization1 ?Organization2))
+
+(subclass Update FinancialTransaction)
+(subclass Update ContentDevelopment)
+(documentation Update "To change data in a file or database")
+
+(instance loanFeeAmount BinaryPredicate)
+(domain loanFeeAmount 1 Loan)
+(domain loanFeeAmount 2 CurrencyMeasure)
+(documentation loanFeeAmount "(&%loanFeeAmount ?Loan ?Amount) means that 
+?Amount is the fee amount of the Loan ?Loan.")
+
+(=>
+	(and
+		(loanFeeAmount ?Loan ?Amount)
+		(agreementPeriod ?Loan ?Period))
+	(interestEarned ?Loan ?Amount ?Period))
+
+
+
+
+
+
+
