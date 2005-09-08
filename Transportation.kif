@@ -1929,6 +1929,9 @@ be a device simply located on or with ?OBJECT (such as a first aid kit).")
 means that the &%Device ?THING is the power source for the &%Artifact 
 ?THING.")
 
+(subclass TransportationEquipment ManufacturedProduct)
+(subclass TransportationDevice TransportationEquipment)
+
 (subclass PassengerVehicle Vehicle)
 (documentation PassengerVehicle "A &%Vehicle that is designed to
 carry &%Humans.  Note that &%Vehicles that are not designed to
@@ -1940,6 +1943,45 @@ transport homeless people, but was not built to do so.")
     (instance ?HUMAN Human))
   (capability Transportation patient ?HUMAN))
 
+(subclass CargoVehicle Vehicle)
+
+(documentation CargoVehicle "A &%Vehicle that is designed to
+carry &%Objects.  Note that &%Vehicles that are primarily designed to carry
+people rather than cargo may still carry cargo.  For example, a passenger sedan
+might be capable of carrying lumber strapped to the roof.  For this
+reason, &%PassengerVehicle and &%CargoVehicle are not disjoint.")
+(=>
+  (and
+    (instance ?VEHICLE CargoVehicle)
+    (instance ?OB 
+      (KappaFn ?O
+        (not 
+          (instance ?O Human)))))
+  (capability Transportation patient ?OB))
+
+(subclass UnpoweredVehicle Vehicle)
+(documentation UnpoweredVehicle "A &%Vehicle that lacks a &%powerComponent.
+It coasts like a glider or skateboard, thus deriving its power from the
+potential energy of gravity, or by the power of its agent, as in a bicycle.")
+(=>
+  (instance ?UV UnpoweredVehicle)
+  (not
+    (exists (?P)
+      (powerComponent ?P ?UV))))
+
+(subclass PoweredVehicle Vehicle)
+(documentation PoweredVehicle "A &%Vehicle that has a &%powerComponent.
+Note that &%PoweredVehicles include those vehicles that have a &%powerComponent
+where the user can and does often choose not to use it, such as a moped with pedals.")
+(disjoint PoweredVehicle UnpoweredVehicle)
+(=>
+  (instance ?UV PoweredVehicle)
+  (exists (?P)
+    (powerComponent ?P ?UV)))
+
+(subclass AgentPoweredVehicle Vehicle)
+(documentation AgentPoweredVehicle "A &%Vehicle which is powered by
+one or more of its passengers or driver, for example, a &%Bicycle.")
 
 ;;-------------------------------------
 ;;	1. Land Vehicles
@@ -1949,15 +1991,23 @@ transport homeless people, but was not built to do so.")
 (documentation LandVehicle 
 "&%LandVehicle is the class of &%TransportationDevices that travel on 
 land.  The two main types of &%LandVehicle are &%RoadVehicle and 
-&%RailVehicle.")
+&%RailVehicle. Note that this includes vehicles which travel on any solid
+surface, including a frozen body of water or snow.")
 
 ;;	(1) a. Road Vehicles
 
 (subclass RoadVehicle LandVehicle)
 
-(subclass Automobile RoadVehicle)  ; PassengerCar or also lt truck?
+(subclass Automobile RoadVehicle) 
+(subclass Automobile PoweredVehicle) 
+(subclass Automobile PassengerVehicle) 
+
+(documentation Automobile "A &%Vehicle designed primarily for carrying
+passengers.")
 
 (subclass Truck RoadVehicle)
+(subclass Truck CargoVehicle)
+(subclass Truck PoweredVehicle)
 (documentation Truck "Any &%Vehicle that is intended to carry substantial
 amounts of cargo, in addition to passengers.  This includes 18-wheelers,
 pickup trucks, tanker trucks etc.  Consumer vehicles with trunks or enclosed
@@ -1984,14 +2034,12 @@ and intended to be towed by a &%PoweredVehicle.")
 
 ; misc. motor or battery powered, e.g., forklift, tractor, lawnmower, snowmobile, various construction equipment such as bulldozer, backhoe.  Some of these are devices for moving stuff around, but moving their riders from one place to another is not the main point.
 
-(subclass UserPoweredDevice Device)
-
 (subclass Cycle LandVehicle)
-(subclass Cycle UserPoweredDevice)
+(subclass Cycle AgentPoweredVehicle)
 (subclass Bicycle Cycle)
 
 (subclass Scooter LandVehicle)
-(subclass Scooter UserPoweredDevice)
+(subclass Scooter AgentPoweredVehicle)
 
 ; misc. user-powered, skateboard, rollerskates, rollerblades, etc.
 
@@ -2164,15 +2212,14 @@ used to carry trailers or containers.")
 to carry fluids.")
 (=>
   (instance ?T TankCar)
-  (and
-    (capability 
-      (KappaFn ?TRANS
-        (exists (?L)
-          (and
-            (instance ?L Liquid)
-            (instance ?TRANS Transportation)
-            (patient ?TRANS ?L)))) 
-        Transportation instrument ?T)))
+  (capability 
+    (KappaFn ?TRANS
+      (exists (?L)
+        (and
+          (instance ?L Liquid)
+          (instance ?TRANS Transportation)
+          (patient ?TRANS ?L)))) 
+    instrument ?T))
 
 (subclass CarDistributionSystem Process)
 
@@ -2362,6 +2409,7 @@ partly bounded section of a &%Ship.")
 
 (subclass Aircraft Vehicle)
 (subclass Airplane Aircraft)
+(subclass Airplane PoweredVehicle)
 
 (documentation Airplane "&%Airplane is the subclass of &%Aircraft that 
 are fixed-wing aircraft which carry their own power sources.  &%Airplane 
@@ -2372,6 +2420,7 @@ includes jet airplanes and propeller planes, but not gliders.")
 (subclass PropellerJet Airplane)
 (subclass Rocket Aircraft)
 (subclass GliderPlane Aircraft)
+(subclass GliderPlane UnpoweredVehicle)
 
 ;;---------------------------------------------------------------------
 
@@ -2735,7 +2784,6 @@ from one transitway to another.")
 can be travelled between points by an air &%TransportationDevice.")
 
 ;;---------------------------------------------------------------------
-
 ;;	F. Trips
 
 (subclass Trip Motion)
