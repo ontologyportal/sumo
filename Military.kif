@@ -15,6 +15,392 @@
 ;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
 ;; Ogunquit, Maine, October 17-19, 2001. 
 
+
+(documentation MilitaryOperation "A &%MilitaryOperation is distinguished 
+from the broader class of &%MilitaryProcess in that it is planned in 
+advance.") 
+
+(subclass MilitaryOperation MilitaryProcess)
+
+(=>
+  (instance ?MO MilitaryOperation)
+  (exists (?A ?P)
+    (and
+      (agent ?MO ?A)
+      (holdsDuring 
+        (ImmediatePastFn ?MO)
+        (desires ?A ?MO)
+      (instance ?P Plan)))))
+
+(documentation FoodDistributionOperation "Military operations conducted to 
+distribute food to the friendly force.  (from FM 100-40)") 
+
+(subclass FoodDistributionOperation MilitaryOperation)
+
+(=>
+  (instance ?FD FoodDistribution)
+  (exists (?F ?D)
+    (and
+      (instance ?F Food)
+      (patient ?FD ?F)
+      (patient ?FD ?D)
+      (destination ?FD ?D)
+      (holdsDuring 
+        (ImmediateFutureFn ?FD)
+        (possesses ?D ?FD)))))
+
+(documentation SecurityOperation "Military operations conducted to protect the friendly 
+force by providing early and accurate warning of enemy operations, to provide the force 
+being protected with time and maneuver space within which to react to the enemy, and to 
+develop the situation to allow the commander to effectively use the protected force. 
+Security operations orient on the force or facility to be protected, rather than on the 
+enemy. (from FM 100-40).")
+
+(subclass SecurityOperation MilitaryOperation)
+
+(=>
+  (and
+    (instance ?X SecurityOperation)
+    (agent ?X ?P)
+    (patient ?X ?F))
+  (desires ?P
+    (not
+      (exists (?E)
+          (not 
+            (desires ?F ?E))))))
+
+
+;; New objects
+
+(subclass PeacekeepingUnit MilitaryUnit)
+(documentation PeacekeepingUnit "A &%MilitaryUnit, the purpose of which is
+to prevent violent actions but providing deterrent to such actions through
+the threat of overwhelming retaliation.")
+
+(=>
+  (instance ?PKU PeacekeepingUnit)
+  (capability 
+    (KappaFn ?P
+      (and
+        (instance ?P Process)
+        (instance ?V ViolentContest)
+        (prevents ?P ?V))) agent ?PKU))
+
+(subclass MilitaryConvoy Convoy)
+(documentation MilitaryConvoy "A &%Group of &%MilitaryVehicles, travelling to the same 
+at least intermediate destination, in relatively close proximity.")
+
+(=>
+  (and
+    (instance ?MC MilitaryConvoy)
+    (member ?X ?MC))
+  (instance ?X MilitaryVehicle))
+
+(=>
+  (and
+    (instance ?C Convoy)
+    (member ?X1 ?C)
+    (member ?X2 ?C)
+    (not
+      (equal ?X1 ?X2)))
+  (exists (?P1 ?P2 ?D)
+    (and
+      (instance ?P1 Transportation)
+      (instance ?P2 Transportation)
+      (agent ?P1 ?X1)
+      (agent ?P2 ?X2)
+      (destination ?P1 ?D)
+      (destination ?P2 ?D))))
+
+(documentation MilitaryVehicle "Military platforms which are also vehicles. 
+This would include things like airplanes and tanks, but exclude things like 
+towed platforms.")
+(subclass MilitaryVehicle MilitaryPlatform)
+
+(documentation MilitaryPlatform "Military platforms. These are usually mobile 
+entities which can carry military equipment such as &%Weapons and 
+communications equipment. Often, as with a tank outfitted with a gun, a 
+&%MilitaryPlatform carrying some &%Weapon comprises a &%WeaponSystem.")
+(subclass MilitaryPlatform MilitaryHardware)
+(subclass MilitaryPlatform TransportationDevice)
+
+(documentation MilitarySupportVehicle "Vehicles meant to be used for support, rather
+than combat in a military context.")
+(subclass MilitarySupportVehicle MilitaryVehicle)
+
+(=>
+  (instance ?MV MilitaryVehicle)
+  (and
+    (instance ?A MilitaryForce)
+    (possesses ?A ?MV)
+    (capability MilitaryProcess patient ?MV)))
+
+(documentation MilitarySupplyTruck "Trucks used by a military to transport supplies.")
+(subclass MilitarySupplyTruck MilitarySupportVehicle)
+(subclass MilitarySupplyTruck Truck)
+
+(documentation MilitaryFoodTruck "Trucks used by a military to transport food.")
+(subclass MilitaryFoodTruck MilitarySupportVehicle)
+(=>
+  (instance ?T MilitaryFoodTruck)
+  (capability 
+    (KappaFn ?P
+      (and
+        (instance ?P Transportation)
+        (patient ?P Food)))
+    instrument ?T))
+
+;; Military ranks and echelons
+
+(subclass MilitaryRank Position)
+(documentation MilitaryRank "A &%Position in a &%Military.  Rank
+is usually commensurate with degrees of power, prestige and
+pay.")
+
+(subclass USMilitaryRank MilitaryRank)
+(documentation MilitaryRank "A &%Position in the &%USMilitary.")
+
+(instance USMilitaryRankE1 EnlistedSoldierRank)
+(documentation USMilitaryRankE1 "A &%USMilitaryRank that is variously called
+Airman Basic in the Air Force, Private in the &%USArmy, 
+Private in the &%USMarineCorps, and Seaman Recruit in the &%USNavy.")
+
+(successorAttribute USMilitaryRankE1 USMilitaryRankE2)
+(instance USMilitaryRankE2 EnlistedSoldierRank)
+(documentation USMilitaryRankE2 "A &%USMilitaryRank that is variously called
+Airman in the Air Force, Private in the &%USArmy, 
+Private First Class in the &%USMarineCorps, and Seaman Apprentice in the &%USNavy.")
+
+(successorAttribute USMilitaryRankE2 USMilitaryRankE3)
+(instance USMilitaryRankE3 EnlistedSoldierRank)
+(documentation USMilitaryRankE3 "A &%USMilitaryRank that is variously called
+Airman First Class in the Air Force, Private First Class in the &%USArmy, 
+Lance Corporal in the &%USMarineCorps, and Seaman in the &%USNavy.")
+
+(successorAttribute USMilitaryRankE3 USMilitaryRankE4)
+(instance USMilitaryRankE4 EnlistedSoldierRank)
+(documentation USMilitaryRankE4 "A &%USMilitaryRank that is variously called
+Senior Airman in the Air Force, Specialist or Corporal in the &%USArmy, 
+Corporal in the &%USMarineCorps, and Petty Officer 3rd Class in the &%USNavy.")
+
+(successorAttribute USMilitaryRankE4 USMilitaryRankE5)
+(instance USMilitaryRankE5 EnlistedSoldierRank)
+(documentation USMilitaryRankE5 "A &%USMilitaryRank that is variously called
+Staff Sergeant in the Air Force, Sergeant in the &%USArmy, 
+Sergeant in the &%USMarineCorps, and Petty Officer 2nd Class in the &%USNavy.")
+
+(successorAttribute USMilitaryRankE5 USMilitaryRankE6)
+(instance USMilitaryRankE6 EnlistedSoldierRank)
+(documentation USMilitaryRankE6 "A &%USMilitaryRank that is variously called
+Technical Sergeant in the Air Force, Staff Sergeant in the &%USArmy, 
+Staff Sergeant in the &%USMarineCorps, and Petty Officer 1st Class in the &%USNavy.")
+
+(successorAttribute USMilitaryRankE6 USMilitaryRankE7)
+(instance USMilitaryRankE7 EnlistedSoldierRank)
+(documentation USMilitaryRankE7 "A &%USMilitaryRank that is variously called
+Master Sergeant in the Air Force, Sergeant First Class in the &%USArmy, 
+Gunnery Sergeant in the &%USMarineCorps, and Chief Petty Officer in the &%USNavy.")
+
+(successorAttribute USMilitaryRankE7 USMilitaryRankE8)
+(instance USMilitaryRankE8 EnlistedSoldierRank)
+(documentation USMilitaryRankE8 "A &%USMilitaryRank that is variously called
+Senior Master Sergeant in the Air Force, Master Sergeant or First Sergeant in the &%USArmy, 
+Master Sergeant or First Sergeant in the &%USMarineCorps, and Senior Chief Petty Officer in the &%USNavy.")
+
+(successorAttribute USMilitaryRankE8 USMilitaryRankE9)
+(instance USMilitaryRankE9 EnlistedSoldierRank)
+(documentation USMilitaryRankE9 "A &%USMilitaryRank that is variously 
+called Chief Master Sergeant or Command Chief Master Sergeant or Chief 
+Master Sergeant of the Air Force in the Air Force, Sergeant Major or 
+Command Sergeant Major or Sergeant Major of the Army in the &%USArmy, 
+Master Gunnery Sergeant or Sergeant Major or Sergeant Major of the Marine 
+Corps in the &%USMarineCorps, and Master Chief Petty Officer or Command 
+Master Chief Petty Officer or Master Chief Petty Officer of the Navy in 
+the &%USNavy.") 
+
+(subclass EnlistedSolidierRank MilitaryRank)
+
+(subclass CommissionedOfficerRank MilitaryRank)
+(documentation CommissionedOfficer "In military organizations, an officer 
+is a member of the service who holds a position of responsibility.  
+Commissioned officers derive authority directly from a sovereign power 
+and, as such, hold a commission charging them with the duties and 
+responsibilities of a specific office or position.  Commissioned officers 
+are typically the only persons in a military able to exercise command 
+(according to the most technical definition of the word) over a military 
+unit.  Non-commissioned officers in positions of authority can be said to 
+have control or charge rather than command per se, although the use of the 
+word command to describe any use of authority is widespread and often 
+official. (from Wikipedia)") 
+
+(subclass NonCommissionedOfficerRank EnlistedSoldierRank)
+(documentation NonCommissionedOfficer "Non-commissioned officers, or NCOs, in 
+positions of authority can be said to have control or charge rather than 
+command per se, although the use of the word command to describe any use 
+of authority is widespread and often official.  This is distinguished from 
+the official responsibility for command entrusted to a 
+&%CommissionedOfficer.  NCOs are enlisted positions. (from Wikipedia)") 
+
+(subclass FlagOfficerRank CommissionedOfficerRank)
+
+(documentation FlagOfficerRank "Admirals (Navy), Generals (Army) and 
+Marshals who typically command units that are expected to operate 
+independently for extended periods of time (brigades and larger, fleets of 
+ships).  (from Wikipedia)") 
+
+(subclass FieldGradeOfficerRank CommissionedOfficerRank)
+
+(documentation FieldGradeOfficerRank "Senior officers who typically 
+command units that can be expected to operate independently for short 
+periods of time (battalions and regiments, large warships).  Field Grade 
+officers also commonly fill staff positions.  (from Wikipedia)") 
+
+(subclass CompanyGradeRank CommissionedOfficerRank)
+
+(documentation CompanyGradeRank "The ranks of junior officers are the 
+three or four lowest ranks of officers, possibily complicated by the 
+status of trainee officers.  Their units are generally not expected to 
+operate independently for any significant length of time.  Typical ranks 
+for this level are captains, who typically lead companies and smaller 
+units Lieutenant.  Company grade officers will also fill staff roles in 
+some units.  (from Wikipedia)") 
+
+
+(successorAttribute USMilitaryRankE9 USMilitaryRankO1)
+(instance USMilitaryRankO1 CompanyGradeRank)
+(synonymousExternalConcept "2nd Lieutenant" USMilitaryRankO1 USArmyRankingSystem)
+(successorAttribute USMilitaryRankO1 USMilitaryRankO2)
+(instance USMilitaryRankO2 CompanyGradeRank)
+(synonymousExternalConcept "1st Lieutenant" USMilitaryRankO2 USArmyRankingSystem)
+(successorAttribute USMilitaryRankO2 USMilitaryRankO3)
+(instance USMilitaryRankO3 CompanyGradeRank)
+(synonymousExternalConcept "Captain" USMilitaryRankO3 USArmyRankingSystem)
+
+(successorAttribute USMilitaryRankO3 USMilitaryRankO4)
+(instance USMilitaryRankO4 FieldGradeOfficerRank)
+(synonymousExternalConcept "Major" USMilitaryRankO4 USArmyRankingSystem)
+(successorAttribute USMilitaryRankO4 USMilitaryRankO5)
+(instance USMilitaryRankO5 FieldGradeOfficerRank)
+(synonymousExternalConcept "Lieutenant Colonel" USMilitaryRankO5 USArmyRankingSystem)
+(successorAttribute USMilitaryRankO5 USMilitaryRankO6)
+(instance USMilitaryRankO6 FieldGradeOfficerRank)
+(synonymousExternalConcept "Colonel" USMilitaryRankO6 USArmyRankingSystem)
+(successorAttribute USMilitaryRankO6 USMilitaryRankO7)
+
+(instance USMilitaryRankO7 FlagOfficerRank)
+(synonymousExternalConcept "Brigadier General" USMilitaryRankO7 USArmyRankingSystem)
+(synonymousExternalConcept "One Star General" USMilitaryRankO7 USArmyRankingSystem)
+(successorAttribute USMilitaryRankO7 USMilitaryRankO8)
+(instance USMilitaryRankO8 FlagOfficerRank)
+(synonymousExternalConcept "Major General" USMilitaryRankO8 USArmyRankingSystem)
+(synonymousExternalConcept "Two Star General" USMilitaryRankO8 USArmyRankingSystem)
+(successorAttribute USMilitaryRankO8 USMilitaryRankO9)
+
+(instance subEchelon BinaryPredicate)
+(documentation subEchelon "A subEchelon is a relationship between
+named organizational unit types in which a unit of one type is a
+&%subOrganization of the other.")
+(domainSubclass subEchelon 1 MilitaryEchelon)
+(domainSubclass subEchelon 2 MilitaryEchelon)
+
+(instance commandRankOfEchelon BinaryPredicate)
+(documentation commandRankOfEchelon "The typical &%MilitaryRank of
+the &%leader of an instance of the given &%MilitaryEchelon.")
+(domainSubclass commandRankOfEchelon 1 MilitaryEchelon)
+(domain commandRankOfEchelon 2 MilitaryRank)
+
+(documentation Brigade "Brigade is a term from military science which 
+refers to a group of several battalions (typically two to four), and 
+directly attached supporting units (normally including at least an 
+artillery battery and additional logistic support).  A brigade is smaller 
+than a division and roughly equal to or a little larger than a regiment.  
+Strength typically ranges between 1,500 and 3,500 personnel. (from Wikipedia)") 
+
+(instance Brigade MilitaryEchelon)
+(subEchelon Brigade Battalion)
+
+(documentation Battalion "n military terminology, a battalion consists of 
+two to six companies typically commanded by a lieutenant colonel.  The 
+nomenclature varies by nationality and by branch of arms, e.g.  some 
+armies organize their infantry into battalions, but call battalion-sized 
+cavalry, reconnaissance, or tank units a squadron or a regiment instead.  
+There may even be subtle distinctions within a nation's branches of arms, 
+such a distinction between a tank battalion and an armored squadron, 
+depending on how the unit's operational role is perceived to fit into the 
+army's historical organization.  A battalion is potentially the smallest 
+military unit capable of independent operations (i.e.  not attached to a 
+higher command), but is usually part of a regiment or a brigade or both, 
+depending on the organizational model used by that service.  Battalions 
+are ordinarily homogeneous with respect to type (e.g.  an infantry 
+battalion or a tank battalion), although there are occasional 
+exceptions. (from Wikipedia)") 
+
+(instance Battalion MilitaryEchelon)
+(subEchelon Battalion Company-Military)
+(commandRankOfEchelon Battalion USMilitaryRankO5)
+
+(instance Company-Military MilitaryEchelon)
+(subEchelon Company-Military Platoon)
+
+(documentation Company-Military "A company is a military unit, typically 
+consisting of 100-200 soldiers.  Most companies are formed of three or 
+four platoons although the exact number may vary by country, unit type and 
+structure. (from Wikipedia)") 
+
+(instance Platoon MilitaryEchelon)
+
+(documentation Platoon "Platoon is a term from military science.  In an 
+army, a platoon is a unit of thirty to forty soldiers typically commanded 
+by a Lieutenant assisted by a non-commissioned officer.  A platoon is 
+formed by at least two squads (usually 3 or 4) and is smaller than a 
+company (typically there are 3 or 4 platoons per company).  Most platoons 
+are infantry platoons; some carry other designations such as mortar or 
+heavy weapons platoons.  A platoon is the smallest military unit led by a 
+commissioned officer. (from Wikipedia)") 
+
+(commandRankOfEchelon Platoon USMilitaryRankO2)
+
+
+;; Miscellaneous other new content
+
+(documentation betweenOnPath "(betweenOnPath ?OBJ1 ?OBJ2 ?OBJ3 ?PATH) 
+means that ?OBJ2 is spatially located between ?OBJ1 and ?OBJ3 on the path 
+?PATH.  Note that this is a more specialized relation of between since any 
+object that is between others with respect to a particular path is also 
+simply between them.") 
+
+(instance betweenOnPath SpatialRelation)
+(instance betweenOnPath TernaryPredicate)
+(domain betweenOnPath 1 Object) 	
+(domain betweenOnPath 2 Object) 	
+(domain betweenOnPath 3 Object)
+
+(=>
+  (betweenOnPath ?OBJ1 ?OBJ2 ?OBJ3 ?PATH)
+  (between ?OBJ1 ?OBJ2 ?OBJ3))
+
+(=>
+  (and
+    (instance ?P Pulling)
+    (path ?P ?PATH)
+    (agent ?P ?A)
+    (patient ?P ?PULLED)
+    (destination ?P ?D))
+  (holdsDuring ?P
+    (and
+      (distance ?A ?D ?SMALLER)
+      (distance ?PULLED ?D ?LARGER)
+      (greaterThan ?LARGER ?SMALLER))))
+
+
+(=>
+  (and
+    (citizen ?P ?C)
+    (not
+      (exists (?L)
+        (located ?P ?L))))
+  (located ?P ?C))
+
 ;; 
 ;; ==========================================================================
 ;;
