@@ -2,11 +2,8 @@
 ;;      SUMO (Suggested Upper Merged Ontology)
 ;; ================================================                                            
 
-;; This is the source file for the SUMO (Suggested Upper Merged Ontology), 
-;; an ontology that was developed within the SUO Working Group by merging
-;; the SUO "candidate content" sources and refining and extending this content on 
-;; the basis of various knowledge engineering projects and input from the SUO 
-;; Working Group.
+;; The original versions of SUMO incorporated elements from many public sources
+;; which are documented at http://www.ontologyportal.org/SUMOhistory/
 
 ;; The SUMO is freely available, subject to the following IEEE license.  
 
@@ -47,25 +44,10 @@
 
 ;; Any questions or comments about this ontology can be directed to the
 ;; Technical editor, Adam Pease, apease [at] articulatesoftware [dot] com  
-;; Version date: March, 2006
-;; Version number: 1.74
+;; Version date: April, 2006
+;; Version number: 1.75
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; The SUMO incorporates elements of John Sowa's upper ontology (as described at 
-;; http://www.bestweb.net/~sowa/ontology/toplevel.htm and in Chapter 2 of his 
-;; book _Knowledge Representation_, Brooks/Cole, 2000), Russell and Norvig's 
-;; ontology, PSL (Process Specification Language), Casati and Varzi's theory of 
-;; holes, Allen's temporal axioms, the relatively noncontroversial elements of 
-;; Smith's and Guarino's respective mereotopologies, the KIF formalization of the 
-;; CPR (Core Plan Representation), the ontologies available on the Ontolingua 
-;; server maintained by Stanford University's Knowledge Systems Laboratory, the 
-;; ontologies developed by ITBM-CNR, some of the spatial relations from an 
-;; unpublished paper by Iris Tommelein and Anil Gupta entitled "Conceptual 
-;; Structures for Spatial Reasoning", and a "Structural Ontology" proposed by 
-;; David Whitten and substantially revised and extended by Chris Menzel.
-;; Note that some of the subclasses of 'Process' in the SUMO were originally 
-;; inspired by some of the verb classes from the second part of Beth Levin's book 
-;; "English Verb Classes and Alternations:  A Preliminary Investigation."
 
 ;; The knowledge representation language in which the SUMO is expressed is SUO-KIF, 
 ;; which stands for "Standard Upper Ontology - Knowledge Interchange Format".  SUO-KIF 
@@ -76,40 +58,7 @@
 ;; self-contained subontologies.  Each subontology is indicated by a section 
 ;; header, and the dependencies between the subontologies are specified with 
 ;; statements of the form ";; INCLUDES '<SUBONTOLOGY>'".  These statements are 
-;; found at the beginning of each section.  The dependencies between the 
-;; various subontologies can also be graphed as follows:
-;;
-;;                             STRUCTURAL ONTOLOGY
-;;                                      +
-;;                                      |
-;;                                      |
-;;                                      +
-;;                                 BASE ONTOLOGY 
-;;                                 /   |   |   \
-;;                                /    |   |    \
-;;                               /     |   |     \
-;;                              /      |   |      \
-;;                             /       |   |       \
-;;                            +        +   +        +
-;;             SET/CLASS THEORY   NUMERIC  TEMPORAL  MEREOTOPOLOGY
-;;                               /     |        |           |
-;;                              /      |        |           |
-;;                             /       |        |           |
-;;                            +        +        +           +
-;;                        GRAPH   MEASURE   PROCESSES +--+ OBJECTS
-;;                                              +           +
-;;                                               \         /
-;;                                                \       /
-;;                                                 \     /
-;;                                                  +   +
-;;                                                 QUALITIES
-;;
-;; 
-;; Note that the "+" sign at the end of an arc indicates the direction of 
-;; dependency - the node near the sign includes the subontology at the other 
-;; end of the arc.  Note too that in some cases the dependency is 
-;; bidirectional.  Separating ontologies in cases like these is useful when 
-;; their respective topics can be cleanly differentiated.
+;; found at the beginning of each section.  
 
 ;; We ask the people using or referencing SUMO cite our primary paper:
 
@@ -2527,7 +2476,10 @@ of the two &%Lists that are given as arguments.  For example, the value of
 (documentation subList "(&%subList ?LIST1 ?LIST2) means that ?LIST1 is a 
 sublist of ?LIST2, i.e. every element of ?LIST1 is an element of ?LIST2 and 
 the elements that are common to both &%Lists have the same order in both 
-&%Lists.")
+&%Lists.  Elements that are common to both Lists and are consecutive in one 
+list must also be consecutive in the other list. (Therefore - the list of 
+prime numbers smaller than 10 [1 2 3 5 7] is not a subList of the 
+natural numbers smaller than 10 [1 2 3 4 5 6 7 8 9]).")
 
 (=>
    (subList ?LIST1 ?LIST2)
@@ -7646,7 +7598,7 @@ taken into an &%Animal.")
 (=>
    (and
       (instance ?ACT Ingesting)
-      (patient ?ACT ?FOOD))
+      (resource ?ACT ?FOOD))
    (instance ?FOOD Food))
 
 (subclass Eating Ingesting)
@@ -7656,7 +7608,7 @@ incorporated into an &%Animal.")
 (=>
    (and
       (instance ?ACT Eating)
-      (patient ?ACT ?FOOD))
+      (resource ?ACT ?FOOD))
    (attribute ?FOOD Solid))
 
 (subclass Drinking Ingesting)
@@ -9515,13 +9467,20 @@ This covers oral translation (i.e. interpreting) as well as written translation.
 added to an &%Object.")
 
 (=>
-   (and
-      (instance ?WET Wetting)
-      (patient ?WET ?OBJ))
-   (holdsDuring (EndFn (WhenFn ?WET))
-      (or
-         (attribute ?OBJ Wet)
-         (attribute ?OBJ Damp))))
+  (and
+    (instance ?WET Wetting))
+  (exists (?OBJ)
+    (and
+      (patient ?WET ?OBJ)
+      (holdsDuring
+        (BeginFn
+            (WhenFn ?WET))
+        (not
+          (attribute ?OBJ Damp)))
+      (holdsDuring
+        (EndFn
+            (WhenFn ?WET))
+        (attribute ?OBJ Damp)))))
 
 (=>
    (instance ?WET Wetting)
@@ -11174,17 +11133,6 @@ living &%Animal and metabolized into energy and body tissue.")
             (instance ?NUTRIENT Nutrient)
             (part ?NUTRIENT ?FOOD))))
 
-(=>
-   (instance ?FOOD Food)
-   (forall (?PART1)
-      (=>
-         (part ?PART1 ?FOOD)
-         (exists (?PART2 ?ANIMAL)
-            (and
-               (part ?PART1 ?PART2)
-               (part ?PART2 ?ANIMAL)
-               (instance ?ANIMAL Animal))))))
-
 (subclass Meat Food)
 (documentation Meat "Any &%Food which was originally part of an 
 &%Animal and is not ingested by drinking, including eggs and animal 
@@ -11201,7 +11149,10 @@ are classed directly under &%Food.")
          (exists (?SUBPART ?TIME ?ANIMAL)
             (and
                (part ?SUBPART ?PART)
-               (holdsDuring ?TIME (and (instance ?ANIMAL Animal) (part ?SUBPART ?ANIMAL))))))))
+               (holdsDuring ?TIME 
+                 (and 
+                   (instance ?ANIMAL Animal) 
+                   (part ?SUBPART ?ANIMAL))))))))
 
 (subclass Beverage Food)
 (documentation Beverage "Any &%Food that is ingested by &%Drinking.  
@@ -12021,7 +11972,11 @@ stitching together various types of fabrics, e.g. bedspreads.  On the other
 hand, &%Clothing is not a &%subclass of &%Fabric, because many clothing items 
 contain elements that are not fabrics.")
 
-(subclass Clothing Artifact)
+(subclass WearableItem Artifact) 
+(documentation WearableItem "&%WearableItem is the subclass of 
+&%Artifacts that are made to be worn on the body.")
+
+(subclass Clothing WearableItem)
 (disjoint Clothing StationaryArtifact)
 (documentation Clothing "&%Artifact made out of fabrics and possibly other 
 materials that are used to cover the bodies of &%Humans.")
