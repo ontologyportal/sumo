@@ -26,13 +26,28 @@
 ;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
 
 (subclass HumanCorpse Human)
-(documentation HumanCorpse "A &%Human which is &%Dead.")
+(documentation HumanCorpse "A &%Dead thing which was formerly a &%Human.")
 
-(<=>
-   (instance ?CORPSE HumanCorpse)
-   (and
-      (instance ?CORPSE Human)
-      (attribute ?CORPSE Dead)))
+(=>
+  (instance ?CORPSE HumanCorpse)
+  (exists (?HUMAN)
+    (and
+      (instance ?HUMAN Human)
+      (before (WhenFn ?HUMAN) (WhenFn ?CORPSE))
+      (not
+        (exists (?OTHERPART)
+          (and
+            (holdsDuring
+              (WhenFn ?CORPSE)
+              (part ?OTHERPART ?CORPSE))
+            (not
+              (holdsDuring 
+                (WhenFn ?HUMAN) 
+                (part ?OTHERPART ?HUMAN)))))))))
+            
+(=>
+  (instance ?CORPSE HumanCorpse)
+  (attribute ?CORPSE Dead))
 
 (subclass HumanSlave Human)
 (documentation HumanSlave "A &%Human who is owned by someone else.")
@@ -104,7 +119,7 @@ age or older.")
 (=>
    (and
       (instance ?BABY HumanBaby)
-      (age ?CHILD (MeasureFn ?NUMBER YearDuration)))
+      (age ?BABY (MeasureFn ?NUMBER YearDuration)))
    (lessThanOrEqualTo ?NUMBER 1)) 
 
 (subclass Stepping BodyMotion)
@@ -925,18 +940,19 @@ something can be kept.")
    (capability Keeping instrument ?POCKET))
 
 (subclass Blanket Fabric)
-(documentation Blanket "A piece of &%Fabric whose purpose is to keep a sleeping 
-person warm.")
+(documentation Blanket "A piece of &%Fabric whose purpose is to keep a 
+person who is in bed warm.")
 
 (=>
    (instance ?BLANKET Blanket)
-   (hasPurpose ?BLANKET (exists (?HEAT ?PERSON ?BED)
-                           (and
-                              (instance ?HEAT Heating)
-                              (patient ?HEAT ?PERSON)
-                              (instance ?PERSON Human)
-                              (located ?PERSON ?BED)
-                              (instance ?BED Bed)))))
+   (hasPurpose ?BLANKET 
+     (exists (?HEAT ?PERSON ?BED)
+       (and
+         (instance ?HEAT Heating)
+         (patient ?HEAT ?PERSON)
+         (instance ?PERSON Human)
+         (located ?PERSON ?BED)
+         (instance ?BED Bed)))))
 
 (subclass Dressing Putting)
 (documentation Dressing "The &%Process of putting on &%Clothing.")
@@ -948,8 +964,15 @@ person warm.")
       (patient ?DRESS ?CLOTHING))
    (and
       (instance ?CLOTHING Clothing)
-      (holdsDuring (BeginFn (WhenFn ?DRESS)) (not (wears ?AGENT ?CLOTHING)))
-      (holdsDuring (EndFn (WhenFn ?DRESS)) (wears ?AGENT ?CLOTHING))))
+      (holdsDuring 
+        (BeginFn 
+          (WhenFn ?DRESS)) 
+        (not 
+          (wears ?AGENT ?CLOTHING)))
+      (holdsDuring 
+        (EndFn 
+          (WhenFn ?DRESS)) 
+        (wears ?AGENT ?CLOTHING))))
 
 (subclass Tying Attaching) 
 (documentation Tying "The &%Process of tying two things, or two strands of 
@@ -1667,12 +1690,24 @@ up residence for a period of time while they receive care.")
          (instance ?SERVICE CommercialService)
          (agent ?SERVICE ?COMPANY)
          (instance ?SERVICE Selling)
+         (instance ?BUILDING RestaurantBuilding)        
+         (located ?SERVICE ?BUILDING)
          (patient ?SERVICE ?FOOD)
          (instance ?FOOD Food))))
+
+(=>
+   (instance ?PLACE RestaurantBuilding)
+   (capability Cooking located ?PLACE))
 
 (subclass Cafeteria Restaurant)
 (documentation Cafeteria "Any &%Restaurant which does not offer table service.  
 &%Food is selected and purchased at a central counter.")
+
+(=>
+  (instance ?COMPANY Cafeteria)
+  (not
+    (exists (?PERSON)
+      (occupiesPosition ?PERSON ServicePosition ?COMPANY))))
 
 (subclass Tavern Restaurant)
 (documentation Tavern "A &%Restaurant whose primary service is selling 
@@ -1686,7 +1721,7 @@ up residence for a period of time while they receive care.")
          (agent ?SERVICE ?COMPANY)
          (instance ?SERVICE Selling)
          (patient ?SERVICE ?BEVERAGE)
-         (instance ?BEVERAGE Beverage))))
+         (instance ?BEVERAGE AlcoholicBeverage))))
 
 (subclass TransportationCompany Corporation)
 (documentation TransportationCompany "Any &%Corporation whose services 
@@ -1740,7 +1775,7 @@ the complement of &%WholesaleStore, i.e.
   (instance ?X RetailStore)
   (and 
     (capability Selling located ?X)
-    (exists (?LOC ?EV)
+    (exists (?P ?EV)
       (and
         (instance ?EV Selling)
         (destination ?EV ?P)
@@ -1943,9 +1978,9 @@ government that sets and enforces foreign policy.")
 (documentation UnitedStatesDepartmentOfInterior "Manages and preserves public lands 
 and natural resources in the &%UnitedStates.")
 
-(subclass GovernmentSecretary Position)
 (documentation GovernmentSecretary "The class of &%Positions where the position holder 
 is head of an adminstrative department of &%Government.")
+(subclass GovernmentSecretary SkilledOccupation)
 
 (instance SecretaryOfTheInterior GovernmentSecretary)
 (documentation SecretaryOfTheInterior "The head of the &%UnitedStatesDepartmentOfInterior.")
@@ -2153,7 +2188,7 @@ Note that this general class covers petroleum oil, vegetable oil, animal fat, et
 
 (subclass Surfactant Substance)
 
-(documentation Surfactant "Surfactants, also known as wetting agents, 
+(documentation Surfactant "Surfactants, also known as &%Wetting agents, 
 lower the surface tension of a &%Liquid, allowing easier spreading.  The 
 term surfactant is a compression of 'Surface active agent'.  Surfactants 
 are usually organic compounds that contain both hydrophobic and 
@@ -2173,19 +2208,20 @@ a particular type of surfactant that is derived from oils and fats.  They
 are created through the saponification process whereby the ester linkage 
 in a vegetable oil or fat is hydrolytically cleaved, creating a sodium or 
 potassium salt of a fatty acid (i.e.  soap).  Both detergents and soaps 
-are considered to be surfactants.  Surfactants that are not soaps are 
+are considered to be surfactants.  &%Surfactants that are not soaps are 
 considered to be detergents.  Detergents are also commonly known as any 
 cleaning mixture containing surfactants.  (from Wikipedia)") 
 
 (=>
-   (instance ?DETERGENT Detergent)
-   (hasPurpose ?DETERGENT (exists (?REMOVE ?SUBSTANCE ?SURFACE ?OBJECT)
-                             (and
-                                (instance ?REMOVE Removing)
-                                (instance ?SUBSTANCE Substance)
-                                (patient ?REMOVE ?SUBSTANCE)
-                                (origin ?REMOVE ?SURFACE)
-                                (surface ?SURFACE ?OBJECT)))))
+  (instance ?DETERGENT Detergent)
+  (hasPurpose ?DETERGENT 
+    (exists (?REMOVE ?SUBSTANCE ?SURFACE ?OBJECT)
+      (and
+        (instance ?REMOVE Removing)
+        (instance ?SUBSTANCE Substance)
+        (patient ?REMOVE ?SUBSTANCE)
+        (origin ?REMOVE ?SURFACE)
+        (surface ?SURFACE ?OBJECT)))))
 
 (subclass Glue Mixture)
 (documentation Glue "Any &%Mixture whose purpose is to be used as the &%instrument 
@@ -2337,17 +2373,68 @@ masses meet.")
          (instance ?AIR2 Air)
          (between ?AIR1 ?FRONT ?AIR2))))
 
-(instance Outside Region)
-(documentation Outside "Any &%Region which is not enclosed by a &%Building 
+(instance Inside PositionalAttribute)
+(documentation Inside "&%Inside is a &%PositionalAttribute used to 
+describe the relative location of one object or region to another 
+region.  For example, (&%orientation &%Virginia &%UnitedStates &%Inside).")
+
+(=>
+   (instance ?INSIDE Inside)
+   (exists (?OBJECT)
+     (forall (?THING)
+       (=>
+         (located ?THING ?INSIDE)
+         (exists (?PART)
+           (and
+             (interiorPart ?PART ?OBJECT)
+             (located ?THING ?PART)))))))
+
+(instance Outside PositionalAttribute)
+(contraryAttribute Inside Outside)
+(documentation Outside "&%Outside is a &%PositionalAttribute used to 
+describe the relative location of one object or region to another 
+region.  For example, (&%orientation &%Cuba &%UnitedStates &%Outside).")
+
+(=>
+  (orientation ?OBJ ?REGION Outside)
+  (instance ?REGION Region))
+
+(=>
+  (orientation ?OBJ ?REGION Inside)
+  (instance ?REGION Region))
+
+(<=>
+  (orientation ?OBJ ?REGION Outside)
+  (not 
+    (partlyLocated ?OBJ ?REGION)))
+
+(<=>
+  (part ?OBJ ?REGION)
+  (not 
+    (orientation ?OBJ ?REGION Outside)))
+
+(instance Outdoors Region)
+(documentation Outdoors "Any &%Region which is not enclosed by a &%Building 
 or part of a &%Building.")
 
 (=>
-   (instance ?OUTSIDE Outside)
-   (not (exists (?BUILDING ?THING)
-      (and
+   (instance ?OUTDOORS Outdoors)
+   (not
+     (exists (?BUILDING)
+       (and
          (instance ?BUILDING Building)
-         (located ?THING ?BUILDING)
-         (located ?THING ?OUTSIDE)))))
+         (orientation ?OUTDOORS ?BUILDING Inside)))))
+
+(instance Indoors Region)
+(disjoint Indoors Outdoors)
+(documentation Indoors "Any &%Region which is enclosed by a &%Building.")
+
+(=>
+   (instance ?INDOORS Indoors)
+   (exists (?BUILDING)
+     (and
+       (instance ?BUILDING Building)
+       (orientation ?INDOORS ?BUILDING Inside))))
 
 (subclass BiologicalSpecies Class)
 (documentation BiologicalSpecies "The &%Class of all biological species, i.e. 
@@ -2419,11 +2506,12 @@ in place.")
 (documentation Flower "The reproductive organ of &%FloweringPlants.")
 
 (=>
-   (instance ?FLOWER Flower)
-   (exists (?PLANT)
-      (and
-         (instance ?PLANT FloweringPlant)
-         (part ?FLOWER ?PLANT))))
+  (instance ?FLOWER Flower)
+  (exists (?PLANT ?TIME)
+    (and
+      (instance ?PLANT FloweringPlant)
+      (holdsDuring ?TIME
+        (part ?FLOWER ?PLANT)))))
 
 (subclass Antibody Protein)
 (documentation Antibody "An immunoglobulin which is produced by the body 
@@ -2732,12 +2820,45 @@ of &%Vertebrates.")
       (part ?SKELETON ?ANIMAL))
    (instance ?ANIMAL Vertebrate))
 
+(=>
+  (instance ?S Skeleton)
+  (exists (?A)
+    (and
+      (instance ?A Animal)
+      (interiorPart ?S ?A))))
+
+(subclass Exoskeleton AnimalAnatomicalStructure)
+(subclass Exoskeleton BodyPart)
+(documentation Exoskeleton "The system of &%Bones that are on the &%Outside of an organism and 
+make up the supporting structure of many &%Invertebrates.")
+
+(=>
+   (and
+      (instance ?ANIMAL Animal)
+      (instance ?SKELETON Exoskeleton)
+      (part ?SKELETON ?ANIMAL))
+   (instance ?ANIMAL Invertebrate))
+
 (<=>
    (instance ?BONE Bone)
    (exists (?SKELETON)
       (and
-         (instance ?SKELETON Skeleton)
+        (or
+           (instance ?SKELETON Skeleton)
+           (instance ?SKELETON Exoskeleton))
          (part ?BONE ?SKELETON))))
+
+(=>
+  (instance ?X Exoskeleton)
+  (exists (?A)
+    (and
+      (instance ?A Animal)
+      (part ?X ?A)
+      (not
+        (exists (?PART)
+          (and
+            (properPart ?PART ?A)
+            (orientation ?PART ?X Outside)))))))
 
 (subclass Throat AnimalAnatomicalStructure)
 (subclass Throat BodyVessel)
@@ -3781,10 +3902,6 @@ holds a &%Door.")
          (or
             (instance ?ARTIFACT Building)
             (instance ?ARTIFACT Room)))))
-
-(subclass Window StationaryArtifact)
-(documentation Window "A &%StationaryArtifact composed of transparent glass 
-or plastic that admits light (and possibly air) into a &%Room or &%Building.")
 
 (=>
    (instance ?DOOR Door)
@@ -5148,7 +5265,6 @@ salaried or paid for at least 40 hour of work per week.")
 (documentation PartTimePosition "Any &%Position where the employee is not 
 salaried and is paid for less than 40 hours of work per week.")
 
-(subclass ClericalSecretary Position)
 (subclass ClericalSecretary SkilledOccupation)
 (documentation ClericalSecretary "The class of &%Positions where the position 
 holder is responsible for clerical duties, e.g. typing documents, answering 
@@ -5539,6 +5655,7 @@ the quality of being emphasized over the other &%Syllables in the same
       (and
          (instance ?SYLLABLE2 Syllable)
          (part ?SYLLABLE2 ?WORD)
+         (attribute ?SYLLABLE2 Stressed)
          (not (equal ?SYLLABLE2 ?SYLLABLE))))))
 
 (subclass Syllable SymbolicString)
@@ -5980,12 +6097,12 @@ a pet, as livestock, for exhibition, etc.")
                            (patient ?EAT ?FEED)))))
 
 (subclass Horse HoofedMammal)
-(subclass Horse DomesticAnimal)
+(subclass Horse Livestock)
 (documentation Horse "A domesticated &%HoofedMammal that is used for 
 transportation and work.")
 
 (subclass Donkey HoofedMammal)
-(subclass Donkey DomesticAnimal)
+(subclass Donkey Livestock)
 (documentation Donkey "A domesticated &%HoofedMammal that is used for 
 work.")
 
@@ -6026,8 +6143,9 @@ and beef, and is also used for work.")
       (instance ?COW Cow)
       (attribute ?COW Female)))
 
-(subclass Chicken Bird)
-(subclass Chicken DomesticAnimal)
+(subclass Poultry Livestock)
+(subclass Poultry Bird)
+(subclass Chicken Poultry)
 (documentation Chicken "A subclass of &%Bird that is raised for its meat 
 and for its eggs.")
 
@@ -6040,8 +6158,8 @@ and for its eggs.")
       (instance ?HEN Chicken)
       (attribute ?HEN Female)))
 
-(subclass ChickenMeat Meat)
 (documentation ChickenMeat "&%Meat that was originally part of a &%Chicken.")
+(subclass ChickenMeat Meat)
 
 (<=>
    (instance ?MEAT ChickenMeat)
@@ -6108,7 +6226,7 @@ tending livestock, etc.")
 
 (subclass Serving Working)
 (documentation Serving "Working as a waiter or servant, either for an 
-&%Organization (e.g. a restaurant) or for a person or family.")
+&%Organization (e.g. a &%Restaurant) or for a person or family.")
 
 (subclass Sales Working)
 (documentation Sales "Any instance of &%Working that involves &%Selling or 
@@ -6928,7 +7046,7 @@ those who do not have another more permanent residence.  A hotel is
 distinguished from a homeless shelter, or a residence loaned to a friend
 in that the primary purpose of the building is to generate revenue in
 return for the priviledge of staying there.  Many hotels contains other 
-facilities such as restaurants or health clubs or even miscellaneous stores
+facilities such as &%Restaurants or health clubs or even miscellaneous stores
 although that is not their primary business or purpose.")
         
 (=>
@@ -7048,12 +7166,12 @@ occupation, or what is intended to become his principal occupation
       (instance ?ORG ReligiousOrganization)
       (occupiesPosition ?X Leader ?ORG))))
   
-(subclass Restaurant Building)
-(documentation Restaurant "A building where people pay to be served food
+(subclass RestaurantBuilding Building)
+(documentation RestaurantBuilding "A &%Building where people pay to be served food
 and eat.  Some restaurants may also offer entertainment.")
 
 (=>
-  (instance ?X Restaurant)
+  (instance ?X RestaurantBuilding)
   (hasPurpose ?X
     (exists (?OWN ?EMP ?EV ?P ?PAY)
       (and
@@ -7289,6 +7407,7 @@ how to create &%ArtWorks.")
 of &%UnitsOfMeasure used to measure pressure (&%barometricPressure), 
 e.g., &%InchMercury.")
 (subclass AtmosphericRegion SpaceRegion)
+(subclass AtmosphericRegion GeographicArea)
 (documentation AtmosphericRegion "&%AtmosphericRegion is the class of 
 all subregions of &%EarthsAtmosphere.")
 (subclass AtomicGroup CompoundSubstance)
@@ -7370,9 +7489,6 @@ of both &%Baseball teams while a game is being played.")
 (subclass BaseballField SportsFacility)
 (documentation BaseballField "A &%SportsFacility which is dedicated to 
 &%Baseball.")
-(subclass BaseballInning BaseballManeuver)
-(documentation BaseballInning "A division of a &%Baseball game.  A normal game 
-consists of 9 innings, and each inning involves a turn a bat for both teams.")
 (subclass BaseballSingle BaseballHit)
 (documentation BaseballSingle "Any &%BaseballHit where the batter makes it 
 safely to first base by hitting the ball.")
@@ -7634,7 +7750,7 @@ Container, e.g. a chest of drawers, a memory chest, an armoire, etc.")
 (subclass Chimney StationaryArtifact)
 (subclass Chimney Device)
 (documentation Chimney "A thin passageway through which &%Smoke from a controlled 
-fire is conducted outside of a &%Building or &%Room.")
+fire is conducted &%Outside of a &%Building or &%Room.")
 (subclass Cholesterol Steroid)
 (subclass Cholesterol AnimalSubstance)
 (documentation Cholesterol "A &%Steroid that is produced by the &%Liver and that 
@@ -7961,9 +8077,10 @@ perhaps other items as well.")
 (documentation Drum "An atonal &%PercussionInstrument which consists of a 
 hollow cylinder and a fabric stretched across at least one end of the 
 cylinder.")
-(subclass Duck Bird)
 (documentation Duck "A subclass of &%Bird with webbed feet and a large bill.  
 Some ducks live in the wild, and some are raised for meat and/or eggs.")
+(subclass Duck Poultry)
+
 (subclass DutyTax Tax)
 (documentation DutyTax "A &%Tax that is levied on imports and/or exports.")
 (subclass EarthTremor Tremor)
@@ -8240,15 +8357,12 @@ consists of 9 to 18 holes, and each hole involves a turn for each of
 the players in the &%Golf game.")
 (subclass GolfManeuver Maneuver)
 (documentation GolfManeuver "Any &%Maneuver in &%Golf.")
-(subclass Goose Bird)
+(subclass Goose Poultry)
 (documentation Goose "A subclass of &%Bird with webbed feet and a long neck 
 and a large body.  These &%Birds are often raised for their &%Meat.")
 (subclass GovernmentOfficer Profession)
 (documentation GovernmentOfficer "Any &%Profession where the position occupied 
 is within a &%GovernmentOrganization.")
-(subclass GovernmentSecretary SkilledOccupation)
-(documentation GovernmentSecretary "The class of &%Positions where the position holder 
-is head of an adminstrative department of &%Government.")
 (subclass GraduateSchool PostSecondarySchool)
 (documentation GraduateSchool "A &%School which is devoted to a specific 
 subject area, which admits students that have a bachelor's degree, which 
@@ -8343,8 +8457,6 @@ an animal or animals are pursued and sometimes captured and/or killed.")
 (subclass Hydrocarbon OrganicCompound)
 (documentation Hydrocarbon "Any &%OrganicCompound that contains only &%Carbon 
 and &%Hydrogen.")
-(documentation Hypothalamus "The part of the &%Brain lying below the 
-thalamus that serves to regulate &%AutonomicProcesses.")
 (subclass IlluminationDevice Device)
 (documentation IlluminationDevice "Any &%Device whose purpose is to be a source of 
 visible light.")
@@ -8405,9 +8517,6 @@ events.")
 (subclass Jumping MotionUpward)
 (documentation Jumping "Any &%MotionUpward which is done by one's body 
 and which results in a situation where one's feet are unsupported.")
-(subclass Jury GroupOfPeople)
-(documentation Jury "A &%GroupOfPeople who are given the duty of rendering a 
-verdict with respect to a &%LegalAction.")
 (subclass Kidnapping Robbing)
 (documentation Kidnapping "Robbing a &%Human, i.e. taking him/her away 
 with the threat of force.")
@@ -8765,9 +8874,6 @@ with written &%Characters.")
 (subclass Ossification OrganOrTissueProcess)
 (documentation Ossification "Any &%BiologicalProcess that results in the 
 formation of &%Bones.")
-(subclass Outside Region)
-(documentation Outside "Any &%Region which is not enclosed by a &%Building 
-or part of a &%Building.")
 (subclass Oval ClosedTwoDimensionalFigure)
 (documentation Oval "The class of &%ClosedTwoDimensionalFigures that are 
 produced by the intersection of a &%Cone with a &%ClosedTwoDimensionalFigure.")
@@ -9317,10 +9423,6 @@ blade.")
 (documentation Sphere "The class of &%ThreeDimensionalFigures such that 
 all &%GeometricPoints that make up the &%Sphere are equidistant from a 
 single &%GeometricPoint, known as the center of the &%Sphere.")
-(subclass SpinalColumn Bone)
-(documentation SpinalColumn "A flexible column made out of bones called 
-vertebrae. The main function of the &%SpinalColumn is to protect the 
-spinal cord.")
 (subclass SpinalCord Organ)
 (documentation SpinalCord "A cord of nerves that carries impulses to 
 and from the &%Brain.  It is contained within the &%SpinalColumn.")
@@ -10466,10 +10568,6 @@ right angles to one's &%Torso.")
 a &%Sport can no longer compete because he has been tagged with the &%GamePiece.")
 (subAttribute Squatting Sitting)
 (documentation Squatting "&%Sitting on one's heels.")
-(instance Stressed LinguisticAttribute)
-(documentation Stressed "A &%LinguisticAttribute of &%Syllables.  It denotes 
-the quality of being emphasized over the other &%Syllables in the same 
-&%Word.")
 (instance SymmetricShape ShapeAttribute)
 (documentation SymmetricShape "A &%ShapeAttribute that applies to a 
 &%SelfConnectedObject that can be divided into two copies of each other.")
