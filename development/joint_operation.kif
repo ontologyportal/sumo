@@ -1,0 +1,178 @@
+(subclass JointOperation MilitaryOperation)
+
+(documentation JointOperation "A general term to describe military
+actions conducted by joint forces or by Service forces in
+relationships (e.g., support, coordinating authority) which, of
+themselves, do not create joint forces.")
+
+
+
+
+(subclass JointForces MilitaryOrganization)
+
+(documentation JointForces "A general term applied to a force composed
+of significant elements, assigned or attached, of two or more Military
+Departments operating under a single joint force commander. See also
+joint force commander.")
+
+;; a joint operation is carried out by forces of different military
+;; departments assuming that military department means military
+;; service
+
+(=>
+  (instance ?JOINT JointForces)
+  (exists (?FORCE1 ?FORCE2 ?CLASS1 ?CLASS2)
+    (and
+      (subOrganization ?FORCE1 ?JOINT)
+      (subOrganization ?FORCE2 ?JOINT)
+      (instance ?FORCE1 MilitaryService)
+      (instance ?FORCE2 MilitaryService)
+      (not
+        (equal ?FORCE1 ?FORCE2))
+      (=>
+        (and
+           (instance ?FORCE1 ?CLASS1)
+           (instance ?FORCE2 ?CLASS2))
+        (not
+          (equal ?CLASS1 ?CLASS2))))))
+
+;; participating forces in a joint operation are under the command of
+;; the commander of the joint operation
+
+(=>
+  (and
+    (instance ?JOINT JointForces)
+    (subOrganization ?FORCE1 ?JOINT)
+    (subOrganization ?FORCE2 ?JOINT)
+    (leaderPosition ?JOINT ?JOINTCOMMANDER))
+  (and
+    (leaderPosition ?FORCE1 ?JOINTCOMMANDER)
+    (leaderPosition ?FORCE2 ?JOINTCOMMANDER)))
+
+;; commanders of the participating forces are subordinate to the joint
+;; commander
+
+(=>
+  (and
+    (instance ?JOINT JointForces)
+    (subOrganization ?FORCE1 ?JOINT)
+    (leaderPosition ?FORCE1 ?COMMANDER1)
+    (leaderPosition ?JOINT ?JOINTCOMMANDER))
+  (subordinatePosition ?JOINT ?COMMANDER1 ?JOINTCOMMANDER))
+
+;;maybe it makes sense to make a more general statement:
+
+(=>
+  (and
+    (leaderPosition ?ORG1 ?LEADER1)
+    (leaderPosition ?ORG2 ?LEADER2)
+    (subOrganization ?ORG1 ?ORG2))
+  (subordinatePosition ORG2 ?LEADER1 ?LEADER2))
+
+
+;; TODO: do not know how to specify the difference between joint
+;; operation planning and joint operation planning process
+
+(subclass JointOperationPlanning OperationPlanning)
+
+(documentation JointOperationPlanning "Planning for contingencies that
+can reasonably be anticipated in an area of responsibility or joint
+operations area of the command. Planning activities exclusively
+associated with the preparation of operation plans, operation plans in
+concept format, campaign plans, and operation orders (other than the
+Single Integrated Operational Plan) for the conduct of military
+operations by the combatant commanders in response to requirements
+established by the Chairman of the Joint Chiefs of Staff. Joint
+operation planning is coordinated at the national level to support
+Secretary of Defense Contingency Planning Guidance, strategic
+requirements in the National Military Strategy, and emerging
+crises. As such, joint operation planning includes mobilization
+planning, deployment planning, employment planning, sustainment
+planning, and redeployment planning procedures. Joint operation
+planning is performed in accordance with formally established planning
+and execution procedures. See also contingency plan; execution
+planning; implementation planning; Joint Operation Planning and
+Execution System; joint operation planning process. ")
+
+(subclass OPLAN OperationPlan)
+
+(documentation OPLAN "An operation plan for the conduct of joint
+operations that can be used as a basis for development of an operation
+order (OPORD). An OPLAN identifies the forces and supplies required to
+execute the combatant commander's strategic concept and a movement
+schedule of these resources to the theater of operations. The forces
+and supplies are identified in TPFDD files. OPLANs will include all
+phases of the tasked operation. The plan is prepared with the
+appropriate annexes, appendixes, and TPFDD files as described in the
+Joint Operation Planning and Execution System manuals containing
+planning policies, procedures, and formats. Also called OPLAN. ")
+
+(=>
+  (and
+    (instance ?OPLAN OPLAN)
+    (represents ?OPLAN ?OP)
+    (instance ?OP MilitaryOperation)
+    (subProcess ?OPSUB ?OP))
+  (represents ?OPLAN ?OPSUB))
+
+(=>
+  (instance ?OPLAN OPLAN)
+  (exists (?CBO)
+    (and
+      (instance ?CBO TPFDDFile)
+      (containsInformation ?CBO ?OPLAN))))
+
+(=>
+  (and
+    (instance ?OPLAN OPLAN)
+    (instance ?JOPES JOPES))
+  (consistent ?OPLAN ?JOPES))
+      
+(=>
+  (and
+    (instance ?OPLAN OPLAN)
+    (instance ?TPFDD TPFDD))
+  (consistent ?OPLAN ?TPFDD))
+
+;; joint operation plans are the result of a joint operation planning
+;; process
+
+(=>
+  (and
+    (instance ?PLANNING JointOperationPlanning)
+    (result ?PLANNING ?PLAN))
+  (instance ?PLAN OPLAN))
+
+;; a joint operation plan represents a joint operation
+(=>
+  (instance ?PLAN OPLAN)
+  (exists (?OP)
+    (and
+      (represents ?PLAN ?OP))
+      (instance ?OP JointOperation)))
+
+(subclass JOPES Proposition)
+
+(documentation JOPES "A system that provides the foundation for
+conventional command and control by national- and combatant
+command-level commanders and their staffs. It is designed to satisfy
+their information needs in the conduct of joint planning and
+operations. Joint Operation Planning and Execution System (JOPES)
+includes joint operation planning policies, procedures, and reporting
+structures supported by communications and automated data processing
+systems. JOPES is used to monitor, plan, and execute mobilization,
+deployment, employment, sustainment, and redeployment activities
+associated with joint operations. Also called JOPES. See also joint
+operation planning; joint operations.")
+    
+(subclass JOPESManual ReferenceBook)
+
+(documentation JOPESManual "A manual for &%JOPES")
+
+
+(=>
+  (instance ?MANUAL JOPESManual)
+  (and
+    (containsInformation ?MANUAL ?JOPES)
+    (instance ?JOPES JOPES)))
+

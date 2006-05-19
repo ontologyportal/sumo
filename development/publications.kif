@@ -1,0 +1,311 @@
+;; This is an initial check in of content in an early stage of
+;; development and is not yet suitable for general use.
+
+;; Access to and use of these products is governed by the GNU General
+;; Public License <http://www.gnu.org/copyleft/gpl.html>.  By using
+;; these products, you agree to be bound by the terms of the GPL.
+
+;; Those who are interested in making use of this ontology are urged
+;; to contact Adam Pease (adampease@earthlink.net) and Jan Scheffczyk
+;; (jan.scheffczyk@gmx.net).  Version date: May, 2006 We ask the
+;; people using or referencing this work cite our primary paper:
+
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.
+;; In Proceedings of the 2nd International Conference on Formal
+;; Ontology in Information Systems (FOIS-2001), Chris Welty and Barry
+;; Smith, eds, Ogunquit, Maine, October 17-19, 2001.  See also
+;; http://www.ontologyportal.org
+
+(subclass ExternalAgency MilitaryOrganization)
+
+(documentation ExternalAgency "Some external agancy involved with the
+Military, say CIA, NSA and the like (my own idea!).")
+
+
+(subclass JointStaff GroupOfPeople)
+(subclass JointStaff MilitaryOrganization)
+
+(documentation JointStaff "The staff under the Chairman of the Joint
+Chiefs of Staff as provided for in the National Security Act of 1947,
+as amended by the Goldwater-Nichols Department of Defense
+Reorganization Act of 1986.  The Joint Staff assists the Chairman and,
+subject to the authority, direction, and control of the Chairman and
+the other members of the Joint Chiefs of Staff in carrying out their
+responsibilities. Also called JS.  ")
+
+(instance DirectorJS Position)
+(subclass DirectorJS Human)
+(subAttribute DirectorJS MilitaryCommander)
+(member DirectorJS JointChiefsOfStaff)
+(leaderPosition JointStaff ChairmanJCS)
+(leaderPosition JointStaff DirectorJS)
+(documentation DirectorJS "The director of the Joint Staff.")
+
+
+(subclass JointChiefsOfStaff GroupOfPeople)
+(subclass JointChiefsOfStaff MilitaryOrganization)
+
+(documentation JointChiefsOfStaff "The Joint Chiefs of Staff (advisory
+board for the Joint Staff?). No explanation given but at least we can
+say it is a group of people.")
+
+(instance ChairmanJCS Position)
+(subclass ChairmanJCS Human)
+(member ChairmanJCS JointChiefsOfStaff)
+(leaderPosition JointChiefsOfStaff ChairmanJCS)
+
+(documentation ChairmanJCS "The chairman of the Joint Chiefs of
+Staff.")
+
+
+(subclass JointPublication Text)
+
+(documentation JointPublication "A publication containing joint
+doctrine that is prepared under the direction and authority of the
+Chairman of the Joint Chiefs of Staff and applies to all US military
+forces. Also called JP.")
+
+;; A joint publication is managed (directed, authorized) by the
+;; Chairman of the JCS
+
+(=>
+  (instance ?PUB JointPublication)
+  (exists (?MANAGING)
+    (and
+      (instance ?MANAGING Managing)
+      (agent ?MANAGING ChairmanJCS)
+      (patient ?MANAGING ?PUB))))
+
+;; A joint publication applies (rules) to all US military
+(=>
+  (and
+    (instance ?PUB JointPublication)
+    (containsInformation ?PUB ?CONTENT)
+    (instance ?RULES RegulatoryProcess)
+    (realization ?RULES ?CONTENT)
+    (agent ?RULES ?MIL))
+  (instance ?MIL USMilitary))
+
+(subclass USMilitary MilitaryOrganization)
+(militaryOfArea USMilitary UnitedStates)
+
+(documentation USMilitary "All Military of the United States.")
+
+(subclass AboveTheLine JointPublication)
+
+(documentation AboveTheLine "The upper level publications in the
+hierarchy of joint publications which includes capstone, keystone, and
+other key joint doctrine publications that the Chairman of the Joint
+Chiefs of Staff signs and are intended to be used by combatant
+commanders, subunified commanders, joint task force commanders,
+Service Chiefs, and Joint Staff directors.")
+
+;; AboveTheLine documents are signed by the Chairman of the JCS
+(=>
+  (instance ?PUB AboveTheLine)
+  (exists (?SIGNING)
+    (and
+      (instance ?SIGNING SigningADocument)
+      (agent ?SIGNING ChairmanJCS)
+      (patient ?SIGNING ?PUB))))
+
+;; AboveTheLine publications are for combatant commanders, subunified
+;; commanders, joint task force commanders, Service Chiefs, and Joint
+;; Staff directors
+
+(=>
+  (and
+    (instance ?PUB AboveTheLine)
+    (containsInformation ?PUB ?CONTENT)
+    (instance ?RULES RegulatoryProcess)
+    (realization ?RULES ?CONTENT)
+    (agent ?RULES ?MIL))
+  (exists (?MIL)
+    (and
+      (agent ?RULES ?MIL)
+      (instance ?MIL
+        (UnionFn CombatantCommander
+          (UnionFn SubunifiedCommander
+            (UnionFn JointTaskForceCommander
+              (UnionFn ServiceChief DirectorJS))))))))
+
+(subclass BelowTheLine JointPublication)
+(disjoint AboveTheLine BelowTheLine)
+
+(documentation BelowTheLine "The lower level publications in the
+hierarchy of joint publications that are signed by the Director, Joint
+Staff and contain specific mission-area guidance for the joint
+community. Included in this level are reference publications and those
+describing joint personnel, intelligence support, operations, logistic
+support, planning, and command, control, communications, and computer
+systems support.")
+
+;; BelowTheLine documents are signed by the Director of the JS
+(=>
+  (instance ?PUB BelowTheLine)
+  (exists (?SIGNING)
+    (and
+      (instance ?SIGNING SigningADocument)
+      (agent ?SIGNING DirectorJS)
+      (patient ?SIGNING ?PUB))))
+
+(subclass Doctrine Text)
+
+(documentation Doctrine "Fundamental principles by which the military
+forces or elements thereof guide their actions in support of national
+objectives. It is authoritative but requires judgment in
+application.")
+
+;; A doctrine does involve the employment of forces
+(=>
+  (and
+    (instance ?PUB Doctrine)
+    (containsInformation ?PUB ?CONTENT)
+    (instance ?RULES RegulatoryProcess)
+    (realization ?RULES ?CONTENT)
+    (agent ?RULES ?MIL))
+  (instance ?MIL MilitaryForce))
+
+(subclass MultinationalDoctrine Doctrine)
+
+(documentation MultinationalDoctrine "Fundamental principles that
+guide the employment of forces of two or more nations in coordinated
+action toward a common objective. It is ratified by participating
+nations.")
+
+;; MultinationalDoctrines involve multiple nations
+(=>
+  (and
+    (instance ?PUB MultinationalDoctrine)
+    (containsInformation ?PUB ?CONTENT)
+    (instance ?RULES RegulatoryProcess)
+    (realization ?RULES ?CONTENT))
+  (exist (?NATION1 ?NATION2)
+    (and
+      (agent ?RULES ?NATION1)
+      (agent ?RULES ?NATION2)
+      (instance ?NATION1 NATION)
+      (instance ?NATION2 NATION)
+      (not
+        (equal ?NATION1 ?NATION2)))))
+
+
+
+(subclass JointDoctrine JointPublication)
+(subclass JointDoctrine Doctrine)
+
+(documentation JointDoctrine "Fundamental principles that guide the
+employment of US military forces in coordinated action toward a common
+objective. Joint doctrine contained in joint publications also
+includes terms, tactics, techniques, and procedures. It is
+authoritative but requires judgment in application")
+
+(subclass ChairmanPublication Text)
+(disjoint ChairmanPublication JointDoctrine)
+(partition ChairmanPublication ChairmanInstruction ChairmanManual)
+
+(documentation ChairmanPublication "A publication by the Chairman of
+the JCS, subsuming instructions and manuals.")
+
+;; A Chairman publication is managed (directed, authorized) by the
+;; Chairman of the JCS
+
+(=>
+  (instance ?PUB ChairmanPublication)
+  (exists (?MANAGING)
+    (and
+      (instance ?MANAGING Managing)
+      (agent ?MANAGING ChairmanJCS)
+      (patient ?MANAGING ?PUB))))
+
+;; Chairman publication documents are signed by the Chairman of the
+;; JCS
+
+(=>
+  (instance ?PUB ChairmanPublication)
+  (exists (?SIGNING)
+    (and
+      (instance ?SIGNING SigningADocument)
+      (agent ?SIGNING ChairmanJCS)
+      (patient ?SIGNING ?PUB))))
+
+;; A Chairman publication applies (rules) to external agencies or the
+;; joint staff
+
+(=>
+  (and
+    (instance ?PUB ChairmanPublication)
+    (instance ?RULES RegulatoryProcess)
+    (containsInformation ?PUB ?CONTENT)
+    (realization ?RULES ?CONTENT)
+    (agent ?RULES ?MIL))
+  (instance ?MIL (UnionFn ExternalAgency JointStaff)))
+
+;; A Chairman publication does not involve the employment of forces
+(=>
+  (and
+    (instance ?PUB ChairmanPublication)
+    (instance ?RULES RegulatoryProcess)
+    (containsInformation ?PUB ?CONTENT)
+    (realization ?RULES ?CONTENT)
+    (agent ?RULES ?MIL))
+  (not
+    (instance ?MIL MilitaryForce)))
+
+
+(subclass ChairmanInstruction ChairmanPublication)
+
+(documentation ChairmanInstruction "A replacement document for all
+types of correspondence containing Chairman of the Joint Chiefs of
+Staff policy and guidance that does not involve the employment of
+forces. An instruction is of indefinite duration and is applicable to
+external agencies, or both the Joint Staff and external agencies. It
+remains in effect until superseded, rescinded, or otherwise
+canceled. Chairman of the Joint Chiefs of Staff instructions, unlike
+joint publications, will not contain joint doctrine. Terminology used
+in these publications will be consistent with JP 1-02. Also called
+CJCSI.")
+
+
+(subclass ChairmanManual ChairmanPublication)
+
+(documentation ChairmanManual "A document containing detailed
+procedures for performing specific tasks that do not involve the
+employment of forces. A manual is of indefinite duration and is
+applicable to external agencies or both the Joint Staff and external
+agencies. It may supplement a Chairman of the Joint Chiefs of Staff
+instruction or stand alone and remains in effect until superseded,
+rescinded, or otherwise canceled. Chairman of the Joint Chiefs of
+Staff manuals, unlike joint publications, will not contain joint
+doctrine.  ")
+
+;; what is the formal difference between ChairmanManual and
+;; ChairmanInstruction, except that the former is more detailed and
+;; may supplement the latter??
+
+
+(subclass Capstone AboveTheLine)
+(subclass Capstone JointDoctrine)
+(disjoint Capstone KeyStone)
+
+(documentation Capstone "The top group of joint doctrine publications
+in the hierarchy of joint publications. Capstone publications link
+joint doctrine to national strategy and the contributions of other
+government agencies, alliances, and coalitions.")
+
+(subclass KeyStone AboveTheLine)
+(subclass Keystone JointDoctrine)
+
+(documentation KeyStone "Joint doctrine publications that establish
+the doctrinal foundation for a series of joint publications in the
+hierarchy of joint publications. Keystone publications are provided
+for joint personnel support, intelligence support, operations,
+logistic support, plans, and command, control, communications, and
+computer systems support series publications.")
+
+(subclass JointTest JointPublication)
+
+(documentation JointTest "A proposed publication produced for the
+purpose of field-testing an emergent concept that has been validated
+through the Joint Experimentation Program or a similar joint
+process. Also called JTP.")
