@@ -128,26 +128,255 @@ operations")
 
 
 (subclass LAV APC)
-(subclass LAV AmphibiousVehicle)
 
-(documentation LAV "LAV-25 is an eight-wheeled armoured personnel
-carrier (APC) based on the Mowag Piranha family of armoured fighting
-vehicles used by the United States Marine Corps. Powered by a Detroit
-Diesel Turbo-Charged engine, they are 4 wheel drive (rear wheels)
-transferable to 8-wheel drive. These vehicles are also amphibious,
-meaning they have the ability to "swim", but are limited to non-surf
-bodies of water (No oceans). While engaged in amphibious operations,
-the maximum speed is approximately 12 km/h. Typical land speeds are
-approximately 85 km/h in either 4 or 8-wheel drive, however fuel
-economy decreases in 8-wheel drive. The vehicles operate on diesel
-fuel (JP-8), and require 3 weights of lubricants to remain in running
-condition. They are equipped with a M242 Bushmaster 25 mm cannon, two
-M240 7.62 mm machine guns, and 2 4-barrel launchers usually loaded
-with smoke canisters. The crew is three, and four passengers with
-combat gear. The vehicle has been through many changes through the
-late 90s. The new modification or SLEP (Service Life Extension
-Program) has changed the LAV-25 to an LAV-25A1 standard. (from
-Wikipedia)")
+(documentation LAV "The Light Armoured Vehicle (LAV, also called Mowag
+Piranha but not by the USMC) is a family of armoured fighting vehicles
+designed and manufactured by the Swiss Mowag corporation (now General
+Dynamics European Land Combat Systems).
+It is available in 4x4, 6x6, 8x8, and 10x10 wheel versions. There are
+several variants within these versions, giving different degrees of
+armour protection and several kinds of turrets, for use in a variety
+of roles. Piranha derivatives have been assigned roles as troop
+transports, command vehicles, fire support vehicles, tank trainers,
+and police vehicles. (from Wikipedia)")
+
+
+(subclass LAV25 LAV)
+(subclass LAV25 AmphibiousVehicle)
+
+(documentation LAV25 "LAV-25 (Light Armoured Vehicle) is an
+eight-wheeled armoured personnel carrier (APC) based on the Mowag
+Piranha family of armoured fighting vehicles used by the United States
+Marine Corps. Powered by a Detroit Diesel Turbo-Charged engine, they
+are 4 wheel drive (rear wheels) transferable to 8-wheel drive. These
+vehicles are also amphibious, meaning they have the ability to "swim",
+but are limited to non-surf bodies of water (No oceans). While engaged
+in amphibious operations, the maximum speed is approximately 12
+km/h. Typical land speeds are approximately 85 km/h in either 4 or
+8-wheel drive, however fuel economy decreases in 8-wheel drive. The
+vehicles operate on diesel fuel (JP-8), and require 3 weights of
+lubricants to remain in running condition. They are equipped with a
+M242 Bushmaster 25 mm cannon, two M240 7.62 mm machine guns, and 2
+4-barrel launchers usually loaded with smoke canisters. The crew is
+three, and four passengers with combat gear. The vehicle has been
+through many changes through the late 90s. The new modification or
+SLEP (Service Life Extension Program) has changed the LAV-25 to an
+LAV-25A1 standard. (from Wikipedia)")
+
+;; dimensions of an LAV25
+
+(=>
+  (instance ?LAV LAV25)
+  (and
+    (length ?LAV
+      (MeasureFn 19.44 Meter))
+    (width ?LAV
+      (MeasureFn 13 Meter))
+    (height ?LAV
+      (MeasureFn 5.6 Meter))))
+
+;; weapons carried by an LAV25
+
+(=>
+  (instance ?LAV LAV25)
+  (and
+    (weaponCarryingCapability ?LAV M242 1)
+    (weaponCarryingCapability ?LAV M240 2)))
+
+;; maximum passenger load of an LAV25
+
+(=>
+  (instance ?LAV LAV25)
+  (personTransportCapability ?LAV 4))
+
+(instance caliber BinaryPredicate)
+(instance caliber TotalValuedRelation)
+
+(domainSubclass caliber 1 Gun)
+(domain caliber 2 LengthMeasure)
+
+(documentation caliber "(&%caliber ?G ?L) means
+that the gun ?G is designed to shoot projectiles with a diameter of
+?L.")
+
+;; the projectiles shot with a gun depend on its caliber
+
+(=>
+  (and
+    (instance ?SHOT Shooting)
+    (instrument ?SHOT ?GUN)
+    (patient ?SHOT ?PROJ)
+    (width ?PROJ ?LM1)
+    (instance ?GUN ?GUNCLASS)
+    (instance ?PROJ Projectile)
+    (caliber ?GUNCLASS ?LM))
+  (equal ?LM ?LM1))
+
+;; the caliber enables a gun to shot projectiles of the
+;; right size (at least in theory)
+
+(=>
+  (and
+    (instance ?PROJ Projectile)
+    (caliber ?GUNCLASS ?LM)
+    (instance ?GUN ?GUNCLASS)
+    (width ?PROJ ?LM1)
+    (equal ?LM ?LM1))
+  (capability
+    (KappaFn ?SHOOTING
+      (and
+        (instance ?SHOOTING Shooting)
+        (patient ?SHOOTING ?PROJ)))
+     instrument ?GUN))
+
+;; a gun with a certain caliber has the purpose to shoot
+;; the right projectiles
+
+(=>
+  (and
+    (instance ?PROJ Projectile)
+    (caliber ?GUNCLASS ?LM)
+    (instance ?GUN ?GUNCLASS)
+    (width ?PROJ ?LM1)
+    (equal ?LM ?LM1))
+  (hasPurpose ?GUN
+    (exists (?SHOOTING)
+      (and
+        (instance ?SHOOTING Shooting)
+        (patient ?SHOOTING ?PROJ)
+        (instrument ?SHOOTING ?GUN)))))
+
+
+(subclass M242 AntiArmorWeapon)
+(subclass M242 ChainGun)
+
+(documentation M242 "The M242 Bushmaster is a 25 mm chain gun. It is
+currently used by the US Armed Forces and other NATO forces. It is
+used extensively on vehicles and aircraft.
+It is an externally powered, chain driven, single-barrel weapon which
+may be fired in semi-automatic or automatic modes. It is fed by a
+metallic link belt and has dual-feed capability. The term "chain gun"
+derives from the use of a roller chain that drives the bolt back and
+forth.
+It can destroy lightly armored vehicles and aerial targets (such as
+helicopters and slow-flying aircraft). It can also suppress enemy
+positions such as troops in the open, dug-in positions, and built-up
+areas. The standard rate of fire is 200 rounds per minute, and has a
+range of 2,000 meters (depending on the type of ammunition
+used). (from Wikipedia)")
+
+;; caliber of M242
+
+(caliber M242
+  (MeasureFn 25 Millimeter))
+
+;; effective range of M242
+
+(=>
+  (instance ?M242 M242)
+  (effectiveRange ?M242
+    (MeasureFn 2 Kilometer)))
+
+;; weight of M242
+
+(=>
+  (instance ?M242 M242)
+  (weight ?M242
+    (MeasureFn 110 Kilogram)))
+
+
+(subclass ChainGun HeavyMachineGun)
+
+(documentation ChainGun "A chain gun is a type of machine gun or
+automatic cannon that uses an external source of power, rather than
+recoil, to cycle the weapon, and does so via a continuous loop of
+chain similar to that used on a motor or bicycle. "Chain gun" is a
+registered trademark of McDonnell Douglas for a chain-powered weapon.
+The primary advantages of chain-driven weapons over their
+recoil-actuated counterparts are their reliability and
+controllability.
+Rather than being dependent upon recoil to actuate the system, which
+is usually derived from the detonation of a cartridge and is thus
+inherently uncontrollable, a chain gun instead depends on an external
+motor to produce power. The motor drives the chain, the chain moves in
+a rectangular loop via four sprockets which tension it, and one link
+of the chain is in turn connected to the bolt assembly; thus the bolt
+moves back and forth to load, fire, extract and eject cartridges. As
+with other externally-powered guns, this provides a degree of
+reliability. In addition, and again as with all externally-controlled
+guns, a misfired round does not stop the weapon - it is simply
+ejected.
+The speed of the motor also controls how fast the weapon fires, and
+thus provides controllability. During each full cycle of the chain
+link attached to the bolt assembly, two periods (passage along the
+'long' sides of the rectangle') control the time taken for the bolt to
+drive forward and chamber a round and how quickly it extracts it,
+whilst the other two periods - when the chain moves across the 'short'
+sides of the rectangle, sideways relative to the axis of the barrel -
+determine for how long the breech remains locked (during firing) and
+open (allowing extraction and ventilation of fumes etc). Since it is
+the time taken for the chain to move around a complete loop of the
+rectangle that controls the rate of fire of the gun, chain guns can
+theoretically operate at an infinite number of firing rates from
+single shot to the maximum imposed by mechanical etc tolerances. In
+practice, chain guns come with two or three pre-set firing
+speeds. (from Wikipedia)")
+
+
+
+(subclass M240 AutomaticGun)
+
+(documentation M240 "The M240 is a belt-fed 7.62 mm NATO medium
+machine gun. It has been used by the U.S. Armed Forces since the end
+of the 20th century, and is also used by other NATO forces. It is used
+extensively in the infantry as well as on vehicles and
+aircraft. Though not the lightest medium machine gun, it is highly
+regarded for reliability, and the firearm's standardization with those
+of other NATO allies is also seen as a major plus.
+The M240 designation is used to describe the whole family, but it is
+also a specic variant- a specialized co-axial model. There are many
+versions in service, see selected versions below:
+
+    * M240- a co-axial version adopted in 1977 by the US Army for use
+    * in tanks. This version of the FN MAG beat out the M60E2 and
+    * M219, as well as host of other medium machine guns including the
+    * MG3 and AA-52 co-axial versions. Entered service in the 1980s on
+    * the M1 Abrams.
+
+    * M240E1- a pintle mounted version that also entered service in
+    * the 1980s. Also used by USMC.
+
+    * M240G- a version used by the USMC starting 1994, including in
+    * infantry configuration as opposed to the previous vehicle
+    * mounted types.
+
+    * M240B- a ground version adopted by the Army in the late 1990s,
+    * with deliverys starting around 1998. Includes recoil buffer and
+    * front heat guard. Beat out other medium MGs.
+
+    * M240H- an improved model mainly for aircraft developed in the
+    * early first decade of the 2000s.
+ (from Wikipedia)")
+
+;; ammunition for M240
+
+(caliber M240
+  (MeasureFn 7.62 Millimeter))
+
+;; weight of M240
+
+(=>
+  (instance ?M240 M240)
+  (weight ?M240
+    (MeasureFn 12.5 Kilogram)))
+
+;; effective range of M240
+
+(=>
+  (instance ?M240 M240)
+  (effectiveRange ?M240
+    (MeasureFn 1.8 Kilometer)))
+
 
 (subclass APC MilitaryVehicle)
 (subclass APC PassengerVehicle)
