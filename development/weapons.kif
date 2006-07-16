@@ -1,0 +1,941 @@
+;; This is an initial check in of content in an early stage of
+;; development and is not yet suitable for general use.
+
+;; Access to and use of these products is governed by the GNU General
+;; Public License <http://www.gnu.org/copyleft/gpl.html>.  By using
+;; these products, you agree to be bound by the terms of the GPL.
+
+;; Those who are interested in making use of this ontology are urged
+;; to contact Adam Pease (adampease@earthlink.net) and Jan Scheffczyk
+;; (jan.scheffczyk@gmx.net).  Version date: July, 2006
+;; We ask the people using or referencing this work cite our primary
+;; paper:
+
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.
+;; In Proceedings of the 2nd International Conference on Formal
+;; Ontology in Information Systems (FOIS-2001), Chris Welty and Barry
+;; Smith, eds, Ogunquit, Maine, October 17-19, 2001.  See also
+;; http://www.ontologyportal.org
+
+(subclass ArtilleryCannon ArtilleryGun)
+(disjoint ArtilleryCannon MilitaryTank)
+
+(documentation ArtilleryCannon "A long-range &%ArtilleryGun that is
+capable of launching rockets or grenades or other explosives.")
+
+;; ACs shoot missiles or grenades
+
+(=>
+  (and
+    (instance ?SHOOTING Shooting)
+    (instrument ?SHOOTING ?AC)
+    (instance ?AC ArtilleryCannon))
+  (exists (?PROJ)
+    (and
+      (instrument ?SHOOTING ?PROJ)
+      (instance ?PROJ
+        (unionFn Missile Grenade)))))
+
+
+(subclass Grenade Projectile)
+(subclass Grenade ExplosiveDevice)
+
+(documentation Grenade "A larger projectile that is not self powered
+and launched by some ArtilleryCannon or MortarGun")
+
+;; MortarGuns shoot grenades
+
+(=>
+  (and
+    (instance ?SHOOTING Shooting)
+    (instrument ?SHOOTING ?MG)
+    (instance ?MG MortarGun))
+  (exists (?PROJ)
+    (and
+      (instrument ?SHOOTING ?PROJ)
+      (instance ?PROJ Grenade))))
+
+(instance caliber BinaryPredicate)
+(instance caliber TotalValuedRelation)
+
+(domainSubclass caliber 1 Gun)
+(domain caliber 2 LengthMeasure)
+
+(documentation caliber "(&%caliber ?G ?L) means that the gun ?G is
+designed to shoot projectiles with a diameter of ?L.")
+
+;; the projectiles shot with a gun depend on its caliber
+
+(=>
+  (and
+    (instance ?SHOT Shooting)
+    (instrument ?SHOT ?GUN)
+    (patient ?SHOT ?PROJ)
+    (width ?PROJ ?LM1)
+    (instance ?GUN ?GUNCLASS)
+    (instance ?PROJ Projectile)
+    (caliber ?GUNCLASS ?LM))
+  (equal ?LM ?LM1))
+
+;; the caliber enables a gun to shot projectiles of the
+;; right size (at least in theory)
+
+(=>
+  (and
+    (instance ?PROJ Projectile)
+    (caliber ?GUNCLASS ?LM)
+    (instance ?GUN ?GUNCLASS)
+    (width ?PROJ ?LM1)
+    (equal ?LM ?LM1))
+  (capability
+    (KappaFn ?SHOOTING
+      (and
+        (instance ?SHOOTING Shooting)
+        (patient ?SHOOTING ?PROJ)))
+     instrument ?GUN))
+
+;; a gun with a certain caliber has the purpose to shoot
+;; the right projectiles
+
+(=>
+  (and
+    (instance ?PROJ Projectile)
+    (caliber ?GUNCLASS ?LM)
+    (instance ?GUN ?GUNCLASS)
+    (width ?PROJ ?LM1)
+    (equal ?LM ?LM1))
+  (hasPurpose ?GUN
+    (exists (?SHOOTING)
+      (and
+        (instance ?SHOOTING Shooting)
+        (patient ?SHOOTING ?PROJ)
+        (instrument ?SHOOTING ?GUN)))))
+
+
+(subclass M242 AntiArmorWeapon)
+(subclass M242 ChainGun)
+
+(documentation M242 "The M242 Bushmaster is a 25 mm chain gun. It is
+currently used by the US Armed Forces and other NATO forces. It is
+used extensively on vehicles and aircraft.
+It is an externally powered, chain driven, single-barrel weapon which
+may be fired in semi-automatic or automatic modes. It is fed by a
+metallic link belt and has dual-feed capability. The term "chain gun"
+derives from the use of a roller chain that drives the bolt back and
+forth.
+It can destroy lightly armored vehicles and aerial targets (such as
+helicopters and slow-flying aircraft). It can also suppress enemy
+positions such as troops in the open, dug-in positions, and built-up
+areas. The standard rate of fire is 200 rounds per minute, and has a
+range of 2,000 meters (depending on the type of ammunition
+used). (from Wikipedia)")
+
+;; caliber of M242
+
+(caliber M242
+  (MeasureFn 25 Millimeter))
+
+;; effective range of M242
+
+(=>
+  (instance ?M242 M242)
+  (effectiveRange ?M242
+    (MeasureFn 2 Kilometer)))
+
+;; weight of M242
+
+(=>
+  (instance ?M242 M242)
+  (weight ?M242
+    (MeasureFn 110 Kilogram)))
+
+(subclass GAU12U AntiArmorWeapon)
+(subclass GAU12U GatlingGun)
+
+(documentation MGAU12U "The five-barrel 'Equalizer' cannon was developed
+in the late 1970s, based on the mechanism of the GAU-8/A Avenger
+cannon, but firing a new NATO series of 25 mm ammunition.
+The GAU-12U cannon is operated by a 15 hp (11 kW) electric motor, in
+external mounts supplied by a bleed air-drive pneumatic system. Its
+rate of fire is normally 3,600 rounds per minute, with a maximum of
+4,200 rounds per minute.
+The Equalizer normally uses PGU-20/U armor-piercing incendiary (API)
+or PGU-22 or PGU-25 high-explosive incendiary (HEI) ammunition. With a
+harder-hitting projectile and comparable muzzle velocity, it is more
+lethal than the older M61 Vulcan, and more effective than the older 30
+mm ADEN cannon it replaces. (from Wikipedia)")
+
+
+;; caliber of GAU12U
+
+(caliber GAU12U
+  (MeasureFn 25 Millimeter))
+
+;; weight of GAU12U
+
+(=>
+  (instance ?GAU12U GAU12U)
+  (weight ?GAU12U
+    (MeasureFn 122 Kilogram)))
+
+
+(subclass ChainGun HeavyMachineGun)
+
+(documentation ChainGun "A chain gun is a type of machine gun or
+automatic cannon that uses an external source of power, rather than
+recoil, to cycle the weapon, and does so via a continuous loop of
+chain similar to that used on a motor or bicycle. "Chain gun" is a
+registered trademark of McDonnell Douglas for a chain-powered weapon.
+The primary advantages of chain-driven weapons over their
+recoil-actuated counterparts are their reliability and
+controllability.
+Rather than being dependent upon recoil to actuate the system, which
+is usually derived from the detonation of a cartridge and is thus
+inherently uncontrollable, a chain gun instead depends on an external
+motor to produce power. The motor drives the chain, the chain moves in
+a rectangular loop via four sprockets which tension it, and one link
+of the chain is in turn connected to the bolt assembly; thus the bolt
+moves back and forth to load, fire, extract and eject cartridges. As
+with other externally-powered guns, this provides a degree of
+reliability. In addition, and again as with all externally-controlled
+guns, a misfired round does not stop the weapon - it is simply
+ejected.
+The speed of the motor also controls how fast the weapon fires, and
+thus provides controllability. During each full cycle of the chain
+link attached to the bolt assembly, two periods (passage along the
+'long' sides of the rectangle') control the time taken for the bolt to
+drive forward and chamber a round and how quickly it extracts it,
+whilst the other two periods - when the chain moves across the 'short'
+sides of the rectangle, sideways relative to the axis of the barrel -
+determine for how long the breech remains locked (during firing) and
+open (allowing extraction and ventilation of fumes etc). Since it is
+the time taken for the chain to move around a complete loop of the
+rectangle that controls the rate of fire of the gun, chain guns can
+theoretically operate at an infinite number of firing rates from
+single shot to the maximum imposed by mechanical etc tolerances. In
+practice, chain guns come with two or three pre-set firing
+speeds. (from Wikipedia)")
+
+
+
+(subclass M240 AutomaticGun)
+
+(documentation M240 "The M240 is a belt-fed 7.62 mm NATO medium
+machine gun. It has been used by the U.S. Armed Forces since the end
+of the 20th century, and is also used by other NATO forces. It is used
+extensively in the infantry as well as on vehicles and
+aircraft. Though not the lightest medium machine gun, it is highly
+regarded for reliability, and the firearm's standardization with those
+of other NATO allies is also seen as a major plus.
+The M240 designation is used to describe the whole family, but it is
+also a specic variant- a specialized co-axial model. There are many
+versions in service, see selected versions below:
+
+    * M240- a co-axial version adopted in 1977 by the US Army for use
+    * in tanks. This version of the FN MAG beat out the M60E2 and
+    * M219, as well as host of other medium machine guns including the
+    * MG3 and AA-52 co-axial versions. Entered service in the 1980s on
+    * the M1 Abrams.
+
+    * M240E1- a pintle mounted version that also entered service in
+    * the 1980s. Also used by USMC.
+
+    * M240G- a version used by the USMC starting 1994, including in
+    * infantry configuration as opposed to the previous vehicle
+    * mounted types.
+
+    * M240B- a ground version adopted by the Army in the late 1990s,
+    * with deliverys starting around 1998. Includes recoil buffer and
+    * front heat guard. Beat out other medium MGs.
+
+    * M240H- an improved model mainly for aircraft developed in the
+    * early first decade of the 2000s.
+ (from Wikipedia)")
+
+;; ammunition for M240
+
+(caliber M240
+  (MeasureFn 7.62 Millimeter))
+
+;; weight of M240
+
+(=>
+  (instance ?M240 M240)
+  (weight ?M240
+    (MeasureFn 12.5 Kilogram)))
+
+;; effective range of M240
+
+(=>
+  (instance ?M240 M240)
+  (effectiveRange ?M240
+    (MeasureFn 1.8 Kilometer)))
+
+(subclass HeavyMachineGun AutomaticGun)
+
+(documentation HeavyMachineGun "A heavy machine gun refers to either a
+larger-caliber, high-power machine gun or one of the smaller,
+medium-caliber (rifle caliber) machine guns meant for prolonged firing
+from heavy mounts, less mobile, or static positions (or some
+combination of the two). The latter meaning is generally thought of as
+an older meaning, and the former as a modern one, but both weapon
+types have histories extending back to the 1800s. Furthermore, heavier
+smaller-caliber weapons continue to be used up to the present.
+A classic example of a rifle-caliber heavy machine gun would be a
+water-cooled Maxim machine gun that was belt fed, had a water jacket,
+was crew served, and mounted on tripod or wheeled mount. Other types
+used linkable strips (such as the Hotchkiss) or large magazines. A
+common example of a heavy-caliber machine gun would be the Browning M2
+.50-caliber machine gun. Firearms with calibers larger than 13 to 15
+mm are generally thought of as autocannons instead of heavy machine
+guns. (from Wikipedia)")
+
+(subclass M2Browning HeavyMachineGun)
+
+(documentation M2Browning "The M2 Machine Gun, or Browning .50 Caliber
+Machine Gun is a heavy machine gun designed just after World War I by
+John Browning. It is nicknamed Ma Deuce by US troops or simply called
+fifty caliber machine gun. The design has had many specific
+designations- the official designation for the infantry type is
+Browning Machine Gun, Heavy Barrel, Cal. .50, M2, HB, Flexible. The
+Browning .50 machine gun was used extensively as a vehicle weapon and
+for aircraft armament by the United States from the 1920s to the
+present day. It was heavily used during World War II, Korean War, the
+Vietnam Conflict, as well as during operations in Iraq in the 1990s
+and 2000s. It is the primary heavy machine gun of NATO countries, and
+has been used by many other countries. It is still in use today. It
+was very similar in design to the smaller Browning Model 1919 machine
+gun .30-06 Springfield. 
+Type 	Fully-automatic machine gun
+Caliber 	.50 in (12.7 mm)
+Ammunition 	.50 BMG
+Feed system 	Belt-fed
+Action 	Recoil-operated; short recoil
+Length 	1,650 mm (65 in)
+Barrel length 	1,140 mm (44 7/8 in)
+Weight 	38 kg (58 kg w/ tripod)
+Rate of fire 	550 round/min
+Muzzle velocity 	3,050 ft/s (930 m/s)
+Effective range 	2,000 m (2200 yards)
+ (from Wikipedia)")
+
+
+;; ammunition for M2Browning
+
+(caliber M2Browning
+  (MeasureFn 12.7 Millimeter))
+
+;; weight of M2Browning
+
+(=>
+  (instance ?M2Browning M2Browning)
+  (weight ?M2Browning
+    (MeasureFn 38 Kilogram)))
+
+;; effective range of M2Browning
+
+(=>
+  (instance ?M2Browning M2Browning)
+  (effectiveRange ?M2Browning
+    (MeasureFn 2 Kilometer)))
+
+
+
+(subclass GrenadeLauncher HeavyMachineGun)
+
+(documentation GrenadeLauncher "A grenade launcher is an machine gun
+able to shoot grenades at high frequency.")
+
+;; grenade launchers shoot grenades
+
+(=>
+  (and
+    (instance ?SHOOTING Shooting)
+    (instrument ?SHOOTING ?AC)
+    (instance ?AC GrenadeLauncher))
+  (exists (?PROJ)
+    (and
+      (instrument ?SHOOTING ?PROJ)
+      (instance ?PROJ Grenade))))
+
+
+(subclass MK19 GrenadeLauncher)
+
+(documentation MK19 "The MK19 (also known as MK-19, M19, Mark 19, or
+Mk 19) is a belt-fed grenade machine gun capable of firing five
+grenades per second.
+The Mk 19 fires 40mm grenades at a cyclic rate of 300 to 400 rounds
+per minute, giving a practical rate of fire of 60 rpm (rapid) and 40
+rpm (sustained). The weapon operates on the blowback principle, which
+uses the chamber pressure from each fired round to load and re-cock
+the weapon. The Mk 19 is able to lob its grenade at a maximum distance
+of 2.2km, though its effective range is about 1.6km. The nearest safe
+distance to launch the grenade is 75 meters. In addition, the Mk 19's
+flash suppressor and its lack of smoke during firing makes it
+difficult for enemies to spot and counter it. For night operation, an
+AN/TVS-5 night vision sight can be fitted.
+The Mk 19 is a man-portable crew-served weapon that can fire from a
+tripod mounted position or from a vehicle mount (this being the
+preferred method as the weapon alone weighs 33 kg). The primary
+ammunition for Mk 19 is the high explosive dual-purpose M430
+grenade. Upon impact, the grenade can kill anyone within the radius of
+five meters, and wound them within the radius of 15 meters. It can
+also punch through two inches of armour, which means it can take out
+most infantry fighting vehicles and armoured personnel carriers. It is
+especially deadly when used against enemy infantry formations. The
+ammunition comes in 32 or 48 round cans weighing 42 and 60 lb (20 and
+30 kg). Due to its low recoil and comparatively light weight, it has
+been adapted for use on many different platforms, including small
+attack boats, fast attack vehicles such as the Humvee (HMMWV) and
+Stryker, military jeeps and as well as a large variety of naval
+mounts. (from Wikipedia)")
+
+;; ammunition for MK19
+
+(caliber MK19
+  (MeasureFn 40 Millimeter))
+
+;; weight of MK19
+
+(=>
+  (instance ?MK19 MK19)
+  (weight ?MK19
+    (MeasureFn 33 Kilogram)))
+
+;; effective range of MK19
+
+(=>
+  (instance ?MK19 MK19)
+  (effectiveRange ?MK19
+    (MeasureFn 1.6 Kilometer)))
+
+
+(subclass AntiArmorWeapon Weapon)
+
+(documentation AntiArmorWeapon "A weapon designed to damage the armor
+of military vehicles or bunkers")
+
+;; AntiArmorWeapons should damage armors
+
+(=>
+  (instance ?W AntiArmorWeapon)
+  (hasPurpose ?W
+    (exists (?DAMAGING ?ARMOR)
+      (and
+        (instance ?DAMAGING Damaging)
+        (instrument ?DAMAGING ?W)
+        (patient ?DAMAGING ?ARMOR)
+        (instance ?ARMOR Armor)))))
+
+(subclass DragonWeapon AntiArmorWeapon)
+(subclass DragonWeapon Missile)
+
+(documentation DragonWeapon "Primary function: Anti-armor weapon
+system ManBuilder: McDonnell Douglas Aerospace and Missile Systems and
+Raytheon
+Length:
+Launcher: 45.4 inches (115.32 cm)
+Missile: 33.3 inches (84.58 centimeters)
+Weight:
+Ready to Fire: 33.9 lbs (Day Tracker)
+48.7 lbs (Night Tracker)
+Day Tracker (Sights): 6.75 lbs
+Thermal Night Tracker (w/1 bottle and battery): 21.65 lbs
+Maximum effective range: 3281 feet (1000 meters)
+Time of flight: 11.2 seconds
+Armor penetration: Will defeat T-55, T-62, or T-72 w/o added armor
+Unit Replacement Cost:
+Night Tracker System: $51,000
+Day Tracker System: $13,000
+Mission: Primary: To engage and destroy armor and light armored
+vehicles. Secondary: defeat hard targets such as bunkers and field
+fortifications.
+Features: The warhead power of Dragon makes it possible for a single
+Marine to defeat armored vehicles, fortified bunkers, concrete gun
+emplacements, or other hard targets. The launcher consists of a
+smoothbore fiberglass tube, breech/gas generator, tracker and support,
+bipod, battery, sling, and forward and aft shock
+absorbers. Non-integral day and night sights are required to utilize
+the Dragon.  The complete system consists of the launcher, the tracker
+and the missile, which is installed in the launcher during final
+assembly and received by the Marine Corps in a ready to fire
+condition. The launch tube serves as the storage and carrying case for
+the missile. The night tracker operates in the thermal energy range.
+(from http://www.hqmc.usmc.mil/factfile.nsf/0/8d198eb6ac07b33b8525627b00567d5e?OpenDocument)")
+
+;; weight of DragonWeapon
+
+(=>
+  (instance ?DragonWeapon DragonWeapon)
+  (weight ?DragonWeapon
+    (MeasureFn 33.9 PoundMass)))
+
+;; effective range of DragonWeapon
+
+(=>
+  (instance ?DragonWeapon DragonWeapon)
+  (effectiveRange ?DragonWeapon
+    (MeasureFn 1.0 Kilometer)))
+
+
+(subclass JavelinWeapon AntiTankWeapon)
+(subclass JavelinWeapon Missile)
+
+(documentation JavelinWeapon "The Javelin is a manportable,
+fire-and-forget antitank missile employed by dismounted infantry to
+defeat current and future threat armored combat vehicles. Its range of
+about 1.5 miles is more than twice that of its predecessor, the
+Dragon.
+The Javelin has secondary capabilities against helicopters and
+ground-fighting positions. It is equipped with an imaging infrared
+system and a fire-and-forget guided missile. The Javelin's normal
+engagement mode is top-attack to penetrate the tank's most vulnerable
+armor. It also has a direct-attack capability to engage targets with
+overhead cover or in bunkers. Its "soft launch" allows employment from
+within buildings and enclosed fighting positions. The soft launch
+signature limits the gunner's exposure to the enemy, thus increasing
+survivability.
+The Javelin is credited with helping U.S. Special Forces and Kurdish
+troops repel an Iraqi attack in April 2003 in one of the biggest tank
+battles of Operation Iraqi Freedom. Traveling in eight trucks, the
+coalition troops were met by surprise attack from an Iraqi
+brigade. The Special Forces used 19 Javelins against the Iraqis, who
+had 12 tanks and 24 armored personnel carriers. The shoulder-held
+anti-tank weapons stopped two T-55 tanks, eight personnel carriers,
+and four troop trucks even though not one of the U.S. soldiers had
+ever fired the weapon before the engagement.
+The Javelin consists of a missile in a disposable launch tube and a
+reusable Command Launch Unit (CLU) with a trigger mechanism and the
+integrated day/night sighting device for surveillance, and target
+acquisition and built-in test capabilities and associated
+electronics. The CLU, powered by a disposable battery, provides the
+capability for battlefield surveillance, target acquisition, missile
+launch and damage assessment.
+The round consists of a disposable launch tube assembly, battery
+coolant unit, and the missile. The 3.5-foot-long missile locks on to
+the target before launch using an infrared focal plane array and
+on-board processing, which also maintains target track and guides the
+missile to the target after launch. A full-up system weighs 49.5
+pounds.
+The U.S. Army awarded the Javelin contract in 1989 to Raytheon and
+Lockheed Martin; the weapon was deployed some seven years later. Since
+then at least nine other countries have selected the weapon for their
+arsenals.
+The Javelin is one of about 1,400 weapon systems supported by Defense
+Supply Center Columbus, which supplies several of the missile's spare
+parts to the U.S. Marine Corps through the Performance Based Logistics
+arrangement. Three DSCC organizations manage these parts - the
+Land-based Weapon Systems Group, the Commodity-based Application Group
+and the Maritime Weapon Systems Group.
+(from http://federalvoice.dscc.dla.mil/federalvoice/040728/weapon.html)")
+
+;; weight of JavelinWeapon
+
+(=>
+  (instance ?JavelinWeapon JavelinWeapon)
+  (weight ?JavelinWeapon
+    (MeasureFn 49.5 PoundMass)))
+
+;; effective range of JavelinWeapon
+
+(=>
+  (instance ?JavelinWeapon JavelinWeapon)
+  (effectiveRange ?JavelinWeapon
+    (MeasureFn 1.5 Mile)))
+
+
+(subclass SMAWBunkerBuster AntiArmorWeapon)
+(subclass SMAWBunkerBuster Missile)
+
+(documentation SMAWBunkerBuster "The Shoulder-launched Multipurpose
+Assault Weapon (SMAW) is a versatile, lightweight and lethal weapon
+system. SMAW, employed by the United States Marine Corps for more than
+twenty years, has proven performance in combat situations, easily
+demolishing bunkers, breaching fortifications, and defeating armored
+vehicles. The man-portable SMAW is exceedingly accurate and reliable,
+exhibiting an average hit probability greater than 90 percent on a 1 x
+2 meter target at combat ranges.
+SMAW is perfectly suited for MOUT scenarios, enabling the gunner to
+defeat enemy fortifications while remaining under protective cover,
+greatly enhancing survivability. SMAW will feature even greater
+capability with a new Confined Space fire-from-enclosure
+version. Talley Defense Systems, in cooperation with the US Marine
+Corps, is perfecting a design which drastically reduces backblast and
+over-pressure, and virtually eliminates flash and smoke when firing
+the weapon.
+The SMAW is an 83mm man-portable weapon system consisting of the MK153
+Mod 0 launcher, the MK 3 Mod 0 encased HEDP rocket, the MK 6 Mod 0
+encased HEAA rocket, and the MK217 Mod 0 spotting rifle cartridge. The
+launcher consists of a fiberglass launch tube, a 9mm spotting rifle,
+an electro-mechanical firing mechanism, open battle sights, and a
+mount for the MK42 Mod 0 optical and AN/PVS-4 night sights.
+The SMAW MK153 Mod 0 launcher is based on the Israeli B-300 and
+consists of the launch tube, the spotting rifle, the firing mechanism,
+and mounting brackets. The launch tube is fiberglass/epoxy with a gel
+coat on the bore. The spotting rifle is a British design and is
+mounted on the right side of the launch tube. The firing mechanism
+mechanically fires the spotting rifle and uses a magneto to fire the
+rocket. The mounting brackets connect the components and provide the
+means for boresighting the weapon. The encased rockets are loaded at
+the rear of the launcher. The spotting cartridges are stored in a
+magazine in the cap of the encased rocket.
+The SMAW system (launcher, ammunition and logistics support) was
+fielded in 1984 as a Marine Corps unique system. At that time, the
+SMAW included the MK153 Mod 0 launcher, the MK3 Mod 0 HEDP encased
+rocket, the MK4 Mod 0 practice rocket and the MK217 Mod 0 9mm spotting
+cartridge. The MK6 Mod 0 encased HEAA rocket is being added to the
+inventory.
+The MOD 0 has demonstrated several shortcomings. A series of
+modifications is currently planned to address the deficiencies. They
+include a resleeving process for bubbled launch tubes,
+rewriting/drafting operator and technical manuals, a kit that will
+reduce environmental intrusion into the trigger mechanism, and an
+optical sight modification to allow the new HEAA rocket to be used
+effectively against moving armor targets. Recently fielded were new
+boresight bracket kits that, when installed, will solve the loss of
+boresight problem between launch tube and spotting rifle.
+(from
+http://www.globalsecurity.org/military/systems/ground/smaw.htm)")
+
+;; ammunition for SMAWBunkerBuster
+
+(caliber SMAWBunkerBuster
+  (MeasureFn 83 Millimeter))
+
+;; weight of SMAWBunkerBuster
+
+(=>
+  (instance ?SMAWBunkerBuster SMAWBunkerBuster)
+  (weight ?SMAWBunkerBuster
+    (MeasureFn 7.54 Kilogram)))
+
+;; effective range of SMAWBunkerBuster
+
+(=>
+  (instance ?SMAWBunkerBuster SMAWBunkerBuster)
+  (effectiveRange ?SMAWBunkerBuster
+    (MeasureFn 0.5 Kilometer)))
+
+
+(subclass BGM71TOW AntiTankMissile)
+
+(documentation BGM71TOW "The BGM-71 TOW is a US anti-tank missile. TOW
+stands for Tube-launched, Optically tracked, Wire-guided.
+
+The TOW was first produced in 1970 and is the most widely used
+anti-tank missile in the world. Current production TOWs can penetrate
+all currently known tank armor. (from Wikipedia)")
+
+;; weight of BGM71TOW
+
+(=>
+  (instance ?BGM71TOW BGM71TOW)
+  (weight ?BGM71TOW
+    (MeasureFn 18.9 Kilogram)))
+
+;; effective range of BGM71TOW
+
+(=>
+  (instance ?BGM71TOW BGM71TOW)
+  (effectiveRange ?BGM71TOW
+    (MeasureFn 3 Kilometer)))
+
+
+(subclass AntiTankWeapon AntiArmorWeapon)
+
+(documentation AntiTankWeapon "A weapon primarily designed to destroy
+tanks and other armored vehicles. Most often these weapons are
+(self-guided) missiles.")
+
+;; anti tank weapons should damage armored vehicles
+
+(=>
+  (instance ?W AntiTankWeapon)
+  (hasPurpose ?W
+    (exists (?DAMAGING ?V)
+      (and
+        (instance ?DAMAGING Damaging)
+        (instrument ?DAMAGING ?W)
+        (patient ?DAMAGING ?V)
+        (instance ?V ArmoredVehicle)))))
+
+
+(subclass AntiTankMissile AntiTankWeapon)
+(subclass AntiTankMissile Missile)
+
+(documentation AntiTankMissile "An Anti-Tank Guided Missile (ATGM) or
+Anti-Tank Guided Weapon (ATGW) is a guided missile primarily designed
+to hit and destroy heavily armored tanks and other armoured fighting
+vehicles.
+ATGMs range in size from shoulder-launched weapons which can be
+transported by a single soldier, to larger tripod mounted weapons
+which require a squad or team to transport and fire, to vehicle and
+aircraft mounted missile systems.
+The introduction of smaller, man-portable ATGMs with larger warheads
+to the modern battlefield has given infantry the ability to defeat
+even heavily armored main battle tanks at great ranges, usually with
+the first shot. Earlier infantry anti-tank weapons such as anti-tank
+rifles, anti-tank rockets and magnetic anti-tank mines had limited
+armor-penetration abilities and/or required a soldier to approach the
+target closely. (from Wikipedia)")
+
+
+(subclass M197GatlingGun GatlingGun)
+
+(documentation M197GatlingGun "The M197 electric cannon is a
+three-barreled electric Gatling gun developed primarily for use by
+United States Army helicopter gunships.
+Development of the M197 began in 1967 after experience in the Vietnam
+War revealed the inadequacy of the 7.62 mm Minigun for gunship
+use. The M197 is essentially a lightened version of the General
+Electric M61 Vulcan cannon, with three barrels instead of six. Its
+maximum rate of fire is one quarter that of the Vulcan, largely to
+limit its recoil for light aircraft and helicopter use. It shares the
+Vulcan's M50 and PGU series 20 mm ammunition.
+The M197 went into service on later marks of the AH-1 Cobra, and was
+also fitted in a ventral turret on the U.S. Marine Corps OV-10D
+Bronco. It is also the basis of the GPU-2 gun pod, which incorporates
+the cannon, a battery and electric drive motor, and 300 rounds of
+linkless ammunition.
+In the Cobra, the weapon is supplied with a magazine of 700 linked
+rounds. It has a cyclic rate of fire of 730 rounds per minute (± 50
+rounds). Standard practice is to fire the cannon in 100-round bursts,
+allowing several minutes of cooling time between bursts.
+The M197 remains in use in the latest AH-1W and AH-1Z Cobra
+gunships. Although the weapon's rotary drive is theoretically quite
+reliable, its ammunition feed has been anything but: Marine pilots
+report an alarmingly high jam rate (sometimes greater than 30%). The
+USMC and the manufacturer are aware of the problem, but no specific
+fix has been incorporated on the AH-1Z. In the meantime, crews have
+been trained in techniques intended to minimize the risk of
+jamming. (from Wikipedia)")
+
+(subclass GatlingGun AutomaticGun)
+
+(documentation GatlingGun "The Gatling gun was the first highly
+successful rapid-repeating firearm. It was the first firearm to
+combine reliability, high firing rate and ease of loading into a
+single device. It was designed by the American inventor Richard
+J. Gatling, in 1861 and patented on May 9, 1862. In modern usage it
+typically refers to guns with a similar rotating barrel design.
+Depending on how one defines the term, the Gatling gun is not the
+first "machine gun", despite frequent references to it as such;
+machine guns operate entirely on a fraction of the power of the fired
+cartridge, while the Gatling relies on external power (hand crank, or
+electric/hydraulic motor). (from Wikipedia)")
+
+(subclass AirLaunchMissile Missile)
+
+(documentation AirLaunchMissile "A missile launched from the air.")
+
+;; Air launched missiles are launched from the air
+
+(=>
+  (and
+    (instance ?FLYING Flying)
+    (patient ?FLYING ?ALM)
+    (instance ?ALM AirLaunchMissile))
+  (exists (?REGION)
+    (and
+      (instance ?REGION AtmosphericRegion)
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?FLYING))
+        (located ?ALM ?REGION)))))
+
+
+(subclass GroundLaunchMissile Missile)
+
+(documentation GroundLaunchMissile "A missile launched from the ground.")
+
+;; Ground launched missiles can take part in a TakingOff
+
+(=>
+  (instance ?GLM GroundLaunchMissile)
+  (not
+    (capability TakingOff patient ?GLM)))
+
+
+(subclass AirAttackMissile Missile)
+
+(documentation AirAttackMissile "A missile that attacks targets in the
+air.")
+
+;; Air attack missiles attack targets in the air
+
+(=>
+  (instance ?M AirAttackMissile)
+  (hasPurpose
+    (exists (?OBJ ?REGION ?DAMAGE)
+      (and
+        (instrument ?DAMAGE ?M)
+        (patient ?DAMAGE ?OBJ)
+        (instance ?DAMAGE Damaging)
+        (instance ?REGION AtmosphericRegion)
+        (holdsDuring
+          (BeginFn
+            (WhenFn ?DAMAGE))
+          (and
+            (located ?M ?REGION)
+            (located ?OBJ ?REGION)))))))
+
+(subclass GroundAttackMissile Missile)
+
+(documentation GroundAttackMissile "A missile that attacks targets on
+the ground.")
+
+;; Ground attack missiles attack targets on the ground
+
+(=>
+  (instance ?M GroundAttackMissile)
+  (hasPurpose
+    (exists (?OBJ ?REGION ?DAMAGE)
+      (and
+        (instrument ?DAMAGE ?M)
+        (patient ?DAMAGE ?OBJ)
+        (instance ?DAMAGE Damaging)
+        (instance ?REGION GeographicArea)
+        (holdsDuring
+          (BeginFn
+            (WhenFn ?DAMAGE))
+          (and
+            (located ?M ?REGION)
+            (located ?OBJ ?REGION)))))))
+
+(subclass GuidedMissile Missile)
+
+(documentation GuidedMissile "Missiles that have the ability to
+maneuver through the air can be guided, and are known as guided
+missiles. These have three key system components:
+    * tracking
+    * guidance
+    * flight
+A tracking system locates the missile's target. This can be either a
+human gunner aiming a sight on the target (remotely from the missile)
+or an automatic tracker. Automatic trackers use radiation emanating
+from the target or emitted from the launch platform and reflecting
+back to it from the target. Passive automatic trackers use the
+target's inherent radiation, usually heat or light, but missiles
+designed to attack Command & Control posts, aircraft or guided
+missiles may look for radio waves. Active automatic trackers rely on
+the target being illuminated by radiation. The target can be "painted"
+with light (sometimes infrared and/or laser) or radio waves (radar)
+which can be detected by the missile. The radiation for the painting
+can originate in the missile itself or may come from a remote station
+(for example, a hilltop gunner can illuminate a target with a laser
+device and this can be used to direct an air launched guided missile).
+A guidance system takes data from the missile's tracking system and
+flight system and computes a flight path for the missile designed to
+intercept the target. It produces commands for the flight system.
+The flight system causes the missile to maneuver. There are two main
+systems: vectored thrust (for missiles that are powered throughout the
+guidance phase of their flight) and aerodynamic maneuvering (wings,
+fins, canards, etc).
+There are some similarities between guided missiles and guided
+bombs. A guided bomb, dropped from an aircraft, is unpowered and uses
+aerodynamic fins for forward horizontal maneuvering while falling
+vertically. (from Wikipedia)")
+
+;; guided missiles guide their own flight
+
+(=>
+  (and
+    (instance ?M GuidedMissile)
+    (instance ?FLYING Flying)
+    (patient ?FLYING ?M))
+  (exists (?GUIDING)
+    (and
+      (instance ?GUIDING Guiding)
+      (patient ?GUIDING ?FLYING)
+      (agent ?GUIDING ?M)
+      (during
+        (WhenFn ?GUIDING)
+        (WhenFn ?FLYING)))))
+
+(subclass InfraRedGMissile GuidedMissile)
+
+(documentation InfraRedGMissile "A missile that is guided by infrared
+homing. Infra-red homing refers to a guidance system which uses the
+infra-red light emission from a target to track it. Missiles which use
+infra-red seeking are often referred to as "heat-seekers". Infra-red
+(IR) is just below the visible spectrum of light in frequency and is
+radiated strongly by hot bodies. Many objects such as people, vehicle
+engines and aircraft generate and retain heat, and as such, are
+especially visible in the infra-red wavelengths of light compared to
+objects in the background. (from Wikipedia)")
+
+;; infrared guided missiles are made to damage objects that emit
+;; infrared waves
+
+(=>
+  (instance ?M InfraRedGMissile)
+  (hasPurpose
+    (exists (?DAMAGE ?OBJ ?RADIATION)
+      (instance ?DAMAGE Damaging)
+      (instrument ?DAMAGE ?M)
+      (patient ?DAMAGE ?OBJ)
+      (instance ?RADIATION RadiatingInfrared)
+      (agent ?RADIATION ?OBJ))))
+
+
+(subclass AGM AirLaunchMissile)
+(subclass AGM GroundAttackMissile)
+
+(documentation AGM "An air-to-surface missile (also, air-to-ground
+missile, ASM or AGM) is a missile designed to be launched from
+military aircraft (bombers, attack aircraft, fighter aircraft or other
+kinds) and strike ground targets on land, at sea, or both. They are
+similar to guided glide bombs but to be considered a missile, they
+usually contain some form of propulsion system. The two most common
+propulsion systems for air-to-surface missiles are rocket motors and
+jet engines. These also tend to correspond to the range of the
+missiles - short and long, respectively. Some Soviet air-to-surface
+missiles are powered by ramjets, giving them both long range and high
+speed. (from Wikipedia)")
+
+(subclass AGM65 AGM)
+(subclass AGM65 InfraredGMissile)
+
+(documentation AGM65 "The AGM-65 Maverick is an air-to-surface
+tactical missile (ASM) designed for close air support, prohibition,
+and forceful prevention. It is effective against a wide range of
+tactical targets, including armor, air defenses, ships, ground
+transportation, and fuel storage facilities.
+The AGM-65F (infrared targeting) used by the US Navy has an infrared
+guidance system optimized for ship tracking and a larger penetrating
+warhead than the shaped charge used by the US Marine Corps and the US
+Air Force (300 pounds (136 kg) vs 125 pounds (57 kg)). The AGM-65 has
+two types of warheads; one has a contact fuze in the nose, and the
+other has a heavyweight warhead with a delayed fuze, which penetrates
+the target with its kinetic energy before firing. The latter is most
+effective against large, hard targets. The propulsion system for both
+types is a solid-fuel rocket motor behind the warhead. (from
+Wikipedia)"
+
+;; dimensions & weight & effectiveRange of an AGM65
+
+(=>
+  (instance ?AGM65 AGM65)
+  (and
+    (length ?AGM65
+      (MeasureFn 2.55 Meter))
+    (width ?AGM65
+      (MeasureFn 0.7 Meter))
+    (height ?AGM65
+      (MeasureFn 0.7 Meter))
+    (weight ?AGM65
+      (MeasureFn 302 Kilogram))
+    (effectiveRange ?AGM65
+      (MeasureFn 27 Kilometer))))
+
+
+(subclass AIM9 AAM)
+(subclass AIM9 InfraredGMissile)
+
+(documentation AIM9 "The AIM-9 Sidewinder is a heat-seeking,
+short-range, air-to-air missile carried by fighter aircraft and
+recently, certain gunship helicopters. It is named after the
+Sidewinder snake, which also detects its prey via body heat. The
+Sidewinder was the first truly effective air-to-air missile, widely
+imitated and copied. Its latest variants remain in active service with
+many air forces. (from Wikipedia)")
