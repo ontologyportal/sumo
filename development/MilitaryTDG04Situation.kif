@@ -353,10 +353,18 @@
 (partlyLocated AmericanUniversity Street5)
 
 (instance USEmbassy Building)
+(instance USEmbassy Embassy)
+(possesses UnitedStates USEmbassy)
 (orientation USEmbassy AmericanUniversity West)
 (partlyLocated USEmbassy Street4)
 (partlyLocated USEmbassy Street3)
 (partlyLocated USEmbassy Independence)
+
+(instance AFSCOPlant Building)
+(partlyLocated AFSCOPlant Industry)
+(partlyLocated AFSCOPlant Street5)
+(orientation AFSCOPlant Pier North)
+
 
 ;;; Imagery shows four barricades emplaced within the last 24 hours:
 ;;; on Independence near West Beach, on Freedom and Industry near
@@ -405,3 +413,218 @@
 ;;; political divisions.
 
 (enemy ELF EA)
+
+;;; In the last week the situation has deteriorated, with EA/ELF
+;;; clashes, tribal violence, and anti-U.S. sentiment all on the
+;;; rise.
+
+(instance today Day)
+
+(instance lastWeek Week)
+
+(equal
+  (EndFn lastWeek)
+  (BeginFn today))
+
+(instance EA_ELF_clash ViolentContest)
+(agent EA_ELF_clash ELF)
+(agent EA_ELF_clash EA)
+(during
+  (WhenFn EA_ELF_clash)
+  lastWeek)
+(located EA_ELF_clash EnniottuCity)
+
+;;; Small groups of angry youths have begun demonstrating on and off
+;;; outside the U.S. Embassy.
+
+(instance groupOfYouths GroupOfPeople)
+
+(instance GOYdemonstration Demonstration)
+(agent GOYdemonstration groupOfYouths)
+
+(during
+  (WhenFn GOYdemonstration)
+  lastWeek)
+
+(partlyLocated GOYdemonstration USEmbassy)
+
+(located GOYdemonstration EnniottuCity)
+
+
+;;; American businesses and nongovernment
+;;; organizations (NGOs) have been vandalized.
+
+(instance AB_NGO_Vandalization Damaging)
+
+(=>
+  (agent AB_NGO_Vandalization ?AGENT)
+  (member ?AGENT groupOfYouths))
+
+(subProcess AB_NGO_Vandalization GOYdemonstration)
+
+(exists (?AMERICANPROPERTY ?AGENT)
+  (and
+    (located ?AMERICANPROPERTY EnniottuCity)
+    (experiencer AB_NGO_Vandalization ?AMERICANPROPERTY)
+    (possesses ?AGENT ?AMERICANPROPERTY)
+    (or
+      (equal ?AGENT UnitedStates)
+      (member ?AGENT
+        (ResidentFn UnitedStates)))))
+
+;;; The 8-foot Embassy walls have been hit with automatic weapons fire
+;;; on several occasions.
+
+(instance EmbassyAttack Attack)
+
+(=>
+  (agent EmbassyAttack ?AGENT)
+  (member ?AGENT groupOfYouths))
+
+(subProcess EmbassyAttack GOYdemonstration)
+
+(experiencer EmbassyAttack USEmbassy)
+
+(exists (?ATTACKINSTRUMENT)
+  (and
+    (instrument EmbassyAttack ?ATTACKINSTRUMENT)
+    (instance ?ATTACKINSTRUMENT AutomaticGun)))
+  
+(instance EmbassyDamage Damaging)
+
+(=>
+  (agent EmbassyDamage ?AGENT)
+  (member ?AGENT groupOfYouths))
+
+(causes EmbassyAttack EmbassyDamage)
+
+(experiencer EmbassyDamage USEmbassy)
+
+(exists (?ATTACKINSTRUMENT)
+  (and
+    (instrument EmbassyDamage ?ATTACKINSTRUMENT)
+    (instance ?ATTACKINSTRUMENT AutomaticGun)))
+  
+
+
+;;; When rocket propelled grenades were fired into the compound, the
+;;; U.S. ambassador decided it was time to request an evacuation.
+
+(exists (?ATTACKINSTRUMENT)
+  (and
+    (instrument EmbassyAttack ?ATTACKINSTRUMENT)
+    (instance ?ATTACKINSTRUMENT RPG)))
+  
+(exists (?ATTACKINSTRUMENT)
+  (and
+    (instrument EmbassyDamage ?ATTACKINSTRUMENT)
+    (instance ?ATTACKINSTRUMENT RPG)))
+  
+(instance USAmbassador Human)
+(attribute USAmbassador Ambassador)
+(diplomaticRepresentationType USAmbassador Ambassador UnitedStates)
+(diplomaticOrganizationType UnitedStates Embassy Enniottu)
+
+(instance RequestEvacuation Requesting)
+
+(agent RequestEvacuation USAmbassador)
+
+(causes EmbassyDamage RequestEvacuation)
+
+(patient RequestEvacuation
+  (exists (?EVACUATION)
+    (and
+      (instance ?EVACUATION Evacuation)
+      (origin ?EVACUATION USEmbassy)
+      (forall (?PERSONELL)
+        (=>
+          (and
+            (located ?PERSONELL USEmbassy)
+            (instance ?PERSONELL Human))
+          (experiencer ?EVACUATION ?PERSONELL))))))
+
+;;; At the earliest possible opportunity you will commence evacuation
+;;; of about 300 U.S. citizens and designated FNs from the
+;;; U.S. Embassy and AFSCO plant in Enniottu City.  Evacuation and
+;;; withdrawal to be completed as expeditiously as possible, and no
+;;; later than 24 hours from the time of commencement.
+
+(instance YourCommander Soldier)
+
+(and
+  (occupiesPosition YourCommander ?CPOS ?ORG)
+  (instance ?ORG USMilitary)
+  (occupiesPosition You ?MYPOS ?ORG)
+  (subOrdinatePosition ?ORG ?MYPOS ?CPOS))
+
+(confersObligation
+  (exists (?EVACUATION)
+    (and
+      (instance ?EVACUATION Evacuation)
+      (origin ?EVACUATION USEmbassy)
+      (origin ?EVACUATION AFSCOPlant)
+      (destination ?EVACUATION Ship1)
+      (=>
+        (agent ?EVACUATION ?AGENT)
+        (member ?AGENT MEU1))
+      (=>
+        (instrument ?EVACUATION ?INSTR)
+        (or
+          (possesses MEU1 ?INSTR)
+          (exists (?ORG)
+            (and
+              (possesses ?ORG ?INSTR)
+              (subOrganization ?ORG MEU1)))))
+      (=>
+        (or
+          (member ?PERSONELL EmbassyPeople)
+          (member ?PERSONELL AFSCOPeople))
+        (experiencer ?EVACUATION ?PERSONELL))
+      (lessThanOrEqual
+        (WhenFn ?EVACUATION)
+        (MeasureFn 24 HourDuration)))
+  YourCommander
+  You)
+
+;;; 210 U.S. citizens and foreign nationals (FNs), including the U.S.
+;;; Ambassador and chargé d'affaires and 4 European consuls, at
+;;; the U.S.  Embassy.
+
+(instance EmbassyPeople GroupOfPeople)
+
+(=>
+  (member ?PERSON EmbassyPeople)
+  (located ?PERSON USEmbassy))
+
+(and
+  (memberCount EmbassyPeople ?MEMBERS)
+  (equal ?MEMBERS 210))
+
+;;; 74 U.S. citizens and FNs unable to get to the Embassy and
+;;; barricaded in the cannery at the American Fruit & Sugar Co (AFSCO)
+;;; on the north side of town.
+
+
+(instance AFSCOPeople GroupOfPeople)
+
+(=>
+  (member ?PERSON AFSCOPeople)
+  (located ?PERSON AFSCOPlant))
+
+(and
+  (memberCount AFSCOPeople ?MEMBERS)
+  (equal ?MEMBERS 74))
+
+(=>
+  (member ?PERSON AFSCOPeople)
+  (not
+    (capability
+      (KappaFn ?TRANS
+        (and
+          (instance ?TRANS Translocation)
+          (origin ?TRANS AFSCOPlant)
+          (destination ?TRANS USEmbassy)))
+      agent
+      ?PERSON)))
+
+;;; Within 8 hours, you will be within range to launch your CH-46s.
