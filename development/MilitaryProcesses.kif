@@ -2714,9 +2714,6 @@ the &%TakingOff ?TAKEOFF after it has gotten aborted by the &%Agent
 ;; stay on ground abort launch if object is in the air then object
 ;; destroyed or it will eventually hit the ground
 
-
-
-(subclass Evacuation Translocation)
 (subclass Evacuation IntentionalProcess)
 
 (documentation Evacuation "Emergency evacuation is the movement of
@@ -2733,11 +2730,13 @@ being transported out of the contaminated area. (from Wikipedia)")
 (=>
   (and
     (instance ?EV Evacuation)
-    (origin ?EV ?OR))
+    (origin ?EV ?OR)
+    (destination ?EV ?D))
   (exists (?L)
     (and
-      (instance ?L Leaving)
+      (instance ?L Translocation)
       (subProcess ?L ?EV)
+      (destination ?L ?D)
       (origin ?L ?OR))))
 
 ;; evacuating takes place because the situation at the origin is
@@ -2759,13 +2758,119 @@ being transported out of the contaminated area. (from Wikipedia)")
       (believes ?A
         (attribute ?P Dangerous)))))
 
-;; evacuation involves people
+;; evacuation involves people only
 
 (=>
   (and
     (instance ?EV Evacuation)
     (experiencer ?EV ?H))
-  (instance ?EV Human))
+  (instance ?H Human))
+
+;; all agents of evacuation are cognitive agents
+
+(=>
+  (and
+    (instance ?EV Evacuation)
+    (agent ?EV ?H))
+  (instance ?H CognitiveAgent))
+
+
+;; evacuation includes movements of at least part of the agents to the
+;; evacuation origin
+;; Notice that the transport of agents is not necessarily a subProcess
+;; of the evacuation
+
+(=>
+  (and
+    (instance ?EV Evacuation)
+    (origin ?EV ?O)
+    (agent ?EV ?A))
+  (exists (?T ?TA)
+    (and
+      (instance ?T Transportation)
+      (destination ?T ?O)
+      (or
+        (subOrganization ?TA ?A)
+        (member ?TA ?A)
+        (equal ?TA ?A))
+      (or
+        (agent ?T ?TA)
+        (patient ?T ?TA)))))
+
+;; evacuation includes securing the evacuation origin
+
+(=>
+  (and
+    (instance ?EV Evacuation)
+    (origin ?EV ?O)
+    (agent ?EV ?A))
+  (exists (?M ?MA)
+    (and
+      (instance ?M Maintaining)
+      (located ?M ?O)
+      (subProcess ?M ?EV)
+      (or
+        (subOrganization ?MA ?A)
+        (member ?MA ?A)
+        (equal ?MA ?A))
+      (agent ?M ?MA))))
+
+;; evacuation involves treating evacuees
+
+(=>
+  (and
+    (instance ?EV Evacuation)
+    (experiencer ?EV ?P)
+    (agent ?EV ?A)
+  (exists (?M ?MA)
+    (and
+      (instance ?M TherapeuticProcess)
+      (subProcess ?M ?EV)
+      (or
+        (subOrganization ?MA ?A)
+        (member ?MA ?A)
+        (equal ?MA ?A))
+      (agent ?M ?MA)
+      (experiencer ?M ?P)))))
+
+;; evacuees must be classified
+
+(=>
+  (and
+    (instance ?EV Evacuation)
+    (agent ?EV ?A)
+    (experiencer ?EV ?P))
+  (exists (?C ?CA)
+    (and
+      (instance ?C Classifying)
+      (subProcess ?C ?EV)
+      (experiencer ?C ?P)
+      (or
+        (subOrganization ?CA ?A)
+        (member ?CA ?A)
+        (equal ?CA ?A))
+      (agent ?C ?CA))))
+
+;; evacuation includes withdrawal of all agents
+
+(=>
+  (and
+    (instance ?EV Evacuation)
+    (agent ?EV ?A)
+    (origin ?EV ?O))
+  (exists (?T ?TA)
+    (and
+      (instance ?T Translocation)
+      (subProcess ?T ?EV)
+      (origin ?T ?O)
+      (or
+        (experiencer ?T ?TA)
+        (agent ?T ?TA))
+      (or
+        (subOrganization ?TA ?A)
+        (member ?TA ?A)
+        (equal ?TA ?A)))))
+
 
 (subclass Demonstration PoliticalProcess)
 
@@ -2790,7 +2895,9 @@ such grievances. (from Wikipedia)")
   (and
     (instance ?D Demonstration)
     (agent ?D ?A))
-  (instance ?A GroupOfPeople))
+  (or
+    (instance ?A Human)
+    (instance ?A GroupOfPeople)))
 
 ;; demonstrating people share common opinions
 
