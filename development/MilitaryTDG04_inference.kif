@@ -24,6 +24,10 @@
 ;; by a consistency check. For example, there are vehicles used that
 ;; are not documented to be on the ARG like LCAC2 and the AAVs.
 
+;; The problem is, however, that consistency checking is semi
+;; decidable only and that it needs huge amounts of memory. Individual
+;; queries might be more effective.
+
 
 ;;; ask for the path of the whole evacuation
 
@@ -36,6 +40,7 @@
 ;;; are there processes or things (like barriers) that could hinder the
 ;;; evacuation?
 
+(attribute ProcessInhibited EvacuateEnniottuCity)
 
 ;;; are the right kind of forces employed, are they sufficiently robust
 ;;; to conduct evacuation facing RPG attacks
@@ -58,7 +63,7 @@
 
 ;; answer: NO
 
-;;; are all forces used members of MEU1?
+;;; are all forces used members or suborganizations of MEU1?
 
       (forall (?AGENT)
         (=>
@@ -66,6 +71,8 @@
           (or
             (member ?AGENT MEU1)
             (subOrganization ?AGENT MEU1))))
+
+;; answer: YES
 
 
 ;;; are all people in the Embassy and the AFSCOPlant evacuated?
@@ -75,4 +82,65 @@
           (or
             (member ?PERSONELL EmbassyPeople)
             (member ?PERSONELL AFSCOPeople))
-          (experiencer ?EVACUATION ?PERSONELL)))
+          (experiencer EvacuateEnniottuCity ?PERSONELL)))
+
+;;; answer: YES
+
+;;; are the people at AFSCOPlant transported to the ARG?
+
+    (and
+      (instance ?TRANSPORT Translocation)
+      (experiencer ?TRANSPORT AFSCOPeople)
+      (origin ?TRANSPORT AFSCOPlant)
+      (destination ?TRANSPORT ARG))
+
+;; or even better:
+
+(forall (?P)
+  (and
+    (instance ?P Human)
+    (located ?P AFSCOPlant)
+    (instance ?TRANSPORT Translocation)
+    (experiencer ?TRANSPORT ?H)
+    (origin ?TRANSPORT AFSCOPlant)
+    (destination ?TRANSPORT ARG)))
+
+
+
+;;; are the people at USEmbassy transported to the ARG?
+
+    (and
+      (instance ?TRANSPORT Translocation)
+      (experiencer ?TRANSPORT EmbassyPeople)
+      (origin ?TRANSPORT USEmbassy)
+      (destination ?TRANSPORT ARG))
+
+;; or even better:
+
+(forall (?P)
+  (and
+    (instance ?P Human)
+    (located ?P USEmbassy)
+    (instance ?TRANSPORT Translocation)
+    (experiencer ?TRANSPORT ?H)
+    (origin ?TRANSPORT USEmbassy)
+    (destination ?TRANSPORT ARG)))
+
+
+;;; are people at the embassy treated properly
+
+(and
+  (located ?P USEmbassy)
+  (instance ?T TherapeuticProcess)
+  (experiencer ?T ?P))
+
+;; answer: Answer 1. [definite] ?T = MedicalCareOfEvacuees  ?P = EmbassyPeople
+
+(and
+  (located ?P USEmbassy)
+  (instance ?P Human)
+  (instance ?T TherapeuticProcess)
+  (experiencer ?T ?P))
+
+;; answer: Answer 1. [definite] ?T = (sk1069 MEU1 EmbassyPeople EvacuateEnniottuCity)  ?P = EmbassyPeople
+

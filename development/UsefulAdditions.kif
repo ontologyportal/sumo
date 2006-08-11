@@ -52,15 +52,23 @@
 
 ;;; subProcess vs. other relations between Processes
 
+;; Inhibition of concrete Processes
+
+(instance ProcessInhibited RelationalAttribute)
+
+(documentation ProcessInhibited "This &%Attribute means that some
+specific &%Process is inhibited by some other &%Process, e.g., a
+&%Translocation along some path is inhibited by &%Barriers on that
+path.")
+
 ;; If a subProcess is hindered by an external process so is the super
 ;; process
 
 (=>
   (and
     (subProcess ?SUB ?SUPER)
-    (instance ?SUB ?SUBC)
-    (instance ?SUPER SUPERC)
-    (inhibits ?SUBC ?SOME_PROC_C))
+    (attribute ?SUB ProcessInhibited))
+  (attribute ?SUPER ProcessInhibited))
 
 ;;; transitivity of Translocation
 
@@ -72,11 +80,8 @@
     (origin ?T2 ?D1)
     (destination ?T1 ?D1)
     (destination ?T2 ?D2)
-    (patient ?T1 ?P)
-    (patient ?T2 ?P)
-    (earlier
-      (WhenFn ?T1)
-      (WhenFn ?T2)))
+    (experiencer ?T1 ?P)
+    (experiencer ?T2 ?P))
   (exists (?T)
     (and
       (instance ?T Translocation)
@@ -84,7 +89,7 @@
       (destination ?T ?D2)
       (subProcess ?T1 ?T)
       (subProcess ?T2 ?T)
-      (patient ?T ?P)
+      (experiencer ?T ?P)
       (starts
         (WhenFn ?T1)
         (WhenFn ?T))
@@ -93,15 +98,33 @@
         (WhenFn ?T)))))
 
 
-;;; translocation includes transportation of suborganizations and
-;;; members
+;;; if a group or organization takes part in a process so does every member and
+;;; subOrganization and subCollection
 
 (=>
   (and
-    (instance ?T Translocation)
-    (experiencer ?T ?P)
+    (instance ?REL CaseRole)
+    (holds ?REL ?PROCESS ?COLL)
     (or
-      (member ?P ?M)
-      (subOrganization ?P ?M)))
-  (experiencer ?T ?M))
+      (member ?M ?COLL)
+      (subCollection ?M ?COLL)))
+  (holds ?REL ?PROCESS ?M))
     
+;; if every member of a group takes part in a process so does the whole group
+
+(=>
+  (and
+    (instance ?REL CaseRole)
+    (forall (?P)
+      (=>
+        (member ?P ?COLL)
+        (holds ?REL ?PROCESS ?P))))
+  (holds ?REL ?PROCESS ?COLL))
+
+;; if a group is located somewhere so is every subgroup and member
+
+(=>
+  (and
+    (located ?COLL ?PLACE)
+    (member ?M ?COLL))
+  (located ?M ?PLACE))
