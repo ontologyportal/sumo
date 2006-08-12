@@ -87,12 +87,16 @@
 ;;; answer: YES
 
 ;;; are the people at AFSCOPlant transported to the ARG?
+;;; This question requires the rule about transitivity of
+;;; translocations
 
     (and
       (instance ?TRANSPORT Translocation)
       (experiencer ?TRANSPORT AFSCOPeople)
       (origin ?TRANSPORT AFSCOPlant)
       (destination ?TRANSPORT ARG))
+
+;;; answer: NO (probably due to a time out)
 
 ;; or even better:
 
@@ -105,27 +109,65 @@
     (origin ?TRANSPORT AFSCOPlant)
     (destination ?TRANSPORT ARG)))
 
+;;; answer: NO (probably due to a time out)
 
+;;; but there are transports from the AFSCOPlant to Northbeach and
+;;; from Northbeach to the ARG (this question resembles exactly the
+;;; left side of the transitivity rule for translocations)
+
+  (and
+    (instance ?T1 Translocation)
+    (instance ?T2 Translocation)
+    (origin ?T1 AFSCOPlant)
+    (origin ?T2 ?D1)
+    (destination ?T1 ?D1)
+    (destination ?T2 ARG)
+    (experiencer ?T1 AFSCOPeople)
+    (experiencer ?T2 AFSCOPeople))
+
+;; answer (time out 300): Answer 1. [definite] ?D1 = NorthBeach  ?T2 = MoveFromBLStoARG  ?T1 = MoveFromAFSCOtoBLS
+
+;;; not fixing the experiencers of the translocations:
+
+  (and
+    (instance ?T1 Translocation)
+    (instance ?T2 Translocation)
+    (origin ?T1 AFSCOPlant)
+    (origin ?T2 ?D1)
+    (destination ?T1 ?D1)
+    (destination ?T2 ARG)
+    (experiencer ?T1 ?H)
+    (experiencer ?T2 ?H))
+
+;; answer (time out 3000): NO
 
 ;;; are the people at USEmbassy transported to the ARG?
 
     (and
       (instance ?TRANSPORT Translocation)
-      (experiencer ?TRANSPORT EmbassyPeople)
+      (experiencer ?TRANSPORT ?H)
+      (located ?H USEmbassy)
+      (instance ?H Human)
       (origin ?TRANSPORT USEmbassy)
       (destination ?TRANSPORT ARG))
 
+;; answer: Answer 1. [definite] ?H = EmbassyPeople  ?TRANSPORT = MoveFromHLZtoARG
+
 ;; or even better:
 
-(forall (?P)
-  (and
-    (instance ?P Human)
-    (located ?P USEmbassy)
-    (instance ?TRANSPORT Translocation)
-    (experiencer ?TRANSPORT ?H)
-    (origin ?TRANSPORT USEmbassy)
-    (destination ?TRANSPORT ARG)))
+(forall (?H)
+  (=>
+    (and
+      (located ?H USEmbassy)
+      (instance ?H Human))
+    (exists (?TRANSPORT)
+      (and
+        (instance ?TRANSPORT Translocation)
+        (experiencer ?TRANSPORT ?H)
+        (origin ?TRANSPORT USEmbassy)
+        (destination ?TRANSPORT ARG)))))
 
+;; answer: Answer 1. [yes]
 
 ;;; are people at the embassy treated properly
 
@@ -144,3 +186,179 @@
 
 ;; answer: Answer 1. [definite] ?T = (sk1069 MEU1 EmbassyPeople EvacuateEnniottuCity)  ?P = EmbassyPeople
 
+;;; are people at the AFSCO Plant treated properly
+
+(and
+  (located ?P AFSCOPlant)
+  (instance ?T TherapeuticProcess)
+  (experiencer ?T ?P))
+
+;; answer: Answer 1. [definite] ?T = MedicalCareOfEvacuees  ?P = AFSCOPeople
+
+(and
+  (located ?P AFSCOPlant)
+  (instance ?P Human)
+  (instance ?T TherapeuticProcess)
+  (experiencer ?T ?P))
+
+;; answer: Answer 1. [definite] ?T = (sk1069 MEU1 AFSCOPeople EvacuateEnniottuCity)  ?P = AFSCOPeople
+
+;;; are evacuated people identified
+
+(and
+  (located ?P USEmbassy)
+  (instance ?P Human)
+  (instance ?T Classifying)
+  (experiencer ?T ?P))
+
+;; answer: Answer 1. [definite] ?T = IdentifyEvacuees2  ?P = EmbassyPeople
+
+(and
+  (located ?P AFSCOPlant)
+  (instance ?P Human)
+  (instance ?T Classifying)
+  (experiencer ?T ?P))
+
+;; answer: Answer 1. [definite] ?T = IdentifyEvacuees1  ?P = AFSCOPeople
+
+
+;;; has security been established at the embassy and the AFSCO plant
+
+(and
+  (located ?SEC AFSCOPlant)
+  (instance ?SEC Maintaining)
+  (patient ?SEC AFSCOPlant))
+
+;; answer: Answer 1. [definite] ?SEC = EstablishSecurity1
+
+(and
+  (located ?SEC USEmbassy)
+  (instance ?SEC Maintaining)
+  (patient ?SEC USEmbassy))
+
+;; answer: Answer 1. [definite] ?SEC = EstablishSecurity2
+
+;;; which of our forces conduct which operations at AFSCOPlant
+
+(and
+  (subOrganization ?FORCE MEU1)
+  (agent ?P ?FORCE)
+  (partlyLocated ?P AFSCOPlant)
+  (instance ?P MilitaryOperation))
+
+;; answer: Answer 1. [definite] ?P = MoveFromAFSCOtoBLS  ?FORCE = LARPl1
+;;  Answer 2. [definite] ?P = MovementToObjective1  ?FORCE = LARPl1
+;; Answer 3. [definite] ?P = EstablishSecurity1  ?FORCE = LARPl1
+;; Answer 4. [definite] ?P = IdentifyEvacuees1  ?FORCE = LARPl1
+;; Answer 5. [definite] ?P = SearchPersonalItems1  ?FORCE = LARPl1
+;; Answer 6. [definite] ?P = WithdrawalAFSCOToBLS  ?FORCE = LARPl1
+
+;;; which of our forces conduct which operations at USEmbassy
+
+(and
+  (subOrganization ?FORCE MEU1)
+  (agent ?P ?FORCE)
+  (partlyLocated ?P USEmbassy)
+  (instance ?P MilitaryOperation))
+
+;; answer (limit 20, timeout 300):
+;; Answer 1. [definite] ?P = MoveFromHLZtoARG  ?FORCE = HeliSquadron1
+;; Answer 2. [definite] ?P = WithdrawalEmbassyToBLS  ?FORCE = HeliSquadron1
+;; Answer 3. [definite] ?P = HeliToEmbassy  ?FORCE = HeliSquadron1
+;; Answer 4. [definite] ?P = WithdrawalEmbassyToBLS  ?FORCE = IC_A
+;; Answer 5. [definite] ?P = MovementToObjective2  ?FORCE = IC_A
+;; Answer 6. [definite] ?P = MoveFromHLZtoARG  ?FORCE = IC_C
+;; Answer 7. [definite] ?P = HeliToEmbassy  ?FORCE = HeliSquadron1
+;; Answer 8. [definite] ?P = HeliToEmbassy  ?FORCE = HeliSquadron1
+;; Answer 9. [definite] ?P = HeliToEmbassy  ?FORCE = HeliSquadron1
+;; Answer 10. [definite] ?P = HeliToEmbassy  ?FORCE = HeliSquadron1
+;; Answer 11. [definite] ?P = HeliToEmbassy  ?FORCE = HeliSquadron1
+;; Answer 12. [definite] ?P = MoveFromHLZtoARG  ?FORCE = HeliSquadron1
+
+;; What is strange that the answers above only include Translocation Processes but not the processes directly located at the USEmbassy like EstablishSecurity2 and IdentifyEvacuees2 both with agents IC_A and IC_C
+
+
+
+;;; have all forces been withdrawn from the US Embassy and the
+;;; AFSCOplant
+
+
+
+;;; have there been any clashes during the evacuation that involved
+;;; our forces or the evacuated people
+
+(and
+  (instance ?CLASH ViolentContest)
+  (involvedInEvent ?CLASH ?AGENT)
+  (or
+    (equal ?AGENT MEU1)
+    (member ?AGENT MEU1)
+    (subCollection ?AGENT MEU1)))
+
+(and
+  (instance ?CLASH ViolentContest)
+  (involvedInEvent ?CLASH ?AGENT)
+  (or
+    (equal ?AGENT AFSCOPeople)
+    (member ?AGENT AFSCOPeople)
+    (subCollection ?AGENT AFSCOPeople)))
+
+(and
+  (instance ?CLASH ViolentContest)
+  (involvedInEvent ?CLASH ?AGENT)
+  (or
+    (equal ?AGENT EmbassyPeople)
+    (member ?AGENT EmbassyPeople)
+    (subCollection ?AGENT EmbassyPeople)))
+
+
+;;;;;; some experiments on paths and inhibited processes
+
+;; MovementToObjective1 should be inhibited by Barrier3, which is in
+;; the way. But the path of MovementToObjective1 is not explicitly
+;; given.
+
+(path MovementToObjective1 ?PATH)
+
+;; produces no answer even with a large time out value (6000)
+
+;; adding an explicit path statement (path MovementToObjective1
+;; Industry) helps a little bit
+
+  (and
+    (instance ?T LandTransportation)
+    (instance ?B Barrier)
+    (path ?T Industry)
+    (partlyLocated ?B Industry))
+
+;; answer (timeout 300): Answer 1. [definite] ?B = (holds MeasureFn ?X0 Barricade)  ?T = MovementToObjective1
+
+;; after explicit caching, the following works:
+
+  (and
+    (instance ?T Translocation)
+    (instance ?B Barrier)
+    (path ?T ?P)
+    (partlyLocated ?B ?P))
+
+;; answer: Answer 1. [definite] ?P = Industry  ?B = Barricade3  ?T = MovementToObjective1
+
+;; the above query is the left hand side of a process inhibition rule
+
+;; asking for the right hand side dows, however, not produce a result
+;; with timeout 300:
+
+(attribute ProcessInhibited MovementToObjective1)
+
+;; answer (timeout 300): NO
+
+;;; on which path takes the transportation from AFSCOPlant to
+;;; NorthBeach take place
+
+(and
+  (instance ?P Translocation)
+  (origin ?P AFSCOPlant)
+  (destination ?P NorthBeach)
+  (path ?P ?PATH))
+
+;;; answer (timeout 300): NO
