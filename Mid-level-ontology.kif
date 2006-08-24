@@ -346,6 +346,49 @@ a &%Weapon.")
          (instance ?GUN Gun)
          (instrument ?SHOOT ?GUN))))
 
+(instance effectiveRange BinaryPredicate)
+(subrelation effectiveRange measure)
+(domain effectiveRange 2 LengthMeasure)
+(documentation effectiveRange "The limits within which something can
+be effective; (from WN)")
+
+;; effectiveRange of weapons means the ability to damage objects
+
+(=>
+  (and
+    (instance ?GUN Gun)
+    (effectiveRange ?GUN ?LM)
+    (distance ?GUN ?O ?LM1)
+    (not
+      (exists (?O2)
+        (between ?O ?O2 ?GUN)))
+    (lessThanOrEqual ?LM1 ?LM))
+  (capability
+    (KappaFn ?DAMAGING
+      (and
+        (instance ?DAMAGING Damaging)
+        (patient ?DAMAGING ?O)))
+     instrument ?GUN))
+
+;; effectiveRange of weapons means the ability to kill living things
+
+(=>
+  (and
+    (instance ?GUN Gun)
+    (effectiveRange ?GUN ?LM)
+    (distance ?GUN ?O ?LM1)
+    (instance ?O Organism)
+    (not
+      (exists (?O2)
+        (between ?O ?O2 ?GUN)))
+    (lessThanOrEqual ?LM1 ?LM))
+  (capability
+    (KappaFn ?KILLING
+      (and
+        (instance ?KILLING Killing)
+        (patient ?KILLING ?O)))
+     instrument ?GUN))
+
 (subclass GunStock EngineeringComponent)
 (documentation GunStock "The part of a &%Gun that is placed against the 
 shoulder to absorb some of the recoil action when it is fired.")
@@ -5016,6 +5059,12 @@ else is an &%Animal or a self-powered &%TransportationDevice.")
    (instance ?CRAFT Aircraft)
    (capability AirTransportation instrument ?CRAFT))
 
+(=>
+  (and
+    (instance ?T AirTransportation)
+    (path ?T ?P))
+  (instance ?P AirTransitway))
+
 (subclass Helicopter Aircraft)
 (documentation Helicopter "Any &%Aircraft with rapidly rotating wings.")
 
@@ -5035,6 +5084,12 @@ else is an &%Animal or a self-powered &%TransportationDevice.")
 (=>
    (instance ?VEHICLE LandVehicle)
    (capability LandTransportation instrument ?VEHICLE))
+
+(=>
+  (and
+    (instance ?T LandTransportation)
+    (path ?T ?P))
+  (instance ?P LandTransitway))
 
 (subclass LandVehicle Vehicle)
 (documentation LandVehicle 
@@ -5082,6 +5137,12 @@ the &%instrument is a &%WaterVehicle.")
 (=>
    (instance ?CRAFT WaterVehicle)
    (capability WaterTransportation instrument ?CRAFT))
+
+(=>
+  (and
+    (instance ?T WaterTransportation)
+    (path ?T ?P))
+  (instance ?P Waterway))
 
 (subclass SpaceTransportation Transportation)
 (documentation SpaceTransportation "Any instance of &%Transportation where the 
@@ -8752,9 +8813,6 @@ and &%Buildings that is intended to be used by a &%MilitaryOrganization.")
 and which is intended to secure a tactical advantage for one of the agents of 
 the &%Battle.")
 (documentation MilitaryOfficer "The class of &%Soldiers who have authority or command.")
-(subclass MilitaryPlatoon MilitaryUnit)
-(documentation MilitaryPlatoon "Any &%MilitaryUnit with the rank of 
-platoon.")
 (subclass MilitaryReserveForce MilitaryOrganization)
 (documentation MilitaryReserveForce "&%MilitaryReserveForce is the subclass 
 of &%MilitaryOrganizations that consist of forces trained in military 
