@@ -1,0 +1,767 @@
+;; Military Persons
+
+;; Access to and use of these products is governed by the GNU General
+;; Public License <http://www.gnu.org/copyleft/gpl.html>.  By using
+;; these products, you agree to be bound by the terms of the GPL.
+
+;; Authors: Jan Scheffczyk (jan.scheffczyk@gmx.net)
+;; Adam Pease (apease [at] articulatesoftware [dot] com)
+
+;; Version date: September, 2006
+;; We ask that people using or referencing this work cite our primary paper:
+
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.
+;; In Proceedings of the 2nd International Conference on Formal
+;; Ontology in Information Systems (FOIS-2001), Chris Welty and Barry
+;; Smith, eds, Ogunquit, Maine, October 17-19, 2001.  See also
+;; http://www.ontologyportal.org
+
+(instance DislocatedCivilian SocialRole)
+
+(documentation DislocatedCivilian "A broad term that includes a
+displaced person, an evacuee, an expellee, an internally displaced
+person, a migrant, a refugee, or a stateless person. Also called DC.
+See also displaced person; evacuee; expellee; internally displaced
+person; migrant; refugee; stateless person.")
+
+;; a dislocated civilian is no member of the military
+
+(=>
+  (holdsDuring ?NOW
+    (attribute ?P DislocatedCivilian))
+  (not
+    (holdsDuring ?NOW
+      (instance ?P MilitaryForce))))
+
+;; a dislocated civilian is away from home and there was some
+;; translocation process before that moved her to the new place
+
+(=>
+  (and
+    (holdsDuring ?NOW
+      (attribute ?P DislocatedCivilian))
+    (home ?P ?HOME)
+    (located ?P ?AREA))
+  (and
+    (not
+      (partlyLocated ?HOME ?AREA))
+    (not
+      (equal ?HOME ?AREA))
+    (exists (?TRANS)
+      (and
+        (instance ?TRANS Translocation)
+        (agent ?TRANS ?P)
+        (origin ?TRANS ?HOME)
+        (destination ?TRANS ?AREA)
+        (before
+          (EndFn (WhenFn ?TRANS))
+          ?NOW)))))
+
+
+
+(instance DisplacedPerson SocialRole)
+(subAttribute DisplacedPerson DislocatedCivilian)
+
+(documentation DisplacedPerson "A civilian who is involuntarily
+outside the national boundaries of his or her country. See also
+evacuee; refugee.")
+
+;; a displaced person is located in a different area then her normal
+;; residency and she doe not like to be there
+
+(=>
+  (and
+    (holdsDuring ?NOW
+      (attribute ?P DisplacedPerson))
+    (member ?P
+      (ResidentFn ?HOME))
+    (located ?P ?AREA)
+    (instance ?AREA Nation))
+  (and
+    (not
+      (equal ?HOME ?AREA))
+    (holdsDuring ?NOW
+      (disapproves ?P
+        (located ?P ?AREA)))))
+
+(instance InternallyDisplacedPerson SocialRole)
+(subAttribute InternallyDisplacedPerson DislocatedCivilian)
+
+(documentation InternallyDisplacedPerson "Any person who has left
+their residence by reason of real or imagined danger but has not left
+the territory of their own country.")
+
+;; an IDP left her home, did this involuntarily but is still located
+;; within the same nation
+
+(=>
+  (and
+    (holdsDuring ?NOW
+      (attribute ?P InternallyDisplacedPerson))
+    (home ?P ?HOME)
+    (located ?P ?AREA))
+  (exists (?NATION)
+    (and
+      (located ?HOME ?NATION)
+      (located ?AREA ?NATION)
+      (instance ?NATION Nation)
+      (holdsDuring ?NOW
+        (disapproves ?P
+          (located ?P ?AREA))))))
+
+;; for an IDP there must have existed some process that she considered
+;; dangerous
+
+(=>
+  (holdsDuring ?NOW
+    (attribute ?P InternallyDisplacedPerson))
+  (exists (?PROCESS ?BEFORE)
+    (and
+      (instance ?PROCESS Process)
+      (equal ?BEFORE
+        (WhenFn ?PROCESS))
+      (before 
+        (EndFn ?BEFORE)
+        ?NOW)
+      (holdsDuring ?BEFORE
+        (believes ?P
+          (attribute ?PROCESS Dangerous))))))
+
+(instance Evacuee SocialRole)
+(subAttribute Evacuee DislocatedCivilian)
+
+(documentation Evacuee "A civilian removed from a place of residence
+by military direction for reasons of personal security or the
+requirements of the military situation. See also displaced person;
+expellee; refugee.")
+
+;; the reason of the translocation of an evacuee is a military operation
+
+(=>
+  (and
+    (holdsDuring ?NOW
+      (attribute ?P Evacuee))
+    (home ?P ?HOME)
+    (located ?P ?AREA)
+    (instance ?TRANS Translocation)
+    (agent ?TRANS ?P)
+    (origin ?TRANS ?HOME)
+    (destination ?TRANS ?AREA))
+  (exists (?PROCESS)
+    (and
+      (instance ?PROCESS MilitaryOperation)
+      (patient ?PROCESS ?P)
+      (causes ?PROCESS ?TRANS)
+      (before 
+        (EndFn (WhenFn ?PROCESS))
+        ?NOW))))
+
+;; evacuees have been evacuated by the military
+
+(=>
+  (attribute ?P Evacuee)
+  (exists (?EV ?MIL)
+    (and
+      (instance ?EV Evacuation)
+      (agent ?EV ?MIL)
+      (experiencer ?EV ?P)
+      (instance ?MIL MilitaryOrganization))))
+
+(=>
+  (and
+    (instance ?EV Evacuation)
+    (agent ?EV ?MIL)
+    (instance ?MIL MilitaryOrganization)
+    (experiencer ?EV ?P))
+  (attribute ?P Evacuee))
+
+
+(instance Expellee  SocialRole)
+(subAttribute Expellee DislocatedCivilian)
+
+(documentation Expellee "A civilian outside the boundaries of the
+country of his or her nationality or ethnic origin who is being
+forcibly repatriated to that country or to a third country for
+political or other purposes. See also displaced person; evacuee;
+refugee.")
+
+;; an expellee is outside the boundaries of his country and there is
+;; some translocation bringing her back but she disapproves of that
+
+(=>
+  (and
+    (holdsDuring ?NOW
+      (attribute ?P Expellee))
+    (home ?P ?HOME)
+    (located ?P ?AREA))
+  (exists (?NATION)
+    (and
+      (located ?HOME ?NATION)
+      (not
+        (partlyLocated ?AREA ?NATION))
+      (instance ?NATION Nation)
+      (exists (?TRANS)
+        (and
+          (patient ?TRANS ?P)
+          (origin ?TRANS ?AREA)
+          (destination ?TRANS ?HOME)
+          (disapproves ?P
+            (patient ?P ?TRANS)))))))
+
+
+(instance Migrant SocialRole)
+(subAttribute Migrant DislocatedCivilian)
+
+(documentation Migrant "A person who (1) belongs to a normally
+migratory culture who may cross national boundaries, or (2) has fled
+his or her native country for economic reasons rather than fear of
+political or ethnic persecution.")
+
+;; a migrant did not leave his home because she feared something
+
+(=>
+  (and
+    (holdsDuring ?NOW
+      (attribute ?P Migrant))
+    (home ?P ?HOME)
+    (located ?P ?AREA)
+    (instance ?TRANS Translocation)
+    (agent ?TRANS ?P)
+    (origin ?TRANS ?HOME)
+    (destination ?TRANS ?AREA))
+  (not
+    (exists (?PROCESS ?REL)
+      (and
+        (causes ?PROCESS ?TRANS)
+        (instance ?REL CaseRole)
+        (fears ?P
+          (holds ?REL ?ROCESS ?P))))))
+
+(instance Refugee SocialRole)
+(subAttribute Refugee DislocatedCivilian)
+
+(documentation Refugee "A person who, by reason of real or imagined
+danger, has left their home country or country of their nationality
+and is unwilling or unable to return. See also dislocated civilian;
+displaced person; evacuee; expellee; stateless person.")
+
+;; for a refugee there must have existed some process that she considered
+;; dangerous
+
+(=>
+  (holdsDuring ?NOW
+    (attribute ?P Refugee))
+  (exists (?PROCESS ?BEFORE)
+    (and
+      (instance ?PROCESS Process)
+      (equal ?BEFORE
+        (WhenFn ?PROCESS))
+      (before 
+        (EndFn ?BEFORE)
+        ?NOW)
+      (holdsDuring ?BEFORE
+        (believes ?P
+          (attribute ?PROCESS Dangerous))))))
+
+;; a refugee is located in a different area then her normal
+;; residency and she does not want to go back
+
+(=>
+  (and
+    (holdsDuring ?NOW
+      (attribute ?P DisplacedPerson))
+    (member ?P
+      (ResidentFn ?HOME))
+    (located ?P ?AREA)
+    (instance ?AREA Nation))
+  (and
+    (not
+      (equal ?HOME ?AREA))
+    (holdsDuring ?NOW
+      (disapproves ?P
+        (exists (?TRANS)
+          (and
+            (instance ?TRANS Translocation)
+            (agent ?TRANS ?P)
+            (origin ?TRANS ?AREA)
+            (destination ?TRANS ?HOME)))))))
+
+
+(instance StatelessPerson SocialRole)
+(subAttribute StatelessPerson DislocatedCivilian)
+
+(documentation StatelessPerson "Civilian who has been denationalized
+or whose country of origin cannot be determined or who cannot
+establish a right to the nationality claimed. See also dislocated
+civilian; displaced person; evacuee; expellee; refugee.")
+
+;; stateless persons do not have a country of residence
+
+(=>
+  (holdsDuring ?NOW
+    (attribute ?P StatelessPerson))
+  (not
+    (exists (?NATION)
+      (and
+        (instance ?NATION Nation)
+        (member ?P
+          (ResidentFn ?NATION))))))
+
+(instance Dangerous SubjectiveAssessmentAttribute)
+
+(documentation Dangerous "from WordNet: causing fear or anxiety by
+threatening great harm; a dangerous operation; a grave situation; a
+grave illness; grievous bodily harm; a serious wound; a serious turn
+of events; a severe case of pneumonia; a life-threatening disease.")
+
+;; threatening is believed to be dangerous
+
+(=>
+  (and
+    (instance ?THREATEN Threatening)
+    (patient ?THREATEN ?PROP)
+    (destination ?THREATEN ?DEST))
+  (believes ?DEST
+    (attribute ?PROP Dangerous)))
+
+;; damaging is believed to be dangerous by cognitive agents
+
+(=>
+  (and
+    (instance ?DAMAGE Damaging)
+    (patient ?DAMAGE ?PROP)
+    (destination ?DAMAGE ?DEST)
+    (instance ?DEST CognitiveAgent))
+  (believes ?DEST
+    (attribute ?PROP Dangerous)))
+
+(instance Prisoner SocialRole)
+(documentation Prisoner "from WordNet: a person who is confined; especially a prisoner of war.")
+
+;; a prisoner was imprisoned before
+
+(=>
+  (holdsDuring ?NOW
+    (attribute ?P Prisoner))
+  (exists (?BEFORE ?IMPRISONING)
+    (and
+      (instance ?IMPRISONING Imprisoning)
+      (earlier ?BEFORE ?NOW)
+      (holdsDuring ?BEFORE
+        (detainee ?IMPRISONING ?P)))))
+
+(instance PrisonerOfWar SocialRole)
+(subAttribute PrisonerOfWar Prisoner)
+
+(documentation PrisonerOfWar "A detained person as defined in Articles
+4 and 5 of the Geneva Convention Relative to the Treatment of
+Prisoners of War of August 12, 1949. In particular, one who, while
+engaged in combat under orders of his or her government, is captured
+by the armed forces of the enemy. As such, he or she is entitled to
+the combatant's privilege of immunity from the municipal law of
+the capturing state for warlike acts which do not amount to breaches
+of the law of armed conflict. For example, a prisoner of war may be,
+but is not limited to, any person belonging to one of the following
+categories who has fallen into the power of the enemy: a member of the
+armed forces, organized militia or volunteer corps; a person who
+accompanies the armed forces without actually being a member thereof;
+a member of a merchant marine or civilian aircraft crew not qualifying
+for more favorable treatment; or individuals who, on the approach of
+the enemy, spontaneously take up arms to resist the invading
+forces. Also called POW or PW. ")
+
+;; a prisoner of war is so during warstate
+
+(=>
+  (and
+    (holdsDuring ?NOW
+      (attribute ?P PrisonerOfWar))
+    (located ?P ?LOCATION))
+  (holdsDuring ?NOW
+    (attribute ?LOCATION WarState)))
+
+;; military personell imprisoned during war by their enemies are
+;; prisoners of war
+
+(=>
+  (and
+    (instance ?P MilitaryForce)
+    (instance ?P Human)
+    (instance ?I Imprisoning)
+    (agent ?I ?E)
+    (patient ?I ?P)
+    (enemy ?E ?P)
+    (located ?I ?LOC)
+    (attribute ?LOC WarState))
+  (attribute ?P PrisonerOfWar))
+
+(instance CivilianInternee SocialRole)
+(subAttribute CivilianInternee Prisoner)
+
+(documentation CivilianInternee "1. A civilian who is interned during
+armed conflict or occupation for security reasons or for protection or
+because he or she has committed an offense against the detaining
+power. 2. A term used to refer to persons interned and protected in
+accordance with the Geneva Convention Relative to the Protection of
+Civilian Persons in Time of War, 12 August 1949 (Geneva
+Convention). Also called CI.")
+
+;; a civilian internee is so during warstate
+
+(=>
+  (and
+    (holdsDuring ?NOW
+      (attribute ?P CivilianInternee))
+    (located ?P ?LOCATION))
+  (holdsDuring ?NOW
+    (attribute ?LOCATION WarState)))
+
+;; a civilian internee is no member of the military
+
+(=>
+  (holdsDuring ?NOW
+    (attribute ?P CivilianInternee))
+  (not
+    (holdsDuring ?NOW
+      (instance ?P MilitaryForce))))
+
+;; some military commanders (much TODO!)  these classes exist just in
+;; order to make the ontology self-contained
+;; TODO subordinate positions
+
+(instance CombatantCommander Position)
+(subAttribute CombatantCommander MilitaryCommander)
+(instance SubunifiedCommander Position)
+(subAttribute SubunifiedCommander MilitaryCommander)
+(instance JointTaskForceCommander Position)
+(subAttribute JointTaskForceCommander MilitaryCommander)
+(instance ServiceChief Position)
+(subAttribute ServiceChief MilitaryCommander)
+
+
+;; commanders for joint forces and superior positions under in joint
+;; forces
+(instance JointForcesCommander Position)
+(subAttribute JointForcesCommander MilitaryCommander)
+(documentation JointForcesCommander "A general term applied to a
+combatant commander, subunified commander, or joint task force
+commander authorized to exercise combatant command (command authority)
+or operational control over a joint force. Also called JFC. See also
+joint force.")
+
+(=>
+  (instance ?JOINT JointForces)
+  (leaderPosition ?JOINT JointForcesCommander))
+
+(instance JointForcesAirCommander Position)
+(subAttribute JointForcesAirCommander MilitaryCommander)
+(documentation JointForcesAirCommander "The commander within a unified
+command, subordinate unified command, or joint task force responsible
+to the establishing commander for making recommendations on the proper
+employment of assigned, attached, and/or made available for tasking
+air forces; planning and coordinating air operations; or accomplishing
+such operational missions as may be assigned. The joint force air
+component commander is given the authority necessary to accomplish
+missions and tasks assigned by the establishing commander. Also called
+JFACC. See also joint force commander.")
+
+;; within the joint forces the air component commander is the leader
+;; of the airforce component is he also in command of the naval air
+;; force?
+(=>
+  (and
+    (instance ?JOINT JointForces)
+    (subOrganization ?FORCE1 ?JOINT)
+    (instance ?FORCE1 AirForce))
+  (leaderPosition ?FORCE1 JointForcesAirCommander))
+
+(instance JointForcesLandCommander Position)
+(subAttribute JointForcesLandCommander MilitaryCommander)
+
+(documentation JointForcesLandCommander "The commander within a
+unified command, subordinate unified command, or joint task force
+responsible to the establishing commander for making recommendations
+on the proper employment of assigned, attached, and/or made available
+for tasking land forces; planning and coordinating land operations; or
+accomplishing such operational missions as may be assigned. The joint
+force land component commander is given the authority necessary to
+accomplish missions and tasks assigned by the establishing
+commander. Also called JFLCC. See also joint force commander. ")
+
+;; within the joint forces the land component commander is the leader
+;; of the army component is he also in command of the marines?
+(=>
+  (and
+    (instance ?JOINT JointForces)
+    (subOrganization ?FORCE1 ?JOINT)
+    (instance ?FORCE1 Army))
+  (leaderPosition ?FORCE1 JointForcesLandCommander))
+
+(instance JointForcesMaritimeCommander Position)
+(subAttribute JointForcesMaritimeCommander MilitaryCommander)
+
+(documentation JointForcesMaritimeCommander "The commander within a
+unified command, subordinate unified command, or joint task force
+responsible to the establishing commander for making recommendations
+on the proper employment of assigned, attached, and/or made available
+for tasking maritime forces and assets; planning and coordinating
+maritime operations; or accomplishing such operational missions as may
+be assigned. The joint force maritime component commander is given the
+authority necessary to accomplish missions and tasks assigned by the
+establishing commander. Also called JFMCC. See also joint force
+commander.")
+
+;; within the joint forces the maritime component commander is the
+;; leader of the naval component is he also in command of the marines?
+
+(=>
+  (and
+    (instance ?JOINT JointForces)
+    (subOrganization ?FORCE1 ?JOINT)
+    (instance ?FORCE1 Navy-BranchOfService))
+  (leaderPosition ?FORCE1 JointForcesMaritimeCommander))
+
+;; within the joint forces the maritime component commander is the leader of the coastguard component
+(=>
+  (and
+    (instance ?JOINT JointForces)
+    (subOrganization ?FORCE1 ?JOINT)
+    (instance ?FORCE1 CoastGuard))
+  (leaderPosition ?FORCE1 JointForcesMaritimeCommander))
+
+(instance JointForcesSpecialOperationsCommander Position)
+(subAttribute JointForcesSpecialOperationsCommander MilitaryCommander)
+
+(documentation JointForcesSpecialOperationsCommander "The commander
+within a unified command, subordinate unified command, or joint task
+force responsible to the establishing commander for making
+recommendations on the proper employment of assigned, attached, and/or
+made available for tasking special operations forces and assets;
+planning and coordinating special operations; or accomplishing such
+operational missions as may be assigned. The joint force special
+operations component commander is given the authority necessary to
+accomplish missions and tasks assigned by the establishing
+commander. Also called JFSOCC. See also joint force commander.")
+
+(=>
+  (and
+    (instance ?JOINT JointForces)
+    (subOrganization ?FORCE1 ?JOINT)
+    (instance ?FORCE1 SpecialOperationsForces))
+  (leaderPosition ?FORCE1 JointForcesSpecialOperationsCommander))
+
+
+(instance SecretaryOfDefense Position)
+(subAttribute SecretaryOfDefense MilitaryCommander)
+
+(documentation SecretaryOfDefense "The secretary of defence is the
+highest military commander during peacetime, during wartime it is usually the president.")
+
+;; during peace the secretary of defense is the highest military commander
+(=>
+  (and
+    (attribute ?MILITARY PeaceState)
+    (instance ?MILITARY MilitaryOrganization)
+    (leaderPosition ?MILITARY ?LEADER))
+  (subordinatePosition ?MILITARY ?LEADER SecretaryOfDefense))
+
+(subAttribute President MilitaryCommander)
+(documentation President "The president of some &%Nation. He has the
+power of command during &%WarState, i.e. the state of &%War.")
+
+;; during war the president is the highest military commander
+(=>
+  (and
+    (attribute ?MILITARY WarState)
+    (instance ?MILITARY MilitaryOrganization)
+    (leaderPosition ?MILITARY ?LEADER))
+  (subordinatePosition ?MILITARY ?LEADER President))
+
+;; in the US the President is the chief of State
+(chiefOfStateType UnitedStates President)
+
+(subclass ArtilleryBattery Company-Military)
+
+(documentation ArtilleryBattery "In military science, a battery is a
+group of artillery guns or rockets, so grouped in order to facilitate
+battlefield communication and command and control, as well as to
+provide dispersion. Batteries are grouped in larger units called
+battalions, which are further grouped into regiments. (from
+Wikipedia)")
+
+;; ArtilleryBatteries possess ArtilleryCannons
+
+(=>
+  (instance ?AB ArtilleryBattery)
+  (exists (?AC)
+    (and
+      (instance ?AC ArtilleryCannon)
+      (possesses ?AB ?C))))
+
+
+
+(subclass InfantryCompany Company-Military)
+(subclass InfantryCompany InfantryUnit)
+
+(documentation InfantryCompany "An infantry is a body of soldiers who
+fight primarily on foot with small arms in organized military units,
+though they may be transported to the battlefield by horses, ships,
+automobiles, skis, or other means. (from Wikipedia)")
+
+(subclass LARUnit MilitaryUnit)
+
+(documentation LARUnit "A military unit capable of conducting combined
+armed reconnaissance and security operations to establish a designated
+secure area, provide combat information, reaction time, and maneuver
+space. On order, it conducts combined arms offensive and defensive
+economy of force operations to preserve combat power. The primary
+weapon system is the LAV.")
+
+;; LARUnits can conduct reconnaissance operations
+
+(=>
+  (instance ?LAR LARUnit)
+  (capability ReconnaissanceOperation agent ?LAR))
+
+;; LARUnits can conduct counter reconnaissance operations
+
+(=>
+  (instance ?LAR LARUnit)
+  (capability CounterReconnaissance agent ?LAR))
+
+;; LARUnits have LAVs
+
+(=>
+  (instance ?LAR LARUnit)
+  (exists (?LAV)
+    (and
+      (instance ?LAV LAV)
+      (possesses ?LAR ?LAV))))
+
+(subclass LARBattalion Battalion)
+(subclass LARBattalion LARUnit)
+
+(documentation LARBattalion "A battalion specialized in LAR
+operations")
+
+(subclass LARPlatoon Platoon)
+(subclass LARPlatoon LARUnit)
+
+(documentation LARPlatoon "A platoon specialized in LAR
+operations")
+
+
+(subclass MortarPlatoon Platoon)
+
+(documentation MortarPlatoon "A platoon carrying mortars.")
+
+(=>
+  (instance ?MP MortarPlatoon)
+  (exists (?MG)
+    (and
+      (instance ?MG MortarGun)
+      (possesses ?MP ?MG))))
+
+(subclass WeaponsCompany Company-Military)
+(subEchelon WeaponsCompany AntiArmorPlatoon)
+(subEchelon WeaponsCompany MortarPlatoon)
+(subEchelon WeaponsCompany HeavyMGPlatoon)
+
+(documentation WeaponsCompany "A Weapons company is the heavy weapons
+portion of the USMC infantry battalion, tasked with providing
+supporting fire for the three rifle companies that make up the balance
+of the battalion. The Weapons Company provides fire support
+coordination, medium mortars, anti-armor weapons, and heavy machine
+gun support.
+The company is often organized into four distinct elements: company
+headquarters, mortar platoon (utilizing 81 mm mortars), antiarmor
+platoon (utilizing either the dragon or javelin weapons system, SMAW
+bunker busters, and the TOW missileweapons system), and a heavy
+machine gun platoon (utilizing the M2 Browning .50 Cal and Mk19 mod3
+40 mm automatic grenade launcher).
+Often the TOW gunners are pulled from the antiarmor platoon and
+combined with the heavy machine gun platoon to form a Combined
+Anti-Armor Team (CAAT). These CAATs are mobile with humvees and are
+organized into three squads with five vehicles each; the squad
+organization being three vehicles with machine guns (both M2 & Mk. 19)
+and two vehicles with the TOW IIb.
+The remaining antiarmor unit is often trained as an ad-hoc assault and
+demolitions unit furthering the organic capabilities of the battalion
+commander.
+The 81 mm mortar platoon also gives the battalion a heavier organic
+artillery, as it supplements the 60 mm mortars found in the rifle
+company weapons platoons. Company commanders can utilize 81's in half
+the time it would take to get a 155 mm Howitzer up. (from Wikipedia)")
+
+(subclass AntiArmorPlatoon Platoon)
+
+(documentation AntiArmorPlatoon "An antiarmor platoon (utilizing
+either the dragon or javelin weapons system, SMAW bunker busters, and
+the TOW missileweapons system) is part of a &%WeaponsCompany. (from
+Wikipedia)")
+
+;; antiarmor platoons have antiarmor weapons
+
+(=>
+  (instance ?MP AntiArmorPlatoon)
+  (exists (?MG)
+    (and
+      (instance ?MG AntiArmorWeapon)
+      (possesses ?MP ?MG))))
+
+
+(subclass HeavyMGPlatoon Platoon)
+
+(documentation HeavyMGPlatoon "A heavy machine gun platoon (utilizing
+the M2 Browning .50 Cal and Mk19 mod3 40 mm automatic grenade
+launcher) is part of a &%WeaponsCompany. (from Wikipedia)")
+
+;; heavy machine gun platoons have HeavyMachineGuns
+
+(=>
+  (instance ?MP HeavyMGPlatoon)
+  (exists (?MG)
+    (and
+      (instance ?MG HeavyMachineGun)
+      (possesses ?MP ?MG))))
+
+;; heavy machine gun platoons have Mk-19 40 mm grenade launchers
+
+(=>
+  (instance ?MP HeavyMGPlatoon)
+  (exists (?MG)
+    (and
+      (instance ?MG MK19)
+      (possesses ?MP ?MG))))
+
+(subclass AssaultAmphibianUnit MilitaryUnit) (documentation
+AssaultAmphibianUnit "A mechanized military unit of the US MArine
+Corps. Their primary weapon system is the Amphibious Assault
+Vehicle.")
+
+;; AssaultAmphibianUnit have AAVs
+
+(=>
+  (instance ?AAU AssaultAmphibianUnit)
+  (exists (?AAV)
+    (and
+      (instance ?AAV AAV)
+      (possesses ?AAU ?AAV))))
+
+
+(subclass AssaultAmphibianBatallion Battalion)
+(subclass AssaultAmphibianBatallion AssaultAmphibianUnit)
+
+(documentation AssaultAmphibianBatallion "An Assault Amphibian
+Batallion is a mechanized battalion of the United States Marine Corps
+reserve. Their primary weapon system is the Amphibious Assault
+Vehicle. (from Wikipedia)")
+
+(subclass AssaultAmphibianPlatoon Platoon)
+(subclass AssaultAmphibianPlatoon AssaultAmphibianUnit)
+
+(documentation AssaultAmphibianPlatoon "An Assault Amphibian Platoon
+is a mechanized battalion of the United States Marine Corps
+reserve. Their primary weapon system is the Amphibious Assault
+Vehicle.")
+
