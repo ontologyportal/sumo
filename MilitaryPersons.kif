@@ -16,7 +16,7 @@
 ;; Smith, eds, Ogunquit, Maine, October 17-19, 2001.  See also
 ;; http://www.ontologyportal.org
 
-(instance DislocatedCivilian SocialRole)
+(subAttribute DislocatedCivilian Civilian)
 
 (documentation DislocatedCivilian "A broad term that includes a
 displaced person, an evacuee, an expellee, an internally displaced
@@ -24,40 +24,33 @@ person, a migrant, a refugee, or a stateless person. Also called DC.
 See also displaced person; evacuee; expellee; internally displaced
 person; migrant; refugee; stateless person.")
 
-;; a dislocated civilian is no member of the military
-
-(=>
-  (holdsDuring ?NOW
-    (attribute ?P DislocatedCivilian))
-  (not
-    (holdsDuring ?NOW
-      (instance ?P MilitaryForce))))
-
-;; a dislocated civilian is away from home and there was some
-;; translocation process before that moved her to the new place
-
 (=>
   (and
-    (holdsDuring ?NOW
-      (attribute ?P DislocatedCivilian))
-    (home ?P ?HOME)
-    (located ?P ?AREA))
-  (and
-    (not
-      (partlyLocated ?HOME ?AREA))
-    (not
-      (equal ?HOME ?AREA))
-    (exists (?TRANS)
-      (and
-        (instance ?TRANS Translocation)
-        (agent ?TRANS ?P)
-        (origin ?TRANS ?HOME)
-        (destination ?TRANS ?AREA)
-        (before
-          (EndFn (WhenFn ?TRANS))
-          ?NOW)))))
+    (holdsDuring ?T1 
+      (and 
+	(attribute ?PERSON DislocatedPerson)
+	(inhabits ?PERSON ?RESIDENCE)
+	(located ?RESIDENCE ?PLACE)))
+    (instance ?PLACE GeographicArea)
+    (instance ?T1 TimeInterval))
+  (exists (?T0 ?PRIOR-PLACE ?PRIOR-RES)
+    (and
+      (instance ?T0 TimeInterval)
+      (earlier ?T0 ?T1)
+      (instance ?PRIOR-RES Object)
+      (instance ?PRIOR-PLACE GeopoliticalArea)
+      (located ?PRIOR-RES ?PRIOR-PLACE)
+      (not (equal ?PLACE ?PRIOR-PLACE))
+      (not (equal ?RESIDENCE ?PRIOR-RES))
+      (not (geographicSubregion ?PLACE ?PRIOR-PLACE))
+      (not (geographicSubregion ?PRIOR-PLACE ?PLACE))
+      (holdsDuring ?T0
+        (inhabits ?PERSON ?PRIOR-RES)))))
 
-
+(=>
+  (instance ?PERSON Human)
+  (disapproves ?PERSON
+    (attribute ?PERSON DislocatedPerson)))
 
 (instance DisplacedPerson SocialRole)
 (subAttribute DisplacedPerson DislocatedCivilian)
@@ -66,23 +59,24 @@ person; migrant; refugee; stateless person.")
 outside the national boundaries of his or her country. See also
 evacuee; refugee.")
 
-;; a displaced person is located in a different area then her normal
-;; residency and she doe not like to be there
+;; The salient aspects of being a DisplacedPerson are (a)
+;; residence outside one's country of citizenship (b) that is
+;; involuntary (disapproved by the experiencer).
+
+;; If a displaced person is a citizen of some nation
+;; and, while displaced, inhabits a residence in a certain place,
+;; then that place is not located in the person's nation of
+;; citizenship.
 
 (=>
-  (and
-    (holdsDuring ?NOW
-      (attribute ?P DisplacedPerson))
-    (member ?P
-      (ResidentFn ?HOME))
-    (located ?P ?AREA)
-    (instance ?AREA Nation))
-  (and
-    (not
-      (equal ?HOME ?AREA))
-    (holdsDuring ?NOW
-      (disapproves ?P
-        (located ?P ?AREA)))))
+  (holdsDuring ?T1
+    (and
+      (attribute ?P DisplacedPerson)
+      (inhabits ?P ?RES)
+      (located ?RES ?PLACE)
+      (citizen ?P ?NATION)))
+  (not
+    (partlyLocated ?PLACE ?NATION)))
 
 (instance InternallyDisplacedPerson SocialRole)
 (subAttribute InternallyDisplacedPerson DislocatedCivilian)
@@ -91,81 +85,51 @@ evacuee; refugee.")
 their residence by reason of real or imagined danger but has not left
 the territory of their own country.")
 
-;; an IDP left her home, did this involuntarily but is still located
-;; within the same nation
+;; If an internally displaced person is a citizen of
+;; some nation and, while displaced, inhabits a residence in a
+;; certain place, then that place is within the person's nation
+;; of citizenship.
+
+(=>
+  (holdsDuring ?T1
+    (and
+      (attribute ?P InternallyDisplacedPerson)
+      (inhabits ?P ?RES)
+      (located ?RES ?PLACE)
+      (citizen ?P ?NATION)))
+  (partlyLocated ?PLACE ?NATION))
 
 (=>
   (and
-    (holdsDuring ?NOW
+    (holdsDuring ?T1
       (attribute ?P InternallyDisplacedPerson))
-    (home ?P ?HOME)
-    (located ?P ?AREA))
-  (exists (?NATION)
+    (instance ?T1 TimeInterval))
+  (exists (?SITUATION)
     (and
-      (located ?HOME ?NATION)
-      (located ?AREA ?NATION)
-      (instance ?NATION Nation)
-      (holdsDuring ?NOW
-        (disapproves ?P
-          (located ?P ?AREA))))))
-
-;; for an IDP there must have existed some process that she considered
-;; dangerous
-
-(=>
-  (holdsDuring ?NOW
-    (attribute ?P InternallyDisplacedPerson))
-  (exists (?PROCESS ?BEFORE)
-    (and
-      (instance ?PROCESS Process)
-      (equal ?BEFORE
-        (WhenFn ?PROCESS))
-      (before 
-        (EndFn ?BEFORE)
-        ?NOW)
-      (holdsDuring ?BEFORE
-        (believes ?P
-          (attribute ?PROCESS Dangerous))))))
+      (earlier ?T0 ?T1)
+      (causesProposition
+        (holdsDuring ?T0 (fears ?P ?SITUATION))
+        (holdsDuring ?T1 (attribute ?P InternallyDisplacedPerson))))))
 
 (instance Evacuee SocialRole)
 (subAttribute Evacuee DislocatedCivilian)
 
-(documentation Evacuee "A civilian removed from a place of residence
-by military direction for reasons of personal security or the
-requirements of the military situation. See also displaced person;
-expellee; refugee.")
-
-;; the reason of the translocation of an evacuee is a military operation
+(documentation Evacuee "A civilian removed from a place of residence for 
+reasons of personal security or the requirements of the military 
+situation.  See also displaced person; expellee; refugee.") 
 
 (=>
   (and
-    (holdsDuring ?NOW
+    (holdsDuring ?T1 
       (attribute ?P Evacuee))
-    (home ?P ?HOME)
-    (located ?P ?AREA)
-    (instance ?TRANS Translocation)
-    (agent ?TRANS ?P)
-    (origin ?TRANS ?HOME)
-    (destination ?TRANS ?AREA))
-  (exists (?PROCESS)
-    (and
-      (instance ?PROCESS MilitaryOperation)
-      (patient ?PROCESS ?P)
-      (causes ?PROCESS ?TRANS)
-      (before 
-        (EndFn (WhenFn ?PROCESS))
-        ?NOW))))
-
-;; evacuees have been evacuated by the military
-
-(=>
-  (attribute ?P Evacuee)
+    (instance ?T1 TimeInterval))
   (exists (?EV ?MIL)
     (and
       (instance ?EV Evacuation)
       (agent ?EV ?MIL)
+      (instance ?MIL MilitaryOrganization)
       (experiencer ?EV ?P)
-      (instance ?MIL MilitaryOrganization))))
+      (earlier (WhenFn ?EV) ?T1))))
 
 (=>
   (and
@@ -173,8 +137,8 @@ expellee; refugee.")
     (agent ?EV ?MIL)
     (instance ?MIL MilitaryOrganization)
     (experiencer ?EV ?P))
-  (attribute ?P Evacuee))
-
+  (holdsDuring (ImmediateFutureFn (WhenFn ?EV))
+    (attribute ?P Evacuee)))
 
 (instance Expellee  SocialRole)
 (subAttribute Expellee DislocatedCivilian)
@@ -185,29 +149,22 @@ forcibly repatriated to that country or to a third country for
 political or other purposes. See also displaced person; evacuee;
 refugee.")
 
-;; an expellee is outside the boundaries of his country and there is
-;; some translocation bringing her back but she disapproves of that
-
 (=>
   (and
-    (holdsDuring ?NOW
-      (attribute ?P Expellee))
-    (home ?P ?HOME)
-    (located ?P ?AREA))
-  (exists (?NATION)
+    (holdsDuring ?T1
+      (and
+        (attribute ?P Expellee)
+        (citizen ?P ?HOME-NATION)))
+    (instance ?T1 TimeInterval))
+  (exists (?TRANS ?NATION ?ORIG)
     (and
-      (located ?HOME ?NATION)
-      (not
-        (partlyLocated ?AREA ?NATION))
       (instance ?NATION Nation)
-      (exists (?TRANS)
-        (and
-          (patient ?TRANS ?P)
-          (origin ?TRANS ?AREA)
-          (destination ?TRANS ?HOME)
-          (disapproves ?P
-            (patient ?P ?TRANS)))))))
-
+      (not (equal ?NATION ?HOME-NATION))
+      (instance ?TRANS Translocation)
+      (origin ?TRANS ?NATION)
+      (patient ?TRANS ?P)
+      (destination ?TRANS ?HOME-NATION)
+      (temporalPart ?T1 (WhenFn ?TRANS)))))
 
 (instance Migrant SocialRole)
 (subAttribute Migrant DislocatedCivilian)
@@ -217,26 +174,6 @@ migratory culture who may cross national boundaries, or (2) has fled
 his or her native country for economic reasons rather than fear of
 political or ethnic persecution.")
 
-;; a migrant did not leave his home because she feared something
-
-(=>
-  (and
-    (holdsDuring ?NOW
-      (attribute ?P Migrant))
-    (home ?P ?HOME)
-    (located ?P ?AREA)
-    (instance ?TRANS Translocation)
-    (agent ?TRANS ?P)
-    (origin ?TRANS ?HOME)
-    (destination ?TRANS ?AREA))
-  (not
-    (exists (?PROCESS ?REL)
-      (and
-        (causes ?PROCESS ?TRANS)
-        (instance ?REL CaseRole)
-        (fears ?P
-          (holds ?REL ?ROCESS ?P))))))
-
 (instance Refugee SocialRole)
 (subAttribute Refugee DislocatedCivilian)
 
@@ -244,48 +181,6 @@ political or ethnic persecution.")
 danger, has left their home country or country of their nationality
 and is unwilling or unable to return. See also dislocated civilian;
 displaced person; evacuee; expellee; stateless person.")
-
-;; for a refugee there must have existed some process that she considered
-;; dangerous
-
-(=>
-  (holdsDuring ?NOW
-    (attribute ?P Refugee))
-  (exists (?PROCESS ?BEFORE)
-    (and
-      (instance ?PROCESS Process)
-      (equal ?BEFORE
-        (WhenFn ?PROCESS))
-      (before 
-        (EndFn ?BEFORE)
-        ?NOW)
-      (holdsDuring ?BEFORE
-        (believes ?P
-          (attribute ?PROCESS Dangerous))))))
-
-;; a refugee is located in a different area then her normal
-;; residency and she does not want to go back
-
-(=>
-  (and
-    (holdsDuring ?NOW
-      (attribute ?P DisplacedPerson))
-    (member ?P
-      (ResidentFn ?HOME))
-    (located ?P ?AREA)
-    (instance ?AREA Nation))
-  (and
-    (not
-      (equal ?HOME ?AREA))
-    (holdsDuring ?NOW
-      (disapproves ?P
-        (exists (?TRANS)
-          (and
-            (instance ?TRANS Translocation)
-            (agent ?TRANS ?P)
-            (origin ?TRANS ?AREA)
-            (destination ?TRANS ?HOME)))))))
-
 
 (instance StatelessPerson SocialRole)
 (subAttribute StatelessPerson DislocatedCivilian)
@@ -298,14 +193,12 @@ civilian; displaced person; evacuee; expellee; refugee.")
 ;; stateless persons do not have a country of residence
 
 (=>
-  (holdsDuring ?NOW
-    (attribute ?P StatelessPerson))
-  (not
-    (exists (?NATION)
-      (and
-        (instance ?NATION Nation)
-        (member ?P
-          (ResidentFn ?NATION))))))
+  (and
+    (holdDuring ?T1
+      (attribute ?P StatelessPerson))
+    (instance ?NAT Nation))
+  (holdsDuring ?T1
+    (not (citizen ?P ?NAT))))
 
 (instance Dangerous SubjectiveAssessmentAttribute)
 
@@ -325,11 +218,17 @@ of events; a severe case of pneumonia; a life-threatening disease.")
     (attribute ?PROP Dangerous)))
 
 ;; damaging is believed to be dangerous by cognitive agents
+;; The problem
+;; with attributes such as Dangerous is that they are essentially
+;; relational.  Objects or processes are "dangerous" only with
+;; respect to something else (which might suffer or be damaged),
+;; but which can't be captured just by stating that some thing is
+;; dangerous.  
 
 (=>
   (and
     (instance ?DAMAGE Damaging)
-    (patient ?DAMAGE ?PROP)
+    (agent ?DAMAGE ?PROP)
     (destination ?DAMAGE ?DEST)
     (instance ?DEST CognitiveAgent))
   (believes ?DEST
@@ -373,21 +272,22 @@ forces. Also called POW or PW. ")
 ;; a prisoner of war is so during warstate
 
 (=>
-  (and
-    (holdsDuring ?NOW
-      (attribute ?P PrisonerOfWar))
-    (located ?P ?LOCATION))
-  (holdsDuring ?NOW
-    (attribute ?LOCATION WarState)))
+  (holdsDuring ?T1
+    (and
+      (attribute ?P PrisonerOfWar)
+      (located ?P ?LOC)))
+  (holdsDuring ?T1
+    (attribute ?LOC WarState)))
 
 ;; military personell imprisoned during war by their enemies are
 ;; prisoners of war
 
 (=>
   (and
-    (instance ?P MilitaryForce)
+    (instance ?F MilitaryForce)
     (instance ?P Human)
     (instance ?I Imprisoning)
+    (member ?P ?F)
     (agent ?I ?E)
     (patient ?I ?P)
     (enemy ?E ?P)
@@ -409,12 +309,12 @@ Convention). Also called CI.")
 ;; a civilian internee is so during warstate
 
 (=>
-  (and
-    (holdsDuring ?NOW
-      (attribute ?P CivilianInternee))
-    (located ?P ?LOCATION))
-  (holdsDuring ?NOW
-    (attribute ?LOCATION WarState)))
+  (holdsDuring ?T1
+    (and
+      (attribute ?P CivilianInternee)
+      (located ?P ?LOC)))
+  (holdsDuring ?T1
+    (attribute ?LOC WarState)))
 
 ;; a civilian internee is no member of the military
 
