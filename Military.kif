@@ -24,30 +24,51 @@ advance.")
 
 (=>
   (instance ?MO MilitaryOperation)
-  (exists (?A ?P)
+  (exists (?PLAN)
     (and
-      (agent ?MO ?A)
-      (holdsDuring 
-        (ImmediatePastFn ?MO)
-        (desires ?A ?MO)
-      (instance ?P Plan)))))
+      (instance ?PLAN Plan)
+      (represents ?PLAN ?MO))))
+
+(=>
+  (and
+    (instance ?PLAN Plan)
+    (instance ?PROC Process)
+    (represents ?PLAN ?PROC))
+  (exists (?PLANNING ?CBO)
+    (and
+      (instance ?PLANNING Planning)
+      (instance ?CBO ContentBearingPhysical)
+      (containsInformation ?CBO ?PLAN)
+      (result ?PLANNNG ?CBO)
+      (earlier (BeginFn (WhenFn ?PLANNING)) (BeginFn (WhenFn ?PROC)))
+      (earlier (EndFn (WhenFn ?PLANNING)) (EndFn (WhenFn ?PROC))))))
 
 (documentation FoodDistributionOperation "Military operations conducted to 
 distribute food to the friendly force.  (from FM 100-40)") 
 
 (subclass FoodDistributionOperation MilitaryOperation)
+(subclass FoodDistributionOperation Giving)
+(subclass FoodDistributionOperation Getting)
 
 (=>
   (instance ?FD FoodDistributionOperation)
-  (exists (?F ?D)
+  (exists (?GI ?GE)
     (and
-      (instance ?F Food)
-      (patient ?FD ?F)
-      (patient ?FD ?D)
-      (destination ?FD ?D)
-      (holdsDuring 
-        (ImmediateFutureFn ?FD)
-        (possesses ?D ?FD)))))
+      (instance ?GI Giving)
+      (instance ?GI Getting)
+      (subProcess ?GI ?FD)
+      (subProcess ?GE ?FD))))
+
+(=>
+  (instance ?FD FoodDistributionOperation)
+  (exists (?FOOD ?CA)
+    (and
+      (instance ?FOOD Food)
+      (instance ?CA CognitiveAgent)
+      (patient ?FD ?FOOD)
+      (destination ?FD ?CA)
+      (holdsDuring (ImmediateFutureFn (WhenFn ?FD))
+        (possesses ?CA ?FOOD)))))
 
 (documentation SecurityOperation "Military operations conducted to protect the friendly 
 force by providing early and accurate warning of enemy operations, to provide the force 
@@ -57,18 +78,6 @@ Security operations orient on the force or facility to be protected, rather than
 enemy. (from FM 100-40).")
 
 (subclass SecurityOperation MilitaryOperation)
-
-(=>
-  (and
-    (instance ?X SecurityOperation)
-    (agent ?X ?P)
-    (patient ?X ?F))
-  (desires ?P
-    (not
-      (exists (?E)
-          (not 
-            (desires ?F ?E))))))
-
 
 ;; New objects
 
