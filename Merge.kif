@@ -2933,6 +2933,30 @@ brings about the subclass of &%Process ?PROCESS2, e.g. (&%causesSubclass &%Killi
 		   (instance ?INST1 ?PROC1)
 		   (causes ?INST1 ?INST2))))))
 
+(instance causesProposition BinaryPredicate)
+(instance causesProposition AsymmetricRelation)
+(domain causesProposition 1 Formula)
+(domain causesProposition 2 Formula)
+(documentation causesProposition "(&%causesProposition ?FORMULA1
+?FORMULA2) means that the state of affairs described by ?FORMULA1
+causes, or mechanistically brings about, the state of affairs
+described by ?FORMULA2.  Note that unlike &%entails, the time
+during which ?FORMULA2 holds cannot precede the time during which
+?FORMULA1 holds, although ?FORMULA1 and ?FORMULA2 can hold
+simultaneously.  Note, also, that &%causesProposition is a
+predicate, not a truth function.  The following rule
+(contraposition) does not hold: (=> (causesProp ?FORMULA1
+?FORMULA2) (causesProp (not ?FORMULA2) (not ?FORMULA1))).")
+
+(=>
+  (and
+    (holdsDuring ?T2 ?SIT2)
+    (holdsDuring ?T1 ?SIT1)
+    (instance ?T1 TimeInterval)
+    (instance ?T2 TimeInterval)
+    (causesProposition ?SIT1 ?SIT2))
+  (beforeOrEqual (BeginFn ?T1) (BeginFn ?T2)))
+
 (instance copy BinaryPredicate)
 (instance copy EquivalenceRelation)
 (domain copy 1 Object)
@@ -9536,7 +9560,7 @@ This covers oral translation (i.e. interpreting) as well as written translation.
 (=>
    (and
       (instance ?TRANSLATE Translating)
-      (resource ?TRANSLATE ?EXPRESSION1)
+      (patient ?TRANSLATE ?EXPRESSION1)
       (result ?TRANSLATE ?EXPRESSION2))
    (exists (?LANGUAGE1 ?LANGUAGE2 ?ENTITY)
       (and
@@ -9949,10 +9973,23 @@ Some examples are nominating, marrying, and excommunicating.")
 (documentation Wedding "Any &%Declaring that leads to one person being 
 the &%spouse of another.")
 
-(<=>
-   (instance ?WED Wedding)
-   (exists (?PERSON1 ?PERSON2)
-      (result ?WED (spouse ?PERSON1 ?PERSON2))))
+(=>
+  (instance ?WED Wedding)
+  (exists (?PERSON1 ?PERSON2)
+    (holdsDuring (ImmediateFutureFn (WhenFn ?WED))
+      (spouse ?PERSON1 ?PERSON2))))
+
+(=>
+  (and
+    (holdsDuring ?T1
+      (spouse ?P1 ?P1))
+    (instance ?T1 TimeInterval))
+  (exists (?WED)
+    (and
+      (instance ?WED Wedding)
+      (patient ?WED ?P1)
+      (patient ?WED ?P2)
+      (earlier (WhenFn ?WED) ?T1))))
 
 (subclass Naming Declaring)
 (documentation Naming "The &%Process of assigning a name to someone or something.")
@@ -10740,17 +10777,12 @@ else.  (&%inhabits ?ORGANISM ?OBJECT) means that ?OBJECT is the residence
 (either permanent or temporary), nest, etc. of ?ORGANISM.")
 
 (=>
-   (inhabits ?ORGANISM ?OBJ)
-   (exists (?TIME)
-      (holdsDuring ?TIME (located ?ORGANISM ?OBJ))))
-
-(=>
-   (and
-      (inhabits ?PERSON ?PLACE)
-      (instance ?PERSON Human))
-   (or
-      (home ?PERSON ?PLACE)
-      (stays ?PERSON ?PLACE)))
+  (holdsDuring ?T1 (inhabits ?ORGANISM ?OBJ))
+  (exists (?TIME)
+    (and 
+      (instance ?TIME TimeInterval)
+      (temporalPart ?TIME ?T1)
+      (holdsDuring ?TIME (located ?ORGANISM ?OBJ)))))
 
 (subrelation home inhabits)
 (domain home 1 Human)
@@ -12452,9 +12484,7 @@ relationships. (&%familyRelation ?ORGANISM1 ?ORGANISM2) means that
 &%parent of ?DESCENDANT or the &%parent of the &%parent of &%DESCENDANT or 
 etc.")
 
-(=>
-   (parent ?PARENT ?CHILD)
-   (ancestor ?PARENT ?CHILD))
+(subrelation parent ancestor)
 
 (instance parent BinaryPredicate)
 (subrelation parent familyRelation)
@@ -12565,8 +12595,8 @@ not hold between half-brothers, half-sisters, etc.")
 
 (instance legalRelation BinaryPredicate)
 (instance legalRelation SymmetricRelation)
-(domain legalRelation 1 CognitiveAgent)
-(domain legalRelation 2 CognitiveAgent)
+(domain legalRelation 1 Human)
+(domain legalRelation 2 Human)
 (documentation legalRelation "(&%legalRelation ?AGENT1 ?AGENT2) means 
 that ?AGENT1 and ?AGENT2 are relatives by virtue of a legal relationship.  
 Some examples include marriage, adoption, etc.")
