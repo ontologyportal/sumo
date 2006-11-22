@@ -79,22 +79,29 @@ of attacking specific identified targets.")
 
 ;; in an armed Reconnaissance hostile things may be attacked
 
+;; It doesn't really make
+;; sense to say that simply observing (reconnaissance) an enemy
+;; confers the right to attack the enemy.  Rather, observing an
+;; enemy provides the *opportunity* for an attack.  The right to
+;; attack an enemy comes from some other "moral" source: the laws
+;; of war, international law, religious precepts, etc.  Further
+;; changes are needed to this axiom.
+
 (=>
   (and
     (instance ?AR ArmedReconnaissance)
-    (agent ?AR ?AGENT))
-  (forall (?HOSTILE)
-    (=>
+    (agent ?AR ?AGENT)
+    (patient ?AR ?HOSTILE)
+    (holdsDuring (WhenFn ?AR)
+      (enemy ?AGENT ?HOSTILE)))
+  (confersRight
+    (exists (?ATTACK)
       (and
-        (patient ?AR ?HOSTILE)
-        (enemy ?AGENT ?HOSTILE))
-    (confersRight
-      (exists (?ATTACK)
-        (and
-          (agent ?ATTACK ?AGENT)
-          (patient ?ATTACK ?HOSTILE)))
-      ?AR
-      ?AGENT))))
+        (instance ?ATTACK Attack)
+        (agent ?ATTACK ?AGENT)
+        (patient ?ATTACK ?HOSTILE)))
+    ?AR
+    ?AGENT))
 
 (subclass TargetThreatReconnaissance SpecialReconnaissance)
 (documentation TargetThreatReconnaissance "These are operations
@@ -115,15 +122,12 @@ results of a strike.")
 (=>
   (and
     (instance ?PSR PoststrikeReconnaissance)
-    (agent ?PSR ?AGENT))
-  (hasPurpose (?PSR)
-    (exists (?MEASURING ?STRIKE ?RESULT)
-      (and
-        (instance ?MEASURING Measuring)
-        (agent ?MEASURING ?AGENT)
-        (patient ?MEASURING ?RESULT)
-        (instance ?STRIKE Attack)
-        (result ?STRIKE ?RESULT)))))
+    (patient ?PSR ?OBJ))
+  (exists (?ATTACK)
+    (and
+      (instance ?ATTACK Attack)
+      (patient ?ATTACK ?OBJ)
+      (earlier (WhenFn ?ATTACK) (WhenFn ?PSR)))))
 
 (subclass UnconventionalWarfare SpecialOperation)
 (subclass UnconventionalWarfare Helping)
@@ -181,6 +185,14 @@ capabilities.")
 
 ;; GW operations support paramilitary organizations
 
+;; The problem with the rule below is that &%patient is an
+;; extremely general CaseRole.  One can imagine a given instance of
+;; &%GuerrillaWarfare having multiple &%patients, not all of
+;; which are necessarily instances of &%ParamilitaryOrganization.
+;; This needs more work.  One way to
+;; remove ambiguity would be to define and use more different
+;; instances of CaseRole.
+
 (=>
   (and
     (instance ?GW GuerrillaWarfare)
@@ -192,6 +204,9 @@ capabilities.")
 the military, economic, psychological, or political strength or morale
 of a regime or nation. The clandestine nature of subversion dictates
 that the underground elements perform the bulk of the activity.")
+
+;; What is the definition of Subversion?  (How could it be
+;; differentiated from other types of UnconventionalWarfare?)
 
 (subclass Sabotage UnconventionalWarfare)
 (subclass Sabotage Damaging)
@@ -224,7 +239,7 @@ adversary-held, hostile, or sensitive area to areas under friendly
 control.")
 
 (subclass Exfiltration UnconventionalWarfare)
-(subclass Exfiltration Getting)
+(subclass Exfiltration Removing)
 (documentation Exfiltration "The removal of personnel or units from
 areas under enemy control by stealth, deception, surprise, or
 clandestine means.")
@@ -297,19 +312,6 @@ special warfare forces.")
 designates the patient in order to achive a special result (selects it
 out of a larger body of entities), e.g., &%SpecialOperationsForces are
 designated out of all branches of &%MilitaryService a &%Nation has.")
-
-;; some patient of the Designating process will be the agent of the
-;; process that the Designating process is about
-(=>
-  (and
-    (instance ?DESIGNATE Designating)
-    (patient ?DESIGNATE ?PROCESS)
-    (instance ?PROCESS IntentionalProcess))
-  (exists (?AGENT)
-    (and 
-      (patient ?DESIGNATE ?AGENT)
-      (instance ?AGENT SentientAgent)
-      (agent ?PROCESS ?AGENT))))
 
 (subclass DirectAction SpecialOperation)
 (subclass DirectAction ViolentContest)
@@ -385,9 +387,7 @@ cooperative, uncooperative, or hostile contacts of interest.")
 ;; a DirectActionActivity is a part of a DirectAction
 (=>
   (and
-    (instance ?ACT DirectActionActivity)
-    (agent ?ACT ?AGENT)
-    (instance ?AGENT MilitaryOrganization))
+    (instance ?ACT DirectActionActivity))
   (exists (?DA)
     (and
       (instance ?DA DirectAction)
@@ -441,13 +441,6 @@ can be performed as independent actions.")
 
 ;; Weapons are used for attacks (GENERAL ATTACKS!) (What about IO??)
 
-(=>
-  (instance ?ATTACK Attack)
-  (exists (?WEAPON)
-    (and
-      (instrument ?ATTACK ?WEAPON)
-      (instance ?WEAPON Weapon))))
-
 (subclass TerminalAttackControl DirectActionActivity)
 (subclass TerminalAttackControl Classifying)
 (subclass TerminalAttackControl Stating)
@@ -471,29 +464,31 @@ TGO does not.")
 (=>
   (instance ?TA_CTRL TerminalAttackControl)
   (hasPurpose ?TA_CTRL
-    (exists (?STATING ?LOCATION ?TARGET)
+    (exists (?AGENT ?ATTACK ?LOCATION ?TARGET)
       (and
+        (targetInAttack ?ATTACK ?TARGET)
         (patient ?TA_CTRL ?TARGET)
-        (instance ?STATING Stating)
-        (result ?STATING ?LOCATION)
-        (instance ?LOCATION Region)
-        (located ?TARGET ?LOCATION)))))
+        (agent ?TA_CTRL ?AGENT)
+        (result ?TA_CTRL
+          (knows ?AGENT 
+            (located ?TARGET ?LOCATION))))))
 
 ;; the agent performing a TerminalAttackControl has permission to
 ;; attack the target
 (=>
   (and
     (instance ?TA_CTRL TerminalAttackControl)
-    (agent  ?TA_CTRL ?AGENT)
+    (agent  ?TA_CTRL ?AGENT1)
     (patient ?TA_CTRL ?TARGET))
-  (confersRight
-    (exists (?ATTACK)
-      (and 
-        (instance ?ATTACK Attack)
-        (agent ?ATTACK ?AGENT)
-        (patient ?ATTACK ?TARGET)))
-    ?TA_CTRL
-    ?AGENT))
+  (exists (?AGENT2)
+    (confersRight
+      (exists (?ATTACK)
+        (and 
+          (instance ?ATTACK Attack)
+          (agent ?ATTACK ?AGENT2)
+          (patient ?ATTACK ?TARGET)))
+      ?TA_CTRL
+      ?AGENT2)))
 
 (subclass TerminalGuidance DirectActionActivity)
 (subclass TerminalGuidance Classifying)
@@ -519,33 +514,33 @@ TGO does not.")
 (=>
   (instance ?TA_CTRL TerminalGuidance)
   (hasPurpose ?TA_CTRL
-    (exists (?STATING ?LOCATION ?TARGET)
+    (exists (?AGENT ?ATTACK ?LOCATION ?TARGET)
       (and
+        (targetInAttack ?ATTACK ?TARGET)
         (patient ?TA_CTRL ?TARGET)
-        (instance ?STATING Stating)
-        (result ?STATING ?LOCATION)
-        (instance ?LOCATION Region)
-        (located ?TARGET ?LOCATION)))))
+        (agent ?TA_CTRL ?AGENT)
+        (result ?TA_CTRL
+          (knows ?AGENT 
+            (located ?TARGET ?LOCATION))))))
 
 ;; the agent performing a TerminalGuidance has NO permission to
 ;; attack the target
 (=>
   (and
-    (instance ?TA_CTRL TerminalGuidance)
-    (agent  ?TA_CTRL ?AGENT)
+    (instance ?TA_CTRL TerminalAttackControl)
+    (agent  ?TA_CTRL ?AGENT1)
     (patient ?TA_CTRL ?TARGET))
   (not
     (confersRight
       (exists (?ATTACK)
-        (and
+        (and 
           (instance ?ATTACK Attack)
-          (agent ?ATTACK ?AGENT)
+          (agent ?ATTACK ?AGENT2)
           (patient ?ATTACK ?TARGET)))
       ?TA_CTRL
-      ?AGENT)))
+      ?AGENT2)))
 
 (subclass RecoveryOperation DirectActionActivity)
-(subclass RecoveryOperation Getting)
 (documentation RecoveryOperation "These are operations conducted to
 search for, locate, identify, rescue, and return personnel, sensitive
 equipment, or items critical to national security. SO recovery
@@ -568,7 +563,7 @@ assistance, and the frequent use of ground combat elements.")
               (UnionFn Discovering
                 (UnionFn Locating Returning)))))))))
 
-(subclass Locating Learning)
+(subclass Locating Discovering)
 (documentation Locating "discover the location of; determine the place 
 of; find by searching or examining;")
 
@@ -611,6 +606,9 @@ that facility.")
 ;; of the Destruction.  This is too strict, but how would we describe
 ;; minimization??
 
+;; rework.  Distinguish between objects targeted and objects
+;; damaged/destroyed.  In a PreciseDestruction event, the goal
+;; (desire) is that no untargeted object be damaged.
 (=>
   (and
     (instance ?DESTR PreciseDestruction)
@@ -631,6 +629,8 @@ designed to minimize collateral damage.")
 ;; We need some instances here at least!
 
 ;; the goal of a high precision weapon used in some process is to avoid collateral damage
+
+;; rework.  See above.
 
 (=>
   (and
@@ -659,10 +659,10 @@ cooperative, uncooperative, or hostile contacts of interest.")
 (=>
   (and
     (instance ?ASO AntiSurfaceOperation)
-    (patient ?ASO ?TARGET))
-  (and
-    (located ?TARGET ?LOCATION)
-    (instance ?LOCATION WaterArea)))
+    (patient ?ASO ?TARGET)
+    (holdsDuring (WhenFn ?ASO)
+      (located ?TARGET ?LOCATION)))
+  (instance ?LOCATION WaterArea))
 
 (subclass ReconnaissanceOperation MilitaryOperation)
 (subclass ReconnaissanceOperation Investigating)
@@ -679,9 +679,9 @@ geographic characteristics of a particular area. Also called RECON.")
   (and
     (instance ?SR ReconnaissanceOperation)
     (agent ?SR ?AGENT)
-    (patient ?SR ?FORMULA))
-  (hasPurpose (?SR)
-    (knows ?AGENT ?FORMULA)))
+    (instance ?PROP Proposition))
+  (hasPurpose ?SR
+    (knows ?AGENT ?PROP)))
 
 ;; a Reconnaissance is not conducted for attack
 
@@ -690,7 +690,7 @@ geographic characteristics of a particular area. Also called RECON.")
     (instance ?SR ReconnaissanceOperation)
     (agent ?SR ?AGENT))
   (not
-    (hasPurpose (?SR)
+    (hasPurpose ?SR
       (exists (?ATTACK ?HOSTILE)
         (and 
           (instance ?ATTACK Attack)
@@ -806,12 +806,8 @@ amphibious reconnaissance teams.")
   (instance ?LAND LandingWaterLand)
   (exists (?REGION ?WATERTRANS)
     (and
-      (not
-        (instance ?REGION WaterArea))
-      (holdsDuring
-        (EndFn
-          (WhenFn ?LAND))
-        (located ?LAND ?REGION))
+      (instance ?REGION LandArea)
+      (destination ?LAND ?REGION)
       (subProcess ?WATERTRANS ?LAND)
       (instance ?WATERTRANS WaterTransportation))))
 
@@ -867,8 +863,8 @@ is the rad.")
 (documentation ExternalAgency "Some external agancy involved with the
 Military, say CIA, NSA and the like (my own idea!).")
 
-(subclass JointStaff GroupOfPeople)
-(subclass JointStaff MilitaryOrganization)
+(instance JointStaff GroupOfPeople)
+(instance JointStaff MilitaryOrganization)
 (documentation JointStaff "The staff under the Chairman of the Joint
 Chiefs of Staff as provided for in the National Security Act of 1947,
 as amended by the Goldwater-Nichols Department of Defense
@@ -878,22 +874,29 @@ the other members of the Joint Chiefs of Staff in carrying out their
 responsibilities. Also called JS.  ")
 
 (instance DirectorJS Position)
-(subclass DirectorJS Human)
 (subAttribute DirectorJS MilitaryCommander)
-(member DirectorJS JointChiefsOfStaff)
+(=>
+  (attribute ?H DirectorJS)
+  (member ?H JointChiefsOfStaff))
+
 (leaderPosition JointStaff ChairmanJCS)
 (leaderPosition JointStaff DirectorJS)
 (documentation DirectorJS "The director of the Joint Staff.")
 
-(subclass JointChiefsOfStaff GroupOfPeople)
-(subclass JointChiefsOfStaff MilitaryOrganization)
-(documentation JointChiefsOfStaff "The Joint Chiefs of Staff (advisory
-board for the Joint Staff?). No explanation given but at least we can
-say it is a group of people.")
+(instance JointChiefsOfStaff GroupOfPeople)
+(instance JointChiefsOfStaff MilitaryOrganization)
+
+(documentation JointChiefsOfStaff "The Joint Chiefs of Staff (JCS) is a 
+grouping comprising the Chiefs of service of each major branch of the 
+armed services in the United States armed forces.  Similar organisations, 
+sometimes known as Chiefs of Staff Committees (COSCs) in the British 
+Commonwealth, are common in other nations. (from Wikipedia)") 
 
 (instance ChairmanJCS Position)
-(subclass ChairmanJCS Human)
 (member ChairmanJCS JointChiefsOfStaff)
+(=>
+  (attribute ?H ChairmanJCS)
+  (member ?H JointChiefsOfStaff))
 (leaderPosition JointChiefsOfStaff ChairmanJCS)
 (documentation ChairmanJCS "The chairman of the Joint Chiefs of
 Staff.")
@@ -909,10 +912,11 @@ forces. Also called JP.")
 
 (=>
   (instance ?PUB JointPublication)
-  (exists (?MANAGING)
+  (exists (?MANAGING ?H)
     (and
       (instance ?MANAGING Managing)
-      (agent ?MANAGING ChairmanJCS)
+      (attribute ?H ChairmanJCS)
+      (agent ?MANAGING ?H)
       (patient ?MANAGING ?PUB))))
 
 ;; A joint publication applies (rules) to all US military
@@ -920,12 +924,13 @@ forces. Also called JP.")
   (and
     (instance ?PUB JointPublication)
     (containsInformation ?PUB ?CONTENT)
-    (instance ?RULES RegulatoryProcess)
-    (realization ?RULES ?CONTENT)
-    (agent ?RULES ?MIL))
-  (instance ?MIL USMilitary))
+    (authors ?JORG ?PUB))
+  (exists (?ORG)
+    (and
+      (subOrganization ?ORG USMilitary)
+      (confersObligation ?CONTENT ?JORG ?ORG))))
 
-(subclass USMilitary MilitaryOrganization)
+(instance USMilitary MilitaryOrganization)
 (militaryOfArea USMilitary UnitedStates)
 (documentation USMilitary "All Military of the United States.")
 
@@ -940,31 +945,12 @@ Service Chiefs, and Joint Staff directors.")
 ;; AboveTheLine documents are signed by the Chairman of the JCS
 (=>
   (instance ?PUB AboveTheLine)
-  (exists (?SIGNING)
+  (exists (?SIGNING ?H)
     (and
       (instance ?SIGNING SigningADocument)
-      (agent ?SIGNING ChairmanJCS)
+      (attribute ?H ChairmanJCS)
+      (agent ?SIGNING ?H)
       (patient ?SIGNING ?PUB))))
-
-;; AboveTheLine publications are for combatant commanders, subunified
-;; commanders, joint task force commanders, Service Chiefs, and Joint
-;; Staff directors
-
-(=>
-  (and
-    (instance ?PUB AboveTheLine)
-    (containsInformation ?PUB ?CONTENT)
-    (instance ?RULES RegulatoryProcess)
-    (realization ?RULES ?CONTENT)
-    (agent ?RULES ?MIL))
-  (exists (?MIL)
-    (and
-      (agent ?RULES ?MIL)
-      (instance ?MIL
-        (UnionFn CombatantCommander
-          (UnionFn SubunifiedCommander
-            (UnionFn JointTaskForceCommander
-              (UnionFn ServiceChief DirectorJS))))))))
 
 (subclass BelowTheLine JointPublication)
 (disjoint AboveTheLine BelowTheLine)
@@ -979,10 +965,11 @@ systems support.")
 ;; BelowTheLine documents are signed by the Director of the JS
 (=>
   (instance ?PUB BelowTheLine)
-  (exists (?SIGNING)
+  (exists (?SIGNING ?H)
     (and
       (instance ?SIGNING SigningADocument)
-      (agent ?SIGNING DirectorJS)
+      (attribute ?H DirectorJS
+      (agent ?SIGNING ?H)
       (patient ?SIGNING ?PUB))))
 
 (subclass Doctrine Text)
@@ -990,16 +977,6 @@ systems support.")
 forces or elements thereof guide their actions in support of national
 objectives. It is authoritative but requires judgment in
 application.")
-
-;; A doctrine does involve the employment of forces
-(=>
-  (and
-    (instance ?PUB Doctrine)
-    (containsInformation ?PUB ?CONTENT)
-    (instance ?RULES RegulatoryProcess)
-    (realization ?RULES ?CONTENT)
-    (agent ?RULES ?MIL))
-  (instance ?MIL MilitaryForce))
 
 (subclass MultinationalDoctrine Doctrine)
 (documentation MultinationalDoctrine "Fundamental principles that
@@ -1009,15 +986,11 @@ nations.")
 
 ;; MultinationalDoctrines involve multiple nations
 (=>
-  (and
-    (instance ?PUB MultinationalDoctrine)
-    (containsInformation ?PUB ?CONTENT)
-    (instance ?RULES RegulatoryProcess)
-    (realization ?RULES ?CONTENT))
+  (instance ?PUB MultinationalDoctrine))
   (exists (?NATION1 ?NATION2)
     (and
-      (agent ?RULES ?NATION1)
-      (agent ?RULES ?NATION2)
+      (agent ?PUB ?NATION1)
+      (agent ?PUB ?NATION2)
       (instance ?NATION1 Nation)
       (instance ?NATION2 Nation)
       (not
@@ -1042,10 +1015,11 @@ the JCS, subsuming instructions and manuals.")
 
 (=>
   (instance ?PUB ChairmanPublication)
-  (exists (?MANAGING)
+  (exists (?MANAGING ?H)
     (and
       (instance ?MANAGING Managing)
-      (agent ?MANAGING ChairmanJCS)
+      (attribute ?H ChairmanJCS)
+      (agent ?MANAGING ?H)
       (patient ?MANAGING ?PUB))))
 
 ;; Chairman publication documents are signed by the Chairman of the
@@ -1053,34 +1027,12 @@ the JCS, subsuming instructions and manuals.")
 
 (=>
   (instance ?PUB ChairmanPublication)
-  (exists (?SIGNING)
+  (exists (?SIGNING ?H)
     (and
       (instance ?SIGNING SigningADocument)
-      (agent ?SIGNING ChairmanJCS)
+      (attribute ?H ChairmanJCS)
+      (agent ?SIGNING ?H)
       (patient ?SIGNING ?PUB))))
-
-;; A Chairman publication applies (rules) to external agencies or the
-;; joint staff
-
-(=>
-  (and
-    (instance ?PUB ChairmanPublication)
-    (instance ?RULES RegulatoryProcess)
-    (containsInformation ?PUB ?CONTENT)
-    (realization ?RULES ?CONTENT)
-    (agent ?RULES ?MIL))
-  (instance ?MIL (UnionFn ExternalAgency JointStaff)))
-
-;; A Chairman publication does not involve the employment of forces
-(=>
-  (and
-    (instance ?PUB ChairmanPublication)
-    (instance ?RULES RegulatoryProcess)
-    (containsInformation ?PUB ?CONTENT)
-    (realization ?RULES ?CONTENT)
-    (agent ?RULES ?MIL))
-  (not
-    (instance ?MIL MilitaryForce)))
 
 (subclass ChairmanInstruction ChairmanPublication)
 (documentation ChairmanInstruction "A replacement document for all
@@ -1214,20 +1166,14 @@ Psychological Operations.
 (=>
   (and
     (instance ?PSYOP PsychologicalOperation)
-    (agent ?PSYOP ?AGENT))
+    (agent ?PSYOP ?AGENT)
+    (patient ?PSYOP ?TARGET))
   (hasPurpose ?PSYOP
-    (exists (?PROCESS)
+    (exists (?PROCESS ?RESULT)
       (and
-        (or
-          (instance ?PROCESS PsychologicalProcess)
-          (instance ?PROCESS Cooperation))
-        (forall (?EXP ?OTHER_PROC)
-          (and
-            (experiencer ?PROCESS ?EXP)
-            (not
-              (enemy ?AGENT ?EXP))
-            (agent ?OTHER_PROC ?AGENT)
-            (enjoys ?EXP ?OTHER_PROC)))))))
+        (agent ?PROCESS ?TARGET)
+        (result ?PROCESS ?RESULT)
+        (desires ?AGENT ?RESULT)))))
 
 (subclass DevelopPrograms PsychologicalOperation)
 (subclass DevelopPrograms Creation)
@@ -1238,9 +1184,10 @@ support tactical, operational, and strategic goals.")
 
 (=>
   (instance ?DP DevelopPrograms)
-  (and
-    (result ?DP ?PROGRAM)
-    (instance ?PROGRAM PublicProgram)))
+  (exists (?PROGRAM)
+    (and
+      (result ?DP ?PROGRAM)
+      (instance ?PROGRAM PublicProgram))))
 
 (subclass DistributeProducts PsychologicalOperation)
 (subclass DistributeProducts Giving)
@@ -1344,6 +1291,7 @@ PSYOP, on a limited scale, to component commands within a designated
 area of operations (AO).")
 
 (instance areaOfOperation BinaryRelation)
+(instance areaOfOperation AsymmetricRelation)
 (domain areaOfOperation 1 Region)
 (domain areaOfOperation 2 MilitaryOperation)
 (documentation areaOfOperation "An operational area defined by the
@@ -1389,15 +1337,23 @@ its territory. Also called HN")
 
 (=>
   (instance ?HN HostNation)
-  (exists (?GETTING ?FORCES)
+  (exists (?GETTING ?FORCES ?OTHERNATION ?MILITARY)
     (and
+      (instance ?OTHERNATION Nation)
+      (instance ?MILITARY MilitaryForce)
+      (militaryOfArea ?MILITARY ?OTHERNATION)
+      (subOrganization ?FORCES ?MILITARY)
+      (not
+        (equal ?HN ?OTHERNATION))
+      (not
+        (enemy ?HN ?OTHERNATION))
       (instance ?GETTING Getting)
       (agent ?GETTING ?HN)
       (patient ?GETTING ?FORCES)
       (instance ?FORCES MilitaryForce)
       (located ?FORCES ?HN))))
 
-(subclass PublicProgram Organization)
+(subclass PublicProgram OrganizationalProcess)
 (documentation PublicProgram "From WordNet synset: a system of
 projects or services intended to meet a public need; examples: he
 proposed an elaborate program of public works; working mothers rely on
@@ -1423,13 +1379,17 @@ example: the reading public.")
 ;; the members of a Public have common interests
 
 (=>
-  (and
-    (member ?AGENT1 Public)
-    (member ?AGENT2 Public))
-  (exists (?INTEREST)
+  (holdsDuring ?T1
     (and
-      (wants ?AGENT1 ?INTEREST)
-      (wants ?AGENT2 ?INTEREST))))
+      (member ?AGENT1 Public)
+      (member ?AGENT2 Public)
+      (not
+        (equal ?AGENT1 ?AGENT2))))
+  (exists (?INTEREST)
+    (holdsDuring ?T1
+      (and
+        (desires ?AGENT1 ?INTEREST)
+        (desires ?AGENT2 ?INTEREST)))))
 
 (subclass Helping SocialInteraction)
 (documentation Helping "From WordNet: give help or assistance; be of
@@ -1453,16 +1413,8 @@ help me carry this table?; She never helps around the house.")
 (especially a rapid increase in the number of deadly weapons)")
 
 (subclass ProliferationWMD Proliferation)
-(documentation ProliferationWMD "A rapid increase of WMD")
-
-;; the subject of ProliferationWMD are WMD
-
-(=>
-  (instance ?P ProliferationWMD)
-  (exists (?WMD)
-    (and
-      (instance ?WMD WeaponOfMassDestruction)
-      (patient ?P ?WMD))))
+(documentation ProliferationWMD "A rapid increase the number of WMD,
+especially the number possessed by different countries or groups.")
 
 (subclass CounterproliferationWMD CounterOperation)
 (subclass CounterproliferationWMD RecoveryOperation)
@@ -1495,32 +1447,15 @@ see JP 3-40, Joint Doctrine for Counterproliferation Operations.")
       (hasPurpose ?CO
         (prevents ?CO ?OP)))))
 
-;; CP necesessarily involves WMD
-
-(=>
-  (instance ?CP CounterproliferationWMD)
-  (exists (?WMD)
-    (and
-      (patient ?CP ?WMD)
-      (instance ?WMD WeaponOfMassDestruction))))
-
-(subclass PeaceState SubjectiveAssessmentAttribute)
+(instance PeaceState SubjectiveAssessmentAttribute)
 (documentation PeaceState "WN: the state prevailing during the absence of war.")
-(subclass WarState SubjectiveAssessmentAttribute)
+(instance WarState SubjectiveAssessmentAttribute)
 (documentation WarState "a legal state created by a declaration of war and ended 
 by official declaration during which the international rules of war apply; 
 war was declared in November but actual fighting did not begin until the following spring")
 
 ;; peace is the opposite of war
-(=>
-  (and
-    (attribute ?OBJ ?PEACE)
-    (instance ?PEACE PeaceState))
-  (not
-    (exists (?WAR)
-      (and
-        (attribute ?OBJ ?WAR)
-        (instance ?WAR WarState)))))
+(contraryAttribute PeaceState WarState)
 
 ;; war state holds during War
 
@@ -1528,10 +1463,8 @@ war was declared in November but actual fighting did not begin until the followi
   (and
     (instance ?WAR War)
     (agent ?WAR ?A))
-  (exists (?ATTR)
-    (and
-      (attribute ?ATTR ?A)
-      (instance ?ATTR WarState))))
+  (holdsDuring (WhenFn ?WAR)
+    (attribute ?A WarState)))
 
 ;; add the following definitions to Military.kif
 
@@ -1551,12 +1484,21 @@ war was declared in November but actual fighting did not begin until the followi
 operation. This involves military personell.  The result of the
 planning process is a an _OperationPlan_")
 
-(<=>
-  (instance ?PLANNING OperationPlanning)
-  (exists (?PLAN)
-    (and
-      (result ?PLANNING ?PLAN)
-      (instance ?PLAN OperationPlan))))
+(=>
+  (and
+    (instance ?EVENT OperationPlanning) 
+    (result ?EVENT ?CBO)
+    (instance ?CBO ContentBearingObject)
+    (containsInformation ?CBO ?INFO))
+  (instance ?INFO OperationPlan))
+
+(=>
+  (and
+    (instance ?PLAN OperationPlan)
+    (containsInformation ?CBO ?PLAN)
+    (instance ?CBO ContentBearingObject)
+    (result ?EVENT ?CBO))
+  (instance ?EVENT OperationPlanning))
 
 (subclass OperationPlan Plan)
 (documentation OperationPlan "Any plan, except for the Single
@@ -1594,7 +1536,7 @@ CONPLAN.")
     (instance ?CBO ContentBearingObject)
     (containsInformation ?CBO ?PLAN)
     (instance ?OP MilitaryOperation)
-    (patient ?OP ?CBO))
+    (result ?OP ?CBO))
   (represents ?PLAN ?OP))
 
 (=>
@@ -1604,22 +1546,22 @@ CONPLAN.")
   (or
     (and
       (instance ?COMMANDER CombatantCommander)
-      (exists (?REQUEST)
+      (exists (?REQUEST ?CHAIRMAN)
         (and
           (instance ?REQUEST Requesting)
           (agent ?REQUEST ?CHAIRMAN)
-          (instance ?CHAIRMAN ChairmanJCS)
-          (causes  ?REQUEST ?PLANNING))))
+          (attribute ?CHAIRMAN ChairmanJCS)
+          (causes ?REQUEST ?PLANNING))))
     (and
       (instance ?COMMANDER SubunifiedCommander)
-      (exists (?REQUEST)
+      (exists (?REQUEST ?COMMANDERSUPER ?MILITARY)
         (and
           (instance ?REQUEST Requesting)
           (agent ?REQUEST ?COMMANDERSUPER)
-          (instance ?COMMANDERSUPER MilitaryCommander)
+          (attribute ?COMMANDERSUPER MilitaryCommander)
           (subordinatePosition ?MILITARY ?COMMANDER ?COMMANDERSUPER)
           (instance ?MILITARY MilitaryForce)
-          (causes  ?REQUEST ?PLANNING))))))
+          (causes ?REQUEST ?PLANNING))))))
 
 (subclass CONPLAN OperationPlan)
 (disjoint OPLAN CONPLAN)
@@ -1644,12 +1586,6 @@ deployment of forces. Also called CONPLAN.")
     (and
       (instance ?CBO TPFDDFile)
       (containsInformation ?CBO ?CONPLANwithTPFDD))))
-
-(=>
-  (and
-    (instance ?CONPLANwithTPFDD CONPLANwithTPFDD)
-    (instance ?TPFDD TPFDD))
-  (consistent ?CONPLANwithTPFDD ?TPFDD))
 
 (subclass TPFDD Proposition)
 (documentation TPFDD "The Joint Operation Planning and Execution
@@ -1689,7 +1625,8 @@ execution of an operation. Also called OPORD.")
   (exists (?SUPERIORCOMMANDER ?SUBORDINATECOMMANDER)
     (and
       (agent ?ORDER ?SUPERIORCOMMANDER)
-      (agent ?ORDER ?SUBORDINATECOMMANDER)
+      (origin ?ORDER ?SUPERIORCOMMANDER)
+      (destination ?ORDER ?SUBORDINATECOMMANDER)
       (instance ?SUPERIORCOMMANDER MilitaryCommander)
       (instance ?SUBORDINATECOMMANDER MilitaryCommander)
       (subordinatePosition ?MILITARY ?SUBORDINATECOMMANDER ?SUPERIORCOMMANDER)
@@ -1701,7 +1638,6 @@ execution of an operation. Also called OPORD.")
 (=>
   (and
     (instance ?ORDER OperationOrder)
-    (patient ?ORDER ?OPERATION)
     (instance ?OPERATION MilitaryOperation))
   (hasPurpose ?ORDER
     (coordinate ?ORDER ?OPERATION)))
@@ -1714,7 +1650,7 @@ execution of an operation. Also called OPORD.")
       (instance ?PLAN OPLAN)
       (instance ?PLANNING OperationPlanning)
       (result ?PLANNING ?PLAN)
-      (patient ?PLANNING ?ORDER)
+      (causes ?PLANNING ?ORDER)
       (refers ?PLAN ?ORDER))))
     
 (domain coordinate 1 Process)
@@ -1758,23 +1694,6 @@ joint force commander.")
 ;; departments assuming that military department means military
 ;; service
 
-(=>
-  (instance ?JOINT JointForces)
-  (exists (?FORCE1 ?FORCE2 ?CLASS1 ?CLASS2)
-    (and
-      (subOrganization ?FORCE1 ?JOINT)
-      (subOrganization ?FORCE2 ?JOINT)
-      (instance ?FORCE1 MilitaryService)
-      (instance ?FORCE2 MilitaryService)
-      (not
-        (equal ?FORCE1 ?FORCE2))
-      (=>
-        (and
-           (instance ?FORCE1 ?CLASS1)
-           (instance ?FORCE2 ?CLASS2))
-        (not
-          (equal ?CLASS1 ?CLASS2))))))
-
 ;; participating forces in a joint operation are under the command of
 ;; the commander of the joint operation
 
@@ -1783,6 +1702,8 @@ joint force commander.")
     (instance ?JOINT JointForces)
     (subOrganization ?FORCE1 ?JOINT)
     (subOrganization ?FORCE2 ?JOINT)
+    (not
+      (equal ?FORCE1 ?FORCE2))
     (leaderPosition ?JOINT ?JOINTCOMMANDER))
   (and
     (leaderPosition ?FORCE1 ?JOINTCOMMANDER)
@@ -1798,16 +1719,6 @@ joint force commander.")
     (leaderPosition ?FORCE1 ?COMMANDER1)
     (leaderPosition ?JOINT ?JOINTCOMMANDER))
   (subordinatePosition ?JOINT ?COMMANDER1 ?JOINTCOMMANDER))
-
-;;maybe it makes sense to make a more general statement:
-
-(=>
-  (and
-    (leaderPosition ?ORG1 ?LEADER1)
-    (leaderPosition ?ORG2 ?LEADER2)
-    (subOrganization ?ORG1 ?ORG2))
-  (subordinatePosition ?ORG2 ?LEADER1 ?LEADER2))
-
 
 ;; TODO: do not know how to specify the difference between joint
 ;; operation planning and joint operation planning process
@@ -1859,26 +1770,16 @@ planning policies, procedures, and formats. Also called OPLAN. ")
       (instance ?CBO TPFDDFile)
       (containsInformation ?CBO ?OPLAN))))
 
-(=>
-  (and
-    (instance ?OPLAN OPLAN)
-    (instance ?JOPES JOPES))
-  (consistent ?OPLAN ?JOPES))
-      
-(=>
-  (and
-    (instance ?OPLAN OPLAN)
-    (instance ?TPFDD TPFDD))
-  (consistent ?OPLAN ?TPFDD))
-
 ;; joint operation plans are the result of a joint operation planning
 ;; process
 
 (=>
   (and
     (instance ?PLANNING JointOperationPlanning)
-    (result ?PLANNING ?PLAN))
-  (instance ?PLAN OPLAN))
+    (result ?PLANNING ?CBO)
+    (instance ?CBO ContentBearingObject)
+    (containsInformation ?CBO ?INFO))
+  (instance ?INFO OPLAN))
 
 ;; a joint operation plan represents a joint operation
 (=>
@@ -1888,7 +1789,7 @@ planning policies, procedures, and formats. Also called OPLAN. ")
       (represents ?PLAN ?OP)
       (instance ?OP JointOperation))))
 
-(subclass JOPES Proposition)
+(instance JOPES Specification)
 (documentation JOPES "A system that provides the foundation for
 conventional command and control by national- and combatant
 command-level commanders and their staffs. It is designed to satisfy
@@ -1918,7 +1819,7 @@ defensive information operations; information; offensive information
 operations; operation.  ")
 
 (subclass DefensiveInformationOperation InformationOperation)
-(subclass DefensiveInformationOperation Covering)
+
 (documentation DefensiveInformationOperation "The integration and
 coordination of policies and procedures, operations, personnel, and
 technology to protect and defend information and information
@@ -1939,9 +1840,13 @@ physical security; special information operations.")
 (=>
   (and
     (instance ?DIO DefensiveInformationOperation)
-    (patient ?DIO ?FORMULA)
     (agent ?DIO ?AGENT)
-    (enemy ?AGENT ?ENEMY))
+    (enemy ?AGENT ?ENEMY)
+    (desires ?ENEMY
+      (knows ?ENEMY ?FORMULA))
+    (desired ?AGENT
+      (not
+        (knows ?ENEMY ?FORMULA))))
   (hasPurpose ?DIO
     (not
       (knows ?ENEMY ?FORMULA))))
@@ -1960,16 +1865,6 @@ computer network attack; defensive information operations; electronic
 warfare; information operations; intelligence; military deception;
 operations security; psychological operations; special information
 operations.")
-
-;; the purpose of an OIO is to gather information
-
-(=>
-  (and
-    (instance ?OIO OffensiveInformationOperation)
-    (agent ?OIO ?AGENT)
-    (patient ?OIO ?FORMULA))
-  (hasPurpose ?OIO
-    (knows ?AGENT ?FORMULA)))
 
 (subclass ForeignInternalDefense MilitaryOperation)
 (subclass ForeignInternalDefense Helping)
