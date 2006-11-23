@@ -4,10 +4,9 @@
 
 ;; This is the source file for the MILO (MId-Level Ontology), an ontology that 
 ;; is being developed as a bridge between the abstract content of the SUMO and 
-;; the rich detail of the various domain ontologies.  The MILO is 
-;; at this point in time provisional and incomplete.    
+;; the rich detail of the various domain ontologies.    
 ;; Those who are interested in making use of this ontology are urged 
-;; to contact Adam Pease (adampease@earthlink.net).
+;; to contact Adam Pease (apease [at] articulatesoftware [dot] net).
 
 ;; The MILO (MId-Level Ontology) is copyrighted by Teknowledge (c) 
 ;; 2003 and Articulate Software 2004.  It is released under the GNU Public License 
@@ -17,7 +16,7 @@
 ;; publications, presentations, or other representations of any code or other 
 ;; product which incorporates, builds on, or uses this material. 
 
-;; Version date: October, 2005
+;; Version date: November, 2006
 ;; We ask that people using or referencing this work cite our primary paper:
 
 ;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
@@ -25,7 +24,7 @@
 ;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
 ;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
 
-(subclass HumanCorpse Human)
+(subclass HumanCorpse OrganicObject)
 (documentation HumanCorpse "A &%Dead thing which was formerly a &%Human.")
 
 (=>
@@ -555,7 +554,34 @@ access to a &%Container or &%StationaryArtifact.")
          (instance ?LOCK Lock)
          (capability Opening instrument ?LOCK)
          (capability Closing instrument ?LOCK))))
-   
+
+(subclass AnimalController Device)
+(documentation AnimalController "Any &%Device which is used to control the 
+movements of an &%Animal or &%Human, e.g. leashes, reins, harnesses, muzzles, 
+bridles, shackles, handcuffs, etc.")
+(=>
+  (instance ?AC AnimalController)
+  (hasPurpose ?AC 
+    (exists (?G ?A)
+      (and
+        (instance ?G Guiding)
+        (instrument ?G ?AC)
+        (instance ?A Animal)
+        (patient ?G ?A)))))
+             
+(subclass AnimalPoweredDevice Device)
+(documentation AnimalPoweredDevice "&%AnimalPoweredDevice is the subclass 
+of &%Devices that function with power supplied by animals.  Examples: 
+oxcarts, horse-drawn plows, mule-driven mills.")
+(=>
+  (and
+    (instance ?D AnimalPoweredDevice)
+    (instrument ?P ?D))
+  (exists (?A)
+    (and
+      (instance ?A Animal)
+      (instrument ?P ?A))))
+
 (subclass SecurityAlarm SecurityDevice)
 (subclass SecurityAlarm ElectricDevice)
 (documentation SecurityAlarm "A &%SecurityDevice that detects intrusions to 
@@ -810,6 +836,17 @@ two things.")
          (or
             (instance ?PART Paper)
             (instance ?PART Fabric)))))
+
+(subclass Anchor AttachingDevice)
+(documentation Anchor "An &%AttachingDevice which is large hook or set of hooks 
+that are used to secure a &%Ship on the open water.")
+(=>
+   (and
+      (instance ?A Anchor)
+      (instance ?ATTACH Attaching)
+      (instrument ?ATTACH ?A)
+      (patient ?ATTACH ?S))
+   (instance ?S Ship))
 
 (subclass Holder Device)
 (documentation Holder "A large class of &%Devices whose purpose is to hold 
@@ -2237,6 +2274,17 @@ physiological and psychological effects.")
       (and
          (instance ?N Nitrogen)
          (part ?N ?A))))
+
+(subclass AminoAcid ChemicalAcid)
+(subclass AminoAcid OrganicCompound)
+(documentation AminoAcid "Organic acids that are the building blocks of 
+&%Proteins.")
+(=>
+  (instance ?P Protein)
+  (exists (?A)
+    (and
+      (instance ?A AminoAcid)
+      (part ?A ?P))))
 
 (subclass SodiumChloride CompoundSubstance)
 (names "salt" SodiumChloride)
@@ -6798,12 +6846,32 @@ the &%PureSubstance ?SUBSTANCE has the number of &%Electrons ?NUMBER.")
          (or 
             (instance ?ATOM Atom)
             (instance ?ATOM Molecule))) 
-      (equal ?NUMBER (CardinalityFn (KappaFn ?ELECTRON 
-                                       (and 
-                                          (part ?ELECTRON ?ATOM) 
-                                          (instance ?ELECTRON Electron))))))) 
+      (equal ?NUMBER 
+        (CardinalityFn 
+          (KappaFn ?ELECTRON 
+            (and 
+              (part ?ELECTRON ?ATOM) 
+              (instance ?ELECTRON Electron))))))) 
 
+(subclass Ambush Maneuver)
+(documentation Ambush "Any &%Maneuver in a &%ViolentContest where one 
+&%contestParticipant attempts to conceal himself from another 
+contestParticipant so that he can &%Attack the other 
+&%contestParticipant.") 
 
+(=>
+  (and
+    (instance ?AMBUSH Ambush)
+    (agent ?AMBUSH ?AG))
+  (exists (?C)
+    (and
+      (instance ?C Concealing)
+      (subProcess ?C ?AMBUSH)
+      (hasPurpose ?C 
+        (exists (?ATTACK) 
+          (and 
+            (instance ?ATTACK Attack) 
+            (agent ?ATTACK ?AG)))))))
 
 (subclass Arson Combustion)
 (subclass Arson Destruction)
@@ -8337,30 +8405,76 @@ events in which the &%instrument is an instance of
     (patient ?DRIVING ?VEHICLE))
   (conveyance ?TRANSPORT ?VEHICLE))
 
+(instance typicalPart BinaryRelation)
+(instance typicalPart SpatialRelation)
+(relatedInternalConcept typicalPart part)
+(documentation typicalPart "An instance of the first argument is typically 
+found as part of an instance of the second argument.  This is a 
+class-level relation roughly corresponding to &%part.  Note that this does 
+not imply that such wholes typically have such parts.") 
+(domainSubclass typicalPart 1 Object)
+(domainSubclass typicalPart 2 Object)
+
+(=>
+  (typicalPart ?PART ?WHOLE)
+  (exists (?X ?Y)
+    (and      
+      (instance ?X ?WHOLE)
+      (instance ?Y ?PART)
+      (part ?Y ?X)))) 
+
+(=>
+  (and
+    (typicalPart ?PART ?WHOLE)
+    (instance ?X ?PART))
+  (and
+    (equal ?PARTPROB 
+      (ProbabilityFn 
+        (exists (?Y)
+          (and
+            (instance ?Y ?WHOLE)
+            (part ?X ?Y)))))
+    (equal ?NOTPARTPROB
+      (ProbabilityFn 
+        (not
+          (exists (?Y)
+            (and
+              (instance ?Y ?WHOLE)
+              (part ?X ?Y))))))
+    (greaterThan ?PARTPROB ?NOTPARTPROB)))
+
+(instance initialPart BinaryRelation)
+(instance initialPart SpatialRelation)
+(relatedInternalConcept initialPart part)
+(documentation initialPart "An instance of the first argument is initially 
+found as part of every instance of the second argument, even though it 
+might lose that part later in its lifetime.  While the part must initially 
+exist as part of a whole, this does not say that each whole necessarily initially  
+contains such a part.  For example, a thumb must at some time have been 
+part of a hand, but every hand need not have a thumb, even at birth.  This 
+is a class-level relation roughly corresponding to &%part.") 
+
+(domainSubclass initialPart 1 Object)
+(domainSubclass initialPart 2 Object)
+
+(=>
+  (and
+    (initialPart ?C2 ?C1)
+    (instance ?PART ?C2))
+  (exists (?WHOLE)
+    (and      
+      (instance ?WHOLE ?C1)
+      (holdsDuring (BeginFn (WhenFn ?WHOLE))
+      (part ?PART ?WHOLE)))) 
+
 ;; ------------------------------------------------------
 ;; New content that has not yet been fully formalized.
 
 (documentation Ambulance "&%Ambulance is the subclass of 
 &%EmergencyRoadVehicles that represents ambulances.")
-(subclass Ambush Maneuver)
-(documentation Ambush "Any &%Maneuver in a &%ViolentContest where one &%contestParticipant 
-attempts to conceal himself from another contestParticipant so that he can &%Attack the 
-other &%contestParticipant.")
-(subclass AminoAcid ChemicalAcid)
-(subclass AminoAcid OrganicCompound)
-(documentation AminoAcid "Organic acids that are the building blocks of 
-&%Proteins.")
-(subclass Anchor AttachingDevice)
-(documentation Anchor "An &%AttachingDevice which is large hook or set of hooks 
-that are used to secure a &%Ship on the open water.")
-(subclass AnimalController Device)
-(documentation AnimalController "Any &%Device which is used to control the 
-movements of an &%Animal or &%Human, e.g. leashes, reins, harnesses, muzzles, 
-bridles, shackles, handcuffs, etc.")
-(subclass AnimalPoweredDevice Device)
-(documentation AnimalPoweredDevice "&%AnimalPoweredDevice is the subclass 
-of &%Devices that function with power supplied by animals.  Examples: 
-oxcarts, horse-drawn plows, mule-driven mills.")
+
+
+
 (subclass AnimalShell AnimalAnatomicalStructure)
 (subclass AnimalShell BodyPart)
 (documentation AnimalShell "A hard shell of calcium that serves as a 
