@@ -287,8 +287,8 @@ to be &%False by the &%agent of the &%Stating.")
       (agent ?STATE ?AGENT)
       (patient ?STATE ?STATEMENT))
    (and
-      (true ?STATMENT False)
-      (believes ?AGENT (true ?STATEMENT False))))
+      (truth ?STATMENT False)
+      (believes ?AGENT (truth ?STATEMENT False))))
 
 (subclass Founding Declaring)
 (subclass Founding OrganizationalProcess)
@@ -360,6 +360,7 @@ a &%Weapon.")
          (part ?SHELL ?PROJECTILE))))
 
 (subclass Gun Weapon)
+(subclass Gun ProjectileLauncher)
 (partition Gun ArtilleryGun Firearm)
 (documentation Gun "A &%Weapon that shoots a &%Projectile.")
 
@@ -473,13 +474,9 @@ fired from a bow.")
 (documentation Manifold "A pipe which has several outlets for other pipes that flow 
 into or out of it.")
 
-(subclass BirthControlDevice Device)
-(documentation BirthControlDevice "&%Devices which permit sexual intercourse but 
-which reduce the likelihood of conception.")
-
-(subclass SwitchDevice Device)
-(documentation SwitchDevice "A &%Device which is capable of turning an 
-&%ElectricDevice on and off.")
+(subclass SwitchDevice EngineeringComponent)
+(documentation SwitchDevice "An &%EngineeringComponent which is capable of turning 
+an &%ElectricDevice on and off.")
 
 (=>
    (instance ?DEVICE SwitchDevice)
@@ -815,10 +812,6 @@ a &%Hole.")
    (exists (?HOLE)
       (completelyFills ?PLUG ?HOLE)))
 
-(subclass CigarOrCigarette Artifact)
-(documentation CigarOrCigarette "A tube of thin paper containing finely ground tobacco 
-that is smoked.")
-
 (subclass Pottery Artifact)
 (documentation Pottery "Household &%Artifacts that are made out of baked &%Clay.")
 
@@ -945,6 +938,15 @@ least partially filled by the thing contained.")
 (=>
    (instance ?CONTAINER Container)
    (hasPurpose ?CONTAINER (exists (?OBJ) (contains ?CONTAINER ?OBJ))))
+
+(subclass Bag Container)
+(documentation Bag "Any &%Container which is made of &%Fabric.")
+(=>
+  (instance ?BAG Bag)
+  (exists (?PART)
+    (and
+      (part ?PART ?BAG)
+      (instance ?PART Fabric))))
 
 (subclass Box Container)
 (documentation Box "Any six-sided &%Container whose sides are 
@@ -1197,6 +1199,19 @@ viz. a &%CareOrganization.")
             (instance ?PROCESS DiagnosticProcess)
             (instance ?PROCESS TherapeuticProcess)))))
 
+(subclass Bandage Fabric)
+(documentation Bandage "A piece of &%Fabric that is used in &%Covering an 
+open wound.")
+(=>
+  (instance ?B Bandage)
+  (hasPurpose ?B 
+    (exists (?TP ?C)
+      (and
+        (instance ?TP TherapeuticProcess)
+        (instance ?C Covering)
+        (subProcess ?C ?TP)
+        (instrument ?C ?B)))))
+
 (subclass NonspecificDisease DiseaseOrSyndrome)
 (documentation NonspecificDisease "The class of &%DiseaseOrSyndromes that are not 
 caused by a single type of &%Microorganism.")
@@ -1221,6 +1236,10 @@ uncontrolled cell division that results in a &%Tumor.")
       (and
          (instance ?TUMOR Tumor)
          (part ?TUMOR ?PERSON))))
+
+(subclass BacterialDisease InfectiousDisease)
+(documentation BacterialDisease "A disease that is caused by instances of 
+&%Bacterium.")
 
 (instance conjugate BinaryPredicate)
 (instance conjugate IrreflexiveRelation)
@@ -1695,7 +1714,7 @@ expectation.")
 (=>
    (and
       (holdsDuring ?TIME1 (expects ?AGENT ?FORMULA))
-      (holdsDuring ?TIME2 (true ?FORMULA True)))
+      (holdsDuring ?TIME2 (truth ?FORMULA True)))
    (earlier ?TIME1 ?TIME2))
 
 (subrelation fears expects)
@@ -2082,6 +2101,16 @@ which typically accords with a prescribed set of rules.")
       (agent ?SERVICE ?PERSON)
       (instance ?PERSON Human))
    (member ?PERSON Christianity))
+
+(subclass Baptizing ReligiousProcess)
+(subclass Baptizing JoiningAnOrganization)
+(documentation Baptizing "A &%ReligiousProcess which marks the acceptance of 
+the person being baptized into the &%ReligiousOrganization.")
+(=>
+  (and
+    (instance ?B Baptizing)
+    (patient ?B ?H))
+  (instance ?H Human))
 
 (subclass Praying ReligiousProcess)
 (subclass Praying Requesting)
@@ -3783,7 +3812,7 @@ intended function.")
    (and
       (attribute ?DEVICE Functioning)
       (hasPurpose ?DEVICE ?PROP))
-   (true ?PROP True))
+   (truth ?PROP True))
 
 (instance Malfunctioning DeviceAttribute)
 (documentation Malfunctioning "Indicates that a &%Device is not performing 
@@ -3793,7 +3822,7 @@ its intended function.")
    (and
       (attribute ?DEVICE Malfunctioning)
       (hasPurpose ?DEVICE ?PROP))
-   (true ?PROP False))
+   (truth ?PROP False))
 
 (instance LegislativeBill DeonticAttribute)
 (documentation LegislativeBill "The &%Attribute of being a proposed law, 
@@ -3856,7 +3885,7 @@ that express &%Laws concerning the relations between &%Nations.")
 
 (=>
    (instance ?FACT Fact)
-   (true ?FACT True))
+   (truth ?FACT True))
 
 (subclass Question Sentence)
 (documentation Question "An interrogative &%Sentence, a &%Sentence that 
@@ -3992,6 +4021,18 @@ of income tax owed in a given year.")
                              (result ?CALCULATE ?AMOUNT)
                              (transactionAmount ?TAX ?AMOUNT)
                              (instance ?TAX Tax)))))
+
+(subclass Ballot FormText)
+(documentation Ballot "A &%FormText which is used in &%Voting.  A list of 
+candidates is printed on the form, and the voter selects the candidate he/she 
+wants to vote for.")
+(=>
+  (instance ?B Ballot)
+  (hasPurpose ?B 
+    (exists (?V)
+      (and
+        (instance ?V Voting)
+        (instrument ?V ?B)))))
 
 (subclass Application FormText)
 (documentation Application "A &%FormText whose purpose is to obtain admission 
@@ -4483,18 +4524,18 @@ where the waves have a wavelength between 5 milimeters and 30,000 meters.")
 
 (subclass RadioBroadcasting Broadcasting)
 (documentation RadioBroadcasting "Any instance of &%Broadcasting which is 
-intended to be received by a &%Radio.")
+intended to be received by a &%RadioReceiver.")
 
 (=>
-	(instance ?RADIO Radio)
-      (capability RadioBroadcasting patient ?RADIO))
+  (instance ?RADIO RadioReceiver)
+  (capability RadioBroadcasting patient ?RADIO))
 
 (subclass TelevisionBroadcasting Broadcasting)
 (documentation TelevisionBroadcasting "Any instance of &%Broadcasting which 
 is intended to be received by a &%Television.")
 
 (=>
-	(instance ?TELEVISION Television)
+	(instance ?TELEVISION TelevisionReceiver)
       (capability TelevisionBroadcasting patient ?TELEVISION))
 
 (subclass Antenna CommunicationDevice)
@@ -4998,6 +5039,9 @@ area.")
 
 (subclass Ball GamePiece)
 (documentation Ball "Any &%GamePiece which has the shape of a sphere.")
+(=>
+  (instance ?B Ball)
+  (attribute ?B Sphere))
 
 (subclass GameShot Impelling)
 (subclass GameShot Maneuver)
@@ -5044,34 +5088,6 @@ is to constitute a &%Score.")
          (patient ?SCORE ?PIECE)
          (temporalPart ?TIME (WhenFn ?SCORE))
          (holdsDuring ?TIME (located ?PIECE ?GOAL)))))
-
-(subclass BaseballManeuver Maneuver)
-(documentation BaseballManeuver "Any &%Maneuver in &%Baseball.")
-
-(=>
-   (instance ?MOVE BaseballManeuver)
-   (exists (?BASEBALL)
-      (and
-         (instance ?BASEBALL Baseball)
-         (subProcess ?MOVE ?BASEBALL))))  
-
-(subclass BaseballWalk BaseballManeuver)
-(documentation BaseballWalk "Taking first base after four balls have been 
-called by the umpire.")
-
-(subclass BaseballHit GameShot)
-(subclass BaseballHit BaseballManeuver)
-(documentation BaseballHit "Any base hit in &%Baseball.")
-
-(subclass BaseballRun BaseballHit)
-(subclass BaseballRun Score)
-(documentation BaseballRun "A &%Score in &%Baseball.  It consists of hitting 
-the ball with the bat and then touching all four bases of the diamond before 
-being tagged with the ball by a member of the opposite team.")
-
-(subclass HomeRun BaseballRun)
-(documentation HomeRun "A &%BaseballRun where the batter touches home base 
-during his turn at bat.")
 
 (subclass Throwing Impelling)
 (subclass Throwing BodyMotion)
@@ -5445,8 +5461,19 @@ the &%instrument is a &%WaterVehicle.")
    (instance ?CRAFT Spacecraft)
    (capability SpaceTransportation instrument ?CRAFT))
 
-(subclass Missile Spacecraft)
-(documentation Missile "A &%Spacecraft which is propelled by a rocket.") 
+(subclass Missile Projectile)
+(documentation Missile "A &%Projectile which is propelled by a rocket and 
+contains a &%Bomb.") 
+(=>
+  (instance ?M Missile)
+  (exists (?B)
+    (and
+      (instance ?B Bomb)
+      (part ?B ?M))))
+
+(subclass BallisticMissile Missile)
+(documentation BallisticMissile "A &%Missile which is guided for the first stage 
+of its flight but then falls to its target for the second stage.")
 
 (subclass Installing Putting)
 (documentation Installing "&%Putting a &%Device in a location and configuring 
@@ -5463,7 +5490,7 @@ the &%Device so that it can be used as intended after the installation.")
       (instance ?INSTALL Installing)
       (patient ?INSTALL ?DEVICE)
       (hasPurpose ?DEVICE ?PURPOSE))
-   (holdsDuring (EndFn (WhenFn ?INSTALL)) (true ?PURPOSE True)))
+   (holdsDuring (EndFn (WhenFn ?INSTALL)) (truth ?PURPOSE True)))
 
 (subclass MovingResidence Transfer)
 (documentation MovingResidence "The process of changing one's residence, i.e. 
@@ -5652,6 +5679,16 @@ salaried or paid for at least 40 hour of work per week.")
 (subclass PartTimePosition Position)
 (documentation PartTimePosition "Any &%Position where the employee is not 
 salaried and is paid for less than 40 hours of work per week.")
+
+(subclass Banker SkilledOccupation)
+(documentation Banker "Any &%SkilledOccupation which involves working in a 
+&%FinancialBank.")
+(=>
+   (and
+      (instance ?H Human)
+      (occupiesPosition ?H ?B ?O)
+      (attribute ?B Banker))
+   (instance ?O FinancialBank))
 
 (subclass ClericalSecretary SkilledOccupation)
 (documentation ClericalSecretary "The class of &%Positions where the position 
@@ -6001,7 +6038,7 @@ unexpected and of significance occurs.")
       (and
          (temporalPart ?PART (PastFn ?TIME))
          (holdsDuring ?PART (expects ?AGENT ?PROP))
-         (holdsDuring ?TIME (true ?PROP False)))))
+         (holdsDuring ?TIME (truth ?PROP False)))))
    
 
 (subclass SecondaryColor ColorAttribute)
@@ -6129,10 +6166,6 @@ a &%Sport.")
             (agent ?SPORT ?THING)
             (patient ?SPORT ?THING)
             (subProcess ?THING ?SPORT)))))
-
-(instance BaseballStrike SportAttribute)
-(documentation BaseballStrike "A baseball pitch that is in the strike zone 
-and that is not hit by the batter.")
 
 (subclass PoliticoEconomicAttribute RelationalAttribute)
 (partition PoliticoEconomicAttribute FormOfGovernment EconomicAttribute)
@@ -6383,34 +6416,6 @@ are &%Corporations and the aim is to win as many customers as possible.")
       (instance ?CONTEST BusinessCompetition)
       (contestParticipant ?CONTEST ?AGENT))
    (instance ?AGENT Corporation))
-
-(subclass Boxing ViolentContest)
-(subclass Boxing Sport)
-(documentation Boxing "A sport which involves two participants who try to 
-knock each other out in a limited number of rounds.  Note that each instance 
-of &%Boxing is a boxing match.")
-
-(subclass Gymnastics Sport)
-(documentation Gymnastics "A sport which involves exercises of agility on a 
-range of gymnastic equipment.") 
-
-(subclass BaseballTeam SportsTeam)
-(documentation BaseballTeam "The class of &%SportsTeams that play &%Baseball.")
-
-(=>
-   (instance ?TEAM BaseballTeam)
-   (capability Baseball agent ?TEAM))
-
-(subclass BaseballInning Maneuver)
-(documentation BaseballInning "A division of a &%Baseball game.  A normal game 
-consists of 9 innings, and each inning involves a turn a bat for both teams.")
-
-(=>
-   (instance ?INNING BaseballInning)
-   (exists (?GAME)
-      (and
-         (instance ?GAME Baseball)
-         (subProcess ?INNING ?GAME))))
 
 (instance Blind BiologicalAttribute)
 (documentation Blind "The &%Attribute that applies to &%Animals and &%Humans 
@@ -7017,11 +7022,23 @@ closed in an &%Object.")
 (documentation RawFood "&%Food that is not the result of &%Cooking.")
 
 (=>
-   (instance ?FOOD RawFood)
-   (not (exists (?COOK)
+  (instance ?F RawFood)
+  (not 
+    (exists (?C)
       (and
-         (instance ?COOK Cooking)
-         (result ?COOK ?FOOD)))))
+        (instance ?C Cooking)
+        (result ?C ?F)))))
+
+(subclass Baking Cooking)
+(subclass Baking Heating)
+(documentation Baking "Any instance of &%Cooking where the instrument 
+is an &%Oven.")
+(=>
+  (instance ?B Baking)
+  (exists (?O)
+    (and
+      (instance ?O Oven)
+      (instrument ?B ?O))))
 
 (subclass SoupStock PreparedFood)
 (documentation SoupStock "&%Food which is prepared by reducing &%Meat 
@@ -7284,7 +7301,7 @@ number of people, such as a couple.")
 (subclass KnifeAttack ViolentContest)
 (documentation KnifeAttack "An attack in which a knife is used.")
 
-(subclass Knife Device)
+(subclass Knife CuttingDevice)
 
 (documentation Knife "A sharp object used for cutting.  The object must 
 have at least single blade or major protrusion which may be sharp at its 
@@ -7298,8 +7315,11 @@ a pocket knife, or large like a two-handed broadsword.  A knife may also
 include other protrusions such as in the split swords and trident-like 
 objects (that also possess a long sharp edge) in Chinese weaponry.") 
 
+(subclass CuttingDevice Device)
+(documentation CuttingDevice "Any &%Device whose purpose is &%Cutting something 
+else.  This class covers knives of all times, axes, saws, razors, chisels etc.")
 (=>
-  (instance ?X Knife)
+  (instance ?X CuttingDevice)
   (capability Cutting ?X instrument))
 
 (=>
@@ -8810,7 +8830,7 @@ corresponding to &%part.")
 
 (subclass Atrophy PathologicProcess)
 (subclass Atrophy Decreasing)
-(documentation Atrophy "Any decrease in the size of an &%Organ which is due to 
+(documentation Atrophy "Any decrease in the size of a &%BodyPart which is due to 
 disease or lack of use.")
 (=>
   (instance ?A Atrophy)
@@ -8819,71 +8839,19 @@ disease or lack of use.")
       (experiencer ?A ?B)
       (instance ?B BodyPart))))
 
-;; ------------------------------------------------------
-;; New content that has not yet been fully formalized. 
-
-(subclass BacterialDisease InfectiousDisease)
-(documentation BacterialDisease "A disease that is caused by instances of 
-&%Bacterium.")
-(subclass Bag Container)
-(documentation Bag "Any &%Container which is made of &%Fabric.")
-(subclass Baking Cooking)
-(subclass Baking Heating)
-(documentation Baking "Any instance of &%Cooking where the instrument 
-is an &%Oven.")
-(subclass Ball Sphere)
-(subclass BallisticMissile Missile)
-(documentation BallisticMissile "A &%Missile which is guided for the first stage 
-of its flight but then falls to its target for the second stage.")
-(subclass Ballot FormText)
-(documentation Ballot "A &%FormText which is used in &%Voting.  A list of 
-candidates is printed on the form, and the voter selects the candidate he/she 
-wants to vote for.")
-(subclass Bandage Fabric)
-(documentation Bandage "A piece of &%Fabric that is used to cover an 
-open wound.")
-(subclass Banker SkilledOccupation)
-(documentation Banker "Any &%SkilledOccupation which involves working in a 
-&%FinancialBank.")
-(subclass Baptizing ReligiousProcess)
-(subclass Baptizing JoiningAnOrganization)
-(documentation Baptizing "A &%ReligiousProcess which marks the acceptance of 
-the person being baptized into the &%ReligiousOrganization.")
-(subclass BargainSale OfferingForSale)
-(documentation BargainSale "Offering to sell something to someone at a 
-reduced price.")
 (subclass Barking RadiatingSound)
 (documentation Barking "Any instance of &%RadiatingSound which is produced 
 by a &%Canine.")
-(subclass Baseball TeamSport)
-(documentation Baseball "A &%TeamSport which involves two teams of 9 players 
-each that take turns at bat and attempt to score runs.  Note that each instance 
-of &%Baseball is a baseball game.")
-(subclass BaseballBase GameArtifact)
-(documentation BaseballBase "Any of four regions which must each be 
-successively touched after a &%BaseballHit in order to complete a 
-&%BaseballRun.")
-(subclass BaseballBat GameArtifact)
-(documentation BaseballBat "A bat which is used to hit the ball in 
-&%Baseball.")
-(subclass BaseballDugout Building)
-(documentation BaseballDugout "A &%Building which is used to house the members 
-of both &%Baseball teams while a game is being played.")
-(subclass BaseballField SportsFacility)
-(documentation BaseballField "A &%SportsFacility which is dedicated to 
-&%Baseball.")
-(subclass BaseballSingle BaseballHit)
-(documentation BaseballSingle "Any &%BaseballHit where the batter makes it 
-safely to first base by hitting the ball.")
-(subclass BaseballSteal BaseballManeuver)
-(disjoint BaseballSteal BaseballWalk)
-(disjoint BaseballSteal BaseballHit)
-(documentation BaseballSteal "Any move from one base to another which is neither 
-a &%BaseballWalk nor a &%BaseballHit.")
-(disjoint BaseballWalk BaseballHit)
-(subclass Basketball TeamSport)
-(documentation Basketball "A &%TeamSport which involves two teams of 5 players 
-each.  The object of the game is to put the ball through a hoop.")
+(=>
+  (instance ?B Barking)
+  (exists (?D)
+    (and
+      (instance ?D Canine)
+      (agent ?B ?D))))
+
+;; ------------------------------------------------------
+;; New content that has not yet been fully formalized. 
+
 (subclass Bathing Washing)
 (documentation Bathing "&%Washing the entire body of a &%Human or &%Animal.")
 (subclass BathingDevice WashingDevice)
@@ -8976,9 +8944,6 @@ upper deck and lower deck of small boats with a cabin.")
 (subclass BodyJoint BodyJunction)
 (documentation BodyJoint "&%BodyJunctions where different parts of the same 
 &%Skeleton come together.")
-(subclass Bodybuilding Sport)
-(documentation Bodybuilding "A sport which involves the development of one's 
-&%Muscles and competition against other bodybuilders.")
 (subclass Bomber MilitaryAircraft)
 (documentation Bomber "Any &%MilitaryAircraft whose purpose is to deliver 
 &%ExplosiveDevices.")
@@ -9045,8 +9010,8 @@ time.")
 (subclass Campground LandArea)
 (documentation Campground "A &%LandArea whose purpose is to have &%MobileResidences 
 (e.g. recreational vehicles, mobile homes, &%Tents, etc.) located there.")
-(subclass Candle IlluminationDevice)
-(documentation Candle "An &%IlluminationDevice that consists of &%Wax and a wick, 
+(subclass Candle LightFixture)
+(documentation Candle "An &%LightFixture that consists of &%Wax and a wick, 
 which is lit with a flame.")
 (subclass Capillary BloodVessel)
 (documentation Capillary "A very small &%BloodVessel that connects arterioles 
@@ -9328,9 +9293,6 @@ wholly) for the purpose of CriminalAction.")
 (subclass Curtain Fabric)
 (documentation Curtain "A piece of &%Fabric whose purpose is &%Covering a 
 &%Window so as to keep out the light or prevent people from seeing inside.")
-(subclass CuttingDevice Device)
-(documentation CuttingDevice "Any &%Device whose purpose is &%Cutting something 
-else.  This class covers knives of all times, axes, saws, razors, chisels etc.")
 (subclass Cylinder ThreeDimensionalFigure)
 (documentation Cylinder "The class of &%ThreeDimensionalFigures such that 
 all &%GeometricPoints that make up the &%Cylinder are equidistant from a 
@@ -9497,7 +9459,7 @@ a computer.")
 trunk.")
 (subclass Elevator TransportationDevice)
 (documentation Elevator "A &%TransportationDevice consisting of a car that moves 
-up and down in a vertical shaft so that people can move from one floor to another 
+up and down in a vertical shaft so that people or objects can move from one floor to another 
 in a building.")
 (subclass Embracing Touching)
 (documentation Embracing "The class of &%Touching processes where one &%Human 
@@ -9656,21 +9618,6 @@ for instances of &%DomesticAnimal.")
 (subclass Folding ShapeChange)
 (documentation Folding "Bending something in such a way that one part of 
 it covers another part.")
-(subclass Football TeamSport)
-(documentation Football "A &%TeamSport where each team tries to place the ball 
-in the other's goal.  Note that each instance of Football is a football game.")
-(subclass FootballManeuver Maneuver)
-(documentation FootballManeuver "Any Maneuver in &%Football.")
-(subclass FootballPass FootballManeuver)
-(documentation FootballPass "Any &%FootballManeuver where the member of one 
-team throws the ball to another member of the same team.")
-(subclass FootballTeam SportsTeam)
-(documentation FootballTeam "The class of &%SportsTeams that play &%Football.")
-(subclass FootballTouchdown FootballManeuver)
-(subclass FootballTouchdown Score)
-(documentation FootballTouchdown "Any &%FootballManeuver which is also a 
-&%Score, i.e. any play in a &%Football game which results in one team 
-being in possession of the ball on the inside of the opponent's goal line.")
 (subclass FormOfGovernment PoliticoEconomicAttribute)
 (documentation FormOfGovernment "&%FormOfGovernment is a class of 
 &%Attributes used to describe the characteristics of a government, 
@@ -9718,16 +9665,6 @@ for each of the &%Fingers and mittens.")
 of &%Attaching one thing to another or one part of something to another part.")
 (documentation Goat "A domesticated &%HoofedMammal that is raised primarily 
 for &%Milk.")
-(subclass Golf Sport)
-(documentation Golf "A &%Sport which has a course of 9 or 18 holes and where 
-the object is to hit a ball with a club into each hole in turn with the fewest 
-number of strokes.")
-(subclass GolfHole GolfManeuver)
-(documentation GolfHole "A division of a &%Golf game.  A normal game 
-consists of 9 to 18 holes, and each hole involves a turn for each of 
-the players in the &%Golf game.")
-(subclass GolfManeuver Maneuver)
-(documentation GolfManeuver "Any &%Maneuver in &%Golf.")
 (subclass Goose Poultry)
 (documentation Goose "A subclass of &%Bird with webbed feet and a long neck 
 and a large body.  These &%Birds are often raised for their &%Meat.")
@@ -9749,8 +9686,6 @@ jumping.")
 (subclass Guitar StringInstrument)
 (documentation Guitar "A &%StringInstrument that has six to twelve strings and 
 is played by strumming with one hand while grasping frets with the other hand.")
-(subclass Gun ProjectileLauncher)
-(documentation Gun "A &%ProjectileLauncher that shoots &%Bullets.")
 (subclass GunBarrel EngineeringComponent)
 (documentation GunBarrel "The part of a &%Gun through which a &%Projectile travels 
 when it is fired.")
@@ -9835,9 +9770,6 @@ an animal or animals are pursued and sometimes captured and/or killed.")
 (subclass Hydrocarbon OrganicCompound)
 (documentation Hydrocarbon "Any &%OrganicCompound that contains only &%Carbon 
 and &%Hydrogen.")
-(subclass IlluminationDevice Device)
-(documentation IlluminationDevice "Any &%Device whose purpose is to be a source of 
-visible light.")
 (subclass Immigrating Translocation)
 (documentation Immigrating "Any &%Translocation by a Human from one &%Nation 
 to another &%Nation where the person is not a citizen for the purpose of taking 
@@ -9978,9 +9910,6 @@ in such a way that the ammunition can be fired by the weapon.")
 (disjoint LosingConsciousness GainingConsciousness)
 (documentation LosingConsciousness "The process of transitioning from a state 
 of being &%Awake to a state of being &%Unconscious.")
-(subclass Magnetism Radiating)
-(documentation Magnetism "Any instance of &%Radiating which 
-involves the attraction of &%Iron.")
 (subclass Maid ServicePosition)
 (documentation Maid "Any &%ServicePosition where various needs of a person 
 or family are served over a long period of time.  Note that these &%Positions 
@@ -10231,10 +10160,6 @@ with oil-based paints.")
 (subclass OldTestament Book)
 (documentation OldTestament "The first part of the &%ChristianBible, describing 
 the history of the Hebrew people.")
-(subclass OlympicGames Sport)
-(documentation OlympicGames "A sports event where athletes from various countries 
-compete against one another.  The Olympics are now held every two years, either in 
-the winter or the summer.")
 (subclass Opium Depressant)
 (subclass OpticalDevice Device)
 (documentation OpticalDevice "A &%Device which enables someone to see something 
@@ -10587,9 +10512,6 @@ exchange for the right to use the &%Object for a fixed time period.")
 researcher.")
 (subclass Resigning TerminatingEmployment)
 (documentation Resigning "Voluntarily ending one's employment.")
-(subclass Resistor EngineeringComponent)
-(documentation Resistor "A &%Device which resists passage of an electric current 
-through it.  It is used for various purposes in an electrical circuit.")
 (subclass Restaurant CommercialAgent)
 (documentation Restaurant "Any &%CommercialAgent whose services include selling 
 Food to customers which is intended to be eaten on the premises.")
@@ -10928,9 +10850,6 @@ a &%Broom.")
 (subclass SwimmingPool StationaryArtifact)
 (documentation SwimmingPool "A &%FluidContainer that is filled with &%Water 
 and that is used for &%Swimming.")
-(subclass SwitchDevice EngineeringComponent)
-(documentation SwitchDevice "An &%EngineeringComponent which is capable of turning 
-an &%ElectricDevice on and off.")
 (subclass Sword Weapon)
 (documentation Sword "A &%Weapon with a long blade and covered 
 handle.")
@@ -11133,8 +11052,8 @@ the motion of a &%Vehicle.")
 (documentation VehicleController "Any &%Device which is used to start, stop or 
 control the movements of a &%Vehicle.  This class covers steering wheels, brakes, 
 acceleration pedals, airplane sticks, etc.")
-(subclass VehicleLight IlluminationDevice)
-(documentation VehicleLight "Any &%IlluminationDevice which is attached to the 
+(subclass VehicleLight LightFixture)
+(documentation VehicleLight "Any &%LightFixture which is attached to the 
 surface of a &%Vehicle and whose purpose is to illuminate that area around 
 the &%Vehicle so that potential obstacles can be detected or alerted.")
 (subclass VehicleThrottle VehicleController)
@@ -11746,8 +11665,6 @@ instance of radiation, ?RADIATION, has an average wavelength of ?MEASURE.")
 (instance Architecture FieldOfStudy)
 (documentation Architecture "The &%FieldOfStudy of designing &%Buildings, i.e. 
 creating &%Blueprints for &%Buildings.")
-(instance BaseballStrike BaseballManeuver)
-(disjoint BaseballStrike BaseballHit)
 (instance BeforeCommonEra TimeInterval)
 (documentation BeforeCommonEra "The &%TimeInterval that runs from 
 &%NegativeInfinity to the time of the birth of Christ.")
