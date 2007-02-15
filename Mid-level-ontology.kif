@@ -6,17 +6,17 @@
 ;; is being developed as a bridge between the abstract content of the SUMO and 
 ;; the rich detail of the various domain ontologies.    
 ;; Those who are interested in making use of this ontology are urged 
-;; to contact Adam Pease (apease [at] articulatesoftware [dot] net).
+;; to contact Adam Pease (apease [at] articulatesoftware [dot] com).
 
 ;; The MILO (MId-Level Ontology) is copyrighted by Teknowledge (c) 
-;; 2003 and Articulate Software 2004.  It is released under the GNU Public License 
+;; 2003 and Articulate Software 2004-2007.  It is released under the GNU Public License 
 ;; <http://www.gnu.org/copyleft/gpl.html>.  Users of this code also consent, by 
 ;; use of this material, to credit Teknowledge and Articulate Software
 ;; in any writings, briefings, 
 ;; publications, presentations, or other representations of any code or other 
 ;; product which incorporates, builds on, or uses this material. 
 
-;; Version date: November, 2006
+;; Version date: February, 2007
 ;; We ask that people using or referencing this work cite our primary paper:
 
 ;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
@@ -186,6 +186,41 @@ also instances of &%Music.")
          (not (equal ?PART1 ?PART2))
          (cooccur ?PART1 ?MUSIC)
          (cooccur ?PART2 ?MUSIC))))  
+
+(subclass MusicalTone EmittingSound)
+(documentation MusicalTone "A &%Process of &%EmittingSound where the
+sound has a fundamental frequency and 0 or more partial frequencies
+or unrelated transients or noise components that have a lesser
+amplitude than the fundamental.")
+
+(subclass soundFrequency BinaryRelation)
+(documentation soundFrequency "A relation between a &%Process of 
+&%MusicalTone and the fundamental frequency of that tone.")
+(domain soundFrequency 1 MusicalTone)
+(domain soundFrequency 2 FunctionQuantity)
+
+(subclass Bell PercussionInstrument)
+(documentation Bell "A &%PercussionInstrument that produces a single tone 
+when it is struck.")
+(=>
+  (and
+    (instance ?B Bell)
+    (instance ?I Impacting)
+    (destination ?I ?B))
+  (exists (?MT)
+    (and
+      (instance ?MT MusicalTone)
+      (causes ?I ?MT))))
+
+(subclass Bugle HornInstrument)
+(documentation Bugle "A &%HornInstrument that has no valves.")
+(=>
+  (instance ?B Bugle)
+  (not
+    (exists (?V)
+      (and
+        (instance ?V Valve)
+        (part ?V ?B)))))
 
 (subclass WrittenCommunication LinguisticCommunication)
 (documentation WrittenCommunication "Any &%LinguisticCommunication where the 
@@ -377,6 +412,18 @@ a &%Weapon.")
          (instance ?GUN Gun)
          (instrument ?SHOOT ?GUN))))
 
+(subclass Bullet Projectile)
+(documentation Bullet "A &%Projectile that is designed to be fired by a &%Gun.")
+(=>
+  (instance ?B Bullet)
+  (hasPurpose ?B 
+    (exists (?S ?GUN)
+      (and
+        (instance ?S Shooting)
+        (instrument ?S ?GUN)
+        (instance ?GUN Gun)
+        (patient ?S ?B)))))
+
 (instance effectiveRange BinaryPredicate)
 (instance effectiveRange SingleValuedRelation)
 (subrelation effectiveRange measure)
@@ -511,6 +558,33 @@ an &%ElectricDevice on and off.")
          (patient ?AERATE ?S)
          (attribute ?S Liquid))))
 
+(subclass Broom BrushOrComb)
+(documentation Broom "A &%BrushOrComb whose purpose is to remove dirt and other 
+small particles from floors.")
+
+(=>
+  (instance ?B Broom)
+  (hasPurpose ?B 
+    (exists (?S)
+      (and
+        (instance ?S Sweeping)
+        (instrument ?S ?B)))))
+
+(subclass BrushOrComb Device)
+(documentation BrushOrComb "A &%Device which consists of a handle and bristles and 
+whose purpose is to remove particles from something or to smooth something out.")
+
+
+(=>
+  (instance ?B BrushOrComb)
+  (hasPurpose ?B 
+    (exists (?S)
+      (and
+        (or
+          (instance ?S Removing)
+          (instance ?S SurfaceChange))
+        (instrument ?S ?B)))))
+
 (subclass Filter Device)
 (documentation Filter "A &%Device whose purpose is to remove part of a 
 &%Solution that is passed through the &%Filter.")
@@ -546,6 +620,11 @@ primary power source.")
     (and
       (instance ?R Electricity)
       (resource ?EV ?R))))
+
+(subclass Battery ElectricDevice)
+(subclass Battery PowerSource)
+(documentation Battery "Battery is a subclass of &%Device.  Batteries are 
+devices that use chemical means to store or produce electrical power.")
 
 (subclass Radar ElectricDevice)
 (documentation Radar "An &%ElectricDevice that emits and receives microwave 
@@ -625,6 +704,34 @@ oxcarts, horse-drawn plows, mule-driven mills.")
       (instance ?A Animal)
       (instrument ?P ?A))))
 
+(instance LongAndThin ShapeAttribute)
+(=>
+  (attribute ?F LongAndThin)
+  (and
+    (side ?S1 ?F)
+    (side ?S2 ?F)
+    (meetsSpatially ?S1 ?S2)
+    (not (equal ?S1 ?S2))
+    (length ?F ?H)
+    (lessThan ?S1 (MultiplicationFn 3 ?H))
+    (lessThan ?S2 (MultiplicationFn 3 ?H))))
+
+(subclass Baton Device)
+(documentation Baton "A thin stick which is used for &%OrchestralConducting.")
+(=>
+  (instance ?B Baton)
+  (hasPurpose ?B 
+    (exists (?IM ?G)
+      (and
+        (instance ?IM InstrumentalMusic)
+        (instance ?G Guiding)
+        (instrument ?G ?B)
+        (causes ?G ?IM)))))
+
+(=>
+  (instance ?B Baton)
+  (attribute ?B LongAndThin))
+
 (subclass SecurityAlarm SecurityDevice)
 (subclass SecurityAlarm ElectricDevice)
 (documentation SecurityAlarm "A &%SecurityDevice that detects intrusions to 
@@ -671,6 +778,27 @@ between remote points by converting sound into electrical signals that are
 then transmitted.  When the signals are received, they are converted back 
 into sound.")
 
+(subclass BroadcastNetwork CommunicationSystem)
+(documentation BroadcastNetwork "&%BroadcastNetwork is the subclass of 
+&%CommunicationSystems consisting of &%BroadcastingStations that are linked 
+electronically and managed or owned by one organization.")
+(=>
+  (instance ?N BroadcastNetwork)
+  (forall (?M)
+    (=>
+      (member ?M ?N)
+      (instance ?M BroadcastingStation))))
+
+(=>
+  (instance ?N BroadcastNetwork)
+  (exists (?O)
+    (and
+      (instance ?O Organization)
+      (forall (?M)
+        (=>
+          (member ?M ?N)
+          (possesses ?O ?M))))))
+
 (subrelation telephoneNumber uniqueIdentifier)
 (domain telephoneNumber 1 SymbolicString)
 (domain telephoneNumber 2 Agent)
@@ -685,6 +813,21 @@ visible light.")
 (=>
    (instance ?FIXTURE LightFixture)
    (capability RadiatingLight instrument ?FIXTURE))
+
+(subclass Candle LightFixture)
+(documentation Candle "An &%LightFixture that consists of &%Wax and a wick, 
+which is lit with a flame.")
+(=>
+  (instance ?CANDLE Candle)
+  (material ?CANDLE Wax))
+
+(=>
+  (instance ?C Candle)
+  (hasPurpose ?C
+    (exists (?F)
+      (and
+        (instance ?F Fire)
+        (resource ?F ?C)))))
 
 (subclass PaintedPicture ArtWork)
 (documentation PaintedPicture "Any &%ArtWork which is produced by &%Painting.")
@@ -901,6 +1044,16 @@ that are used to secure a &%Ship on the open water.")
       (patient ?ATTACH ?S))
    (instance ?S Ship))
 
+(subclass Button AttachingDevice)
+(documentation Button "An &%AttachingDevice that is used on &%Clothing.")
+(=>
+  (instance ?B Button)
+  (hasPurpose ?B
+    (exists (?C)
+      (and
+        (instance ?C Clothing)
+        (part ?B ?C)))))
+
 (subclass Holder Device)
 (documentation Holder "A large class of &%Devices whose purpose is to hold 
 something else, i.e. be the &%instrument of a &%Keeping.")
@@ -1013,6 +1166,77 @@ difference between these notions cannot be precisely defined.")
    (instance ?BOARD BoardOrBlock)
    (capability Constructing resource ?BOARD))
 
+(subclass Brick BoardOrBlock)
+(documentation Brick "A block of fired &%Clay that is used in &%Constructing.")
+(=>
+  (instance ?B Brick)
+  (material Clay ?B))
+
+(=>
+  (instance ?B Brick)
+  (hasPurpose ?B 
+    (exists (?C)
+       (and
+         (instance ?C Constructing)
+         (resource ?C ?B)))))
+
+(subclass TwoDimensionalObject Object)
+(documentation TwoDimensionalObject "A real-world physical object
+with a very flat aspect.  This includes drawings on paper, cave
+paintings and other surface alterations.")
+(=>
+  (instance ?T TwoDimensionalObject)
+  (attribute ?T TwoDimensionalFigure))
+
+(instance sliceOfFigure BinaryPredicate)
+(documentation sliceOfFigure "(sliceOfFigure ?SLICE ?FIGURE) indicates
+that ?SLICE is a 2-d section of the 3-d figure ?FIGURE.  Or, more 
+formally, ?SLICE is 2-d figure formed by the intersection of a plane
+with the 3-d figure ?FIGURE.")
+(domain sliceOfFigure 1 TwoDimensionalObject)
+(domain sliceOfFigure 2 CorpuscularObject)
+
+(instance RoundShape ThreeDimensionalFigure)
+(documentation RoundShape "Any &%ThreeDimensionalFigure that has a single
+tangent at every point on its surface.")
+(=>
+  (attribute ?O RoundShape)
+  (forall (?P)
+    (and
+      (pointOfFigure ?P ?O)
+      (instance ?TO TwoDimensionalObject)
+      (meetsSpatially ?P ?O)
+      (meetsSpatially ?P ?TO)
+      (exists (?T)       
+        (tanget ?T ?TO)))))
+
+(subclass Bubble CorpuscularObject)
+(documentation Bubble "A globe which has a &%Liquid surface and which contains 
+a &%Gas.")
+(=>
+  (instance ?B Bubble)
+  (exists (?S)
+    (and
+      (surface ?S ?B)
+      (attribute ?S Liquid))))
+
+(=>
+  (and
+    (instance ?B Bubble)
+    (interiorPart ?P ?B))
+  (attribute ?P Gas))
+
+(=>
+  (and
+    (instance ?B Bubble)
+    (not
+      (exists (?X ?S)
+        (and
+          (attribute ?X ?S)
+          (not (equal ?X Gas))
+          (meetsSpatially ?X ?B)))))
+  (attribute ?B RoundShape))
+
 (subclass Nest CorpuscularObject)
 (documentation Nest "Any structure which is created by nonhuman &%Animals for 
 the purpose of giving birth to their offspring.")
@@ -1040,8 +1264,31 @@ outdoors.")
 (subclass Apron Clothing)
 (documentation Apron "An item of &%Clothing that protects the front and 
 middle part of the body while one is &%Cooking or doing other work.")
+(=>
+  (instance ?A Apron)
+  (hasPurpose ?A
+    (exists (?P ?C)
+      (and
+        (instance ?C Cooking)
+        (agent ?C ?P)
+        (holdsDuring 
+          (WhenFn ?C)
+          (wears ?P ?A))))))
 
-(subclass Hat OutdoorClothing)
+(subclass Belt Clothing)
+(documentation Belt "A piece of &%Clothing that is worn around the waist 
+to restrain another piece of clothing.")
+(=>
+  (and
+    (wears ?P ?B)
+    (instance ?B Belt))
+  (exists (?C)
+    (and
+      (instance ?C Clothing)
+      (wears ?P ?C)
+      (meetsSpatially ?B ?C))))
+
+(subclass Hat Clothing)
 (documentation Hat "A type of &%Clothing that is worn on the &%Head.  Note 
 that this class covers caps, bonnets, berets, etc.")
 
@@ -2209,6 +2456,17 @@ for recreation and/or exercise.")
                            (instance ?REC RecreationOrExercise)
                            (located ?REC ?PARK)))))
 
+(subclass Campground LandArea)
+(documentation Campground "A &%LandArea whose purpose is to have &%MobileResidences 
+(e.g. recreational vehicles, mobile homes, &%Tents, etc.) located there.")
+(=>
+  (instance ?C Campground)
+  (hasPurpose ?C 
+  (exists (?R)
+    (and
+      (instance ?R MobileResidence)
+      (located ?R ?C)))))
+
 (subclass AerobicExerciseDevice RecreationOrExerciseDevice)
 (documentation AerobicExerciseDevice "An &%RecreationOrExerciseDevice whose purpose is 
 to develop the cardiovascular system.")
@@ -2273,6 +2531,35 @@ that comprises military air forces.")
 (subclass MilitaryUnit MilitaryOrganization)
 (documentation MilitaryUnit "Any &%MilitaryOrganization that can be dispatched 
 to an area of operations.")
+(=>
+  (instance ?B Battle)
+  (exists (?U1 ?U2)
+    (and
+      (instance ?U1 MilitaryUnit)
+      (instance ?U2 MilitaryUnit)
+      (not 
+        (equal ?U1 ?U2))
+      (agent ?B ?U1)
+      (agent ?B ?U2))))
+
+(subclass CavalryUnit MilitaryUnit)
+(documentation CavalryUnit "&%MilitaryUnits composed primarily of &%Soldiers 
+who are mounted, i.e. who perform their combat missions from a &%Horse or 
+&%Vehicle.")
+(=>
+  (and
+    (instance ?C CavalryUnit)
+    (instance ?B Battle)
+    (agent ?B ?C))
+  (exists (?P ?V ?T)
+    (and
+      (attribute ?P Soldier)
+      (member ?P ?C)
+      (instance ?T Transportation)
+      (agent ?T ?P)
+      (instance ?V Vehicle)
+      (patient ?T ?V)
+      (during ?T ?B))))
 
 (subclass Commission Organization)
 (documentation Commission "A small, temporary &%Organization whose purpose 
@@ -2479,6 +2766,28 @@ cleaning mixture containing surfactants.  (from Wikipedia)")
         (patient ?REMOVE ?SUBSTANCE)
         (origin ?REMOVE ?SURFACE)
         (surface ?SURFACE ?OBJECT)))))
+
+(subclass Bathing Washing)
+(documentation Bathing "&%Washing the entire body of a &%Human or &%Animal.")
+(=>
+  (and
+    (instance ?B Bathing)
+    (patient ?B ?A))
+  (instance ?A Animal))
+
+(subclass BathingDevice WashingDevice)
+(documentation BathingDevice "A &%WashingDevice which is intended to be used by 
+Humans for washing their bodies.  Note that this class covers bathtubs, showers, 
+etc.")
+(=>
+  (instance ?BD BathingDevice)
+  (hasPurpose ?BD 
+    (exists (?B ?P)
+      (and
+        (instance ?B Bathing)
+        (instrument ?B ?BD)
+        (patient ?B ?PERSON)
+        (instance ?P Human)))))
 
 (subclass Glue Mixture)
 (documentation Glue "Any &%Mixture whose purpose is to be used as the &%instrument 
@@ -2806,6 +3115,109 @@ cells of those with &%BloodTypeA.")
 (documentation AntigenB "An &%Antigen that is carried in the red blood 
 cells of those with &%BloodTypeB.")
 
+(subclass BloodCell Cell)
+(subclass BloodCell AnimalAnatomicalStructure)
+(documentation BloodCell "A &%Cell that is normally present in &%Blood.")
+(=>
+  (instance ?C BloodCell)
+  (exists (?B)
+    (and
+      (instance ?B Blood)
+      (part ?C ?B))))
+
+(subclass RedBloodCell BloodCell)
+(documentation RedBloodCell "&%BloodCells that contain hemoglobin, lack a 
+&%CellNucleus, and carry &%Oxygen to the tissues of the body.")
+(=>
+  (instance ?C RedBloodCell)
+  (not 
+    (exists (?N)
+      (and
+        (instance ?N CellNucleus)
+        (part ?N ?C)))))
+
+(subclass WhiteBloodCell BloodCell)
+(documentation WhiteBloodCell "&%BloodCells that lack hemoglobin, contain a 
+&%CellNucleus, and have no color.")
+(=>
+  (instance ?C WhiteBloodCell)
+  (exists (?N)
+    (and
+      (instance ?N CellNucleus)
+      (part ?N ?C))))
+
+(subclass BloodTypeA Blood)
+(documentation BloodTypeA "The subclass of &%Blood that contains &%AntigenA 
+and does not contain &%AntigenB.")
+(=>
+  (instance ?B BloodTypeA)
+  (exists (?A)
+    (and
+      (instance ?A AntigenA)
+      (part ?A ?B))))
+
+(=> 
+  (instance ?B BloodTypeA)
+  (not 
+    (exists (?A)
+      (and
+        (instance ?A AntigenB)
+        (part ?A ?B)))))
+
+(subclass BloodTypeAB Blood)
+(documentation BloodTypeAB "The subclass of &%Blood that contains both 
+&%AntigenA and &%AntigenB.")
+(=>
+  (instance ?B BloodTypeAB)
+  (exists (?A)
+    (and
+      (instance ?A AntigenA)
+      (part ?A ?B))))
+
+(=>
+   (instance ?B BloodTypeAB)
+   (exists (?A)
+      (and
+         (instance ?A AntigenB)
+         (part ?A ?B))))
+
+(subclass BloodTypeB Blood)
+(documentation BloodTypeB "The subclass of &%Blood that contains &%AntigenB 
+and does not contain &%AntigenA.")
+(=>
+  (instance ?B BloodTypeB)
+  (exists (?A)
+    (and
+      (instance ?A AntigenB)
+      (part ?A ?B))))
+
+(=> 
+  (instance ?B BloodTypeB)
+  (not 
+    (exists (?A)
+      (and
+        (instance ?A AntigenA)
+        (part ?A ?B)))))
+
+(subclass BloodTypeO Blood)
+(documentation BloodTypeO "The subclass of &%Blood that contains neither 
+&%AntigenA nor &%AntigenB.")
+(=> 
+  (instance ?B BloodTypeO)
+  (not 
+    (exists (?A)
+      (and
+        (instance ?A AntigenA)
+        (part ?A ?B)))))
+
+(=> 
+  (instance ?B BloodTypeO)
+  (not 
+    (exists (?A)
+      (and
+        (instance ?A AntigenB)
+        (part ?A ?B)))))
+
 (subclass LiquidBodySubstance BodySubstance)
 (documentation LiquidBodySubstance "Any &%BodySubstance which is &%Liquid 
 under normal circumstances.")
@@ -2873,6 +3285,18 @@ distilling fermented grain mash.")
 (subclass Beer AlcoholicBeverage)
 (documentation Beer "An &%AlcoholicBeverage that is prepared by fermenting 
 malt and hops.") 
+
+(subclass Brandy DistilledAlcoholicBeverage)
+(documentation Brandy "A &%DistilledAlcoholicBeverage that is prepared by 
+distilling &%Wine.")
+(=>
+  (instance ?B Brandy)
+  (exists (?D ?W)
+    (and
+      (instance ?D Distilling)
+      (instance ?W Wine)
+      (resource ?D ?W)
+      (result ?D ?B))))
 
 (subclass SpinalColumn Organ) 
 (subclass SpinalColumn AnimalAnatomicalStructure)
@@ -2970,6 +3394,17 @@ the &%Heart to a &%Lung.")
       (and
          (instance ?LUNG Lung)
          (destination ?TRANSFER ?LUNG))))
+
+(subclass Capillary BloodVessel)
+(documentation Capillary "A very small &%BloodVessel that connects arterioles 
+(very small &%Arteries) with venules (very small &%Veins).")
+(=>
+  (instance ?C Capillary)
+  (exists (?A ?V)
+    (and
+      (instance ?A Artery)
+      (instance ?V Vein)
+      (connects ?C ?A ?V))))
 
 (subclass Lung Organ)
 (subclass Lung AnimalAnatomicalStructure)
@@ -3151,6 +3586,19 @@ make up the supporting structure of many &%Invertebrates.")
           (and
             (properPart ?PART ?A)
             (orientation ?PART ?X Outside)))))))
+
+(subclass BodyJoint BodyJunction)
+(documentation BodyJoint "&%BodyJunctions where different parts of the same 
+&%Skeleton come together.")
+(=>
+  (instance ?J BodyJoint)
+  (exists (?S ?P1 ?P2)
+    (and
+      (instance ?S Skeleton)
+      (component ?P1 ?S)
+      (component ?P2 ?S)
+      (component ?J ?S)
+      (connects ?J ?P1 ?P2))))
 
 (subclass Throat AnimalAnatomicalStructure)
 (subclass Throat BodyVessel)
@@ -3443,6 +3891,25 @@ the neck.")
       (instance ?LIMB Limb))
    (not (overlapsSpatially ?TORSO ?LIMB)))
 
+(subclass Breast AnimalAnatomicalStructure)
+(subclass Breast Organ)
+(documentation Breast "The paired &%Organs which are part of the chests 
+of &%Primates.")
+(=>
+  (instance ?B Breast)
+  (exists (?T)
+    (and
+      (instance ?T Torso)
+      (part ?B 
+        (FrontFn ?T)))))
+
+(=>
+  (instance ?B Breast)
+  (exists (?P)
+    (and
+      (instance ?P Primate)
+      (part ?B ?P))))
+
 (subclass Head AnimalAnatomicalStructure)
 (subclass Head BodyPart)
 (documentation Head "The part of the body containing the sense organs and 
@@ -3605,6 +4072,7 @@ recognition, goodwill, etc.")
    (instance ?HAND Hand))
 
 (subclass Bowing Gesture)
+(subclass Bowing Inclining)
 (subclass Bowing MotionDownward)
 (documentation Bowing "Any downward motion of the body that indicates respect 
 for or submission to another &%Agent.")
@@ -4159,6 +4627,16 @@ significant events that occurred in the past.")
          (represents ?ACCOUNT ?EVENT)
          (earlier (WhenFn ?EVENT) (WhenFn ?ACCOUNT)))))
 
+(subclass Biography HistoricalAccount)
+(documentation Biography "A &%HistoricalAccount which is concerned 
+with the life of a single &%Human.")
+(=>
+  (instance ?B Biography)
+  (exists (?H)
+    (and
+      (instance ?H Human)
+      (refers ?B ?H))))
+
 (subclass FinancialText Report)
 (documentation FinancialText "A &%Report about monetary figures.  This 
 class covers &%FinancialBills, balance sheets, account statements, etc.")
@@ -4371,6 +4849,17 @@ one or more &%Automobiles.")
       (and
          (instance ?BUILDING Building)
          (part ?GARAGE ?BUILDING))))
+
+(subclass Bathroom Room)
+(documentation Bathroom "A &%Room that contains a &%WashBasin and 
+possibly a &%Toilet.")
+
+(=>
+  (instance ?B Bathroom)
+  (exists (?W)
+    (and
+      (instance ?W WashBasin)
+      (located ?W ?B))))
 
 (subclass Kitchen Room)
 (documentation Kitchen "A &%Room intended for &%Cooking.")
@@ -4787,6 +5276,22 @@ some other fashion.")
       (instance ?ORG Organization)
       (agent ?OP ?ORG))
    (finishes ?OP (WhenFn ?ORG)))
+
+(subclass BecomingDrunk PsychologicalProcess)
+(disjoint BecomingDrunk SoberingUp)
+(documentation BecomingDrunk "The process of transitioning from a state of 
+being &%Sober to a state of being &%Drunk.")
+(=>
+  (and
+    (instance ?B BecomingDrunk)
+    (experiencer ?B ?A))
+  (and
+    (holdsDuring 
+      (BeginFn (WhenFn ?B)) 
+      (attribute ?A Sober))
+    (holdsDuring 
+      (EndFn (WhenFn ?B)) 
+      (attribute ?A Drunk))))
 
 (subclass FallingAsleep PsychologicalProcess)
 (disjoint FallingAsleep WakingUp)
@@ -5243,6 +5748,28 @@ so.")
          (subProcess ?ARRIVE ?GO)
          (finishes (WhenFn ?ARRIVE) (WhenFn ?GO)))))
 
+(subclass Boarding Translocation)
+(documentation Boarding "Getting on a &%Vehicle, e.g. getting into an 
+&%Automobile, boarding an &%Aircraft, etc.")
+(=>
+  (and
+    (instance ?B Boarding)
+    (patient ?B ?V))
+  (instance ?V Vehicle))
+
+(=>
+  (and
+    (instance ?B Boarding)
+    (agent ?B ?AGENT)
+    (patient ?B ?V))
+  (and
+    (holdsDuring 
+      (BeginFn (WhenFn ?B)) 
+      (not (onboard ?A ?V)))
+    (holdsDuring 
+      (EndFn (WhenFn ?B)) 
+      (onboard ?A ?V))))
+
 (subclass Rotating Motion)
 (documentation Rotating "&%Motion that begins and ends at the same point, 
 because the trajectory of the &%Motion is circular.")
@@ -5349,6 +5876,19 @@ else is an &%Animal or a self-powered &%TransportationDevice.")
 (subclass Helicopter Aircraft)
 (documentation Helicopter "Any &%Aircraft with rapidly rotating wings.")
 
+(subclass Bomber MilitaryAircraft)
+(documentation Bomber "Any &%MilitaryAircraft whose purpose is to deliver 
+&%ExplosiveDevices.")
+(=>
+  (instance ?B Bomber)
+  (hasPurpose ?B 
+    (exists (?T ?D)
+      (and
+        (instance ?T Transportation)
+        (instrument ?T ?B)
+        (patient ?T ?D)
+        (instance ?D ExplosiveDevice)))))
+
 (subclass LandTransportation Transportation)
 (documentation LandTransportation "Any instance of &%Transportation where the 
 &%instrument is a &%LandVehicle.")
@@ -5404,6 +5944,23 @@ four-wheeled passenger road vehicles.")
   (instance ?A Automobile)
   (equipmentCount ?A Axle 2))
 
+(subclass Bus SelfPoweredRoadVehicle)
+(documentation Bus "Bus is the subclass of &%SelfPoweredRoadVehicles 
+that can transport large numbers of passengers (i.e., dozens) at one 
+time.")
+(=>
+  (instance ?B Bus)
+  (hasPurpose ?B
+    (exists (?C ?T ?N)
+      (and
+        (instance ?C Collection)
+        (instance ?T Transportation)
+        (members-Count ?C ?N)
+        (greaterThan ?N 11)
+        (=>
+          (member ?P ?C)
+          (patient ?T ?P))))))
+
 (subclass StageCoach Trailer)
 (documentation StageCoach "A &%Trailer that is pulled by &%Horses and whose purpose 
 was to transport &%Humans and their luggage from one &%City to the next, especially 
@@ -5440,6 +5997,17 @@ the &%instrument is a &%WaterVehicle.")
     (path ?T ?P))
   (instance ?P Waterway))
 
+(subclass BoatDeck Artifact)
+(documentation BoatDeck "One of the levels of a &%WaterVehicle, e.g. the 
+upper deck and lower deck of small boats with a cabin.")
+
+(=>
+  (instance ?D BoatDeck)
+  (exists (?B)
+    (and
+      (instance ?B WaterVehicle)
+      (part ?D ?B))))
+
 (subclass SpaceTransportation Transportation)
 (documentation SpaceTransportation "Any instance of &%Transportation where the 
 &%instrument is a &%Spacecraft and which is through a &%SpaceRegion.")
@@ -5462,8 +6030,10 @@ the &%instrument is a &%WaterVehicle.")
    (capability SpaceTransportation instrument ?CRAFT))
 
 (subclass Missile Projectile)
+(subclass Missile SelfPoweredDevice)
 (documentation Missile "A &%Projectile which is propelled by a rocket and 
 contains a &%Bomb.") 
+
 (=>
   (instance ?M Missile)
   (exists (?B)
@@ -5491,6 +6061,18 @@ the &%Device so that it can be used as intended after the installation.")
       (patient ?INSTALL ?DEVICE)
       (hasPurpose ?DEVICE ?PURPOSE))
    (holdsDuring (EndFn (WhenFn ?INSTALL)) (truth ?PURPOSE True)))
+
+(subclass Burying Putting)
+(documentation Burying "Putting something in the ground and then covering 
+it with &%Soil.")
+(=>
+  (instance ?B Burying)
+  (exists (?C ?S)
+    (and
+      (instance ?C Covering)
+      (instrument ?C ?S)
+      (instance ?S Soil)
+      (subProcess ?C ?B))))
 
 (subclass MovingResidence Transfer)
 (documentation MovingResidence "The process of changing one's residence, i.e. 
@@ -5670,6 +6252,27 @@ person.")
          (holdsDuring (ImmediatePastFn (WhenFn ?DEATH)) (possesses ?PERSON ?PROPERTY))
          (confersRight (possesses ?HEIR ?PROPERTY) ?PERSON ?HEIR))))
 
+(subclass Bequeathing UnilateralGiving)
+(documentation Bequeathing "Any &%UnilateralGiving where the agent 
+wills some part of his/her property to someone else upon his/her death.")
+(=>
+  (and
+    (instance ?B Bequeathing)
+    (agent ?B ?P)
+    (destination ?B ?H)
+    (patient ?I ?PROP))
+  (exists (?D)
+    (and
+      (instance ?D Death)
+      (experiencer ?D ?P)
+      (earlier (WhenFn ?D) (WhenFn ?B))
+      (holdsDuring 
+        (ImmediatePastFn (WhenFn ?D)) 
+        (possesses ?P ?PROP))
+      (confersNorm ?P 
+        (possesses ?H ?PROP) 
+        Permission))))
+
 (partition Position FullTimePosition PartTimePosition)
 
 (subclass FullTimePosition Position)
@@ -5723,6 +6326,10 @@ during the American Civil War.")
          (or
             (instance ?PATIENT MilitaryOrganization)
             (instance ?PATIENT Soldier)))))
+
+(subclass BrigadierGeneral MilitaryGeneral)
+(documentation BrigadierGeneral "A &%MilitaryGeneral that ranks below 
+a &%MajorGeneral.")
 
 (subclass Lieutenant MilitaryOfficer)
 (documentation Lieutenant "A commissioned &%MilitaryOfficer.")
@@ -6228,6 +6835,10 @@ not longer change.")
             (holdsDuring ?TIME (result ?PROCESS ?RESULT)))
          (equal ?RATIO (DivisionFn ?RESOURCE ?RESULT)))))
 
+(subclass BreakabilityAttribute InternalAttribute)
+(documentation BreakabilityAttribute "A subclass of &%Attributes for 
+characterizing the breakability of &%CorpuscularObjects.")
+
 (subclass RightAngle TwoDimensionalAngle)
 (documentation RightAngle "Any &%TwoDimensionalAngle that has the 
 &%angularMeasure of 90 &%AngularDegrees.")
@@ -6345,9 +6956,9 @@ of the &%Circle ?CIRCLE has a length of ?LENGTH.")
 
 (instance tangent BinaryPredicate)
 (domain tangent 1 OneDimensionalFigure)
-(domain tangent 2 Circle)
+(domain tangent 2 TwoDimensionalObject)
 (documentation tangent "(&%tangent ?LINE ?CIRCLE) means that the straight line 
-?LINE is tangent to the &%Circle ?CIRCLE, i.e. ?LINE touches ?CIRCLE without 
+?LINE is tangent to the figure ?CIRCLE, i.e. ?LINE touches ?CIRCLE without 
 intersecting it.")
 
 (=>
@@ -6434,6 +7045,7 @@ the palm so that the hand can be used for striking something.")
    (instance ?HAND Hand))
 
 (subclass LyingDown BodyMotion)
+(subclass LyingDown MotionDownward)
 (documentation LyingDown "The &%BodyMotion of moving from a &%Sitting 
 to a &%Prostrate position.")
 
@@ -6446,6 +7058,7 @@ to a &%Prostrate position.")
       (holdsDuring (EndFn (WhenFn ?LIE)) (attribute ?AGENT Prostrate))))
 
 (subclass SittingDown BodyMotion)
+(subclass SittingDown MotionDownward)
 (documentation SittingDown "The &%BodyMotion of moving from a &%Standing 
 to a &%Sitting position.")
 
@@ -6458,6 +7071,7 @@ to a &%Sitting position.")
       (holdsDuring (EndFn (WhenFn ?SIT)) (attribute ?AGENT Sitting))))
    
 (subclass StandingUp BodyMotion)
+(subclass StandingUp MotionUpward)
 (documentation StandingUp "The &%BodyMotion of moving from a &%Sitting 
 to a &%Standing position.")
 
@@ -6470,11 +7084,13 @@ to a &%Standing position.")
       (holdsDuring (EndFn (WhenFn ?STAND)) (attribute ?AGENT Standing))))
 
 (subclass OpeningEyes BodyMotion)
+(subclass OpeningEyes Opening)
 (disjoint OpeningEyes ClosingEyes)
 (documentation OpeningEyes "The &%BodyMotion of relaxing the eye lids so that 
 the corneas are exposed to light.")
 
 (subclass ClosingEyes BodyMotion)
+(subclass ClosingEyes Closing)
 (documentation ClosingEyes "The &%BodyMotion of tensing the eye lids so that 
 the corneas are not exposed to light.")
 
@@ -6495,9 +7111,10 @@ is intended to express something to someone else.")
    (instance ?SHOULDER Shoulder))
 
 (subclass Trembling BodyMotion)
-(subclass Trembling (ComplementFn IntentionalProcess))
+(subclass Trembling AutonomicProcess)
 (documentation Trembling "Any &%BodyMotion which is involuntary and which is 
-repeated many times over a short time frame, e.g. a tremor in the hands.") 
+repeated many times over a short time frame, e.g. a tremor in the hands,
+shivering etc.") 
 
 (subclass DomesticAnimal Animal)
 (disjoint DomesticAnimal Human)
@@ -6526,6 +7143,11 @@ a pet, as livestock, for exhibition, etc.")
 (subclass Antelope HoofedMammal)
 (documentation Antelope "A &%HoofedMammal with long legs and backward-facing horns.  
 This class includes gazelles, addax, blackbucks, etc.")
+
+(subclass Buffalo HoofedMammal)
+(disjoint Buffalo DomesticAnimal)
+(documentation Buffalo "A &%HoofedMammal with long hair whose habitat is the 
+plains of &%NorthAmerica.")
 
 (subclass Horse HoofedMammal)
 (subclass Horse Livestock)
@@ -6566,6 +7188,22 @@ wool and for its meat (known as mutton).")
 (documentation Cow "A domesticated &%HoofedMammal that is raised for milk 
 and beef, and is also used for work.")
 
+(subclass Calf Cow)
+(documentation Calf "A young &%Cow, i.e. a &%Cow that is &%NonFullyFormed.")
+(<=>
+  (instance ?C Calf)
+  (and
+    (instance ?C Cow)
+    (attribute ?C NonFullyFormed)))
+
+(subclass Bull Cow)
+(documentation Bull "A &%Cow that is &%Male.")
+(<=>
+  (instance ?B Bull)
+  (and
+    (instance ?B Cow)
+    (attribute ?B Male)))
+
 (subclass FemaleCow Cow)
 (documentation FemaleCow "A &%Cow that is &%Female.")
 
@@ -6590,16 +7228,33 @@ and for its eggs.")
       (instance ?HEN Chicken)
       (attribute ?HEN Female)))
 
+(instance meatOfAnimal BinaryRelation)
+(documentation meatOfAnimal "(meatOfAnimal ?MEATCLASS ?ANIMALCLASS) states
+that ?MEATCLASS was once part of the class of &%Animal ?ANIMALCLASS)")
+(domainSubclass meatOfAnimal 1 Meat)
+(domainSubclass meatOfAnimal 2 Animal)
+(=>
+  (meatOfAnimal ?MEAT ?ANIMAL)
+  (exists (?TIME ?A)
+    (and
+      (instance ?A ?ANIMAL)
+      (instance ?M ?MEAT)
+      (during ?TIME (WhenFn ?A))
+      (part ?MEAT ?A))))
+
+(subclass Beef Meat)
+(documentation Beef "&%Meat that was originally part of a &%Cow.")
+(meatOfAnimal Beef Cow)
+
 (documentation ChickenMeat "&%Meat that was originally part of a &%Chicken.")
 (subclass ChickenMeat Meat)
-
-(<=>
-   (instance ?MEAT ChickenMeat)
-   (exists (?CHICKEN)
-      (and
-         (instance ?MEAT Meat)
-         (instance ?CHICKEN Chicken)
-         (part ?MEAT ?CHICKEN))))
+(meatOfAnimal ChickenMeat Chicken)
+(subclass Pork Meat)
+(documentation Pork "&%Meat that was originally part of a &%Pig.")
+(meatOfAnimal Pork Pig)
+(subclass FishMeat Meat)
+(documentation FishMeat "&%Meat that was originally part of a &%Fish.")
+(meatOfAnimal FishMeat Fish)
 
 (subclass Mouse Rodent)
 (documentation Mouse "A &%Rodent that has a hairless tail like a rat but that 
@@ -6716,6 +7371,25 @@ sports team.")
 (subclass OccupationalTrade ManualLabor)
 (documentation OccupationalTrade "Any &%Position that involves skilled 
 manual work.")
+
+(instance Carpenter OccupationalTrade)
+(documentation Carpenter "Any occupation that involves creating and repairing 
+structural and decorative portions of &%Buildings that are made chiefly of &%Wood.
+This does not include plumbing, roofing, electrical, foundation and site work.")
+(=>
+  (attribute ?P Carpenter)
+  (hasSkill Carpentry ?P))
+
+(subclass Carpentry Making)
+(documentation Carpentry "&%Making &%Buildings out of &%Wood.")
+(=>
+  (instance ?C Carpentry)
+  (exists (?B)
+    (and
+      (instance ?B Building)
+      (instance ?W Wood)
+      (part ?W ?B)
+      (result ?C ?B))))
 
 (subclass Profession SkilledOccupation)
 (disjoint Profession OccupationalTrade)
@@ -6968,6 +7642,26 @@ to an &%Injuring of some sort.")
          (holdsDuring (BeginFn (WhenFn ?BLEED)) (part ?BLOOD ?ANIMAL))
          (holdsDuring (EndFn (WhenFn ?BLEED)) (not (part ?BLOOD ?ANIMAL))))))
    
+(subclass Blushing AutonomicProcess)
+(documentation Blushing "The process of turning red in response to a 
+stimulus which has a deep emotional effect.")
+(=>
+  (and
+    (instance ?B Blushing)
+    (experience ?B ?A))
+  (exists (?T1 ?T2 ?S1 ?S2)
+    (and
+      (instance ?S1 EmotionalState)
+      (instance ?S2 EmotionalState)
+      (not
+        (equal ?S1 ?S2))
+      (holdsDuring ?T1
+        (attribute ?A ?S1))
+      (holdsDuring ?T2
+        (attribute ?A ?S2))
+      (starts (WhenFn ?B) ?T2)
+      (finishes (WhenFn ?B) ?T1))))
+
 (subclass Aborting Removing)
 (documentation Aborting "&%Removing a human fetus from a &%Pregnant woman 
 in such a way that the fetus cannot survive.")
@@ -7039,6 +7733,31 @@ is an &%Oven.")
     (and
       (instance ?O Oven)
       (instrument ?B ?O))))
+
+(subclass BreadOrBiscuit PreparedFood)
+(documentation BreadOrBiscuit "&%Food that consists largely of grain flour 
+and water.  Note that this class covers crackers, cookies, as well as any 
+self-connected instance of bread, whether it is a loaf, a slice, a chunk 
+of bread, etc.")
+(=>
+  (instance ?B BreadOrBiscuit)
+  (exists (?D ?BAKE)
+    (and
+      (instance ?D Dough)
+      (instance ?BAKE Baking)
+      (resource ?BAKE ?D)
+      (result ?BAKE ?B))))
+
+(subclass Butter PreparedFood)
+(documentation Butter "An emulsion of fat which is produced by churning &%Milk.")
+(=>
+  (instance ?B Butter)
+  (exists (?C ?M)
+    (and
+      (instance ?C Cooking)
+      (resource ?C ?M)
+      (instance ?M Milk)
+      (result ?C ?B))))
 
 (subclass SoupStock PreparedFood)
 (documentation SoupStock "&%Food which is prepared by reducing &%Meat 
@@ -7147,6 +7866,32 @@ contestParticipant so that he can &%Attack the other
           (and 
             (instance ?ATTACK Attack) 
             (agent ?ATTACK ?AG)))))))
+
+(subclass Blockade Maneuver)
+(documentation Blockade "Any &%Maneuver in a &%Contest where one 
+&%contestParticipant attempts to deny access to something that is wanted 
+by another &%contestParticipant.") 
+
+(=>
+  (and
+    (instance ?B Blockade)
+    (instance ?C Contest)
+    (subProcess ?B ?C)
+    (contestParticipant ?C ?A1)
+    (agent ?B ?A1))
+  (exists (?C1 ?A2)
+    (and
+      (prevents ?C1 Translocation)
+      (instance ?B ?C1)
+      (contestParticipant ?C ?A2)
+      (not 
+        (equal ?A1 ?A2))
+      (desires ?A2 
+        (exists (?I) 
+          (and 
+            (instance ?I ?C1)
+            (agent ?I ?A1) 
+            (subProcess ?I ?C)))))))
 
 (subclass Arson Combustion)
 (subclass Arson Destruction)
@@ -7451,6 +8196,26 @@ designed to carry less than a dozen people.")
 (documentation BusStop "An area, often, though not necessarily with
 seats or some kind of minimal shelter, where people gather to meet and
 board a bus.  It must border a road.")
+
+(subclass Burrow Cave)
+(documentation Burrow "A small &%Cave created by an &%Animal for the purpose 
+of inhabiting it.")
+(=>
+  (instance ?B Burrow)
+  (exists (?P ?A)
+    (and
+      (instance ?P Process)
+      (agent ?P ?A)
+      (instance ?A Animal)
+      (not 
+        (instance ?A Human))
+      (result ?P ?B))))
+
+(=>
+  (instance ?B Burrow)
+  (exists (?A)
+    (hasPurpose ?B
+      (inhabits ?A ?B))))
 
 (instance BusinessPerson OccupationalRole)
 (documentation BusinessPerson "Any of a class of people in a professional 
@@ -7889,11 +8654,11 @@ feature of interest to &%Tourists, which entertains or informs them.")
   is at least partially clandestine and a significant proportion of its acts
   are against non-military targets.")
 
-(documentation members-Count "A relation between an instance of an &%Organization
-  and the approximate number of members in the &%Organization.")
+(documentation members-Count "A relation between an instance of a &%Collection
+  and the approximate number of members in the &%Collection.")
   
 (instance members-Count BinaryPredicate)
-(domain members-Count 1 Organization)
+(domain members-Count 1 Collection)
 (domain members-Count 2 Number)
 
 (=>
@@ -8804,6 +9569,8 @@ is a class-level relation roughly corresponding to &%part.")
         (BeginFn (WhenFn ?PART))
         (part ?PART ?WHOLE)))))
 
+(initialPart AnimalAnatomicalStructure Animal)
+
 (instance initiallyContainsPart BinaryRelation)
 (instance initiallyContainsPart SpatialRelation)
 (relatedInternalConcept initiallyContainsPart part)
@@ -8839,6 +9606,62 @@ disease or lack of use.")
       (experiencer ?A ?B)
       (instance ?B BodyPart))))
 
+(subclass CausingHappiness Process)
+(documentation CausingHappiness "Any &%Process whose result is that the 
+patient of the process is happy.")
+(=>
+  (and
+    (instance ?C CausingHappiness)
+    (patient ?C ?P))
+  (and
+    (holdsDuring 
+      (BeginFn (WhenFn ?C)) 
+    (not 
+      (attribute ?P Happiness)))
+    (holdsDuring 
+      (EndFn (WhenFn ?C)) 
+    (attribute ?P Happiness)))) 
+
+(subclass CausingPain CausingUnhappiness)
+(documentation CausingPain "Any &%Process whose result is that the 
+patient of the process is in &%Pain.")
+
+(subclass CausingUnhappiness Process)
+(documentation CausingUnhappiness "Any &%Process whose result is that the 
+patient of the process is unhappy.")
+(=>
+  (and
+    (instance ?C CausingHappiness)
+    (patient ?C ?P))
+  (and
+    (holdsDuring 
+      (BeginFn (WhenFn ?C)) 
+    (not 
+      (attribute ?P Unhappiness)))
+    (holdsDuring 
+      (EndFn (WhenFn ?C)) 
+    (attribute ?P Unhappiness)))) 
+
+(subclass Bloating Increasing)
+(subclass Bloating PathologicProcess)
+(documentation Bloating "Any &%Process where the stomach or instestines of a 
+&%Human or &%Animal become distended from excessive gas.")
+(=>
+  (instance ?B Bloating)
+  (exists (?P ?S ?I ?G)
+    (and
+      (experiencer ?B ?A)
+      (instance ?G Gas)
+      (or
+        (and
+          (part ?I ?A)
+          (instance ?I Intestine)
+          (contains ?I ?G))
+        (and
+          (part ?S ?A)
+          (instance ?S Stomach)
+          (contains ?S ?G))))))
+
 (subclass Barking RadiatingSound)
 (documentation Barking "Any instance of &%RadiatingSound which is produced 
 by a &%Canine.")
@@ -8849,195 +9672,43 @@ by a &%Canine.")
       (instance ?D Canine)
       (agent ?B ?D))))
 
-;; ------------------------------------------------------
-;; New content that has not yet been fully formalized. 
-
-(subclass Bathing Washing)
-(documentation Bathing "&%Washing the entire body of a &%Human or &%Animal.")
-(subclass BathingDevice WashingDevice)
-(documentation BathingDevice "A &%WashingDevice which is intended to be used by 
-Humans for washing their bodies.  Note that this class covers bathtubs, showers, 
-etc.")
-(subclass Bathroom Room)
-(documentation Bathroom "A &%Room that contains a &%WashBasin and 
-possibly a &%Toilet.")
-(subclass Baton Device)
-(documentation Baton "A thin stick which is used for &%OrchestralConducting.")
-(subclass Battery Device)
-(documentation Battery "Battery is a subclass of &%Device.  Batteries are 
-devices that use chemical means to store or produce electrical power.")
-(subclass BecomingDrunk PsychologicalProcess)
-(disjoint BecomingDrunk SoberingUp)
-(documentation BecomingDrunk "The process of transitioning from a state of 
-being &%Sober to a state of being &%Drunk.")
-(subclass Beef Meat)
-(documentation Beef "&%Meat that was originally part of a &%Cow.")
-(subclass Bell PercussionInstrument)
-(documentation Bell "A &%PercussionInstrument which is made of &%Metal and 
-which produces a single tone when it is struck.")
-(subclass Belt Clothing)
-(documentation Belt "A piece of &%Clothing that is worn around the waist 
-of a pair of &%Trousers.")
-(subclass Bequeathing UnilateralGiving)
-(documentation Bequeathing "Any &%UnilateralGiving where the agent 
-wills some part of his/her property to someone else upon his/her death.")
-(subclass BiochemicalAgent SelfConnectedObject)
-(documentation BiochemicalAgent "A &%BiologicalAgent or a &%ChemicalAgent.")
-(subclass BiochemicalAttack Attack)
-(documentation BiochemicalAttack "&%Attacks in which a &%BiochemicalWeapon 
-is used against an &%Organism.")
-(subclass BiochemicalWeapon WeaponOfMassDestruction)
-(documentation BiochemicalWeapon "A &%WeaponOfMassDestruction that is 
-either a &%BiologicalWeapon or a &%ChemicalWeapon, i.e. not a 
-&%RadioactiveWeapon.")
-(subclass Biography HistoricalAccount)
-(documentation Biography "A &%HistoricalAccount which is concerned 
-with the life of a single &%Human.")
-(subclass BiologicalAgent BiochemicalAgent)
-(documentation BiologicalAgent "A naturally occurring &%Substance, a 
-synthetic analogue of such a substance or an &%Organism that is capable 
-of inflicting severe harm on other &%Organisms.  All &%BiologicalWeapons 
-contain a &%BiologicalAgent.")
 (subclass BiologicalConception OrganOrTissueProcess)
 (documentation BiologicalConception "The production of a zygote from the fusion 
 of a male and female gamete.")
-(subclass BiologicalWeapon BiochemicalWeapon)
-(documentation BiologicalWeapon "Weapons which contain a sample of 
-&%ToxicOrganism or a &%BiologicallyActiveSubstance that is produced by a 
-&%ToxicOrganism (or a synthetic analogue of the latter).")
-(subclass Biopsy DiagnosticProcess)
-(documentation Biopsy "Any &%DiagnosticProcess which involves the examination of 
-&%BodySubstances taken from a living &%Organism.")
+(=>
+  (instance ?SR SexualReproduction)
+  (exists (?C)
+    (and
+      (instance ?C BiologicalConception)
+      (subProcess ?C ?SR))))
+
 (subclass BirdEgg Egg)
 (documentation BirdEgg "Any &%Egg that is produced by a &%Bird.")
-(subclass Bloating Increasing)
-(subclass Bloating PathologicProcess)
-(documentation Bloating "Any &%Process where the stomach or instestines of a 
-&%Human or &%Animal become distended from excessive gas.")
-(subclass Blockade Maneuver)
-(documentation Blockade "Any &%Maneuver in a &%Contest where one &%contestParticipant 
-attempts to deny access to something that is wanted by another &%contestParticipant.")
-(subclass BloodCell Cell)
-(subclass BloodCell AnimalAnatomicalStructure)
-(documentation BloodCell "A &%Cell that is normally present in &%Blood.")
-(subclass BloodTypeA Blood)
-(documentation BloodTypeA "The subclass of &%Blood that contains &%AntigenA 
-and does not contain &%AntigenB.")
-(subclass BloodTypeAB Blood)
-(documentation BloodTypeAB "The subclass of &%Blood that contains both 
-&%AntigenA and &%AntigenB.")
-(subclass BloodTypeB Blood)
-(documentation BloodTypeB "The subclass of &%Blood that contains &%AntigenB 
-and does not contain &%AntigenA.")
-(subclass BloodTypeO Blood)
-(documentation BloodTypeO "The subclass of &%Blood that contains neither 
-&%AntigenA nor &%AntigenB.")
-(subclass Blushing AutonomicProcess)
-(documentation Blushing "The process of turning red in response to a 
-stimulus which has a deep emotional effect.")
-(subclass Boarding Translocation)
-(documentation Boarding "Getting on a &%Vehicle, e.g. getting into an 
-&%Automobile, boarding an &%Aircraft, etc.")
-(subclass BoatDeck Artifact)
-(documentation BoatDeck "One of the levels of a &%WaterVehicle, e.g. the 
-upper deck and lower deck of small boats with a cabin.")
-(subclass BodyJoint BodyJunction)
-(documentation BodyJoint "&%BodyJunctions where different parts of the same 
-&%Skeleton come together.")
-(subclass Bomber MilitaryAircraft)
-(documentation Bomber "Any &%MilitaryAircraft whose purpose is to deliver 
-&%ExplosiveDevices.")
-(subclass Bowing Inclining)
-(subclass Brandy DistilledAlcoholicBeverage)
-(documentation Brandy "A &%DistilledAlcoholicBeverage that is prepared by 
-distilling &%Wine.")
-(subclass BreadOrBiscuit PreparedFood)
-(documentation BreadOrBiscuit "&%Food that consists largely of grain flour 
-and water.  Note that this class covers crackers, cookies, as well as any 
-self-connected instance of bread, whether it is a loaf, a slice, a chunk 
-of bread, etc.")
-(subclass BreakabilityAttribute InternalAttribute)
-(documentation BreakabilityAttribute "A subclass of &%Attributes for 
-characterizing the breakability of &%CorpuscularObjects.")
-(subclass Breast AnimalAnatomicalStructure)
-(subclass Breast Organ)
-(documentation Breast "The paired &%Organs which are part of the chests 
-of &%Primates.")
-(subclass Brick BoardOrBlock)
-(documentation Brick "A block of fired &%Clay that is used in &%Constructing.")
-(subclass BrigadierGeneral MilitaryGeneral)
-(documentation BrigadierGeneral "A &%MilitaryGeneral that ranks below 
-a &%MajorGeneral.")
-(subclass BroadcastNetwork CommunicationSystem)
-(documentation BroadcastNetwork "&%BroadcastNetwork is the subclass of 
-&%CommunicationSystems consisting of &%BroadcastingStations that are linked 
-electronically and managed or owned by one organization.")
-(subclass Broom BrushOrComb)
-(documentation Broom "A &%BrushOrComb whose purpose is to remove dirt and other 
-small particles from floors.")
-(subclass BrushOrComb Device)
-(documentation BrushOrComb "A &%Device which consists of a handle and bristles and 
-whose purpose is to remove particles from something or to smooth something out.")
-(subclass Bubble CorpuscularObject)
-(documentation Bubble "A globe which has a &%Liquid surface and which contains 
-a &%Gas.")
-(subclass Buffalo HoofedMammal)
-(disjoint Buffalo DomesticAnimal)
-(documentation Buffalo "A &%HoofedMammal with long hair whose habitat is the 
-plains of &%NorthAmerica.")
-(subclass Bugle HornInstrument)
-(documentation Bugle "A &%HornInstrument that has no valves.")
-(subclass Bull Cow)
-(documentation Bull "A &%Cow that is &%Male.")
-(subclass Bullet Projectile)
-(documentation Bullet "A &%Projectile that is designed to be fired by a &%Gun.")
-(subclass Burrow Cave)
-(documentation Burrow "A small &%Cave created by an &%Animal for the purpose 
-of inhabiting it.")
-(subclass Burying Putting)
-(documentation Burying "Putting something in the ground and then covering 
-it with &%Soil.")
-(subclass Bus SelfPoweredRoadVehicle)
-(documentation Bus "Bus is the subclass of &%SelfPoweredRoadVehicles 
-that can transport large numbers of passengers (i.e., dozens) at one 
-time.")
-(subclass Butter PreparedFood)
-(documentation Butter "An emulsion of fat which is produced by churning &%Milk.")
-(subclass Button AttachingDevice)
-(documentation Button "An &%AttachingDevice that is used on &%Clothing.")
-(subclass Calf Cow)
-(documentation Calf "A young &%Cow, i.e. a &%Cow that is &%NonFullyFormed.")
-(subclass Campground LandArea)
-(documentation Campground "A &%LandArea whose purpose is to have &%MobileResidences 
-(e.g. recreational vehicles, mobile homes, &%Tents, etc.) located there.")
-(subclass Candle LightFixture)
-(documentation Candle "An &%LightFixture that consists of &%Wax and a wick, 
-which is lit with a flame.")
-(subclass Capillary BloodVessel)
-(documentation Capillary "A very small &%BloodVessel that connects arterioles 
-(very small &%Arteries) with venules (very small &%Veins).")
-(subclass Carpenter OccupationalTrade)
-(documentation Carpenter "Any occupation that involves creating and repairing 
-&%Artifacts that are made chiefly of &%Wood.")
-(subclass CausingHappiness BiologicalProcess)
-(documentation CausingHappiness "Any &%Process whose result is that the 
-patient of the process is happy.")
-(subclass CausingPain CausingUnhappiness)
-(documentation CausingPain "Any &%Process whose result is that the 
-patient of the process is in &%Pain.")
-(subclass CausingUnhappiness BiologicalProcess)
-(documentation CausingUnhappiness "Any &%Process whose result is that the 
-patient of the process is unhappy.")
-(subclass CavalryUnit MilitaryUnit)
-(documentation CavalryUnit "&%MilitaryUnits composed primarily of &%Soldiers 
-who are mounted, i.e. who perform their combat missions from a &%Horse or 
-&%Vehicle.")
+(=>
+  (instance ?E BirdEgg)
+  (exists (?SR ?B)
+    (and
+      (instance ?SR SexualReproduction)
+      (agent ?SR ?B)
+      (instance ?B Bird)
+      (result ?SR ?E))))
+
+(subclass Biopsy DiagnosticProcess)
+(subclass Biopsy Removing)
+(documentation Biopsy "Any &%DiagnosticProcess which involves the examination of 
+&%BodySubstances taken from a living &%Organism.")
+(=>
+  (and
+    (instance ?B Biopsy)
+    (patient ?B ?BS))
+  (instance ?BS BodySubstance))
+
+;; ------------------------------------------------------
+;; New content that has not yet been fully formalized.  
+
 (subclass Ceiling StationaryArtifact)
 (documentation Ceiling "A &%StationaryArtifact that is the top surface 
 of a &%Room.")
-(subclass CellNucleus BodyPart)
-(documentation CellNucleus "The part of the &%Cell that contains &%DNA and 
-&%RNA.")
 (subclass Cellulose PlantSubstance)
 (subclass Cellulose Carbohydrate)
 (documentation Cellulose "The main component of &%Plant &%Tissue.")
@@ -9555,7 +10226,7 @@ and fans that are manually operated.")
 (disjoint FarmBuilding ResidentialBuilding)
 (documentation FarmBuilding "A &%Building on a &%Farm that is used for keeping 
 &%DomesticAnimals, &%Fodder or harvested crops.")
-(subclass FarmHand OccupationalTrade)
+(instance FarmHand OccupationalTrade)
 (documentation FarmHand "&%OccupationalTrades which involve &%Agriculture.")
 (subclass Feather AnimalAnatomicalStructure)
 (subclass Feather BodyPart)
@@ -9595,8 +10266,6 @@ the imprint of a &%Finger.")
 (subclass Fireplace Device)
 (documentation Fireplace "A &%Device in a &%Building which is used for burning wood, 
 coal, etc for heat.")
-(subclass FishMeat Meat)
-(documentation FishMeat "&%Meat that was originally part of a &%Fish.")
 (subclass Flooding LiquidMotion)
 (documentation Flooding "Flooding is the subclass of &%LiquidMotion 
 processes in which the water level of a &%Waterway rises or water spreads 
@@ -10049,10 +10718,6 @@ some other &%Substance.")
 (subclass Mirror Artifact)
 (documentation Mirror "An &%Artifact with a surface that is capable of 
 displaying an image by reflecting light.")
-(subclass Missile Projectile)
-(subclass Missile SelfPoweredDevice)
-(documentation Missile "A &%Projectile that is self-propelled and contains 
-an &%ExplosiveDevice.")
 (subclass ModellingPosition Position)
 (documentation ModellingPosition "Any &%Position which involves posing for an 
 artist or photographer.")
@@ -10280,7 +10945,7 @@ which is intended to be used for playing card games.")
 (subclass Pleading Stating)
 (documentation Pleading "&%Stating in a court of law a claim about whether or 
 not one is guilty of the crime of which one has been accused.")
-(subclass Plumber OccupationalTrade)
+(instance Plumber OccupationalTrade)
 (documentation Plumber "Any occupation that involves installing, repairing, and 
 replacing pipes and pipe fixtures.")
 (subclass PoliceCaptain PoliceOfficer)
@@ -10306,14 +10971,12 @@ the outcome of the votes cast by the enfranchised.  For example, U.S.
 Senators and Representatives are elected by &%PopularElection.  By 
 contrast, U.S. Presidents are elected by indirect elections, in which the 
 Electoral College determines the actual outcome.  See &%electionWinner.")
-(subclass Pork Meat)
-(documentation Pork "&%Meat that was originally part of a &%Pig.")
 (subclass Portrait PaintedPicture)
 (documentation Portrait "A &%PaintedPicture that represents someone's &%Face.")
 (subclass PotOrPan Container)
 (documentation PotOrPan "A &%Container which has a handle and is used for 
 &%Cooking.")
-(subclass Potter OccupationalTrade)
+(instance Potter OccupationalTrade)
 (documentation Potter "Any occupation that involves the creation of &%Pottery.")
 (subclass PressureMeasuringDevice MeasuringDevice)
 (documentation PressureMeasuringDevice "Any &%Device that measures and 
@@ -10389,9 +11052,6 @@ is a &%Fist of the agent.")
 (documentation Punishing "A &%RegulatoryProcess where the agent does 
 something to the &%destination that the &%agent knows is undesirable 
 for the &%destination.")
-(subclass PuttingOnClothing Covering)
-(documentation PuttingOnClothing "&%Putting &%Clothing on a &%Human or 
-&%Animal in such a way that the &%Human or &%Animal wears the &%Clothing.")
 (disjoint QueenInsect WorkerInsect)
 (subclass Rabbit Rodent)
 (documentation Rabbit "A burrowing &%Rodent with a short tail and long ears.")
@@ -10468,9 +11128,7 @@ uttered is contained within a &%Text.")
 from a &%DiseaseOrSyndrome.")
 (subclass RecreationOrExerciseDevice Device)
 (documentation RecreationOrExerciseDevice "A &%Device whose purpose is &%RecreationOrExercise.")
-(subclass RedBloodCell BloodCell)
-(documentation RedBloodCell "&%BloodCells that contain hemoglobin, lack a 
-&%CellNucleus, and carry &%Oxygen to the tissues of the body.")
+
 (subclass ReferenceText FactualText)
 (documentation ReferenceText "A &%Text which is not intended to be read 
 from beginning to end, but which is meant to be consulted to answer specific 
@@ -10494,7 +11152,6 @@ process.")
 (documentation Regretting "&%ExpressingDisapproval about a state of affairs 
 that has already occurred.")
 (subclass RelievingPain TherapeuticProcess)
-(subclass RelievingPain CausingHappiness)
 (documentation RelievingPain "Any &%TherapeuticProcess that removes &%Pain from 
 the patient of the process.")
 (subclass ReligiousPosition Position)
@@ -11154,9 +11811,7 @@ which is used to make &%BreadOrBiscuits.")
 (documentation Whip "A &%Weapon that consists of a thin strand of 
 &%Fabric, usually &%Leather, and a handle by which the strand is 
 impelled at a high rate of speed.")
-(subclass WhiteBloodCell BloodCell)
-(documentation WhiteBloodCell "&%BloodCells that lack hemoglobin, contain a 
-&%CellNucleus, and have no color.")
+
 (subclass WholesaleStore Agency)
 (subclass WillowTree BotanicalTree)
 (documentation WillowTree "A &%BotanicalTree of the genus &%Salix.")
