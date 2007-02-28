@@ -121,6 +121,21 @@ age or older.")
       (age ?BABY (MeasureFn ?NUMBER YearDuration)))
    (lessThanOrEqualTo ?NUMBER 1)) 
 
+(subclass Dodging BodyMotion)
+(subclass Dodging IntentionalProcess)
+(documentation Dodging "Purposely moving one's body in such a way as 
+to avoid being hit by something.")
+(=>
+  (and
+    (instance ?D Dodging)
+    (agent ?D ?A))
+  (hasPurpose ?D 
+    (not 
+      (exists (?I)
+        (and
+          (instance ?I Impacting)
+          (patient ?I ?A))))))
+
 (subclass Stepping BodyMotion)
 (documentation Stepping "The &%BodyMotion of extending one foot forward 
 and then bringing the other foot to the same lateral position as the 
@@ -221,6 +236,36 @@ when it is struck.")
       (and
         (instance ?V Valve)
         (part ?V ?B)))))
+
+(documentation Drumming "Playing a Drum.  Note that this includes both
+musical performance, as well as signalling and cerimonial applications.")
+(subclass Drumming RadiatingSound)
+(subclass Drumming Demonstrating)
+
+(=>
+  (instance ?D Drumming)
+  (exists (?A ?DRUM ?I)
+    (and
+      (agent ?D ?A)
+      (instrument ?D ?DRUM)
+      (subProcess ?I ?D)
+      (agent ?I ?A)
+      (patient ?I ?DRUM)
+      (instance ?I Impacting)
+      (instance ?DRUM Drum))))
+
+(subclass Drum PercussionInstrument)
+(documentation Drum "An atonal &%PercussionInstrument which consists of a 
+hollow cylinder and a fabric stretched across at least one end of the 
+cylinder.")
+
+(=>
+  (instance ?D Drum)
+  (hasPurpose ?D 
+    (exists (?P)
+      (and
+        (instance ?P Drumming)
+        (instrument ?P ?D)))))
 
 (subclass WrittenCommunication LinguisticCommunication)
 (documentation WrittenCommunication "Any &%LinguisticCommunication where the 
@@ -362,6 +407,20 @@ to be &%False by the &%agent of the &%Stating.")
 (subclass Indicating BodyMotion)
 (documentation Indicating "Pointing out a person, place or thing with 
 one's hand or with an &%Artifact.")
+
+(subclass Divorcing Declaring)
+(documentation Divorcing "A legal act whereby a marriage is dissolved.  This 
+includes annulments.")
+(=>
+  (instance ?D Divorcing)
+  (exists (?P1 ?P2 ?T1 ?T2)
+    (and
+      (holdsDuring ?T1 
+        (spouse ?PERSON1 ?PERSON2))
+      (holdsDuring ?T2 
+        (not (spouse ?PERSON1 ?PERSON2)))
+      (finishes ?T1 ?D)
+      (starts ?T2 ?D))))
 
 (subclass Appointing Declaring)
 (documentation Appointing "Any instance of &%Declaring by which the 
@@ -531,6 +590,10 @@ single hand.")
 (documentation ArrowProjectile "A long, thin &%Projectile with a pointed tip is 
 fired from a bow.")
 
+(subclass DriveComponent EngineeringComponent)
+(documentation DriveComponent "An &%EngineeringComponent whose purpose is to 
+transfer force from one part of a &%Device to another part.")
+
 (subclass Manifold EngineeringComponent)
 (documentation Manifold "A pipe which has several outlets for other pipes that flow 
 into or out of it.")
@@ -547,6 +610,20 @@ an &%ElectricDevice on and off.")
          (causes ?PROC1 ?PROC2)
          (instrument ?PROC2 ?ELECTRIC)
          (instance ?ELECTRIC ElectricDevice))))
+
+(subclass DeviceStateAttribute DeviceAttribute)
+(documentation DeviceStateAttribute "&%DeviceStateAttribute is the class 
+of attributes that represent different states that a Device may be in.  
+Examples: &%DeviceOff, &%DeviceOn, &%DeviceOpen, and &%DeviceClosed.")
+
+(instance DeviceClosed DeviceStateAttribute)
+(instance DeviceClosed RelationalAttribute)
+(instance DeviceOff DeviceStateAttribute)
+(instance DeviceOff InternalAttribute)
+(instance DeviceOn DeviceStateAttribute)
+(instance DeviceOn InternalAttribute)
+(instance DeviceOpen DeviceStateAttribute)
+(instance DeviceOpen RelationalAttribute)
 
 (subclass Aerator Device)
 (documentation Aerator "A &%Device whose purpose is to mix &%Substances with 
@@ -588,7 +665,6 @@ small particles from floors.")
 (documentation BrushOrComb "A &%Device which consists of a handle and bristles and 
 whose purpose is to remove particles from something or to smooth something out.")
 
-
 (=>
   (instance ?B BrushOrComb)
   (hasPurpose ?B 
@@ -598,6 +674,25 @@ whose purpose is to remove particles from something or to smooth something out."
           (instance ?S Removing)
           (instance ?S SurfaceChange))
         (instrument ?S ?B)))))
+
+(subclass Toothbrush BrushOrComb)
+(documentation Toothbrush "A small &%BrushOrComb with relatively soft
+bristles and a long handle, used for brushing teeth (see &%Tooth).  It is
+used help control bacteria living in the mouth.  While most typically used
+by humans on themselves, it can be used by &%Dentists on their
+patients and by adults assisting children.  They are occasionally used by
+humans caring for pets, zoo animals and valuable livestock.")
+(=>
+  (instance ?T Toothbrush)
+  (hasPurpose ?T
+    (exists (?K)
+      (and
+        (instance ?TOOTH Tooth)
+        (instrument ?K ?T)
+        (instance ?K Killing)
+        (instance ?B Bacterium)
+        (patient ?K ?B)
+        (patient ?K ?TOOTH)))))
 
 (subclass CigarOrCigarette SmokingDevice)
 (documentation CigarOrCigarette "A tube of thin paper containing finely ground 
@@ -775,6 +870,23 @@ oxcarts, horse-drawn plows, mule-driven mills.")
       (instance ?A Animal)
       (instrument ?P ?A))))
 
+(documentation Flat "A three dimensional object for which
+two dimensions are markedly larger than the third the
+two larger dimensions are also not of markedly different length.")
+(instance Flat ShapeAttribute)
+(=>
+  (attribute ?F Flat)
+  (and
+    (side ?S1 ?F)
+    (side ?S2 ?F)
+    (meetsSpatially ?S1 ?S2)
+    (not (equal ?S1 ?S2))
+    (height ?F ?H)
+    (greaterThan ?S1 (MultiplicationFn 2 ?H))
+    (greaterThan ?S2 (MultiplicationFn 2 ?H))))
+
+(documentation LongAndThin "A three dimensional object that
+has two thin dimensions and one markedly larger one.") 
 (instance LongAndThin ShapeAttribute)
 (=>
   (attribute ?F LongAndThin)
@@ -967,20 +1079,20 @@ well as painting one's kitchen, for example.")
          (instance ?SKETCH Sketch)
          (result ?DRAW ?SKETCH))))
 
-(subclass DisplayBoard Artifact)
-(documentation DisplayBoard "A large board for posting information so 
+(subclass DisplayArtifact Artifact)
+(documentation DisplayArtifact "Something for posting content so 
 that it can be disseminated to the public.")
-
 (=>
-   (instance ?BOARD DisplayBoard)
-   (hasPurpose ?BOARD (exists (?PUT ?DISSEMINATE ?INFO)
-                         (and
-                            (instance ?PUT Putting)
-                            (instance ?DISSEMINATE Disseminating)
-                            (instance ?INFO ContentBearingObject)
-                            (patient ?PUT ?INFO)
-                            (patient ?DISSEMINATE ?INFO)
-                            (destination ?PUT ?BOARD)))))
+  (instance ?DA DisplayArtifact)
+  (hasPurpose ?DA 
+    (exists (?P ?D ?I)
+      (and
+        (instance ?P Putting)
+        (instance ?D Disseminating)
+        (instance ?I ContentBearingObject)
+        (patient ?P ?I)
+        (patient ?D ?I)
+        (destination ?P ?DA)))))
 
 (subclass Wheel Artifact)
 (documentation Wheel "A circular &%Artifact which is a component of 
@@ -1194,6 +1306,19 @@ something else, i.e. be the &%instrument of a &%Keeping.")
 (subclass Tray Holder)
 (documentation Tray "A &%Holder that is designed for &%Food, dishes, and 
 flatware.")
+
+(subclass Dish Holder)
+(documentation Dish "A &%Holder for &%Food while the &%Food is being eaten.")
+(=>
+  (instance ?D Dish)
+  (hasPurpose ?D 
+    (exists (?F ?E)
+      (and
+        (instance ?E Eating)
+        (patient ?E ?F)
+        (patient ?E ?D)
+        (instance ?F Food)
+        (located ?F ?D)))))
 
 (subclass Container Holder)
 (documentation Container "Any &%Holder whose purpose is to contain 
@@ -1468,6 +1593,48 @@ It consists of an upper, a sole, and a heel.")
          (part ?FOOT ?PERSON)
          (meetsSpatially ?SHOE ?FOOT))))
 
+(documentation ShoeSole "The bottom part of a &%Shoe that is
+intended to be the point of contact with the ground while the
+shoe is being worn.")
+(subclass ShoeSole Artifact)
+(=>
+  (instance ?SS ShoeSole)
+  (exists (?S)
+    (and 
+      (instance ?S Shoe)
+      (bottom ?SS ?S))))
+
+(documentation Sandal "Any kind of open shoe lacking a markedly
+thicker heel.  The toe may be enclosed, but there must be some opening in the upper
+other than the &%Hole through which the foot is inserted.")
+(subclass Sandal Shoe)
+(=>
+  (instance ?S Sandal)
+  (exists (?H1 ?H2)
+    (and
+      (instance ?H1 Hole)
+      (instance ?H2 Hole)
+      (not (equal ?H1 ?H2))
+      (hasPurpose ?H1
+        (exists (?D ?F ?A ?I)
+          (and 
+            (instance ?D Dressing)
+            (instance ?F Foot)
+            (agent ?D ?A)
+            (part ?F ?A)
+            (subProcess ?I ?D)
+            (instance ?I Inserting)
+            (patient ?I ?F)
+            (destination ?I ?H1)))))))
+
+(=>
+  (instance ?S Sandal)
+  (exists (?SOLE)
+    (and
+      (instance ?SOLE ShoeSole)
+      (part ?SOLE ?S)
+      (attribute ?SOLE Flat)))) 
+
 (subclass Shirt Clothing)
 (documentation Shirt "An item of &%Clothing which covers the upper body of a 
 &%Human.")
@@ -1563,6 +1730,23 @@ person who is in bed warm.")
 (=>
   (instance ?F CottonFabric)
   (material Cotton ?F))
+
+(documentation Veil "A piece of &%Clothing intended to cover or
+obscure the face or hair of a &%Woman.  This is commonly worn for
+religious reasons when in public in &%Muslim countries, but is also customary
+at &%Weddings and &%Funerals among some non-Muslim women.")
+(subclass Veil Clothing)
+(=>
+  (instance ?V Veil)
+  (hasPurpose ?V
+    (exists (?F ?H)
+      (or
+        (and
+          (instance ?F Face)
+          (meetsSpatially ?V ?F))
+        (and
+          (instance ?H Hair)
+          (meetsSpatially ?V ?H)))))) 
 
 (subclass Concealing Putting)
 (documentation Concealing "Locating something in such a way that it cannot 
@@ -2038,6 +2222,18 @@ and apartment buildings.")
          (part ?UNIT2 ?BUILDING)
          (not (equal ?UNIT1 ?UNIT2)))))
 
+(subclass Dormitory ResidentialBuilding)
+(subclass Dormitory TemporaryResidence)
+(disjoint Dormitory SingleFamilyResidence)
+(documentation Dormitory "A &%TemporaryResidence which is owned by a &%School 
+and which is used to house students while they take classes at the &%School.")
+(=>
+  (instance ?D Dormitory)
+  (exists (?S)
+    (and
+      (instance ?S School)
+      (possesses ?S ?D))))
+
 (subclass AnimalResidence Artifact)
 (documentation AnimalResidence "An &%Artifact which is intended to house 
 &%Animals and not &%Humans.  Note that an &%AnimalResidence may or may not 
@@ -2493,6 +2689,18 @@ the complement of &%WholesaleStore, i.e.
         (destination ?EV ?P)
         (instance ?P Human)))))
         
+(subclass DrugStore RetailStore)
+(documentation DrugStore "A &%RetailStore that sells &%Medicine, and 
+perhaps other items as well.")
+(=>
+  (instance ?D DrugStore)
+  (exists (?S)
+    (and
+      (instance ?S Selling)
+      (agent ?S ?D)
+      (patient ?S ?M)
+      (instance ?M Medicine))))
+
 (subclass GroceryStore RetailStore)
 (documentation GroceryStore "A &%RetailStore that sells &%Food, and perhaps 
 other items as well.")
@@ -3003,8 +3211,9 @@ reacting with a &%ChemicalBase and forming a &%ChemicalSalt.")
     (patient ?C ?CA)
     (patient ?C ?CB))
   (exists (?CS)
-    (instance ?CS ChemicalSalt)
-    (result ?C ?CS)))
+    (and 
+      (instance ?CS ChemicalSalt)
+      (result ?C ?CS))))
 
 (subclass ChemicalBase CompoundSubstance)
 (documentation ChemicalBase "A &%CompoundSubstance that is capable of 
@@ -3032,6 +3241,11 @@ It is a compound found in solution in significant quantities in sea water.")
          (resource ?SYNTHESIS ?CHLORINE)
          (instance ?CHLORINE Chlorine)
          (result ?SYNTHESIS ?SALT))))
+
+(subclass Diamond Mineral)
+(subclass Diamond Carbon)
+(documentation Diamond "Crystalline &%Carbon that is valued as a gem and 
+used in industrial applications.")
 
 (subclass SalineSolution Solution)
 (documentation SalineSolution "A &%Solution consisting of &%SodiumChloride and 
@@ -3079,7 +3293,7 @@ hydrophilic groups, and are thus semi-soluble in both organic and aqueous
 solvents.") 
 
 (subclass Detergent Surfactant)
-
+(subclass Detergent Mixture)
 (documentation Detergent "A detergent is a compound, or a mixture of 
 compounds, whose molecules have two distinct regions: one that is 
 hydrophilic, and dissolves easily in water, and another region that is 
@@ -3378,6 +3592,11 @@ bark, roots, flowers, seeds, fruit and leaves.")
 (subclass Cellulose PlantSubstance)
 (subclass Cellulose Carbohydrate)
 (documentation Cellulose "The main component of &%Plant &%Tissue.")
+
+(subclass Depressant BiologicallyActiveSubstance)
+(documentation Depressant "Any &%BiologicallyActiveSubstance which has 
+the effect of depressing the central nervous system, i.e. decreasing 
+function or activity in the &%Brain or &%SpinalCord.")
 
 (subclass Opium BiologicallyActiveSubstance)
 (subclass Opium PlantSubstance)
@@ -4096,6 +4315,19 @@ thalamus that serves to regulate &%AutonomicProcesses.")
          (instance ?ARM Arm)
          (part ?HAND ?ARM))))
 
+(subclass DigitAppendage AnimalAnatomicalStructure)
+(subclass DigitAppendage BodyPart)
+(documentation DigitAppendage "Any of the extremities of &%Limbs that are 
+found in the higer &%Vertebrates and the &%Amphibians.")
+(=>
+  (instance ?DIGIT DigitAppendage)
+  (exists (?LIMB)
+    (and
+      (instance ?LIMB Limb)
+      (part ?DIGIT ?LIMB))))
+
+(initialPart DigitAppendage Limb)
+
 (subclass Finger DigitAppendage)
 (documentation Finger "The five extremities of &%Hands.")
 
@@ -4358,14 +4590,13 @@ something that the person did in the past and that is regarded as being
 to the benefit of the person congratulated.")
 (=>
   (instance ?C Congratulating)
-  (and
     (exists (?P ?A ?D)
       (and
         (destination ?C ?D)
         (agent ?P ?D)
         (agent ?C ?A)
         (wants ?A ?P)
-        (refers ?C ?P)))))
+        (refers ?C ?P))))
 
 (subclass FacialExpression Gesture)
 (documentation FacialExpression "Any &%Gesture whose &%instrument is the &%Face.")
@@ -4875,6 +5106,25 @@ of income tax owed in a given year.")
                              (transactionAmount ?TAX ?AMOUNT)
                              (instance ?TAX Tax)))))
 
+(subclass DutyTax Tax)
+(documentation DutyTax "A &%Tax that is levied on imports and/or exports.")
+(=>
+  (and
+    (instance ?X DutyTax)
+    (refers ?X ?OBJ)
+    (patient ?X ?OBJ))
+  (exists (?T ?N1 ?N2)
+    (and
+      (instance ?T Transfer)
+      (patient ?T ?OBJ)
+      (origin ?T ?N1)
+      (destination ?T ?N2)
+      (instance ?N1 Nation)
+      (instance ?N2 Nation)
+      (not (equal ?N1 ?N2))
+      (earlier (WhenFn ?T) (WhenFn ?X))
+      (causes ?T ?X))))
+
 (subclass Ballot FormText)
 (documentation Ballot "A &%FormText which is used in &%Voting.  A list of 
 candidates is printed on the form, and the voter selects the candidate he/she 
@@ -4918,6 +5168,11 @@ an event in the future.")
 (documentation MotionPictureShot "A unit of action in a &%MotionPicture, a 
 &%MotionPictureShot is a sequence of images which are captured by a single 
 camera without interruption.")
+
+(subclass Documentary MotionPicture)
+(subclass Documentary FactualText)
+(documentation Documentary "A &%MotionPicture which purports to represent the 
+facts about a person, event, etc.")
 
 (subclass BroadcastProgram Series)
 (documentation BroadcastProgram "A &%Series of episodes that are broadcast 
@@ -5342,6 +5597,17 @@ possibly a &%Toilet.")
         (patient ?K ?O)
         (located ?O ?R)))))
 
+(subclass DressingRoom Room)
+(documentation DressingRoom "Any &%Room which is intended for 
+&%ChangingClothing.")
+(=>
+  (instance ?R DressingRoom)
+  (hasPurpose ?R 
+    (exists (?C)
+      (and
+        (instance ?C ChangingClothing)
+        (located ?C ?R)))))
+
 (subclass Kitchen Room)
 (documentation Kitchen "A &%Room intended for &%Cooking.")
 
@@ -5351,6 +5617,16 @@ possibly a &%Toilet.")
                         (and
                            (instance ?COOK Cooking)
                            (located ?COOK ?ROOM)))))
+
+(subclass DiningRoom Room)
+(documentation DiningRoom "A &%Room intended primarily for &%Eating.")
+(=>
+  (instance ?D DiningRoom)
+  (hasPurpose ?D 
+    (exists (?E)
+      (and
+        (instance ?E Eating)
+        (located ?E ?D)))))
 
 (subclass Bedroom Room)
 (documentation Bedroom "A &%Room intended primarily for sleeping.")
@@ -5588,6 +5864,16 @@ assembled audience.")
 (subclass DramaticActing Pretending)
 (documentation DramaticActing "Playing a character in a &%Performance, 
 &%MotionPicture, etc.") 
+
+(subclass DramaticPerformance Performance)
+(documentation DramaticPerformance "A &%Performance that consists exclusively of 
+&%DramaticActing, e.g. a live performance of Death_of_a_Salesman in front 
+of an audience.")
+(=>
+  (and
+    (instance ?P DramaticPerformance)
+    (subProcess ?A ?P))
+  (instance ?A DramaticActing))
 
 (subclass DramaticCast GroupOfPeople)
 (documentation DramaticCast "The &%GroupOfPeople who engage in &%DramaticActing 
@@ -5950,6 +6236,18 @@ how to create &%ArtWorks.")
          (instance ?ART ArtWork)
          (refers ?P ?M))))
 
+(subclass DaySchool School)
+(documentation DaySchool "A &%School that does not board its students, i.e. 
+students attend classes during the day and then return to a private residence 
+for the night.")
+(=>
+  (instance ?DS DaySchool)
+  (not 
+    (exists (?S)
+      (and
+        (student ?S ?DS)
+        (home ?S ?DS)))))
+
 (subrelation student member)
 (domain student 1 EducationalOrganization)
 (domain student 2 CognitiveAgent)
@@ -5977,6 +6275,22 @@ teacher at the &%EducationalOrganization ?ORG.")
          (instance ?PROCESS EducationalProcess)
 	   (located ?PROCESS ?ORG)
          (agent ?PROCESS ?AGENT))))
+
+(subclass DriversLicense License)
+(documentation DriversLicense "A &%License which identifies the holder and 
+indicates that he has the right to drive a certain class of &%RoadVehicle.")
+(=>
+  (and
+    (instance ?L DriversLicense)
+    (possesses ?A ?L))
+  (confersNorm ?L 
+    (exists (?D ?V)
+      (and
+        (instance ?D Driving)
+        (agent ?D ?A)
+        (patient ?D ?V)
+        (instance ?V RoadVehicle))) 
+    Permission))
 
 (subclass InsurancePolicy Certificate)
 (documentation InsurancePolicy "A &%Certificate that states the terms of an 
@@ -6176,6 +6490,38 @@ or something is moving.")
             (greaterThan ?LENGTH2 ?LENGTH1)
             (greaterThan ?TIME2 ?TIME1))))) 
 
+(subclass Decelerating Translocation)
+(subclass Decelerating Decreasing)
+(documentation Decelerating "Decreasing the speed with which someone 
+or something is moving.")
+(=>
+  (and
+    (instance ?D Decelerating)
+    (agent ?D ?A))
+  (exists (?L1 ?L2 ?T1 ?T2)
+    (and
+      (holdsDuring 
+        (BeginFn (WhenFn ?D)) 
+        (measure ?A (SpeedFn ?L1 ?T1)))
+      (holdsDuring 
+        (EndFn (WhenFn ?D)) 
+        (measure ?A (SpeedFn ?L2 ?T2)))
+      (or
+        (greaterThan ?L1 ?L2)
+        (greaterThan ?T1 ?T2))))) 
+
+(=>
+  (and
+    (instance ?A Accelerating)
+    (equals ?T (WhenFn ?A))
+    (experiencer ?A ?E))
+  (not
+    (exists (?D)
+      (and
+        (instance ?D Decelerating)
+        (experiencer ?D ?A)
+        (equals ?T (WhenFn ?D))))))
+
 (subclass Flying Translocation)
 (documentation Flying "Any instance of &%Translocation which is through an 
 &%AtmosphericRegion and which is powered by the wings of an &%Animal.")
@@ -6289,6 +6635,30 @@ so.")
     (holdsDuring 
       (EndFn (WhenFn ?B)) 
       (onboard ?A ?V))))
+
+(subclass Deboarding Translocation)
+(relatedInternalConcept Boarding Deboarding)
+(documentation Deboarding "Getting off a &%Vehicle, e.g. getting out of an 
+Automobile, deplaning, getting off a &%WaterVehicle, etc.")
+(=>
+  (and
+    (instance ?B Deboarding)
+    (patient ?B ?VEHICLE))
+  (instance ?VEHICLE Vehicle))
+
+(=>
+  (and
+    (instance ?B Deboarding)
+    (agent ?B ?A)
+    (patient ?B ?V))
+  (and
+    (holdsDuring 
+      (BeginFn (WhenFn ?B)) 
+      (onboard ?A ?V))
+    (holdsDuring 
+      (EndFn (WhenFn ?B)) 
+      (not 
+        (onboard ?A ?V)))))
 
 (subclass Rotating Motion)
 (documentation Rotating "&%Motion that begins and ends at the same point, 
@@ -6480,6 +6850,10 @@ else is an &%Animal or a self-powered &%TransportationDevice.")
     (path ?T ?P))
   (instance ?P LandTransitway))
 
+(subclass Driveway Roadway)
+(documentation Driveway "A small, private &%Roadway that is used for parking 
+&%Automobiles or for connecting a &%Garage to a public &%Roadway.")
+
 (subclass LandVehicle Vehicle)
 (documentation LandVehicle 
 "&%LandVehicle is the class of &%TransportationDevices that travel on 
@@ -6631,6 +7005,7 @@ the &%Device so that it can be used as intended after the installation.")
    (holdsDuring (EndFn (WhenFn ?INSTALL)) (truth ?PURPOSE True)))
 
 (subclass Burying Putting)
+(subclass Burying Digging)
 (documentation Burying "Putting something in the ground and then covering 
 it with &%Soil.")
 (=>
@@ -6641,6 +7016,16 @@ it with &%Soil.")
       (instrument ?C ?S)
       (instance ?S Soil)
       (subProcess ?C ?B))))
+
+(subclass Digging IntentionalProcess)
+(subclass Digging SurfaceChange)
+(documentation Digging "Any &%Process of removing or turning over the &%Soil.")
+(=>
+  (instance ?D Digging)
+  (exists (?S)
+    (and
+      (patient ?D ?S)
+      (instance ?S Soil))))
 
 (subclass MovingResidence Transfer)
 (documentation MovingResidence "The process of changing one's residence, i.e. 
@@ -6894,13 +7279,13 @@ who has completed at least three years and less than four years at the school.")
 who has completed at least one year and less than two years at the school.")
 (=>
   (and
-    (attribute ?P CollegeJunior)
+    (attribute ?P CollegeSophomore)
     (occupiesPosition ?H ?P ?ORG))
   (exists (?T)
     (and
       (holdsDuring ?T (student ?H ?ORG))
       (greaterThanOrEqualTo ?T (MeasureFn 2 YearDuration))
-      (lessThan ?T (MeasureFn 3 YearDuration)))))
+      (lessThan ?T (MeasureFn 2 YearDuration)))))
 
 (subclass CollegeStudentPosition Position)
 (documentation CollegeStudentPosition "Any &%Position at a &%PostSecondarySchool 
@@ -6932,6 +7317,18 @@ is recorded and/or performed in front of live audiences.")
 (documentation ClericalSecretary "The class of &%Positions where the position 
 holder is responsible for clerical duties, e.g. typing documents, answering 
 phones, keeping schedules, etc.")
+
+(instance Dentist Profession)
+(documentation Dentist "The &%Profession of being a dentist, i.e. diagnosing 
+and treating problems related to the teeth.")
+(=>
+  (attribute ?P Dentist)
+  (exists (?D ?T)
+    (and
+     (instance ?D DiagnosticProcess)
+     (agent ?D ?P)
+     (instance ?T Tooth)
+     (patient ?D ?T))))
 
 (subclass Soldier SkilledOccupation)
 (documentation Soldier "The class of &%SkilledOccupations which involve serving in 
@@ -6989,6 +7386,7 @@ a lieutenant colonel and below a brigadier general.")
    (duration ?CENTURY (MeasureFn 100 YearDuration)))
 
 (subclass Decade TimeDuration)
+(instance Decade UnitOfMeasure)
 (documentation Decade "The &%TimeDuration of 10 years.")
 
 (=>
@@ -7477,6 +7875,18 @@ that are partially permeable.")
          (instance ?SUBSTANCE2 PureSubstance)
          (not (equal ?SUBSTANCE1 ?SUBSTANCE2)))))
       
+(subclass Diluting Putting)
+(documentation Diluting "Adding a &%Liquid to a &%Solution to decrease 
+the concentration of the &%Solution.")
+
+(=>
+  (instance ?D Diluting)
+  (exists (?S)
+    (and
+      (patient ?D ?S)
+      (instance ?S Solution)
+      (attribute ?S Liquid))))
+
 (instance ChemicalEquilibrium InternalAttribute)
 (documentation ChemicalEquilibrium "The &%Attribute of being in a chemically 
 stable state, i.e. the relative proportions of &%resources and &%results will 
@@ -7824,6 +8234,23 @@ is intended to express something to someone else.")
 repeated many times over a short time frame, e.g. a tremor in the hands,
 shivering etc.") 
 
+(subclass Dismounting BodyMotion)
+(documentation Dismounting "Any &%BodyMotion which results in not being &%On 
+something else.")
+(=>
+  (and
+    (instance ?D Dismounting)
+    (agent ?D ?A)
+    (patient ?D ?O))
+  (and
+    (holdsDuring 
+      (BeginFn (WhenFn ?D)) 
+      (orientation ?A ?O On))
+    (holdsDuring 
+      (EndFn (WhenFn ?D)) 
+      (not 
+        (orientation ?A ?O On)))))
+
 (subclass DomesticAnimal Animal)
 (disjoint DomesticAnimal Human)
 (documentation DomesticAnimal "Any &%Animal that is kept by a &%Human, as 
@@ -7856,6 +8283,16 @@ This class includes gazelles, addax, blackbucks, etc.")
 (disjoint Buffalo DomesticAnimal)
 (documentation Buffalo "A &%HoofedMammal with long hair whose habitat is the 
 plains of &%NorthAmerica.")
+
+(subclass DomesticCat DomesticAnimal)
+(subclass DomesticCat Feline)
+(documentation DomesticCat "A variety of &%Feline which has been domesticated 
+by selective breeding.")
+
+(subclass DomesticDog DomesticAnimal)
+(subclass DomesticDog Canine)
+(documentation DomesticDog "Canines which have evolved from the common 
+wolf by selective breeding.")
 
 (subclass Horse HoofedMammal)
 (subclass Horse Livestock)
@@ -7935,6 +8372,10 @@ and for its eggs.")
    (and
       (instance ?HEN Chicken)
       (attribute ?HEN Female)))
+
+(documentation Duck "A subclass of &%Bird with webbed feet and a large bill.  
+Some ducks live in the wild, and some are raised for meat and/or eggs.")
+(subclass Duck Poultry)
 
 (instance meatOfAnimal BinaryRelation)
 (documentation meatOfAnimal "(meatOfAnimal ?MEATCLASS ?ANIMALCLASS) states
@@ -8071,7 +8512,7 @@ or family.  Note that this &%Position is filled only by a &%Woman.")
 (documentation TheaterProfession "Often know as the stage, the 
 &%Position of performing live plays.")
 
-(subclass Coach SkilledOccupation)
+(instance Coach SkilledOccupation)
 (documentation Coach "Any occupation that involves training an athlete or a 
 sports team.")
 
@@ -8126,6 +8567,18 @@ to a &%ReligousOrganization.")
       (leader ?ORG ?PERSON)
       (instance ?ORG ReligiousOrganization)))
 
+(instance Deacon ReligiousPosition)
+(subclass Deacon PartTimePosition)
+(documentation Deacon "Any &%Position within a &%ReligiousOrganization that is held 
+by a layman, which is part-time, and which involves assisting a &%Cleric.")
+(=>
+  (instance ?D Deacon)
+  (exists (?O ?C)
+    (and
+      (instance ?O ReligiousOrganization)
+      (instance ?C Cleric)
+      (subordinateInOrganization ?O ?D ?C))))
+
 (instance PoliceOfficer Profession)
 (instance PoliceOfficer GovernmentOfficer)
 (documentation PoliceOfficer "The &%Profession of being a police officer, i.e. 
@@ -8134,11 +8587,15 @@ working for a law enforcement agency that is part of a &%Government.")
   (attribute ?P PoliceOfficer)
   (hasSkill PlacingUnderArrest ?P))
 
-(subclass Coroner GovernmentOfficer)
+(subAttribute Deputy PoliceOfficer)
+(documentation Deputy "A &%Position which authorizes the holder of the position 
+to act as the sheriff when the sheriff is not available.")
+
+(instance Coroner GovernmentOfficer)
 (documentation Coroner "A &%GovernmentOfficer who investigates deaths that are 
 suspected of being due to something other than natural causes.")
 
-(subclass PoliceDetective PoliceOfficer)
+(subAttribute PoliceDetective PoliceOfficer)
 (documentation PoliceDetective "The &%Profession of being a police 
 detective, i.e. being a &%PoliceOfficer whose duties include the 
 investigation of crimes.") 
@@ -8185,6 +8642,15 @@ i.e. having attended medical school and being licensed to practice medicine.")
          (capability ?PROCESS1 agent ?DOCTOR)
          (capability ?PROCESS2 agent ?DOCTOR))))
 
+(documentation Circumision "&%Removing the foreskin of the penis.  This is
+usually performed on infants, but is occasionally performed on adolescents
+and adults, either for medical reasons, or after religious conversion. It is
+often conducted as a religious rite, since it is prescribed by both the
+&%Jewish and &%Muslim religions, although it is prevalent also as a social
+norm in the &%UnitedStates and other &%Nations.")
+(subclass Circumision Removing)
+(subclass Circumision Surgery)
+
 (instance NewsReporter Profession)
 (documentation NewsReporter "The &%Profession of being a news reporter, i.e. 
 investigating and reporting, in a publication or broadcast program, current 
@@ -8200,7 +8666,7 @@ events.")
       (authors ?H ?T)
       (refers ?T ?EV))))
 
-(subclass ArtCritic Journalist)
+(subAttribute ArtCritic Journalist)
 (documentation ArtCritic "The &%Profession of reporting and critiquing current 
 &%ArtWorks.")
 
@@ -8418,6 +8884,17 @@ in a seismic event.")
 (documentation Closing "The &%Class of &%Processes where an aperture is 
 closed in an &%Object.")
 
+(subclass Diet Plan)
+(documentation Diet "A &%Plan regarding what one is allowed to eat.")
+(=>
+  (and
+    (instance ?D Diet)
+    (realization ?P ?D))
+  (exists (?E)
+    (and
+      (subProcess ?E ?P)
+      (instance ?E Eating))))
+
 (subclass PreparedFood Food)
 (documentation PreparedFood "&%Food that is the result of &%Cooking.")
 
@@ -8464,6 +8941,20 @@ of bread, etc.")
       (resource ?BAKE ?D)
       (result ?BAKE ?B))))
 
+(subclass Dough PreparedFood)
+(subclass Dough Mixture)
+(documentation Dough "A &%Mixture of &%Flour, &%Water, and possibly 
+other ingredients (such as &%Butter and &%Salt), which is used in 
+making &%BreadOrBiscuits.")
+(=>
+  (instance ?D Dough)
+  (exists (?F ?W)
+    (and
+      (instance ?F Flour)
+      (instance ?W Water)
+      (part ?F ?D)
+      (part ?W ?D))))
+
 (subclass Butter PreparedFood)
 (documentation Butter "An emulsion of fat which is produced by churning &%Milk.")
 (=>
@@ -8505,6 +8996,7 @@ roasted coffee beans into hot water.")
 a spherical shape.")
 
 (subclass DateFruit FruitOrVegetable)
+(subclass DateFruit Food)
 (documentation DateFruit "A &%FruitOrVegetable that is produced by the date 
 palm.")
 
@@ -10198,6 +10690,16 @@ events in which the &%instrument is an instance of
     (patient ?DRIVING ?VEHICLE))
   (conveyance ?TRANSPORT ?VEHICLE))
 
+(subclass DieselEngine InternalCombustionEngine)
+(documentation DieselEngine "&%DieselEngine is the subclass of 
+&%InternalCombustionEngines that use &%DieselFuel as their resource.")
+(=>
+  (instance ?P (OperatingFn DieselEngine))
+  (exists (?F)
+    (and
+      (instance ?F DieselFuel)
+      (resource ?P ?F))))
+
 (instance typicalPart BinaryRelation)
 (instance typicalPart SpatialRelation)
 (relatedInternalConcept typicalPart part)
@@ -10455,128 +10957,6 @@ which reduce the likelihood of conception.")
 ;; ------------------------------------------------------
 ;; New content that has not yet been fully formalized.  
 
-(subclass DateFruit Food)
-(subclass DaySchool School)
-(documentation DaySchool "A &%School that does not board its students, i.e. 
-students attend classes during the day and then return to a private residence 
-for the night.")
-(subclass Deacon ReligiousPosition)
-(subclass Deacon PartTimePosition)
-(documentation Deacon "Any &%Position within a &%ReligiousOrganization that is held 
-by a layman, which is part-time, and which involves assisting a &%Cleric.")
-(subclass Deboarding Translocation)
-(documentation Deboarding "Getting off a &%Vehicle, e.g. getting out of an 
-Automobile, deplaning, getting off a &%WaterVehicle, etc.")
-(instance Decade UnitOfMeasure)
-(subclass Decelerating Translocation)
-(subclass Decelerating Decreasing)
-(documentation Decelerating "Decreasing the speed with which someone 
-or something is moving.")
-(subclass Dentist Profession)
-(documentation Dentist "The &%Profession of being a dentist, i.e. diagnosing 
-and treating problems related to the teeth.")
-(subclass Depressant BiologicallyActiveSubstance)
-(documentation Depressant "Any &%BiologicallyActiveSubstance which has 
-the effect of depressing the central nervous system, i.e. decreasing 
-function or activity in the &%Brain or &%SpinalCord.")
-(subclass Deputy PoliceOfficer)
-(documentation Deputy "A &%Position which authorizes the holder of the position 
-to act as the sheriff when the sheriff is not available.")
-(subclass Detergent Mixture)
-(documentation Detergent "Any &%Mixture whose purpose is to remove &%Soil 
-and/or other undesirable substances from the surfaces of objects.")
-(subclass DeviceStateAttribute DeviceAttribute)
-(documentation DeviceStateAttribute "&%DeviceStateAttribute is the class 
-of attributes that represent different states that a Device may be in.  
-Examples: &%DeviceOff, &%DeviceOn, &%DeviceOpen, and &%DeviceClosed.")
-(subclass Diamond Mineral)
-(subclass Diamond Carbon)
-(documentation Diamond "Crystalline &%Carbon that is valued as a gem and 
-used in industrial applications.")
-(subclass Dictionary ReferenceText)
-(documentation Dictionary "A &%ReferenceText which specifies the meanings 
-of the &%Words of a &%Language or of a technical jargon.")
-(subclass DieselEngine InternalCombustionEngine)
-(documentation DieselEngine "&%DieselEngine is the subclass of 
-&%InternalCombustionEngines that use &%DieselFuel as their resource.")
-(subclass Diet Plan)
-(documentation Diet "A &%Plan regarding what one is allowed to eat.")
-(subclass Digging IntentionalProcess)
-(subclass Digging SurfaceChange)
-(documentation Digging "Any &%Process of removing or turning over the &%Soil.")
-(subclass DigitAppendage AnimalAnatomicalStructure)
-(subclass DigitAppendage BodyPart)
-(documentation DigitAppendage "Any of the extremities of &%Limbs that are 
-found in the higer &%Vertebrates and the &%Amphibians.")
-(subclass Diluting Putting)
-(documentation Diluting "Adding a &%Liquid to a &%Solution to decrease 
-the concentration of the &%Solution.")
-(subclass DiningRoom Room)
-(documentation DiningRoom "A &%Room intended primarily for &%Eating.")
-(subclass Dish Holder)
-(documentation Dish "A &%Holder for &%Food while the &%Food is being eaten.")
-(subclass Dismounting BodyMotion)
-(documentation Dismounting "Any &%BodyMotion which results in not being &%On 
-something else.")
-(subclass DisplayArtifact Artifact)
-(documentation DisplayArtifact "Something for posting content so 
-that it can be disseminated to the public.")
-(subclass Divorcing Declaring)
-(documentation Divorcing "A legal act whereby a marriage is dissolved.")
-(subclass Documentary MotionPicture)
-(subclass Documentary FactualText)
-(documentation Documentary "A &%MotionPicture which purports to represent the 
-facts about a person, event, etc.")
-(subclass Dodging BodyMotion)
-(subclass Dodging IntentionalProcess)
-(documentation Dodging "Purposely moving one's body in such a way as 
-to avoid being hit by something.")
-(subclass DomesticCat DomesticAnimal)
-(subclass DomesticCat Feline)
-(documentation DomesticCat "A variety of &%Feline which has been domesticated 
-by selective breeding.")
-(subclass DomesticDog DomesticAnimal)
-(subclass DomesticDog Canine)
-(documentation DomesticDog "Canines which have evolved from the common 
-wolf by selective breeding.")
-(subclass Dormitory ResidentialBuilding)
-(subclass Dormitory TemporaryResidence)
-(disjoint Dormitory SingleFamilyResidence)
-(documentation Dormitory "A &%TemporaryResidence which is owned by a &%School 
-and which is used to house students while they take classes at the &%School.")
-(subclass Dough PreparedFood)
-(subclass Dough Mixture)
-(documentation Dough "A &%Mixture of &%Flour, &%Water, etc. which is used in 
-making &%BreadOrBiscuits.")
-(subclass DramaticPerformance Performance)
-(documentation DramaticPerformance "A &%Performance that consists exclusively of 
-&%DramaticActing, e.g. a live performance of Death_of_a_Salesman in front 
-of an audience.")
-(subclass DressingRoom Room)
-(documentation DressingRoom "Any &%Room which is intended for 
-&%ChangingClothing.")
-(subclass DriveComponent EngineeringComponent)
-(documentation DriveComponent "An &%EngineeringComponent whose purpose is to 
-transfer force from one part of a &%Device to another part.")
-(subclass DriversLicense License)
-(documentation DriversLicense "A &%License which identifies the holder and 
-indicates that he has the right to drive a certain class of &%RoadVehicle.")
-(subclass Driveway Roadway)
-(documentation Driveway "A small, private &%Roadway that is used for parking 
-&%Automobiles or for connecting a &%Garage to a public &%Roadway.")
-(subclass DrugStore RetailStore)
-(documentation DrugStore "A &%RetailStore that sells &%Medicine, and 
-perhaps other items as well.")
-(subclass Drum PercussionInstrument)
-(documentation Drum "An atonal &%PercussionInstrument which consists of a 
-hollow cylinder and a fabric stretched across at least one end of the 
-cylinder.")
-(documentation Duck "A subclass of &%Bird with webbed feet and a large bill.  
-Some ducks live in the wild, and some are raised for meat and/or eggs.")
-(subclass Duck Poultry)
-
-(subclass DutyTax Tax)
-(documentation DutyTax "A &%Tax that is levied on imports and/or exports.")
 (subclass EarthTremor Tremor)
 (documentation Earthquake "Earthquake is the class of events in 
 which the earth shakes while its layers readjust due to tensional 
@@ -12806,14 +13186,7 @@ that are unable to hear.")
 (instance DemocraticParty PoliticalParty)
 (documentation DemocraticParty "One of the two major political parties in 
 the &%UnitedStates.  The &%DemocraticParty represents liberal values.")
-(instance DeviceClosed DeviceStateAttribute)
-(instance DeviceClosed RelationalAttribute)
-(instance DeviceOff DeviceStateAttribute)
-(instance DeviceOff InternalAttribute)
-(instance DeviceOn DeviceStateAttribute)
-(instance DeviceOn InternalAttribute)
-(instance DeviceOpen DeviceStateAttribute)
-(instance DeviceOpen RelationalAttribute)
+
 (instance Diarrhea DiseaseOrSyndrome)
 (documentation Diarrhea "A &%DiseaseOrSyndrome of frequent, watery bowel 
 movements.  Severe cases can be fatal for the young or weak.  It is
