@@ -1714,25 +1714,25 @@ function.")
 true only of pairs of things.  &%BinaryRelations are represented as slots 
 in frame systems.")
 
-(=>
+(<=>
    (instance ?REL BinaryRelation)
    (not
       (exists (?ITEM1 ?ITEM2 ?ITEM3 @ROW)
          (?REL ?ITEM1 ?ITEM2 ?ITEM3 @ROW))))
 
 (subclass ReflexiveRelation BinaryRelation)
-(documentation ReflexiveRelation "&%Relation ?REL is reflexive if 
+(documentation ReflexiveRelation "&%Relation ?REL is reflexive iff 
 (?REL ?INST ?INST) for all ?INST.")
 
-(=>
+(<=>
    (instance ?REL ReflexiveRelation)
    (?REL ?INST1 ?INST1))
 
 (subclass IrreflexiveRelation BinaryRelation)
 (documentation IrreflexiveRelation "&%Relation ?REL is irreflexive 
-if (?REL ?INST ?INST) holds for no value of ?INST.")
+iff (?REL ?INST ?INST) holds for no value of ?INST.")
 
-(=>
+(<=>
    (instance ?REL IrreflexiveRelation)
    (forall (?INST)
       (not 
@@ -1740,11 +1740,10 @@ if (?REL ?INST ?INST) holds for no value of ?INST.")
 
 (subclass SymmetricRelation BinaryRelation)
 (documentation SymmetricRelation "A &%BinaryRelation ?REL is
-symmetric just in case (?REL ?INST1 ?INST2) imples (?REL 
+symmetric just iff (?REL ?INST1 ?INST2) imples (?REL 
 ?INST2 ?INST1), for all ?INST1 and ?INST2.")
 
-
-(=>
+(<=>
    (instance ?REL SymmetricRelation)
    (forall (?INST1 ?INST2)
       (=>
@@ -1753,22 +1752,14 @@ symmetric just in case (?REL ?INST1 ?INST2) imples (?REL
 
 (subclass AsymmetricRelation IrreflexiveRelation)
 (subclass AsymmetricRelation AntisymmetricRelation)
-(documentation AsymmetricRelation "A &%BinaryRelation is asymmetric only 
+(documentation AsymmetricRelation "A &%BinaryRelation is asymmetric if and only 
 if it is both an &%AntisymmetricRelation and an &%IrreflexiveRelation.")
 
-(=>
+(<=>
+   (instance ?REL AsymmetricRelation)
    (and
-      (instance ?REL BinaryRelation)
-      (or
-         (domain ?REL 1 ?CLASS1)
-         (domainSubclass ?REL 1 ?CLASS1))
-      (or
-         (domain ?REL 2 ?CLASS2)
-         (domainSubclass ?REL 2 ?CLASS2)
-         (range ?REL ?CLASS2)
-         (rangeSubclass ?REL ?CLASS2))
-      (disjoint ?CLASS1 ?CLASS2))
-   (instance ?REL AsymmetricRelation))
+       (instance ?REL AntisymmetricRelation)
+       (instance ?REL IrreflexiveRelation)))
 
 (subclass AntisymmetricRelation BinaryRelation)
 (documentation AntisymmetricRelation "&%BinaryRelation ?REL is an 
@@ -1778,7 +1769,7 @@ and ?INST2, (?REL ?INST1 ?INST2) and (?REL ?INST2 ?INST1) imply that ?INST1
 and ?INST2 are identical.  Note that it is possible for an 
 &%AntisymmetricRelation to be a &%ReflexiveRelation.")
 
-(=>
+(<=>
    (instance ?REL AntisymmetricRelation)
    (forall (?INST1 ?INST2)
       (=>
@@ -1792,20 +1783,29 @@ and ?INST2 are identical.  Note that it is possible for an
 &%TrichotomizingRelation just in case all ordered pairs consisting of 
 distinct individuals are elements of ?REL.") 
 
-(=>
+(<=>
    (instance ?REL TrichotomizingRelation)
    (forall (?INST1 ?INST2)
       (or
-         (?REL ?INST1 ?INST2) 
-         (equal ?INST1 ?INST2) 
-         (?REL ?INST2 ?INST1))))
+         (and
+            (?REL ?INST1 ?INST2)
+            (not (equal ?INST1 ?INST2))
+            (not (?REL ?INST2 ?INST1)))
+         (and
+            (not (?REL ?INST1 ?INST2))
+            (equal ?INST1 ?INST2)
+            (not (?REL ?INST2 ?INST1)))
+         (and
+            (not (?REL ?INST1 ?INST2))
+            (not (equal ?INST1 ?INST2))
+            (?REL ?INST2 ?INST1)))))
 
 (subclass TransitiveRelation BinaryRelation)
 (documentation TransitiveRelation "A &%BinaryRelation ?REL is transitive 
 if (?REL ?INST1 ?INST2) and (?REL ?INST2 ?INST3) imply (?REL ?INST1 ?INST3), 
 for all ?INST1, ?INST2, and ?INST3.")
 
-(=>
+(<=>
    (instance ?REL TransitiveRelation)
    (forall (?INST1 ?INST2 ?INST3)
       (=>
@@ -1819,7 +1819,7 @@ for all ?INST1, ?INST2, and ?INST3.")
 intransitive only if (?REL ?INST1 ?INST2) and (?REL ?INST2 ?INST3) imply not 
 (?REL ?INST1 ?INST3), for all ?INST1, ?INST2, and ?INST3.")
 
-(=> 
+(<=> 
    (instance ?REL IntransitiveRelation)
    (forall (?INST1 ?INST2 ?INST3)
       (=> 
@@ -1842,12 +1842,16 @@ a &%TransitiveRelation.")
 &%TotalOrderingRelation if it is a &%PartialOrderingRelation 
 and a &%TrichotomizingRelation.")
 
-(=>
+(<=>
    (instance ?REL TotalOrderingRelation)
    (forall (?INST1 ?INST2)
-      (or
-         (?REL ?INST1 ?INST2)
-         (?REL ?INST2 ?INST1))))
+      (and
+         (or
+            (?REL ?INST1 ?INST2)
+            (?REL ?INST2 ?INST1))
+         (or
+            (not (?REL ?INST1 ?INST2))
+            (not (?REL ?INST2 ?INST1))))))
 
 (subclass EquivalenceRelation TransitiveRelation)
 (subclass EquivalenceRelation SymmetricRelation)
