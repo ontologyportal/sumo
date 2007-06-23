@@ -615,6 +615,20 @@ fired from a bow.")
 (documentation DriveComponent "An &%EngineeringComponent whose purpose is to 
 transfer force from one part of a &%Device to another part.")
 
+(subclass FossilFuel Fuel)
+(subclass FossilFuel PetroleumProduct)
+(documentation FossilFuel "&%FossilFuel is the subclass of &%Fuel whose 
+instances are derived from fossilized organic deposits, such as &%Coal 
+and &%LiquefiedPetroleumGas.")
+
+(subclass Fuel Substance)
+(documentation Fuel "Fuel is the class of &%Substances that can be 
+used as resources in Combustion processes in order to produce heat.  
+Mechanical energy can be produced by burning fuel in an &%Engine.")
+(=>
+  (instance ?X FossilFuel)
+  (attribute ?X Combustible))
+
 (subclass Engine Transducer)
 (documentation Engine "Engine is a subclass of &%Transducer.  &%Engines 
 are devices for converting some form of energy resource into mechanical 
@@ -1491,14 +1505,14 @@ has no handle, and which is intended to store &%Liquids.")
       (width ?TOP ?WIDTH2))
    (lessThan ?WIDTH2 ?WIDTH1))
 
-(subclass Cup FluidContainer)
-(documentation Cup "An open &%FluidContainer that is intended to serve a &%Beverage 
+(subclass DrinkingCup FluidContainer)
+(documentation DrinkingCup "An open &%FluidContainer that is intended to serve a &%Beverage 
 to a single person.  Note that this class includes both cups with handles and 
 drinking glasses.")
 
 (=>
    (and
-      (instance ?CUP Cup)
+      (instance ?CUP DrinkingCup)
       (contains ?CUP ?STUFF))
    (instance ?STUFF Beverage))
       
@@ -1667,6 +1681,20 @@ A &%Collar is always part of a &%Coat or a &%Shirt.")
       (instance ?N Neck)
       (part ?N ?P)
       (meetsSpatially ?C ?N))))
+
+(subclass Glove Clothing)
+(documentation Glove "Clothing that is intended to be worn on the &%Hand.  
+Note that this class covers both gloves which have individual compartments 
+for each of the &%Fingers and mittens.")
+(=>
+  (and
+    (wears ?P ?G)
+    (instance ?G Glove))
+  (exists (?H)
+    (and
+      (instance ?H Hand)
+      (part ?H ?P)
+      (meetsSpatially ?G ?H))))
 
 (subclass Hat Clothing)
 (documentation Hat "A type of &%Clothing that is worn on the &%Head.  Note 
@@ -6263,6 +6291,16 @@ and whose purpose is not socializing.")
          (result ?PLANNING ?MEETING)
          (earlier (WhenFn ?PLANNING) (WhenFn ?MEETING)))))
 
+(subclass Funeral FormalMeeting)
+(documentation Funeral "A &%FormalMeeting whose purpose is to commemorate 
+the &%Death of someone.")
+(=>
+  (instance ?F Funeral)
+  (exists (?D)
+    (and
+      (instance ?D Death)
+      (refers ?F ?D))))
+
 (subclass Choreographing Planning)
 (documentation Choreographing "&%Planning that results in a sequence of dance 
 steps that are executed as part of a &%Performance.")
@@ -6479,6 +6517,23 @@ being &%Awake to a state of being &%Asleep.")
          (finishes ?FINISH (WhenFn ?WAKE))
          (holdsDuring ?START (attribute ?AGENT Asleep))
          (holdsDuring ?FINISH (attribute ?AGENT Awake))))) 
+
+(subclass GainingConsciousness PsychologicalProcess)
+(documentation GainingConsciousness "The process of transitioning from a state 
+of being &%Unconscious to a state of being &%Awake.")
+(=>
+  (and
+    (instance ?G GainingConsciousness)
+    (experiencer ?G ?A))
+  (and
+    (holdsDuring 
+      (BeginFn 
+        (WhenFn ?G)) 
+      (attribute ?A Unconscious))
+    (holdsDuring 
+      (EndFn 
+        (WhenFn ?G)) 
+      (attribute ?A Awake)))) 
 
 (subclass AcademicDegree Certificate)
 (documentation AcademicDegree "A &%Certificate that demonstrates that the holder 
@@ -6730,6 +6785,10 @@ game area for playing a particular game.")
 (subclass GamePiece GameArtifact)
 (documentation GamePiece "A &%GameArtifact that is moved around in a game 
 area.")
+
+(subclass GameDie GamePiece)
+(documentation GameDie "A small cube with 1 to 6 dots on each face that is 
+used to generate numbers at random in a &%Game.")
 
 (subclass Ball GamePiece)
 (documentation Ball "Any &%GamePiece which has the shape of a sphere.")
@@ -7322,18 +7381,10 @@ time.")
           (member ?P ?C)
           (patient ?T ?P))))))
 
-(subclass StageCoach Trailer)
-(documentation StageCoach "A &%Trailer that is pulled by &%Horses and whose purpose 
-was to transport &%Humans and their luggage from one &%City to the next, especially 
+(subclass StageCoach Wagon)
+(documentation StageCoach "A &%Wagon that is pulled by &%Horses and whose purpose 
+was to transport Humans and their luggage from one &%City to the next, especially 
 in areas which did not have an established transportation system, e.g. the old west.")
-
-(=>
-   (and
-      (instance ?STAGE StageCoach)
-      (instance ?PULL Pulling)
-      (patient ?PULL ?STAGE)
-      (agent ?PULL ?HORSE))
-   (instance ?HORSE Horse))
    
 (subclass WaterTransportation Transportation)
 (documentation WaterTransportation "Any instance of &%Transportation where 
@@ -7823,6 +7874,15 @@ the &%TheaterProfession, &%FilmMakingProfession, being a comedian, etc.")
     (occupation ?P (OccupationFn Performance))
     (occupation ?P (OccupationFn ContentDevelopment))))
 
+(subclass GovernmentOfficer Profession)
+(documentation GovernmentOfficer "Any &%Profession where the position occupied 
+is within a &%GovernmentOrganization.")
+(=>
+  (and
+    (instance ?O GovernmentOfficer)
+    (occupiesPosition ?P ?O ?ORG))
+  (instance ?ORG GovernmentOrganization))
+
 (subclass Soldier SkilledOccupation)
 (documentation Soldier "The class of &%SkilledOccupations which involve serving in 
 the armed forces of a &%Nation.")
@@ -7839,7 +7899,7 @@ during the American Civil War.")
 (documentation MilitaryPrivate "An enlisted &%Soldier of the lowest rank.")
 
 (subclass MilitaryOfficer Soldier)
-(documentation "The class of &%Soldiers who have authority or command.")
+(documentation MilitaryOfficer "The class of &%Soldiers who have authority or command.")
 
 (=>
    (instance ?OFFICER MilitaryOfficer)
@@ -7872,7 +7932,7 @@ a lieutenant colonel and below a brigadier general.")
 
 (instance Century UnitOfMeasure)
 (subclass Century TimeDuration)
-(documentation "The &%TimeDuration of 100 years.")
+(documentation Century "The &%TimeDuration of 100 years.")
 
 (=>
    (instance ?CENTURY Century)
@@ -8319,6 +8379,13 @@ which specifies some aspect of the political or economic system of the
       (instance ?ATTRIBUTE PoliticoEconomicAttribute)
       (attribute ?GOVERNMENT ?ATTRIBUTE))
    (instance ?GOVERNMENT Government))
+
+
+(subclass FormOfGovernment PoliticoEconomicAttribute)
+(documentation FormOfGovernment "&%FormOfGovernment is a class of 
+&%Attributes used to describe the characteristics of a government, 
+especially a &%NationalGovernment.  The concept &%FormOfGovernment is 
+interpreted broadly enough to include &%Anarchy and &%Factionalism.")
 
 (subclass ChemicalReduction ChemicalSynthesis)
 (disjoint ChemicalReduction Oxidation)
@@ -8791,9 +8858,16 @@ by selective breeding.")
 (documentation DomesticDog "Canines which have evolved from the common 
 wolf by selective breeding.")
 
+(subclass Fox Canine)
+(documentation Fox "&%Canines with a bushy tail and pointed ears and nose.  
+&%Foxes tend to be much smaller than most &%DomesticDogs.")
+
 (subclass Elephant Herbivore)
 (documentation Elephant "A very large, almost hairless &%Herbivore with a long 
 trunk.")
+
+(documentation Goat "A domesticated &%HoofedMammal that is raised primarily 
+for &%Milk.")
 
 (subclass Horse HoofedMammal)
 (subclass Horse Livestock)
@@ -8804,6 +8878,10 @@ transportation and work.")
 (subclass Donkey Livestock)
 (documentation Donkey "A domesticated &%HoofedMammal that is used for 
 work.")
+
+(subclass Gastropod Mollusk)
+(documentation Gastropod "A &%Mollusk with a distinct head that has no 
+shell (e.g. slugs) or a univalve shell (e.g. snails).")
 
 (subclass Mule HoofedMammal)
 (subclass Mule DomesticAnimal)
@@ -8878,6 +8956,10 @@ and for its eggs.")
 Some ducks live in the wild, and some are raised for meat and/or eggs.")
 (subclass Duck Poultry)
 
+(subclass Goose Poultry)
+(documentation Goose "A subclass of &%Bird with webbed feet and a long neck 
+
+and a large body.  These &%Birds are often raised for their &%Meat.")
 (subclass Feather AnimalAnatomicalStructure)
 (subclass Feather BodyPart)
 (documentation Feather "Each instance of this class is one of the structures 
@@ -9057,6 +9139,11 @@ i.e arranging the financing for the &%MotionPicture and supervising its producti
 (documentation Coach "Any occupation that involves training an athlete or a 
 sports team.")
 
+(subclass GameReferee SkilledOccupation)
+(documentation GameReferee "A position which involves adjudicating contested 
+&%Maneuvers in a &%Game, i.e. deciding whether or not the &%Maneuvers are 
+permitted by the rules of the &%Game.")
+
 (subclass OccupationalTrade SkilledOccupation)
 (subclass OccupationalTrade ManualLabor)
 (documentation OccupationalTrade "Any &%Position that involves skilled 
@@ -9167,7 +9254,7 @@ judge or as a legal advocate.")
 (documentation AttorneyGeneral "The head law officer of a &%GeopoliticalArea, 
 usually a &%Nation or &%StateOrProvince.")
 
-(instance Professor Profession)
+(subAttribute Professor Teacher)
 (documentation Professor "The &%Profession of being a &%teacher at a 
 &%PostSecondarySchool.")
 
@@ -9571,6 +9658,16 @@ palm.")
 (subclass Avocado Food)
 (documentation Avocado "A &%FruitOrVegetable that is shaped like a pear and 
 has a dark green skin and a rich meat.")
+
+(subclass FreeAtom Atom)
+(documentation FreeAtom "Any &%Atom which is not part of a &%Molecule.")
+(=>
+  (instance ?A FreeAtom)
+  (not 
+    (exists (?M)
+      (and
+        (instance ?M Molecule)
+        (part ?A ?M)))))
 
 (instance protonNumber BinaryPredicate)
 (instance protonNumber SingleValuedRelation)
@@ -11281,6 +11378,16 @@ events in which the &%instrument is an instance of
     (patient ?DRIVING ?VEHICLE))
   (conveyance ?TRANSPORT ?VEHICLE))
 
+(subclass GasolineEngine InternalCombustionEngine)
+(documentation GasolineEngine "&%GasolineEngine is the subclass of 
+&%InternalCombustionEngines that use &%Gasoline as their resource.")
+(=>
+  (instance ?R (OperatingFn GasolineEngine))
+  (exists (?F)
+    (and
+      (instance ?F Gasoline)
+      (resource ?R ?F))))
+
 (subclass DieselEngine InternalCombustionEngine)
 (documentation DieselEngine "&%DieselEngine is the subclass of 
 &%InternalCombustionEngines that use &%DieselFuel as their resource.")
@@ -11548,59 +11655,8 @@ which reduce the likelihood of conception.")
 ;; ------------------------------------------------------
 ;; New content that has not yet been fully formalized.  
 
-(subclass FormOfGovernment PoliticoEconomicAttribute)
-(documentation FormOfGovernment "&%FormOfGovernment is a class of 
-&%Attributes used to describe the characteristics of a government, 
-especially a &%NationalGovernment.  The concept &%FormOfGovernment is 
-interpreted broadly enough to include &%Anarchy and &%Factionalism.")
-(subclass FossilFuel Fuel)
-(subclass FossilFuel PetroleumProduct)
-(documentation FossilFuel "&%FossilFuel is the subclass of &%Fuel whose 
-instances are derived from fossilized organic deposits, such as &%Coal 
-and &%LiquefiedPetroleumGas.")
-(subclass Fox Canine)
-(documentation Fox "&%Canines with a bushy tail and pointed ears and nose.  
-&%Foxes tend to be much smaller than most &%DomesticDogs.")
-(subclass FreeAtom Atom)
-(documentation FreeAtom "Any &%Atom which is not part of a &%Molecule.")
-(subclass Fuel Substance)
-(documentation Fuel "Fuel is the class of &%Substances that can be 
-used as resources in Combustion processes in order to produce heat.  
-Mechanical energy can be produced by burning fuel in an &%Engine.")
-(subclass Funeral FormalMeeting)
-(documentation Funeral "A &%FormalMeeting whose purpose is to commemorate 
-the &%Death of someone.")
-(subclass GainingConsciousness PsychologicalProcess)
-(documentation GainingConsciousness "The process of transitioning from a state 
-of being &%Unconscious to a state of being &%Awake.")
-(subclass GameDie GamePiece)
-(documentation GameDie "A small cube with 1 to 6 dots on each face that is 
-used to generate numbers at random in a &%Game.")
-(subclass GameReferee SkilledOccupation)
-(documentation GameReferee "A position which involves adjudicating contested 
-&%Maneuvers in a &%Game, i.e. deciding whether or not the &%Maneuvers are 
-permitted by the rules of the &%Game.")
-(subclass GasolineEngine InternalCombustionEngine)
-(documentation GasolineEngine "&%GasolineEngine is the subclass of 
-&%InternalCombustionEngines that use &%Gasoline as their resource.")
-(subclass Gastropod Mollusk)
-(documentation Gastropod "A &%Mollusk with a distinct head that has no 
-shell (e.g. slugs) or a univalve shell (e.g. snails).")
-(subclass Glove Clothing)
-(documentation Glove "Clothing that is intended to be worn on the &%Hand.  
-Note that this class covers both gloves which have individual compartments 
-for each of the &%Fingers and mittens.")
-(subclass Glue Solution)
-(documentation Glue "Any &%Solution whose purpose is to be used as the instrument 
-of &%Attaching one thing to another or one part of something to another part.")
-(documentation Goat "A domesticated &%HoofedMammal that is raised primarily 
-for &%Milk.")
-(subclass Goose Poultry)
-(documentation Goose "A subclass of &%Bird with webbed feet and a long neck 
-and a large body.  These &%Birds are often raised for their &%Meat.")
-(subclass GovernmentOfficer Profession)
-(documentation GovernmentOfficer "Any &%Profession where the position occupied 
-is within a &%GovernmentOrganization.")
+
+
 (subclass GraduateSchool PostSecondarySchool)
 (documentation GraduateSchool "A &%School which is devoted to a specific 
 subject area, which admits students that have a bachelor's degree, which 
@@ -12236,9 +12292,8 @@ jails, federal prisons, concentration camps, gulags, etc.")
 (documentation Proclaiming "Any instance of &%Speaking before an assembled 
 audience that effects an institutional change, e.g. a change in the laws of 
 the government.")
-(subclass Professor Teacher)
-(documentation Professor "The &%Profession of being a teacher at a 
-&%PostSecondarySchool.")
+
+
 (subclass ProfitSharingPlan PensionPlan)
 (documentation ProfitSharingPlan "An arrangement in which an employer 
 shares its profits with its employees.  The compensation can be stocks, 
@@ -12655,10 +12710,7 @@ equal to one square &%Mile.")
 equal to one square &%YardLength.")
 (subclass Squirrel Rodent)
 (documentation Squirrel "A tree-dwelling &%Rodent with a bushy tail.")
-(subclass StageCoach Wagon)
-(documentation StageCoach "A &%Wagon that is pulled by &%Horses and whose purpose 
-was to transport Humans and their luggage from one &%City to the next, especially 
-in areas which did not have an established transportation system, e.g. the old west.")
+
 (subclass Stairway StationaryArtifact)
 (documentation Stairway "A &%StationaryArtifact which allows one to climb, step 
 by step, from one level to another.")
@@ -12769,7 +12821,7 @@ on short trips in exchange for a fare.")
 (subclass Tea PreparedFood)
 (documentation Tea "A &%Beverage which is prepared by infusing tea leaves 
 into hot water.")
-(subclass Teacher Profession)
+(instance Teacher Profession)
 (documentation Teacher "The &%Profession of being a teacher.")
 (subclass TeamSport Sport)
 (documentation TeamSport "Any &%Sport which is played by &%SportsTeams, e.g. 
@@ -12915,8 +12967,8 @@ Note: TractorTrailer combinations are a distinct class.")
 (documentation TruckTractor "&%TruckTractor is the subclass of &%Trucks 
 that are used to tow truck trailers.  Truck tractors are the cab portions 
 of tractor-trailers.  See also &%TruckTrailer.")
-(subclass TruckTrailer Trailer)
-(documentation TruckTrailer "&%TruckTrailer is the subclass of &%Trailers 
+(subclass TruckTrailer Wagon)
+(documentation TruckTrailer "&%TruckTrailer is the subclass of &%Wagons 
 that are towed by &%TruckTractors.  These are the trailers used in 
 tractor-trailer (semi-trailer) rigs.")
 (subclass Tube Artifact)
