@@ -1784,16 +1784,18 @@ is markedly longer in one dimension than in the other two.")
     (lessThan ?S2 (MultiplicationFn 3 ?H))))
 
 (subclass Baton Device)
-(documentation Baton EnglishLanguage "A thin stick which is used for &%OrchestralConducting.")
+(documentation Baton EnglishLanguage "A thin stick which is used for &%MusicalConducting.")
+
+;; NS: edit.
 (=>
   (instance ?B Baton)
   (hasPurpose ?B 
-    (exists (?IM ?G)
+    (exists (?M ?G)
       (and
-        (instance ?IM InstrumentalMusic)
+        (instance ?M MusicalPerformance)
         (instance ?G Guiding)
-        (instrument ?G ?B)
-        (causes ?G ?IM)))))
+        (subProcess ?G ?M)
+        (instrument ?G ?B)))))
 
 (=>
   (instance ?B Baton)
@@ -1812,9 +1814,8 @@ is markedly longer in one dimension than in the other two.")
 ;; object's maximal extent along x, y, and z axes,
 ;; regardless of orientation.
 
-;; TO DO: Add the x, y, z axes representation mentioned
-;; above, and relate it to the &%side, &%top, etc. one where
-;; possible.
+;; TO DO: Add the x, y, z axes representation mentioned above,
+;; and relate it to the &%side, &%top, etc. one, where possible.
 
 (subclass SecurityAlarm SecurityDevice)
 (subclass SecurityAlarm ElectricDevice)
@@ -3699,22 +3700,48 @@ actions.")
                             (agent ?INSTANCE ?AGENT)
                             (experiencer ?INSTANCE ?AGENT))))))
 
-(subrelation expects believes)
-(documentation expects EnglishLanguage "Any belief about the future.  (&%expects 
-?AGENT ?BELIEF) means that (&%believes ?AGENT ?BELIEF) and, if 
-?BELIEF happens, it will happen in the future, i.e. after the 
-expectation.")
 
+;; NS: The propositional attitude stuff below appears to have been
+;; written without an understanding of temporal issues, or of the
+;; English meanings of "hope" and "fear".
+
+;; NS: delete.
+;; (subrelation expects believes)
+
+;; NS: delete.
+;; (documentation expects EnglishLanguage "Any belief about the future.  (&%expects 
+;; ?AGENT ?BELIEF) means that (&%believes ?AGENT ?BELIEF) and, if 
+;; ?BELIEF happens, it will happen in the future, i.e. after the 
+;; expectation.")
+
+;; NS: add.
+(documentation expects EnglishLanguage "(&%holdsDuring ?T1 (&%expects
+?AGENT ?BELIEF)) means (and (&%holdDuring ?T1 (&%believes
+?AGENT (&%holdsDuring ?T2 ?BELIEF))) (&%earlier ?T1 ?T2)).")
+
+;; NS: delete.  This could easily cause temporal contradictions.  Note
+;; that ?FORMULA might have been True at some time before ?AGENT's
+;; expectation (or existence).  Also, ?FORMULA might never be True.
+;; (=>
+;;    (and
+;;       (holdsDuring ?TIME1 (expects ?AGENT ?FORMULA))
+;;       (holdsDuring ?TIME2 (truth ?FORMULA True)))
+;;    (earlier ?TIME1 ?TIME2))
+
+;; NS: add.  Unfortunately, this might be wrong.  Since the second
+;; argument to &%believes is an opaque context (i.e., quoted), ?T2
+;; probably isn't accessible for use in the &%earlier literal.
 (=>
-   (and
-      (holdsDuring ?TIME1 (expects ?AGENT ?FORMULA))
-      (holdsDuring ?TIME2 (truth ?FORMULA True)))
-   (earlier ?TIME1 ?TIME2))
+  (holdsDuring ?T1 (expects ?AGENT ?FORMULA))
+  (and
+    (holdsDuring ?T1 (believes ?AGENT (holdsDuring ?T2 ?FORMULA)))
+    (earlier ?T1 ?T2)))
 
 (subrelation fears expects)
-(documentation fears EnglishLanguage "(&%fears ?AGENT ?FORMULA) means that ?AGENT fears that 
-the proposition ?FORMULA will be true, i.e. he/she believes that it will 
-come to pass in the future and that it will be undesirable for ?AGENT.")
+(documentation fears EnglishLanguage "(&%fears ?AGENT ?FORMULA) means
+that ?AGENT fears that the proposition ?FORMULA will be true,
+i.e. he/she believes that it will come to pass in the future and that
+it will be undesirable for ?AGENT.")
 
 (=>
    (fears ?AGENT ?FORMULA)
@@ -8132,14 +8159,14 @@ or something is moving.")
 (=>
   (and
     (instance ?A Accelerating)
-    (equals ?T (WhenFn ?A))
+    (equal ?T (WhenFn ?A))
     (experiencer ?A ?E))
   (not
     (exists (?D)
       (and
         (instance ?D Decelerating)
         (experiencer ?D ?A)
-        (equals ?T (WhenFn ?D))))))
+        (equal ?T (WhenFn ?D))))))
 
 (subclass Flying Translocation)
 (documentation Flying EnglishLanguage "Any instance of &%Translocation which is through an 
@@ -8841,33 +8868,42 @@ the commission of a &%CriminalAction.")
 (documentation Hanging EnglishLanguage "&%Killing someone by suspending him/her from a 
 rope wound around the neck until asphyxiation occurs.")
 
-(subclass OrchestralConducting Guiding)
-(documentation OrchestralConducting EnglishLanguage "The &%Process of directing an orchestra.")
+(subclass MusicalConducting Guiding)
 
+;; NS: edit.
+(documentation MusicalConducting EnglishLanguage "An &%instance
+of &%MusicalConducting is a &%Guiding in which the
+patient (entity guided) is a &%Musician or a &%MusicalGroup.")
+
+;; NS: edit.
 (=>
-   (instance ?CONDUCT OrchestralConducting)
+   (instance ?CONDUCT MusicalConducting)
    (exists (?MUSIC)
       (and
-         (instance ?MUSIC Music)
-         (result ?CONDUCT ?MUSIC))))
+         (instance ?MUSIC MusicalPerformance)
+         (subProcess ?CONDUCT ?MUSIC))))
 
+;; NS: edit.
 (=>
    (and
-      (instance ?CONDUCT OrchestralConducting)
-      (patient ?CONDUCT ?ORCHESTRA))
-   (instance ?ORCHESTRA Orchestra))
+      (instance ?CONDUCT MusicalConducting)
+      (patient ?CONDUCT ?PATIENT))
+   (or
+     (instance ?PATIENT MusicalGroup)
+     (holdsDuring (WhenFn ?CONDUCT) (attribute ?PATIENT Musician))))
 
 
 (subclass MusicalGroup GroupOfPeople)
 (documentation MusicalGroup EnglishLanguage "A &%GroupOfPeople that create &%Music 
 together.")
 
-(=>
-   (instance ?ORCHESTRA Orchestra)
-   (hasPurpose ?ORCHESTRA (exists (?MUSIC)
-                             (and
-                                (instance ?MUSIC Music)
-                                (agent ?MUSIC ?ORCHESTRA)))))
+;; NS. delete.  See the more specific, nearly identical version below.
+;; (=>
+;;    (instance ?ORCHESTRA Orchestra)
+;;    (hasPurpose ?ORCHESTRA (exists (?MUSIC)
+;;                              (and
+;;                                 (instance ?MUSIC Music)
+;;                                 (agent ?MUSIC ?ORCHESTRA)))))
 
 (subclass Orchestra MusicalGroup)
 (documentation Orchestra EnglishLanguage "A &%GroupOfPeople that create &%InstrumentalMusic 
