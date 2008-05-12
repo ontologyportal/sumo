@@ -364,7 +364,7 @@ of the &%GeographicArea ?REGION.")
 			(GeographicCenterFn ?REGION) ?LAT ?LONG))
 	(objectGeographicCoordinates ?REGION ?LAT ?LONG))
 
-;; See Merge.txt for definitions of &%PlaneAngleMeasure and &%AngularDegree
+;; See Merge.kif for definitions of &%PlaneAngleMeasure and &%AngularDegree
 
 ;; Additional assertions for &%AngularDegree:
 (=> 
@@ -375,9 +375,7 @@ of the &%GeographicArea ?REGION.")
 	(measure ?ANGLE (MeasureFn ?NUMBER AngularDegree)) 
 	(lessThanOrEqualTo ?NUMBER 360))
 
-(subclass ArcMinute PlaneAngleMeasure)
-(instance ArcMinute UnitOfMeasure)
-
+(instance ArcMinute UnitOfAngularMeasure)
 (documentation ArcMinute EnglishLanguage "&%ArcMinute represents a &%UnitOfMeasure 
 equivalent to 1/60th of an &%AngularDegree.")
 
@@ -396,9 +394,7 @@ equivalent to 1/60th of an &%AngularDegree.")
 (equal (MeasureFn 1 AngularDegree) (MeasureFn 60 ArcMinute))
 (equal (MeasureFn ?NUM AngularDegree) (MeasureFn (MultiplicationFn 60 ?NUM) ArcMinute))
 
-(subclass ArcSecond PlaneAngleMeasure)
-(instance ArcSecond UnitOfMeasure)
-
+(instance ArcSecond UnitOfAngularMeasure)
 (documentation ArcSecond EnglishLanguage "&%ArcSecond represents a &%UnitOfMeasure 
 equivalent to 1/60th of an &%ArcMinute.")
 
@@ -420,9 +416,9 @@ equivalent to 1/60th of an &%ArcMinute.")
 (instance LatitudeFn VariableArityRelation)
 (instance LatitudeFn Function)
 (domain LatitudeFn 1 DirectionalAttribute)
-(domain LatitudeFn 2 AngularDegree)
-(domain LatitudeFn 3 ArcMinute)
-(domain LatitudeFn 4 ArcSecond)
+(domain LatitudeFn 2 AngleMeasure)
+(domain LatitudeFn 3 AngleMeasure)
+(domain LatitudeFn 4 AngleMeasure)
 (range LatitudeFn Region)
 (synonymousExternalConcept "Latitude" LatitudeFn EnglishLanguage)
 
@@ -458,9 +454,9 @@ used to denote a parallel of latitude.  Examples:
 (instance LongitudeFn Function)
 (instance LongitudeFn VariableArityRelation)
 (domain LongitudeFn 1 DirectionalAttribute)
-(domain LongitudeFn 2 AngularDegree)
-(domain LongitudeFn 3 ArcMinute)
-(domain LongitudeFn 4 ArcSecond)
+(domain LongitudeFn 2 AngleMeasure)
+(domain LongitudeFn 3 AngleMeasure)
+(domain LongitudeFn 4 AngleMeasure)
 (range LongitudeFn GeographicArea)
 (synonymousExternalConcept "Longitude" LongitudeFn EnglishLanguage)
 
@@ -574,9 +570,9 @@ continuous within the region.")
 
 (=>
 	(and
-		(subclass ?UNIT AreaMeasure)
+		(instance ?UNIT UnitOfArea)
 		(landAreaOnly ?AREA (MeasureFn ?LAND ?UNIT))
-		(landAreaOnly ?AREA (MeasureFn ?WATER ?UNIT)))
+		(waterAreaOnly ?AREA (MeasureFn ?WATER ?UNIT)))
 	(totalArea ?AREA (MeasureFn (AdditionFn ?LAND ?WATER) ?UNIT)))
 
 (subclass SurfaceGroundArea GeographicArea)
@@ -629,9 +625,8 @@ Dry land areas, including islands, are not part of any &%WaterOnlyArea.")
 			(totalArea ?WATER ?MEASURE))))
 
 ;; TERM
-(instance SquareKilometer UnitOfMeasure)
-(subclass SquareKilometer AreaMeasure)
 
+(instance SquareKilometer UnitOfArea)
 (documentation SquareKilometer EnglishLanguage "&%SquareKilometer represents a 
 &%UnitOfMeasure equal to one square kilometer.")
 
@@ -639,7 +634,7 @@ Dry land areas, including islands, are not part of any &%WaterOnlyArea.")
 	 (MultiplicationFn (MeasureFn 1 (KiloFn Meter))(MeasureFn 1 (KiloFn Meter))))
 
 (=>
-	(instance ?NUM RealNumber)
+	(equal ?NUM (MultiplicationFn 1 ?NUM))
 	(equal (MeasureFn ?NUM SquareKilometer)
 		 (MeasureFn (MultiplicationFn ?NUM 1000000) SquareMeter)))
 
@@ -665,11 +660,11 @@ is represented by (&%comparativeArea &%France &%lessThan 2 &%Colorado).")
 (=>
 	(and
 		(comparativeArea ?REGION1 ?RELATION ?FACTOR ?REGION2)
-		(subclass ?UNIT AreaMeasure)
-		(instance ?UNIT UnitOfMeasure)
+		(instance ?UNIT UnitOfArea)
 		(measure ?REGION1 (MeasureFn ?NUM1 ?UNIT))
 		(measure ?REGION2 (MeasureFn ?NUM2 ?UNIT)))
 	(?RELATION (MeasureFn ?NUM1 ?UNIT) (MeasureFn (MultiplicationFn ?FACTOR ?NUM2) ?UNIT)))
+
 
 ;;-----------------------------------------------------------------------
 
@@ -893,12 +888,12 @@ providing a link to the ocean.")
 (=>
 	(and
 		(instance ?AREA LandlockedArea)
-		(subclass ?UNIT LengthMeasure))
+		(instance ?UNIT UnitOfLength))
 	(totalCoastline ?AREA (MeasureFn 0 ?UNIT)))
 
 (=>
 	(and
-		(subclass ?UNIT LengthMeasure)
+		(instance ?UNIT UnitOfLength)
 		(totalCoastline ?AREA (MeasureFn 0 ?UNIT)))
 	(instance ?AREA LandlockedArea))
 
@@ -1873,7 +1868,7 @@ surface, such as a &%GeographicArea.  Elevation is measured from
 (=>
 	(and
 		(elevation ?OBJECT (MeasureFn ?NUM ?UNIT))
-		(instance ?UNIT UnitOfMeasure)
+		(instance ?UNIT UnitOfLength)
 		(instance ?OBJECT LandForm))
 	(exists (?HIGHPOINT)
 		(and
@@ -2098,7 +2093,7 @@ Cf. &%permanentCropLandArea.")
 		(arableLandArea ?REGION ?FRACTION)
 		(greaterThanOrEqualTo ?FRACTION 0)
 		(totalArea ?REGION (MeasureFn ?TOTAL ?UNIT))
-		(subclass ?UNIT AreaMeasure)
+		(instance ?UNIT UnitOfArea)
 		(equal ?AMOUNT (MeasureFn (MultiplicationFn ?FRACTION ?TOTAL) ?UNIT)))
 	(arableLandArea ?REGION ?AMOUNT))
 
@@ -2107,7 +2102,7 @@ Cf. &%permanentCropLandArea.")
 		(arableLandArea ?REGION ?FRACTION)
 		(greaterThanOrEqualTo ?FRACTION 0)
 		(totalArea ?REGION (MeasureFn ?TOTAL ?UNIT))
-		(subclass ?UNIT AreaMeasure))
+		(instance ?UNIT UnitOfArea))
 	(exists (?ARABLE)
 		(and
 			(instance ?ARABLE ArableLand)
@@ -2146,7 +2141,7 @@ in physical units or with a percent or fraction. Cf. &%permanentCropLandArea.")
 		(permanentCropLandArea ?REGION ?FRACTION)
 		(greaterThanOrEqualTo ?FRACTION 0)
 		(totalArea ?REGION (MeasureFn ?TOTAL ?UNIT))
-		(subclass ?UNIT AreaMeasure)
+		(instance ?UNIT UnitOfArea)
 		(equal ?AMOUNT (MeasureFn (MultiplicationFn ?FRACTION ?TOTAL) ?UNIT)))
 	(permanentCropLandArea ?REGION ?AMOUNT))
 
@@ -2155,7 +2150,7 @@ in physical units or with a percent or fraction. Cf. &%permanentCropLandArea.")
 		(permanentCropLandArea ?REGION ?FRACTION)
 		(greaterThanOrEqualTo ?FRACTION 0)
 		(totalArea ?REGION (MeasureFn ?TOTAL ?UNIT))
-		(subclass ?UNIT AreaMeasure))
+		(instance ?UNIT UnitOfArea))
 	(exists (?PERMCROP)
 		(and
 			(instance ?PERMCROP PermanentCropLand)
@@ -2188,7 +2183,7 @@ expressed in physical units or with a percent or fraction. See also
 		(otherLandUseArea ?REGION ?FRACTION)
 		(greaterThanOrEqualTo ?FRACTION 0)
 		(totalArea ?REGION (MeasureFn ?TOTAL ?UNIT))
-		(subclass ?UNIT AreaMeasure)
+		(instance ?UNIT UnitOfArea)
 		(equal ?AMOUNT (MeasureFn (MultiplicationFn ?FRACTION ?TOTAL) ?UNIT)))
 	(otherLandUseArea ?REGION ?AMOUNT))
 
@@ -2197,7 +2192,7 @@ expressed in physical units or with a percent or fraction. See also
 		(otherLandUseArea ?REGION ?FRACTION)
 		(greaterThanOrEqualTo ?FRACTION 0)
 		(totalArea ?REGION (MeasureFn ?TOTAL ?UNIT))
-		(subclass ?UNIT AreaMeasure))
+		(instance ?UNIT UnitOfArea))
 	(exists (?OTHER)
 		(and
 			(instance ?OTHER LandArea)
@@ -2237,14 +2232,14 @@ means that the &%GeographicArea ?REGION has the ?AMOUNT of irrigated land.
 	(and
 		(irrigatedLandArea ?REGION (MeasureFn ?AMOUNT ?UNIT))
 		(totalArea ?REGION (MeasureFn ?TOTAL ?UNIT))
-		(subclass ?UNIT AreaMeasure)
+		(instance ?UNIT UnitOfArea)
 		(equal ?FRACTION (DivisionFn ?AMOUNT ?TOTAL)))
 	(irrigatedLandArea ?REGION ?FRACTION))
 
 (=>
 	(and
 		(irrigatedLandArea ?REGION (MeasureFn ?AMOUNT ?UNIT))
-		(subclass ?UNIT AreaMeasure))
+		(instance ?UNIT UnitOfArea))
 	(exists (?IRRLAND)
 		(and
 			(instance ?IRRLAND IrrigatedLand)
@@ -2355,11 +2350,10 @@ that occur after the main tremor(s) of an &%Earthquake.")
 			(located ?TREMOR ?PLACE)
 			(before (WhenFn ?TREMOR) (WhenFn ?SHOCK)))))
 
-(instance RichterMagnitude UnitOfMeasure)
-(subclass RichterMagnitude FunctionQuantity)
 (names "Richter magnitude" RichterMagnitude)
 (names "Richter scale" RichterMagnitude)
 
+(instance RichterMagnitude CompositeUnitOfMeasure)
 (documentation RichterMagnitude EnglishLanguage "A &%RichterMagnitude is a measure 
 of the severity of an &%EarthTremor.  For example, 
 (&%MeasureFn 6.5 RichterMagnitude) denotes the value of 6.5 on the 
@@ -2516,10 +2510,9 @@ is below 5.6 pH.")
 (causesSubclass AirPollution AcidRainfall)
 (causesSubclass AcidRainfall Acidification)
 
-(subclass PHValue ConstantQuantity)
-(instance PHValue UnitOfMeasure)
 (names "pH" PHValue)
 
+(instance PHValue NonCompositeUnitOfMeasure)
 (documentation PHValue EnglishLanguage "&%PHValue ('pH') is a &%UnitOfMeasure 
 used to measure the acidity or alkalinity of a solution.  The pH 
 scale ranges from 0 to 14.  The pH of a  neutral solution is 7.  
@@ -3697,19 +3690,24 @@ means that ?OBJ1 and ?OBJ2 are separated by the amount ?DEGREES of
 
 ;; Nautical units of measure
 
-(instance Fathom UnitOfMeasure)
-(subclass Fathom LengthMeasure)
 (names "fathom" Fathom)
 
+(instance Fathom UnitOfLength)
+
 (equal (MeasureFn 1 Fathom) (MeasureFn 6 FootLength))
+
+(=>
+  (equal ?NUMBER (MultiplicationFn 1 ?NUMBER))
+  (equal
+    (MeasureFn ?NUMBER Fathom)
+    (MeasureFn (MultiplicationFn ?NUMBER 6) FootLength)))
 
 (documentation Fathom EnglishLanguage "&%Fathom is a &%UnitOfMeasure used for measuring 
 water depth.  One fathom is equal to six feet.")
 
-(instance NauticalMile UnitOfMeasure)
-(subclass NauticalMile LengthMeasure)
 (names "nautical mile" NauticalMile)
 
+(instance NauticalMile UnitOfLength)
 (documentation NauticalMile EnglishLanguage "&%NauticalMile represents the international 
 unit used for measuring distance in sea and air navigation.  The unit is 
 based on the length of a minute of arc of a great circle of 
@@ -3727,26 +3725,25 @@ based on the length of a minute of arc of a great circle of
 	(equal ?AMOUNT (MeasureFn (MultiplicationFn ?NUM 1.151) Mile)))
 
 (=>
-	(instance ?NUM RealNumber)
+	(equal ?NUM (MultiplicationFn 1 ?NUM))
 	(equal (MeasureFn ?NUM NauticalMile)(MeasureFn (MultiplicationFn ?NUM 1852) Meter)))
 
 (=>
-	(instance ?NUM RealNumber)
+	(equal ?NUM (MultiplicationFn 1 ?NUM))
 	(equal (MeasureFn ?NUM NauticalMile)(MeasureFn (MultiplicationFn ?NUM 1.852)(KiloFn Meter))))
 
 (=>
-	(equal ?NUM RealNumber)
+	(equal ?NUM (MultiplicationFn 1 ?NUM))
 	(equal (MeasureFn ?NUM NauticalMile)(MeasureFn (MultiplicationFn ?NUM 6076.1) FootLength)))
 	
 (=>
-	(equal ?NUM RealNumber)
+	(equal ?NUM (MultiplicationFn 1 ?NUM))
 	(equal (MeasureFn ?NUM NauticalMile)(MeasureFn (MultiplicationFn ?NUM 1.151) Mile)))
 
-(subclass KnotUnitOfSpeed ConstantQuantity)
-(instance KnotUnitOfSpeed UnitOfMeasure)
 (names "knot" KnotUnitOfSpeed)
 (abbreviation "kt" KnotUnitOfSpeed)
 
+(instance KnotUnitOfSpeed CompositeUnitOfMeasure)
 (documentation KnotUnitOfSpeed EnglishLanguage "&%KnotUnitOfSpeed is a unit for measuring 
 speed.  One &%KnotUnitOfSpeed is equal to one &%NauticalMile per one 
 &%HourDuration.")
@@ -3765,10 +3762,7 @@ speed.  One &%KnotUnitOfSpeed is equal to one &%NauticalMile per one
 
 ;; Area measures
 
-;; TERM
-(instance SquareMeter UnitOfMeasure)
-(subclass SquareMeter AreaMeasure)
-
+(instance SquareMeter UnitOfArea)
 (documentation SquareMeter EnglishLanguage "&%SquareMeter represents a &%UnitOfMeasure 
 equal to one square &%Meter.")
 
@@ -3778,8 +3772,6 @@ equal to one square &%Meter.")
 (instance SquareUnitFn UnaryFunction)
 (domain SquareUnitFn 1 UnitOfMeasure)
 (range SquareUnitFn UnitOfMeasure)
-(domainSubclass SquareUnitFn 1 ConstantQuantity)
-(rangeSubclass SquareUnitFn ConstantQuantity)
 
 (documentation SquareUnitFn EnglishLanguage "(&%SquareUnitFn ?UNIT) denotes the 
 &%UnitOfMeasure that is the square of the &%UnitOfMeasure ?UNIT. 
@@ -4673,9 +4665,8 @@ Mean Lower Low Water.")
 
 (instance highTide TernaryPredicate)
 (domain highTide 1 Region)
-(domainSubclass highTide 2 TimeInterval)
-(domainSubclass highTide 3 LengthMeasure)
-
+(domain highTide 2 TimeInterval)
+(domain highTide 3 LengthMeasure)
 (documentation highTide EnglishLanguage "(&%highTide ?PLACE ?TIME ?AMOUNT) means that 
 there is a &%HighTide at the &$Region ?PLACE at the &%TimeInterval ?TIME 
 with the relative height ?AMOUNT.  The height is given in relation to 
@@ -4683,9 +4674,8 @@ the datum on a standard chart.")
 
 (instance lowTide TernaryPredicate)
 (domain lowTide 1 Region)
-(domainSubclass lowTide 2 TimeInterval)
-(domainSubclass lowTide 3 LengthMeasure)
-
+(domain lowTide 2 TimeInterval)
+(domain lowTide 3 LengthMeasure)
 (documentation lowTide EnglishLanguage "(&%lowTide ?PLACE ?TIME ?AMOUNT) means that 
 there is a &%LowTide at the &$Region ?PLACE at the &%TimeInterval ?TIME 
 with the relative height ?AMOUNT.  The height is given in relation to 
@@ -5993,11 +5983,10 @@ capability of a vehicle.")
 of the object (&%BackFn).  A tailwind can positively affect the speed 
 capability of a vehicle.")
 
-(subclass BeaufortNumber UnitOfMeasure)
-
-(documentation BeaufortNumber EnglishLanguage "&%BeaufortNumber is the class of 
-values on the Beaufort Scale for indicating wind force, according 
-to classifications based on observable weather conditions and later 
+(subclass BeaufortNumber RelationalAttribute)
+(documentation BeaufortNumber EnglishLanguage "&%BeaufortNumber is the
+&%Attribute for indicating wind force, according to
+classifications based on observable weather conditions and later
 related to wind speed ranges.")
 
 (=>
@@ -6277,7 +6266,7 @@ among others.")
 (documentation seaSurfaceTemperature EnglishLanguage 
 "(&%seaSurfaceTemperature ?AREA ?TEMP) means that the 
 temperature of the sea surface at ?AREA is ?TEMP.  
-Temperature may be expressed in units of &%TemperatureMeasure, 
+Temperature may be expressed in some &%UnitOfTemperature, 
 including &%CelsiusDegree and &%FahrenheitDegree, among others.")
 
 (instance averageTemperatureForPeriod TernaryPredicate)
@@ -6289,7 +6278,7 @@ including &%CelsiusDegree and &%FahrenheitDegree, among others.")
 "(&%averageTemperatureForPeriod ?PLACE ?PERIOD ?AMOUNT) means that 
 at the &%GeographicArea ?PLACE, and during the &%TimeDuration 
 ?PERIOD, the average daily temperature was ?AMOUNT.  Temperature 
-may be expressed in units of &%TemperatureMeasure, including 
+may be expressed in some &%UnitOfTemperature, including 
 &%CelsiusDegree and &%FahrenheitDegree, among others.")
 
 (instance highestTemperatureForPeriod TernaryPredicate)
@@ -6301,7 +6290,7 @@ may be expressed in units of &%TemperatureMeasure, including
 "(&%highestTemperatureForPeriod ?PLACE ?PERIOD ?AMOUNT) means that 
 at the &%GeographicArea ?PLACE, during the &%TimeDuration ?PERIOD, 
 the highest temperature was ?AMOUNT.  Temperature may be expressed 
-in units of &%TemperatureMeasure, including &%CelsiusDegree and 
+in some &%UnitOfTemperature, including &%CelsiusDegree and 
 &%FahrenheitDegree, among others.")
 
 (instance lowestTemperatureForPeriod TernaryPredicate)
@@ -6313,7 +6302,7 @@ in units of &%TemperatureMeasure, including &%CelsiusDegree and
 "(&%lowestTemperatureForPeriod ?PLACE ?PERIOD ?AMOUNT) means that 
 at the &%GeographicArea ?PLACE, during the &%TimeDuration ?PERIOD, 
 the highest temperature was ?AMOUNT.  Temperature may be expressed 
-in units of &%TemperatureMeasure, including &%CelsiusDegree and 
+in some &%UnitOfTemperature, including &%CelsiusDegree and 
 &%FahrenheitDegree, among others.")
 
 (instance barometricPressure BinaryPredicate)
@@ -6328,20 +6317,20 @@ typically expressed in units of &%InchMercury or &%MmMercury.  For
 example, standard sea level pressure is 29.92 inches (760 mm) of mercury: 
 (&%barometricPressure &%SeaLevel (&%MeasureFn 29.92 &%InchMercury)).")
 
-(subclass PressureMeasure ConstantQuantity)
-(documentation PressureMeasure EnglishLanguage "&%PressureMeasure is the class 
-of &%UnitsOfMeasure used to measure pressure (&%barometricPressure), 
+(subclass UnitOfAtmosphericPressure CompositeUnitOfMeasure)
+(documentation UnitOfAtmosphericPressure
+EnglishLanguage "&%UnitOfAtmosphericPressure includes those instances of
+&%UnitOfMeasure used to measure atmospheric pressure (&%barometricPressure),
 e.g., &%InchMercury.")
 
-(instance InchMercury UnitOfMeasure)
-(subclass InchMercury PressureMeasure)
+
+(instance InchMercury UnitOfAtmosphericPressure)
 (documentation InchMercury EnglishLanguage "&%InchMercury is a &%UnitOfMeasure 
 for &%barometricPressure.  It is used to express the number of 
 inches of mercury supported in a mercurial barometer by the 
 surrounding air pressure.")
 
-(subclass MmMercury PressureMeasure)
-(instance MmMercury UnitOfMeasure)
+(instance MmMercury UnitOfAtmosphericPressure)
 (documentation MmMercury EnglishLanguage "&%MmMercury is a &%UnitOfMeasure 
 for &%barometricPressure.  It is used to express the number 
 of millimeters of mercury supported in a mercurial barometer
