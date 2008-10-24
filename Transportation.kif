@@ -2103,9 +2103,9 @@ of &%RollingStock.")
 &%Buildings that are located at a &%RailwayTerminal and used in support  
 of its functions, especially for the handling of passengers and freight.")
 
-(subclass RailTransportationSystem TransportationSystem)
+(subclass RailTransportationSystem TransitSystem)
 (documentation RailTransportationSystem EnglishLanguage "RailTransportationSystem 
-is the subclass of &%TransportationSystems whose routes are &%Railways.")
+is the subclass of &%TransitSystems whose routes are &%Railways.")
 (subclass Railcar RollingStock)
 (disjoint Railcar PoweredVehicle)
 (documentation Railcar EnglishLanguage "Railcar is the subclass of &%RollingStock that 
@@ -2633,105 +2633,19 @@ has the ability to play the &%CaseRole ?ROLE in &%Processes of
 
 ;;	   1. Physical Systems
 
-(subclass PhysicalSystem Physical)
-(documentation PhysicalSystem EnglishLanguage "&%PhysicalSystem is the class of complex 
-&%Physical things.  A &%PhysicalSystem may have one or more 
-corresponding abstract &%Graph representations.")
-
-(instance subSystem BinaryPredicate)
-(domain subSystem 1 PhysicalSystem)
-(domain subSystem 2 PhysicalSystem)
-
-(documentation subSystem EnglishLanguage "(&%subSystem ?SUB ?SYSTEM) means that the 
-&%PhysicalSystem ?SUB is a part of the &%PhysicalSystem ?SYSTEM.")
-
-(instance systemPart BinaryPredicate)
-(domain systemPart 1 Physical)
-(domain systemPart 2 PhysicalSystem)
-
-(documentation systemPart EnglishLanguage "(&%systemPart ?PART ?SYSTEM) means that 
-the &%Physical thing ?PART is a &%SystemElement in the &%PhysicalSystem 
-?SYSTEM.")
-
-(=>
-	(and
-		(subSystem ?SUB ?SYSTEM)
-		(systemPart ?PART ?SUB))
-	(systemPart ?PART ?SYSTEM))
-
-(subclass SystemElement Physical)
-
-(subclass SystemArc SystemElement)
-
-; connects: SCO x SCO x SCO  1 connected to 2 and to 3, 2 and 3 not cncted
-; between: Object x Object x Object 2 between 1 and 3
-; links: GraphNode x GraphNode x GraphArc
-; systemLink: Physical (Arc) x Physical (Node) x Physical (Node)
-
-(subclass SystemNode SystemElement)
-
-(instance systemLink TernaryPredicate)
-(domain systemLink 1 SystemNode)
-(domain systemLink 2 SystemNode)
-(domain systemLink 3 SystemArc)
-
-(documentation systemLink EnglishLanguage "(&%systemLink ?NODE1 ?NODE2 ?ARC) means 
-that the &%SystemNodes ?NODE1 and ?NODE2 are linked by the &%SystemArc 
-?ARC.")
-
-(=>
-	(systemLink ?NODE1 ?NODE2 ?ARC)
-	(systemLink ?NODE2 ?NODE1 ?ARC))
-
-(=>
-	(systemLink ?NODE1 ?NODE2 ?ARC)
-	(connects ?ARC ?NODE1 ?NODE2))
-
-(=>
-	(connects ?ARC ?NODE1 ?NODE2)
-	(connects ?ARC ?NODE2 ?NODE1))
-
-;; FUNCTION:
-(instance SystemArcFn BinaryFunction)
-(domain SystemArcFn 1 SystemNode)
-(domain SystemArcFn 2 SystemNode)
-(range SystemArcFn SystemArc)
-
-(documentation SystemArcFn EnglishLanguage  "(&%SystemArcFn ?NODE1 ?NODE2) denotes the 
-&%SystemArc that links &%SystemNodes ?NODE1 and ?NODE2.")
-
-(=>
-	(and
-		(instance ?NODE1 Physical)
-		(instance ?NODE2 Physical)
-		(instance (SystemArcFn ?NODE1 ?NODE2) SystemArc))
-	(systemLink ?NODE1 ?NODE2 (SystemArcFn ?NODE1 ?NODE2)))
-
-
 ;; Kinds of PhysicalSystems:
 
-(subclass TransportationSystem PhysicalSystem)
-
-(documentation TransportationSystem EnglishLanguage "&%TransportationSystem is the 
-subclass of &%PhysicalSystems in which the &%SystemArcs correspond to 
-&%Transitways, and &%SystemNodes correspond to &%GeographicRegions or, 
-more specifically, &%TransitTerminals.")
-
-(subclass WaterTransportationSystem TransportationSystem)
+(subclass WaterTransportationSystem TransitSystem)
 
 (=>
-	(and
-		(instance ?SYSTEM TransitSystem)
-		(systemPart ?PART ?SYSTEM))
-	(instance ?PART Transitway))
+  (and
+    (instance ?SYSTEM TransitSystem)
+    (systemPart ?PART ?SYSTEM))
+  (instance ?PART Transitway))
 
 (subclass CanalSystem WaterTransportationSystem)
 
-;;--------------------------------
-
-;;	(E) 2. Transit Systems
-
-(subclass TransitSystem Region)
+(subclass TransitSystem PhysicalSystem)
 
 (documentation TransitSystem EnglishLanguage "A &%TransitSystem is a system of 
 interconnected &%Transitways over which some type(s) of vehicles or 
@@ -2744,11 +2658,50 @@ TexDOT), or the type of vehicles or travellers accommodated (e.g.,
 the system of Santa Clara county bike trails.")
 
 (=>
-	(instance ?SYSTEM TransitSystem)
-	(exists (?ROUTE)
-		(and
-			(instance ?ROUTE Transitway)
-			(part ?ROUTE ?SYSTEM))))
+  (instance ?SYSTEM TransitSystem)
+  (exists (?ROUTE)
+    (and
+      (instance ?ROUTE Transitway)
+      (part ?ROUTE ?SYSTEM))))
+
+(=>
+  (instance ?TS TransitSystem)
+  (exists (?G)
+    (and
+      (instance ?G Graph)
+      (abstractCounterpart ?G ?TS))))
+
+(=>
+  (and
+    (instance ?TS TransitSystem)
+    (instance ?T Transitway)
+    (abstractCounterpart ?G ?TS)
+    (systemPart ?T ?TS))
+  (exists (?GA)
+    (and
+      (instance ?GA GraphArc)
+      (abstractCounterpart ?GA ?T)
+      (graphPart ?GA ?G))))
+
+(=>
+  (and
+    (instance ?TS TransitSystem)
+    (instance ?TJ TransitwayJunction)
+    (abstractCounterpart ?G ?TS)
+    (systemPart ?TJ ?TS))
+  (exists (?GN)
+    (and
+      (instance ?GN GraphNode)
+      (abstractCounterpart ?GN ?TJ)
+      (graphPart ?GN ?G))))
+
+(=>
+  (and
+    (connects ?A ?NODE1 ?NODE2)
+    (abstractCounterpart ?N1 ?NODE1)
+    (abstractCounterpart ?N2 ?NODE2)
+    (abstractCounterpart ?ARC ?A))
+  (links ?N1 ?N2 ?ARC))
 
 (subclass UniModalTransitSystem TransitSystem)
 
@@ -2761,6 +2714,80 @@ transportation device or method.")
 (documentation MultiModalTransitSystem EnglishLanguage "&%MultiModalTransitSystem is 
 the class of &%TransitSystems that accommodate more than one type of 
 transportation device or method.")
+
+(instance routeStart BinaryPredicate)
+(domain routeStart 1 Region)
+(domain routeStart 2 TransitSystem)
+(documentation pathEndpoint "(routeStart ?REGION ?SYSTEM) means
+that within the given ?SYSTEM the given ?REGION is connected to
+only one other &%Region.")
+
+(=>
+  (routeStart ?R ?TS)
+  (and
+    (exists (?T)
+      (and
+        (instance ?T Transitway)
+	(connected ?R ?T)
+	(systemPart ?T ?TS)
+	(not
+	  (exists (?T2)
+	    (and
+              (instance ?T2 Transitway)
+	      (connected ?R ?T2)
+	      (systemPart ?T2 ?TS)
+	      (not
+	        (equal ?T ?T2)))))))))
+
+(instance routeEnd BinaryPredicate)
+(domain routeEnd 1 Region)
+(domain routeEnd 2 TransitSystem)
+(documentation routeEnd "(routeEnd ?REGION ?SYSTEM) means
+that within the given ?SYSTEM the given ?REGION is connected to
+only one other &%Region.")
+
+(=>
+  (routeEnd ?R ?TS)
+  (and
+    (exists (?T)
+      (and
+        (instance ?T Transitway)
+	(connected ?R ?T)
+	(systemPart ?T ?TS)
+	(not
+	  (exists (?T2)
+	    (and
+              (instance ?T2 Transitway)
+	      (connected ?R ?T2)
+	      (systemPart ?T2 ?TS)
+	      (not
+	        (equal ?T ?T2)))))))))
+
+(documentation distanceOnPath EnglishLanguage "(distanceOnPath ?DIST 
+?PATH) means that for a given path (which is a pathInSystem) that the 
+distance of the route is the measurement ?DIST.") 
+
+(=>
+  (distanceOnPath ?DIST ?PATH)
+  (exists (?GP)
+    (and
+      (instance ?GP GraphPath)
+      (abstractCounterpart ?GP ?PATH))))
+
+(=>
+  (and
+    (distanceOnPath ?DIST ?PATH)
+    (pathInSystem ?PATH ?SYS)
+    (routeStart ?START ?PATH)
+    (routeEnd ?END ?PATH)
+    (abstractCounterpart ?GRAPH ?SYS))
+  (exists (?S ?BN ?EN)
+    (and
+      (subgraph ?S ?GRAPH)
+      (equal ?BN (BeginNodeFn ?GRAPH))
+      (equal ?EN (EndNodeFn ?GRAPH))
+      (abstractCounterpart ?BN ?START)
+      (abstractCounterPart ?EN END))))
 
 ;;------------------------------------
 
