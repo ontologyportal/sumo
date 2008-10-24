@@ -3197,6 +3197,10 @@ spatially located between ?OBJ1 and ?OBJ3.  Note that this implies that
 ?OBJ2 is directly between ?OBJ1 and ?OBJ3, i.e. the projections of ?OBJ1 
 and ?OBJ3 overlap with ?OBJ2.")
 
+(=>
+	(between ?END1 ?MID ?END2)
+	(between ?END2 ?MID ?END1))
+
 (instance traverses BinaryPredicate)
 (instance traverses SpatialRelation)
 (domain traverses 1 Object)
@@ -4318,7 +4322,7 @@ axiomatic support for it.")
 to be a set of &%GraphNodes connected by &%GraphArcs.  Note that this 
 &%Class includes only connected graphs, i.e. graphs in which there is a 
 &%GraphPath between any two &%GraphNodes.  Note too that every &%Graph 
-is assumed to contain at least two &%GraphArcs and three &%GraphNodes.")
+is required to contain at least two &%GraphArcs and three &%GraphNodes.")
 
 (=>
    (and
@@ -4528,14 +4532,14 @@ or &%GraphNode of the &%Graph ?GRAPH.")
 (domain subGraph 1 Graph)
 (domain subGraph 2 Graph)
 (documentation subGraph EnglishLanguage "The relation between two &%Graphs when one 
-&%Graph is a part of the other.  (&%subGraph ?GRAPH1 ?GRAPH2) means 
+&%Graph is a part of the other. (&%subGraph ?GRAPH1 ?GRAPH2) means 
 that ?GRAPH1 is a part of ?GRAPH2.")
 
 (=>
-   (and
-      (subGraph ?GRAPH1 ?GRAPH2)
-      (graphPart ?ELEMENT ?GRAPH1))
-   (graphPart ?ELEMENT ?GRAPH2))
+  (and
+    (subGraph ?GRAPH1 ?GRAPH2)
+    (graphPart ?ELEMENT ?GRAPH1))
+  (graphPart ?ELEMENT ?GRAPH2))
 
 (instance pathLength BinaryPredicate)
 (instance pathLength AsymmetricRelation)
@@ -4588,14 +4592,14 @@ to the &%GraphNode that is the end of the &%GraphPath.  Note that, unlike
 (instance arcWeight BinaryPredicate)
 (instance arcWeight SingleValuedRelation)
 (domain arcWeight 1 GraphArc)
-(domain arcWeight 2 RealNumber)
+(domain arcWeight 2 Quantity)
 (documentation arcWeight EnglishLanguage "This predicate indicates the value of a 
 &%GraphArc in a &%Graph.  This could map to the length of a road in 
 a road network or the flow rate of a pipe in a plumbing system.")
 
 (instance PathWeightFn UnaryFunction)
 (domain PathWeightFn 1 GraphPath)
-(range PathWeightFn RealNumber)
+(range PathWeightFn Quantity)
 (documentation PathWeightFn EnglishLanguage "A &%UnaryFunction that maps a 
 &%GraphPath to the sum of the &%arcWeights on the &%GraphArcs in 
 the &%GraphPath.")
@@ -4719,13 +4723,76 @@ which have the least number of &%GraphArcs.")
             (instance ?PATH ?PATHCLASS)
             (pathLength ?PATH ?NUMBER)))))
 
-(not (exists (?PATH1 ?PATH2)
-   (and
+(not 
+  (exists (?PATH1 ?PATH2)
+    (and
       (instance ?PATH1 (CutSetFn ?GRAPH))
       (instance ?PATH2 (MinimalCutSetFn ?GRAPH))
       (pathLength ?PATH1 ?NUMBER1)
       (pathLength ?PATH2 ?NUMBER2)
       (lessThan ?NUMBER1 ?NUMBER2))))
+
+;; link the physical system to the abstract graph
+
+(instance abstractCounterpart BinaryPredicate)
+(domain abstractCounterpart 1 Abstract)
+(domain abstractCounterpart 2 Physical)
+(subrelation abstractCounterpart represents)
+(documentation abstractCounterpart EnglishLanguage "(abstractCounterpart ?AB ?PHYS
+relates a &%Physical entity to an &%Abstract one which is an idealized
+model in some dimension of the &%Physical entity.  For example, an
+&%Abstract &%GraphNode could be stated to be the counterpart of an 
+actual &%Computer in a &%ComputerNetwork.")
+
+(subclass PhysicalSystem Physical)
+(documentation PhysicalSystem EnglishLanguage "&%PhysicalSystem is the class of complex 
+&%Physical things.  A &%PhysicalSystem may have one or more 
+corresponding abstract &%Graph representations.")
+
+(instance subSystem BinaryPredicate)
+(domain subSystem 1 PhysicalSystem)
+(domain subSystem 2 PhysicalSystem)
+
+(documentation subSystem EnglishLanguage "(&%subSystem ?SUB ?SYSTEM) means that the 
+&%PhysicalSystem ?SUB is a part of the &%PhysicalSystem ?SYSTEM.")
+
+(instance systemPart BinaryPredicate)
+(domain systemPart 1 Physical)
+(domain systemPart 2 PhysicalSystem)
+
+(documentation systemPart EnglishLanguage "(&%systemPart ?PART ?SYSTEM) means that 
+the &%Physical thing ?PART is a &%SystemElement in the &%PhysicalSystem 
+?SYSTEM.")
+
+(=>
+  (and
+    (subSystem ?SUB ?SYSTEM)
+    (systemPart ?PART ?SUB))
+  (systemPart ?PART ?SYSTEM))
+
+(instance graphMeasure BinaryPredicate)
+(domain graphMeasure 1 Graph)
+(domain graphMeasure 2 UnitOfMeasure)
+(documentation graphMeasure EnglishLanguage "(graphMeasure ?GRAPH ?MEAS) fixes a 
+&%UnitOfMeasure that is used for the &%arcWeight of a given &%Graph.  Stating 
+such a relationship entails that the components of given graph are the 
+&%abstractCounterparts of sets of &%Physical &%Entity(ies).")
+(=>
+  (graphMeasure ?G ?M)
+  (forall (?AC)
+    (and
+      (graphPart ?AC ?G)
+      (exists (?PC)
+        (abstractCounterpart ?AC ?PC)))))
+(=>
+  (and
+    (graphMeasure ?G ?M)
+    (instance ?AN GraphNode)
+    (instance ?AA GraphArc)
+    (abstractCounterpart ?AN ?PN)
+    (abstractCounterpart ?AA ?PA)
+    (arcWeight ?AA (MeasureFn ?N ?M)))
+  (measure ?PA (MeasureFn ?N ?M)))  
 
 ;; END FILE
 
@@ -7287,12 +7354,20 @@ the three things connects the other two.  More formally, (&%connects ?OBJ1
 and not (&%connected ?OBJ2 ?OBJ3).")
 
 (<=>
-   (connects ?OBJ1 ?OBJ2 ?OBJ3)
-   (and
-      (connected ?OBJ1 ?OBJ2)
-      (connected ?OBJ1 ?OBJ3)
-      (not
-         (connected ?OBJ2 ?OBJ3))))
+  (connects ?OBJ1 ?OBJ2 ?OBJ3)
+  (between ?OBJ2 ?OBJ1 ?OBJ3))
+
+(<=>
+  (connects ?OBJ1 ?OBJ2 ?OBJ3)
+  (and
+    (connected ?OBJ1 ?OBJ2)
+    (connected ?OBJ1 ?OBJ3)
+    (not
+      (connected ?OBJ2 ?OBJ3))))
+
+(=>
+  (connects ?ARC ?NODE1 ?NODE2)
+  (connects ?ARC ?NODE2 ?NODE1))
 
 (subrelation meetsSpatially connected)
 (instance meetsSpatially IrreflexiveRelation)
