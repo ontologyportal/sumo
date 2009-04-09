@@ -136,6 +136,23 @@ to avoid being hit by something.")
           (instance ?I Impacting)
           (patient ?I ?A))))))
 
+(subclass Mounting BodyMotion)
+(documentation Mounting EnglishLanguage "Any &%BodyMotion which results in being &%On 
+something else.")
+
+(=>
+  (and
+    (instance ?M Mounting)
+    (agent ?M ?A)
+    (patient ?M ?O))
+  (and
+    (holdsDuring 
+      (BeginFn (WhenFn ?M)) 
+      (not (orientation ?A ?O On)))
+    (holdsDuring 
+      (EndFn (WhenFn ?M)) 
+      (orientation ?A ?O On))))
+
 (subclass Stepping BodyMotion)
 (documentation Stepping EnglishLanguage "The &%BodyMotion of extending one foot forward 
 and then bringing the other foot to the same lateral position as the 
@@ -150,6 +167,20 @@ first leg.")
             (<=>
                (instance ?INST ?SUB)
                (subProcess ?INST ?AMBULATE))))))
+
+(subclass Jumping BodyMotion)
+(subclass Jumping MotionUpward)
+(documentation Jumping EnglishLanguage "Any &%MotionUpward which is done by one's body 
+and which results in a situation where one's feet are unsupported.")
+
+(=>
+  (and
+    (instance ?J Jumping)
+    (agent ?J ?A))
+  (holdsDuring (EndFn (WhenFn ?J))
+    (and
+      (not
+        (attribute ?A Standing)))))
 
 (subclass ReflectingLight RadiatingLight)
 (documentation ReflectingLight EnglishLanguage "Those instances of &%RadiatingLight where the 
@@ -515,6 +546,10 @@ a &%Weapon.")
          (instance ?GUN Gun)
          (instrument ?SHOOT ?GUN))))
 
+(subclass MortarGun ArtilleryGun)
+(documentation MortarGun EnglishLanguage "A short-range &%Gun that is positioned on the ground 
+at a high angle and fires explosive shells.")
+
 (subclass Bullet Projectile)
 (documentation Bullet EnglishLanguage "A &%Projectile that is designed to be fired by a &%Gun.")
 (=>
@@ -563,6 +598,22 @@ in &%ProjectileWeapons.")
 (subclass GunTrigger EngineeringComponent)
 (documentation GunTrigger EnglishLanguage "The part of the &%Gun which is pulled in &%Shooting 
 the &%Gun.")
+
+(subclass LoadingWeapon Inserting)
+(documentation LoadingWeapon EnglishLanguage "Inserting ammunition into a &%ProjectileWeapon 
+in such a way that the ammunition can be fired by the weapon.")
+
+(=>
+  (and
+    (instance ?L LoadingWeapon)
+    (patient ?L ?P))
+  (instance ?P Projectile))
+
+(=>
+  (and
+    (instance ?L LoadingWeapon)
+    (destination ?L ?W))
+  (instance ?W ProjectileWeapon))
 
 (instance effectiveRange BinaryPredicate)
 (instance effectiveRange SingleValuedRelation)
@@ -621,6 +672,16 @@ shoulder to absorb some of the recoil action when it is fired.")
          (instance ?GUN Gun)
          (part ?STOCK ?GUN))))
 
+(subclass NuclearWeapon ExplosiveDevice)
+(subclass NuclearWeapon Weapon)
+(documentation NuclearWeapon EnglishLanguage "An &%ExplosiveDevice and &%RadioactiveWeapon
+which achieves its effect by means of a critical mass of a radioactive substance.")
+(subclass NuclearWeapon RadioactiveWeapon)
+
+(=>
+  (instance ?W NuclearWeapon)
+  (capability RadiatingNuclear instrument ?W))
+
 (subclass Handle EngineeringComponent)
 (documentation Handle EnglishLanguage "The part or parts of an &%Artifact that are designed to be 
 held with the &%Hands when the &%Artifact is used or carried.")
@@ -634,6 +695,17 @@ held with the &%Hands when the &%Artifact is used or carried.")
         (patient ?G ?H)
         (instrument ?G ?D)
         (instance ?D Hand)))))
+
+(subclass Mast Artifact)
+(documentation Mast EnglishLanguage "A large pole in the center of a &%WaterVehicle which is 
+used to support a sail.")
+
+(=>
+   (instance ?M Mast)
+   (exists (?W)
+      (and
+         (instance ?W Watercraft)
+         (part ?M ?W))))
 
 (subclass AutomaticGun Gun)
 (documentation AutomaticGun EnglishLanguage "A &%Gun that fires a burst of &%Projectiles 
@@ -701,10 +773,30 @@ Mechanical energy can be produced by burning fuel in an &%Engine.")
   (instance ?X FossilFuel)
   (attribute ?X Combustible))
 
+(subclass LiquefiedPetroleumGas FossilFuel)
+(subclass LiquefiedPetroleumGas RefinedPetroleumProduct)
+(documentation LiquefiedPetroleumGas EnglishLanguage "&%LiquefiedPetroleumGas is a 
+compressed hydrocarbon gas.")
+
 (subclass Engine Transducer)
 (documentation Engine EnglishLanguage "Engine is a subclass of &%Transducer.  &%Engines 
 are devices for converting some form of energy resource into mechanical 
 power.")
+
+(subclass InternalCombustionEngine Engine)
+(documentation InternalCombustionEngine EnglishLanguage "&%InternalCombustionEngine is 
+the subclass of &%Engines in which a heat reaction that occurs inside 
+the engine is transformed into mechanical energy.")
+
+(=>
+  (instance ?R (OperatingFn InternalCombustionEngine))
+  (exists (?E ?C ?F)
+    (and
+      (instance ?E InternalCombustionEngine)
+      (instrument ?R ?E)
+      (hole ?C ?E)
+      (instance ?F Combustion)
+      (completelyFills ?F ?C))))
 
 (subclass Manifold EngineeringComponent)
 (documentation Manifold EnglishLanguage "A pipe which has several outlets for other pipes that flow 
@@ -727,6 +819,11 @@ an &%ElectricDevice on and off.")
          (causes ?PROC1 ?PROC2)
          (instrument ?PROC2 ?ELECTRIC)
          (instance ?ELECTRIC ElectricDevice))))
+
+(subclass Microphone ElectricDevice)
+(subclass Microphone CommunicationDevice)
+(documentation Microphone EnglishLanguage "A &%CommunicationDevice that converts sound 
+into electrical energy.")
 
 (subclass DeviceStateAttribute DeviceAttribute)
 (documentation DeviceStateAttribute EnglishLanguage "&%DeviceStateAttribute is the class 
@@ -791,6 +888,15 @@ whose purpose is to remove particles from something or to smooth something out."
           (instance ?S Removing)
           (instance ?S SurfaceChange))
         (instrument ?S ?B)))))
+
+(subclass MatchDevice Device)
+(documentation MatchDevice EnglishLanguage "A small stick of carboard or wood that is treated 
+with chemicals that can be easily ignited with friction.  MatchDevices are 
+used for starting fires.")
+
+(=>
+  (instance ?M MatchDevice)
+  (capability (StartFn Combustion) instrument ?M))
 
 (subclass Toothbrush BrushOrComb)
 (documentation Toothbrush EnglishLanguage "A small &%BrushOrComb with relatively soft
@@ -867,6 +973,12 @@ e.g. electric heaters, heat lamps, ovens, stoves, etc.")
         (instance ?H Heating)
         (instrument ?H ?D)))))
 
+(subclass MaterialHandlingEquipment Device)
+(documentation MaterialHandlingEquipment EnglishLanguage "&%MaterialHandlingEquipment 
+is a class of &%Devices that are equipment used for handling goods and 
+supplies more efficiently or safely.  Examples are cranes, hoists, 
+forklifts, conveyors, racks, etc.")
+
 (subclass Crane MaterialHandlingEquipment)
 (documentation Crane EnglishLanguage "Crane is a subclass of mechanical &%Devices 
 that consist of a &%HoistingDevice on a moveable boom, designed to 
@@ -897,18 +1009,28 @@ and lowering, e.g., by use of a block and tackle.")
 purpose is to to correct a defect in vision.  This class covers ordinary eye 
 glasses, reading glasses, contact lenses, monocles, etc.")
 
+(subclass Lens OpticalDevice)
+(documentation Lens EnglishLanguage "An &%OpticalDevice which consists of a polished, 
+transparent piece of glass or plastic.  Lenses are often part of 
+other &%OpticalDevices.")
+
+(subclass Microscope OpticalDevice)
+(documentation Microscope EnglishLanguage "An &%OpticalDevice with a stand and a focus, which is 
+used for magnifying the images of things that are placed in the stand.")
+
 (subclass Filter Device)
 (documentation Filter EnglishLanguage "A &%Device whose purpose is to remove part of a 
 &%Solution that is passed through the &%Filter.")
 
 (=>
-   (instance ?FILTER Filter)
-   (hasPurpose ?FILTER (exists (?REMOVE ?SOLUTION)
-                          (and
-                             (instance ?REMOVE Removing)
-                             (origin ?REMOVE ?SOLUTION)
-                             (instance ?SOLUTION Solution)
-                             (instrument ?REMOVE ?FILTER)))))
+  (instance ?FILTER Filter)
+  (hasPurpose ?FILTER 
+    (exists (?REMOVE ?SOLUTION)
+      (and
+        (instance ?REMOVE Removing)
+        (origin ?REMOVE ?SOLUTION)
+        (instance ?SOLUTION Solution)
+        (instrument ?REMOVE ?FILTER)))))
 
 (subclass FileDevice Device)
 (documentation FileDevice EnglishLanguage "A &%Device whose purpose is to make something 
@@ -916,8 +1038,8 @@ smoother.  For example, a nail file is used to even out the tips of one's
 finger nails.")
 
 (=>
-   (instance ?DEVICE FileDevice)
-   (capability SurfaceChange instrument ?DEVICE))
+  (instance ?DEVICE FileDevice)
+  (capability SurfaceChange instrument ?DEVICE))
 
 (subclass ElectricDevice Device)
 (documentation ElectricDevice EnglishLanguage "A &%Device that uses &%Electricity as its
@@ -1187,6 +1309,18 @@ which is lit with a flame.")
         (instance ?F Fire)
         (resource ?F ?C)))))
 
+(subclass Lightning WeatherProcess)
+(subclass Lightning Radiating)
+(documentation Lightning EnglishLanguage "A &%WeatherProcess which involves a significant 
+release of electricity from a &%Cloud.")
+
+(=>
+   (instance ?L Lightning)
+   (exists (?C)
+      (and
+         (instance ?C Cloud)
+         (located ?L ?C))))
+
 (subclass Headlight VehicleLight)
 (documentation Headlight EnglishLanguage "Any &%VehicleLight which is attached to the front 
 of a &%Vehicle.")
@@ -1377,6 +1511,14 @@ a &%Hole.")
          (instance ?CLAY Clay)
          (part ?CLAY ?POTTERY))))
 
+(subclass Mirror Artifact)
+(documentation Mirror EnglishLanguage "An &%Artifact with a surface that is capable of 
+displaying an image by reflecting light.")
+
+(=>
+  (instance ?M Mirror)
+  (capability ReflectingLight instrument ?M))
+
 (subclass Furniture Artifact)
 (disjoint Furniture Device)
 (documentation Furniture EnglishLanguage "Any free-standing &%Artifacts which are not 
@@ -1455,6 +1597,19 @@ dinner, etc.")
       (not (equal ?C ?O))
       (part ?C ?O))))
 
+(subclass Mailbox Container)
+(documentation Mailbox EnglishLanguage "A &%Container whose purpose is to receive items 
+that are mailed to the address associated with the &%Mailbox.")
+
+(=>
+  (instance ?B Mailbox)
+  (hasPurpose ?B 
+    (exists (?M ?I)
+      (and
+        (instance ?M Mailing)
+        (patient ?M ?I)
+        (destination ?M ?B)))))
+
 (subclass Screw AttachingDevice)
 (documentation Screw EnglishLanguage "An &%AttachingDevice which contains a spiral of grooves to 
 hold it in place and which is fastened with a &%Screwdriver.")
@@ -1487,6 +1642,10 @@ surface, where they become firmly attached.")
         (instrument ?I ?H)
         (patient ?I ?N)
         (instance ?N Nail)))))
+
+(subclass Nail AttachingDevice)
+(documentation Nail EnglishLanguage "An &%AttachingDevice which is a thin piece of metal, with 
+or without a head, that is fastened with a &%Hammer.")
 
 (subclass Tape AttachingDevice)
 (documentation Tape EnglishLanguage "A thin strip of &%Fabric or &%Paper that is used to attach 
@@ -2114,6 +2273,12 @@ open wound.")
         (subProcess ?C ?TP)
         (instrument ?C ?B)))))
 
+(subclass Massaging TherapeuticProcess)
+(subclass Massaging Touching)
+(documentation Massaging EnglishLanguage "A subclass of &%TherapeuticProcess which involves 
+kneading &%Muscles in such a way that tension is relieved, blood circulation 
+is increased, etc.")
+
 (subclass NonspecificDisease DiseaseOrSyndrome)
 (documentation NonspecificDisease EnglishLanguage "The class of &%DiseaseOrSyndromes that are not 
 caused by a single type of &%Microorganism.")
@@ -2127,6 +2292,21 @@ caused by a single type of &%Microorganism.")
             (=>
                (attribute ?VICTIM ?DISEASE)
                (located ?AGENT ?VICTIM)))))))
+
+(subclass InfectiousDisease DiseaseOrSyndrome)
+(documentation InfectiousDisease EnglishLanguage "Any &%DiseaseOrSyndrome that is caused by a 
+&%Microorganism.")
+
+(=>
+  (and
+    (instance ?I InfectiousDisease)
+    (attribute ?A ?I))
+  (exists (?P)
+    (and
+      (instance ?P PathologicProcess)
+      (agent ?P ?O)
+      (instance ?O Microorganism)
+      (experiencer ?P ?A))))
 
 (instance Cancer DiseaseOrSyndrome)
 (documentation Cancer EnglishLanguage "A &%DiseaseOrSyndrome characterized by pathologic and 
@@ -2142,6 +2322,10 @@ uncontrolled cell division that results in a &%Tumor.")
 (subclass BacterialDisease InfectiousDisease)
 (documentation BacterialDisease EnglishLanguage "A disease that is caused by instances of 
 &%Bacterium.")
+
+(subclass Neurosis PsychologicalDysfunction)
+(documentation Neurosis EnglishLanguage "Any &%PsychologicalDysfunction which is not due 
+to an organic impairment of the &%NervousSystem.")
 
 (subclass ConjugatedSubstance CompoundSubstance)
 (documentation ConjugatedSubstance EnglishLanguage "A &%CompoundSubstance that results from 
@@ -2223,6 +2407,17 @@ is a &%Foot of the &%agent.")
 (subclass Mailing Transfer)
 (documentation Mailing EnglishLanguage "Any instance of &%Transfer where a postal system is 
 used to move the &%patient, either a letter or a package.")
+
+(subclass Messaging Transfer)
+(documentation Messaging EnglishLanguage "Any instance of &%Transfer where a &%Message is the 
+patient.")
+
+(=>
+  (instance ?MESSAGING Messaging)
+  (exists (?M)
+    (and
+      (instance ?M Message)
+      (patient ?MESSAGING ?M))))
 
 (instance neighbor BinaryPredicate)
 (instance neighbor SymmetricRelation)
@@ -2364,25 +2559,27 @@ etc. that resides or conducts business at the corresponding &%address.")
 devoted to the creation of &%ArtWorks.")
 
 (=>
-   (instance ?STUDIO ArtStudio)
-   (hasPurpose ?STUDIO (exists (?MAKE ?WORK)
-                          (and
-                             (instance ?MAKE Making)
-                             (result ?MAKE ?WORK)
-                             (instance ?WORK ArtWork)))))
+  (instance ?STUDIO ArtStudio)
+  (hasPurpose ?STUDIO 
+  (exists (?MAKE ?WORK)
+    (and
+      (instance ?MAKE Making)
+      (result ?MAKE ?WORK)
+      (instance ?WORK ArtWork)))))
 
 (subclass Mine StationaryArtifact)
 (documentation Mine EnglishLanguage "An construction in the earth from which &%Minerals are removed, 
 either in pure form or as part of ores.")
 
 (=>
-   (instance ?MINE Mine)
-   (hasPurpose ?MINE (exists (?REMOVE ?MINERAL)
-                        (and
-                           (instance ?REMOVE Removing)
-                           (patient ?REMOVE ?MINERAL)
-                           (instance ?MINERAL Mineral)
-                           (origin ?REMOVE ?MINE)))))
+  (instance ?MINE Mine)
+  (hasPurpose ?MINE 
+    (exists (?REMOVE ?MINERAL)
+      (and
+        (instance ?REMOVE Removing)
+        (patient ?REMOVE ?MINERAL)
+        (instance ?MINERAL Mineral)
+        (origin ?REMOVE ?MINE)))))
 
 (subclass MobileResidence Artifact)
 (disjoint MobileResidence Residence)
@@ -2412,6 +2609,18 @@ can be easily assembled and disassembled.")
       (and
          (instance ?FABRIC Fabric)
          (part ?FABRIC ?TENT))))        
+
+(subclass Monument StationaryArtifact)
+(documentation Monument EnglishLanguage "A &%StationaryArtifact whose purpose is to commemorate 
+a person, animal or event.")
+
+(=>
+  (instance ?M Monument)
+  (hasPurpose ?M 
+    (exists (?R)
+      (and
+        (instance ?R Remembering)
+        (instrument ?R ?M)))))
 
 (subclass ExecutiveResidence PermanentResidence)
 (documentation ExecutiveResidence EnglishLanguage "A &%Residence of a &%chiefOfState, e.g. 
@@ -2606,6 +2815,15 @@ and comedy clubs.")
 (subclass FinancialCompany CommercialAgent)
 (documentation FinancialCompany EnglishLanguage "The class &%FinancialCompany 
 includes, as subclasses, &%FinancialBank, &%CreditUnion and &%SavingsAndLoan.")
+
+(subclass InsuranceCompany CommercialAgent)
+(documentation InsuranceCompany EnglishLanguage "A &%CommercialAgent that insures &%Agents 
+for the payment of a premium or premiums.")
+
+(=>
+  (instance ?I InsuranceCompany)
+  (exists (?C)
+    (insured ?C ?I)))
 
 (subclass FinancialService CommercialService)
 (documentation FinancialService EnglishLanguage "&%Services performed by a
@@ -2876,6 +3094,24 @@ content.  Also see &%MediaOrganization.")
       (instrument ?C ?CS)
       (agent ?C ?CO))))
 
+(subclass MediaOrganization Organization)
+(documentation MediaOrganization EnglishLanguage "&%MediaOrganization is the subclass 
+of &%Organization for groups whose primary purpose is the production or 
+dissemination of media content.  For organizations that physically enable 
+&%Communication, see &%CommunicationOrganization.")
+
+(subclass NonprofitOrganization Organization)
+(disjoint NonprofitOrganization CommercialAgent)
+(documentation NonprofitOrganization EnglishLanguage "Any &%Organization whose purpose is something 
+other than making a profit.")
+
+(=>
+  (instance ?N NonprofitOrganization)
+  (not 
+    (hasPurpose ?N 
+      (exists (?P)
+        (profit ?N ?P)))))
+
 (subclass CommunicationSystem Collection)
 (documentation CommunicationSystem EnglishLanguage "&%CommunicationSystem is a complex 
 system with various components, enabling communication (in some 
@@ -2906,6 +3142,7 @@ short period of time while they undergo treatment for a disease or disorder.")
 a &%HospitalOrganization.")
 
 (subclass MedicalClinic CareOrganization)
+(disjoint MedicalClinic Residence)
 (documentation MedicalClinic EnglishLanguage "A &%CareOrganization which provides medical care 
 on an out-patient basis only, i.e. there are no rooms where patients may take 
 up residence for a period of time while they receive care.")
@@ -3291,6 +3528,16 @@ for recreation and/or exercise.")
       (instance ?C Agriculture)
       (located ?C ?A))))
 
+(subclass Lawn CultivatedLandArea)
+(documentation Lawn EnglishLanguage "A &%CultivatedLandArea containing mowed &%Grass.")
+
+(=>
+  (instance ?L Lawn)
+  (exists (?G)
+    (and
+      (instance ?G Grass)
+      (located ?G ?L))))
+
 (subclass Campground LandArea)
 (documentation Campground EnglishLanguage "A &%LandArea whose purpose is to have &%MobileResidences 
 (e.g. recreational vehicles, mobile homes, &%Tents, etc.) located there.")
@@ -3406,6 +3653,19 @@ to an area of operations.")
       (agent ?B ?U1)
       (agent ?B ?U2))))
 
+(subclass MilitaryReserveForce MilitaryOrganization)
+(documentation MilitaryReserveForce EnglishLanguage "&%MilitaryReserveForce is the subclass 
+of &%MilitaryOrganizations that consist of forces trained in military 
+procedures and activities, which are subject to being called to active duty 
+if needed.")
+
+(subclass MilitarySquad MilitaryUnit)
+(documentation MilitarySquad EnglishLanguage "Any &%MilitaryUnit with the rank of squad.")
+
+(subclass MilitaryCorps MilitaryUnit)
+(documentation MilitaryCorps EnglishLanguage "Any &%MilitaryUnit with the rank of 
+corps.")
+
 (subclass CavalryUnit MilitaryUnit)
 (documentation CavalryUnit EnglishLanguage "&%MilitaryUnits composed primarily of &%Soldiers 
 who are mounted, i.e. who perform their combat missions from a &%Horse or 
@@ -3424,6 +3684,21 @@ who are mounted, i.e. who perform their combat missions from a &%Horse or
       (instance ?V Vehicle)
       (patient ?T ?V)
       (during ?T ?B))))
+
+(subclass MilitarySurplus MilitaryArtifact)
+(documentation MilitarySurplus EnglishLanguage "Any &%MilitaryArtifact which is sold to a 
+non-military customer.")
+
+(=>
+  (instance ?S MilitarySurplus)
+  (exists (?A ?B)
+    (and
+      (instance ?B Buying)
+      (patient ?B ?A)
+      (not 
+        (instance ?A MilitaryOrganization))
+      (not 
+        (member ?A MilitaryOrganization)))))
 
 (subclass Commission Organization)
 (documentation Commission EnglishLanguage "A small, temporary &%Organization whose purpose 
@@ -3449,6 +3724,23 @@ a public service and is regulated by the &%Government.")
          (patient ?PROC ?ORG)
          (agent ?PROC ?GOV)
          (instance ?GOV Government)))) 
+
+(subclass Library EducationalOrganization)
+(documentation Library EnglishLanguage "An &%EducationalOrganization which is a repository 
+of &%Texts which have been classified for efficient retrieval.")
+
+(=>
+  (instance ?L Library)
+  (exists (?B ?T)
+    (and
+      (possesses ?L ?B)
+      (instance ?B Building)
+      (instance ?T Text)
+      (located ?T ?B))))
+
+(subclass Museum EducationalOrganization)
+(documentation Museum EnglishLanguage "An &%EducationalOrganization where &%Artifacts of historic, 
+scientific or aesthetic value are collected and exhibited.")
 
 (subclass OrganizationalBoard Organization)
 (documentation OrganizationalBoard EnglishLanguage "Part of an &%Organization that 
@@ -3835,6 +4127,26 @@ forces confront one another in a &%Battle.")
 
 (partition Region GeographicArea SpaceRegion)
 
+(subclass Meteorite Meteoroid)
+(documentation Meteorite EnglishLanguage "Any &%Meteoroid that leaves traces on the surface 
+of &%Earth.")
+
+(=>
+  (instance ?M Meteorite)
+  (exists (?T)
+    (holdsDuring (?T)
+      (meetsSpatially ?M PlanetEarth))))
+
+(subclass Meteoroid AstronomicalBody)
+(documentation Meteoroid EnglishLanguage "Any &%AstronomicalBody that breaks through the 
+&%Atmosphere of &%Earth.")
+
+(=>
+  (instance ?M Meteorite)
+  (exists (?T)
+    (holdsDuring (?T)
+      (meetsSpatially ?M EarthsAtmosphere))))
+
 (subclass AtmosphericRegion SpaceRegion)
 (documentation AtmosphericRegion EnglishLanguage "&%AtmosphericRegion is the class of 
 all subregions of &%EarthsAtmosphere.")
@@ -3958,6 +4270,21 @@ bark, roots, flowers, seeds, fruit and leaves.")
 (subclass Cellulose Carbohydrate)
 (documentation Cellulose EnglishLanguage "The main component of &%Plant &%Tissue.")
 
+(subclass Nectar PlantSubstance)
+(documentation Nectar EnglishLanguage "A sweet, sticky liquid that is produced by &%Plants 
+and that attracts Insects.")
+
+(subclass Medicine BiologicallyActiveSubstance)
+(documentation Medicine EnglishLanguage "Any &%BiologicallyActiveSubstance which has a 
+therapeutic effect under certain conditions.")
+
+(=>
+  (instance ?M Medicine)
+  (exists (?P)
+    (and
+      (instance ?P TherapeuticProcess)
+      (instrument ?P ?M))))
+
 (subclass Depressant BiologicallyActiveSubstance)
 (documentation Depressant EnglishLanguage "Any &%BiologicallyActiveSubstance which has 
 the effect of depressing the central nervous system, i.e. decreasing 
@@ -3973,6 +4300,29 @@ opium poppy that contains various powerful alkaloids.")
 used for lawns and &%Fields. &%Grass includes any plant of the family 
 Gramineae, a widely distributed group of mostly annual and perennial 
 herbs.")
+
+(subclass Lilac FloweringPlant)
+(documentation Lilac EnglishLanguage "A &%FloweringPlant that has large clusters of 
+aromatic flowers.")
+
+(subclass Lesion AbnormalAnatomicalStructure)
+(documentation Lesion EnglishLanguage "Any &%AbnormalAnatomicalStructure which is the result of 
+an Injuring and which is found on the surface of an &%Organ.")
+
+(=>
+  (instance ?L Lesion)
+  (exists (?I)
+    (and
+      (instance ?I Injuring)
+      (result ?I ?L))))
+
+(=>
+  (instance ?L Lesion)
+  (exists (?S ?O)
+    (and
+      (surface ?S ?O)
+      (instance ?O Organ)
+      (located ?L ?S))))
 
 (subclass Tumor AbnormalAnatomicalStructure)
 (documentation Tumor EnglishLanguage "Any &%AbnormalAnatomicalStructure which consists of a 
@@ -4157,6 +4507,16 @@ and does not contain &%AntigenA.")
         (instance ?A AntigenB)
         (part ?A ?B)))))
 
+(subclass NerveCell Cell)
+(subclass NerveCell AnimalAnatomicalStructure)
+(documentation NerveCell EnglishLanguage "The &%Cells that make up a &%NervousSystem.")
+(=>
+  (instance ?N NerveCell)
+  (exists (?S)
+    (and
+      (instance ?S NervousSystem)
+      (part ?N ?S))))
+
 (subclass LiquidBodySubstance BodySubstance)
 (documentation LiquidBodySubstance EnglishLanguage "Any &%BodySubstance which is &%Liquid 
 under normal circumstances.")
@@ -4221,6 +4581,9 @@ covers drinks of unmixed, hard liquor.")
 (subclass Whiskey DistilledAlcoholicBeverage)
 (documentation Whiskey EnglishLanguage "A &%DistilledAlcoholicBeverage that is prepared by 
 distilling fermented grain mash.")
+
+(subclass LiquorShot DistilledAlcoholicBeverage)
+(documentation LiquorShot EnglishLanguage "A small serving of a &%DistilledAlcoholicBeverage.")
 
 (subclass Beer AlcoholicBeverage)
 (documentation Beer EnglishLanguage "An &%AlcoholicBeverage that is prepared by fermenting 
@@ -4358,6 +4721,22 @@ to furnish the blood with oxygen and to remove carbon dioxide.")
          (component ?LUNG ?ANIMAL)
          (instance ?LUNG Lung))))
 
+(subclass Kidney Organ)
+(subclass Kidney AnimalAnatomicalStructure)
+(documentation Kidney EnglishLanguage "An &%Organ that separates urine from other 
+&%BodySubstances and passes it to the bladder.")
+
+(subclass Inhaling Breathing)
+(documentation Inhaling EnglishLanguage "Any instance of &%Breathing where the breath is 
+taken into the &%Lungs.")
+
+(=>
+  (instance ?I Inhaling)
+  (exists (?L)
+    (and
+      (instance ?L Lung)
+      (destination ?I ?L))))
+
 (subclass Exhaling Breathing)
 (documentation Exhaling EnglishLanguage "Any instance of &%Breathing where the breath is 
 expelled from the &%Lungs.")
@@ -4367,6 +4746,29 @@ expelled from the &%Lungs.")
     (and
       (instance ?L Lung)
       (origin ?E ?L))))
+
+(subclass Nostril BodyVessel)
+(subclass Nostril AnimalAnatomicalStructure)
+(documentation Nostril EnglishLanguage "Either of two &%BodyVessels that run through the &%Nose 
+and connect it to the &%Throat.")
+
+(=>
+  (instance ?NOSE Nose)
+  (exists (?N1 ?N2)
+    (and
+      (instance ?N1 Nostril)
+      (instance ?N2 Nostril)
+      (not (equal ?N1 ?N2))
+      (connected ?N1 ?NOSE)
+      (connected ?N2 ?NOSE))))
+
+(=>
+  (instance ?NOS Nostril)
+  (exists (?N ?T)
+    (and
+      (instance ?N Nose)
+      (instance ?T Throat)
+      (connects ?NOS ?N ?T))))
 
 (subclass Heart Organ)
 (subclass Heart AnimalAnatomicalStructure)
@@ -4410,6 +4812,18 @@ and &%Vocalizing.")
          (instance ?MOUTH Mouth)
          (part ?TONGUE ?MOUTH))))
 
+(subclass NervousSystem Organ)
+(subclass NervousSystem AnimalAnatomicalStructure)
+(documentation NervousSystem EnglishLanguage "A system in &%Vertebrates that is made up of 
+the &%Brain, the spinal cord, nerves, etc.")
+
+(=>
+  (and
+    (instance ?S NervousSystem)
+    (part ?S ?A)
+    (instance ?A Animal))
+  (instance ?A Vertebrate))
+
 (subclass Hoof AnimalAnatomicalStructure)
 (subclass Hoof BodyPart)
 (documentation Hoof EnglishLanguage "The hard end of the &%Foot of a &%HoofedMammal.")
@@ -4443,6 +4857,10 @@ and &%Vocalizing.")
     (and
       (instance ?M HoofedMammal)
       (part ?H ?M))))
+
+(subclass Ivory Bone)
+(documentation Ivory EnglishLanguage "A very hard substance that makes up the tusks of 
+elephants and walruses.")
 
 (subclass AnimalShell AnimalAnatomicalStructure)
 (subclass AnimalShell BodyPart)
@@ -4508,20 +4926,36 @@ supporting structure for some &%Invertebrates.")
 of two persons are brought into contact with each other.")
 
 (=>
-   (instance ?KISS Kissing)
-   (exists (?PERSON1 ?PERSON2 ?LIP1 ?LIP2)
-      (and
-         (agent ?KISS ?PERSON1)
-         (agent ?KISS ?PERSON2)
-         (instance ?PERSON1 Human)
-         (instance ?PERSON2 Human)
-         (not (equal ?PERSON1 ?PERSON2))
-         (instance ?LIP1 Lip)
-         (instance ?LIP2 Lip)
-         (part ?LIP1 ?PERSON1)
-         (part ?LIP2 ?PERSON2)
-         (holdsDuring (BeginFn (WhenFn ?KISS)) (not (meetsSpatially ?LIP1 ?LIP2)))
-         (holdsDuring (EndFn (WhenFn ?KISS)) (meetsSpatially ?LIP1 ?LIP2)))))
+  (instance ?KISS Kissing)
+  (exists (?PERSON1 ?PERSON2 ?LIP1 ?LIP2)
+    (and
+      (agent ?KISS ?PERSON1)
+      (agent ?KISS ?PERSON2)
+      (instance ?PERSON1 Human)
+      (instance ?PERSON2 Human)
+      (not (equal ?PERSON1 ?PERSON2))
+      (instance ?LIP1 Lip)
+      (instance ?LIP2 Lip)
+      (part ?LIP1 ?PERSON1)
+      (part ?LIP2 ?PERSON2)
+      (holdsDuring 
+	(BeginFn (WhenFn ?KISS)) 
+	(not 
+	  (meetsSpatially ?LIP1 ?LIP2)))
+      (holdsDuring 
+	(EndFn (WhenFn ?KISS)) 
+	(meetsSpatially ?LIP1 ?LIP2)))))
+
+(subclass Licking Touching)
+(documentation Licking EnglishLanguage "The class of &%Touching processes where the &%Tongue 
+is brought into contact with something else.")
+
+(=>
+  (instance ?L Licking)
+  (exists (?T)
+    (and
+      (instance ?T Tongue)
+      (instrument ?L ?T))))
 
 (subclass Embracing Touching)
 (documentation Embracing EnglishLanguage "The class of &%Touching processes where one &%Human 
@@ -4655,8 +5089,24 @@ pulling hair out by the roots, etc.")
 digestion.")
 
 (=>
-   (instance ?STOMACH Stomach)
-   (capability Digesting instrument ?STOMACH))
+  (instance ?S Stomach)
+  (capability Digesting instrument ?S))
+
+(subclass Intestine BodyVessel)
+(subclass Intestine AnimalAnatomicalStructure)
+(documentation Intestine EnglishLanguage "A &%BodyVessel which connects the &%Stomach to 
+the anus and which is used in digesting &%Food.")
+
+(=>
+  (instance ?I Intestine)
+  (capability Digesting instrument ?I))
+
+(=>
+  (instance ?I Intestine)
+  (exists (?S)
+    (and
+      (instance ?S Stomach)
+      (connected ?I ?S))))
 
 (subclass Hypothalamus BodyPart)
 (subclass Hypothalamus AnimalAnatomicalStructure)
@@ -4752,6 +5202,10 @@ cover or uncover &%Eyes.")
          (instrument ?PROC ?GLAND)
          (result ?PROC ?HORMONE))))
 
+(subclass Insulin Hormone)
+(documentation Insulin EnglishLanguage "A &%Hormone secreted by the &%Pancreas that is used 
+to regulate the metabolism of &%Carbohydrates.")
+
 (subclass Arm Limb)
 (documentation Arm EnglishLanguage "The upper &%Limbs of a &%Primate.")
 
@@ -4796,6 +5250,18 @@ found in the higer &%Vertebrates and the &%Amphibians.")
       (and
          (instance ?HAND Hand)
          (part ?FINGER ?HAND))))
+
+(subclass NailDigit AnimalAnatomicalStructure)
+(documentation NailDigit EnglishLanguage "Any of the horny structures which are found 
+on the &%DigitAppendages of &%Primates and other &%Animals.  This includes
+fingernails and toenails.")
+
+(=>
+   (instance ?N NailDigit)
+   (exists (?D)
+      (and
+         (instance ?D DigitAppendage)
+         (part ?N ?D))))
 
 (subclass Fingerprint ShapeAttribute)
 (subclass Fingerprint BiologicalAttribute)
@@ -4860,6 +5326,9 @@ and/or sting.")
 (subclass Grasshopper Insect)
 (documentation Grasshopper EnglishLanguage "&%Insects with enormous legs that are used for 
 jumping.")
+
+(subclass Moth Insect)
+(documentation Moth EnglishLanguage "Nocturnal &%Insect with a large body and antennae.")
 
 (subclass QueenInsect Insect)
 (documentation QueenInsect EnglishLanguage "A &%Female &%Insect which is the sole member of 
@@ -4959,6 +5428,16 @@ the neck.")
       (and
          (instance ?PRIMATE Primate)
          (part ?SHOULDER ?PRIMATE))))
+
+(subclass Knuckle BodyJoint)
+(documentation Knuckle EnglishLanguage "Any joint in a &%Finger.")
+
+(=>
+   (instance ?KNUCKLE Knuckle)
+   (exists (?FINGER)
+      (and
+         (instance ?FINGER Finger)
+         (part ?KNUCKLE ?FINGER))))
 
 (subclass Torso AnimalAnatomicalStructure)
 (subclass Torso BodyPart)
@@ -5185,6 +5664,12 @@ recognition, goodwill, etc.")
 (documentation Clapping EnglishLanguage "Bringing the &%Hands together repeatedly to make 
 a loud noise.")
 
+(subclass Inclining BodyMotion)
+(subclass Inclining MotionDownward)
+(documentation Inclining EnglishLanguage "Moving one's body downward from a vertical position.  
+Note that this class covers cases of leaning forward, as well as those of 
+reclining backwards.")
+
 (subclass Bowing Gesture)
 (subclass Bowing Inclining)
 (subclass Bowing MotionDownward)
@@ -5303,6 +5788,17 @@ whether the &%Artifact actually exists or not.")
          (instance ?AREA GeopoliticalArea)
          (refers ?FLAG ?AREA))))
 
+(subclass NationalFlag Flag)
+(documentation NationalFlag EnglishLanguage "A &%Flag that is the official flag of a &%Nation, 
+e.g. the stars and stripes is the &%NationalFlag of the &%UnitedStates.")
+
+(=>
+  (instance ?F Flag)
+  (exists (?N)
+    (and
+      (instance ?N Nation)
+      (refers ?F ?N))))
+
 (subclass GraphDiagram Icon)
 (documentation GraphDiagram EnglishLanguage "An &%Icon which depicts one or more quantities.")
 (=>
@@ -5315,6 +5811,17 @@ whether the &%Artifact actually exists or not.")
 (subclass ArrowIcon Icon)
 (documentation ArrowIcon EnglishLanguage "An &%Icon which has the shape of an arrow and which 
 is used to indicate direction or a relationship betwee two things.")
+
+(subclass Map Icon)
+(documentation Map EnglishLanguage "An &%Icon which represents one or more &%GeographicAreas 
+(or even the entire &%Earth).")
+
+(=>
+  (instance ?M Map)
+  (exists (?A)
+    (and
+      (instance ?A GeographicArea)
+      (represents ?M ?A))))
 
 (subclass Photograph Icon)
 (documentation Photograph EnglishLanguage "An &%Icon that is the result of a process of 
@@ -5360,12 +5867,36 @@ is a camera and the &%result is a &%Photograph.")
         (MeasureFn ?NUMBER TonMass)
         (MeasureFn (MultiplicationFn ?NUMBER 2000) PoundMass)))
 
+(instance MetricTon UnitOfMass)
+(documentation MetricTon EnglishLanguage "&%MetricTon is a &%UnitOfMeasure that represents 
+a weight of 2,205 &%PoundMass.")
+
+(equal 
+  (MeasureFn 1 MetricTon) 
+  (MeasureFn 2205 PoundMass))
+
+(<=>
+  (measure ?O 
+    (MeasureFn ?A MetricTon))
+  (measure ?O 
+    (MeasureFn 
+      (MultiplicationFn ?A 2205) 
+    PoundMass)))
+
 (instance Page UnitOfInformation)
 (documentation Page EnglishLanguage "A single page of &%Text.")
 
 (instance LiquorShot UnitOfVolume)
 (documentation LiquorShot EnglishLanguage "A &%UnitOfMeasure used in preparing &%AlcoholicBeverages.")
 
+(instance MillenniumDuration UnitOfDuration)
+(documentation MillenniumDuration EnglishLanguage "The &%UnitOfDuration of 1000 years.")
+
+(=>
+  (equal ?N (MultiplicationFn 1 ?N))
+  (equal
+    (MeasureFn ?N MillenniumDuration)
+    (MeasureFn (MultiplicationFn ?N 1000) YearDuration)))
 
 (instance Acre UnitOfArea)
 (documentation Acre EnglishLanguage "A &%UnitOfMeasure equal to 4840 square yards.")
@@ -5457,6 +5988,35 @@ that express &%Laws concerning the relations between &%Nations.")
          (realization ?ACTION ?CRIME)
          (not (consistent ?CONTENT ?CRIME)))))
 
+(subclass LawEnforcement PoliticalProcess)
+(subclass LawEnforcement RegulatoryProcess)
+(documentation LawEnforcement EnglishLanguage "Any &%RegulatoryProcess where the agent is either 
+a &%PoliceOrganization or a member of a &%PoliceOrganization.  This covers 
+everything from issuing a traffic ticket to arresting someone on suspicion of having 
+committed a &%Murder.")
+
+(=>
+  (and
+    (instance ?L LawEnforcement)
+    (agent ?L ?AGENT))
+  (or
+    (instance ?P PoliceOrganization)
+    (exists (?O)
+      (and
+        (instance ?O PoliceOrganization)
+        (member ?P ?O)))))
+
+(subclass Imprisoning Confining)
+(documentation Imprisoning EnglishLanguage "The class of &%Confining processes where the detainee 
+is put in &%Prison.")
+
+(=>
+  (instance ?I Imprisoning)
+  (exists (?P)
+    (and
+      (instance ?P Prison)
+      (located ?I ?P))))
+
 (subclass Espionage PoliticalProcess)
 (subclass Espionage Investigating)
 (documentation Espionage EnglishLanguage "Any Investigating by one &%Government of another 
@@ -5472,6 +6032,11 @@ spied upon.")
       (patient ?S ?GOV2)
       (not 
         (equal ?GOV1 ?GOV2))))) 
+
+(subclass MilitaryInfiltration MilitaryProcess)
+(subclass MilitaryInfiltration Translocation)
+(documentation MilitaryInfiltration EnglishLanguage "Any &%Process by a &%MilitaryOrganization 
+which involves moving through enemy positions without detection by the enemy.")
 
 (disjointDecomposition Sentence Statement Supposition Question Request Order)
 
@@ -5627,6 +6192,9 @@ of income tax owed in a given year.")
                              (transactionAmount ?TAX ?AMOUNT)
                              (instance ?TAX Tax)))))
 
+(subclass IncomeTax Tax)
+(documentation IncomeTax EnglishLanguage "A &%Tax on annual income.")
+
 (subclass DutyTax Tax)
 (documentation DutyTax EnglishLanguage "A &%Tax that is levied on imports and/or exports.")
 (=>
@@ -5690,6 +6258,37 @@ an event in the future.")
 &%MotionPictureShot is a sequence of images which are captured by a single 
 camera without interruption.")
 
+(=>
+   (instance ?SHOT MotionPictureShot)
+   (exists (?MOVIE)
+      (and
+         (instance ?MOVIE MotionPicture)
+         (subsumesContentInstance ?MOVIE ?SHOT))))
+
+(=>
+  (instance ?SHOT MotionPictureShot)
+  (exists (?C)
+    (and
+      (instance ?C Camera)
+      (instrument ?SHOT ?C)
+      (not
+        (exists (?C2)
+	  (and
+	    (instance ?C2 Camera)
+	    (not (equal ?C ?C2))
+	    (instrument ?SHOT ?C2)))))))
+
+(subclass MotionPictureScene MotionPicture)
+(documentation MotionPictureScene EnglishLanguage "A discrete part of a &%MotionPicture which is set in 
+the same time period and the same location.")
+
+(=>
+  (instance ?S MotionPictureScene)
+  (exists (?M)
+    (and
+      (instance ?M MotionPicture)
+      (subsumesContentInstance ?MOVIE ?S))))
+
 (subclass Documentary MotionPicture)
 (subclass Documentary FactualText)
 (documentation Documentary EnglishLanguage "A &%MotionPicture which purports to represent the 
@@ -5748,28 +6347,32 @@ and not just to a single copy of the book.")
 describes the findings of a study or experiment, or a series of 
 observations.")
 
+(subclass Message FactualText)
+(documentation Message EnglishLanguage "A &%FactualText which is intended to be delivered to 
+and read by a &%Human, &%GroupOfPeople or &%Organization.")
+
 (subclass Newspaper Periodical)
 (documentation Newspaper EnglishLanguage "A &%Periodical that is published on a daily or 
 weekly basis, that contains &%Reports, and whose issues are printed on 
 newsprint paper.")
 
 (=>
-   (instance ?PAPER Newspaper)
-   (exists (?REPORT)
-      (and
-         (instance ?REPORT Report)
-         (subsumesContentInstance ?PAPER ?REPORT))))
+  (instance ?PAPER Newspaper)
+  (exists (?REPORT)
+    (and
+      (instance ?REPORT Report)
+      (subsumesContentInstance ?PAPER ?REPORT))))
 
 (=>
-   (and
-      (subclass ?PAPER Newspaper)
-      (instance ?WEEK Week))
-   (exists (?PUBLICATION ?ISSUE)
-      (and
-         (instance ?PUBLICATION Publication)
-         (temporalPart (WhenFn ?PUBLICATION) ?WEEK)
-         (result ?PUBLICATION ?ISSUE)
-         (instance ?ISSUE ?PAPER))))
+  (and
+    (subclass ?PAPER Newspaper)
+    (instance ?WEEK Week))
+  (exists (?PUBLICATION ?ISSUE)
+    (and
+      (instance ?PUBLICATION Publication)
+      (temporalPart (WhenFn ?PUBLICATION) ?WEEK)
+      (result ?PUBLICATION ?ISSUE)
+      (instance ?ISSUE ?PAPER))))
 
 (subclass Magazine Periodical)
 (documentation Magazine EnglishLanguage "A &%Periodical that is softbound and printed on 
@@ -5844,6 +6447,17 @@ or false.")
 (subclass ShortStory Article)
 (documentation ShortStory EnglishLanguage "A brief work of fiction, often bound with other 
 short stories in a &%Book or &%Periodical.")
+
+(subclass MysteryStory FictionalText)
+(documentation MysteryStory EnglishLanguage "A &%FictionalText whose central plot element is a 
+crime of some sort, usually a murder.")
+
+(=>
+  (instance ?S MysteryStory)
+  (exists (?C)
+    (and
+      (instance ?C CriminalAction)
+      (refers ?S ?C))))
 
 (subclass Novel FictionalText)
 (subclass Novel Book)
@@ -5938,6 +6552,16 @@ by step, from one level to another.")
          (instance ?STEPS Steps)
          (connects ?STEPS ?LEVEL1 ?LEVEL2))))
    
+(subclass Ladder Artifact)
+(documentation Ladder EnglishLanguage "An &%Artifact which consists of two parallel supports 
+connected by a series of rungs which can be used to ascend or descend.")
+
+(=>
+   (instance ?LADDER Ladder)
+   (and
+      (capability MotionUpward instrument ?LADDER)
+      (capability MotionDownward instrument ?LADDER)))
+
 (instance Transparent InternalAttribute)
 (documentation Transparent EnglishLanguage "A Transparent material is one through which
 it is possible to have &%Seeing.")
@@ -6335,6 +6959,11 @@ scientific research, i.e. &%Experimenting, is conducted.")
          (instance ?EXPERIMENT Experimenting)
          (located ?EXPERIMENT ?LAB))))
 
+(subclass MilitaryInstallation StationaryArtifact)
+(subclass MilitaryInstallation MilitaryArtifact)
+(documentation MilitaryInstallation EnglishLanguage "A &%StationaryArtifact consisting of grounds 
+and &%Buildings that is intended to be used by a &%MilitaryOrganization.")
+
 (subclass Farm StationaryArtifact)
 (documentation Farm EnglishLanguage "A &%StationaryArtifact consisting of a cultivated 
 &%LandArea and &%Buildings for maintaining the land and/or the &%Animals 
@@ -6455,6 +7084,16 @@ and/or &%Music and which is intended to entertain the audience.")
 (documentation Lecture EnglishLanguage "Any instance of &%Speaking which is done before an 
 assembled audience.")
 
+(subclass MusicalPerformance Performance)
+(documentation MusicalPerformance EnglishLanguage "A &%Performance that consists exclusively of 
+&%Music, e.g. an orchestra playing a symphony to an assembled audience.")
+
+(=>
+  (and
+    (instance ?P MusicalPerformance)
+    (subProcess ?M ?P))
+  (instance ?M Music))
+
 (subclass Sermon Lecture)
 (documentation Sermon EnglishLanguage "A &%Lecture that is part of a &%ReligiousService.")
 
@@ -6526,6 +7165,10 @@ the &%Death of someone.")
     (and
       (instance ?D Death)
       (refers ?F ?D))))
+
+(subclass Interviewing FormalMeeting)
+(documentation Interviewing EnglishLanguage "A &%FormalMeeting whose purpose is to acquire 
+information from the interviewee that can be used in a media report.")
 
 (subclass Choreographing Planning)
 (documentation Choreographing EnglishLanguage "&%Planning that results in a sequence of dance 
@@ -6600,6 +7243,11 @@ the &%agent.")
          (instance ?GOV Government)
          (agent ?CHARGE ?GOV))))
    
+(subclass LegalAppeal Requesting)
+(subclass LegalAppeal JudicialProcess)
+(documentation LegalAppeal EnglishLanguage "Asking that a higher court reconsider a &%LegalDecision 
+of a lower court.")
+
 (subclass Testifying Stating)
 (documentation Testifying EnglishLanguage "Giving testimony as part of a &%JudicialProcess.")
 
@@ -6654,6 +7302,29 @@ the corresponding &%LegalAction some amount of monetary compensation.")
 (subclass LegalConviction LegalDecision)
 (documentation LegalConviction EnglishLanguage "Any &%LegalDecision where the defendant is found 
 guilty of the crime for which the corresponding trial was held.")
+
+(subclass LegalDismissal LegalDecision)
+(documentation LegalDismissal EnglishLanguage "Any &%LegalDecision where the &%LegalAction of 
+the plaintiff is dismissed by the court, e.g. for lack of merit.")
+
+(subclass LegalSummons Ordering)
+(subclass LegalSummons JudicialProcess)
+(documentation LegalSummons EnglishLanguage "An official order that a person appear at a 
+&%CourtRoom at a specified time.")
+
+(=>
+  (and
+    (instance ?S LegalSummons)
+    (patient ?S ?O)
+    (destination ?S ?P))
+  (exists (?C ?T)
+    (and
+      (instance ?C CourtRoom)
+      (containsInformation ?O 
+        (modalAttribute 
+	  (holdsDuring ?T 
+	    (located ?P ?C)) 
+	  Law))))) 
 
 (subclass LegalAquittal LegalDecision)
 (documentation LegalAquittal EnglishLanguage "Any &%LegalDecision where the defendant is found 
@@ -6761,6 +7432,23 @@ of being &%Unconscious to a state of being &%Awake.")
         (WhenFn ?G)) 
       (attribute ?A Awake)))) 
 
+(subclass LosingConsciousness PsychologicalProcess)
+(disjoint LosingConsciousness GainingConsciousness)
+(documentation LosingConsciousness EnglishLanguage "The process of transitioning from a state 
+of being &%Awake to a state of being &%Unconscious.")
+
+(=>
+  (and
+    (instance ?L LosingConsciousness)
+    (experiencer ?L ?A))
+  (and
+    (holdsDuring 
+      (BeginFn (WhenFn ?L)) 
+      (attribute ?A Awake))
+    (holdsDuring 
+      (EndFn (WhenFn ?L)) 
+      (attribute ?A Unconscious))))
+
 (subclass AcademicDegree Certificate)
 (documentation AcademicDegree EnglishLanguage "A &%Certificate that demonstrates that the holder 
 of the &%Certificate has successfully completed an &%EducationalProgram.")
@@ -6774,6 +7462,19 @@ of the &%Certificate has successfully completed an &%EducationalProgram.")
          (instance ?PROGRAM EducationalProgram)
          (realization ?STUDY ?PROGRAM)
          (experiencer ?STUDY ?AGENT))))
+
+(subclass License Certificate)
+(documentation License EnglishLanguage "License is the subclass of &%Certificates that 
+are granted by a &%GovernmentOrganization and that authorize the performance 
+of a kind of action, e.g., driving, exporting, travelling to another 
+country, etc.")
+
+(=>
+  (instance ?L License)
+  (exists (?ORG)
+    (and
+      (instance ?ORG GovernmentOrganization)
+      (issuedBy ?L ?ORG))))
 
 (subclass EducationalProgram Plan)
 (documentation EducationalProgram EnglishLanguage "A series of &%EducationalCourses that must 
@@ -6862,6 +7563,10 @@ grants masters and/or doctorate degrees, and which is part of a &%University.")
     (and
       (instance ?U University)
       (part ?S ?U))))
+
+(subclass MedicalSchool GraduateSchool)
+(documentation MedicalSchool EnglishLanguage "A &%GraduateSchool that is devoted to 
+&%MedicalScience and that grants the degree of doctor of medicine.")
 
 (subclass ArtSchool School)
 (documentation ArtSchool EnglishLanguage "Any &%School whose aim is to teach students 
@@ -7280,6 +7985,35 @@ so.")
          (subProcess ?ARRIVE ?GO)
          (finishes (WhenFn ?ARRIVE) (WhenFn ?GO)))))
 
+(subclass Immigrating Translocation)
+(documentation Immigrating EnglishLanguage "Any &%Translocation by a Human from one &%Nation 
+to another &%Nation where the person is not a citizen for the purpose of taking 
+up residence.")
+
+(=>
+  (and
+    (instance ?I Immigrating)
+    (agent ?I ?A))
+  (exists (?N1 ?N2)
+    (and
+      (instance ?N1 Nation)
+      (instance ?N2 Nation)
+      (origin ?I ?N1)
+      (destination ?I ?N2)
+      (not 
+        (equal ?N1 ?N2))
+      (member ?A (CitizenryFn ?N1))
+      (not 
+        (member ?A (CitizenryFn ?N2)))
+      (hasPurpose ?I 
+        (inhabits ?A ?N2)))))
+
+(=>
+  (and
+    (instance ?I Immigrating)
+    (agent ?I ?A))
+  (instance ?A Human))
+
 (subclass Boarding Translocation)
 (documentation Boarding EnglishLanguage "Getting on a &%Vehicle, e.g. getting into an 
 &%Automobile, boarding an &%Aircraft, etc.")
@@ -7458,10 +8192,32 @@ over a flood plain along a &%Waterway.")
 else is an &%Animal or a self-powered &%TransportationDevice.")
 
 (=>
-   (and
-      (instance ?PULL Pulling)
-      (patient ?PULL ?DEVICE))
-   (instance ?DEVICE TransportationDevice))
+  (and
+    (instance ?P Pulling)
+    (patient ?P ?D))
+  (instance ?D TransportationDevice))
+
+(subclass MilitaryVehicle Vehicle)
+(documentation MilitaryVehicle EnglishLanguage "Any &%Vehicle which is intended to be 
+used by a &%MilitaryOrganization.")
+
+(=>
+  (instance ?V MilitaryVehicle)
+  (hasPurpose ?V 
+    (exists (?O)
+      (and
+        (instance ?O MilitaryOrganization)
+        (uses ?V ?O)))))
+
+(subclass MilitaryWaterVehicle WaterVehicle)
+(documentation MilitaryWaterVehicle EnglishLanguage "&%MilitaryWaterVehicle is the class of 
+all &%WaterVehicle owned or leased for use by some &%MilitaryOrganization.")
+
+(subclass MilitaryTank MilitaryVehicle)
+(subclass MilitaryTank RoadVehicle)
+(subclass MilitaryTank ArtilleryGun)
+(documentation MilitaryTank EnglishLanguage "A &%MilitaryVehicle that moves along the ground 
+on treaded wheels and that contains a large cannon.")
 
 (subclass AirTransportation Transportation)
 (documentation AirTransportation EnglishLanguage "Any instance of &%Transportation where the 
@@ -7489,6 +8245,24 @@ else is an &%Animal or a self-powered &%TransportationDevice.")
 (subclass Helicopter Aircraft)
 (documentation Helicopter EnglishLanguage "Any &%Aircraft with rapidly rotating wings.")
 
+(subclass MilitaryArtifact Artifact)
+(documentation MilitaryArtifact EnglishLanguage "Any &%Artifact which is made for a 
+&%MilitaryOrganization.")
+
+(=>
+  (instance ?A MilitaryArtifact)
+  (hasPurpose 
+    (exists (?O)
+      (and
+        (instance ?O MilitaryOrganization)
+        (uses ?A ?O)))))
+
+(subclass MilitaryAircraft Aircraft)
+(subclass MilitaryAircraft MilitaryVehicle)
+(documentation MilitaryAircraft EnglishLanguage "Any &%Aircraft which is made for a 
+&%MilitaryOrganization.  This includes fighters, &%Bombers, attack 
+helicopters, etc.")
+
 (subclass Fighter MilitaryAircraft)
 (documentation Fighter EnglishLanguage "Any high-speed &%MilitaryAircraft whose purpose is 
 to destroy enemy &%MilitaryAircraft.")
@@ -7514,6 +8288,11 @@ to destroy enemy &%MilitaryAircraft.")
         (instrument ?T ?B)
         (patient ?T ?D)
         (instance ?D ExplosiveDevice)))))
+
+(subclass MilitaryShip Ship)
+(subclass MilitaryShip MilitaryWaterVehicle)
+(documentation MilitaryShip EnglishLanguage "Any &%Ship which is made for a &%MilitaryOrganization.  
+This includes aircraft carriers, destroyers, etc.")
 
 (subclass ExplosiveDevice Device)
 (documentation ExplosiveDevice EnglishLanguage "A &%Device whose purpose is to explode.  Note 
@@ -7607,6 +8386,15 @@ four-wheeled passenger road vehicles.")
   (instance ?A Automobile)
   (equipmentCount ?A Axle 2))
 
+(subclass Motorcycle SelfPoweredRoadVehicle)
+(documentation Motorcycle EnglishLanguage "Motorcycle is the subclass of &%RoadVehicles 
+that have two wheels one behind the other in the frame, upon which the rider 
+sits on a seat above the engine.")
+
+(=>
+  (instance ?M Motorcycle)
+  (equipmentCount ?M VehicleWheel 2))
+
 (subclass Bus SelfPoweredRoadVehicle)
 (documentation Bus EnglishLanguage "Bus is the subclass of &%SelfPoweredRoadVehicles 
 that can transport large numbers of passengers (i.e., dozens) at one 
@@ -7624,6 +8412,11 @@ designed to carry less than a dozen people.")
         (=>
           (member ?P ?C)
           (patient ?T ?P))))))
+
+(subclass MotorizedRailwayCar RollingStock)
+(subclass MotorizedRailwayCar PoweredVehicle)
+(documentation MotorizedRailwayCar EnglishLanguage "&%MotorizedRailwayCar is the subclass 
+of railway cars that carry their own power source.")
 
 (subclass StageCoach Wagon)
 (documentation StageCoach EnglishLanguage "A &%Wagon that is pulled by &%Horses and whose purpose 
@@ -7837,6 +8630,15 @@ drills.")
         (result ?E ?H)
         (instrument ?E ?D)))))
 
+(subclass Memorizing Learning)
+(documentation Memorizing EnglishLanguage "The process of committing a &%Text to memory.")
+
+(=>
+  (and
+    (instance ?M Memorizing)
+    (patient ?M ?T))
+  (instance ?T Text))
+
 (subclass Imagining PsychologicalProcess)
 (documentation Imagining EnglishLanguage "Forming a mental picture of something which 
 is not present.")
@@ -8045,6 +8847,7 @@ salaried and is paid for less than 40 hours of work per week.")
 (instance CollegeFreshman CollegeStudentPosition)
 (documentation CollegeFreshman EnglishLanguage "The &%Positions of a student at a &%PostSecondarySchool 
 who has completed less than one year at the school.")
+
 (=>
   (and
     (attribute ?P CollegeFreshman)
@@ -8057,6 +8860,7 @@ who has completed less than one year at the school.")
 (instance CollegeJunior CollegeStudentPosition)
 (documentation CollegeJunior EnglishLanguage "The &%Positions of a student at a &%PostSecondarySchool 
 who has completed at least two years and less than three years at the school.")
+
 (=>
   (and
     (attribute ?P CollegeJunior)
@@ -8070,6 +8874,7 @@ who has completed at least two years and less than three years at the school.")
 (instance CollegeSenior CollegeStudentPosition)
 (documentation CollegeSenior EnglishLanguage "The &%Positions of a student at a &%PostSecondarySchool 
 who has completed at least three years and less than four years at the school.")
+
 (=>
   (and
     (attribute ?P CollegeJunior)
@@ -8083,6 +8888,7 @@ who has completed at least three years and less than four years at the school.")
 (instance CollegeSophomore CollegeStudentPosition)
 (documentation CollegeSophomore EnglishLanguage "The &%Positions of a student at a &%PostSecondarySchool 
 who has completed at least one year and less than two years at the school.")
+
 (=>
   (and
     (attribute ?P CollegeSophomore)
@@ -8100,6 +8906,7 @@ which is occupied exclusively by students.")
 (instance Comedian EntertainmentProfession)
 (documentation Comedian EnglishLanguage "&%Positions which involve performing stand-up comedy, which 
 is recorded and/or performed in front of live audiences.")
+
 (=>
   (attribute ?P Comedian)
   (exists (?PERF ?L)
@@ -8112,6 +8919,7 @@ is recorded and/or performed in front of live audiences.")
 (instance Banker SkilledOccupation)
 (documentation Banker EnglishLanguage "Any &%SkilledOccupation which involves working in a 
 &%FinancialBank.")
+
 (=>
    (and
       (instance ?H Human)
@@ -8127,6 +8935,7 @@ phones, keeping schedules, etc.")
 (instance Dentist Profession)
 (documentation Dentist EnglishLanguage "The &%Profession of being a dentist, i.e. diagnosing 
 and treating problems related to the teeth.")
+
 (=>
   (attribute ?P Dentist)
   (exists (?D ?T)
@@ -8140,6 +8949,7 @@ and treating problems related to the teeth.")
 (documentation EntertainmentProfession EnglishLanguage "Positions which involve creating 
 content or performances that are intended to entertain.  This class covers 
 the &%TheaterProfession, &%FilmMakingProfession, being a comedian, etc.")
+
 (=>
   (and
     (instance ?EP EntertainmentProfession)
@@ -8151,11 +8961,27 @@ the &%TheaterProfession, &%FilmMakingProfession, being a comedian, etc.")
 (subclass GovernmentOfficer Profession)
 (documentation GovernmentOfficer EnglishLanguage "Any &%Profession where the position occupied 
 is within a &%GovernmentOrganization.")
+
 (=>
   (and
     (instance ?O GovernmentOfficer)
     (occupiesPosition ?P ?O ?ORG))
   (instance ?ORG GovernmentOrganization))
+
+(subclass Journalist Profession)
+(documentation Journalist EnglishLanguage "The &%Profession of being a news reporter, i.e. 
+investigating and reporting, in a publication or broadcast program, current 
+events.")
+
+(=>
+  (attribute ?P Journalist)
+  (and
+    (occupation ?P (OccupationFn ContentDevelopment))
+    (occupation ?P (OccupationFn Disseminating))))
+
+(subclass ModellingPosition Position)
+(documentation ModellingPosition EnglishLanguage "Any &%Position which involves posing for an 
+artist or photographer.")
 
 (subclass Soldier SkilledOccupation)
 (documentation Soldier EnglishLanguage "The class of &%SkilledOccupations which involve serving in 
@@ -8185,6 +9011,10 @@ during the American Civil War.")
          (or
             (instance ?PATIENT MilitaryOrganization)
             (instance ?PATIENT Soldier)))))
+
+(subclass MajorGeneral MilitaryGeneral)
+(documentation MajorGeneral EnglishLanguage "A &%MilitaryGeneral that ranks above a 
+&%BrigadierGeneral.")
 
 (subclass BrigadierGeneral MilitaryGeneral)
 (documentation BrigadierGeneral EnglishLanguage "A &%MilitaryGeneral that ranks below 
@@ -8460,6 +9290,10 @@ one or more floors below a second thing in the same building.")
          (located ?OBJ1 ?LEVEL1)
          (located ?OBJ2 ?LEVEL2)
          (orientation ?LEVEL1 ?LEVEL2 Below))))
+
+(subclass LinguisticAttribute InternalAttribute)
+(documentation LinguisticAttribute EnglishLanguage "Any &%Attribute that is 
+expressed by a &%Language or class of &%Languages.")
 
 (instance Happiness EmotionalState)
 (documentation Happiness EnglishLanguage "The state of being happy, experiencing pleasure, 
@@ -9194,6 +10028,15 @@ shell (e.g. slugs) or a univalve shell (e.g. snails).")
 (documentation Sheep EnglishLanguage "A domesticated &%HoofedMammal that is bred for its 
 wool and for its meat (known as mutton).")
 
+(subclass Lamb Sheep)
+(documentation Lamb EnglishLanguage "A young &%Sheep, i.e. a &%Sheep that is &%NonFullyFormed.")
+
+(<=>
+  (instance ?L Lamb)
+  (and
+    (instance ?L Sheep)
+    (attribute ?L NonFullyFormed)))
+
 (subclass Cow HoofedMammal)
 (subclass Cow DomesticAnimal)
 (documentation Cow EnglishLanguage "A domesticated &%HoofedMammal that is raised for milk 
@@ -9375,20 +10218,31 @@ work.")
 (documentation UnskilledOccupation EnglishLanguage "Any &%Position which does not 
 require learning a set of skills.") 
 
-(instance Maid UnskilledOccupation)
-(documentation Maid EnglishLanguage "A &%Position which involves &%Serving a person 
-or family.  Note that this &%Position is filled only by a &%Woman.")
+(subclass Maid ServicePosition)
+(documentation Maid EnglishLanguage "Any &%ServicePosition where various needs of a person 
+or family are served over a long period of time.  Note that these &%Positions 
+are, by definition, filled only by &%Women.")
 
 (=>
-   (attribute ?MAID Maid)
-   (instance ?MAID Woman))
+  (attribute ?MAID Maid)
+  (instance ?MAID Woman))
 
 (=>
-   (attribute ?MAID Maid)
-   (exists (?SERVE)
-      (and
-         (instance ?SERVE Serving)
-         (agent ?SERVE ?MAID))))       
+  (attribute ?MAID Maid)
+  (exists (?SERVE)
+    (and
+      (instance ?SERVE Serving)
+      (agent ?SERVE ?MAID))))       
+
+(subclass Janitor UnskilledOccupation)
+(documentation Janitor EnglishLanguage "Any &%Position which involves cleaning a &%Building 
+or some of the &%Rooms within a &%Building.")
+
+(=>
+  (and
+    (instance ?J Janitor)
+    (attribute ?P ?J))
+  (occupation ?P (OccupationFn Washing)))
 
 (instance TheaterProfession SkilledOccupation)
 (subclass TheaterProfession EntertainmentProfession)
@@ -9508,9 +10362,14 @@ by a layman, which is part-time, and which involves assisting a &%Cleric.")
 (instance PoliceOfficer GovernmentOfficer)
 (documentation PoliceOfficer EnglishLanguage "The &%Profession of being a police officer, i.e. 
 working for a law enforcement agency that is part of a &%Government.")
+
 (=>
   (attribute ?P PoliceOfficer)
   (hasSkill PlacingUnderArrest ?P))
+
+(subclass Marshal PoliceOfficer)
+(documentation Marshal EnglishLanguage "A &%PoliceOfficer whose responsibility is to enforce 
+the decisions of a law court.")
 
 (subAttribute Deputy PoliceOfficer)
 (documentation Deputy EnglishLanguage "A &%Position which authorizes the holder of the position 
@@ -9541,6 +10400,26 @@ judge or as a legal advocate.")
 (instance AttorneyGeneral GovernmentOfficer)
 (documentation AttorneyGeneral EnglishLanguage "The head law officer of a &%GeopoliticalArea, 
 usually a &%Nation or &%StateOrProvince.")
+
+(subclass Judge Attorney)
+(subclass Judge GovernmentOfficer)
+(documentation Judge EnglishLanguage "An &%Attorney who has the power of deciding legal cases.")
+
+(=>
+  (and
+    (instance ?J Judge)
+    (occupiesPosition ?P ?J ?O))
+  (modalAttribute 
+    (exists (?D) 
+      (and 
+        (instance ?D LegalDecision)
+        (agent ?D ?P))) Permission)) 
+
+(=>
+  (and
+    (instance ?J Judge)
+    (occupiesPosition ?P ?J ?O))
+  (instance ?O JudicialOrganization))
 
 (subAttribute Professor Teacher)
 (documentation Professor EnglishLanguage "The &%Profession of being a &%teacher at a 
@@ -9930,6 +10809,11 @@ of &%BreadOrBiscuits.")
 (documentation Coconut EnglishLanguage "A &%FruitOrVegetable that is produced by a type of palm 
 and has an edible white meat.")
 
+(subclass LemonFruit FruitOrVegetable)
+(subclass LemonFruit Food)
+(documentation LemonFruit EnglishLanguage "A citrus &%FruitOrVegetable that has a yellow skin 
+and a tart, acidic flavor.")
+
 (subclass MaizeGrain CerealGrain)
 (documentation MaizeGrain EnglishLanguage "A &%CerealGrain which is found on long ears of a &%Plant 
 native to the Americas.")
@@ -9959,6 +10843,10 @@ palm.")
 (subclass Avocado Food)
 (documentation Avocado EnglishLanguage "A &%FruitOrVegetable that is shaped like a pear and 
 has a dark green skin and a rich meat.")
+
+(subclass Ion PureSubstance)
+(documentation Ion EnglishLanguage "An electronically charged &%Atom or &%Molecule.  In 
+other words, a &%PureSubstance that has lost one of its &%Electrons.")
 
 (subclass FreeAtom Atom)
 (documentation FreeAtom EnglishLanguage "Any &%Atom which is not part of a &%Molecule.")
@@ -10079,6 +10967,18 @@ by another &%contestParticipant.")
             (instance ?I ?C1)
             (agent ?I ?A1) 
             (subProcess ?I ?C)))))))
+
+(subclass MilitaryManeuver Maneuver)
+(documentation MilitaryManeuver EnglishLanguage "Any &%Maneuver which takes place in a &%Battle 
+and which is intended to secure a tactical advantage for one of the agents of 
+the &%Battle.")
+
+(=>
+  (instance ?M MilitaryManeuver)
+  (exists (?B)
+    (and
+      (instance ?B Battle)
+      (subProcess ?M ?B))))
 
 (subclass Arson Combustion)
 (subclass Arson Destruction)
@@ -10335,6 +11235,10 @@ of such an act is usually the death of the victim.")
       (instance ?ST Rock)
       (instrument ?X ?ST))))  
 
+(subclass Marble Rock)
+(documentation Marble EnglishLanguage "A metamorphic &%Rock that is used in &%Constructing 
+and in creating &%Sculptures.")
+
 (subclass SuicideBombing Bombing)
 (subclass SuicideBombing Killing)
 (documentation SuicideBombing EnglishLanguage "A bomb attack in which the bomber
@@ -10450,13 +11354,22 @@ either explicitly by name, or by action.")
 (=>
   (attribute ?X Celebrity)
   (greaterThan 
-      (CardinalityFn 
-        (KappaFn ?A
-          (knows ?A 
-            (exists (?P)
-              (equal ?P ?X)))))
-      1000))
+    (CardinalityFn 
+      (KappaFn ?A
+        (knows ?A 
+          (exists (?P)
+            (equal ?P ?X)))))
+    1000))
       
+(instance Musician SocialRole)
+(documentation Musician EnglishLanguage "A Musician is someone who is capable of giving a &%MusicalPerformance.
+This includes amateurs and others who don't formally make a living at the activity
+or choose it as a profession.")
+
+(=>
+  (attribute ?X Musician)
+  (hasSkill MusicalPerformance ?X))
+
 (subclass Checkpoint GeographicArea)
 (documentation Checkpoint EnglishLanguage "An area on or very near a border, usually along 
 a road connecting two regions, where &%MilitaryPersons or &%Police 
@@ -11956,6 +12869,23 @@ patient of the process is unhappy.")
           (instance ?S Stomach)
           (contains ?S ?G))))))
 
+(subclass Lengthening Increasing)
+(documentation Lengthening EnglishLanguage "&%Increasing the length of something.")
+
+(=>
+  (and
+    (instance ?L Lengthening)
+    (patient ?L ?O))
+  (exists (?L1 ?L2)
+    (and
+      (holdsDuring 
+	(BeginFn (WhenFn ?L)) 
+	(length ?O ?L1))
+      (holdsDuring 
+	(EndFn (WhenFn ?L)) 
+	(length ?O ?L2))
+      (greaterThan ?L2 ?L1))))
+
 (subclass Barking RadiatingSound)
 (documentation Barking EnglishLanguage "Any instance of &%RadiatingSound which is produced 
 by a &%Canine.")
@@ -11965,6 +12895,11 @@ by a &%Canine.")
     (and
       (instance ?D Canine)
       (agent ?B ?D))))
+
+(subclass Menstruation OrganOrTissueProcess)
+(documentation Menstruation EnglishLanguage "A periodic discharge of &%Blood and other 
+&%BiologicalSubstances by &%Females that is part of a readjustment of 
+the uterus.")
 
 (subclass BiologicalConception OrganOrTissueProcess)
 (relatedInternalConcept BiologicalConception SexualReproduction)
@@ -12006,6 +12941,37 @@ which reduce the likelihood of conception.")
       (instance ?B Bird)
       (result ?SR ?E))))
 
+(subclass Mating OrganismProcess)
+(documentation Mating EnglishLanguage "Any process of sexual intercourse between two &%Humans 
+or &%Animals.")
+
+(subclass LayingEggs OrganismProcess)
+(documentation LayingEggs EnglishLanguage "Any &%OrganismProcess where an &%Egg is expelled 
+from the body of a &%Animal, e.g. a &%Bird or &%Reptile laying eggs.")
+
+(=>
+  (and
+    (instance ?L LayingEggs)
+    (experiencer ?L ?A))
+  (exists (?E)
+    (and
+      (instance ?E Egg)
+      (patient ?L ?E)
+      (holdsDuring 
+        (BeginFn (WhenFn ?L)) 
+	(part ?E ?A))
+      (holdsDuring 
+        (EndFn (WhenFn ?L)) 
+	(not (part ?E ?A)))))) 
+
+(=>
+  (and
+    (instance ?L LayingEggs)
+    (experiencer ?L ?A))
+  (and
+    (instance ?A Animal)
+    (attribute ?A Female)))
+
 (subclass Biopsy DiagnosticProcess)
 (subclass Biopsy Removing)
 (documentation Biopsy EnglishLanguage "Any &%DiagnosticProcess which involves the examination of 
@@ -12017,368 +12983,8 @@ which reduce the likelihood of conception.")
   (instance ?BS BodySubstance))
 
 ;; ------------------------------------------------------
-;; New content that has not yet been fully formalized.   
+;; New content that has not yet been fully formalized.      
 
-(subclass Immigrating Translocation)
-(documentation Immigrating EnglishLanguage "Any &%Translocation by a Human from one &%Nation 
-to another &%Nation where the person is not a citizen for the purpose of taking 
-up residence.")
-(subclass Imprisoning Confining)
-(documentation Imprisoning EnglishLanguage "The class of &%Confining processes where the detainee 
-is put in &%Prison.")
-(subclass Inclining BodyMotion)
-(subclass Inclining MotionDownward)
-(documentation Inclining EnglishLanguage "Moving one's body downward from a vertical position.  
-Note that this class covers cases of leaning forward, as well as those of 
-reclining backwards.")
-(subclass IncomeTax Tax)
-(documentation IncomeTax EnglishLanguage "A &%Tax on annual income.")
-(subclass InfectiousDisease DiseaseOrSyndrome)
-(documentation InfectiousDisease EnglishLanguage "Any &%DiseaseOrSyndrome that is caused by a 
-&%Microorganism.")
-(subclass Inhaling Breathing)
-(documentation Inhaling EnglishLanguage "Any instance of &%Breathing where the breath is 
-taken into the &%Lungs.")
-(subclass Insulin Hormone)
-(documentation Insulin EnglishLanguage "A &%Hormone secreted by the &%Pancreas that is used 
-to regulate the metabolism of &%Carbohydrates.")
-(subclass InsuranceCompany CommercialAgent)
-(documentation InsuranceCompany EnglishLanguage "A &%CommercialAgent that insures &%Agents 
-for the payment of a premium or premiums.")
-(subclass InternalCombustionEngine Engine)
-(documentation InternalCombustionEngine EnglishLanguage "&%InternalCombustionEngine is 
-the subclass of &%Engines in which a heat reaction that occurs inside 
-the engine is transformed into mechanical energy.")
-(subclass Interviewing FormalMeeting)
-(documentation Interviewing EnglishLanguage "A &%FormalMeeting whose purpose is to acquire 
-information from the interviewee that can be used in a media report.")
-(subclass Intestine BodyVessel)
-(subclass Intestine AnimalAnatomicalStructure)
-(documentation Intestine EnglishLanguage "A &%BodyVessel which connects the &%Stomach to 
-the anus and which is used in digesting &%Food.")
-(subclass Ion PureSubstance)
-(documentation Ion EnglishLanguage "An electronically charged &%Atom or &%Molecule.  In 
-other words, a &%PureSubstance that has lost one of its &%Electrons.")
-(subclass Ivory Bone)
-(documentation Ivory EnglishLanguage "A very hard substance that makes up the tusks of 
-elephants and walruses.")
-(subclass Janitor UnskilledOccupation)
-(documentation Janitor EnglishLanguage "Any &%Position which involves cleaning a &%Building 
-or some of the &%Rooms within a &%Building.")
-(subclass Journalist Profession)
-(documentation Journalist EnglishLanguage "The &%Profession of being a news reporter, i.e. 
-investigating and reporting, in a publication or broadcast program, current 
-events.")
-(subclass Judge Attorney)
-(subclass Judge GovernmentOfficer)
-(documentation Judge EnglishLanguage "An &%Attorney who has the power of deciding legal cases.")
-(subclass Jumping BodyMotion)
-(subclass Jumping MotionUpward)
-(documentation Jumping EnglishLanguage "Any &%MotionUpward which is done by one's body 
-and which results in a situation where one's feet are unsupported.")
-(subclass Kidney Organ)
-(subclass Kidney AnimalAnatomicalStructure)
-(documentation Kidney EnglishLanguage "An &%Organ that separates urine from other 
-&%BodySubstances and passes it to the bladder.")
-(subclass Knuckle BodyJoint)
-(documentation Knuckle EnglishLanguage "Any joint in a &%Finger.")
-(subclass Ladder Artifact)
-(documentation Ladder EnglishLanguage "An &%Artifact which consists of two parallel supports 
-connected by a series of rungs which can be used to ascend or descend.")
-(subclass Lamb Sheep)
-(documentation Lamb EnglishLanguage "A young &%Sheep, i.e. a &%Sheep that is &%NonFullyFormed.")
-(subclass LawEnforcement PoliticalProcess)
-(subclass LawEnforcement RegulatoryProcess)
-(documentation LawEnforcement EnglishLanguage "Any &%RegulatoryProcess where the agent is either 
-a &%PoliceOrganization or a member of a &%PoliceOrganization.  This covers 
-everything from issuing a traffic ticket to arresting someone on suspicion of having 
-committed a &%Murder.")
-(subclass Lawn CultivatedLandArea)
-(documentation Lawn EnglishLanguage "A &%CultivatedLandArea containing mowed &%Grass.")
-(subclass LayingEggs OrganismProcess)
-(documentation LayingEggs EnglishLanguage "Any &%OrganismProcess where an &%Egg is expelled 
-from the body of a &%Animal, e.g. a &%Bird or &%Reptile laying eggs.")
-(subclass LegalAppeal Requesting)
-(subclass LegalAppeal JudicialProcess)
-(documentation LegalAppeal EnglishLanguage "Asking that a higher court reconsider a &%LegalDecision 
-of a lower court.")
-(subclass LegalDismissal LegalDecision)
-(documentation LegalDismissal EnglishLanguage "Any &%LegalDecision where the &%LegalAction of 
-the plaintiff is dismissed by the court, e.g. for lack of merit.")
-(subclass LegalSummons Ordering)
-(subclass LegalSummons JudicialProcess)
-(documentation LegalSummons EnglishLanguage "An official order that a person appear at a 
-&%CourtRoom at a specified time.")
-(subclass LemonFruit FruitOrVegetable)
-(subclass LemonFruit Food)
-(documentation LemonFruit EnglishLanguage "A citrus &%FruitOrVegetable that has a yellow skin 
-and a tart, acidic flavor.")
-(subclass Lengthening Increasing)
-(documentation Lengthening EnglishLanguage "&%Increasing the length of something.")
-(subclass Lens OpticalDevice)
-(documentation Lens EnglishLanguage "An &%OpticalDevice which consists of a polished, 
-transparent piece of glass or plastic.  Lenses are often part of 
-other &%OpticalDevices.")
-(subclass Lesion AbnormalAnatomicalStructure)
-(documentation Lesion EnglishLanguage "Any &%AbnormalAnatomicalStructure which is the result of 
-an Injuring and which is found on the surface of an &%Organ.")
-(subclass Library EducationalOrganization)
-(documentation Library EnglishLanguage "An &%EducationalOrganization which is a repository 
-of &%Texts which have been classified for efficient retrieval.")
-(subclass License Certificate)
-(documentation License EnglishLanguage "License is the subclass of &%Certificates that 
-are granted by a &%GovernmentOrganization and that authorize the performance 
-of a kind of action, e.g., driving, exporting, travelling to another 
-country, etc.")
-(subclass Licking Touching)
-(documentation Licking EnglishLanguage "The class of &%Touching processes where the &%Tongue 
-is brought into contact with something else.")
-(subclass Lightning WeatherProcess)
-(subclass Lightning Radiating)
-(documentation Lightning EnglishLanguage "A &%WeatherProcess which involves a significant 
-release of electricity from a &%Cloud.")
-(subclass Lilac FloweringPlant)
-(documentation Lilac EnglishLanguage "A &%FloweringPlant that has large clusters of 
-aromatic flowers.")
-(subclass LinguisticAttribute InternalAttribute)
-(documentation LinguisticAttribute EnglishLanguage "Any &%Attribute that is 
-expressed by a &%Language or class of &%Languages.")
-(subclass LiquefiedPetroleumGas FossilFuel)
-(subclass LiquefiedPetroleumGas RefinedPetroleumProduct)
-(documentation LiquefiedPetroleumGas EnglishLanguage "&%LiquefiedPetroleumGas is a 
-compressed hydrocarbon gas.")
-(subclass LiquorShot DistilledAlcoholicBeverage)
-(documentation LiquorShot EnglishLanguage "A small serving of a &%DistilledAlcoholicBeverage.")
-(subclass LoadingWeapon Inserting)
-(documentation LoadingWeapon EnglishLanguage "Inserting ammunition into a &%ProjectileWeapon 
-in such a way that the ammunition can be fired by the weapon.")
-(subclass LosingConsciousness PsychologicalProcess)
-(disjoint LosingConsciousness GainingConsciousness)
-(documentation LosingConsciousness EnglishLanguage "The process of transitioning from a state 
-of being &%Awake to a state of being &%Unconscious.")
-(subclass Maid ServicePosition)
-(documentation Maid EnglishLanguage "Any &%ServicePosition where various needs of a person 
-or family are served over a long period of time.  Note that these &%Positions 
-are, by definition, filled only by &%Women.")
-(subclass Mailbox Container)
-(documentation Mailbox EnglishLanguage "A &%Container whose purpose is to receive items 
-that are mailed to the address associated with the &%Mailbox.")
-(subclass MajorGeneral MilitaryGeneral)
-(documentation MajorGeneral EnglishLanguage "A &%MilitaryGeneral that ranks above a 
-&%BrigadierGeneral.")
-(subclass Map Icon)
-(documentation Map EnglishLanguage "An &%Icon which represents one or more &%GeographicAreas 
-(or even the entire &%Earth).")
-(subclass Marble Rock)
-(documentation Marble EnglishLanguage "A metamorphic &%Rock that is used in &%Constructing 
-and in creating &%Sculptures.")
-(subclass Marshal PoliceOfficer)
-(documentation Marshal EnglishLanguage "A &%PoliceOfficer whose responsibility is to enforce 
-the decisions of a law court.")
-(subclass Massaging TherapeuticProcess)
-(subclass Massaging Touching)
-(documentation Massaging EnglishLanguage "A subclass of &%TherapeuticProcess which involves 
-kneading &%Muscles in such a way that tension is relieved, blood circulation 
-is increased, etc.")
-(subclass Mast Artifact)
-(documentation Mast EnglishLanguage "A large pole in the center of a &%WaterVehicle which is 
-used to support a sail.")
-(subclass MatchDevice Device)
-(documentation MatchDevice EnglishLanguage "A small stick of carboard or wood that is treated 
-with chemicals that can be easily ignited with friction.  MatchDevices are 
-used for starting fires.")
-(subclass MaterialHandlingEquipment Device)
-(documentation MaterialHandlingEquipment EnglishLanguage "&%MaterialHandlingEquipment 
-is a class of &%Devices that are equipment used for handling goods and 
-supplies more efficiently or safely.  Examples are cranes, hoists, 
-forklifts, conveyors, racks, etc.")
-(subclass Mating OrganismProcess)
-(documentation Mating EnglishLanguage "Any process of sexual intercourse between two &%Humans 
-or &%Animals.")
-(subclass MediaOrganization Organization)
-(documentation MediaOrganization EnglishLanguage "&%MediaOrganization is the subclass 
-of &%Organization for groups whose primary purpose is the production or 
-dissemination of media content.  For organizations that physically enable 
-&%Communication, see &%CommunicationOrganization.")
-(disjoint MedicalClinic Residence)
-(subclass MedicalSchool GraduateSchool)
-(documentation MedicalSchool EnglishLanguage "A &%GraduateSchool that is devoted to 
-&%MedicalScience and that grants the degree of doctor of medicine.")
-(subclass Medicine BiologicallyActiveSubstance)
-(documentation Medicine EnglishLanguage "Any &%BiologicallyActiveSubstance which has a 
-therapeutic effect under certain conditions.")
-(subclass Memorizing Learning)
-(documentation Memorizing EnglishLanguage "The process of committing a &%Text to memory.")
-(subclass Menstruation OrganOrTissueProcess)
-(documentation Menstruation EnglishLanguage "A periodic discharge of &%Blood and other 
-&%BiologicalSubstances by &%Females that is part of a readjustment of 
-the uterus.")
-(subclass Message FactualText)
-(documentation Message EnglishLanguage "A &%FactualText which is intended to be delivered to 
-and read by a &%Human, &%GroupOfPeople or &%Organization.")
-(subclass Messaging Transfer)
-(documentation Messaging EnglishLanguage "Any instance of &%Transfer where a &%Message is the 
-patient.")
-(subclass Meteorite Meteoroid)
-(documentation Meteorite EnglishLanguage "Any &%Meteoroid that leaves traces on the surface 
-of &%Earth.")
-(subclass Meteoroid AstronomicalBody)
-(documentation Meteoroid EnglishLanguage "Any &%AstronomicalBody that breaks through the 
-atmosphere of &%Earth.")
-
-(instance MetricTon UnitOfMass)
-(documentation MetricTon EnglishLanguage "&%MetricTon is a &%UnitOfMeasure that represents 
-a weight of 2,205 &%PoundMass.")
-
-(subclass Microphone ElectricDevice)
-(subclass Microphone CommunicationDevice)
-(documentation Microphone EnglishLanguage "A &%CommunicationDevice that converts sound 
-into electrical energy.")
-(subclass Microscope OpticalDevice)
-(documentation Microscope EnglishLanguage "An &%OpticalDevice with a stand and a focus, which is 
-used for magnifying the images of things that are placed in the stand.")
-(subclass MilitaryAircraft Aircraft)
-(subclass MilitaryAircraft MilitaryVehicle)
-(documentation MilitaryAircraft EnglishLanguage "Any &%Aircraft which is made for a 
-&%MilitaryOrganization.  This includes fighters, &%Bombers, attack 
-helicopters, etc.")
-(subclass MilitaryArtifact Artifact)
-(documentation MilitaryArtifact EnglishLanguage "Any &%Artifact which is made for a 
-&%MilitaryOrganization.")
-(subclass MilitaryCorps MilitaryUnit)
-(documentation MilitaryCorps EnglishLanguage "Any &%MilitaryUnit with the rank of 
-corps.")
-(subclass MilitaryInfiltration MilitaryProcess)
-(subclass MilitaryInfiltration Translocation)
-(documentation MilitaryInfiltration EnglishLanguage "Any &%Process by a &%MilitaryOrganization 
-which involves moving through enemy positions without detection by the enemy.")
-(subclass MilitaryInstallation StationaryArtifact)
-(subclass MilitaryInstallation MilitaryArtifact)
-(documentation MilitaryInstallation EnglishLanguage "A &%StationaryArtifact consisting of grounds 
-and &%Buildings that is intended to be used by a &%MilitaryOrganization.")
-(subclass MilitaryManeuver Maneuver)
-(documentation MilitaryManeuver EnglishLanguage "Any &%Maneuver which takes place in a &%Battle 
-and which is intended to secure a tactical advantage for one of the agents of 
-the &%Battle.")
-(documentation MilitaryReserveForce EnglishLanguage "&%MilitaryReserveForce is the subclass 
-of &%MilitaryOrganizations that consist of forces trained in military 
-procedures and activities, which are subject to being called to active duty 
-if needed.")
-(subclass MilitaryShip Ship)
-(subclass MilitaryShip MilitaryWaterVehicle)
-(documentation MilitaryShip EnglishLanguage "Any &%Ship which is made for a &%MilitaryOrganization.  
-This includes aircraft carriers, destroyers, etc.")
-(subclass MilitarySquad MilitaryUnit)
-(documentation MilitarySquad EnglishLanguage "Any &%MilitaryUnit with the rank of squad.")
-(subclass MilitarySurplus MilitaryArtifact)
-(documentation MilitarySurplus EnglishLanguage "Any &%MilitaryArtifact which is sold to a 
-non-military customer.")
-(subclass MilitaryTank MilitaryVehicle)
-(subclass MilitaryTank RoadVehicle)
-(subclass MilitaryTank ArtilleryGun)
-(documentation MilitaryTank EnglishLanguage "A &%MilitaryVehicle that moves along the ground 
-on treaded wheels and that contains a large cannon.")
-(subclass MilitaryVehicle Vehicle)
-(documentation MilitaryVehicle EnglishLanguage "Any &%Vehicle which is intended to be 
-used by a &%MilitaryOrganization.")
-(subclass MilitaryWaterVehicle WaterVehicle)
-(documentation MilitaryWaterVehicle EnglishLanguage "&%MilitaryWaterVehicle is the class of 
-all &%WaterVehicle owned or leased for use by some &%MilitaryOrganization.")
-
-(instance MillenniumDuration UnitOfDuration)
-(documentation MillenniumDuration EnglishLanguage "The &%UnitOfDuration of 1000 years.")
-
-(=>
-   (equal ?NUMBER (MultiplicationFn 1 ?NUMBER))
-   (equal
-        (MeasureFn ?NUMBER MillenniumDuration)
-        (MeasureFn (MultiplicationFn ?NUMBER 1000) YearDuration)))
-
-(subclass MineOrWell StationaryArtifact)
-(documentation MineOrWell EnglishLanguage "An construction in the earth from which 
-&%Minerals or &%Water is removed, either in pure form or as part of 
-some other &%Substance.")
-(subclass Mirror Artifact)
-(documentation Mirror EnglishLanguage "An &%Artifact with a surface that is capable of 
-displaying an image by reflecting light.")
-(subclass ModellingPosition Position)
-(documentation ModellingPosition EnglishLanguage "Any &%Position which involves posing for an 
-artist or photographer.")
-(subclass Monument StationaryArtifact)
-(documentation Monument EnglishLanguage "A &%StationaryArtifact whose purpose is to commemorate 
-a person, animal or event.")
-(subclass MortarGun ArtilleryGun)
-(documentation MortarGun EnglishLanguage "A short-range &%Gun that is positioned on the ground 
-at a high angle and fires explosive shells.")
-(subclass Moth Insect)
-(documentation Moth EnglishLanguage "Nocturnal &%Insect with a large body and antennae.")
-(subclass MotionPicture ContentBearingObject)
-(subclass MotionPictureScene MotionPicture)
-(documentation MotionPictureScene EnglishLanguage "A discrete part of a &%MotionPicture which is set in 
-the same time period and the same location.")
-(subclass Motorcycle SelfPoweredRoadVehicle)
-(documentation Motorcycle EnglishLanguage "Motorcycle is the subclass of &%RoadVehicles 
-that have two wheels one behind the other in the frame, upon which the rider 
-sits on a seat above the engine.")
-(subclass MotorizedRailwayCar RollingStock)
-(subclass MotorizedRailwayCar PoweredVehicle)
-(documentation MotorizedRailwayCar EnglishLanguage "&%MotorizedRailwayCar is the subclass 
-of railway cars that carry their own power source.")
-(subclass Mounting BodyMotion)
-(documentation Mounting EnglishLanguage "Any &%BodyMotion which results in being &%On 
-something else.")
-(subclass Museum EducationalOrganization)
-(documentation Museum EnglishLanguage "An &%EducationalOrganization where &%Artifacts of historic, 
-scientific or aesthetic value are collected and exhibited.")
-(subclass MusicalPerformance Performance)
-(documentation MusicalPerformance EnglishLanguage "A &%Performance that consists exclusively of 
-&%Music, e.g. an orchestra playing a symphony to an assembled audience.")
-(instance Musician SocialRole)
-(documentation Musician EnglishLanguage "A Musician is someone who is capable of giving a &%MusicalPerformance.
-This includes amateurs and others who don't formally make a living at the activity
-or choose it as a profession.")
-(=>
-  (attribute ?X Musician)
-  (hasSkill MusicalPerformance ?X))
-   
-(subclass MysteryStory FictionalText)
-(documentation MysteryStory EnglishLanguage "A &%FictionalText whose central plot element is a 
-crime of some sort, usually a murder.")
-(subclass Nail AttachingDevice)
-(documentation Nail EnglishLanguage "An &%AttachingDevice which is a thin piece of metal, with 
-or without a head, that is fastened with a hammer.")
-(subclass NailDigit AnimalAnatomicalStructure)
-(documentation NailDigit EnglishLanguage "Any of the horny structures which are found 
-on the &%DigitAppendages of &%Primates and other &%Animals.")
-(subclass NationalFlag Flag)
-(documentation NationalFlag EnglishLanguage "A &%Flag that is the official flag of a &%Nation, 
-e.g. the stars and stripes is the &%NationalFlag of the &%UnitedStates.")
-(subclass Nectar PlantSubstance)
-(documentation Nectar EnglishLanguage "A sweet, sticky liquid that is produced by &%Plants 
-and that attracts Insects.")
-(subclass NerveCell Cell)
-(subclass NerveCell AnimalAnatomicalStructure)
-(documentation NerveCell EnglishLanguage "The &%Cells that make up a &%NervousSystem.")
-(subclass NervousSystem Organ)
-(subclass NervousSystem AnimalAnatomicalStructure)
-(documentation NervousSystem EnglishLanguage "A system in &%Vertebrates that is made up of 
-the &%Brain, the spinal cord, nerves, etc.")
-(subclass Neurosis PsychologicalDysfunction)
-(documentation Neurosis EnglishLanguage "Any &%PsychologicalDysfunction which is not due 
-to an organic impairment of the &%NervousSystem.")
-(subclass NonprofitOrganization Organization)
-(disjoint NonprofitOrganization CommercialAgent)
-(documentation NonprofitOrganization EnglishLanguage "Any &%Organization whose purpose is something 
-other than making a profit.")
-(subclass Nostril BodyVessel)
-(subclass Nostril AnimalAnatomicalStructure)
-(documentation Nostril EnglishLanguage "Either of two &%BodyVessels that run through the &%Nose 
-and connect it to the &%Throat.")
-(subclass NuclearWeapon ExplosiveDevice)
-(subclass NuclearWeapon Weapon)
-(documentation NuclearWeapon EnglishLanguage "An &%ExplosiveDevice and &%RadioactiveWeapon
-which achieves its effect by means of a critical mass of a radioactive substance.")
-(subclass NuclearWeapon RadioactiveWeapon)
 (subclass OakWood WoodArtifact)
 (documentation OakWood EnglishLanguage "Any &%WoodArtifact that is made from the &%Wood of an 
 oak tree.")
