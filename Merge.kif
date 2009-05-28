@@ -1233,6 +1233,12 @@ as the shape, position, and movement of the hands.")
 berepresented visually through writing, although not all 
 &%SpokenHumanLanguages have a codified written form.")
 
+(instance EnglishLanguage NaturalLanguage)
+(instance EnglishLanguage SpokenHumanLanguage)
+(documentation EnglishLanguage EnglishLanguage "A Germanic language that incorporates many roots 
+from the Romance languages.  It is the official language of the &%UnitedStates, 
+the &%UnitedKingdom, and many other countries.")
+
 (subclass Word LinguisticExpression)
 (documentation Word EnglishLanguage "A term of a &%Language that represents a concept.")
 
@@ -5267,7 +5273,7 @@ quantity.")
 
 (=>
   (and
-    (equal ?NUMBER (Multiplication 1 ?NUMBER))
+    (equal ?NUMBER (MultiplicationFn 1 ?NUMBER))
     (instance ?UNIT UnitOfMeasure)
     (equal ?QUANT (MeasureFn ?NUMBER ?UNIT)))
   (equal (MagnitudeFn ?QUANT) ?NUMBER))
@@ -5287,7 +5293,7 @@ the &%ConstantQuantity (&%MeasureFn 2 &%Kilometer) is the
    (and
       (equal ?NUMBER (MultiplicationFn 1 ?NUMBER))
       (instance ?UNIT UnitOfMeasure)
-      (equal ?QUANT (MeasureFn ?NUMBER UNIT)))
+      (equal ?QUANT (MeasureFn ?NUMBER ?UNIT)))
    (equal (UnitFn ?QUANT) ?UNIT))
 
 (instance PerFn BinaryFunction)
@@ -6282,6 +6288,36 @@ return the monetary value of the sum of Bill Gates' holdings.")
 (<=>
    (equal (WealthFn ?PERSON) ?AMOUNT)
    (monetaryValue (PropertyFn ?PERSON) ?AMOUNT))
+
+(instance barometricPressure BinaryPredicate)
+(instance barometricPressure AsymmetricRelation)
+(subrelation barometricPressure measure)
+(domain barometricPressure 1 Object)
+(domain barometricPressure 2 UnitOfAtmosphericPressure)
+(documentation barometricPressure EnglishLanguage 
+"(&%barometricPressure ?AREA ?PRESSURE) means that the atmospheric 
+pressure measured at ?AREA is ?PRESSURE.  Barometric pressure is 
+typically expressed in units of &%InchMercury or &%MmMercury.  For 
+example, standard sea level pressure is 29.92 inches (760 mm) of mercury: 
+(&%barometricPressure &%SeaLevel (&%MeasureFn 29.92 &%InchMercury)).")
+
+(subclass UnitOfAtmosphericPressure CompositeUnitOfMeasure)
+(documentation UnitOfAtmosphericPressure
+EnglishLanguage "&%UnitOfAtmosphericPressure includes those instances of
+&%UnitOfMeasure used to measure atmospheric pressure (&%barometricPressure),
+e.g., &%InchMercury.")
+
+(instance InchMercury UnitOfAtmosphericPressure)
+(documentation InchMercury EnglishLanguage "&%InchMercury is a &%UnitOfMeasure 
+for &%barometricPressure.  It is used to express the number of 
+inches of mercury supported in a mercurial barometer by the 
+surrounding air pressure.")
+
+(instance MmMercury UnitOfAtmosphericPressure)
+(documentation MmMercury EnglishLanguage "&%MmMercury is a &%UnitOfMeasure 
+for &%barometricPressure.  It is used to express the number 
+of millimeters of mercury supported in a mercurial barometer
+ by the surrounding air pressure.")
 
 ;; END FILE
 
@@ -9263,9 +9299,17 @@ exhanged in the &%FinancialTransaction ?TRANSACTION.")
          (patient ?TRANS ?OBJ)
          (monetaryValue ?OBJ ?AMOUNT))))
 
+(subclass ServiceProcess SocialInteraction)
+(documentation ServiceProcess EnglishLanguage "&%ServiceProcess denotes the class
+of events in which one agent performs a service for another.  The
+service need not be commercial, and it need not be the case that
+the &%serviceRecipient pays or recompenses the &%serviceProvider
+for the service.")
+
 (subclass CommercialService FinancialTransaction)
 (documentation CommercialService EnglishLanguage "Any &%FinancialTransaction by a 
 &%CommercialAgent where the aim is to produce a profit.")
+(subclass CommercialService ServiceProcess)
 
 (=>
    (instance ?BUSINESS CommercialService)
@@ -10816,6 +10860,137 @@ of &%part of the &%patient of the &%Process changes.")
          (holdsDuring (BeginFn (WhenFn ?PROCESS)) (attribute ?PART ?STATE1))
          (holdsDuring (EndFn (WhenFn ?PROCESS)) (attribute ?PART ?STATE2)))))
 
+(instance atomicNumber BinaryPredicate)
+(instance atomicNumber AsymmetricRelation)
+(domainSubclass atomicNumber 1 ElementalSubstance)
+(domain atomicNumber 2 PositiveInteger)
+(documentation atomicNumber EnglishLanguage "(&%atomicNumber ?ELEMENT ?NUMBER) means that 
+the &%ElementalSubstance ?ELEMENT has the atomic number ?NUMBER.  The 
+atomic number is the number of &%Protons in the nucleus of an &%Atom.") 
+
+(=>
+  (atomicNumber ?TYPE ?NUMBER)
+  (=>
+    (and
+      (instance ?SUBSTANCE ?TYPE)
+      (part ?ATOM ?SUBSTANCE)
+      (instance ?ATOM Atom))
+    (equal ?NUMBER
+      (CardinalityFn
+        (KappaFn ?PROTON
+          (and
+            (part ?PROTON ?ATOM)
+            (instance ?PROTON Proton)))))))
+
+(instance boilingPoint BinaryPredicate)
+(domainSubclass boilingPoint 1 PureSubstance)
+(domain boilingPoint 2 TemperatureMeasure)
+(documentation boilingPoint EnglishLanguage "The temperature at which a &%PureSubstance changes
+state from a &%Liquid to a &%Gas.")
+
+(=>
+  (and
+    (instance ?X ?Y)
+    (subclass ?Y PureSubstance)
+    (barometricPressure ?X (MeasureFn ?PRES InchMercury))
+    (greaterThan 29.92 ?PRES)
+    (boilingPoint ?Y (MeasureFn ?BOIL KelvinDegree))
+    (measure ?X (MeasureFn ?TEMP KelvinDegree))
+    (greaterThan ?TEMP ?BOIL))
+  (attribute ?X Gas))
+     
+ (=>
+   (and
+     (instance ?X ?Y)
+     (subclass ?Y PureSubstance)
+     (boilingPoint ?Y (MeasureFn ?BOIL KelvinDegree))
+     (meltingPoint ?Y (MeasureFn ?MELT KelvinDegree))
+     (measure ?X (MeasureFn ?TEMP KelvinDegree))
+     (greaterThan ?TEMP ?MELT)
+     (lessThan ?TEMP ?BOIL))
+   (attribute ?X Liquid))
+
+(=>
+  (and
+    (instance ?X ?Y)
+    (subclass ?Y PureSubstance)
+    (meltingPoint ?Y (MeasureFn ?MELT KelvinDegree))
+    (barometricPressure ?X (MeasureFn ?PRES InchMercury))
+    (greaterThan ?PRES 29.92)
+    (measure ?X (MeasureFn ?TEMP KelvinDegree))
+    (lessThan ?TEMP ?MELT))
+  (attribute ?X Solid))
+
+(=>
+   (and
+      (instance ?BOILING Boiling)
+      (boilingPoint ?TYPE (MeasureFn ?TEMP1 ?MEASURE))
+      (instance ?SUBSTANCE ?TYPE)
+      (patient ?BOILING ?SUBSTANCE)
+      (holdsDuring (WhenFn ?BOILING) (measure ?SUBSTANCE (MeasureFn ?TEMP2 ?MEASURE)))
+      (instance ?MEASURE UnitOfTemperature))
+   (greaterThanOrEqualTo ?TEMP2 ?TEMP1))
+
+(=>
+   (and
+      (boilingPoint ?TYPE (MeasureFn ?TEMP1 ?MEASURE))
+      (instance ?SUBSTANCE ?TYPE)
+      (holdsDuring ?TIME (measure ?SUBSTANCE (MeasureFn ?TEMP2 ?MEASURE)))
+      (instance ?MEASURE UnitOfTemperature)
+      (greaterThanOrEqualTo ?TEMP2 ?TEMP1))
+   (or
+      (holdsDuring ?TIME (attribute ?SUBSTANCE Gas)) 
+      (exists (?BOIL)
+         (and
+            (overlapsTemporally (WhenFn ?BOIL) ?TIME)
+            (instance ?BOIL Boiling)
+            (patient ?BOIL ?SUBSTANCE)))))
+   
+(instance meltingPoint BinaryPredicate)
+(domainSubclass meltingPoint 1 PureSubstance)
+(domain meltingPoint 2 TemperatureMeasure)
+(documentation meltingPoint EnglishLanguage "The temperature at which a &%PureSubstance changes
+state from a &%Solid to a &%Liquid.  Note that &%Arsenic can sublimate directly
+from &%Solid to &%Gas which means that its melting and boiling points are equal.")
+
+(=>
+  (and
+    (instance ?SUBSTANCE ?TYPE)
+    (boilingPoint ?TYPE (MeasureFn ?TEMP1 ?MEASURE))
+    (meltingPoint ?TYPE (MeasureFn ?TEMP2 ?MEASURE))
+    (instance ?MEASURE UnitOfTemperature)
+    (holdsDuring ?TIME (measure ?SUBSTANCE (MeasureFn ?TEMP3 ?MEASURE)))
+    (greaterThan ?TEMP3 ?TEMP2)
+    (lessThan ?TEMP3 ?TEMP1))
+  (or
+      (holdsDuring ?TIME (attribute ?SUBSTANCE Liquid)) 
+      (exists (?MELT)
+         (and
+            (overlapsTemporally (WhenFn ?MELT) ?TIME)
+            (instance ?MELT Melting)
+            (patient ?BOIL ?SUBSTANCE)))))
+  
+(=>
+  (and
+    (instance ?SUBSTANCE ?TYPE)
+    (meltingPoint ?TYPE (MeasureFn ?TEMP1 ?MEASURE))
+    (holdsDuring ?TIME (measure ?SUBSTANCE (MeasureFn ?TEMP2 ?MEASURE)))
+    (instance ?MEASURE UnitOfTemperature)
+    (lessThan ?TEMP2 ?TEMP1))
+  (or
+      (holdsDuring ?TIME (attribute ?SUBSTANCE Solid)) 
+      (exists (?FREEZE)
+         (and
+            (overlapsTemporally (WhenFn ?FREEZE) ?TIME)
+            (instance ?FREEZE Freezing)
+            (patient ?FREEZE ?SUBSTANCE)))))
+                     
+(=>
+  (and
+    (meltingPoint ?TYPE ?MELT)
+    (boilingPoint ?TYPE ?BOIL))
+  (greaterThanOrEqualTo ?BOIL ?MELT))
+
 (subclass Melting StateChange)
 (documentation Melting EnglishLanguage "The &%Class of &%Processes where an &%Object is 
 heated and converted from a &%Solid to a &%Liquid.")
@@ -12350,28 +12525,6 @@ or recording a monetary transaction")
    (exists (?MEASURE)
       (monetaryValue ?CURRENCY ?MEASURE)))
 
-(subclass CurrencyBill Currency)
-(documentation CurrencyBill EnglishLanguage "Any instance of &%Currency that is made 
-of paper.")
-
-(=>
-   (instance ?BILL CurrencyBill)
-   (exists (?PAPER)
-      (and
-         (instance ?PAPER Paper)
-         (part ?PAPER ?BILL)))) 
-
-(subclass CurrencyCoin Currency)
-(documentation CurrencyCoin EnglishLanguage "Any instance of &%Currency that is made 
-of &%Metal.")
-
-(=>
-   (instance ?COIN CurrencyCoin)
-   (exists (?METAL)
-      (and
-         (subclass ?METAL Metal)
-         (material ?METAL ?COIN)))) 
-
 (subclass Patent Certificate)
 (documentation Patent EnglishLanguage "A &%Certificate that expresses the content of an 
 invention that has been accorded legal protection by a governemental 
@@ -12474,6 +12627,13 @@ entertainment, etc.")
       (and
          (instance ?BUILD Building)
          (properPart ?ROOM ?BUILD))))
+
+(subclass House ResidentialBuilding)
+(subclass House SingleFamilyResidence)
+(documentation House EnglishLanguage "A &%ResidentialBuilding which is intended to be 
+inhabited by members of the same &%SocialUnit.  &%Houses are distinguished 
+from temporary housing like hotels and multi-family dwellings like condominium 
+and apartment buildings.")
 
 (subclass Residence StationaryArtifact)
 (partition Residence PermanentResidence TemporaryResidence)
@@ -12936,6 +13096,29 @@ immediate family of ?PERSON, i.e. the &%Group consisting of the &%parents of
          (or
             (parent ?MEMBER ?PERSON)
             (parent ?PERSON ?MEMBER)))))
+
+(instance relative BinaryPredicate)
+(instance relative SymmetricRelation)
+(domain relative 1 Organism)
+(domain relative 2 Organism)
+
+(documentation relative EnglishLanguage "(&%relative ?O1 ?O2) means that ?O1
+and ?O2 are relatives, whether through common ancestry (consanguinity),
+someone's marriage (affinity), or someone's adoption.  This definition is
+intentionally broad, so as to capture a wide array of `familial'
+relations.  The notion of who counts as `family' also varies between
+cultures, but that aspect of meaning is not addressed here.")
+
+(subrelation familyRelation relative)
+(subrelation spouse relative)
+
+(=>
+ (and
+   (holdsDuring ?T1 (legalRelation ?A1 ?A2))
+   (instance ?A1 Organism)
+   (instance ?A2 Organism))
+ (holdsDuring ?T1  (relative ?A1 ?A2)))
+
 
 (instance familyRelation BinaryPredicate)
 (instance familyRelation EquivalenceRelation) 
