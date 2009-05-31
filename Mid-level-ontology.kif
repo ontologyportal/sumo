@@ -277,12 +277,13 @@ instance of radiation, ?RADIATION, has an average wavelength of ?MEASURE.")
 &%wavelengths are longer than those of visible light and shorter than those 
 of radio emissions.")
 
-(subclass RadiatingUltraviolet Radiating)
+(subclass RadiatingUltraviolet RadiatingElectromagnetic)
 (disjoint RadiatingUltraviolet RadiatingLight)
 (disjoint RadiatingUltraviolet XRayRadiation)
-(documentation RadiatingUltraviolet EnglishLanguage "Any instance of &%Radiating where the 
+(documentation RadiatingUltraviolet EnglishLanguage "Any case of &%RadiatingElectromagnetic where the 
 &%wavelengths are shorter than those of visible light and longer than those 
 of X-Rays.")
+(abbreviation "UV" RadiatingUltraviolet)
 
 (subclass XRayRadiation Radiating)
 (documentation XRayRadiation EnglishLanguage "Electro-magnetic radiation of short wavelength, 
@@ -309,10 +310,6 @@ Sun (&%Sol) is the origin.")
 (=>
   (instance ?L Sunlight)
   (origin ?L Sol))
-
-(subclass RadioEmission Radiating)
-(documentation RadioEmission EnglishLanguage "Any instance of &%Radiating 
-where the waves have a wavelength between 5 milimeters and 30,000 meters.")
 
 (subclass RadioReceiver ReceiverDevice)
 (documentation RadioReceiver EnglishLanguage "A &%RadioReceiver is a &%Device for receiving 
@@ -617,18 +614,20 @@ is something that is deemed undesirable by the &%destination of the
       (destination ?THREATEN ?DEST))
   (not (desires ?DEST ?PROP)))
 
-(subclass Punishing OrganizationalProcess)
-(documentation Punishing EnglishLanguage "Any &%OrganizationalProcess where the &%agent 
-does something to the &%destination that the &%agent knows is undesirable 
+(subclass Punishing RegulatoryProcess)
+(documentation Punishing EnglishLanguage "A &%RegulatoryProcess where the agent does 
+something to the &%destination that the &%agent knows is undesirable 
 for the &%destination.")
 
 (=>
-   (and
-      (instance ?PUNISH Punishing)
-      (agent ?PUNISH ?AGENT)
-      (patient ?PUNISH ?PROP)
-      (destination ?PUNISH ?DEST))
-  (knows ?AGENT (not (desires ?DEST ?PROP))))
+  (and
+    (instance ?P Punishing)
+    (agent ?P ?A)
+    (patient ?P ?F)
+    (destination ?P ?D))
+  (knows ?A 
+    (not 
+      (desires ?D ?F))))
 
 (subclass Registering Stating)
 (subclass Registering PoliticalProcess)
@@ -1225,11 +1224,16 @@ fired from a bow.")
 (documentation DriveComponent EnglishLanguage "An &%EngineeringComponent whose purpose is to 
 transfer force from one part of a &%Device to another part.")
 
-(subclass PetroleumProduct OrganicCompound)
 (subclass PetroleumProduct MiningProduct)
 (subclass PetroleumProduct Oil)
 (documentation PetroleumProduct EnglishLanguage "&%PetroleumProduct is a broad class that 
 includes both crude oil (Petroleum) and &%RefinedPetroleumProducts.")
+(=>
+  (instance ?PP PetroleumProduct)
+  (exists (?O)
+    (and
+      (instance ?O OrganicCompound)
+      (part ?O ?PP))))
 
 (subclass FossilFuel Fuel)
 (subclass FossilFuel PetroleumProduct)
@@ -2530,6 +2534,7 @@ however, is paper.")
         (part ?TEXT ?PAPER)))))
 
 (subclass CurrencyBill Currency)
+(partition Currency CurrencyBill CurrencyCoin)
 (documentation CurrencyBill EnglishLanguage "Any instance of &%Currency that is made 
 of paper.")
 
@@ -2635,21 +2640,35 @@ displaying an image by reflecting light.")
   (capability ReflectingLight instrument ?M))
 
 (subclass Furniture Artifact)
-(disjoint Furniture Device)
-(documentation Furniture EnglishLanguage "Any free-standing &%Artifacts which are not 
-&%Devices and which are used in day-to-day living.")
+
+(documentation Furniture EnglishLanguage "Any free-standing and movable 
+&%Artifacts which are not which are used in day-to-day living and designed 
+to rest on the &%Floor of a &%Room.") 
+
+(=>
+  (instance ?F Furniture)
+  (hasPurpose (?F)
+    (exists (?FL)
+      (and
+        (instance ?FL Floor)
+	(meetsSpatially ?F ?FL)))))
+
+(=>
+  (instance ?F Furniture)
+  (capability Translocation moves ?F))
 
 (subclass Seat Furniture)
 (documentation Seat EnglishLanguage "Any instance of &%Furniture which is designed to 
 accommodate &%Humans who are &%Sitting.")
 
 (=>
-   (instance ?SEAT Seat)
-   (hasPurpose ?SEAT (exists (?PERSON)
-                        (and
-                           (instance ?PERSON Human)
-                           (located ?PERSON ?SEAT)
-                           (attribute ?PERSON Sitting)))))
+  (instance ?SEAT Seat)
+  (hasPurpose ?SEAT 
+    (exists (?PERSON)
+      (and
+        (instance ?PERSON Human)
+        (located ?PERSON ?SEAT)
+        (attribute ?PERSON Sitting)))))
 
 (subclass Chair Seat)
 (documentation Chair EnglishLanguage "A &%Seat that is designed to accommodate a single 
@@ -2756,7 +2775,7 @@ medium that is softer than the material of the screw itself.")
 (=>
   (instance ?D Screwdriver)
   (hasPurpose ?D
-    (exists (?R ?N)
+    (exists (?R ?S)
       (and
         (instance ?R Rotating)
         (instrument ?R ?D)
@@ -3404,7 +3423,7 @@ certain &%Larval &%Insects.")
 
 (=>
   (instance ?W Wool)
-  (exists (?M ?HAIR ?S)
+  (exists (?M ?H ?S)
     (and
       (instance ?M Making)
       (result ?M ?W)
@@ -4114,7 +4133,7 @@ jails, federal prisons, concentration camps, gulags, etc.")
 (=>
   (instance ?P Prison)
   (hasPurpose ?P 
-    (exists (?C ?H ?GOV)
+    (exists (?C ?H ?G)
       (and
         (instance ?C Confining)
         (located ?C ?P)
@@ -4370,17 +4389,6 @@ and whose purpose is to set up games between its members.")
     (member ?M ?L))
   (instance ?M SportsTeam))
 
-(subclass SportsTeam Organization)
-(documentation SportsTeam EnglishLanguage "An &%Organization which habitually plays a &%Sport 
-together, either as an occupation or as a leisure activity.")
-
-(=>
-  (instance ?T SportsTeam)
-  (exists (?S)
-    (and
-      (subclass ?S Sport)
-      (capability ?S agent ?T))))
-
 (subclass PlaceOfCommerce StationaryArtifact)
 (partition PlaceOfCommerce CommercialBuilding CommercialUnit)
 (documentation PlaceOfCommerce EnglishLanguage "A &%Building or part of a &%Building which is 
@@ -4614,13 +4622,19 @@ Food to customers which is intended to be eaten on the premises.")
 
 (=>
   (instance ?C Restaurant)
-  (exists (?S ?FOOD)
+  (exists (?S ?F ?B)
     (and
       (instance ?S CommercialService)
       (agent ?S ?C)
       (instance ?S Selling)
+      (instance ?B RestaurantBuilding)        
+      (located ?S ?B)
       (patient ?S ?F)
       (instance ?F Food))))
+
+(=>
+  (instance ?PLACE RestaurantBuilding)
+  (capability Cooking located ?PLACE))
 
 (subclass Proprietorship CommercialAgent)
 (documentation Proprietorship EnglishLanguage "A &%CommercialAgent that is owned by a 
@@ -4963,40 +4977,6 @@ up residence for a period of time while they receive care.")
 (subclass MedicalClinicBuilding (ComplementFn Residence))
 (subclass MedicalClinicBuilding Building)
 
-(subclass Proprietorship Corporation)
-(documentation Proprietorship EnglishLanguage "A &%Corporation that is owned by a single person.")
-
-(=>
-   (instance ?CORP Proprietorship)
-   (exists (?HUMAN)
-      (and
-         (instance ?HUMAN Human)
-         (possesses ?HUMAN ?CORP)
-         (forall (?PERSON)
-            (=>
-               (possesses ?PERSON ?CORP)
-               (equal ?PERSON ?HUMAN))))))
-
-(subclass Restaurant Corporation)
-(documentation Restaurant EnglishLanguage "Any &%Corporation whose services include selling 
-&%Food to customers which is intended to be eaten on the premises.")
-
-(=>
-   (instance ?COMPANY Restaurant)
-   (exists (?SERVICE ?FOOD ?BUILDING)
-      (and
-         (instance ?SERVICE CommercialService)
-         (agent ?SERVICE ?COMPANY)
-         (instance ?SERVICE Selling)
-         (instance ?BUILDING RestaurantBuilding)        
-         (located ?SERVICE ?BUILDING)
-         (patient ?SERVICE ?FOOD)
-         (instance ?FOOD Food))))
-
-(=>
-   (instance ?PLACE RestaurantBuilding)
-   (capability Cooking located ?PLACE))
-
 (subclass Cafeteria Restaurant)
 (documentation Cafeteria EnglishLanguage "Any &%Restaurant which does not offer table service.  
 &%Food is selected and purchased at a central counter.")
@@ -5020,19 +5000,6 @@ up residence for a period of time while they receive care.")
          (instance ?SERVICE Selling)
          (patient ?SERVICE ?BEVERAGE)
          (instance ?BEVERAGE AlcoholicBeverage))))
-
-(subclass TransportationCompany Corporation)
-(documentation TransportationCompany EnglishLanguage "Any &%Corporation whose services 
-include &%Transportation, e.g. a &%RailroadCompany, an airline, a cruise 
-ship line, etc.")
-
-(=>
-   (instance ?COMPANY TransportationCompany)
-   (exists (?SERVICE)
-      (and
-         (instance ?SERVICE CommercialService)
-         (agent ?SERVICE ?COMPANY)
-         (instance ?SERVICE Transportation))))
 
 (subclass Shipping Transportation)
 (documentation Shipping EnglishLanguage "Shipping is the subclass of &%Transportation 
@@ -5412,16 +5379,6 @@ by a &%Government.")
       (instance ?C Agriculture)
       (located ?C ?A))))
 
-(subclass Lawn CultivatedLandArea)
-(documentation Lawn EnglishLanguage "A &%CultivatedLandArea containing mowed &%Grass.")
-
-(=>
-  (instance ?L Lawn)
-  (exists (?G)
-    (and
-      (instance ?G Grass)
-      (located ?G ?L))))
-
 (subclass Campground LandArea)
 (documentation Campground EnglishLanguage "A &%LandArea whose purpose is to have &%MobileResidences 
 (e.g. recreational vehicles, mobile homes, &%Tents, etc.) located there.")
@@ -5747,9 +5704,8 @@ and &%Hydrogen.")
 by distillation.")
 
 (subclass Alkaloid ChemicalBase)
-(subclass Alkaloid PlantSubstance)
 (subclass Alkaloid BiologicallyActiveSubstance)
-(documentation Alkaloid EnglishLanguage "A &%ChemicalBase found in &%Plants that has 
+(documentation Alkaloid EnglishLanguage "A &%ChemicalBase found in some &%Plants that has 
 physiological and psychological effects.")
 (=>
    (instance ?A Alkaloid)
@@ -6096,15 +6052,17 @@ that a &%Field may be very small, e.g. &%Lawn is a subclass of &%Field.")
          (instance ?TREE BotanicalTree)
          (located ?TREE ?FIELD)))))
 
+(subclass Lawn CultivatedLandArea)
 (subclass Lawn Field)
-(documentation Lawn EnglishLanguage "A &%Field of cultivated and mowed &%Grass.")
+(documentation Lawn EnglishLanguage "A &%CultivatedLandArea and &%Field 
+containing mowed &%Grass.")
 
 (=>
-   (instance ?LAWN Lawn)
-   (exists (?GRASS)
-      (and
-         (instance ?GRASS Grass)
-         (located ?GRASS ?LAWN))))
+  (instance ?L Lawn)
+  (exists (?G)
+    (and
+      (instance ?G Grass)
+      (located ?G ?L))))
 
 (subclass MilitaryFront GeographicArea)
 (documentation MilitaryFront EnglishLanguage "A &%GeographicArea along which opposing military 
@@ -6691,9 +6649,6 @@ covers drinks of unmixed, hard liquor.")
 (subclass Whiskey DistilledAlcoholicBeverage)
 (documentation Whiskey EnglishLanguage "A &%DistilledAlcoholicBeverage that is prepared by 
 distilling fermented grain mash.")
-
-(subclass LiquorShot DistilledAlcoholicBeverage)
-(documentation LiquorShot EnglishLanguage "A small serving of a &%DistilledAlcoholicBeverage.")
 
 (subclass Beer AlcoholicBeverage)
 (documentation Beer EnglishLanguage "An &%AlcoholicBeverage that is prepared by fermenting 
@@ -7878,6 +7833,22 @@ benefit.")
 
 (=>
   (and
+    (instance ?THANK Thanking)
+    (agent ?THANK ?AGENT)
+    (refers ?THANK ?THING)
+    (destination ?THANK ?PERSON))
+  (and
+    (instance ?PERSON Human)
+    (or
+      (holdsDuring 
+        (WhenFn ?THANK) 
+	(wants ?AGENT ?THING))
+      (holdsDuring 
+        (WhenFn ?THANK) 
+	(desires ?AGENT ?THING)))))
+
+(=>
+  (and
     (instance ?T Thanking)
     (destination ?T ?P))
   (instance ?P Human))
@@ -8049,22 +8020,6 @@ expressing disapproval with an utterance rather than a &%Gesture, etc.")
 (subclass TonalLanguage SpokenHumanLanguage)
 (documentation TonalLanguage EnglishLanguage "Any &%SpokenHumanLanguage that uses pitch to 
 differentiate otherwise identical words, e.g. Chinese.")
-
-(subclass Thanking ExpressingInLanguage)
-(documentation Thanking EnglishLanguage "Any &%ExpressingInLanguage of appreciation to a person 
-for something that the person did in the past.")
-
-(=>
-   (and
-      (instance ?THANK Thanking)
-      (agent ?THANK ?AGENT)
-      (patient ?THANK ?THING)
-      (destination ?THANK ?PERSON))
-   (and
-      (instance ?PERSON Human)
-      (or
-         (holdsDuring (WhenFn ?THANK) (wants ?AGENT ?THING))
-         (holdsDuring (WhenFn ?THANK) (desires ?AGENT ?THING)))))
 
 (subclass Greeting Expressing)
 (documentation Greeting EnglishLanguage "Any instance of &%Expressing an acknowledgment of a 
@@ -8465,21 +8420,6 @@ committed a &%Murder.")
       (and
         (instance ?O PoliceOrganization)
         (member ?P ?O)))))
-
-(subclass Punishing RegulatoryProcess)
-(documentation Punishing EnglishLanguage "A &%RegulatoryProcess where the agent does 
-something to the &%destination that the &%agent knows is undesirable 
-for the &%destination.")
-
-(=>
-  (and
-    (instance ?P Punishing)
-    (agent ?P ?A)
-    (patient ?P ?F)
-    (destination ?P ?D))
-  (knows ?A 
-    (not 
-      (desires ?D ?F))))
 
 (subclass Imprisoning Confining)
 (documentation Imprisoning EnglishLanguage "The class of &%Confining processes where the detainee 
@@ -10172,7 +10112,7 @@ the process of going into business.")
     (holdsDuring 
       (BeginFn (WhenFn ?M)) 
       (not 
-        (exists (?SUPER) 
+        (exists (?S) 
           (and 
             (subOrganization ?ORG1 ?S)
             (subOrganization ?ORG2 ?S)))))
@@ -10181,7 +10121,7 @@ the process of going into business.")
       (exists (?S) 
         (and 
           (subOrganization ?ORG1 ?S)
-          (subOrganization ?ORG2 ?SUSPER))))))
+          (subOrganization ?ORG2 ?S))))))
 
 (subclass CeasingOperations OrganizationalProcess)
 (documentation CeasingOperations EnglishLanguage "The process of an &%Organization 
@@ -10797,7 +10737,7 @@ which serves to start the &%Sport, e.g. the beginning shot in &%Tennis,
 
 (=>
   (instance ?SS SportServe)
-  (exists (?SPOSRT)
+  (exists (?S)
     (and
       (instance ?S Sport)
       (subProcess ?SS ?S)
@@ -10886,6 +10826,7 @@ which is intended to be used for playing card games.")
 (subclass Stretching Motion)
 (documentation Stretching EnglishLanguage "Moving two sides of an object in opposite 
 directions so that the object becomes both longer and thinner.")
+(subclass Stretching Lengthening)
 
 (subclass Accelerating Translocation)
 (subclass Accelerating Increasing)
@@ -11753,7 +11694,15 @@ it with &%Soil.")
 
 (subclass Tilling Digging)
 (documentation Tilling EnglishLanguage "Any &%Process of &%Digging, e.g. breaking and 
-turning over the earth that facilitates &%Agriculture.")
+turning over &%Soil that facilitates &%Agriculture.")
+(subclass Tilling IntentionalProcess)
+(subclass Tilling SurfaceChange)
+
+(=>
+   (and
+      (instance ?TILL Tilling)
+      (patient ?TILL ?SOIL))
+   (instance ?SOIL Soil))
 
 (=>
   (instance ?T Tilling)
@@ -11792,24 +11741,6 @@ moving one's belongs to a new &%home.")
          (holdsDuring (BeginFn (WhenFn ?MOVE)) (home ?AGENT ?HOME1))
          (holdsDuring (EndFn (WhenFn ?MOVE)) (home ?AGENT ?HOME2))
          (not (equal ?HOME1 ?HOME2)))))
-
-(subclass Tilling IntentionalProcess)
-(subclass Tilling SurfaceChange)
-(documentation Tilling EnglishLanguage "Any &%Process of altering &%Soil in such a way as to 
-facilitate &%Agriculture.")
-
-(=>
-   (and
-      (instance ?TILL Tilling)
-      (patient ?TILL ?SOIL))
-   (instance ?SOIL Soil))
-
-(=>
-   (instance ?TILL Tilling)
-   (exists (?CULTURE)
-      (and
-         (instance ?CULTURE Agriculture)
-         (subProcess ?TILL ?CULTURE))))
 
 (subclass Harvesting Removing)
 (documentation Harvesting EnglishLanguage "Gathering the plant results of &%Agriculture.")
@@ -11982,7 +11913,7 @@ a rope wound around the neck until asphyxiation occurs.")
       (instance ?P Human)
       (instance ?S String)
       (instance ?N Neck)
-      (experiences ?H ?P)
+      (experiencer ?H ?P)
       (properPart ?N ?P)
       (instrument ?H ?S)
       (holdsDuring (WhenFn ?H)
@@ -13179,32 +13110,6 @@ exclusively of straight lines, i.e. &%OneDimensionalFigures.")
             (sideOfFigure ?SIDE ?SQUARE)
             (lineMeasure ?SIDE ?LENGTH)))))
 
-(subclass Oval ClosedTwoDimensionalFigure)
-(documentation Oval EnglishLanguage "The class of &%ClosedTwoDimensionalFigures that are 
-produced by the intersection of a &%Cone with a &%ClosedTwoDimensionalFigure.")
-
-(subclass Circle Oval)
-(documentation Circle EnglishLanguage "The class of &%Ovals such that all &%GeometricPoints 
-that make up the &%Circle are equidistant from a single &%GeometricPoint, 
-known as the center of the &%Circle.")
-
-(=>
-  (instance ?C Circle)
-  (exists (?R)
-    (radius ?C ?R)))
-
-(=>
-  (instance ?C Circle)
-  (exists (?P)
-    (equal (CenterOfCircleFn ?C) ?P)))
-
-(documentation CenterOfCircleFn EnglishLanguage "(CenterOfCircleFn ?CIRCLE) denotes the 
-&%GeometricPoint that is the center of the &%Circle ?CIRCLE.")
-(instance CenterOfCircleFn UnaryFunction)
-(instance CenterOfCircleFn TotalValuedRelation)
-(domain CenterOfCircleFn 1 Circle)
-(range CenterOfCircleFn GeometricPoint)
-
 (documentation DiameterFn EnglishLanguage "(DiameterFn ?CIRCLE) denotes the length of the 
 diameter of the &%Circle ?CIRCLE.")
 (instance DiameterFn UnaryFunction)
@@ -13243,37 +13148,6 @@ the &%Circle that they bound.")
 (domain sideOfFigure 2 GeometricFigure)
 (documentation sideOfFigure EnglishLanguage "(&%sideOfFigure ?SIDE ?FIGURE) means that the 
 &%OneDimensionalFigure ?POINT is a side of the &%GeometricFigure ?FIGURE.")
-
-(instance radius BinaryPredicate)
-(instance radius SingleValuedRelation)
-(instance radius TotalValuedRelation)
-(domain radius 1 Circle)
-(domain radius 2 LengthMeasure)
-(documentation radius EnglishLanguage "(&%radius ?CIRCLE ?LENGTH) means that the radius of 
-the &%Circle ?CIRCLE has a length of ?LENGTH.")
-
-(=>
-   (radius ?CIRCLE ?RADIUS)
-   (exists (?POINT)
-      (forall (?PART)
-         (=>
-            (pointOfFigure ?PART ?CIRCLE)
-            (geometricDistance ?PART ?POINT ?RADIUS)))))
-
-(instance diameter BinaryPredicate)
-(instance diameter SingleValuedRelation)
-(instance diameter TotalValuedRelation)
-(domain diameter 1 Circle)
-(domain diameter 2 LengthMeasure) 
-(documentation diameter EnglishLanguage "(&%diameter ?CIRCLE ?LENGTH) means that the diameter 
-of the &%Circle ?CIRCLE has a length of ?LENGTH.")
-
-(=>
-   (diameter ?CIRCLE ?LENGTH)
-   (exists (?HALF)
-      (and
-         (radius ?CIRCLE ?HALF)
-         (equal (MultiplicationFn ?HALF 2) ?LENGTH))))
 
 (instance tangent BinaryPredicate)
 (domain tangent 1 OneDimensionalFigure)
@@ -14255,9 +14129,9 @@ bonds or cash, and can be immediate or deferred until retirement.")
     (employs ?O ?H)
     (profit ?A ?P)
     (agent ?A ?O))
-    (exists (?C ?Payment)
+    (exists (?C ?PAY)
       (and
-        (instance ?PAY Payment)
+        (instance ?PAY FinancialTransaction)
         (transactionAmount ?PAY ?C)
         (lessThan ?C ?P)
         (destination ?PAY ?PSP))))
@@ -14437,7 +14311,7 @@ stimulus which has a deep emotional effect.")
 (=>
   (and
     (instance ?B Blushing)
-    (experience ?B ?A))
+    (experiencer ?B ?A))
   (exists (?T1 ?T2 ?S1 ?S2)
     (and
       (instance ?S1 EmotionalState)
@@ -14908,9 +14782,23 @@ to be propelled by a human to its target.")
       (instance ?HG HandGrenade)
       (instrument ?X ?HG))))
       
-(subclass Hijacking UnilateralGetting)
-(documentation Hijacking EnglishLanguage "An event in which a &%TransportationDevice is
-taken by coercion or force by an agent.")
+(subclass Hijacking Robbing)
+(documentation Hijacking EnglishLanguage "&%Robbing a &%Vehicle and then driving
+or piloting it away.")
+
+(=>
+  (instance ?H Hijacking)
+  (exists (?V)
+    (and
+      (instance ?V Vehicle)
+      (patient ?H ?V))))
+
+(=>
+  (instance ?H Hijacking)
+  (exists (?D)
+    (and
+      (subProcess ?D ?H)
+      (instance ?D Driving)))) 
 
 (=>
   (instance ?X Hijacking)
@@ -14988,23 +14876,6 @@ number of people, such as a couple.")
       (holdsDuring
         (WhenFn ?X)
         (located ?A ?LOC2)))))
-
-(subclass Hijacking Robbing)
-(documentation Hijacking EnglishLanguage "Robbing a &%Vehicle and then driving it away.")
-
-(=>
-  (instance ?H Hijacking)
-  (exists (?V)
-    (and
-      (instance ?V Vehicle)
-      (patient ?H ?V))))
-
-(=>
-  (instance ?H Hijacking)
-  (exists (?D)
-    (and
-      (subProcess ?D ?H)
-      (instance ?D Driving)))) 
 
 (subclass KnifeAttack ViolentContest)
 (documentation KnifeAttack EnglishLanguage "An attack in which a knife is used.")
@@ -15449,6 +15320,7 @@ purpose of entertaining people.")
       (instance ?GOV Government)
       (holdsDuring ?T1 (employs ?GOV ?X)))))
 
+(subclass Hotel TemporaryResidence)
 (subclass Hotel Building)
 (documentation Hotel EnglishLanguage "A building which servers the purpose of a temporary
 home for people, either for people who are travelling, or occasionally for
@@ -15977,30 +15849,6 @@ necessarily imply that the location of ?OBJECT changes during
 ;; ------------------------------------------------------
 ;; Social relationships
 
-(instance acquaintance BinaryPredicate)
-
-(documentation acquaintance EnglishLanguage "(&%acquaintance ?H1 ?H2) means that ?H1 has
-met and knows something about ?H2, such as ?H2's name and appearance.
-Statements made with this predicate should be temporally specified with
-&%holdsDuring.  Note that &%acquaintance is not symmetric.  For the
-symmetric version, see &%mutualAcquaintance.")
-
-(domain acquaintance 1 Human)
-(domain acquaintance 2 Human)
-
-(instance mutualAcquaintance BinaryPredicate)
-(instance mutualAcquaintance SymmetricRelation)
-
-(documentation mutualAcquaintance EnglishLanguage "(&%mutualAcquaintance ?H1 ?H2) means
-that ?H1 and ?H2 have met each other and know something about each other,
-such as name and appearance.  Statements made with this predicate should
-be temporally specified with &%holdsDuring.  See also the weaker,
-non-symmetric version of this predicate, &%acquaintance.")
-
-(domain mutualAcquaintance 1 Human)
-(domain mutualAcquaintance 2 Human)
-(subrelation mutualAcquaintance acquaintance)
-
 (instance friend BinaryPredicate)
 (instance friend SymmetricRelation)
 (instance friend IntentionalRelation)
@@ -16421,7 +16269,6 @@ predicate, &%stranger.")
 (domain mutualStranger 1 Human)
 (domain mutualStranger 2 Human)
 (subrelation mutualStranger stranger)
-(subrelation spouse mutualAcquaintance)
 
 (disjointRelation mutualStranger mutualAcquaintance)
 
@@ -16923,10 +16770,6 @@ patient of the process is unhappy.")
 	(EndFn (WhenFn ?L)) 
 	(length ?O ?L2))
       (greaterThan ?L2 ?L1))))
-
-(subclass Stretching Lengthening)
-(documentation Stretching EnglishLanguage "Lengthening an object by pulling two sides 
-of it in opposite directions.")
 
 (subclass Saving Increasing)
 (documentation Saving EnglishLanguage "Any instance of &%Increasing where the &%PhysicalQuantity 
