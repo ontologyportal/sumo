@@ -726,20 +726,6 @@ between two &%GeographicRegions.")
   (sharedBorderLength ?N1 ?N2 ?M)
   (length (BorderFn ?N1 ?N2) ?M))
 
-(subclass SymmetricAttribute RelationalAttribute)
-
-(documentation SymmetricAttribute EnglishLanguage "&%SymmetricAttribute is the class of 
-&%RelationalAttributes that hold between two items regardless of their 
-order or orientation.")
-
-(instance Near SymmetricAttribute)
-(instance Adjacent SymmetricAttribute)
-(not (instance On SymmetricAttribute))
-(not (instance Right SymmetricAttribute))
-(not (instance Left SymmetricAttribute))
-(not (instance Below SymmetricAttribute))
-(not (instance Above SymmetricAttribute))
-
 (subclass PerimeterArea Region)  
 (documentation PerimeterArea EnglishLanguage "A &%PerimeterArea is a region that 
 extends outward from a boundary with another region, surrounding or 
@@ -1960,7 +1946,6 @@ iron and chromium.")
 
 (subclass Coal Mineral)
 (subclass Coal FossilFuel)
-(subclass Coal OrganicCompound)
 (subclass Coal Rock)
 (names "coal" Coal)
 
@@ -2430,8 +2415,6 @@ problem in the &%GeographicArea ?AREA.")
 
 ;; Environmental phenomena
 
-(subclass GeologicalProcess InternalChange)
-
 (subclass Acidification Combining)
 
 (documentation Acidification EnglishLanguage "&%Acidification is the process of 
@@ -2811,18 +2794,6 @@ subclass of &%Pollution in which the pollutants are vehicle emissions.")
 
 (relatedInternalConcept CarbonDioxideEmission VehicularPollution)
 
-(subclass RadiatingUltraviolet RadiatingElectromagnetic)
-(abbreviation "UV" RadiatingUltraviolet)
-
-(documentation RadiatingUltraviolet EnglishLanguage "&%RadiatingUltraviolet is the 
-subclass of &%RadiatingElectromagnetic processes in which ultraviolet 
-radiation is transmitted or absorbed.")
-
-
-(subclass RadiatingInfrared RadiatingElectromagnetic)
-(subclass RadiatingLight RadiatingElectromagnetic)
-(subclass RadiatingXRay RadiatingElectromagnetic)
-
 (subclass WaterOverutilization SocialInteraction)
 
 (subclass WaterPollution Pollution)
@@ -2860,7 +2831,7 @@ subclass of &%Agreements which are made by and between &%Nations.")
     (instance ?AGREEMENT InternationalAgreement)
     (instance ?COMMITTING Committing)
     (represents ?COMMITTING ?AGREEMENT))
-  (exists (?AGT)
+  (exists (?AGENT)
     (and 
       (agent ?COMMITTING ?AGENT)
       (instance ?AGENT Nation))))  
@@ -3331,13 +3302,6 @@ and South America.")
 
 (disjoint Nation Continent)
 
-(documentation Continent EnglishLanguage "As defined in the CIA World Fact Book, 
-&%Continent covers seven land masses: &%Africa, &%NorthAmerica, 
-&%SouthAmerica, &%Antarctica, &%Europe, &%Asia, and &%Oceania.  
-Note that &%Australia, counted as a continent in some other systems, 
-is included in &%Oceania in the Fact Book.  As a consequence, there 
-is no &%Nation which is also a &%Continent.")
-
 (instance Africa Continent)
 (names "Africa" Africa)
 (overlapsSpatially Africa NorthernHemisphere)
@@ -3381,10 +3345,22 @@ is no &%Nation which is also a &%Continent.")
 (instance ArcticRegion GeographicArea)
 (names "Arctic" ArcticRegion)
 (names "the Arctic" ArcticRegion)
-(documentation ArcticRegion EnglishLanguage "The ArcticRegion is the region of 
-PlanetEarth that lies north of the Arctic Circle (approximately 
-66 and one half degrees North latitude) or beyond the northern 
-treeline: 'The Arctic'. See also ArcticArea.")
+(documentation ArcticRegion EnglishLanguage "The area above the Artic Circle, which is
+66 degrees 33 minutes and 38 seconds north latitude.  It is dark
+for at least 24 hours at some point during the year, with an
+increasing period of yearly continuous darkness as one gets closer
+to the North Pole.")
+
+(=>
+  (and
+    (instance ?REGION GeographicArea)
+    (located ?REGION ArcticRegion))
+  (exists (?DAY)
+    (and
+      (instance ?DAY Day)
+      (holdsDuring ?DAY
+        (not 
+          (attribute ?REGION Illuminated))))))
 
 (geographicSubregion ArcticRegion NorthernHemisphere)
 (overlapsSpatially ArcticRegion EasternHemisphere)
@@ -4108,6 +4084,8 @@ consisting of a mixture of clay, sand, gravel, silt, and organic matter.")
       (piece ?Clay ?Loam)
       (instance ?Gravel Gravel)
       (piece ?Gravel ?Loam)
+      (instance ?Sand Sand)
+      (piece ?Sand ?Loam)
       (instance ?Silt Silt)
       (piece ?Silt ?Loam)
       (instance ?Organic BodySubstance)
@@ -4124,7 +4102,6 @@ consisting of a mixture of clay, sand, gravel, silt, and organic matter.")
 gravel and larger than silt and clay, sand particles range from 8/10,000 to 8/100 
 inch (0.02 to 2 millimeters) in diameter. &%Sand is formed by the &%Erosion of rocks 
 through the action of water, ice, or air.")
-
 
 (subclass Silt Soil)
 (documentation Silt EnglishLanguage "&%Silt is sand or earth which is carried along by flowing 
@@ -4494,8 +4471,7 @@ chart.  High and low tides are calculated with reference to this point.")
 
 ;;  2. Tides & Currents
 
-(subclass FlowRegion SelfConnectedObject)
-(subclass FlowRegion (ExtensionFn Fluid))
+(subclass FlowRegion Region)
 
 (documentation FlowRegion EnglishLanguage "&%FlowRegion is a class of things whose 
 boundaries are relatively stable but whose constitutive &%material is continuously moving 
@@ -4514,7 +4490,9 @@ is distinguished from the motion of the &%pieces of stuff constituting the
 &%FlowRegion.  See &%FlowFn and &%FlowRegionFn.")
 
 (=>
-  (instance ?FLUID FlowRegion)
+  (and
+    (instance ?FR FlowRegion)
+    (located ?FLUID ?FR))
   (attribute ?FLUID Fluid))
 
 (instance FlowFn UnaryFunction)
@@ -4567,7 +4545,6 @@ as an &%OceanCurrent, a &%RipTide, or a &%River.  &%WaterCurrent is
 cannot be &%FlowRegions, however, currents may be present in a lake.")
 
 (disjoint WaterCurrent StaticWaterArea)
-(subclass StreamWaterArea FlowRegion)
 
 (subclass Tide FlowRegion)
 (subclass Tide SaltWaterArea)
@@ -4607,7 +4584,7 @@ the mean sea level.")
 
 (subclass LowerLowTide LowTide)
 
-(documentation LowTide EnglishLanguage "&%LowerLowTide is the subclass of &%LowTide 
+(documentation LowerLowTide EnglishLanguage "&%LowerLowTide is the subclass of &%LowTide 
 processes that occur in marine waters with a &%MixedTideProcess.")
 
 (subclass HighTide TidalProcess)
@@ -5733,14 +5710,21 @@ also Air.")
 speed and direction, though their location shifts somewhat.  There are 
 four &%JetStreams in &%EarthsAtmosphere.")
 
-(subclass Wind AirStream)
+(subclass WindFlow AirStream)
 
-(documentation Wind EnglishLanguage "&%Wind is the class of variable &%AirStreams 
-that occur in &%EarthsAtmosphere.")
+(documentation WindFlow EnglishLanguage "&%WindFlow is the class of variable &%AirStreams 
+that are in the &%EarthsAtmosphere.")
 
 (=>
-  (instance ?BLOW Wind)
+  (instance ?BLOW WindFlow)
   (located ?BLOW EarthsAtmosphere))
+
+(=>
+  (instance ?R WindFlow)
+  (exists (?WIND)
+    (and
+      (instance ?WIND Wind)
+      (located ?WIND ?R))))
 
 ;; Measures of wind characteristics:
 
@@ -5759,7 +5743,7 @@ through the atmosphere up to an altitude of 500 feet.")
 (=>
   (and
     (surfaceWindVelocity ?PLACE (SpeedFn ?DIST ?TIME) ?DIRECTION)
-    (instance ?PLACE Region))
+    (instance ?PLACE WindFlow))
   (exists (?BLOW)
     (and
       (instance ?BLOW Wind)
@@ -5791,7 +5775,7 @@ of 500 feet.")
 
 (=>
   (and
-    (instance ?ZEPHYR Wind)
+    (instance ?ZEPHYR WindFlow)
     (instance ?PLACE Object)
     (partlyLocated ?ZEPHYR ?PLACE)
     (measure ?ZEPHYR (SpeedFn ?DIST ?TIME)))
@@ -5799,7 +5783,7 @@ of 500 feet.")
 
 (=>
   (and
-    (instance ?ZEPHYR Wind)
+    (instance ?ZEPHYR WindFlow)
     (instance ?PLACE Object)
     (partlyLocated ?ZEPHYR ?PLACE)
     (measure ?ZEPHYR (MeasureFn ?SPEED KnotUnitOfSpeed)))
@@ -5834,7 +5818,7 @@ within 500 feet of Earth's surface.")
 
 (=>
   (and
-    (instance ?ZEPHYR Wind)
+    (instance ?ZEPHYR WindFlow)
     (measure ?ZEPHYR (VelocityFn ?DIST ?TIME ?PLACE ?DIR-TOWARD))
     (oppositeDirection ?DIR-TOWARD ?DIR-FROM))
   (surfaceWindDirection ?PLACE ?DIR-FROM))
@@ -6691,24 +6675,6 @@ scattered shrubs or trees.")
 (=>
   (instance ?PLAIN Veldt)
   (vegetationTypePattern ?PLAIN Shrub ScatteredVegetation))
-
-(subclass ArcticRegion LandArea)
-(documentation ArcticRegion EnglishLanguage "The area above the ArticCircle, which is
-66 degrees 33 minutes and 38 seconds north latitude.  It is dark
-for at least 24 hours at some point during the year, with an
-increasing period of yearly continuous darkness as one gets closer
-to the North Pole.")
-
-(=>
-  (and
-    (instance ?REGION GeographicArea)
-    (located ?REGION ArcticRegion))
-  (exists (?DAY)
-    (and
-      (instance ?DAY Day)
-      (holdsDuring ?DAY
-        (not 
-          (attribute ?REGION Illuminated))))))
           
 (subclass Tundra Biome)
 (subclass Tundra Plain)
@@ -6776,8 +6742,8 @@ food or other organic products.")
 (subclass SeaIce Ice) ;; incl glaciers in sea, floes, bergs
 (subclass Icing WeatherProcess)
 (subclass Icing Freezing)
-(subclass Fog WeatherProcess)
-(subclass Haze WeatherProcess)
+(subclass Fogging WeatherProcess)
+(subclass AtmosphericHazing WeatherProcess)
 (subclass VolcanicGasRelease VolcanicEruption)
 (subclass LandSubsidence GeologicalProcess)  ;; &%elevation decreases
 
