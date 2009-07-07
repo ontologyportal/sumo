@@ -1310,6 +1310,22 @@ nonidentical &%patients.")
          (patient ?PROCESS ?OBJ2)
          (not (equal ?OBJ1 ?OBJ2)))))
     
+(subclass SingleAgentProcess Process)
+(documentation SingleAgentProcess EnglishLanguage "&%SingleAgentProcess 
+is the &%Class of all &%Processes that require exactly one &%agent in order to occur.")
+ 
+(=>
+  (instance ?PROC SingleAgentProcess)
+  (exists (?AGENT)
+    (agent ?PROC ?AGENT)))
+ 
+(=>
+  (and
+    (instance ?PROC SingleAgentProcess)
+    (agent ?PROC ?AGENT_1)
+    (agent ?PROC ?AGENT_2))
+  (equal ?AGENT_1 ?AGENT_2))
+
 (subclass Abstract Entity)
 (disjointDecomposition Abstract Quantity Attribute SetOrClass Relation Proposition)
 (documentation Abstract EnglishLanguage "Properties or qualities as distinguished from any 
@@ -8752,6 +8768,16 @@ and the &%patient is a &%BodyPart.")
          (instance ?AGENT Organism)
          (agent ?MOTION ?AGENT))))
 
+(subclass VocalCords Organ)
+(documentation VocalCords EnglishLanguage "The vocal cords, are composed
+of two folds of mucous membrane stretched horizontally across the
+larynx. They vibrate, modulating the flow of air being expelled from the
+lungs during &%Vocalizing. ")
+
+(typicalPart VocalCords Human)
+(typicallyContainsPart VocalCords Human)
+(initialPart VocalCords Human)
+
 (subclass Vocalizing RadiatingSound)
 (subclass Vocalizing BodyMotion)
 (documentation Vocalizing EnglishLanguage "Any instance of &%RadiatingSound where the 
@@ -8759,12 +8785,14 @@ and the &%patient is a &%BodyPart.")
 roars, as well as &%Speaking.")
 
 (=>
-   (instance ?VOCAL Vocalizing)
-   (exists (?HUMAN)
-      (and
-         (instance ?HUMAN Human)
-         (agent ?VOCAL ?HUMAN)
-         (instrument ?VOCAL ?HUMAN))))
+  (instance ?VOCAL Vocalizing)
+  (exists (?HUMAN)
+    (and
+      (instance ?HUMAN Human)
+      (instance ?VC VocalCords)
+      (part ?VC ?HUMAN)
+      (agent ?VOCAL ?HUMAN)
+      (instrument ?VOCAL ?VC))))
 
 (subclass Speaking LinguisticCommunication)
 (subclass Speaking Vocalizing)
@@ -12674,9 +12702,16 @@ architectural works, e.g. the Eiffel Tower, the Great Pyramids, office towers,
 single-family houses, etc.")
 
 (=>
-    (instance ?ARTIFACT StationaryArtifact)
-    (exists (?PLACE)
-       (holdsDuring (WhenFn ?ARTIFACT) (located ?ARTIFACT ?PLACE))))
+  (instance ?ARTIFACT StationaryArtifact)
+  (exists (?PLACE)
+    (and
+      (holdsDuring (WhenFn ?ARTIFACT) (located ?ARTIFACT ?PLACE))
+      (not
+        (exists (?P2)
+          (and
+            (holdsDuring (WhenFn ?ARTIFACT) (located ?ARTIFACT ?P2))
+            (not
+              (equal ?PLACE ?P2))))))))
 
 (subclass Building StationaryArtifact)
 (documentation Building EnglishLanguage "The Class of &%StationaryArtifacts which are 
@@ -12924,17 +12959,11 @@ the places inhabited by &%Humans/&%Animals.")
 (=>
   (instance ?WEAPON Weapon)
   (hasPurpose ?WEAPON 
-    (exists (?DEST ?PATIENT) 
+    (exists (?D ?PATIENT) 
       (and 
-        (instance ?DEST Damaging)
-        (patient ?DEST ?PATIENT)
-        (or
-          (instance ?PATIENT StationaryArtifact)
-          (instance ?PATIENT Animal)
-          (exists (?ANIMAL)
-            (and 
-              (instance ?ANIMAL Animal)
-              (inhabits ?ANIMAL ?PATIENT))))))))
+        (instance ?D Damaging)
+	(instrument ?D ?WEAPON)
+        (patient ?D ?PATIENT)))))
                                          
 (subclass Machine Device)
 (documentation Machine EnglishLanguage "&%Machines are &%Devices that that have a 
@@ -13161,15 +13190,23 @@ immediate family of ?PERSON, i.e. the &%Group consisting of the &%parents of
 ?PERSON and anyone of whom ?PERSON is a &%parent.")
 
 (=>
-   (and
-      (instance ?PERSON Human)
-      (equal (ImmediateFamilyFn ?PERSON) ?FAMILY))
-   (forall (?MEMBER)
-      (<=>
-         (member ?MEMBER ?FAMILY)
-         (or
-            (parent ?MEMBER ?PERSON)
-            (parent ?PERSON ?MEMBER)))))
+  (equal (ImmediateFamilyFn ?P) ?FAMILY)
+  (forall (?MEMBER)
+    (=>
+      (member ?MEMBER ?FAMILY)
+      (exists (?OTHER)
+        (or
+          (parent ?MEMBER ?OTHER)
+          (parent ?OTHER ?MEMBER))))))
+
+(=>
+  (equal (ImmediateFamilyFn ?PERSON) ?FAMILY)
+  (exists (?MEMBER)
+    (and
+      (member ?MEMBER ?FAMILY)
+      (or
+        (parent ?MEMBER ?PERSON)
+        (parent ?PERSON ?MEMBER)))))
 
 (instance relative BinaryPredicate)
 (instance relative SymmetricRelation)
@@ -13243,10 +13280,14 @@ of ?CHILD.")
    (instance ?CHILD ?CLASS))
 
 (=>
-   (parent ?CHILD ?PARENT)
-   (or
-      (mother ?CHILD ?PARENT)
-      (father ?CHILD ?PARENT)))
+  (and
+    (parent ?CHILD ?PARENT)
+    (instance ?REP SexualReproduction)
+    (agent ?REP ?PARENT)
+    (result ?REP ?CHILD))
+  (or
+    (mother ?CHILD ?PARENT)
+    (father ?CHILD ?PARENT)))
 
 (=>
    (instance ?ORGANISM Organism)
