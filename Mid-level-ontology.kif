@@ -24,8 +24,31 @@
 ;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
 ;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
 
+(instance DeadFn UnaryFunction)
+(domainSubclass DeadFn 1 CorpuscularObject)
+(rangeSubclass DeadFn OrganicObject)
+(documentation DeadFn EnglishLanguage "The &%Dead counterpart to the particular live
+organism.  For example &%HumanCorpse is (DeadFn Human).  Note that the dead
+counterpart may not have all the original parts of the live object.  For
+example, a &%CutFlower will lack the roots of a &%FloweringPlant.")
+(=>
+  (instance ?DEAD (DeadFn ?LIVE))
+  (exists (?I)
+    (and
+      (instance ?I ?LIVE)
+      (attribute ?I Living)
+      (attribute ?DEAD Dead))))
+
+(=>
+  (instance ?DEAD (DeadFn ?LIVE))
+  (exists (?I)
+    (and
+      (instance ?I ?LIVE)
+      (before (WhenFn ?I) (WhenFn ?DEAD)))))
+
 (subclass HumanCorpse OrganicObject)
 (documentation HumanCorpse EnglishLanguage "A &%Dead thing which was formerly a &%Human.")
+(equal HumanCorpse (DeadFn Human))
 
 (=>
   (instance ?CORPSE HumanCorpse)
@@ -316,8 +339,25 @@ Sun (&%Sol) is the origin.")
 radio broadcast signals from a &%RadioStation.")
 
 (subclass TelevisionReceiver ReceiverDevice)
-(documentation TelevisionReceiver EnglishLanguage "A &%TelevisionReceiver is a &%Device for 
-receiving television broadcast signals from a &%TelevisionStation.")
+(subclass TelevisionReceiver EngineeringComponent)
+(synonymousExternalConcept "television" TelevisionReceiver EnglishLanguage)
+(synonymousExternalConcept "TV" TelevisionReceiver EnglishLanguage)
+(documentation TelevisionReceiver EnglishLanguage "A &%TelevisionReceiver is a &%Device for receiving 
+television broadcast signals from a &%TelevisionStation or signals
+transmitted through a cable from a &%CableTelevisionSystem.")
+(=>
+  (instance ?SYSTEM TelevisionSystem)
+  (exists (?DEVICE)
+    (and
+      (instance ?DEVICE TelevisionReceiver)
+      (engineeringSubcomponent ?DEVICE ?SYSTEM))))
+
+(=>
+  (instance ?SYSTEM CableTelevisionSystem)
+  (exists (?DEVICE)
+    (and
+      (instance ?DEVICE TelevisionReceiver)
+      (engineeringSubcomponent ?DEVICE ?SYSTEM))))
 
 (=>
   (instance ?T TelevisionReceiver)
@@ -943,7 +983,7 @@ in such a way that the ammunition can be fired by the weapon.")
   (and
     (instance ?L LoadingWeapon)
     (destination ?L ?W))
-  (instance ?W ProjectileWeapon))
+  (instance ?W ProjectileLauncher))
 
 (instance effectiveRange BinaryPredicate)
 (instance effectiveRange SingleValuedRelation)
@@ -1067,7 +1107,7 @@ used to support a sail.")
    (instance ?M Mast)
    (exists (?W)
       (and
-         (instance ?W Watercraft)
+         (instance ?W WaterVehicle)
          (part ?M ?W))))
 
 (subclass Rotor EngineeringComponent)
@@ -1251,7 +1291,7 @@ used as resources in Combustion processes in order to produce heat.
 Mechanical energy can be produced by burning fuel in an &%Engine.")
 (=>
   (instance ?X FossilFuel)
-  (attribute ?X Combustible))
+  (attribute ?X Flammable))
 
 (subclass Wax Substance)
 (documentation Wax EnglishLanguage "Any &%Substance of high molecular weight that resembles 
@@ -2900,7 +2940,7 @@ flatware.")
         (instance ?E Eating)
         (patient ?E ?F)
         (patient ?E ?D)
-        (instance ?F Food)
+        (instance ?F (FoodForFn Animal))
         (located ?F ?D)))))
 
 (subclass Container Holder)
@@ -4645,7 +4685,7 @@ Food to customers which is intended to be eaten on the premises.")
       (instance ?B RestaurantBuilding)        
       (located ?S ?B)
       (patient ?S ?F)
-      (instance ?F Food))))
+      (instance ?F (FoodForFn Human)))))
 
 (=>
   (instance ?PLACE RestaurantBuilding)
@@ -5103,7 +5143,7 @@ perhaps other items as well.")
       (instance ?M Medicine))))
 
 (subclass GroceryStore RetailStore)
-(documentation GroceryStore EnglishLanguage "A &%RetailStore that sells &%Food, and perhaps 
+(documentation GroceryStore EnglishLanguage "A &%RetailStore that sells food, and perhaps 
 other items as well.")
 
 (=>
@@ -5113,7 +5153,7 @@ other items as well.")
          (instance ?SELL Selling)
          (agent ?SELL ?STORE)
          (patient ?SELL ?FOOD)
-         (instance ?FOOD Food))))
+         (instance ?FOOD (FoodForFn Animal)))))
 
 (subclass OfferingForSale Offering)
 (documentation OfferingForSale EnglishLanguage "&%Offering to sell something to someone.")
@@ -6232,9 +6272,12 @@ both lumber and firewood.")
 oak tree.")
 
 (subclass Rubber PlantSubstance)
-(documentation Rubber EnglishLanguage "A latex that is produced by certain species of 
-&%BotanticalTrees.")
-
+(subclass Rubber BodySubstance)
+(subclass Rubber Hydrocarbon)
+(documentation Rubber EnglishLanguage "Natural rubber, as opposed to synthetic rubber
+which is a &%Plastic, is a product of the rubber tree, genus Hevea or Ficus. 
+It is the coagulated form of the milky juice secreted by these trees.  
+Rubber is essentially a polymer of isoprene. ")
 (=>
   (instance ?R Rubber)
   (exists (?T)
@@ -6605,10 +6648,6 @@ their initial period of life.")
 (subclass Tea PreparedFood)
 (documentation Tea EnglishLanguage "A &%Beverage which is prepared by infusing tea leaves 
 into hot water.")
-
-(subclass CellNucleus OrganicObject)
-(documentation CellNucleus EnglishLanguage "The part of the &%Cell that contains DNA and 
-RNA.")
 
 (=>
    (instance ?NUCLEUS CellNucleus)
@@ -7059,7 +7098,7 @@ formation of &%Bones.")
    (and
       (instance ?CHEW Chewing)
       (resource ?CHEW ?FOOD))
-   (instance ?FOOD Food))
+   (instance ?FOOD (FoodForFn Organism)))
 
 (=>
    (and
@@ -7080,7 +7119,7 @@ formation of &%Bones.")
   (and
     (instance ?F Feeding)
     (patient ?F ?O))
-  (instance ?O Food))
+  (instance ?O (FoodForFn Animal)))
 
 (=>
   (and
@@ -9037,15 +9076,14 @@ is still the official language of the &%Vatican.")
 (documentation SpanishLanguage EnglishLanguage "A &%Romance language that is the official language 
 of Spain, Mexico, and many Central and South American countries.")
 
-(instance LiteracyAttribute TraitAttribute)
-(documentation LiteracyAttribute EnglishLanguage "The ability to read and write.  Someone who 
-has this &%Attribute is able to read and write.")
-
 (<=>
   (attribute ?H LiteracyAttribute)
   (and
     (hasSkill Reading ?H)
     (hasSkill Writing ?H)))
+(subclass LiteracyAttribute TraitAttribute)
+(documentation LiteracyAttribute EnglishLanguage "If an individual has the &%attribute 
+&%LiteracyAttribute, that individual is able to read and write.")
 
 (subclass Industry Collection)
 (documentation Industry EnglishLanguage "The class of &%Collections of &%Corporations 
@@ -11236,9 +11274,12 @@ else is an &%Animal or a self-powered &%TransportationDevice.")
     (patient ?P ?D))
   (instance ?D TransportationDevice))
 
+(subclass MilitaryVehicle MilitaryPlatform)
 (subclass MilitaryVehicle Vehicle)
 (documentation MilitaryVehicle EnglishLanguage "Any &%Vehicle which is intended to be 
-used by a &%MilitaryOrganization.")
+used by a &%MilitaryOrganization. Military platforms which are also vehicles. 
+This would include things like airplanes and tanks, but exclude things like 
+towed platforms.")
 
 (=>
   (instance ?V MilitaryVehicle)
@@ -12168,14 +12209,14 @@ is recorded and/or performed in front of live audiences.")
 
 (instance Banker SkilledOccupation)
 (documentation Banker EnglishLanguage "Any &%SkilledOccupation which involves working in a 
-&%FinancialBank.")
+&%Bank-FinancialOrganization.")
 
 (=>
    (and
       (instance ?H Human)
       (occupiesPosition ?H ?B ?O)
       (attribute ?B Banker))
-   (instance ?O FinancialBank))
+   (instance ?O Bank-FinancialOrganization))
 
 (instance PresidentOfTheUnitedStates Position)
 (documentation PresidentOfTheUnitedStates EnglishLanguage "The position of being head of the 
@@ -12321,10 +12362,6 @@ artist or photographer.")
 (documentation Soldier EnglishLanguage "The class of &%SkilledOccupations which involve serving in 
 the armed forces of a &%Nation.")
 
-(subAttribute UnionSoldier Soldier)
-(documentation UnionSoldier EnglishLanguage "Any &%Soldier that served on the union side during 
-the American Civil War.")
-
 (instance Sailor SkilledOccupation)
 (documentation Sailor EnglishLanguage "The class of &%Positions which involve working on a 
 ship, whether a merchant ship or a navy ship.")
@@ -12340,14 +12377,6 @@ responsibility on a &%Ship.")
 (subAttribute ShipMate Sailor)
 (documentation ShipMate EnglishLanguage "The class of &%Positions that involve some responsibility 
 on a ship and are lower in rank than &%ShipCaptain.")
-
-(subAttribute RedcoatSoldier Soldier)
-(documentation RedcoatSoldier EnglishLanguage "Any &%Soldier that served on the British side during 
-the American revolutionary war.")
-
-(subAttribute ConfederateSoldier Soldier)
-(documentation ConfederateSoldier EnglishLanguage "Any &%Soldier that served on the confederate side 
-during the American Civil War.")
 
 (instance ConfederateStatesOfAmerica GeopoliticalArea)
 (documentation ConfederateStatesOfAmerica EnglishLanguage "The eleven states of the &%UnitedStates 
@@ -13430,10 +13459,10 @@ a pet, as livestock, for exhibition, etc.")
       (instance ?PERSON Human)
       (patient ?KEEP ?ANIMAL))))
 
-(subclass Fodder Food)
-(documentation Fodder EnglishLanguage "Fodder is the subclass of &%Food that is intended 
-for instances of &%DomesticAnimal.")
-
+(subclass Fodder (FoodForFn DomesticAnimal))
+(subclass Fodder OrganicObject)
+(documentation Fodder EnglishLanguage "&%Fodder is the class of &%OrganicObjects that 
+is used as food for &%DomesticAnimals.")
 (=>
   (instance ?FEED Fodder)
   (hasPurpose ?FEED 
@@ -14382,7 +14411,8 @@ closed in an &%Object.")
       (subProcess ?E ?P)
       (instance ?E Eating))))
 
-(subclass PreparedFood Food)
+(subclass PreparedFood (FoodForFn Animal))
+(subclass PreparedFood Object)
 (documentation PreparedFood EnglishLanguage "&%Food that is the result of &%Cooking.")
 
 (=>
@@ -14392,7 +14422,8 @@ closed in an &%Object.")
          (instance ?COOK Cooking)
          (result ?COOK ?FOOD))))
 
-(subclass RawFood Food)
+(subclass RawFood (FoodForFn Organism))
+(subclass RawFood Object)
 (documentation RawFood EnglishLanguage "&%Food that is not the result of &%Cooking.")
 
 (=>
@@ -14438,7 +14469,7 @@ of bread and some sort of filling between the two pieces of bread.")
     (and
       (instance ?B1 BreadOrBiscuit)
       (instance ?B2 BreadOrBiscuit)
-      (instance ?F Food)
+      (instance ?F (FoodForFn Human))
       (between ?B1 ?F ?B2)
       (not (equal ?B1 ?B2))
       (not (equal ?B1 ?F))
@@ -14475,7 +14506,7 @@ making &%BreadOrBiscuits.")
       (result ?C ?B))))
 
 (subclass CerealGrain Seed)
-(subclass CerealGrain Food)
+(subclass CerealGrain (FoodForFn Animal))
 (documentation CerealGrain EnglishLanguage "Any &%Seed which is produced by the cereal grasses, 
 e.g. rice, corn, wheat, etc.")
 
@@ -14488,11 +14519,10 @@ and which is usually prepared for eating by steaming.")
 which is used to make &%BreadOrBiscuits.")
 
 (subclass Pea Seed)
-(subclass Pea Food)
+(subclass Pea (FoodForFn Animal))
 (documentation Pea EnglishLanguage "The edible &%Seed of a pea plant.")
 
-(subclass Radish PlantRoot)
-(subclass Radish Food)
+(subclass Radish RootVegetable)
 (documentation Radish EnglishLanguage "A &%PlantRoot that is often used in salads.")
 
 (subclass Flour PreparedFood)
@@ -14510,7 +14540,7 @@ of &%BreadOrBiscuits.")
       (result ?P ?F))))
 
 (subclass Honey AnimalSubstance)
-(subclass Honey Food)
+(subclass Honey (FoodForFn Animal))
 (documentation Honey EnglishLanguage "An edible, sweet &%Substance produced by some species of 
 &%Bees.")
 
@@ -14524,17 +14554,17 @@ of &%BreadOrBiscuits.")
       (result ?P ?H))))
 
 (subclass Coconut FruitOrVegetable)
-(subclass Coconut Food)
+(subclass Coconut (FoodForFn Animal))
 (documentation Coconut EnglishLanguage "A &%FruitOrVegetable that is produced by a type of palm 
 and has an edible white meat.")
 
 (subclass LemonFruit FruitOrVegetable)
-(subclass LemonFruit Food)
+(subclass LemonFruit (FoodForFn Animal))
 (documentation LemonFruit EnglishLanguage "A citrus &%FruitOrVegetable that has a &%Yellow skin 
 and a tart, acidic flavor.")
 
 (subclass OrangeFruit FruitOrVegetable)
-(subclass OrangeFruit Food)
+(subclass OrangeFruit (FoodForFn Animal))
 (documentation OrangeFruit EnglishLanguage "A citrus &%FruitOrVegetable that has an &%OrangeColor 
 skin and a sweet, acidic flavor.")
 
@@ -14554,22 +14584,22 @@ a base for soups or sauces.")
 roasted coffee beans into hot water.")
 
 (subclass Apple FruitOrVegetable)
-(subclass Apple Food)
+(subclass Apple (FoodForFn Animal))
 (documentation Apple EnglishLanguage "A &%FruitOrVegetable that has a tart to sweet taste and 
 a spherical shape.")
 
 (subclass DateFruit FruitOrVegetable)
-(subclass DateFruit Food)
+(subclass DateFruit (FoodForFn Animal))
 (documentation DateFruit EnglishLanguage "A &%FruitOrVegetable that is produced by the date 
 palm.")
 
 (subclass PearFruit FruitOrVegetable)
-(subclass PearFruit Food)
+(subclass PearFruit (FoodForFn Animal))
 (documentation PearFruit EnglishLanguage "A &%FruitOrVegetable that has a thick skin and the 
 shape of a tear drop.")
 
 (subclass Avocado FruitOrVegetable)
-(subclass Avocado Food)
+(subclass Avocado (FoodForFn Animal))
 (documentation Avocado EnglishLanguage "A &%FruitOrVegetable that is shaped like a pear and 
 has a dark green skin and a rich meat.")
 
@@ -14846,16 +14876,12 @@ a kidnapping normally involves an attack on one, or a very small
 number of people, such as a couple.")
 
 (=>
-  (instance ?X Kidnapping)
-  (exists (?A)
-    (and
-      (instance ?A SentientAgent)
-      (equal ?N
-        (CardinalityFn
-          (KappaFn ?A
-            (patient ?X ?A))))
-      (lessThan ?N 3)
-      (greaterThan ?N 0))))
+  (and
+    (instance ?X Kidnapping)
+    (instance ?G GroupOfPeople)
+    (memberCount ?G ?N)
+    (patient ?X ?G))
+  (lessThan ?N 3))
       
 (=>
   (instance ?X Kidnapping)
@@ -15553,9 +15579,6 @@ feature of interest to &%Tourists, which entertains or informs them.")
   distinguished from a war between nations, or a civil war in that the group
   is at least partially clandestine and a significant proportion of its acts
   are against non-military targets.")
-
-(documentation members-Count EnglishLanguage "A relation between an instance of a &%Collection
-  and the approximate number of members in the &%Collection.")
 
 (instance memberCount BinaryPredicate)
 (domain memberCount 1 Collection)
