@@ -747,6 +747,13 @@ time-axis.")
 (documentation SelfConnectedObject EnglishLanguage "A &%SelfConnectedObject is any 
 &%Object that does not consist of two or more disconnected parts.")
 
+(subclass OrganicThing SelfConnectedObject)
+(documentation OrganicThing EnglishLanguage "A &%SelfConnectedObject that is
+produced by a non-intentional process from an &%Organism.  Note that this
+refers only to the primary cause.  That is, a &%PlantAgriculturalProduct
+is firstly produced by a &%Plant, and only secondarily by a &%Human that is
+tending the plant.")
+
 (instance FrontFn SpatialRelation)
 (instance FrontFn PartialValuedRelation)
 (instance FrontFn UnaryFunction)
@@ -8183,17 +8190,17 @@ is made available to an &%Animal.  This covers processes of inhalation,
 exhalation, and alternations between the two.")
 
 (subclass Ingesting OrganismProcess)
-(documentation Ingesting EnglishLanguage "The &%Process by which &%Food is 
+(documentation Ingesting EnglishLanguage "The &%Process by which food is 
 taken into an &%Animal.")
 
 (=>
    (and
       (instance ?ACT Ingesting)
       (resource ?ACT ?FOOD))
-   (instance ?FOOD Food))
+   (instance ?FOOD (FoodForFn Organism)))
 
 (subclass Eating Ingesting)
-(documentation Eating EnglishLanguage "The &%Process by which solid &%Food is 
+(documentation Eating EnglishLanguage "The &%Process by which solid food is 
 incorporated into an &%Animal.")
 
 (=>
@@ -8203,8 +8210,14 @@ incorporated into an &%Animal.")
    (attribute ?FOOD Solid))
 
 (subclass Drinking Ingesting)
-(documentation Drinking EnglishLanguage "The &%Process by which liquid &%Food, i.e. 
+(documentation Drinking EnglishLanguage "The &%Process by which liquid food, i.e. 
 &%Beverages, are incorporated into an &%Animal.")
+
+(=>
+   (and
+      (instance ?ACT Drinking)
+      (resource ?ACT ?FOOD))
+   (attribute ?FOOD Liquid))
 
 (subclass Digesting OrganismProcess)
 (subclass Digesting AutonomicProcess)
@@ -10247,7 +10260,7 @@ of heat.")
    (instance ?COOK Cooking)
    (exists (?FOOD)
       (and
-         (instance ?FOOD Food)
+         (instance ?FOOD (FoodForFn Organism))
          (result ?COOK ?FOOD))))
          
 (subclass Pursuing IntentionalProcess)
@@ -10840,7 +10853,7 @@ sensing is done by an ocular &%Organ.")
     (and
       (instance ?ATTR ColorAttribute)
       (holdsDuring (WhenFn ?SEE)
-        (color ?OBJ ?ATTR)))))
+        (attribute ?OBJ ?ATTR)))))
 
 (subclass Looking Seeing)
 (subclass Looking IntentionalProcess)
@@ -11520,7 +11533,7 @@ of frogs and butterflies, respectively.")
          (holdsDuring ?TIME2 (developmentalForm ?OBJ ?ATTR2)))))
    
 (subclass OrganicObject CorpuscularObject)
-(disjoint OrganicObject Artifact)
+(subclass OrganicObject OrganicThing)
 (partition OrganicObject Organism AnatomicalStructure)
 (documentation OrganicObject EnglishLanguage "This class encompasses &%Organisms, 
 &%CorpuscularObjects that are parts of &%Organisms, i.e. &%BodyParts, 
@@ -11529,6 +11542,7 @@ and &%CorpuscularObjects that are nonintentionally produced by
 
 (subclass Organism OrganicObject)
 (subclass Organism Agent)
+(disjoint Organism Artifact)
 (partition Organism Animal Plant Microorganism)
 (documentation Organism EnglishLanguage "Generally, a living individual, including all 
 &%Plants and &%Animals.")
@@ -12013,26 +12027,37 @@ categories, viz. steroid hormones and peptide hormones.")
 (documentation Blood EnglishLanguage "A fluid present in &%Animals that transports 
 &%Nutrients to and waste products away from various &%BodyParts.")
 
-(subclass Food SelfConnectedObject)
-(disjointDecomposition Food Meat Beverage)
-(documentation Food EnglishLanguage "Any &%SelfConnectedObject containing &%Nutrients, 
-such as carbohydrates, proteins, and fats, that can be ingested by a 
-living &%Animal and metabolized into energy and body tissue.")
+(instance FoodForFn UnaryFunction)
+(domainSubclass FoodForFn 1 Organism)
+(rangeSubclass FoodForFn SelfConnectedObject)
+(documentation FoodForFn EnglishLanguage "A &%Function that denotes 
+&%SelfConnectedObject containing &%Nutrients, such as carbohydrates, 
+proteins, and fats, that can be ingested by a the given class of living 
+&%Animal and metabolized into energy and body tissue.") 
 
 (=>
-    (instance ?FOOD Food)
-    (exists (?NUTRIENT)
-        (and
-            (instance ?NUTRIENT Nutrient)
-            (part ?NUTRIENT ?FOOD))))
+  (instance ?FOOD (FoodForFn ?A))
+  (exists (?NUTRIENT)
+    (and
+      (instance ?NUTRIENT Nutrient)
+      (part ?NUTRIENT ?FOOD))))
 
-(subclass Meat Food)
-(documentation Meat EnglishLanguage "Any &%Food which was originally part of an 
+(subclass Meat SelfConnectedObject)
+(disjoint Meat Beverage)
+(documentation Meat EnglishLanguage "Any food which was originally part of an 
 &%Animal and is not ingested by drinking, including eggs and animal 
 blood that is eaten as food.  Note that this class covers both raw 
 meat and meat that has been prepared in some way, e.g. by cooking.  
 Note too that preparations involving &%Meat and &%FruitOrVegetable 
 are classed directly under &%Food.")
+
+(=>
+  (instance ?M Meat)
+  (exists (?DA ?AC)
+    (and
+      (instance ?DA (DeadFn ?AC))
+      (part ?M ?DA)
+      (subclass ?AC Animal))))
 
 (=>
    (instance ?MEAT Meat)
@@ -12047,10 +12072,9 @@ are classed directly under &%Food.")
                    (instance ?ANIMAL Animal) 
                    (part ?SUBPART ?ANIMAL))))))))
 
-(subclass Beverage Food)
-(documentation Beverage EnglishLanguage "Any &%Food that is ingested by &%Drinking.  
-Note that this class is disjoint with the other subclasses of &%Food, 
-i.e. &%Meat and &%FruitOrVegetable.")
+(subclass Beverage Substance)
+(documentation Beverage EnglishLanguage "Any food that is ingested by &%Drinking.  
+Note that this class is disjoint &%Meat and &%FruitOrVegetable.")
 
 (=>
    (instance ?BEV Beverage)
@@ -12676,8 +12700,8 @@ linked by a chemical bond.")
          (not
             (equal ?ATOM1 ?ATOM2)))))
 
-(subclass Artifact CorpuscularObject)
-(documentation Artifact EnglishLanguage "A &%CorpuscularObject that is the product of a 
+(subclass Artifact Object)
+(documentation Artifact EnglishLanguage "An &%Object that is the product of a 
 &%Making.")
 
 (<=>
@@ -14429,7 +14453,7 @@ by an act of &%Perception.")
 the taste of &%Objects.")
 
 (=>
-   (instance ?OBJ Food)
+   (instance ?OBJ (FoodForFn Animal))
    (exists (?ATTR)
       (and
          (instance ?ATTR TasteAttribute)
