@@ -1,0 +1,267 @@
+;; ============================================================================
+;;                  	REARDEN COMMERCE, INC.
+;;                  	Dining Ontology
+;; ============================================================================
+
+;; Created by: Karen Joy Nomorosa (karen.nomorosa [at] reardencommerce [dot] com)
+;; Created on: March 8, 2011
+;; Version: 1.0
+;; Last modified: March 20, 2011
+;; Modified by: Karen Joy Nomorosa (karen.nomorosa [at] reardencommerce [dot] com)
+
+;; Description:  This ontology describes different concepts related to Dining
+
+;; Ontology dependencies for Dining.kif: Merge.kif, Mid-level-ontology.kif
+
+;; ----------------------------------------------------------------------------
+;; Restaurant Subclasses
+;; ----------------------------------------------------------------------------
+
+(subclass Coffeeshop Cafeteria)
+(documentation Coffeeshop "a type of &%Cafeteria that specializes in serving &%Coffee")
+(termFormat EnglishLanguage Coffeeshop "coffee shop")
+
+(=>
+	(instance ?COMPANY Coffeeshop)
+	(exists (?SERVICE ?BEVERAGE)
+    		(and
+        			(instance ?SERVICE CommercialService)
+        			(agent ?SERVICE ?COMPANY)
+        			(instance ?SERVICE Selling)
+        			(patient ?SERVICE ?BEVERAGE)
+        			(instance ?BEVERAGE Coffee))))
+
+
+(subclass Brewpub Tavern)
+(documentation Brewpub "a type of &%Tavern that brews &%Beer and whose primary service is selling that &%Beer to customers")
+(termFormat EnglishLanguage Brewpub "Brewpub")
+
+(=>
+	(instance ?PUB Brewpub)
+	(exists (?SERVICE ?BEER ?BREW)
+    		(and
+        			(instance ?BREW Making)
+        			(result ?BREW ?BEER)
+        			(instance ?BEER Beer)
+        			(agent ?BREW ?PUB)
+        			(instance ?SERVICE CommercialService)
+        			(agent ?SERVICE ?PUB)
+        			(instance ?SERVICE Selling)
+        			(patient ?SERVICE ?BEER))))
+
+(subclass Bakery Business)
+(documentation Bakery “a type of &%Business that specializes in the production and selling of the &%result of the process &%Baking”)
+(termFormat EnglishLanguage Bakery “bakery”)
+
+(=> 
+	(instance ?BAKERY Bakery)
+	(exists (?SERVICE ?FOOD ?BAKE)
+		(and
+			(instance ?BAKE Baking)
+			(result ?BAKE ?FOOD)
+			(instance ?FOOD (FoodForFn Human))
+			(agent ?BAKE ?BAKERY)
+			(instance ?SERVICE CommercialService)
+			(agent ?SERVICE ?BAKERY)
+			(instance ?SERVICE Selling)
+			(patient ?SERVICE ?FOOD))))
+
+(subclass Steakhouse Restaurant)
+(documentation Steakhouse “a type of &%Restaurant that specializes in serving steak, which is cooked &%Beef”)
+(termFormat EnglishLanguage Steakhouse “steakhouse”)
+
+(=>
+	(instance ?STEAKHOUSE Steakhouse)
+	(exists (?SERVICE ?STEAK ?BEEF)
+		(and
+			(instance ?COOK Cooking)
+			(instance ?BEEF Beef)
+			(resource ?COOK ?BEEF)
+			(result ?COOK ?STEAK)
+			(instance ?SERVICE CommercialService)
+			(agent ?SERVICE ?STEAKHOUSE)
+			(instance ?SERVICE Selling)
+			(patient ?SERVICE ?STEAK))))
+
+
+;; ----------------------------------------------------------------------------
+;; Dining Concepts
+;; ----------------------------------------------------------------------------
+
+;; Cuisine
+
+;; Menu
+(subclass Menu Collection)
+(documentation Menu "a &%Menu is a &%Collection of &%SelfConnectedObjects")
+(termFormat EnglishLanguage Menu "menu")
+
+(=>
+	(and
+		(instance ?MENU Menu)
+		(member ?MEMB ?MENU))
+	(instance ?MEMB SelfConnectedObject))
+	
+(subclass FoodMenu Menu)
+(documentation FoodMenu "a &%FoodMenu is a &%Menu of &%PreparedFood")
+(termFormat EnglishLanguage FoodMenu "food menu")
+
+(=>
+	(and
+		(instance ?MENU FoodMenu)
+		(member ?MEMB ?MENU))
+	(instance ?MEMB PreparedFood))
+	
+(subclass BeverageMenu Menu)
+(documentation BeverageMenu "a &%BeverageMenu is a &%Menu of &%Beverages")
+(termFormat EnglishLanguage BeverageMenu "drinks menu")
+
+(=>
+	(and
+		(instance ?MENU BeverageMenu)
+		(member ?MEMB ?MENU))
+	(instance ?MEMB Beverage))
+
+(subclass AlcoholMenu BeverageMenu)
+(documentation AlcoholMenu "an &%AlcoholMenu is a &%Menu of &%AlcoholicBeverage")
+(termFormat EnglishLanguage AlcoholMenu "cocktail menu")
+
+(=>
+	(and
+		(instance ?MENU WineMenu)
+		(member ?MEMB ?MENU))
+	(instance ?MEMB AlcoholicBeverage))
+
+(subclass WineMenu AlcoholMenu)
+(documentation WineMenu "a &%WineMenu is a &%Menu of &%Wine")
+(termFormat EnglishLanguage WineMenu "wine list")
+
+(=>
+	(and
+		(instance ?MENU WineMenu)
+		(member ?MEMB ?MENU))
+	(instance ?MEMB Wine))
+	
+	
+;; ----------------------------------------------------------------------------
+;; Restaurant Properties
+;; ----------------------------------------------------------------------------
+
+(serviceRating ?ENTITY ?RATING ?AGENT ?SERVICE)
+(documentation serviceRating "(&%serviceRating ?ENTITY ?RATING ?AGENT ?SERVICE) means that ?ENTITY is given a ?RATING by ?AGENT with respect to ?SERVICE")
+(instance rating QuaternaryPredicate)
+(domain serviceRating 1 Agent)
+(domain serviceRating 2 Rating)
+(domain serviceRating 3 Agent)
+(domainSubclass serviceRating 4 Process)
+
+(=> 
+	(rating ?ENTITY ?RATING ?AGENT ?SERVICE)
+	(and
+		(exists (?X)
+			(and
+				(instance ?X ?SERVICE)
+				(agent ?X ?ENTITY)))
+		(exists (?RATE)
+			(and
+				(instance ?RATE Classifying)
+				(agent ?RATE ?AGENT)
+				(patient ?RATE ?RATING)
+				(destination ?RATE ?SERVICE)))))
+
+(objectRating ?ENTITY ?RATING ?AGENT ?OBJ)
+(documentation objectRating "(&%objectRating ?ENTITY ?RATING ?AGENT ?SERVICE) means that ?ENTITY is given a ?RATING by ?AGENT with respect to an ?OBJECT that ?ENTITY created")
+(instance rating QuaternaryPredicate)
+(domain objectRating 1 Agent)
+(domain objectRating 2 Rating)
+(domain objectRating 3 Agent)
+(domainSubclass objectRating 4 Physical)
+
+(=> 
+	(rating ?ENTITY ?RATING ?AGENT ?OBJ)
+	(and
+		(exists (?X ?PROCESS)
+			(and
+				(instance ?X ?OBJ)
+				(instance ?PROCESS Making)
+				(agent ?PROCESS ?ENTITY)
+				(result ?PROCESS ?OBJ)))
+		(exists (?RATE)
+			(and
+				(instance ?RATE Classifying)
+				(agent ?RATE ?AGENT)
+				(patient ?RATE ?RATING)
+				(destination ?RATE ?SERVICE)))))
+
+(attributeRating ?ENTITY ?RATING ?AGENT ?ATTR)
+(documentation objectRating "(&%attributeRating ?ENTITY ?RATING ?AGENT ?SERVICE) means that ?ENTITY is given a ?RATING by ?AGENT with respect to an ?ATTR of ?ENTITY")
+(instance rating QuaternaryPredicate)
+(domain objectRating 1 Agent)
+(domain objectRating 2 Rating)
+(domain objectRating 3 Agent)
+(domain objectRating 4 Attribute)
+
+(=> 
+	(rating ?ENTITY ?RATING ?AGENT ?ATTR)
+	(and
+		(attribute ?ENTITY ?ATTR)
+		(exists (?RATE)
+			(and
+				(instance ?RATE Classifying)
+				(agent ?RATE ?AGENT)
+				(patient ?RATE ?RATING)
+				(destination ?RATE ?SERVICE)))))				
+
+
+(facility ?AGENT ?OBJ)
+(instance facility BinaryPredicate)
+(documentation facility “(&%facility ?AGENT ?OBJ) means that an ?AGENT provides some ?OBJ to fulfill some goal or need”)
+(domainSubclass facility 1 Object)
+(domain facility 2 Agent)
+
+;; if an AGENT provides some OBJECT, and there exists a customer who wants to use that object, then AGENT allows the customer to use that OBJECT
+(=>
+	(and
+		(facility ?AGENT ?OBJ)
+		(exists (?CUST ?X)
+			(and
+				(customer ?CUST ?AGENT)
+				(instance ?X ?OBJ)
+				(exists (?PROC)
+					(and
+						(instance ?PROC IntentionalProcess)
+						(patient ?PROC ?X)
+						(agent ?PROC ?CUST))))))
+	(confersRight
+		(uses ?CUST ?X) ?AGENT))
+
+
+;; NOTE: You can use RecurrentTimeIntervalFn(HourFn HourFn) to come up with ?TIMEINT
+(businessHours ?TIMEINT ?AGENT)
+(instance businessHours BinaryPredicate)
+(documentation businessHours "(&%businessHours ?TIMEINT ?AGENT) means that an ?AGENT conducts business-related activities during ?TIMEINT")
+(domainSubclass businessHours 1 TimeInterval)
+(domain businessHours 2 Agent)
+
+(standardRetailHours ?TIMEINT ?AGENT)
+(subrelation standardRetailHours businessHours)
+(documentation standardRetailHours "(%&standardRetailHours ?TIMEINT ?AGENT) means that an ?AGENT initiates face-to-face processes with customers only within the time specified by ?TIMEINT")
+(domainSubclass standardRetailHours 1 ?AGENT)
+(domain standardRetailHours 2 Agent)
+		
+;; the probability that a customer can be served is higher if it is within standardRetailHours
+(=>
+	(and
+		(standardRetailHours ?TIMEINT ?AGENT)
+		(exists (?C ?AGENT ?P ?START)
+			(and
+				(customer ?C ?AGENT)
+				(wants ?C ?P)
+				(instance ?P IntentionalProcess)
+				(agent ?P ?AGENT)
+				(destination ?P ?C)
+				(instance ?START (StartFn ?P))))
+		(conditionalProbability (during WhenFn(?START) ?TIMEINT) (capability ?P agent ?AGENT) ?NUMBER1)
+		(conditionalProbability (not (during WhenFn(?START) ?TIMEINT)) (capability ?P agent ?AGENT) ?NUMBER2))
+	(lessThan ?NUMBER2 ?NUMBER1))
+	
+		
