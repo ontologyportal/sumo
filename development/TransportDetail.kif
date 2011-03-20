@@ -1,0 +1,85 @@
+;; ============================================================================
+;;                           	REARDEN COMMERCE, INC.
+;;          	Business Establishment Services and Facilities Ontology
+;; ============================================================================
+
+;; Created by: Karen Joy Nomorosa (karen.nomorosa [at] reardencommerce [dot] com)
+;; Created on: March 10, 2011
+;; Version: 1.0
+;; Last modified: March 20, 2011
+;; Modified by: Karen Joy Nomorosa (karen.nomorosa [at] reardencommerce [dot] com)
+
+;; Description:  This ontology describes different concepts related to transportation and parking
+
+;; Ontology dependencies for TransportDetail.kif: Merge.kif, Mid-level-ontology.kif, Transportation.kif
+
+(subclass ParkingRegion Region)
+(documentation ParkingRegion "A &%ParkingRegion is a &%Region where &%TransportationDevice is kept temporarily")
+(termFormat EnglishLanguage ParkingRegion "Parking")
+
+(=>
+	(instance ?PARK ParkingRegion)
+	(hasPurpose ?PARK
+    		(and
+        			(playsRoleInEvent ?PARK destination ?EVENT)
+        			(playsRoleInEvent ?TD patient ?EVENT)
+        			(instance ?TD TransportationDevice))))
+
+(subclass StreetParking ParkingRegion)
+(documentation StreetParking "&%StreetParking refers to &%ParkingRegion that is &%located on a &%Street")
+(termFormat EnglishLanguage StreetParking "Street Parking")
+
+(=>
+	(instance ?PARK StreetParking)
+	(exists (?STREET)
+    		(and
+        			(instance ?STREET Street)
+        			(orientation ?PARK ?STREET On))))
+
+(subclass ParkingLot GeographicArea)
+(documentation ParkingLot "A &%ParkingLot is a &%GeographicArea that contains &%greaterThan one [1] &%ParkingRegion")
+(termFormat EnglishLanguage ParkingLot "Parking Lot")
+
+(=>
+	(instance ?PARK ParkingLot)
+	(exists (?C ?N)
+    		(and
+        			(located ?C ?PARK)
+        			(member ?SLOT ?C)
+        			(instance ?SLOT ParkingRegion)
+        			(memberCount ?C ?N)
+        			(greaterThan ?N 1))))
+
+;; (subclass ParkingGarage Building) ---> can be found in Transportation.kif
+(documentation ParkingGarage “a &%ParkingGarage is a type of &%Building with a &%ParkingLot located in it”)
+(=>
+	(instance ?PARK ParkingGarage)
+	(exists (?LOT)
+		(and
+			(instance ?LOT ParkingLot)
+			(located ?LOT ?PARK))))
+
+
+;; Axiom for "Private Parking"
+(=>
+	(and
+    	(possesses ?BUS ?PARK)
+    	(instance ?BUS CommercialAgent)
+    	(instance ?PARK ParkingLot)
+    	(exists (?BLDG)
+        	(and
+				(instance ?BLDG Building)
+            	(located ?BUS ?BLDG)))
+   		(exists (?CUST)
+    		(and
+        		(customer ?BUS ?CUST)
+            	(instance ?DRIVE Driving)
+            	(patient ?DRIVE ?VEHICLE)
+            	(agent ?DRIVE ?CUST)
+            	(destination ?DRIVE ?BLDG))))
+	(holdsDuring (located ?CUST ?BLDG)
+    	(confersRight
+    		(and
+            	(instance ?PUT Putting)
+            	(destination ?PUT ?PARK)
+            	(patient ?PUT ?VEHICLE)) ?BUS ?CUST)))
