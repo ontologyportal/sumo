@@ -27,9 +27,12 @@
 
 
 (subclass RatingAttribute SubjectiveAssessmentAttribute)
-(documentation RatingAttribute "&%RatingAttribute attempts to quantify the subjective assessment of an &%Object using some scoring system")
+(documentation RatingAttribute "&%RatingAttribute attempts to quantify the subjective assessment of 
+an &%Object using some scoring system.  A &%RatingAttribute is created by an &%Agent with some
+criteria in mind.")
 
-;; if ?RATING is an instance of RatingAttribute, then there exists some agent that underwent some decision-making to come up with that rating
+;; if ?RATING is an instance of RatingAttribute, then there exists some agent that underwent 
+;; some decision-making to come up with that rating
 (=>
   (instance ?RATING RatingAttribute)
   (exists (?AGENT)
@@ -37,7 +40,8 @@
 
 ;;(ratingsAgent ?RATING ?AGENT)
 (instance ratingsAgent BinaryPredicate)      
-(documentation ratingsAgent "(&%ratingsAgent ?RATING ?AGENT) means that &%RatingAttribute ?RATING was created by ?AGENT")
+(documentation ratingsAgent "(&%ratingsAgent ?RATING ?AGENT) means that ?AGENT went through some
+&%Deciding process in order to create &%RatingAttribute ?RATING.")
 (domain ratingsAgent 1 RatingAttribute)
 (domain ratingsAgent 2 Agent)
 
@@ -48,56 +52,76 @@
       (instance ?PROCESS Deciding)
       (agent ?PROCESS ?AGENT)
       (result ?PROCESS ?RATING))))
-
  
 (subclass RestaurantRating RatingAttribute)
-(documentation RestaurantRating "&%RestaurantRating is a &%SubjectiveAssessmentAttribute specifically targeted at the overall quality of a &%Restaurant")
+(documentation RestaurantRating "&%RestaurantRating is a &%SubjectiveAssessmentAttribute 
+specifically targeted at the overall quality of a &%Restaurant")
 
 (=>
   (and
-    (objectRating ?ENTITY ?RATING ?AGENT ?OBJ)
-    (instance ?RATING RestaurantRating))
-  (and
-    (subclass ?OBJ CommercialAgent)
-    (instance ?ENTITY Restaurant)))
+    (subjectiveAttribute ?ENTITY ?ATTR ?AGENT)
+    (instance ?ATTR RestaurantRating))
+  (instance ?ENTITY Restaurant))
 
 (subclass FoodRating RatingAttribute)
-(documentation FoodRating "&%FoodRating is a &%SubjectiveAssessmentAttribute specifically targeted the overall quality of &%Food")
+(documentation FoodRating "&%FoodRating is a &%SubjectiveAssessmentAttribute specifically targeted 
+the overall quality of &%Food")
 
-;; if a rating is a Food Rating, then the object of the rating is food, and that food was cooked by the agent. 
+;; FoodRating has the purpose of applying a subjective assessment on food prepared by an agent
 (=>
+  (instance ?RATING FoodRating)
+  (hasPurpose ?RATING
+    (and
+      (instance ?C Classifying)
+      (destination ?C ?FOOD)
+      (patient ?C ?RATING)
+      (instance ?FOOD PreparedFood))))
+      
+(=> 
   (and
-    (objectRating ?ENTITY ?RATING ?AGENT ?OBJ)
-    (instance ?RATING FoodRating))
-  (subclass ?OBJ PreparedFood)
+    (subjectiveAttribute ?ENTITY ?ATTR ?AGENT)
+    (instance ?ATTR FoodRating)
+    (instance ?ENTITY Agent))
+  (exists (?FOOD ?COOK ?CLASSIFY)
+    (and
+      (instance ?COOK Cooking)
+      (agent ?COOK ?ENTITY)
+      (result ?COOK ?FOOD)
+      (instance ?CLASSIFY Classifying)
+      (destination ?CLASSIFY ?FOOD)
+      (patient ?CLASSIFY ?ATTR))))
 
 (subclass ServiceRating RatingAttribute)
-(documentation ServiceRating "&%ServiceRating is a &%SubjectiveAssessmentAttribute specifically targeted at the overall quality of &%service given by an agent")
+(documentation ServiceRating "&%ServiceRating is a &%SubjectiveAssessmentAttribute specifically 
+targeted at the overall quality of &%service given by an agent")
 
-;; if a rating is a Service Rating, then the object of that rating is a ServiceProcess, and that service process was executed by the agent
 (=>
+  (instance ?RATING ServiceRating)
+  (hasPurpose ?RATING
+    (and
+      (instance ?C Classifying)
+      (destination ?C ?S)
+      (patient ?C ?RATING)
+      (instance ?S ServiceProcess))))
+      
+(=> 
   (and
-    (serviceRating ?ENTITY ?RATING ?AGENT ?SVC)
-    (instance ?RATING ServiceRating))
-  (subclass ?SVC ServiceProcess))
-
+    (subjectiveAttribute ?ENTITY ?ATTR ?AGENT)
+    (instance ?ATTR ServiceRating)
+    (instance ?ENTITY Agent))
+  (exists (?SVC ?CLASSIFY)
+    (and
+      (instance ?SVC ServiceProcess)
+      (agent ?SVC ?ENTITY)
+      (instance ?CLASSIFY Classifying)
+      (destination ?CLASSIFY ?SVC)
+      (patient ?CLASSIFY ?ATTR))))
+      
 (subclass AmbienceRating RatingAttribute)
-(documentation AmbienceRating "&%AmbienceRating is a &%SubjectiveAssessmentAttribute specifically targeted at the overall quality of an environment's atmosphere") 
-
-;; if a rating is an AmbienceRating, then the object of that rating is an instance of SubjectiveAssessmentAttribute
-(=>
-  (and
-    (attributeRating ?ENTITY ?RATING ?AGENT ?ATTR)
-    (instance ?RATING AmbienceRating))
-  (subclass ?ATTR SubjectiveAssessmentAttribute))
+(documentation AmbienceRating "&%AmbienceRating is a &%SubjectiveAssessmentAttribute specifically 
+targeted at the overall quality of an environment's atmosphere") 
 
 (subclass PriceRating RatingAttribute)
-(documentation PriceRating "&%PriceRating is a &%SubjectiveAssessmentAttribute specifically targeted at the price (or average price) of an object is")
-
-;; if a rating is a PriceRating, then the object of the rating is the CostAttribute
-(=>
-  (and
-    (objectRating ?ENTITY ?RATING ?AGENT ?OBJ)
-    (instance ?RATING PriceRating))
-  (subclass ?OBJ SubjectiveAssessmentAttribute))
+(documentation PriceRating "&%PriceRating is a &%SubjectiveAssessmentAttribute specifically 
+targeted at the price (or average price) of an object is")
 

@@ -1,4 +1,4 @@
-﻿;; ============================================================================
+;; ============================================================================
 ;;                           	REARDEN COMMERCE, INC.
 ;;          	Business Establishment Services and Facilities Ontology
 ;; ============================================================================
@@ -58,8 +58,10 @@
   (exists (?C ?N)
     (and
       (located ?C ?PARK)
-      (member ?SLOT ?C)
-      (instance ?SLOT ParkingRegion)
+      (forall (?SLOT)
+        (=>
+          (member ?SLOT ?C)
+          (instance ?SLOT ParkingRegion)))
       (memberCount ?C ?N)
       (greaterThan ?N 1))))
 
@@ -79,20 +81,77 @@
     (possesses ?BUS ?PARK)
     (instance ?BUS CommercialAgent)
     (instance ?PARK ParkingLot)
-    (exists (?BLDG)
-      (and
-        (instance ?BLDG Building)
-        (located ?BUS ?BLDG)))
-    (exists (?CUST)
-      (and
-        (customer ?BUS ?CUST)
-        (instance ?DRIVE Driving)
-        (patient ?DRIVE ?VEHICLE)
-        (agent ?DRIVE ?CUST)
-        (destination ?DRIVE ?BLDG))))
+    (instance ?BLDG Building)
+    (located ?BUS ?BLDG)
+    (customer ?BUS ?CUST)
+    (instance ?DRIVE Driving)
+    (patient ?DRIVE ?VEHICLE)
+    (agent ?DRIVE ?CUST)
+    (destination ?DRIVE ?BLDG))
   (holdsDuring (located ?CUST ?BLDG)
     (confersRight
       (and
         (instance ?PUT Keeping)
         (destination ?PUT ?PARK)
         (patient ?PUT ?VEHICLE)) ?BUS ?CUST)))
+
+(subclass Valet ServicePosition)
+(documentation Valet EnglishLanguage "a %&Valet is a person whose primary occupation it is to park
+cars for people")
+(termFormat EnglishLanguage Valet "valet")
+
+(=>
+  (attribute ?H Valet)
+  (occupation ?H (OccupationFn Driving)))
+
+(=>
+  (attribute ?H Valet)
+  (hasPurpose ?H
+    (and
+      (instance ?VEHICLE Vehicle)
+      (instance ?PUT Putting)
+      (destination ?PUT ?PARK)
+      (instance ?PARK ParkingRegion)
+      (patient ?PUT ?VEHICLE)
+      (agent ?PUT ?H))))
+      
+(subclass ValetParking ServiceProcess)
+(documentation ValetParking EnglishLanguage "&%ValetParking refers to the process of having a
+service employee of an establishment park a customer's car for him or her")
+(termFormat EnglishLanguage ValetParking "valet parking")
+
+(=>
+  (capability ValetParking agent ?AGENT)
+  (exists (?VALET)
+    (occupiesPosition ?VALET Valet ?AGENT)))
+
+(=>
+  (and
+    (capability ValetParking agent ?AGENT)
+    (customer ?CUST ?AGENT)
+    (located ?AGENT ?LOC)
+    (instance ?D Arriving)
+    (agent ?D ?CUST)
+    (patient ?D ?VEHICLE)
+    (destination ?D ?LOC))
+  (and
+    (occupiesPosition ?VALET Valet ?AGENT)
+    (modalAttribute
+      (exists (?VP)
+        (and
+          (instance ?VP ValetParking)
+          (agent ?VP ?VALET)
+          (patient ?VP ?VEHICLE)
+          (destination ?VP ?PARK)
+          (instance ?PARK ParkingRegion))) Possibility )))
+          
+(=>
+  (and
+    (instance ?VP ValetParking)
+    (patient ?VP ?VEHICLE)
+    (instance ?A Arriving)
+    (patient ?A ?VEHICLE))
+  (meetsTemporally 
+    (EndFn (WhenFn ?A))
+    (BeginFn (WhenFn ?VP))))
+    
