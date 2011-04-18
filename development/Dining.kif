@@ -242,8 +242,8 @@ an instance of ?OBJ is a member of ?CATALOG")
       
 ;; (offers ?AGENT ?CATALOG)
 (documentation offers EnglishLanguage "(&%offers ?AGENT ?CATALOG) means that 
-?CATALOG offers items of ?CATALOG to its customers")
-(instance serves BinaryPredicate)
+?AGENT offers items of ?CATALOG to its customers")
+(instance offers BinaryPredicate)
 (domain offers 1 Agent)
 (domain offers 2 Catalog)
 (termFormat EnglishLanguage offers "offers")
@@ -264,26 +264,65 @@ an instance of ?OBJ is a member of ?CATALOG")
   (and
     (offers ?AGENT ?CATALOG)
     (catalogItem ?CLASS ?CATALOG)
-    (subclass ?CLASS Object))
-  (exists (?PROCESS ?OBJ)
-    (and
-      (instance ?PROCESS Process)
-      (instance ?OBJ ?CLASS)
-      (patient ?PROCESS ?OBJ)
-      (agent ?PROCESS ?AGENT))))
+    (subclass ?CLASS Object)
+    (instance ?PROCESSINST ?PROCESS)
+    (subclass ?PROCESS Process)
+    (instance ?OBJ ?CLASS)
+    (patient ?PROCESSINST ?OBJ))
+  (capability ?PROCESS agent ?AGENT))
 
+;; (offersAtTime ?AGENT ?CATALOG ?TIMEINT)
+(documentation offersAtTime EnglishLanguage "(%&offersAtTime ?AGENT ?CATALOG ?TIMEINT) 
+means that ?AGENT offers items of ?CATALOG to its customer only during the specified 
+?TIMEINT")      
+(instance offersAtTime TernaryPredicate)
+(domain offers 1 Agent)
+(domain offers 2 Catalog)
+(domain offers 3 TimeInterval)
+
+(=>
+  (and
+    (offersAtTime ?AGENT ?CATALOG ?TIMEINT)
+    (catalogItem ?CLASS ?CATALOG)
+    (subclass ?CLASS Process))
+  (capabilityDuring ?CLASS agent ?AGENT ?TIMEINT))
+
+(=>
+  (and
+    (offersAtTime ?AGENT ?CATALOG ?TIMEINT)
+    (catalogItem ?CLASS ?CATALOG)
+    (subclass ?CLASS Object)
+    (instance ?PROCESSINSTANCE ?PROCESS)
+    (subclass ?PROCESS Process)
+    (instance ?OBJ ?CLASS)
+    (patient ?PROCESSINSTANCE ?OBJ))
+  (capabilityDuring ?PROCESS agent ?AGENT ?TIMEINT))
+      
 ;; Menu
 (subclass Menu Catalog)
 (documentation Menu EnglishLanguage "a &%Menu is a type of &%Catalog that specifically
-contains the classes of &%Food that is expected to be or proposed to be cooked and 
+contains the classes of food that is expected to be or proposed to be cooked and 
 served")
 (termFormat EnglishLanguage Menu "menu")
 
 (=>
+  (instance ?MENU Menu)
+  (forall (?X)
+    (=>
+      (catalogItem ?X ?MENU)
+      (subclass ?X (FoodForFn Human)))))
+
+(subclass SetMenu Menu)
+(documentation SetMenu EnglishLanguage "a &%SetMenu is a type of &%Menu that contains
+a specific set of prepared food which is all served and is given one price")
+(termFormat EnglishLanguage SetMenu "set menu")
+
+(=>
   (and
-    (catalogItem ?FOOD ?MENU)
-    (instance ?MENU Menu))
-  (subclass ?FOOD Food))
+    (instance ?MENU SetMenu)
+    (offers ?AGENT ?MENU))
+  (price ?MENU ?PRICE ?AGENT))
+            
   
 (subclass BeverageMenu Menu)
 (documentation BeverageMenu EnglishLanguage "a &%BeverageMenu is a &%Menu 
@@ -291,10 +330,11 @@ of &%Beverages")
 (termFormat EnglishLanguage BeverageMenu "drinks menu")
 
 (=>
-  (and
-    (instance ?MENU BeverageMenu)
-    (catalogItem ?MEMB ?MENU))
-  (subclass ?MEMB Beverage))
+  (instance ?MENU BeverageMenu)
+  (forall (?X)
+    (=>
+      (catalogItem ?X ?MENU)
+      (subclass ?MEMB Beverage))))
 
 (subclass AlcoholMenu BeverageMenu)
 (documentation AlcoholMenu EnglishLanguage "an &%AlcoholMenu is a &%Menu 
@@ -302,20 +342,23 @@ of &%AlcoholicBeverage")
 (termFormat EnglishLanguage AlcoholMenu "cocktail menu")
 
 (=>
-  (and
-    (instance ?MENU WineMenu)
-    (catalogItem ?MEMB ?MENU))
-  (subclass ?MEMB AlcoholicBeverage))
+  (instance ?MENU AlcoholMenu)
+  (forall(?X)
+    (=>
+      (catalogItem ?X ?MENU)
+      (subclass ?MEMB AlcoholicBeverage))))
+
 
 (subclass WineMenu AlcoholMenu)
 (documentation WineMenu EnglishLanguage "a &%WineMenu is a &%Menu of &%Wine")
 (termFormat EnglishLanguage WineMenu "wine list")
 
 (=>
-  (and
-    (instance ?MENU WineMenu)
-    (catalogItem ?MEMB ?MENU))
-  (subclass ?MEMB Wine))
+  (instance ?MENU WineMenu)
+  (forall(?X)
+    (=>
+      (catalogItem ?X ?MENU)
+      (subclass ?MEMB WineMenu))))
  
 ;; Braille
 (instance Braille PerceptualAttribute)
@@ -337,8 +380,213 @@ describes &%ContentBearingObject that can be interpreted by a &%Blind &%Human")
       (capability Interpreting agent ?H)
       (capability Interpreting patient ?X))))
 
+(subclass Meal Collection)
+(documentation Meal EnglishLanguage "&%Meal refers to a &%Collection of (%&FoodForFn 
+&%Human) that is eaten at one time")
+(termFormat EnglishLanguage Meal "meal")
+
+(=>
+  (instance ?X Meal)
+  (forall (?ITEM)
+    (=>
+      (member ?ITEM ?X)
+      (instance ?ITEM (FoodForFn Human)))))
+
+;; a meal is meant to be eaten 
+(=>
+  (instance ?X Meal)
+  (hasPurpose ?X
+    (exists (?E)
+      (and
+        (instance ?E Eating)
+        (patient ?E ?X)))))
+
+;; decided to make breakfast, etc. an attribute because the same instances of food,
+;; for instance, can be breakfast, lunch, or dinner, depending on what time you eat it
+;; also, it allows us to attach the attribute to food instances (such as 'breakfast food')
+;; or to a menu (such as 'breakfast menu'), or to a buffet (such as 'brunch buffet')            
+(instance Breakfast RelationalAttribute)
+(documentation Breakfast EnglishLanguage "&%Breakfast describes food that is 
+usually the first meal of the day, eaten during the morning")
+(termFormat EnglishLanguage Breakfast "breakfast")
+
+;; breakfast meal is typically eaten in the morning
+(=>
+  (and
+    (instance ?X Meal)
+    (attribute ?X Breakfast)
+    (instance ?E Eating)
+    (patient ?E ?X)
+    (time ?E ?TIME)
+    (equal ?PROB1
+      (ProbabilityFn 
+        (and
+          (instance ?MORNING Morning)
+          (during ?TIME ?MORNING))))
+    (equal ?PROB2
+      (ProbabilityFn 
+        (and
+          (not (instance ?NOTMORNING Morning))
+          (during ?TIME ?NOTMORNING)))))
+  (greaterThan ?PROB1 ?PROB2))
+
+(instance Lunch RelationalAttribute)
+(documentation Lunch EnglishLanguage "&%Lunch refers to something that is usually eaten
+mid-day")
+(termFormat EnglishLanguage Lunch "lunch")
+
+;; lunch is typically eaten in the afternoon
+(=>
+  (and
+    (instance ?X Meal)
+    (attribute ?X Lunch)
+    (instance ?E Eating)
+    (patient ?E ?X)
+    (time ?E ?TIME)
+    (equal ?PROB1
+      (ProbabilityFn 
+        (and
+          (instance ?PM Afternoon)
+          (during ?TIME ?PM))))
+    (equal ?PROB2
+      (ProbabilityFn 
+        (and
+          (not (instance ?PM Afternoon))
+          (during ?TIME ?PM)))))
+  (greaterThan ?PROB1 ?PROB2))
+  
+(instance Dinner RelationalAttribute)
+(documentation Dinner EnglishLanguage "&%Dinner refers to something that is typically
+eaten during the evening")
+(termFormat EnglishLanguage Dinner "dinner")
+
+(=>
+  (and
+    (instance ?X Meal)
+    (attribute ?X Dinner)
+    (instance ?E Eating)
+    (patient ?E ?X)
+    (time ?E ?TIME)
+    (equal ?PROB1
+      (ProbabilityFn 
+        (and
+          (instance ?PM NightTime)
+          (during ?TIME ?PM))))
+    (equal ?PROB2
+      (ProbabilityFn 
+        (and
+          (not (instance ?PM NightTime))
+          (during ?TIME ?PM)))))
+  (greaterThan ?PROB1 ?PROB2))
+
+(instance HighTea RelationalAttribute)
+(documentation HighTea EnglishLanguage "&%HighTea refers to something eaten mid-day that
+consists of light snacks and tea")
+(termFormat EnglishLanguage HighTea "high tea")
+
+(=>
+  (and
+    (instance ?X Meal)
+    (attribute ?X HighTea))
+  (exists (?TEA)
+    (and
+      (instance ?TEA Tea)
+      (member ?TEA ?X))))
       
-      
+(instance Brunch RelationalAttribute)
+(documentation Brunch EnglishLanguage "&%Brunch refers the combination of breakfast 
+and lunch")
+(termFormat EnglishLanguage Brunch "brunch")
+
+;; brunch is normally eaten in place of both breakfast and lunch
+(=>
+  (and
+    (instance ?X Meal)
+    (attribute ?X Brunch)
+    (member ?FOOD ?X)
+    (instance ?E Eating)
+    (patient ?E ?FOOD)
+    (agent ?E ?AGENT)
+    (time ?E ?TIME)
+    (during ?TIME ?DAY)
+    (instance ?DAY Day))
+  (and
+    (ProbabilityFn ?PROB1
+      (not
+        (exists (?LUNCH ?BFAST ?E1 ?E2 ?TIME1 ?TIME2)
+          (and
+            (instance ?LUNCH Meal)
+            (attribute ?LUNCH Lunch)
+            (instance ?BFAST Meal)
+            (attribute ?BFAST Breakfast)
+            (instance ?E1 Eating)
+            (instance ?E2 Eating)
+            (patient ?E1 ?LUNCH)
+            (patient ?E2 ?BFAST)
+            (time ?E1 ?TIME1)
+            (time ?E2 ?TIME2)
+            (agent ?E1 ?AGENT)
+            (agent ?E2 ?AGENT)
+            (during ?TIME1 ?DAY)
+            (during ?TIME2 ?DAY)))))
+    (ProbabilityFn ?PROB2
+      (exists (?LUNCH ?BFAST ?E1 ?E2 ?TIME1 ?TIME2)
+        (and
+          (instance ?LUNCH Meal)
+          (attribute ?LUNCH Lunch)
+          (instance ?BFAST Meal)
+          (attribute ?BFAST Breakfast)
+          (instance ?E1 Eating)
+          (instance ?E2 Eating)
+          (patient ?E1 ?LUNCH)
+          (patient ?E2 ?BFAST)
+          (time ?E1 ?TIME1)
+          (time ?E2 ?TIME2)
+          (agent ?E1 ?AGENT)
+          (agent ?E2 ?AGENT)
+          (during ?TIME1 ?DAY)
+          (during ?TIME2 ?DAY))))
+    (greaterThan ?PROB1 ?PROB2)))
+            
+(subclass Buffet Collection)
+(documentation Buffet EnglishLanguage "&%Buffet refers to a &%Collection of food that
+is served in a central location where guests can get their own servings")
+(termFormat EnglishLanguage Buffet "buffet")
+
+(=>
+  (instance ?X Buffet)
+  (forall (?ITEM)
+    (=>
+      (member ?ITEM ?X)
+      (instance ?ITEM (FoodForFn Human)))))
+
+(=>
+  (instance ?X Buffet)
+  (attribute ?X CommunalAttribute))
+  
+;; if a person is eating something from a buffet, then the person getting the food 
+;; from the buffet's location occurs before the agent eating the food at another 
+;; location  
+(=>
+  (and
+    (instance ?X Buffet)
+    (member ?ITEM ?X)
+    (located ?X ?LOC1)
+    (instance ?E Eating)
+    (agent ?E ?AGENT)
+    (located ?E ?LOC2)
+    (patient ?E ?ITEM))
+  (and
+    (not (equal ?LOC1 ?LOC2))
+    (exists (?G)
+      (and
+        (instance ?G Getting)
+        (patient ?G ?ITEM)
+        (origin ?G ?LOC1)
+        (agent ?G ?AGENT)
+        (before (WhenFn ?G) (WhenFn ?E))))))
+
+  
 ;; ----------------------------------------------------------------------------
 ;; Restaurant Properties
 ;; ----------------------------------------------------------------------------
@@ -1149,7 +1397,24 @@ that may foster heart disease")
       (attribute ?X ComfortFood)
       (not (attribute ?X HeartHealthyFood)) ?NUMBER2))
   (lessThan ?NUMBER1 ?NUMBER2))
-  
+
+(instance FamilyStylePortion FoodAttribute)
+(documentation FamilyStylePortion EnglishLanguage "&%FamilyStylePortion means that 
+an instance of food can be shared by 3 or more people")
+(termFormat FamilyStylePortion EnglishLanguage "family-style portions")
+
+;; prepared food that has family style portion as an attribute has higher measure than
+;; those that are not family-sized portions
+(=>
+  (and
+    (attribute ?FOOD1 FamilyStylePortion)
+    (measure ?FOOD1 ?MEAS1)
+    (not (attribute ?FOOD2 FamilyStylePortion))
+    (measure ?FOOD2 ?MEAS2)
+    (instance ?FOOD1 ?CLASS)
+    (instance ?FOOD2 ?CLASS))
+  (greaterThan ?MEAS1 ?MEAS2))
+ 
 (instance CommunalAttribute RelationalAttribute)
 (documentation CommunalAttribute EnglishLanguage "&%CommunalAttribute 
 describes how an &%Object is shared by many")
