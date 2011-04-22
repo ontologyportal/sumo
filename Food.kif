@@ -3,6 +3,8 @@
 ;; By using these products, you agree to be bound by the terms 
 ;; of the GPL.
 
+;; Authors Karen Nomorosa, Adam Pease
+
 ;; Contact Adam Pease (adam.pease [at] reardencommerce [dot] com).
 ;; Version date: April, 2011
 ;; We ask that people using or referencing this work cite our primary paper:
@@ -11,6 +13,229 @@
 ;; Proceedings of the 2nd International Conference on Formal Ontology in 
 ;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
 ;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
+
+(subclass PreparedFood Object) 
+(documentation PreparedFood EnglishLanguage "&%PreparedFood refers to anything that 
+undergoes some process intended to result in an object that has &%Nutrient which can be 
+ingested by &%Animal, normally metabolized into energy and body tissue.")
+(termFormat EnglishLanguage PreparedFood "food")
+
+(=>
+  (instance ?X PreparedFood)
+  (instance ?X (FoodForFn Organism)))
+
+(=>
+  (instance ?X PreparedFood)
+  (exists (?PROC)
+    (and
+      (instance ?PROC IntentionalProcess)
+      (result ?PROC ?X))))
+  
+(subclass SolidFood PreparedFood)
+(documentation SolidFood EnglishLanguage "&%SolidFood refers to &%PreparedFood that 
+has &%Solid parts.")
+(termFormat EnglishLanguage SolidFood "solid food")
+
+(=>
+  (instance ?X SolidFood)
+  (exists (?ING)
+    (and
+      (part ?ING ?X)
+      (attribute ?ING Solid))))
+
+(subclass LiquidFood PreparedFood)
+(documentation LiquidFood EnglishLanguage "&%LiquidFood refers to &%PreparedFood that 
+has no &%Solid parts, only &%Liquid parts, therefore this does not cover stews, root
+beer floats or other combinations of solid and liquid foods.")
+
+(termFormat EnglishLanguage LiquidFood "liquid food")
+
+(=>
+  (instance ?X LiquidFood)
+  (not
+    (exists (?ING)
+      (and
+        (part ?ING ?X)
+        (attribute ?ING Solid)))))
+        
+(subclass Beverage LiquidFood)
+        
+(instance CookedAttribute RelationalAttribute)
+(documentation CookedAttribute EnglishLanguage "&%CookedAttribute describes how something
+is a product of &%Cooking.")
+(termFormat EnglishLanguage CookedAttribute "cooked")
+
+(=>
+  (attribute ?FOOD Cooked)
+  (exists (?PROC)
+    (and
+      (instance ?PROC Cooking)
+      (result ?PROC ?FOOD))))
+      
+(instance RawAttribute RelationalAttribute)
+(documentation RawAttribute EnglishLanguage "&%RawAttribute describes how cooking was
+not involved in the making of something")
+(termFormat EnglishLanguage RawAttribute "raw")
+
+(=>
+  (attribute ?FOOD Raw)
+  (instance ?FOOD (FoodForFn Organism)))
+
+(=>
+  (attribute ?FOOD Raw)
+  (not
+    (exists (?PROC)
+      (and
+        (instance ?PROC Cooking)
+        (result ?PROC ?FOOD)))))
+        
+(subrelation ingredient material)
+(documentation ingredient EnglishLanguage "(&%ingredient ?ING ?FOOD) means that ?ING 
+is a material that makes up ?FOOD")
+(termFormat EnglishLanguage ingredient "ingredient")
+(domainSubclass ingredient 1 SelfConnectedObject)
+(domainSubclass ingredient 2 PreparedFood)
+
+(=>
+  (ingredient ?ING ?FOOD)
+  (exists (?PROC ?X ?Y)
+    (and
+      (instance ?PROC Process)
+      (instance ?X ?ING)
+      (patient ?PROC ?X)
+      (instance ?Y ?ING)
+      (result ?PROC ?Y))))
+      
+(instance ingredientAmount TernaryRelation)
+(documentation ingredientAmount EnglishLanguage "(&%ingredientAmount ?ING ?FOOD ?AMT 
+means that ?AMT of ?ING is used to make ?FOOD")
+(termFormat EnglishLanguage ingredientAmount "amount of ingredient")
+(domainSubclass ingredientAmount 1 Food)
+(domainSubclass ingredientAmount 2 Food)
+(domain ingredientAmount 3 PhysicalQuantity)
+
+(=>
+  (ingredientAmount ?ING ?FOOD ?AMT)
+  (exists (?PROC ?X ?Y)
+    (and
+      (instance ?X ?ING)
+      (measure ?X ?AMT)
+      (instance ?Y ?FOOD)
+      (instance ?PROC Process)
+      (patient ?PROC ?X)
+      (result ?PROC ?Y))))
+      
+;; organizing the Meat taxonomy
+;; help coming from: http://en.wikipedia.org/wiki/List_of_meat_animals
+
+;; ----------------------------------------------------------------------------
+;; Seafood
+;; ----------------------------------------------------------------------------
+
+(subclass Seafood Meat)
+(documentation Seafood EnglishLanguage "&%Seafood refers to &%Meat from &%Animal that
+inhabit &%BodiesOfWater")
+(termFormat EnglishLanguage Seafood "seafood")
+
+;; if S is an instance of seafood, then s is a part of a dead animal who when it was
+;; alive lived in a body of water
+(=>
+  (instance ?S Seafood)
+  (exists (?X ?SEA)
+    (and
+      (meatOfAnimal ?S ?ANIMAL)
+      (instance ?X ?ANIMAL)
+      (instance ?SEA BodyOfWater)
+      (inhabits ?X ?SEA))))
+
+;; definition already in Merge.kif              
+(subclass FishMeat Seafood)
+
+;; definition in Economy.kif
+(subclass Shellfish Seafood)
+(documentation Shellfish EnglishLanguage "&%Shellfish refers to &%Seafood coming from
+crustaceans, which are creatures live in bodies of water that have an exoskeleton")
+(termFormat EnglishLanguage Shellfish "shellfish")
+
+(subclass CrabMeat Shellfish)
+(termFormat EnglishLanguage CrabMeat "crab")
+
+(subclass CrayfishMeat Shellfish)
+(termFormat EnglishLanguage CrayfishMeat "crayfish")
+
+(subclass LobsterMeat Shellfish)
+(termFormat EnglishLanguage LobsterMeat "lobster")
+
+(subclass PrawnMeat Shellfish)
+(termFormat EnglishLanguage PrawnMeat "prawn")
+
+(subclass ShrimpMeat Shellfish)
+(termFormat EnglishLanguage ShrimpMeat "shrimp")
+
+(subclass MolluskMeat Seafood)
+(documentation MolluskMeat EnglishLanguage "&%MolluskMeat refers to &%Seafood coming from
+soft-bodied invertebrates that is usually contained in a shell.")
+(termFormat EnglishLanguage MolluskMeat "mollusk")
+
+(meatOfAnimal MolluskMeat Mollusk)
+
+(subclass AbaloneMeat MolluskMeat)
+(termFormat EnglishLanguage AbaloneMeat "abalone")
+
+(subclass ClamMeat MolluskMeat)
+(termFormat EnglishLanguage ClamMeat "clam")
+
+(subclass ConchMeat MolluskMeat)
+(termFormat EnglishLanguage ConchMeat "conch")
+
+(subclass LocoMeat MolluskMeat)
+(termFormat EnglishLanguage LocoMeat "loco")
+
+(subclass MusselMeat MolluskMeat)
+(termFormat EnglishLanguage MusselMeat "mussel")
+
+(subclass OysterMeat MolluskMeat)
+(termFormat EnglishLanguage OysterMeat "oyster")
+
+(subclass ScallopMeat MolluskMeat)
+(termFormat EnglishLanguage ScallopMeat "scallop")
+
+(subclass WaterSnailMeat MolluskMeat)
+(termFormat EnglishLanguage WaterSnailMeat "water snail")
+
+(subclass CuttlefishMeat MolluskMeat)
+(termFormat EnglishLanguage CuttlefishMeat "cuttlefish")
+
+(subclass OctopusMeat MolluskMeat)
+(termFormat EnglishLanguage OctopusMeat "octopus")
+
+(subclass SquidMeat MolluskMeat)
+(termFormat EnglishLanguage SquidMeat "squid")
+
+;; ----------------------------------------------------------------------------
+;; Poultry
+;; ----------------------------------------------------------------------------
+
+(subclass PoultryMeat Meat)
+(documentation PoultryMeat EnglishLanguage "&%PoultryMeat refers to &%Meat coming from 
+&%Poultry")
+(termFormat EnglishLanguage PoultryMeat "poultry")
+
+(meatOfAnimal PoultryMeat Bird)
+
+;; definition of ChickenMeat already in Mid-level-ontology.kif
+
+(subclass DuckMeat PoultryMeat)
+(termFormat EnglishLanguage DuckMeat "duck")
+(meatOfAnimal DuckMeat Duck)
+
+(subclass GooseMeat PoultryMeat)
+(termFormat EnglishLanguage GooseMeat "goose")
+(meatOfAnimal GooseMeat Goose)
+
+(subclass TurkeyMeat PoultryMeat)
+(termFormat EnglishLanguage TurkeyMeat "turkey")
+(meatOfAnimal TurkeyMeat TurkeyBird)
 
 ;; This is a new and lightly axiomatized ontology of food items.
 
