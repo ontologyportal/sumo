@@ -2142,13 +2142,6 @@ electronically and managed or owned by one organization.")
           (member ?M ?N)
           (possesses ?O ?M))))))
 
-(subrelation telephoneNumber uniqueIdentifier)
-(domain telephoneNumber 1 SymbolicString)
-(domain telephoneNumber 2 Agent)
-(relatedInternalConcept telephoneNumber address)
-(documentation telephoneNumber EnglishLanguage "(&%telephoneNumber ?NUMBER ?AGENT) means 
-that ?NUMBER is a telephone number at which ?AGENT can be regularly contacted.")
-
 (subclass LightFixture Device)
 (documentation LightFixture EnglishLanguage "Any &%Device whose purpose is to be a source of 
 visible light.")
@@ -4095,52 +4088,6 @@ the &%List ?LIST.  For example, (&%FirstFn (&%ListFn &%Monday &%Tuesday
        (equal ?LIST NullList)))
    (equal (FirstFn ?LIST) (ListOrderFn ?LIST 1)))
 
-(instance address BinaryPredicate)
-(domain address 1 Agent)
-(domain address 2 Address)
-(documentation address EnglishLanguage "(&%address ?AGENT ?ADDRESS) means that ?ADDRESS 
-is an address or part of an address for the &%Agent ?AGENT.")
-
-(subclass Address RelationalAttribute)
-(documentation Address EnglishLanguage "A &%RelationalAttribute that indicates an address 
-where an &%Agent can regularly be contacted.")
-
-(subrelation postalCode uniqueIdentifier)
-(domain postalCode 1 PositiveInteger)
-(domain postalCode 2 Address)
-(documentation postalCode EnglishLanguage "(&%postalCode ?NUMBER ?ADDRESS) means that the 
-the postal code, e.g. zip code, ?NUMBER is part of the address ?ADDRESS.")
-
-(subrelation postalBoxNumber uniqueIdentifier)
-(domain postalBoxNumber 1 PositiveInteger)
-(domain postalBoxNumber 2 Address)
-(documentation postalBoxNumber EnglishLanguage "(&%postalBoxNumber ?NUMBER ?ADDRESS) means 
-that the post office box ?NUMBER is part of the address ?ADDRESS.")
-
-(subrelation cityAddress address)
-(domain cityAddress 1 City)
-(domain cityAddress 2 Address)
-(documentation cityAddress EnglishLanguage "(&%cityAddress ?CITY ?ADDRESS) means that the 
-&%City ?CITY is part of the address ?ADDRESS.")
-
-(subrelation streetAddress address)
-(domain streetAddress 1 Roadway)
-(domain streetAddress 2 Address)
-(documentation streetAddress EnglishLanguage "(&%streetAddress ?STREET ?ADDRESS) means 
-that the &%Roadway ?STREET is part of the address ?ADDRESS.")
-
-(subrelation streetNumber address)
-(domain streetNumber 1 Building)
-(domain streetNumber 2 Address)
-(documentation streetNumber EnglishLanguage "(&%streetNumber ?BUILDING ?ADDRESS) means 
-that the &%Building ?BUILDING is part of the address ?ADDRESS.")
-
-(subrelation unitNumber address)
-(domain unitNumber 1 StationaryArtifact)
-(domain unitNumber 2 Address)
-(documentation unitNumber EnglishLanguage "(&%unitNumber ?UNIT ?ADDRESS) means that the 
-&%StationaryArtifact ?UNIT is part of the address ?ADDRESS.")
-
 (instance StreetAddressFn QuaternaryFunction)
 (domain StreetAddressFn 1 StationaryArtifact)
 (domain StreetAddressFn 2 Roadway)
@@ -4149,11 +4096,11 @@ that the &%Building ?BUILDING is part of the address ?ADDRESS.")
 (range StreetAddressFn Agent)
 (documentation StreetAddressFn EnglishLanguage "(&%StreetAddressFn ?BUILDING ?ROAD ?CITY 
 ?COUNTRY) returns the &%Agent, e.g. a family, an organization, a person, 
-etc. that resides or conducts business at the corresponding &%address.")
+etc. that resides or conducts business at the corresponding &%postContactSite.")
 
 (=>
    (equal (StreetAddressFn ?PLACE ?ROAD ?CITY ?COUNTRY) ?AGENT)
-   (address ?AGENT ?PLACE))
+   (postContactSite ?PLACE ?AGENT))
 
 (=>
    (equal (StreetAddressFn ?PLACE ?ROAD ?CITY ?COUNTRY) ?AGENT)
@@ -4707,6 +4654,12 @@ Food to customers which is intended to be eaten on the premises.")
   (instance ?PLACE RestaurantBuilding)
   (capability Cooking located ?PLACE))
 
+(=>
+  (instance ?R Restaurant)
+  (and
+    (possesses ?R ?D)
+    (instance ?D DiningArea)))  
+  
 (subclass Proprietorship CommercialAgent)
 (documentation Proprietorship EnglishLanguage "A &%CommercialAgent that is owned by a 
 single person.")
@@ -5053,10 +5006,10 @@ up residence for a period of time while they receive care.")
 &%Food is selected and purchased at a central counter.")
 
 (=>
-  (instance ?COMPANY Cafeteria)
+  (instance ?COMP Cafeteria)
   (not
     (exists (?PERSON)
-      (occupiesPosition ?PERSON ServicePosition ?COMPANY))))
+      (occupiesPosition ?PERSON Waiter ?COMP))))
 
 (subclass Tavern Restaurant)
 (documentation Tavern EnglishLanguage "A &%Restaurant whose primary service is selling 
@@ -9203,20 +9156,6 @@ connected by a series of rungs which can be used to ascend or descend.")
       (capability MotionUpward instrument ?LADDER)
       (capability MotionDownward instrument ?LADDER)))
 
-(subclass ParkingLot StationaryArtifact)
-(documentation ParkingLot EnglishLanguage "A &%LandArea which has been levelled, paved, and 
-marked off for parking &%Automobiles.")
-
-(=>
-  (instance ?P ParkingLot)
-  (hasPurpose ?P 
-    (exists (?K ?A)
-      (and
-        (instance ?K Keeping)
-        (located ?K ?P)
-        (patient ?K ?A)
-        (instance ?A Automobile)))))
-
 (instance Transparent InternalAttribute)
 (documentation Transparent EnglishLanguage "A Transparent material is one through which
 it is possible to have &%Seeing.")
@@ -9538,26 +9477,41 @@ possibly a &%Toilet.")
       (and
         (instance ?C ChangingClothing)
         (located ?C ?R)))))
+        
+(subclass KitchenArea Region)
+(documentation KitchenArea EnglishLanguage "a &%KitchenArea refers to a 
+&%Region, either &%Outdoors or &%Indoors, that is intended for &%Cooking")
+(termFormat EnglishLanguage KitchenArea "kitchen area")
 
+(=>
+  (instance ?K KitchenArea)
+  (hasPurpose ?K 
+    (exists (?C)
+      (and
+        (instance ?C Cooking)
+        (located ?C ?K)))))
+        
 (subclass Kitchen Room)
+(subclass Kitchen KitchenArea)
 (documentation Kitchen EnglishLanguage "A &%Room intended for &%Cooking.")
 
-(=>
-   (instance ?ROOM Kitchen)
-   (hasPurpose ?ROOM (exists (?COOK)
-                        (and
-                           (instance ?COOK Cooking)
-                           (located ?COOK ?ROOM)))))
 
-(subclass DiningRoom Room)
-(documentation DiningRoom EnglishLanguage "A &%Room intended primarily for &%Eating.")
-(=>
-  (instance ?D DiningRoom)
-  (hasPurpose ?D 
+(subclass DiningArea Region)
+(documentation DiningArea EnglishLanguage "a &%DiningArea refers to a 
+&%Region, either &%Outdoors or &%Indoors, that is intended for &%Eating")
+(termFormat EnglishLanguage DiningArea "dining area")
+
+(=> 
+  (instance ?D DiningArea)
+  (hasPurpose ?D
     (exists (?E)
       (and
         (instance ?E Eating)
-        (located ?E ?D)))))
+        (located ?E ?D)))))                           
+                           
+(subclass DiningRoom Room)
+(subclass DiningRoom DiningArea)
+(documentation DiningRoom EnglishLanguage "A &%Room intended primarily for &%Eating.")
 
 (subclass Bedroom Room)
 (documentation Bedroom EnglishLanguage "A &%Room intended primarily for sleeping.")
@@ -13835,7 +13789,39 @@ work.")
 (documentation UnskilledOccupation EnglishLanguage "Any &%Position which does not 
 require learning a set of skills.") 
 
-(subclass Maid ServicePosition)
+(instance Waiter ServicePosition)
+(documentation Waiter EnglishLanguage "&%Waiter refers to the &%ServicePosition present
+in &%Restaurant that brings food from the kitchen to the customer's table")
+(termFormat EnglishLanguage Waiter "waiter")
+
+(=>
+  (attribute ?X Waiter)
+  (instance ?X Human))
+
+(=>
+  (and
+    (attribute ?X Waiter)
+    (instance ?X Human)
+    (employs ?REST ?X)
+    (instance ?REST Restaurant)
+    (customer ?CUST ?REST)
+    (located ?CUST ?TABLE)
+    (instance ?TABLE Table))
+  (and
+    (possesses ?REST ?KITCHEN)
+    (instance ?KITCHEN KitchenArea)
+    (instance ?DINING DiningArea)
+    (located ?TABLE ?DINING)
+    (hasPurpose ?X
+      (and
+        (instance ?C Carrying)
+        (agent ?C ?X)
+        (origin ?C ?KITCHEN)
+        (destination ?C ?TABLE)
+        (patient ?C ?FOOD)
+        (instance ?FOOD Food)))))
+
+(instance Maid ServicePosition)
 (documentation Maid EnglishLanguage "Any &%ServicePosition where various needs of a person 
 or family are served over a long period of time.  Note that these &%Positions 
 are, by definition, filled only by &%Women.")
@@ -16183,6 +16169,8 @@ obscure ?AGENT's true identity.")
 "(&%holdsDuring ?T1 (&%workAddress ?AGENT ?ADDRESS)) means that
 during the time specified by ?T1, ?ADDRESS identifies one of the
 locations at which ?AGENT works.")
+(domain workAddress 1 CognitiveAgent)
+(domain workAddress 2 PostalPlace)
 
 (instance homeAddress BinaryPredicate)
 (instance homeAddress AsymmetricRelation)
@@ -17168,4 +17156,945 @@ the &%Transitway ?PART is an established route of the
   (routeInSystem ?P ?T))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Start: General relations on SymbolicStrings ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(instance inString AsymmetricRelation)
+(instance inString BinaryPredicate)
+(domain inString 1 Character)
+(domain inString 2 SymbolicString)
+(documentation inString EnglishLanguage "(&%inString ?&%Character
+?&%SymbolicString) means that ?&%Character is &%part of
+?&%SymbolicString.  See also &%subString.")
+(subrelation inString part)
+
+;; NS: Narrowing part -> inString
+(=>
+  (and
+    (instance ?STRING SymbolicString)
+    (part ?CHAR ?STRING)
+    (instance ?CHAR Character))
+  (inString ?CHAR ?STRING))
+
+;; NS: TO DO: create *NullString, by anaolgy with NullList.  A
+;; (or, the) NullString is a SymbolicString comprising no
+;; Characters.  The following rule in Merge.kif, which relates
+;; SymbolicString to Character, will have to be changed if
+;; NullString is to be a subclass of SymbolicString:
+;;
+;; (=>
+;;     (instance ?STRING SymbolicString)
+;;     (exists (?PART)
+;;         (and
+;;             (part ?PART ?STRING)
+;;             (instance ?PART Character))))
+
+(instance subString AntisymmetricRelation)
+(instance subString ReflexiveRelation)
+(instance subString BinaryPredicate)
+(domain subString 1 SymbolicString)
+(domain subString 2 SymbolicString)
+(documentation subString EnglishLanguage "(&%subString
+?&%SymbolicString-1 ?&%SymbolicString-2) means that
+?&%SymbolicString-1 is &%part of ?&%SymbolicString-2.
+?&%SymbolicString-2 includes all the same &%Characters as
+?&%SymbolicString-1 and in the same order, but
+?&%SymbolicString-2 may include more &%Characters than
+?&%SymbolicString-1.  See also &%inString.")
+(subrelation subString part)
+
+(=>
+  (and
+    (subString ?S1 ?S2)
+    (equal ?L1 (StringLengthFn ?S1))
+    (equal ?L2 (StringLengthFn ?S2)))
+  (lessThanOrEqualTo ?L1 ?L2))
+
+(=>
+  (and
+    (subString ?S1 ?S2)
+    (inString ?CH ?S1))
+  (inString ?CH ?S2))
+;; NS: Note that character and string equality vs. identity might
+;; be implementation issues.
+
+(instance SubstringFn TernaryFunction)
+(instance SubstringFn PartialValuedRelation)
+(instance SubstringFn SingleValuedRelation)
+(domain SubstringFn 1 SymbolicString)
+(domain SubstringFn 2 NonnegativeInteger)
+(domain SubstringFn 3 NonnegativeInteger)
+(range SubstringFn SymbolicString)
+(documentation SubstringFn EnglishLanguage "(&%SubstringFn
+?&%SymbolicString ?&%NonnegativeInteger-1
+?&%NonnegativeInteger-2) denotes a string that is a &%subString
+of ?&%SymbolicString, begins with the &%Character at the index
+?&%NonnegativeInteger-1, and ends with the &%Character at the
+index (&%SubtractionFn ?&%NonnegativeInteger-2 1).  The first
+&%Character in ?&%SymbolicString is denoted by the index 0.  If
+the value of ?&%NonnegativeInteger-1 or ?&%NonnegativeInteger-2
+is greater than the value of (&%StringLengthFn
+?&%SymbolicString), or if ?&%NonnegativeInteger-1 is greater than
+?&%NonnegativeInteger-2, the result of evaluating the
+&%SubstringFn expression is undefined.  Example: (&%equal
+&quot;Charle&quot; (&%SubstringFn &quot;Charles Darwin&quot; 0 6)).")
+
+(=>
+  (and
+    (equal ?SUB (SubstringFn ?STRING ?START ?END))
+    (equal ?LEN (StringLengthFn ?STRING)))
+  (and
+    (lessThanOrEqualTo ?START ?END)
+    (lessThan ?START ?LEN)
+    (lessThanOrEqualTo ?END ?LEN)))
+
+(instance StringLengthFn UnaryFunction)
+(instance StringLengthFn TotalValuedRelation)
+(instance StringLengthFn SingleValuedRelation)
+(domain StringLengthFn 1 SymbolicString)
+(range StringLengthFn NonnegativeInteger)
+(documentation StringLengthFn EnglishLanguage "This
+&%UnaryFunction takes a &%SymbolicString as its sole argument.
+The result of evaluating a term formed with &%StringLengthFn is a
+&%NonnegativeInteger that denotes the number of &%Characters in
+the &%SymbolicString.  Example: (&%equal 14 (&%StringLengthFn
+&quot;Charles Darwin&quot;)).")
+
+(instance stringLength BinaryPredicate)
+(instance stringLength TotalValuedRelation)
+(instance stringLength SingleValuedRelation)
+(instance stringLength AsymmetricRelation)
+(domain stringLength 1 NonnegativeInteger)
+(domain stringLength 2 SymbolicString)
+(documentation stringLength EnglishLanguage "(&%stringLength
+?&%NonnegativeInteger ?&%SymbolicString) means that the number of
+&%Characters in ?&%SymbolicString is ?&%NonnegativeInteger.
+Example: (&%stringLength 14 &quot;Charles Darwin&quot;), which is a
+&%True &%Sentence.")
+
+(<=>
+  (stringLength ?INT ?STRING)
+  (equal ?INT (StringLengthFn ?STRING)))
+
+(instance StringConcatenateFn BinaryFunction)
+(instance StringConcatenateFn TotalValuedRelation)
+(instance StringConcatenateFn SingleValuedRelation)
+(domain StringConcatenateFn 1 SymbolicString)
+(domain StringConcatenateFn 2 SymbolicString)
+(range StringConcatenateFn SymbolicString)
+(documentation StringConcatenateFn EnglishLanguage "The result of
+applying this &%Function to two &%SymbolicString arguments is a
+third &%SymbolicString that is the concatenation of the two
+arguments.  Example: (&%equal &quot;Charles
+Darwin&quot; (&%StringConcatenateFn &quot;Charles &quot; &quot;Darwin&quot;)).")
+
+(instance stringConcatenation TernaryPredicate)
+(instance stringConcatenation TotalValuedRelation)
+(instance stringConcatenation SingleValuedRelation)
+(domain stringConcatenation 1 SymbolicString)
+(domain stringConcatenation 2 SymbolicString)
+(domain stringConcatenation 3 SymbolicString)
+(documentation stringConcatenation
+EnglishLanguage "(&%stringConcatenation ?&%SymbolicString-1
+?&%SymbolicString-2 ?&%SymbolicString-3) means that
+?&%SymbolicString-3 can be formed by appending
+?&%SymbolicString-1 and ?&%SymbolicString-2, in order.
+Example: (&%stringConcatenation &quot;Charles &quot; &quot;Darwin&quot; &quot;Charles
+Darwin&quot;) is a &%True &%Sentence.")
+
+(<=>
+  (stringConcatenation ?S1 ?S1 ?S3)
+  (equal ?S3 (StringConcatenateFn ?S1 ?S2)))
+
+(instance precedesInString TernaryPredicate)
+(domain precedesInString 1 SymbolicString)
+(domain precedesInString 2 SymbolicString)
+(domain precedesInString 3 SymbolicString)
+(documentation precedesInString
+EnglishLanguage "(&%precedesInString ?&%SymbolicString-1
+?&%SymbolicString-2 ?&%SymbolicString-3) means that
+?&%SymbolicString-1 and ?&%SymbolicString-2 are &%subStrings of
+?&%SymbolicString-3, and ?&%SymbolicString-1 occurs sequentially
+before ?&%SymbolicString-2 in ?&%SymbolicString-3.
+Example: (&%precedesInString &quot;Johann&quot; &quot;Bach&quot; &quot;Johann
+Sebastian Bach&quot;).")
+(subrelation stringConcatenation precedesInString)
+
+(=>
+  (precedesInString ?S1 ?S2 ?S3)
+  (and
+    (subString ?S1 ?S3)
+    (subString ?S2 ?S3)))
+
+(=>
+  (and
+    (precedesInString ?S1 ?S2 ?S4)
+    (precedesInString ?S2 ?S3 ?S4))
+  (precedesInString ?S1 ?S3 ?S4))  
+  
+  
+;; --------------------------------------------------------------------------------
+;; Address and Telephone details adapted from Media.kif
+;; --------------------------------------------------------------------------------
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;
+;; Start: Identifiers ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; "IdentifierComposite"
+;; "IdentifierSyntaxMismatch"
+;; "IdentifierType"
+
+(subclass Descriptor ContentBearingObject)
+
+;; "DescriptorComposite"
+;; "DescriptorDesignation"
+;; "DescriptorExtension"
+;; "DescriptorSyntax"
+;; "DescriptorType"
+
+(subclass Name Descriptor)
+(documentation Name EnglishLanguage "&%Name denotes the &%Class
+of &%ContentBearingObjects that identify an &%Entity, typically
+in some linguistic form such as an epithet, given name, street
+address, etc.")
+
+(subclass Identifier Name)
+(documentation Identifier EnglishLanguage "&%Identifier is the
+&%Class of &%ContentBearingObjects that identify some entity,
+such as a bank account, a person, or a location (e.g., as
+identified by a specific street address or GPS coordinates),
+perhaps uniquely under some circumstances.")
+
+(subclass PlaceDescriptor Descriptor)
+(subclass DescriptorPart ContentBearingObject)
+(subclass NamePart DescriptorPart)
+(subclass IdentifierPart NamePart)
+
+(subclass PlaceID PlaceDescriptor)
+
+(subclass LocalizablePlaceID PlaceID)
+
+(subclass PlaceAddress PlaceID)
+
+(subclass ContactSite Object)
+(documentation ContactSite EnglishLanguage "A &%ContactSite is an
+&%Object, typically a &%Place or a &%Residence or a
+&%CommunicationDevice such as a &%Telephone, that has some kind
+of address identifier and can serve as a point of contact for a
+&%Human or &%Organization.")
+
+(subclass TelephonyDevice ContactSite)
+(subclass TelephonyDevice CommunicationDevice)
+(subclass TelephonyDevice ElectricDevice)
+(documentation TelephonyDevice EnglishLanguage "A
+&%TelephonyDevice is a &%CommunicationDevice that, when connected
+to a &%TelephoneSystem, functions as an access point allowing end
+users (&%Humans or other &%Agents, such as autonomous/scheduled
+&%ComputerPrograms) to send or receive signals via the system.
+&%Telephones and &%FaxMachines are &%TelephonyDevices.  A given
+&%Computer may or may not function as a &%TelephonyDevice,
+depending on the &%ComputerPrograms it runs and the
+&%ComputerComponents that are part of it.")
+
+(subclass Telephone TelephonyDevice)
+(subclass FaxMachine TelephonyDevice)
+
+(subclass LocalizablePlace GeographicArea)
+
+;; Address Elements (as collected from http://www.bitboost.com/ref/international-address-formats.html)
+;; a.) Street Number (can contain letters) --> postStreetNumber from Media.kif
+;; b.) Floor Code (can contain letters) --> floorCode
+;; c.) Unit Number (can contain letters) --> unitNumber
+;; d.) Street Name --> postStreet
+;; e.) Subdivision / Neighborhood / Quarter --> postNeighborhood
+;; f.) City --> postCity
+;; g.) State / Territory --> postDistrict
+;; h.) Country --> postCountry
+;; i.) Post Office Box Number --> postPostOfficeBox
+;; j.) Building Name --> names
+;; k.) Province Code --> codeMapping
+;; l.) Postal Code (can contain letters) --> postPostcodeArea
+
+;; changed canonicalPostPlaceName to canonicalPlaceName to denote that this can be 
+;; applied to different types of areas (countries, continents, etc) and not only to 
+;; LocalizablePlace.  Also, canonicalPostPlaceName has domain LocalizablePlace but 
+;; it is applied to geographic areas that aren't subclassed or instantiated from 
+;; LocalizablePlace
+(instance canonicalPlaceName TernaryPredicate)
+(documentation canonicalPlaceName EnglishLanguage "(&%canonicalPlaceName ?PLACE 
+?LANG ?STRING) means that in the &%Language ?LANG, the &%SymbolicString ?STRING 
+is a canonical name for the &%GeographicArea ?PLACE")
+(domain canonicalPlaceName 1 Region)
+(domain canonicalPlaceName 2 Language)
+(domain canonicalPlaceName 3 SymbolicString)
+
+(=>
+  (canonicalPlaceName ?PLACE ?LANG ?STR)
+  (names ?STR ?PLACE))
+
+(subclass PostalPlace StationaryArtifact)
+(subclass StationaryArtifact LocalizablePlace)
+(subclass PostalPlace ContactSite)
+(documentation PostalPlace EnglishLanguage "A &%PostalPlace is
+any &%LocalizablePlace that can have a postal address, and to
+which hardcopy mail (letters, packages, etc.) can be delivered.")
+
+(subclass MilitaryInstallation PostalPlace)
+(subclass Residence PostalPlace)
+(subclass PlaceOfCommerce PostalPlace)
+
+(instance siteForContact AsymmetricRelation)
+(instance siteForContact BinaryPredicate)
+(domain siteForContact 1 ContactSite)
+(domain siteForContact 2 Agent)
+(documentation siteForContact EnglishLanguage "(&%siteForContact
+?&%ContactSite ?&%Agent) means that the &%Human or &%Organization
+?&%Agent can be reached at or via the point of contact
+?&%ContactSite.")
+
+(instance postContactSite AsymmetricRelation)
+(instance postContactSite BinaryPredicate)
+(domain postContactSite 1 PostalPlace)
+(domain postContactSite 2 Agent)
+(documentation postContactSite
+EnglishLanguage "(&%postContactSite ?&%PostalPlace ?&%Agent)
+means that the &%Human or &%Organization ?&%Agent can be
+contacted by post (mail) at the location ?&%PostalPlace.")
+(subrelation postContactSite siteForContact)
+
+(instance unitNumber BinaryPredicate)
+(documentation unitNumber EnglishLanguage "(&%unitNumber ?STR ?PLACE) means that 
+?STR represents the particular unit or space within the building that a 
+&%PostalPlace is located")
+(domain unitNumber 1 SymbolicString)
+(domain unitNumber 2 PostalPlace)
+
+(instance floorCode BinaryPredicate)
+(documentation floorCode EnglishLanguage "(&%floorCode ?STR ?PLACE) means that ?STR 
+represents the &%BuildingLevel that a particular &%PostalPlace can be found at")
+(domain floorCode 1 SymbolicString)
+(domain floorCode 2 PostalPlace)
+
+(=>
+  (and
+    (unitNumber ?UNITSTR ?PLACE)
+    (floorCode ?FLRCODE ?PLACE))
+  (exists (?UNIT ?FLOOR)
+    (and
+      (instance ?FLOOR BuildingLevel)
+      (instance ?UNIT Room)
+      (located ?UNIT ?FLOOR)
+      (part ?FLOOR ?PLACE)
+      (names ?UNITSTR ?UNIT)
+      (names ?FLRCODE ?FLOOR))))
+
+(=>
+  (and
+    (unitNumber ?UNITSTR ?PLACE)
+    (not 
+      (exists (?FLR)
+        (floorCode ?FLR ?PLACE))))
+  (exists (?UNIT)
+    (and
+      (instance ?UNIT Room)
+      (names ?UNITSTR ?UNIT)
+      (located ?UNIT ?BLDG))))
+
+(subclass Neighborhood GeographicArea)
+(documentation Neighborhood EnglishLanguage "&%Neighborhood refers to a 
+&%GeographicArea that is a subregion of a larger geographic area, such as a 
+&%City, normally with a distinctive feature")
+(termFormat EnglishLanguage Neighborhood "neighborhood")
+
+(=>
+  (instance ?PLACE Neighborhood)
+  (exists (?AREA)
+    (geographicSubregion ?PLACE ?AREA)))
+      
+(instance postNeighborhood BinaryPredicate)
+(instance postNeighborhood AsymmetricRelation)
+(subrelation postNeighborhood located)
+(documentation postNeighborhood EnglishLanguage "(&%postNeighborhood ?PLACE 
+?NEIGHBORHOOD) means that ?PLACE is located in ?NEIGHBORHOOD")
+(domain postNeighborhood 1 PostalPlace)
+(domain postNeighborhood 2 Neighborhood)
+
+(<=>
+  (and
+    (located ?PLACE ?GEO)
+    (instance ?PLACE PostalPlace)
+    (instance ?GEO Neighborhood))
+  (postNeighborhood ?PLACE ?GEO))
+
+(=>
+  (and
+    (postNeighborhood ?PLACE ?NEIGHBORHOOD)
+    (geographicSubregion ?NEIGHBORHOOD ?CITY)
+    (instance ?CITY City))
+  (postCity ?PLACE ?CITY))
+  
+(=>
+  (and
+    (postNeighborhood ?PLACE ?NEIGHBORHOOD)
+    (geographicSubregion ?NEIGHBORHOOD ?STATE)
+    (instance ?STATE StateOrProvince))
+  (postDistrict ?PLACE ?STATE))    
+
+(instance postCountry AsymmetricRelation)
+(instance postCountry BinaryPredicate)
+(domain postCountry 1 PostalPlace)
+(domain postCountry 2 GeopoliticalArea)
+(subrelation postCountry located)
+(documentation postCountry EnglishLanguage "(&%postCountry
+?&%PostalPlace ?&%GeopoliticalArea) means that ?&%PostalPlace is
+located in the &%Nation or &%DependencyOrSpecialSovereigntyArea
+?&%GeopoliticalArea.")
+
+(=>
+  (postCountry ?PLACE ?COUNTRY)
+  (or
+    (instance ?COUNTRY Nation)
+    (instance ?COUNTRY DependencyOrSpecialSovereigntyArea)))
+
+(<=>
+  (and
+    (located ?PLACE ?GEO)
+    (instance ?PLACE PostalPlace)
+    (or
+      (instance ?GEO Nation)
+      (instance ?GEO DependencyOrSpecialSovereigntyArea)))
+  (postCountry ?PLACE ?GEO))
+
+(=>
+  (and
+    (postCity ?PLACE ?CITY)
+    (geographicSubregion ?CITY ?AREA)
+    (instance ?AREA StateOrProvince))
+  (postDistrict ?PLACE ?AREA))
+
+(=>
+  (and
+    (postCity ?PLACE ?CITY)
+    (geographicSubregion ?CITY ?AREA)
+    (or
+      (instance ?AREA Nation)
+      (instance ?AREA DependencyOrSpecialSovereigntyArea)))
+  (postCountry ?PLACE ?AREA))
+  
+(instance postDistrict AsymmetricRelation)
+(instance postDistrict BinaryPredicate)
+(domain postDistrict 1 PostalPlace)
+(domain postDistrict 2 StateOrProvince)
+(subrelation postDistrict located)
+(documentation postDistrict EnglishLanguage "(&%postDistrict
+?&%PostalPlace ?&%StateOrProvince) means that ?&%PostalPlace is
+located in ?&%StateOrProvince.")
+
+(<=>
+  (and
+    (located ?PLACE ?GEO)
+    (instance ?PLACE PostalPlace)
+    (instance ?GEO StateOrProvince))
+  (postDistrict ?PLACE ?GEO))
+
+(instance postCity AsymmetricRelation)
+(instance postCity BinaryPredicate)
+(domain postCity 1 PostalPlace)
+(domain postCity 2 City)
+(subrelation postCity located)
+(documentation postCity EnglishLanguage "(&%postCity
+?&%PostalPlace ?&%City) means that ?&%PostalPlace is located in
+?&%City.")
+
+(<=>
+  (and
+    (located ?PLACE ?GEO)
+    (instance ?PLACE PostalPlace)
+    (instance ?GEO City))
+  (postCity ?PLACE ?GEO))
+  
+(subclass PostcodeArea LocalizablePlace)
+(documentation PostcodeArea EnglishLanguage "An &%instance of
+&%PostcodeArea is a &%LocalizablePlace that is identified by a
+&%Postcode.")
+
+(=>
+  (instance ?AREA PostcodeArea)
+  (exists (?GEO)
+    (geographicSubregion ?AREA ?GEO)))
+
+(instance postPostcodeArea AsymmetricRelation)
+(instance postPostcodeArea BinaryPredicate)
+(domain postPostcodeArea 1 PostalPlace)
+(domain postPostcodeArea 2 PostcodeArea)
+(subrelation postPostcodeArea located)
+(documentation postPostcodeArea
+EnglishLanguage "(&%postPostcodeArea ?&%PostalPlace
+?&%PostcodeArea) means that ?&%PostalPlace is located in
+?&%PostcodeArea.")
+
+(<=>
+  (and
+    (located ?PLACE ?AREA)
+    (instance ?PLACE PostalPlace)
+    (instance ?AREA PostcodeArea))
+  (postPostcodeArea ?PLACE ?AREA))
+
+(=>
+  (and
+    (postPostcodeArea ?PLACE ?AREA)
+    (geographicSubregion ?AREA ?CITY)
+    (instance ?CITY City))
+  (postCity ?PLACE ?CITY))
+
+(=>
+  (and
+    (postPostcodeArea ?PLACE ?AREA)
+    (geographicSubregion ?AREA ?GEO)
+    (instance ?GEO StateOrProvince))
+  (postDistrict ?PLACE ?GEO))
+  
+(instance postStreet AsymmetricRelation)
+(instance postStreet BinaryPredicate)
+(domain postStreet 1 PostalPlace)
+(domain postStreet 2 Roadway)
+(documentation postStreet EnglishLanguage "(&%postStreet
+?&%PostalPlace ?&%Roadway) means that ?&%PostalPlace is
+&%Adjacent to ?&%Roadway.")
+
+(=>
+  (postStreet ?POSTPLACE ?ROADWAY)
+  (orientation ?POSTPLACE ?ROADWAY Adjacent))
+
+(instance postStreetNumber AsymmetricRelation)
+(instance postStreetNumber BinaryPredicate)
+(domain postStreetNumber 1 SymbolicString)
+(domain postStreetNumber 2 PostalPlace)
+(documentation postStreetNumber
+EnglishLanguage "(&%postStreetNumber ?&%SymbolicString
+?&%PostalPlace) means that ?&%SymbolicString identifies the
+sub-city block or building level location of a ?&%PostalPlace.
+?&%SymbolicString need not consist exclusively of
+&%DigitCharacters.")
+
+(instance postPostOfficeBox AsymmetricRelation)
+(instance postPostOfficeBox BinaryPredicate)
+(domain postPostOfficeBox 1 SymbolicString)
+(domain postPostOfficeBox 2 PostalPlace)
+(documentation postPostOfficeBox
+EnglishLanguage "(&%postPostOfficeBox ?&%SymbolicString
+?&%PostalPlace) means that ?&%SymbolicString identifies the post
+office box of a ?&%PostalPlace.  ?&%SymbolicString need not
+consist exclusively of &%DigitCharacters.")
+
+(subclass PostalAddressText PlaceAddress)
+(subclass PostalAddressText LocalizablePlaceID)
+(subclass PostalAddressText SymbolicString)
+(subclass PostalAddressText LinguisticExpression)
+
+(=>
+  (and
+    (postCountry ?PLACE UnitedStates)
+    (canonicalPlaceName UnitedStates EnglishLanguage ?COUNTRYSTR)
+    (postPostcodeArea ?PLACE ?POST)
+    (names ?POST ?POSTSTR)
+    (postDistrict ?PLACE ?STATE)
+    (canonicalPlaceName ?STATE EnglishLanguage ?STATESTR)
+    (postCity ?PLACE ?CITY)
+    (canonicalPlaceName ?CITY EnglishLanguage ?CITYSTR)
+    (postStreet ?PLACE ?STREET)
+    (canonicalPlaceName ?STREET EnglishLanguage ?STREETSTR)
+    (postStreetNumber ?STREETNUM ?PLACE)
+    (not (exists (?FC ?UN)
+      (and
+        (floorCode ?FC ?PLACE)
+        (unitNumber ?UN ?PLACE)))))
+  (and
+    (postAddressText ?TEXT ?PLACE)
+    (precedesInString ?STREETNUM ?STREETSTR ?TEXT)
+    (precedesInString ?STREETSTR ?CITYSTR ?TEXT)
+    (precedesInString ?CITYSTR ?STATESTR ?TEXT)
+    (precedesInString ?STATESTR ?POSTSTR ?TEXT)
+    (precedesInString ?POSTSTR ?COUNTRYSTR ?TEXT)))
+    
+(=>
+  (and
+    (postCountry ?PLACE UnitedStates)
+    (canonicalPlaceName UnitedStates EnglishLanguage ?COUNTRYSTR)
+    (postPostcodeArea ?PLACE ?POST)
+    (names ?POST ?POSTSTR)
+    (postDistrict ?PLACE ?STATE)
+    (canonicalPlaceName ?STATE EnglishLanguage ?STATESTR)
+    (postCity ?PLACE ?CITY)
+    (canonicalPlaceName ?CITY EnglishLanguage ?CITYSTR)
+    (postStreet ?PLACE ?STREET)
+    (canonicalPlaceName ?STREET EnglishLanguage ?STREETSTR)
+    (postStreetNumber ?STREETNUM ?PLACE)
+    (unitNumber ?UN ?PLACE)
+    (not (exists (?FC)
+      (floorCode ?FC ?PLACE))))
+  (and
+    (postAddressText ?TEXT ?PLACE)
+    (precedesInString ?UN ?STREETNUM ?TEXT)
+    (precedesInString ?STREETNUM ?STREETSTR ?TEXT)
+    (precedesInString ?STREETSTR ?CITYSTR ?TEXT)
+    (precedesInString ?CITYSTR ?STATESTR ?TEXT)
+    (precedesInString ?STATESTR ?POSTSTR ?TEXT)
+    (precedesInString ?POSTSTR ?COUNTRYSTR ?TEXT)))
+    
+(=>
+  (and
+    (postCountry ?PLACE UnitedStates)
+    (canonicalPlaceName UnitedStates EnglishLanguage ?COUNTRYSTR)
+    (postPostcodeArea ?PLACE ?POST)
+    (names ?POST ?POSTSTR)
+    (postDistrict ?PLACE ?STATE)
+    (canonicalPlaceName ?STATE EnglishLanguage ?STATESTR)
+    (postCity ?PLACE ?CITY)
+    (canonicalPlaceName ?CITY EnglishLanguage ?CITYSTR)
+    (postStreet ?PLACE ?STREET)
+    (canonicalPlaceName ?STREET EnglishLanguage ?STREETSTR)
+    (postStreetNumber ?STREETNUM ?PLACE)
+    (unitNumber ?UN ?PLACE)
+    (floorCode ?FC ?PLACE))
+  (and
+    (postAddressText ?TEXT ?PLACE)
+    (precedesInString ?UN ?FC ?TEXT)
+    (precedesInString ?FC ?STREETNUM ?TEXT)
+    (precedesInString ?STREETNUM ?STREETSTR ?TEXT)
+    (precedesInString ?STREETSTR ?CITYSTR ?TEXT)
+    (precedesInString ?CITYSTR ?STATESTR ?TEXT)
+    (precedesInString ?STATESTR ?POSTSTR ?TEXT)
+    (precedesInString ?POSTSTR ?COUNTRYSTR ?TEXT)))
+
+(=>
+  (and
+    (postCountry ?PLACE UnitedStates)
+    (canonicalPlaceName UnitedStates EnglishLanguage ?COUNTRYSTR)
+    (postPostcodeArea ?PLACE ?POST)
+    (names ?POST ?POSTSTR)
+    (postPostOfficeBox ?POBOX ?PLACE)
+    (postPostcodeArea ?PLACE ?POST)
+    (names ?POST ?POSTSTR)
+    (postDistrict ?PLACE ?STATE)
+    (canonicalPlaceName ?STATE EnglishLanguage ?STATESTR)
+    (postCity ?PLACE ?CITY)
+    (canonicalPlaceName ?CITY EnglishLanguage ?CITYSTR))
+  (and
+    (postAddressText ?TEXT ?PLACE)
+    (precedesInString ?POBOX ?CITYSTR ?TEXT)
+    (precedesInString ?CITYSTR ?STATESTR ?TEXT)
+    (precedesInString ?STATESTR ?POSTSTR ?TEXT)
+    (precedesInString ?POSTSTR ?COUNTRYSTR ?TEXT)))
+    
+(instance postAddressText AsymmetricRelation)
+(instance postAddressText BinaryPredicate)
+(domain postAddressText 1 PostalAddressText)
+(domain postAddressText 2 PostalPlace)
+(documentation postAddressText
+EnglishLanguage "(&%postAddressText ?&%PostalAddressText
+?&%PostalPlace) means that the &%ContactSite ?&%PostalPlace is
+identified by ?&%PostalAddressText.")
+
+;; --------------------------------------------------------------------------------
+;; Telephone number structure adapted from Media.kif
+;; --------------------------------------------------------------------------------
+
+(instance telecomContactDevice AsymmetricRelation)
+(instance telecomContactDevice BinaryPredicate)
+(domain telecomContactDevice 1 TelephonyDevice)
+(domain telecomContactDevice 2 Agent)
+(documentation telecomContactDevice
+EnglishLanguage "(&%telecomContactDevice ?&%TelephonyDevice
+?&%Agent) means that ?&%TelephonyDevice is a &%ContactSite for
+the &%Human or &%Organization ?&%Agent.")
+(subrelation telecomContactDevice siteForContact)
+
+;; NS: Actually, this is more complicated in the case of "cord
+;; phones", where multiple &%FixedPhones may share the same line
+;; and, so, the same telephone number.  The phone number uniquely
+;; identifies the line (termination or connection location), not
+;; the phone (hand set).
+
+(subclass VirtualPlaceID PlaceID)
+
+(subclass VirtualAddress PlaceAddress)
+(subclass VirtualAddress VirtualPlaceID)
+
+(subclass TelecomNumber VirtualAddress)
+(subclass TelecomNumber SymbolicString)
+(subclass TelecomNumber ContactSite)
+
+(instance deviceTelecomNumber BinaryPredicate)
+(instance deviceTelecomNumber AsymmetricRelation)
+(domain deviceTelecomNumber 1 TelecomNumber)
+(domain deviceTelecomNumber 2 TelephonyDevice)
+(documentation deviceTelecomNumber
+EnglishLanguage "(&%deviceTelecomNumber ?&%TelecomNumber
+?&%TelephonyDevice) means that ?&%TelephonyDevice is identified,
+and can be accessed, by ?&%TelecomNumber.")
+
+;; (subclass TelecomNumberPart IdentifierPart)
+;; (subclass TelecomNumberPart VirtualPlaceID)
+;; (subclass TelecomNumberPart SymbolicString)
+
+(instance telecomCoreNumber BinaryPredicate)
+(instance telecomCoreNumber AsymmetricRelation)
+(domain telecomCoreNumber 1 SymbolicString)
+(domain telecomCoreNumber 2 TelecomNumber)
+(subrelation telecomCoreNumber subString)
+(documentation telecomCoreNumber
+EnglishLanguage "(&%telecomCoreNumber ?&%SymbolicString
+?&%TelecomNumber) means that ?&%SymbolicString is the &%part of a
+&%TelecomNumber that identifies an individual subscriber line,
+not including the area code and any possible extensions.")
+
+(instance telecomCountryCode BinaryPredicate)
+(instance telecomCountryCode AsymmetricRelation)
+(domain telecomCountryCode 1 SymbolicString)
+(domain telecomCountryCode 2 TelecomNumber)
+(documentation telecomCountryCode
+EnglishLanguage "(&%telecomCountryCode ?&%SymbolicString
+&%TelecomNumber) means that ?&%SymbolicString is the &%part of
+?&%TelecomNumber that identifies the &%Nation in which the device
+identified by ?&%TelecomNumber is located (or registered).
+?&%SymbolicString will be standard code conforming to, and
+assigned by, ITU-T Recommendation E.164.")
+(subrelation telecomCountryCode subString)
+
+(instance telecomAreaCode BinaryPredicate)
+(instance telecomAreaCode AsymmetricRelation)
+(domain telecomAreaCode 1 SymbolicString)
+(domain telecomAreaCode 2 TelecomNumber)
+(documentation telecomAreaCode
+EnglishLanguage "(&%telecomAreaCode ?&%SymbolicString
+&%TelecomNumber) means that ?&%SymbolicString is the &%part of
+?&%TelecomNumber that follows the country code.
+?&%SymbolicString may denote a &%GeographicArea in which the
+&%TelephonyDevice identified by ?&%TelecomNumber is
+located (registered), but it may also denote a call billing plan
+or status, as for 800 numbers in the North American Numbering
+Plan.")
+(subrelation telecomAreaCode subString)
+
+(instance telecomCode2 BinaryPredicate)
+(instance telecomCode2 AsymmetricRelation)
+(domain telecomCode2 1 SymbolicString)
+(domain telecomCode2 2 TelecomNumber)
+(documentation telecomCode2 EnglishLanguage "(&%telecomCode2
+?&%SymbolicString ?&%TelecomNumber) means that ?&%SymbolicString
+is the second code (if there is one, such as a sub-area code)
+following the part of ?&%TelecomNumber denoted by
+&%telecomCountryCode.")
+(subrelation telecomCode2 subString)
+
+(instance telecomExtension BinaryPredicate)
+(instance telecomExtension AsymmetricRelation)
+(domain telecomExtension 1 SymbolicString)
+(domain telecomExtension 2 TelecomNumber)
+(documentation telecomExtension
+EnglishLanguage "(&%telecomExtension ?&%SymbolicString
+?&%TelecomNumber) means that ?&%SymbolicString is a &%part of
+?&%TelecomNumber that identifies a &%TelephonyDevice within a
+group of such &%Devices, the members of which share a local
+subscriber line.")
+;; NS: TO DO: create &%SubscriberTelephoneLine, relate it to
+;; &%MainTelephoneLine and &%TelephoneSystem, which are defined
+;; in Communications.kif.
+
+(=>
+  (and
+    (telecomCoreNumber ?CN ?WHOLE)
+    (telecomAreaCode ?AC ?WHOLE))
+  (precedesInString ?AC ?CN ?WHOLE))
+
+(=>
+  (and
+    (telecomCoreNumber ?CN ?WHOLE)
+    (telecomCountryCode ?CC ?WHOLE))
+  (precedesInString ?CC ?CN ?WHOLE))
+
+(=>
+  (and
+    (telecomAreaCode ?AC ?WHOLE)
+    (telecomCountryCode ?CC ?WHOLE))
+  (precedesInString ?CC ?AC ?WHOLE))
+
+(=>
+  (and
+    (telecomCoreNumber ?CN ?WHOLE)
+    (telecomExtension ?EX ?WHOLE))
+  (precedesInString ?CN ?EX ?WHOLE))
+
+(=>
+  (and
+    (telecomCode2 ?C2 ?WHOLE)
+    (telecomAreaCode ?AC ?WHOLE))
+  (precedesInString ?AC ?C2 ?WHOLE))
+
+(=>
+  (and
+    (telecomCode2 ?C2 ?WHOLE)
+    (telecomCountryCode ?CC ?WHOLE))
+  (precedesInString ?CC ?C2 ?WHOLE))
+
+;; NS: It's not clear from the documentation for "TelecomCode2",
+;; nor from an otherwise good explanation of telecom number
+;; fields (http://en.wikipedia.org/wiki/Area_code), if the
+;; portion of a telecom number denoted by "TelecomCode2" can be
+;; part of the "CoreTelecomNumber" (e.g., designating the local
+;; exchange, as in the xxx part of a US number conforming to the
+;; pattern xxx-yyyy), or is something else, different from both
+;; the "CoreTelecomNumber" and the area code.  Therefore, the
+;; rules above are agnostic on this point, and less complete than
+;; they might otherwise be.
+
+(instance telephoneNumber BinaryPredicate)
+(instance telephoneNumber AsymmetricRelation)
+(domain telephoneNumber 1 TelecomNumber)
+(domain telephoneNumber 2 Agent)
+(documentation telephoneNumber EnglishLanguage "(%&telephoneNumber ?NUMBER ?AGENT) 
+means that ?&%Agent identifies a &%TelecomeNumber at which ?&%Agent can be contacted")
+
+(=>
+  (telephoneNumber ?NUMBER ?AGENT)
+  (siteForContact ?NUMBER ?AGENT))
+
+
+(instance personalPhoneNumber BinaryPredicate)
+(instance personalPhoneNumber AsymmetricRelation)
+(domain personalPhoneNumber 1 TelecomNumber)
+(domain personalPhoneNumber 2 Human)
+(subrelation personalPhoneNumber telephoneNumber)
+(documentation personalPhoneNumber
+EnglishLanguage "(&%personalPhoneNumber ?&%TelecomNumber
+?&%Human) means that ?&%TelecomNumber identifies a &%Telephone at
+which ?&%Human can be contacted when not a work, or for purposes
+other than work.")
+
+(=>
+  (and
+    (instance ?DEVICE Telephone)
+    (holdsDuring ?TIME 
+      (and
+        (possesses ?AGENT ?DEVICE)
+        (deviceTelecomNumber ?NUMBER ?DEVICE))))
+  (holdsDuring ?TIME (telephoneNumber ?NUMBER ?AGENT)))
+
+(instance homePhoneNumber BinaryPredicate)
+(instance homePhoneNumber AsymmetricRelation)
+(domain homePhoneNumber 1 TelecomNumber)
+(domain homePhoneNumber 2 Human)
+(subrelation homePhoneNumber telephoneNumber)
+(documentation homePhoneNumber
+EnglishLanguage "(&%homePhoneNumber ?&%TelecomNumber ?&%Human)
+means that ?&%TelecomNumber identifies a &%Telephone located at
+?&%Human's &%PermanentResidence.")
+
+;; NS: This is too liberal; a person could have multiple "home"
+;; addresses.  Use the telecom area code to match the phone's location
+;; to the person's address.
+;; (=>
+;;   (holdsDuring ?TIME
+;;     (and
+;;       (deviceTelecomNumber ?NUMBER ?DEVICE)
+;;       (homePhoneNumber ?NUMBER ?PERSON)
+;;       (home ?PERSON ?RESIDENCE)))
+;;   (holdsDuring ?TIME (located ?DEVICE ?RESIDENCE)))
+
+(=>
+  (holdsDuring ?TIME 
+    (and
+      (deviceTelecomNumber ?NUMBER ?DEVICE)
+      (homePhoneNumber ?NUMBER ?AGENT)
+      (located ?DEVICE ?PLACE)
+      (instance ?PLACE PermanentResidence)))
+  (holdsDuring ?TIME (home ?AGENT ?PLACE)))
+
+;; This is a weaker version of the axiom immediately above.
+(=>
+  (and
+    (instance ?AGENT Human)
+    (holdsDuring ?TIME 
+      (and
+        (deviceTelecomNumber ?NUMBER ?DEVICE)
+        (telephoneNumber ?NUMBER ?AGENT)
+        (located ?DEVICE ?PLACE)
+        (instance ?PLACE Residence))))
+  (holdsDuring ?TIME (inhabits ?AGENT ?PLACE)))
+
+(instance workPhoneNumber BinaryPredicate)
+(instance workPhoneNumber AsymmetricRelation)
+(domain workPhoneNumber 1 TelecomNumber)
+(domain workPhoneNumber 2 Agent)
+(subrelation workPhoneNumber telephoneNumber)
+(documentation workPhoneNumber
+EnglishLanguage "(&%workPhoneNumber ?&%TelecomNumber ?&%Agent)
+means that ?&%TelecomNumber identifies a &%Telephone at which
+?&%Agent can be contacted when at work, or for business
+purposes.")
+
+(instance mobilePhoneNumber BinaryPredicate)
+(instance mobilePhoneNumber AsymmetricRelation)
+(domain mobilePhoneNumber 1 TelecomNumber)
+(domain mobilePhoneNumber 2 Agent)
+(subrelation mobilePhoneNumber telephoneNumber)
+(documentation mobilePhoneNumber
+EnglishLanguage "(&%mobilePhoneNumber ?&%TelecomNumber ?&%Agent)
+means that ?&%TelecomNumber identifies a &%MobileCellPhone at
+which ?&%Agent can be contacted.")
+
+(=>
+  (holdsDuring ?TIME
+    (and
+      (deviceTelecomNumber ?NUMBER ?DEVICE)
+      (mobilePhoneNumber ?NUMBER ?AGENT)))
+  (instance ?DEVICE MobileCellPhone))
+
+;; NS: Narrowing telephoneNumber -> mobilePhoneNumber.
+(=>
+  (and
+    (instance ?DEVICE MobileCellPhone)
+    (holdsDuring ?TIME
+      (and
+        (deviceTelecomNumber ?NUMBER ?DEVICE)
+        (telephoneNumber ?NUMBER ?AGENT))))
+  (holdsDuring ?TIME (mobilePhoneNumber ?NUMBER ?AGENT)))
+
+;; NS: This isn't reliably true for Telephones in general, given
+;; the rather strict "ownership" sense of possesses.  But it is
+;; generally true for cell phones.
+(=>
+  (holdsDuring ?TIME
+    (and
+      (deviceTelecomNumber ?NUMBER ?DEVICE)
+      (mobilePhoneNumber ?NUMBER ?AGENT)))
+  (holdsDuring ?TIME (possesses ?AGENT ?DEVICE)))
+
+(instance faxNumber BinaryPredicate)
+(instance faxNumber AsymmetricRelation)
+(domain faxNumber 1 TelecomNumber)
+(domain faxNumber 2 Agent)
+(documentation faxNumber EnglishLanguage "(&%faxNumber
+?&%TelecomNumber ?&%Agent) means that ?&%TelecomNumber identifies
+a &%FaxMachine at which ?&%Agent can be contacted.")
+
+(=>
+  (and
+    (instance ?DEVICE FaxMachine)
+    (holdsDuring ?TIME 
+      (and
+        (deviceTelecomNumber ?NUMBER ?DEVICE)
+        (possesses ?AGENT ?DEVICE))))
+  (holdsDuring ?TIME (faxNumber ?NUMBER ?AGENT)))
+
+;; NS: temporally qualified this way only because telecom numbers
+;; can be reassigned to different types of TelephonyDevices.
+(=>
+  (holdsDuring ?TIME
+    (and
+      (deviceTelecomNumber ?NUMBER ?DEVICE)
+      (faxNumber ?NUMBER ?AGENT)))
+  (instance ?DEVICE FaxMachine))      
