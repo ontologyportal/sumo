@@ -1,0 +1,1455 @@
+;; ============================================================================
+;;                    	    REARDEN COMMERCE, INC.
+;;                	            Hotel Ontology
+;; ============================================================================
+
+;; Created by: Karen Joy Nomorosa (karen.nomorosa [at] reardencommerce [dot] com)
+;; Created on: April 15, 2011
+;; Last modified: 
+;; Modified by: Karen Joy Nomorosa (karen.nomorosa [at] reardencommerce [dot] com)
+
+;; Description:  This ontology describes different concepts that are common among
+;; different services
+
+;; Ontology dependencies for services.kif: Merge.kif, Mid-level-ontology.kif
+
+;; Access to and use of these products is governed by the GNU General Public 
+;; License <http://www.gnu.org/copyleft/gpl.html>. 
+;; By using these products, you agree to be bound by the terms 
+;; of the GPL.
+
+;; We ask the people using or referencing this work cite our primary paper:
+
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
+;; Proceedings of the 2nd International Conference on Formal Ontology in 
+;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
+;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
+
+;; Separating Hotel from HotelBuilding, where Hotel is the agent or the business that
+;; administers or operates the HotelBuilding, and HotelBuilding is the physical 
+;; structure where Hotel is located.
+
+(=> 
+  (attribute ?X TravelerAccommodation)
+  (exists (?PROPERTY ?BLDG)
+    (and
+      (equal ?PROPERTY (PropertyFn ?X))
+      (instance ?BLDG HotelBuilding)
+      (element ?BLDG ?PROPERTY))))
+
+;; a hotel has the purpose of allowing customers to temporarily stay in a hotel room
+;; with the customer paying for the stay
+(=>
+  (attribute ?X TravelerAccommodation)
+  (hasPurpose ?X
+    (exists (?CUST ?ROOM ?BLDG ?TIMEINT)
+      (and
+        (customer ?CUST ?X)
+        (instance ?ROOM HotelRoom)
+        (part ?ROOM ?BLDG)
+        (element ?BLDG (PropertyFn ?X))
+        (confersRight ?X
+          (holdsDuring ?TIMEINT
+            (and
+              (stays ?CUST ?ROOM)
+              (instance ?PAY FinancialTransaction)
+              (agent ?PAY ?CUST)
+              (destination ?PAY ?X))) ?CUST)))))
+              
+(subclass HotelBuilding ResidentialBuilding)
+(documentation HotelBuilding EnglishLanguage "A &%ResidentialBuilding which provides 
+temporary accommodations to guests in exchange for money.")
+(termFormat EnglishLanguage HotelBuilding "hotel")
+
+(=> 
+  (instance ?HOTEL HotelBuilding)
+  (exists (?ROOM)
+    (and
+      (instance ?ROOM HotelRoom)
+      (properPart ?ROOM ?HOTEL))))      
+      
+;; subclassing HotelRoom from Room as well as TemporaryResidence instead of making 
+;; HotelBuilding subclass from Temporary Residence. Logically, making HotelBuilding
+;; subclass from TemporaryResidence means that the same group of people treat the entire
+;; HotelBuilding as their TemporaryResidence, when in reality, each Room has a different
+;; group of people treating it as their TemporaryResidence.
+(subclass HotelRoom Room)
+(subclass HotelRoom TemporaryResidence)
+
+(=>
+  (instance ?ROOM HotelRoom)
+  (exists (?BED)
+    (and
+      (instance ?BED Bed)
+      (located ?BED ?ROOM))))
+
+      
+;; ---------------------------------------------------------------------------------
+;; Hotel Room Relations
+;; ---------------------------------------------------------------------------------      
+
+;; (physicalAmenity ?ROOM ?OBJ)
+(instance physicalAmenity BinaryPredicate)
+(documentation physicalAmenity EnglishLanguage "(&%physicalAmenity ?ROOM ?OBJ) means
+that ?OBJ has been placed in ?ROOM for the user's comfort")
+(termFormat EnglishLanguage physicalAmenity "amenity")
+
+(domainSubclass physicalAmenity 1 HotelRoom)
+(domainSubclass physicalAmenity 2 Object)
+
+(=>
+  (physicalAmenity ?ROOM ?OBJ)
+  (forall (?R)
+    (=>
+      (instance ?R ?ROOM)
+      (exists (?O)
+        (and
+          (instance ?R ?ROOM)
+          (instance ?O ?OBJ)
+          (located ?O ?R))))))
+  
+;; ---------------------------------------------------------------------------------
+;; Beds
+;; ---------------------------------------------------------------------------------
+
+(subclass KingBed Bed)
+(documentation KingBed EnglishLanguage "A &%KingBed is a type of &%Bed that is 1.9m
+by 2.0m in size")
+(termFormat EnglishLanguage KingBed "king-sized bed")
+
+(=>
+  (instance ?X KingBed)
+  (and
+    (width ?X (MeasureFn 1.9 Meter))
+    (length ?X (MeasureFn 2.0 Meter))))
+
+;; it's possible to fit 3 sleeping people in a king bed    
+(=>
+  (instance ?X KingBed)
+  (modalAttribute
+    (exists (?P1 ?P2 ?P3 ?TIME)
+      (and
+        (not (equal ?P1 ?P2))
+        (not (equal ?P2 ?P3))
+        (not (equal ?P1 ?P3))
+        (attribute ?P1 Asleep)
+        (attribute ?P2 Asleep)
+        (attribute ?P3 Asleep)
+        (instance ?P1 Human)
+        (instance ?P2 Human)
+        (instance ?P3 Human)
+        (holdsDuring ?TIME
+          (and
+            (located ?P1 ?X)
+            (located ?P2 ?X)
+            (located ?P3 ?X))))) Possibility))
+    
+(subclass QueenBed Bed)
+(documentation QueenBed EnglishLanguage "A &%QueenBed is a type of &%Bed that is 1.5m
+by 2.0m in size")
+(termFormat EnglishLanguage QueenBed "queen-sized bed")
+
+(=>
+  (instance ?X QueenBed)
+  (and
+    (width ?X (MeasureFn 1.5 Meter))
+    (length ?X (MeasureFn 2.0 Meter))))
+
+;; it's possible to fit 2 sleeping people in a queen bed    
+(=>
+  (instance ?X QueenBed)
+  (modalAttribute
+    (exists (?P1 ?P2)
+      (and
+        (not (equal ?P1 ?P2))
+        (not (equal ?P2 ?P3))
+        (attribute ?P1 Asleep)
+        (attribute ?P2 Asleep)
+        (instance ?P1 Human)
+        (instance ?P2 Human)
+        (holdsDuring ?TIME
+          (and
+            (located ?P1 ?X)
+            (located ?P2 ?X))))) Possibility))    
+    
+(subclass DoubleBed Bed)
+(documentation DoubleBed EnglishLanguage "A &%DoubleBed is a type of &%Bed that is 1.35m
+by 2.0m in size")
+(termFormat EnglishLanguage DoubleBed "full-sized bed")
+
+(=>
+  (instance ?X DoubleBed)
+  (and
+    (width ?X (MeasureFn 1.35 Meter))
+    (length ?X (MeasureFn 2.0 Meter))))
+
+;; it's possible to fit 2 sleeping people in a queen bed    
+(=>
+  (instance ?X DoubleBed)
+  (modalAttribute
+    (exists (?P1 ?P2)
+      (and
+        (not (equal ?P1 ?P2))
+        (not (equal ?P2 ?P3))
+        (attribute ?P1 Asleep)
+        (attribute ?P2 Asleep)
+        (instance ?P1 Human)
+        (instance ?P2 Human)
+        (holdsDuring ?TIME
+          (and
+            (located ?P1 ?X)
+            (located ?P2 ?X))))) Possibility))    
+       
+(subclass SingleBed Bed)
+(documentation SingleBed EnglishLanguage "A &%SingleBed is a type of &%Bed that is 1m
+by 2.0m in size")
+(termFormat EnglishLanguage SingleBed "twin-sized bed")
+
+(=>
+  (instance ?X SingleBed)
+  (anda
+    (width ?X (MeasureFn 1.0 Meter))
+    (length ?X (MeasureFn 2.0 Meter))))
+
+(subclass BunkBed Bed)
+(documentation BunkBed EnglishLanguage "A &%BunkBed is a type of &%Bed has one bed 
+directly above another")
+(termFormat EnglishLanguage BunkBed "bunk bed")
+
+(=>
+  (instance ?X BunkBed)
+  (exists (?BED1 ?BED2)
+    (and
+      (instance ?BED1 SingleBed)
+      (instance ?BED2 SingleBed)
+      (part ?BED1 ?X)
+      (part ?BED2 ?X)
+      (orientation ?BED1 ?BED2 Above))))
+
+(subclass MurphyBed Bed)
+(documentation MurphyBed EnglishLanguage "A &%MurphyBed is a type of &%Bed that can
+be stored vertically inside a wall, closet or cabinet")
+(termFormat EnglishLanguage MurphyBed "pull-down bed")
+
+(=>
+  (instance ?X MurphyBed)
+  (exists (?STORAGE)
+    (and
+      (instance ?STORAGE Compartment)
+      (meetsSpatially ?STORAGE ?X)
+      (hasPurpose ?STORAGE
+        (exists (?K)
+          (and
+            (instance ?K Keeping)
+            (patient ?K ?X)
+            (destination ?K ?STORAGE)
+            (holdsDuring 
+              (WhenFn ?K)
+              (attribute ?X Vertical))))))))
+
+(subclass RollawayBed Bed)
+(documentation RollawayBed EnglishLanguage "A &%RollawayBed is a type of &%Bed ")
+(termFormat EnglishLanguage RollawayBed "rollaway bed")
+
+(subclass SofaBed Bed)
+(documentation SofaBed EnglishLanguage "A &%SofaBed is a &%Bed that can be kept inside
+a compartment in a &%Sofa")
+(termFormat EnglishLanguage SofaBed "sofa bed")
+
+(=>
+  (instance ?X SofaBed)
+  (exists (?SOFA ?STORAGE)
+    (and
+      (instance ?STORAGE Compartment)
+      (part ?STORAGE ?SOFA)
+      (instance ?SOFA Sofa)
+      (hasPurpose ?STORAGE
+        (exists (?K)
+          (and
+            (instance ?K Keeping)
+            (patient ?K ?X)
+            (destination ?K ?STORAGE)))))))
+
+(subclass Crib Bed)
+(documentation Crib EnglishLanguage "A &%Crib is a &%Bed for babies")
+(termFormat EnglishLanguage Crib "crib")
+
+(=>
+  (instance ?X Crib)
+  (hasPurpose ?X
+    (exists (?BABY)
+      (and
+        (instance ?BABY HumanBaby)
+        (attribute ?BABY Asleep)
+        (located ?BABY ?X)))))
+        
+;; if a GroupOfPeople has an adult and a baby in it, then a Crib is within the 
+;; adult's scope of interest
+
+(=>
+  (and
+    (instance ?GRP GroupOfPeople)
+    (member ?ADULT ?GRP)
+    (member ?BABY ?GRP)
+    (instance ?BABY HumanBaby)
+    (instance ?ADULT HumanAdult)
+    (instance ?CRIB Crib))
+  (inScopeOfInterest ?ADULT ?CRIB))
+          
+(subclass Mattress Artifact)
+(documentation Mattress EnglishLanguage "A &%Mattress is a &%component of a &%Bed 
+that is a cushion to make it more comfortable")
+(termFormat EnglishLanguage Mattress "mattress")
+
+(=>
+  (instance ?X Mattress)
+  (exists (?BED)
+    (and
+      (instance ?BED Bed)
+      (component ?X ?BED))))
+
+(=>
+  (instance ?X Mattress)
+  (hasPurpose ?X
+    (exists (?PERSON)
+      (and
+        (attribute ?PERSON Asleep)
+        (orientation ?PERSON ?X On)))))
+      
+      
+(subclass BedFrame Artifact)
+(documentation BedFrame EnglishLanguage "A &%BedFram is a %&component of a &%Bed that
+supports the mattress")
+(termFormat EnglishLanguage BedFrame "bed frame")
+
+(=>
+  (and
+    (instance ?X Bed)
+    (component ?BEDFRAME ?X)
+    (instance ?BEDFRAME BedFrame)
+    (component ?MATTRESS ?X)
+    (instance ?MATTRESS Mattress))
+  (orientation ?MATTRESS ?BEDFRAME On))
+      
+(subclass BedAttribute RelationalAttribute)
+(documentation BedAttribute EnglishLanguage "&%BedAttribute is the class of attributes
+attached to the type of cushion a &%Bed has")
+(termFormat EnglishLanguage BedAttribute "bed attribute")
+
+(=>
+  (and
+    (attribute ?X ?ATTR)
+    (instance ?ATTR BedAttribute))
+  (instance ?X Bed))
+  
+(instance WaterBed BedAttribute)
+(documentation WaterBed EnglishLanguage "&%WaterBed describes how the cushion of a &%Bed
+is filled with water")
+(termFormat EnglishLanguage WaterBed "water bed")
+
+(=>
+  (attribute ?X WaterBed)
+  (exists (?MATTRESS ?WATER)
+    (and
+      (component ?MATTRESS ?X)
+      (contains ?MATTRESS ?WATER)
+      (instance ?WATER Water))))
+  
+;; ---------------------------------------------------------------------------------
+;; Views
+;; ---------------------------------------------------------------------------------
+
+;; if a room possesses a view, then this means that a person standing inside the room
+;; can see outside, and the outside is the object of the view
+
+(=>
+  (and
+    (instance ?ROOM Room)
+    (instance ?VIEW View)
+    (instance ?PHYSICAL Physical)
+    (represents ?VIEW ?PHYSICAL)
+    (possesses ?ROOM ?VIEW)
+    (instance ?PERSON Human)
+    (located ?PERSON ?ROOM)
+    (orientation ?PHYSICAL ?ROOM Outside))
+  (modalAttribute
+    (and
+      (instance ?SEE Seeing)
+      (patient ?SEE ?VIEW)
+      (agent ?SEE ?PERSON)) Possibility))
+      
+(subclass GardenView View)
+(documentation GardenView EnglishLanguage "&%GardenView is a type of &%View which 
+contains a picture of some &%CultivatedLand")
+(termFormat EnglishLanguage GardenView "garden view")
+
+(=>
+  (instance ?X GardenView)
+  (exists (?GARDEN ?GARDENVIEW)
+    (and
+      (instance ?GARDEN CultivatedLandArea)
+      (part ?GARDENVIEW ?GARDEN)
+      (represents ?X ?GARDENVIEW))))
+      
+(subclass OceanView View)
+(documentation OceanView EnglishLanguage "&%OceanView is a type of &%View which
+represents some aspect of an &%Ocean")
+(termFormat EnglishLanguage OceanView "ocean view")
+
+(=>
+  (instance ?X OceanView)
+  (exists (?OCEAN ?OCEANVIEW)
+    (and
+      (instance ?OCEAN Ocean)
+      (part ?OCEANVIEW ?OCEAN)
+      (represents ?X ?OCEANVIEW))))
+
+(subclass LakeView View)
+(documentation LakeView EnglishLanguage "&%LakeView is a type of &%View which
+represents some aspect of a &%Lake")
+(termFormat EnglishLanguage LakeView "Lake view")
+
+(=>
+  (instance ?X LakeView)
+  (exists (?LAKE ?LAKEVIEW)
+    (and
+      (instance ?LAKE Lake)
+      (part ?LAKEVIEW ?LAKE)
+      (represents ?X ?LAKEVIEW))))
+      
+      
+(subclass RiverView View)
+(documentation RiverView EnglishLanguage "&%RiverView is a type of &%View which
+represents some aspect of a &%River")
+(termFormat EnglishLanguage RiverView "river view")
+
+(=>
+  (instance ?X RiverView)
+  (exists (?RIVER ?RIVERVIEW)
+    (and
+      (instance ?RIVER River)
+      (part ?RIVERVIEW ?RIVER)
+      (represents ?X ?RIVERVIEW))))
+      
+(subclass MountainView View)
+(documentation MountainView EnglishLanguage "&%MountainView is a type of &%View which
+represents some aspect of a &%Mountain")
+(termFormat EnglishLanguage MountainView "mountain view")
+
+(=>
+  (instance ?X MountainView)
+  (exists (?MOUNTAIN ?MOUNTAINVIEW)
+    (and
+      (instance ?MOUNTAIN Mountain)
+      (part ?MOUNTAINVIEW ?MOUNTAIN)
+      (represents ?X ?MOUNTAINVIEW))))
+      
+(subclass BayView View)
+(documentation BayView EnglishLanguage "&%BayView is a type of &%View which
+represents some aspect of an &%Bay")
+(termFormat EnglishLanguage BayView "bay view")
+
+(=>
+  (instance ?X BayView)
+  (exists (?BAY ?BAYVIEW)
+    (and
+      (instance ?BAY Bay)
+      (part ?BAVIEW ?BAY)
+      (represents ?X ?BAYVIEW))))      
+      
+(subclass GolfCourseView View)
+(documentation GolfCourseView EnglishLanguage "&%GolfCourseView is a type of &%View which
+represents some aspect of a &%GolfCourse")
+(termFormat EnglishLanguage GolfCourseView "golf course view")
+
+(=>
+  (instance ?X GolfCourseView)
+  (exists (?COURSE ?COURSEVIEW)
+    (and
+      (instance ?COURSE GolfCourse)
+      (part ?COURSEVIEW ?COURSE)
+      (represents ?X ?COURSEVIEW))))
+
+(subclass BeachView View)
+(documentation BeachView EnglishLanguage "&%BeachView is a type of &%View which 
+represents some aspect of a &%ShoreArea")
+(termFormat EnglishLanguage BeachView "beach view")
+
+(=>
+  (instance ?X BeachView)
+  (exists (?SHORE ?SHOREVIEW)
+    (and
+      (instance ?SHORE ShoreArea)
+      (part ?SHOREVIEW ?SHORE)
+      (represents ?X ?SHOREVIEW))))
+
+(subclass CityView View)
+(documentation CityView EnglishLanguage "&%CityView is a type of &%View which
+represents some aspect of a &%City")
+(termFormat EnglishLanguage CityView "city view")
+
+(=>
+  (instance ?X CityView)
+  (exists (?CITY ?CITYVIEW)
+    (and
+      (instance ?CITY City)
+      (part ?CITYVIEW ?CITY)
+      (represents ?X ?CITYVIEW))))
+
+(subclass HarborView View)
+(documentation HarborView EnglishLanguage "&%HarborView is a type of &%View which
+represents some aspect of a &%Harbor")
+(termFormat EnglishLanguage HarborView "harbor view")
+
+(=>
+  (instance ?X HarborView)
+  (exists (?HARBOR ?HARBORVIEW)
+    (and
+      (instance ?HARBOR Harbor)
+      (part ?HARBORVIEW ?HARBOR)
+      (represents ?X ?HARBORVIEW))))
+      
+(subclass ParkView View)
+(documentation ParkView EnglishLanguage "&%ParkView is a type of &%View which
+represents some aspect of a &%Park")
+(termFormat EnglishLanguage ParkView "park view")
+
+(=>
+  (instance ?X ParkView)
+  (exists (?PARK ?PARKVIEW)
+    (and
+      (instance ?PARK Park)
+      (part ?PARKVIEW ?PARK)
+      (represents ?X ?PARKVIEW))))
+      
+(subclass PoolView View)
+(documentation PoolView EnglishLanguage "&%PoolView is a type of &%View which
+represents some aspect of a &%SwimmingPool")
+(termFormat EnglishLanguage PoolView "pool view")
+
+(=>
+  (instance ?X PoolView)
+  (exists (?POOL ?POOLVIEW)
+    (and
+      (instance ?POOL SwimmingPool)
+      (part ?POOLVIEW ?POOL)
+      (represents ?X ?POOLVIEW))))
+
+;; ---------------------------------------------------------------------------------
+;; Rooms
+;; ---------------------------------------------------------------------------------
+
+(subclass Balcony StationaryArtifact)
+(documentation Balcony EnglishLanguage "A &%Balcony is a platform projecting from the
+wall of a building, surrounded by some type of railing")
+(termFormat EnglishLanguage Balcony "balcony")
+
+(=>
+  (instance ?BALCONY Balcony)
+  (exists (?WALL ?LANDAREA)
+    (and
+      (meetsSpatially ?WALL ?BALCONY)
+      (instance ?LANDAREA LandArea)
+      (located ?WALL ?LANDAREA)
+      (orientation ?BALCONY ?LANDAREA Above))))
+      
+(subclass SittingArea Region)
+(documentation SittingArea EnglishLanguage "&%SittingArea refers to a &%Region, either
+&%Indoor (like a Living Room) or &%Outdoor (like a Garden sitting area) where people
+normally sit and entertain guests")
+(termFormat EnglishLanguage SittingArea "sitting area")
+
+(=>
+  (instance ?AREA SittingArea)
+  (exists (?SEAT)
+    (and
+      (instance ?SEAT Seat)
+      (located ?SEAT ?AREA))))
+
+(instance AdjoiningRoom RelationalAttribute)
+(documentation AdjoiningRoom EnglishLanguage "&%AdjoiningRoom describes a &%Room that
+has another Room &%Adjacent to it, and a doorway existing on their common wall to
+allow access from one room to another")
+(termFormat EnglishLanguage AdjoiningRoom "adjoining room")
+
+(=>
+  (attribute ?X AdjoiningRoom)
+  (instance ?X Room))
+  
+(=>
+  (attribute ?X AdjoiningRoom)
+  (exists (?ROOM ?WALL ?DOOR)
+    (and
+      (attribute ?ROOM AdjoiningRoom)
+      (not (equal ?ROOM ?X))
+      (orientation ?X ?ROOM Adjacent)
+      (instance ?WALL Wall)
+      (part ?WALL ?ROOM)
+      (part ?WALL ?X)
+      (instance ?DOOR Door)
+      (part ?DOOR ?WALL))))
+      
+      
+      
+;; ---------------------------------------------------------------------------------
+;; Bathroom Objects
+;; ---------------------------------------------------------------------------------
+
+(subclass Shower BathingDevice)
+(documentation Shower EnglishLanguage "&%Shower refers to a plumbing fixture that
+sprays water over you.")
+(termFormat EnglishLanguage Shower "shower")
+
+(=>
+  (instance ?SHOWER Shower)
+  (hasPurpose ?SHOWER
+    (exists (?SPRAY)
+      (and
+        (instance ?SPRAY WaterMotion)
+        (origin ?SPRAY ?SHOWER)
+        (direction ?SPRAY South)))))
+
+(=>
+  (instance ?SHOWER Shower)
+  (exists (?X ?FLOOR)
+    (and
+      (or
+        (instance ?X Wall)
+        (instance ?X Ceiling))
+      (connected ?SHOWER ?X)
+      (instance ?FLOOR Floor)
+      (orientation ?SHOWER ?FLOOR Above))))
+
+(subclass BathTub BathingDevice)
+(subclass BathTub FluidContainer)
+(documentation BathTub BathingDevice "&%BathTub refers to a &%BathingDevice that you
+can fill with water to use to watch the body")
+(termFormat EnglishLanguage BathTub "tub")
+
+(=>
+  (instance ?TUB BathTub)
+  (hasPurpose ?TUB
+    (exists (?WATER)
+      (and
+        (instance ?WATER Water)
+        (contains ?TUB ?WATER)))))
+
+
+;; ---------------------------------------------------------------------------------
+;; General Concepts
+;; ---------------------------------------------------------------------------------
+
+(subclass GolfFacility SportsFacility)
+(documentation GolfFacility EnglishLanguage "&%GolfFacility refers to the &%SportsFacility
+where &%Golf or some subprocess of &%Golf can be played")
+(termFormat EnglishLanguage GolfFacility "golf facility")
+
+(=>
+  (instance ?X GolfFacility)
+  (hasPurpose ?X
+    (exists (?GOLF)
+      (and
+        (or
+          (instance ?GOLF Golf)
+          (instance ?GOLF GolfManeuver))
+        (located ?GOLF ?X)))))
+
+(subclass GolfCourse SportsFacility)
+(documentation GolfCourse EnglishLanguage "&%GolfCourse refers to the &%GolfFacility
+where an entire &%Golf game and all its subprocesses is played")
+(termFormat EnglishLanguage GolfCourse "golf course")
+
+(=>
+  (instance ?X GolfCourse)
+  (hasPurpose ?X
+    (exists (?GOLF)
+      (and
+        (instance ?GOLF Golf)
+        (located ?GOLF ?X)))))
+
+(=>
+  (instance ?COURSE GolfCourse)
+  (exists (?PUTTINGGREEN)
+    (and
+      (instance ?PUTTINGGREEN PuttingGreen)
+      (part ?PUTTINGGREEN ?COURSE))))        
+
+;; changing rule for (subclass GolfManeuver Maneuver)
+;; because a GolfManeuver can exist without being part of a Golf Game, but the
+;; inverse is not true (e.g. a driving range would just all be Golf Drives, without
+;; having to put the ball in the hole
+(=>
+  (instance ?G Golf)
+  (exists (?M)
+    (and
+      (instance ?M GolfManeuver)
+      (subProcess ?M ?G))))
+      
+(subclass GolfDrive GolfManeuver)
+(subclass GolfDrive GameShot)
+(documentation GolfDrive EnglishLanguage "&%GolfDrive refers to an initial &%GolfManeuver
+for a par-4 or par-5 hole where the golf ball is hit from a tee")
+(termFormat EnglishLanguage GolfDrive "golf drive")
+
+(subclass GolfPut GolfManeuver)
+(subclass GolfPut GameShot)
+(documentation GolfPut EnglishLanguage "&%GolfPut refers to a &%GolfManeuver that
+involves hitting a ball with a golf club with the goal of placing it into a hole")
+(termFormat EnglishLanguage GolfPut "golf put")
+
+(subclass GolfHole Hole)
+(documentation GolfHole EnglishLanguage "&%GolfHole refers to a type of &%Hole in the 
+size of a &%GolfBall located in a &%PuttingGreen")
+(termFormat EnglishLanguage GolfHole "golf hole")
+
+(=>
+  (and
+    (instance ?HOLE GolfHole)
+    (instance ?CYLINDER Cylinder)
+    (attribute ?HOLE ?CYLINDER)
+    (top ?CIRCLE ?HOLE)
+    (instance ?CIRCLE Circle))
+  (diameter ?CIRCLE (MeasureFn 4.25 Inch)))
+        
+(subclass DrivingRange GolfFacility)
+(documentation DrivingRange EnglishLanguage "&%DrivingRange is a &%GolfFacility where 
+people line up side-by-side performing &%GolfDrive for practice")
+(termFormat EnglishLanguage DrivingRange "driving range")
+
+(=>
+  (instance ?D DrivingRange)
+  (hasPurpose ?D
+    (and
+      (exists (?DRIVE)
+        (and
+          (instance ?DRIVE GolfDrive)
+          (located ?DRIVE ?D)))
+      (not
+        (exists (?GOLF)
+          (and
+            (located ?GOLF ?D)
+            (instance ?GOLF GolfManeuver)
+            (not (instance ?GOLF GolfDrive))))))))
+
+(subclass PuttingGreen GolfFacility)
+(documentation PuttingGreen EnglishLanguage "&%PuttingGreen refers to a &%GolfFacility
+that involves a short area of grass surrounding a hole where the object is to put the
+ball in the hole")
+(termFormat EnglishLanguage PuttingGreen "putting green")
+
+(=>
+  (instance ?P PuttingGreen)
+  (hasPurpose ?D
+    (and
+      (exists (?PUT)
+        (and
+          (instance ?PUT GolfPut)
+          (located ?PUT ?P)))
+      (not
+        (exists (?GOLF)
+          (and
+            (located ?GOLF ?D)
+            (instance ?GOLF GolfManeuver)
+            (not (instance ?GOLF GolfPut))))))))
+
+(=>
+  (instance ?P PuttingGreen)
+  (exists (?HOLE)
+    (and
+      (instance ?HOLE GolfHole)
+      (part ?HOLE ?P))))
+
+(subclass MiniatureGolf PuttingGreen)
+(documentation MiniatureGolf EnglishLanguage "&%MiniatureGolf is a type of &%PuttingGreen
+used for a novelty type of &%Golf where &%GolfHoles have obstacles such as bridges, etc.")
+(termFormat EnglishLanguage MiniatureGolf "miniature golf")
+
+(=>
+  (instance ?G MiniatureGolf)
+  (hasPurpose ?G
+    (exists (?REC)
+      (and
+        (instance ?REC RecreationOrExercise)
+        (located ?REC ?G)))))
+      
+(subclass Tennis Sport)
+(documentation Tennis EnglishLanguage "&%Tennis is a &%Sport played with rackets by 
+two or four players who hit a ball back and forth over a net that divides the court")
+(termFormat EnglishLanguage Tennis "tennis")
+
+;; tennis has 2 contest participants, which can either be an individual or a group
+;; of 2 people per side.  not going to define tennis deeper since it is not the 
+;; intent of Hotel.kif.  
+(=>
+  (instance ?X Tennis)
+  (exists (?T1 ?T2)
+    (and
+      (contestParticipant ?X ?T1)
+      (contestParticipant ?X ?T2)
+      (not (equal ?T1 ?T2))
+      (or
+        (instance ?T1 Human)
+        (and
+          (instance ?T1 GroupOfPeople)
+          (memberCount ?T1 2)))
+      (or
+        (instance ?T2 Human)
+        (and
+          (instance ?T2 GroupOfPeople)
+          (memberCount ?T2 2))))))
+          
+(subclass TennisCourt SportsFacility)
+(documentation TennisCourt EnglishLanguage "&%TennisCourt is a type of &%SportsFacility
+where the game &%Tennis is held")
+(termFormat EnglishLanguage TennisCourt "tennis court")
+
+(=>
+  (instance ?COURT TennisCourt)
+  (hasPurpose ?COURT
+    (exists (?TENNIS)
+      (and
+        (instance ?TENNIS Tennis)
+        (located ?TENNIS ?COURT)))))
+     
+(subclass FabricIron Device)
+(documentation FabricIron EnglishLanguage "&%FabricIron is a type of &%Device that
+has a flat metal base used to smooth cloth")
+(termFormat EnglishLanguage FabricIron "iron")
+
+(=>
+  (instance ?IRON FabricIron)
+  (exists (?BASE)
+    (and
+      (bottom ?BASE ?IRON)
+      (instance ?BASE MetalProduct)
+      (attribute ?BASE Flat))))
+
+(subclass IroningBoard Device)
+(documentation IroningBoard EnglishLanguage "&%IroningBoard is a type of &%Device 
+consisting of a flat, padded board used as a surface for ironing")
+(termFormat EnglishLanguage IroningBoard "ironing board")
+
+(=>
+  (instance ?BOARD IroningBoard)
+  (hasPurpose ?BOARD
+    (exists (?IRON ?FABRIC ?OBJ)
+      (and
+        (instance ?IRON Ironing)
+        (patient ?IRON ?OBJ)
+        (part ?FABRIC ?OBJ)
+        (instance ?FABRIC Fabric)
+        (holdsDuring 
+          (WhenFn ?IRON)
+          (orientation ?OBJ ?BOARD On))))))
+      
+(subclass Smoothing SurfaceChange)
+(documentation Smoothing EnglishLanguage "&%Smoothing is a type of &%SurfaceChange
+to make something &%Smooth")
+(termFormat EnglishLanguage Smoothing "smoothing")
+
+(=>
+  (and
+    (instance ?SMOOTH Smoothing)
+    (patient ?SMOOTH ?OBJ))
+  (exists (?PART)
+    (and
+      (superficialPart ?PART ?OBJ)
+      (holdsDuring
+        (EndFn (WhenFn ?SMOOTH))
+        (attribute ?PART Smooth)))))
+        
+(subclass Ironing Smoothing)
+(documentation Ironing EnglishLanguage "&%Ironing refers to a &%Smoothing process where
+a heated &%Device is used to smooth something")
+(termFormat EnglishLanguage Ironing "ironing")
+
+(=>
+  (and
+    (instance ?I Ironing)
+    (patient ?I ?OBJ))
+  (exists (?HEAT ?IRON ?PART)
+    (and
+      (superficialPart ?PART ?OBJ)
+      (instance ?HEAT Heating)
+      (patient ?HEAT ?IRON)
+      (patient ?I ?PART)
+      (instrument ?I ?IRON))))
+
+(=>
+  (and
+    (instance ?I Ironing)
+    (patient ?I ?OBJ)
+    (part ?FABRIC ?OBJ)
+    (instance ?FABRIC Fabric))
+  (exists (?IRON ?HEAT)
+    (and
+      (instance ?HEAT Heating)
+      (patient ?HEAT ?IRON)
+      (instance ?IRON FabricIron)
+      (instrument ?I ?IRON))))
+
+(subclass WhirlpoolTub FluidContainer)
+(documentation WhirlpoolTub EnglishLanguage "&%WhirlpoolTub refers to a &%FluidContainer
+used by &%Humans for relaxation with jets used to create water currents to massage the 
+body")
+(termFormat EnglishLanguage WhirlpoolTub "whirlpool tub")
+
+(=>
+  (instance ?TUB WhirlpoolTub)
+  (exists (?VALVE)
+    (and
+      (instance ?VALVE PressureControlValve)
+      (part ?VALVE ?TUB)
+      (hasPurpose ?VALVE
+        (exists (?WATER ?CREATION ?FR)
+          (and
+            (instance ?WATER Water)
+            (located ?WATER ?TUB)
+            (instance ?CREATION Creation)
+            (instrument ?CREATION ?VALVE)
+            (result ?CREATION (FlowFn ?FR))
+            (located ?WATER ?FR)))))))
+
+(subclass Kennel TrapOrCage)
+(documentation Kennel EnglishLanguage "&%Kennel is a &%TrapOrCage where a &%DomesticAnimal
+is &%Confining by its owner")
+(termFormat EnglishLanguage Kennel "kennel")
+
+(=>
+  (instance ?KENNEL Kennel)
+  (hasPurpose ?KENNEL
+    (exists (?ANIMAL ?CONFINING)
+      (and
+        (instance ?ANIMAL DomesticAnimal)
+        (instance ?CONFINING Confining)
+        (patient ?CONFINING ?ANIMAL)
+        (located ?CONFINING ?KENNEL)))))
+        
+(subclass DryingDevice Device)
+(documentation DryingDevice EnglishLanguage "&%DryingDevice refers to any &%Device
+used as an instrument in the &%Drying process")
+(termFormat EnglishLanguage DryingDevice "drying device")
+
+(=>
+  (instance ?D DryingDevice)
+  (hasPurpose ?D
+    (exists (?DRYING)
+      (and
+        (instance ?DRYING Drying)
+        (instrument ?DRYING ?D)))))
+
+(subclass ClothesDryer DryingDevice)
+        
+(subclass HairDryer DryingDevice)
+(subclass HairDryer ElectricDevice)
+(documentation DryingDevice EnglishLanguage "&%HairDryer is a type of &%DryingDevice
+used specifically to &%Drying &%Hair")
+(termFormat EnglishLanguage HairDryer "hair dryer")
+
+(=>
+  (instance ?HD HairDryer)
+  (hasPurpose ?HD
+    (exists (?HAIR ?DRYING)
+      (and
+        (instance ?HAIR Hair)
+        (instance ?DRYING Drying)
+        (patient ?DRYING ?HAIR)
+        (instrument ?DRYING ?HD)))))
+
+(subclass SelfServiceLaundry Room)
+(documentation SelfServiceLaundry EnglishLanguage "&%SelfServiceLaundry is a &%Room 
+where a collection of coin-operatend washing machines and dryers are available for 
+customers")
+(termFormat EnglishLanguage SelfServiceLaundry "self-service laundry")
+
+(=>
+  (instance ?ROOM SelfServiceLaundry)
+  (exists (?WASHER ?DRYER)
+    (and
+      (instance ?WASHER Collection)
+      (memberType ?WASHER ClothesWashingMachine)
+      (located ?WASHER ?ROOM)
+      (instance ?DRYER Collection)
+      (memberType ?DRYER ClothesDryer)
+      (located ?DRYER ?ROOM))))
+      
+(=>
+  (instance ?ROOM SelfServiceLaundry)
+  (attribute ?ROOM CommunalAttribute))
+        
+(subclass Microwave MajorAppliance)
+(subclass Microwave ElectricDevice)
+(documentation Microwave EnglishLanguage "&%Microwave is an &%ElectricDevice that heats
+food by passing an electromagnetic wave through it")
+(termFormat EnglishLanguage Microwave "microwave")
+
+(=>
+  (instance ?M Microwave)
+  (hasPurpose ?M
+    (exists (?FOOD ?HEATING)
+      (and
+        (instance ?FOOD PreparedFood)
+        (instance ?HEATING Heating)
+        (instrument ?HEATING ?M)
+        (patient ?HEATING ?FOOD)))))
+        
+(=>
+  (and
+    (instance ?M Microwave)
+    (attribute ?M DeviceOn))
+  (exists (?PROC)
+    (and
+      (instance ?PROC RadiatingElectromagentic)
+      (agent ?PROC ?M))))
+      
+(subclass SmokeDetector Device)
+(documentation SmokeDetector EnglishLanguage "&%SmokeDetector is a &%Device that is able
+to &%Discovering the presence of &%Smoke")
+(termFormat EnglishLanguage SmokeDetector "smoke detector")
+
+(=>
+  (instance ?D SmokeDetector)
+  (hasPurpose ?D
+    (exists (?DISCOVER ?SMOKE)
+      (and
+        (instance ?DISCOVER Discovering)
+        (agent ?DISCOVER ?D)
+        (patient ?DISCOVER ?SMOKE)
+        (instance ?SMOKE Smoke)))))
+        
+(subclass Sprinkler Device)
+(documentation Sprinkler EnglishLanguage "&%Sprinkler is a type of &%Device that loosely
+distributes a substance, either solid (e.g. Salt or herbs) or liquid (e.g. water sprinkler)")
+(termFormat EnglishLanguage Sprinkler "sprinkler")
+
+(subclass WaterSprinkler Sprinkler)
+(documentation WaterSprinkler EnglishLanguage "&%WaterSprinkler is a type of &%Sprinkler 
+that releases &%Water when a &%Fire is detected")
+(termFormat EnglishLanguage WaterSprinkler "water sprinkler")
+
+(=>
+  (instance ?W WaterSprinkler)
+  (hasPurpose ?W
+    (exists (?DISCOVER ?FIRE)
+      (and
+        (instance ?DISCOVER Discovering)
+        (patient ?DISCOVER ?FIRE)
+        (instance ?FIRE Fire)
+        (holdsDuring
+          (WhenFn ?FIRE)
+          (exists (?WM)
+            (and
+              (instance ?WM WaterMotion)
+              (origin ?WM ?W)
+              (direction ?WM South))))))))
+        
+(subclass IceMachine Machine)
+(documentation IceMachine EnglishLanguage "&%IceMachine is a type of &%Machine that
+produces &%Ice")
+(termFormat EnglishLanguage IceMachine "ice machine")
+
+(=>
+  (instance ?IM IceMachine)
+  (hasPurpose ?IM
+    (exists (?PROC ?ICE)
+      (and
+        (instrument ?PROC ?IM)
+        (result ?PROC ?ICE)
+        (instance ?ICE Ice)))))
+      
+(subclass AlarmClock Clock)
+(documentation AlarmClock EnglishLanguage "&%AlarmClock is a type of &%Clock that will
+radiate sound when a certain time is set")
+(termFormat EnglishLanguage AlarmClock "alarm clock")
+
+(=>
+  (instance ?AC AlarmClock)
+  (hasPurpose ?AC
+    (exists (?TIME ?M ?Q)
+      (and
+        (instance ?M Measuring)
+        (agent ?M ?AC)
+        (result ?M ?Q)
+        (equal ?Q ?TIME)
+        (holdsDuring
+          (WhenFn ?M)
+          (exists (?S)
+            (and
+              (instance ?S RadiatingSound)
+              (agent ?S ?AC))))))))
+
+(subclass AMFMAlarmClock AlarmClock)
+(subclass AMFMAlarmClock RadioReceiver)
+(documentation AMFMAlarmClock EnglishLanguage "&%AMFMAlarmClock is a type of &%AlarmClock
+that is also a &%RadioReceiver, meaning it can get &%RadioBroadcast from &%RadioStation")
+(termFormat EnglishLanguage AMFMAlarmClock "am / fm alarm clock")       
+
+(subclass AudioPlayer Device)
+(documentation AudioPlayer EnglishLanguage "&%AudioPlayer is a &%Device that 
+&%RadiatingSound coming from &%AudioRecording")
+(termFormat EnglishLanguage AudioPlayer "audio player")
+
+(=>
+  (instance ?PLAYER AudioPlayer)
+  (hasPurpose ?PLAYER
+    (exists (?AUDIO ?S)
+      (and
+        (instance ?S RadiatingSound)
+        (patient ?S ?AUDIO)
+        (agent ?S ?PLAYER)
+        (instance ?AUDIO AudioRecording)))))
+        
+(subclass CDPlayer AudioPlayer)
+(documentation CDPlayer EnglishLanguage "&%CDPlayer is a type of &%AudioPlayer that
+reads the contents of a &%CompactDisc and &%RadiatingSound the contents of it")
+(termFormat EnglishLanguage CDPlayer "cd player")
+
+(=>
+  (instance ?CD CDPlayer)
+  (hasPurpose ?CD
+    (exists (?DISC ?AUDIO ?S)
+      (and 
+        (instance ?S RadiatingSound)
+        (agent ?S ?CD)
+        (patient ?S ?AUDIO)
+        (instance ?AUDIO AudioRecording)
+        (part ?AUDIO ?DISC)
+        (instance ?DISC CompactDisc)))))
+      
+(subclass CoffeeMaker Device)
+(documentation CoffeeMaker EnglishLanguage "&%CoffeeMaker is a &%Device that makes
+&%Coffee")
+(termFormat EnglishLanguage CoffeeMaker "coffee maker")
+
+(=>
+  (instance ?C CoffeeMaker)
+  (hasPurpose ?C
+    (exists (?COFFEE ?M)
+      (and
+        (instance ?M Making)
+        (instrument ?M CoffeeMaker)
+        (result ?M ?COFFEE)
+        (instance ?COFFEE Coffee)))))
+
+(instance Clean SubjectiveAssessmentAttribute)
+(documentation Clean EnglishLanguage "&%Clean describes how something is free from 
+dirt or impurities")
+(termFormat EnglishLanguage Clean "clean")
+
+(instance Dirty SubjectiveAssessmentAttribute)
+(documentation Dirty EnglishLanguage "&%Dirty describes how something has been soiled
+with dirt, dust or grime")
+(termFormat EnglishLanguage Dirty "dirty")
+
+(=>
+  (attribute ?X Clean)
+  (instance ?X Object))
+
+(=>
+  (atrribute ?X Dirty)
+  (instance ?X Object))
+  
+(=>
+  (attribute ?X Clean)
+  (not (attribute ?X Dirty)))
+
+(=>
+  (attribute ?X Dirty)
+  (not (attribute ?X Clean)))
+
+(subclass Whiteboard DataDisplayDevice)
+(subclass Whiteboard DataStorageDevice)
+(subclass Whiteboard DisplayArtifact)
+(documentation Whiteboard EnglishLanguage "%&Whiteboard refers to flat surface where 
+information can be encoded using erasable pens.  This baord is normally colored White")
+(termFormat EnglishLanguage Whiteboard "whiteboard")
+
+(=>
+  (instance ?OBJ Whiteboard)
+  (color ?OBJ White))
+  
+(=>
+  (instance ?OBJ Whiteboard)
+  (structure ?OBJ Flat))
+  
+(=>
+  (instance ?OBJ Whiteboard)
+  (hasPurpose ?OBJ
+    (exists (?WRITE)
+      (and
+        (instance ?WRITE Writing)
+        (destination ?WRITE ?OBJ)))))
+        
+;; ---------------------------------------------------------------------------------
+;; Facilities
+;; --------------------------------------------------------------------------------- 
+
+
+        
+;; ---------------------------------------------------------------------------------
+;; Amenities
+;; ---------------------------------------------------------------------------------
+
+
+
+
+;; ---------------------------------------------------------------------------------
+;; Services
+;; ---------------------------------------------------------------------------------
+
+(subclass LaundryService ServiceProcess)
+(documentation LaundryService EnglishLanguage "&%LaundryService refers to an agent
+washing, drying, and (possibly) ironing articles of clothing")
+(termFormat EnglishLanguage LaundryService "laundry service")
+
+(=>
+  (instance ?SVC LaundryService)
+  (exists (?CLOTHES ?WASH ?DRY ?IRON)
+    (and
+      (instance ?CLOTHES Clothing)
+      (patient ?SVC ?CLOTHES)
+      (subProcess ?WASH ?SVC)
+      (instance ?WASH Washing)
+      (patient ?WASH ?CLOTHES)
+      (subProcess ?DRY ?SVC)
+      (instance ?DRY Drying)
+      (patient ?DRY ?CLOTHES)
+      (instance ?IRON Ironing)
+      (subProcess ?IRON ?SVC)
+      (patient ?IRON ?CLOTHES)
+      (before (WhenFn ?WASH) (WhenFn ?DRY))
+      (before (WhenFn ?DRY) (WhenFn ?IRON)))))
+
+(subclass DryCleaningService ServiceProcess)
+(documentation DryCleaningService EnglishLanguage "&%DryCleaningService refers to
+cleaning of &%Clothing using some chemical solvent instead of water")
+(termFormat EnglishLanguage DryCleaningService "dry-clean")
+
+(=>
+  (instance ?SVC DryCleaningService)
+  (exists (?CLOTHES ?WATER ?CHEM)
+    (and
+      (instance ?CLOTHES Clothing)
+      (not (instrument ?SVC ?WATER))
+      (instance ?WATER Water)
+      (instance ?CHEM ChemicalProduct)
+      (instrument ?SVC ?CHEM)
+      (patient ?SVC ?CLOTHES)
+      (result ?SVC (attribute ?CLOTHES Clean)))))
+      
+      
+(subclass ValetLaundryService ServiceProcess)
+(documentation ValetLaundryService EnglishLanguage "&%ValetLaundryService refers to an
+agent picking up clothing, performing &%LaundryService, and then delivering it back
+to customer")
+(termFormat EnglishLanguage ValetLaundryService "valet laundry")
+
+(=>
+  (instance ?SVC ValetLaundryService)
+  (exists (?CUST ?AGENT ?LOC ?CLOTHES ?LAUNDRY ?PICKUP ?DELIVERY)
+    (and
+      (customer ?CUST ?AGENT)
+      (stays ?CUST ?LOC)
+      (agent ?SVC ?AGENT)
+      (instance ?CLOTHES Clothing)
+      (instance ?PICKUP Getting)
+      (located ?PICKUP ?LOC)
+      (patient ?PICKUP ?CLOTHES)
+      (agent ?PICKUP ?AGENT)
+      (or
+        (instance ?LAUNDRY LaundryService)
+        (instance ?LAUNDRY DryCleaningService))
+      (agent ?LAUNDRY ?AGENT)
+      (patient ?LAUNDRY ?CLOTHES)
+      (instance ?DELIVERY DeliveryService)
+      (patient ?DELIVERY ?CLOTHES)
+      (destination ?DELIVERY ?LOC)
+      (before (WhenFn ?PICKUP) (WhenFn ?LAUNDRY))
+      (before (WhenFn ?LAUNDRY) (WhenFn ?DELIVERY)))))
+      
+(subclass ChildCareService Maintaining)
+(subclass ChildCareService ServiceProcess)
+(documentation ChildCareService EnglishLanguage "&%ChildCareService refers to 
+an agent looking after children and babies")
+(termFormat EnglishLanguage ChildCareService "child-care service")
+
+(=>
+  (instance ?SVC ChildCareService)
+  (exists (?CHILD ?SITTER)
+    (and
+      (or
+        (instance ?CHILD HumanChild)
+        (instance ?CHILD HumanBaby))
+      (serviceProvider ?SVC ?SITTER)
+      (patient ?SVC ?CHILD)
+      (not (parent ?CHILD ?SITTER)))))
+      
+(=>
+  (capability ChildCareService agent ?X)
+  (exists (?SITTER)
+    (and
+      (employs ?X ?SITTER)
+      (capability ChildCareService serviceProvider ?SITTER))))
+      
+(=>
+  (and
+    (parent ?CHILD ?PARENT)
+    (or
+      (instance ?CHILD HumanChild)
+      (instance ?CHILD HumanBaby)))
+  (modalAttribute
+    (exists (?CARE)
+      (and
+        (instance ?CARE ChildCareService)
+        (desires ?PARENT ?CARE))) Possibility))
+
+(subclass Cleaning Maintaining)      
+(documentation Cleaning EnglishLanguage "&%Cleaning refers to the &%Process of removing
+dirt and arranging things")
+(termFormat EnglishLanguage Cleaning "cleaning")
+
+(=>
+  (instance ?X Cleaning)
+  (exists (?OBJ)
+    (and
+      (patient ?X ?OBJ)
+      (holdsDuring
+        (EndFn (WhenFn ?X))
+        (attribute ?OBJ Clean)))))
+        
+(subclass RoomCleaningService ServiceProcess)
+(documentation RoomCleaningService EnglishLanguage "&%RoomCleaningService refers to a 
+&%Maid &%Cleaning an area such as a &%Room or &%House")
+(termFormat EnglishLanguage RoomCleaningService "service")
+
+(=>
+  (instance ?X RoomCleaningService)
+  (exists (?MAID ?PLACE ?CLEAN)
+    (and
+      (attribute ?MAID Maid)
+      (serviceProvider ?X ?MAID)
+      (located ?X ?PLACE)
+      (subProcess ?CLEAN ?X)
+      (instance ?CLEAN Cleaning)
+      (patient ?CLEAN ?PLACE)
+      (agent ?CLEAN ?MAID))))
+     
+(=>
+  (and
+    (attribute ?X TravelerAccommodation)
+    (capability RoomCleaningService agent ?X))
+  (exists (?MAID ?HOTELROOM)
+    (and
+      (employs ?X ?MAID)
+      (attribute ?MAID Maid)
+      (instance ?HOTELROOM HotelRoom)
+      (part ?HOTELROOM (PropertyFn ?X))
+      (capability RoomCleaningService patient ?HOTELROOM)
+      (capability RoomCleaningService serviceProvider ?MAID))))   
+      
+(subclass RoomService ServiceProcess)
+(documentation RoomService EnglishLanguage "&%RoomService refers to an agent delivering
+PreparedFood that somebody has ordered to that person's &%HotelRoom")
+(termFormat EnglishLanguage RoomService "room service")
+
+(=>
+  (instance ?SVC RoomService)
+  (exists (?AGENT ?FOOD ?CUSTOMER ?RQST ?ORDER ?DELIVERY ?LOC)
+    (and
+      (customer ?CUSTOMER ?AGENT)
+      (agent ?SVC ?AGENT)
+      (instance ?RQST Requesting)
+      (agent ?RQST ?CUSTOMER)
+      (patient ?RQST ?ORDER)
+      (represents ?ORDER ?FOOD)
+      (instance ?FOOD PreparedFood)
+      (located ?CUSTOMER ?LOC)
+      (instance ?LOC HotelRoom)
+      (instance ?DELIVERY DeliveryService)
+      (patient ?DELIVERY ?FOOD)
+      (destination ?DELIVERY ?LOC)
+      (before (WhenFn ?RQST) (WhenFn ?DELIVERY)))))
+      
+(subclass WakeUpService ServiceProcess)
+(documentation WakeUpService EnglishLanguage "&%WakeUpService refers to an agent
+performing some action (like a phone call or knocking on the door) to wake up a person")
+(termFormat EnglishLanguage WakeUpService "wake-up service")
+
+(=>
+  (instance ?SVC WakeUpService)
+  (hasPurpose ?SVC
+    (exists (?WAKE ?CUST ?AGENT ?PROC)
+      (and
+        (agent ?SVC ?AGENT)
+        (experiencer ?SVC ?CUST)
+        (instance ?PROC IntentionalProcess)
+        (agent ?PROC ?AGENT)
+        (experiencer ?PROC ?CUST)
+        (instance ?WAKE WakingUp)
+        (experiencer ?WAKE ?CUST)
+        (result ?PROC ?WAKE)))))
+
+(subclass ShuttleService ServiceProcess)
+(documentation ShuttleService EnglishLanguage "&%ShuttleService refers to how an
+agent that possesses some kind of Automobile takes people between an origin location to
+some predefined locations")
+(termFormat EnglishLanguage ShuttleService "shuttle")
+
+(=>
+  (instance ?SVC ShuttleService)
+  (exists (?LIST ?VEHICLE ?AGENT)
+    (and
+      (agent ?SVC ?AGENT)
+      (possesses ?AGENT ?VEHICLE)
+      (instance ?VEHICLE Automobile)
+      (instance ?LIST List)
+      (forall (?X)
+        (=>
+          (inList ?X ?LIST)
+          (and
+            (instance ?X PostalPlace)
+            (exists (?TRANSPORT)
+              (and
+                (instance ?TRANSPORT Transportation)
+                (agent ?TRANSPORT ?AGENT)
+                (instrument ?TRANSPORT ?VEHICLE)
+                (destination ?TRANSPORT ?X)))))))))
+      
+        
+(subclass AirportShuttleService ShuttleService)
+(documentation AirportShuttleService EnglishLanguage "&%AirportShuttleService is a
+type of &%ShuttleService that has an &%Airport as one of its stops")
+(termFormat EnglishLanguage AirportShuttleService "airport shuttle")
+
+(=>
+  (instance ?SVC AirportShuttleService)
+  (exists (?AIRPORT ?TRANSPORT)
+    (and 
+      (instance ?AIRPORT Airport)
+      (instance ?TRANSPORT Transportation)
+        (or
+          (destination ?TRANSPORT ?AIRPORT)
+          (origin ?TRANSPORT ?AIRPORT)))))
+      
+             
+;; ---------------------------------------------------------------------------------
+;; Other CommercialAgents that can be found inside Hotel
+;; ---------------------------------------------------------------------------------
+
+;; PassengerCarRental from naics.kif
+(=>
+  (attribute ?X PassengerCarRental)
+  (hasPurpose ?X
+    (exists (?RENT ?CAR ?CUST)
+      (and
+        (customer ?CUST ?X)
+        (instance ?CAR Automobile)
+        (instance ?RENT Renting)
+        (possesses ?X ?CAR)
+        (agent ?RENT ?CUST)))))
+        
+
+;; ---------------------------------------------------------------------------------
+;; Policy
+;; ---------------------------------------------------------------------------------
+
