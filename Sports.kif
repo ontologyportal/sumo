@@ -214,24 +214,469 @@ team throws the ball to another member of the same team.")
 &%Score, i.e. any play in a &%Football game which results in one team 
 being in possession of the ball on the inside of the opponent's goal line.")
 
+(subclass Tennis Sport)
+(documentation Tennis EnglishLanguage "&%Tennis is a &%Sport played with rackets by 
+two or four players who hit a ball back and forth over a net that divides the court")
+(termFormat EnglishLanguage Tennis "tennis")
+
+(=>
+  (instance ?X Tennis)
+  (exists (?T1 ?T2)
+    (and
+      (contestParticipant ?X ?T1)
+      (contestParticipant ?X ?T2)
+      (not (equal ?T1 ?T2))
+      (or
+        (instance ?T1 Human)
+        (and
+          (instance ?T1 GroupOfPeople)
+          (memberCount ?T1 2)))
+      (or
+        (instance ?T2 Human)
+        (and
+          (instance ?T2 GroupOfPeople)
+          (memberCount ?T2 2))))))
+          
+(subclass TennisCourt SportsFacility)
+(documentation TennisCourt EnglishLanguage "&%TennisCourt is a type of &%SportsFacility
+where the game &%Tennis is held")
+(termFormat EnglishLanguage TennisCourt "tennis court")
+
+(=>
+  (instance ?COURT TennisCourt)
+  (hasPurpose ?COURT
+    (exists (?TENNIS)
+      (and
+        (instance ?TENNIS Tennis)
+        (located ?TENNIS ?COURT)))))
+
+
 (subclass Golf Sport)
 (documentation Golf EnglishLanguage "A &%Sport which has a course of 9 or 18 holes and where 
 the object is to hit a ball with a club into each hole in turn with the fewest 
 number of strokes.")
 
-(subclass GolfHole GolfManeuver)
-(documentation GolfHole EnglishLanguage "A division of a &%Golf game.  A normal game 
-consists of 9 to 18 holes, and each hole involves a turn for each of 
-the players in the &%Golf game.")
+(=>
+  (instance ?GOLF Golf)
+  (exists (?DRIVE ?PUTT)
+    (and
+      (instance ?DRIVE GolfDrive)
+      (instance ?PUTT GolfPutt)
+      (subProcess ?DRIVE ?GOLF)
+      (subProcess ?PUTT ?GOLF))))
+
+(subclass GolfFacility SportsFacility)
+(documentation GolfFacility EnglishLanguage "&%GolfFacility refers to the &%SportsFacility
+where &%Golf or some subprocess of &%Golf can be played")
+(termFormat EnglishLanguage GolfFacility "golf facility")
+
+(=>
+  (instance ?X GolfFacility)
+  (hasPurpose ?X
+    (exists (?GOLF)
+      (and
+        (or
+          (instance ?GOLF Golf)
+          (instance ?GOLF GolfManeuver))
+        (located ?GOLF ?X)))))
+
+(subclass GolfCourse SportsFacility)
+(documentation GolfCourse EnglishLanguage "&%GolfCourse refers to the &%GolfFacility
+where an entire &%Golf game and all its subprocesses is played")
+(termFormat EnglishLanguage GolfCourse "golf course")
+
+(=>
+  (instance ?X GolfCourse)
+  (hasPurpose ?X
+    (exists (?GOLF)
+      (and
+        (instance ?GOLF Golf)
+        (located ?GOLF ?X)))))
+
+(=>
+  (instance ?COURSE GolfCourse)
+  (exists (?GREEN)
+    (and
+      (instance ?GREEN PuttingGreen)
+      (part ?GREEN ?COURSE))))        
 
 (subclass GolfManeuver Maneuver)
 (documentation GolfManeuver EnglishLanguage "Any &%Maneuver in &%Golf.")
 (=>
-  (instance ?M GolfManeuver)
-  (exists (?G)
+  (instance ?G Golf)
+  (exists (?M)
     (and
-      (instance ?G Golf)
-      (subProcess ?M ?G)))) 
+      (instance ?M GolfManeuver)
+      (subProcess ?M ?G))))
+      
+(subclass GolfDrive GolfManeuver)
+(subclass GolfDrive GameShot)
+(documentation GolfDrive EnglishLanguage "&%GolfDrive refers to an initial &%GolfManeuver
+for a par-4 or par-5 hole where the golf ball is hit from a tee")
+(termFormat EnglishLanguage GolfDrive "golf drive")
+
+(subclass GolfPutt GolfManeuver)
+(subclass GolfPutt GameShot)
+(documentation GolfPutt EnglishLanguage "&%GolfPutt refers to a &%GolfManeuver that
+involves hitting a ball with a golf club with the goal of placing it into a hole")
+(termFormat EnglishLanguage GolfPutt "golf put")
+
+(subclass GolfHole Hole)
+(documentation GolfHole EnglishLanguage "&%GolfHole refers to a type of &%Hole in the 
+size of a &%GolfBall located in a &%PuttingGreen")
+(termFormat EnglishLanguage GolfHole "golf hole")
+
+(=>
+  (instance ?HOLE GolfHole)
+  (exists (?CYLINDER ?CIRCLE)
+    (and
+      (instance ?CYLINDER Cylinder)
+      (attribute ?HOLE ?CYLINDER)
+      (top ?CIRCLE ?HOLE)
+      (instance ?CIRCLE Circle)
+      (diameter ?CIRCLE (MeasureFn 4.25 Inch)))))
+        
+(subclass DrivingRange GolfFacility)
+(documentation DrivingRange EnglishLanguage "&%DrivingRange is a &%GolfFacility where 
+people line up side-by-side performing &%GolfDrive for practice")
+(termFormat EnglishLanguage DrivingRange "driving range")
+
+(=>
+  (instance ?D DrivingRange)
+  (hasPurpose ?D
+    (and
+      (exists (?DRIVE)
+        (and
+          (instance ?DRIVE GolfDrive)
+          (located ?DRIVE ?D)))
+      (not
+        (exists (?GOLF)
+          (and
+            (located ?GOLF ?D)
+            (instance ?GOLF GolfManeuver)
+            (not (instance ?GOLF GolfDrive))))))))
+
+(subclass PuttingGreen GolfFacility)
+(documentation PuttingGreen EnglishLanguage "&%PuttingGreen refers to a &%GolfFacility
+that involves a short area of grass surrounding a hole where the object is to put the
+ball in the hole")
+(termFormat EnglishLanguage PuttingGreen "putting green")
+
+(=>
+  (instance ?P PuttingGreen)
+  (hasPurpose ?D
+    (and
+      (exists (?PUT)
+        (and
+          (instance ?PUT GolfPutt)
+          (located ?PUT ?P)))
+      (not
+        (exists (?GOLF)
+          (and
+            (located ?GOLF ?D)
+            (instance ?GOLF GolfManeuver)
+            (not (instance ?GOLF GolfPutt))))))))
+
+(=>
+  (instance ?P PuttingGreen)
+  (exists (?HOLE)
+    (and
+      (instance ?HOLE GolfHole)
+      (part ?HOLE ?P))))
+
+(subclass MiniatureGolf PuttingGreen)
+(documentation MiniatureGolf EnglishLanguage "&%MiniatureGolf is a type of &%PuttingGreen
+used for a novelty type of &%Golf where &%GolfHoles have obstacles such as bridges, etc.")
+(termFormat EnglishLanguage MiniatureGolf "miniature golf")
+
+(=>
+  (instance ?G MiniatureGolf)
+  (hasPurpose ?G
+    (exists (?REC)
+      (and
+        (instance ?REC RecreationOrExercise)
+        (located ?REC ?G)))))
+
+(subclass SnowSki TransportationDevice)
+(documentation SnowSki EnglishLanguage "&%SnowSki is a type of &%TransportationDevice made
+of narrow metal, wood or plastic used to glide through snow")
+(termFormat EnglishLanguage SnowSki "ski")
+
+(=>
+  (instance ?SKI SnowSki)
+  (exists (?MAT)
+    (and
+      (material ?SKI ?MAT)
+      (or
+        (instance ?MAT Metal)
+        (instance ?MAT Wood)
+        (instance ?MAT Plastic)))))
+
+(=>
+  (instance ?SKI SnowSki)
+  (hasPurpose ?SKI
+    (exists (?GLIDE ?SNOW ?ICE)
+      (and
+        (instance ?SNOW Snowing)
+        (result ?SNOW ?ICE)
+        (instance ?GLIDE Transportation)
+        (instrument ?GLIDE ?SKI)
+        (located ?GLIDE ?ICE)))))
+        
+        
+(subclass Skiing Sport)
+(documentation Skiing EnglishLanguage "&%Skiing refers to a &%Sport where a person
+uses skis to glide through snow")
+(termFormat EnglishLanguage Skiing "skiing")
+
+(=>
+  (instance ?SKI Skiing)
+  (exists (?SKIS ?PROC)
+    (and
+      (instance ?PROC Transportation)
+      (subProcess ?PROC ?SKI)
+      (instrument ?PROC ?SKIS)
+      (instance ?SKIS SnowSki))))
+
+(subclass CrossCountrySkiing Skiing)
+(documentation CrossCountrySkiing EnglishLanguage "&%CrossCountrySkiing refers to a
+type of &%Skiing that does not occur on a slope")
+(termFormat EnglishLanguage CrossCountrySkiing "cross country skiing")
+
+(=>
+  (instance ?SKI CrossCountrySkiing)
+  (not 
+    (exists (?SLOPE)
+      (and
+        (instance ?SLOPE SlopeArea)
+        (located ?SKI ?SLOPE)))))
+      
+(subclass SkiingFacility SportsFacility)
+(documentation SkiingFacility EnglishLanguage "&%SkiingFacility refers to a 
+&%SportsFacility where &%Skiing takes place")
+(termFormat EnglishLanguage SkiingFacility "skiing facility")
+
+(=>
+  (instance ?FACILITY SkiingFacility)
+  (exists (?SLOPE ?SKIING)
+    (and
+      (instance ?SLOPE SlopeArea)
+      (part ?SLOPE ?FACILITY)
+      (instance ?SKIING Skiing)
+      (located ?SKIING ?SLOPE))))
+
+(subclass Bowling Sport)
+(documentation Bowling EnglishLanguage "&%Bowling refers to a %&Sport with the main 
+goal of knocking down bowling pins using a &%BowlingBall")
+(termFormat EnglishLanguage Bowling "bowling")
+
+(=>
+  (instance ?B Bowling)
+  (exists (?BALL ?TRANS ?LANE)
+    (and
+      (instance ?TRANS Translocation)
+      (instance ?BALL BowlingBall)
+      (patient ?TRANS ?BALL)
+      (instance ?LANE BowlingLane)
+      (path ?TRANS ?LANE)
+      (subProcess ?TRANS ?B))))
+      
+
+(subclass BowlingBall Ball)
+(documentation BowlingBall EnglishLanguage "&%BowlingBall refers to a type of &%Ball
+used in &%Bowling.  It normally has 3 &%Hole where somebody would put his fingers to
+hold it")
+(termFormat EnglishLanguage BowlingBall "bowling ball")
+
+(=>
+  (instance ?B BowlingBall)
+  (exists (?HOLES)
+    (and
+      (instance ?HOLES Collection)
+      (memberType ?HOLES Holes)
+      (memberCount ?HOLES 3)
+      (located ?HOLES ?B)
+      (hasPurpose ?HOLES
+        (exists (?FINGER)
+          (and
+            (member ?FINGER ?HOLES)
+            (instance ?FINGER Finger)
+            (partiallyFills ?FINGER ?HOLE)))))))
+            
+(subclass BowlingLane StationaryArtifact)
+(subclass BowlingLane LandTransitway)
+(documentation BowlingLane EnglishLanguage "&%BowlingLane is a &%StationaryArtifact
+that acts as a &%Transitway for a &%BowlingBall to knock down pins")
+(termFormat EnglishLanguage BowlingLane "bowling lane")
+
+(=>
+  (instance ?BL BowlingLane)
+  (hasPurpose ?BL
+    (exists (?TR ?BALL)
+      (and
+        (instance ?TR Translocation)
+        (instance ?BALL BowlingBall)
+        (patient ?TR ?BALL)
+        (path ?TR ?BL)))))
+        
+(subclass BowlingFacility SportsFacility)
+(documentation BowlingFacility EnglishLanguage "&%BowlingFacility refers to the
+&%SportsFacility where &%Bowling is played.  It normally consists of a collection 
+of &%BowlingLanes")
+(termFormat EnglishLanguage BowlingFacility "bowling facility")
+
+(=>
+  (instance ?BF BowlingFacility)
+  (exists (?BL)
+    (and
+      (instance ?BL Collection)
+      (memberType ?BL BowlingLane)
+      (located ?BL ?BF))))
+
+(=>
+  (instance ?BF BowlingFacility)
+  (hasPurpose ?BF
+    (exists (?B)
+      (and
+        (instance ?B Bowling)
+        (located ?B ?BF)))))
+
+(subclass Equitation Sport)
+(documentation Equitation EnglishLanguage "&%Equitation is the &%Sport of sitting on 
+the back of a horse while controlling its movement")
+(termFormat EnglishLanguage Equitation "equitation")
+
+(=>
+  (instance ?HORSEBACK Equitation)
+  (exists (?HORSE)
+    (and
+      (instance ?MOTION HorseRiding)
+      (subProcess ?MOTION ?HORSEBACK))))
+
+(subclass SkeetShooting Sport)
+(documentation SkeetShooting EnglishLanguage "&%SkeetShooting is a type of &%Sport
+that involves &%Shooting clay pigeons that are hurled upward in such a way as to 
+simulate the flight of a bird")
+(termFormat EnglishLanguage SkeetShooting "skeet shooting")
+
+(=>
+  (instance ?SKEET SkeetShooting)
+  (exists (?SHOOTING)
+    (and
+      (instance ?SHOOTING Shooting)
+      (subProcess ?SHOOTING ?SKEET))))
+
+(subclass WaterSport Sport)
+(documentation WaterSport EnglishLanguage "&%WaterSport is a type of &%Sport that is 
+played on &%Water")
+(termFormat EnglishLanguage WaterSport "water sport")
+
+(=>
+  (instance ?X WaterSport)
+  (exists (?W)
+    (and
+      (or 
+        (instance ?W WaterArea)
+        (and
+          (instance ?W FluidContainer)
+          (exists (?WATER)
+            (and
+              (instance ?WATER Water)
+              (located ?WATER ?W)))))
+      (located ?X ?W))))
+
+(subclass WaterSki TransportationDevice)        
+(documentation WaterSki EnglishLanguage "&%WaterSki is a type of &%TransportationDevice
+ used to glide through water")
+(termFormat EnglishLanguage WaterSki "water ski")
+
+(=>
+  (instance ?SKI WaterSki)
+  (hasPurpose ?SKI
+    (exists (?GLIDE ?WATER)
+      (and
+        (instance ?WATER WaterArea)
+        (instance ?GLIDE Transportation)
+        (instrument ?GLIDE ?SKI)
+        (located ?GLIDE ?WATER)))))
+        
+(subclass WaterSkiing WaterSport)
+(documentation WaterSkiing EnglishLanguage "&%WaterSkiing is a type of &%WaterSport 
+wherein &%WaterSki is used to glid across the &%surface of the &%Water while being 
+towed by a motorboat")
+(termFormat EnglishLanguage WaterSkiing "water skiing")        
+
+(=>
+  (instance ?X WaterSkiing)
+  (exists (?HUMAN ?SKI ?BOAT ?LINE ?WATER ?TRANS ?MOTION)
+    (and
+      (instance ?BOAT WaterVehicle)
+      (instance ?WATER WaterArea)
+      (instance ?SKI WaterSki)
+      (located ?X ?WATER)
+      (instance ?HUMAN Human)
+      (located ?HUMAN ?SKI)
+      (connects ?LINE ?HUMAN ?BOAT)
+      (instance ?TRANS Transportation)
+      (instrument ?TRANS ?BOAT)
+      (instance ?MOTION Motion)
+      (agent ?MOTION ?HUMAN)
+      (instrument ?MOTION ?SKI)
+      (causes ?TRANS ?MOTION)
+      (subProcess ?MOTION ?X))))
+      
+(subclass WaterBoard BoardOrBlock)
+(documentation WaterBoard EnglishLanguage "&%WaterBoard is a type of narrowly formed
+&%BoardOrBlock that is meant to float on water and is commonly used in &%WaterSport")
+(termFormat EnglishLanguage WaterBoard "water board")
+
+(=>
+  (instance ?X WaterBoard)
+  (hasPurpose ?X
+    (exists (?WS)
+      (and
+        (instance ?WS WaterSport)
+        (instrument ?WS ?X)))))
+        
+(subclass WindSurfingBoard WaterBoard)
+(subclass WindSurfingBoard TransportationDevice)
+(documentation WindSurfingBoard EnglishLanguage "&%WindSurfingBoard is a &%WaterBoard
+with a &%Mast and &%Sail that uses the &%Wind to glide through &%Water")
+(termFormat EnglishLanguage WindSurfingBoard "wind surfing board")
+
+(=>
+  (instance ?X WindSurfingBoard)
+  (exists (?SAIL)
+    (and
+      (instance ?SAIL Sail)
+      (part ?SAIL ?X))))
+   
+(=>
+  (instance ?X WindSurfingBoard)
+  (hasPurpose ?X
+    (exists (?SURF)
+      (and
+        (instance ?SURF WindSurfing)
+        (instrument ?SURF ?X)))))
+        
+(subclass WindSurfing WaterSport)
+(documentation WindSurfing EnglishLanguage "&%WindSurfing is a type of &$WaterSport
+that combines surfing and sailing")
+(termFormat EnglishLanguage WindSurfing "wind surfing")
+
+(=>
+  (instance ?X WindSurfing)
+  (exists (?BOARD ?WATER ?MOTION ?WIND)
+    (and
+      (instance ?BOARD WindSurfingBoard)
+      (instance ?WATER WaterArea)
+      (instance ?WIND Wind)
+      (instance ?MOTION Motion)
+      (located ?X ?WATER)
+      (subProcess ?MOTION ?X)
+      (instrument ?MOTION ?BOARD)
+      (causes ?WIND ?MOTION))))
+      
 
 (subclass OlympicGames Sport)
 (documentation OlympicGames EnglishLanguage "A sports event where athletes from various countries 
@@ -248,4 +693,29 @@ the winter or the summer.")
       (and
         (instance ?S SummerSeason)
         (temporalPart (WhenFn ?O) ?S)))))
+        
+(subclass ProfessionalAthlete SkilledOccupation)
+(documentation ProfessionalAthlete EnglishLanguage "&%ProfessionalAthlete is a person
+who is trained to compete in sports and makes his living from doing so.")
+(termFormat EnglishLanguage ProfessionalAthlete "professional athlete")
+
+(=>
+  (attribute ?ATHLETE ProfessionalAthlete)
+  (hasSkill Sport ?ATHLETE))
+
+(=>
+  (attribute ?ATHLETE ProfessionalAthlete)
+  (exists (?GAME)
+    (and
+      (instance ?GAME Sport)
+      (contestParticipant ?GAME ?ATHLETE))))
+      
+(instance TennisProfessional ProfessionalAthlete)
+(documentation TennisProfessional EnglishLanguage "&%TennisProfessional is a 
+&%ProfessionalAthlete that plays &%Tennis")
+(termFormat EnglishLanguage TennisProfessional "tennis pro")
+
+(=>
+  (attribute ?ATHLETE TennisProfessional)
+  (hasSkill Tennis ?ATHLETE))
 
