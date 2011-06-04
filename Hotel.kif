@@ -254,19 +254,21 @@ means some rooms in &%RoomInventory ?INV have &%RelationalAttribute ?ATTR")
       (member ?X ?INV)
       (attribute ?X ?ATTR))))
 
-;; TO HOTEL UNIT
-;; ==================
-      
-(instance physicalAmenity BinaryPredicate)
-(documentation physicalAmenity EnglishLanguage "(&%physicalAmenity ?ROOM ?OBJ) means
-that ?OBJ has been placed in ?ROOM for the user's comfort")
-(termFormat EnglishLanguage physicalAmenity "amenity")
+;; HOTEL UNIT RELATIONS
+;; ================================================================================
 
-(domainSubclass physicalAmenity 1 HotelUnit)
-(domainSubclass physicalAmenity 2 Object)
+(instance roomAmenity BinaryPredicate)
+(documentation roomAmenity EnglishLanguage "(&%roomAmenity ?ROOM ?PHYS) means that
+&%TravelerAccommodation provides &%Physical ?PHYS in &%HotelUnit ?ROOM")
+(termFormat EnglishLanguage roomAmenity "room amenity")
+
+(domainSubclass roomAmenity 1 HotelUnit)
+(domainSubclass roomAmenity 2 Physical)
 
 (=>
-  (physicalAmenity ?ROOM ?OBJ)
+  (and
+    (roomAmenity ?ROOM ?OBJ)
+    (subclass ?OBJ Object))
   (forall (?R)
     (=>
       (instance ?R ?ROOM)
@@ -275,14 +277,15 @@ that ?OBJ has been placed in ?ROOM for the user's comfort")
           (instance ?R ?ROOM)
           (instance ?O ?OBJ)
           (located ?O ?R))))))
-   
+          
 (=>
   (and
     (guest ?CUST ?HOTEL)
     (stays ?CUST ?R)
     (element ?R (PropertyFn ?HOTEL))
     (instance ?R ?ROOM)
-    (physicalAmenity ?ROOM ?OBJ))
+    (roomAmenity ?ROOM ?OBJ)
+    (subclass ?OBJ Object))
   (exists (?O)
     (and
       (instance ?O ?OBJ)
@@ -294,35 +297,112 @@ that ?OBJ has been placed in ?ROOM for the user's comfort")
             (or
               (instrument ?PROC ?O)
               (patient ?PROC ?O)
-              (resource ?PROC ?O)))) ?HOTEL ?CUST))))
-          
-(instance serviceAmenity BinaryPredicate)
-(documentation serviceAmenity EnglishLanguage "(&%serviceAmenity ?ROOM ?PROC) means that
-?PROC or a subProcess of ?PROC is located in an instance of ?ROOM")
-(termFormat EnglishLanguage serviceAmenity "service amenity")
-
-(domainSubclass serviceAmenity 1 HotelUnit)
-(domainSubclass serviceAmenity 2 ServiceProcess)
+              (resource ?PROC ?O)))) ?HOTEL ?CUST))))          
 
 (=>
   (and
-    (serviceAmenity ?ROOM ?PROC)
-    (instance ?R ?ROOM)
-    (element ?R (PropertyFn ?HOTEL)))
+    (roomAmenity ?ROOM ?SVC)
+    (subclass ?SVC Process))
   (modalAttribute
-    (exists (?X ?S ?SVC)
+    (exists (?X ?S)
       (and
         (instance ?X ?ROOM)
         (agent ?S ?HOTEL)
-        (instance ?S ?PROC)
         (or
-          (equal ?S ?SVC)
-          (subProcess ?SVC ?S))
+          (instance ?S ?SVC)
+          (and
+            (instance ?PROC ?SVC)
+            (subProcess ?S ?PROC)))
         (located ?S ?X))) Possibility))
 
+(subrelation freeRoomAmenity roomAmenity)
+(documentation freeRoomAmenity EnglishLanguage "(&%freeRoomAmenity ?ROOM ?PHYS) 
+means that there is no price associated with the use of an object or the rendering
+of a service")
+(termFormat EnglishLanguage freeRoomAmenity "free room amenity")
+
+(=>
+  (and
+    (freeRoomAmenity ?ROOM ?OBJ)
+    (subclass ?OBJ Object)
+    (instance ?R ?ROOM)
+    (stays ?GUEST ?R)
+    (element ?R (PropertyFn ?HOTEL))
+    (instance ?O ?OBJ)
+    (located ?O ?R)
+    (instance ?P Process)
+    (agent ?P ?GUEST)
+    (or
+      (patient ?P ?O)
+      (instrument ?P ?O)
+      (resource ?P ?O)))
+  (price ?P (MeasureFn 0 UnitedStatesDollar) ?HOTEL))
+
+(=>
+  (and
+    (freeRoomAmenity ?ROOM ?PROC)
+    (subclass ?PROC Process)
+    (instance ?R ?ROOM)
+    (stays ?GUEST ?R)
+    (element ?R (PropertyFn ?HOTEL))
+    (or
+      (instance ?P ?PROC)
+      (and
+        (instance ?S ?PROC)
+        (subProcess ?P ?S)))
+    (located ?P ?R))
+  (price ?P (MeasureFn 0 UnitedStatesDollar) ?HOTEL))
+
+(subrelation paidRoomAmenity roomAmenity)
+(documentation paidRoomAmenity EnglishLanguage "(&%paidRoomAmenity ?ROOM ?PHYS) 
+means that there is a fee associated with the use of an object or the rendering
+of a service")
+(termFormat EnglishLanguage paidRoomAmenity "paid room amenity")
+
+(=>
+  (and
+    (paidRoomAmenity ?ROOM ?OBJ)
+    (subclass ?OBJ Object))
+  (=>
+    (and
+      (instance ?R ?ROOM)
+      (stays ?GUEST ?R)
+      (element ?R (PropertyFn ?HOTEL))
+      (instance ?O ?OBJ)
+      (located ?O ?R)
+      (instance ?P Process)
+      (agent ?P ?GUEST)
+      (or
+        (located ?P ?O)
+        (patient ?P ?O)
+        (instrument ?P ?O)
+        (resource ?P ?O)))
+    (and
+      (price ?P ?PRICE ?HOTEL)
+      (greaterThan ?PRICE (MeasureFn 0 UnitedStatesDollar)))))
+
+(=>
+  (and
+    (paidRoomAmenity ?ROOM ?PROC)
+    (subclass ?PROC Process))
+  (=>
+    (and
+      (instance ?R ?ROOM)
+      (stays ?GUEST ?R)
+      (element ?R (PropertyFn ?HOTEL))
+      (or
+        (instance ?P ?PROC)
+        (and
+          (instance ?S ?PROC)
+          (subProcess ?P ?S)))
+      (located ?P ?R))
+    (and
+      (price ?P ?PRICE ?HOTEL)
+      (greaterThan ?PRICE (MeasureFn 0 UnitedStatesDollar)))))
+    
 (instance roomPolicy BinaryPredicate)
 (documentation roomPolicy EnglishLanguage "(&%roomPolicy ?ROOM ?POLICY) means that
-?POLICY is applied to the ?ROOM")
+&%Policy ?POLICY is applied to the &%HotelUnit ?ROOM")
 (termFormat EnglishLanguage roomPolicy "room policy")
 
 (domainSubclass roomPolicy 1 HotelUnit)
@@ -350,30 +430,46 @@ all instances of &%HotelUnit ?ROOM has attribute ?ATTR")
       (instance ?R ?ROOM)
       (attribute ?R ?ATTR))))
 
-;; ---------------------------------------------------------------------------------
-;; Hotel Relations
-;; ---------------------------------------------------------------------------------          
+(instance maxRoomCapacity BinaryPredicate)
+(documentation maxRoomCapacity EnglishLanguage "(&%maxRoomCapacity ?ROOM ?NUM) means
+that &%TravelerAccommodation allows a maximum number of ?NUM people to stay in ?ROOM
+during one stay")
+(termFormat EnglishLanguage maxRoomCapacity "maximum capacity")
+
+(domainSubclass maxRoomCapacity 1 StationaryArtifact)
+(domain maxRoomCapacity 2 Integer)
+
+(=>
+  (and
+    (maxRoomCapacity ?ROOM ?NUM)
+    (instance ?X ?ROOM)
+    (element ?X (PropertyFn ?AGENT)))
+  (modalAttribute
+    (exists (?GRP)
+      (and
+        (instance ?GRP GroupOfPeople)
+        (memberCount ?GRP ?PPL)
+        (lessThanOrEqualTo ?PPL ?NUM)
+        (stays ?GRP ?X))) Possibility))
+       
+     
+;; HOTEL PROPERTY RELATIONS
+;; =================================================================================
 
 (instance propertyAmenity BinaryPredicate)
-(documentation propertyAmenity EnglishLanguage "(&%propertyAmenity ?AGENT ?OBJ) means
-that ?OBJ is part of ?AGENT property that can be used by customers of ?AGENT")
+(documentation propertyAmenity EnglishLanguage "(&%propertyAmenity ?AGENT ?PHYS) means
+that &Agent ?AGENT provides &%Physical ?PHYS on its property")
 (termFormat EnglishLanguage propertyAmenity "property amenity")
 
 (domain propertyAmenity 1 Agent)
-(domainSubclass propertyAmenity 2 Object)
+(domainSubclass propertyAmenity 2 Physical)
 
-(=>
-  (propertyAmenity ?AGENT ?OBJ)
-  (exists (?X)
-    (and
-      (instance ?X ?OBJ)
-      (element ?X (PropertyFn ?AGENT)))))
-  
 (=>
   (and
     (customer ?CUST ?AGENT)
-    (propertyAmenity ?AGENT ?OBJ)
-    (instance ?X ?OBJ))
+    (propertyAmenity ?AGENT ?PHYS)
+    (subclass ?PHYS Object)
+    (instance ?X ?PHYS))
   (confersRight
     (exists (?PROC)
       (and
@@ -385,376 +481,412 @@ that ?OBJ is part of ?AGENT property that can be used by customers of ?AGENT")
         (or
           (agent ?PROC ?CUST)
           (experiencer ?PROC ?CUST)))) ?AGENT ?CUST))
-
-(instance propertyFacility BinaryPredicate)
-(documentation propertyFacility EnglishLanguage "(&%propertyFacility ?AGENT ?FAC) means
-that ?FAC is part of an ?AGENT property where processes led or experienced by customers
-of ?AGENT can be located")
-(termFormat EnglishLanguage propertyFacility BinaryPredicate)
-
-(domain propertyFacility 1 Agent)
-(domain propertyFacility 2 StationaryArtifact)
-
-(=>
-  (propertyFacility ?AGENT ?FAC)
-  (and
-    (element ?FAC (PropertyFn ?AGENT))
-    (modalAttribute
-      (exists (?CUST ?PROC)
-        (and
-          (customer ?CUST ?AGENT)
-          (instance ?PROC Process)
-          (or
-            (agent ?PROC ?CUST)
-            (experiencer ?PROC ?CUST))
-          (located ?PROC ?FAC))) Possibility)))
-          
-(instance propertyService BinaryPredicate)
-(documentation propertyService EnglishLanguage "(&%propertyService ?AGENT ?SVC) means
-that ?SVC is a &%ServiceProcess that ?AGENT is capable of being an &%agent or 
-&%serviceProvider of for its customer")
-(termFormat EnglishLanguage propertyService "property service")
-
-(domain propertyService 1 Agent)
-(domainSubclass propertyService 2 ServiceProcess)
-
-(=>
-  (propertyService ?AGENT ?SVC)
-  (modalAttribute
-    (exists (?X ?LOC)
-      (and
-        (instance ?X ?SVC)
-        (serviceProvider ?X ?AGENT)
-        (located ?X ?LOC)
-        (element ?LOC (PropertyFn ?AGENT)))) Possibility))
-               
-;; ---------------------------------------------------------------------------------
-;; Beds
-;; ---------------------------------------------------------------------------------
-
-(subclass KingBed Bed)
-(documentation KingBed EnglishLanguage "A &%KingBed is a type of &%Bed that is 1.9m
-by 2.0m in size")
-(termFormat EnglishLanguage KingBed "king-sized bed")
-
-(=>
-  (instance ?X KingBed)
-  (and
-    (width ?X (MeasureFn 1.9 Meter))
-    (length ?X (MeasureFn 2.0 Meter))))
-
-(=>
-  (instance ?X KingBed)
-  (modalAttribute
-    (exists (?P1 ?P2 ?P3 ?TIME)
-      (and
-        (not (equal ?P1 ?P2))
-        (not (equal ?P2 ?P3))
-        (not (equal ?P1 ?P3))
-        (attribute ?P1 Asleep)
-        (attribute ?P2 Asleep)
-        (attribute ?P3 Asleep)
-        (instance ?P1 Human)
-        (instance ?P2 Human)
-        (instance ?P3 Human)
-        (holdsDuring ?TIME
-          (and
-            (located ?P1 ?X)
-            (located ?P2 ?X)
-            (located ?P3 ?X))))) Possibility))
-    
-(subclass QueenBed Bed)
-(documentation QueenBed EnglishLanguage "A &%QueenBed is a type of &%Bed that is 1.5m
-by 2.0m in size")
-(termFormat EnglishLanguage QueenBed "queen-sized bed")
-
-(=>
-  (instance ?X QueenBed)
-  (and
-    (width ?X (MeasureFn 1.5 Meter))
-    (length ?X (MeasureFn 2.0 Meter))))
-
-(=>
-  (instance ?X QueenBed)
-  (modalAttribute
-    (exists (?P1 ?P2)
-      (and
-        (not (equal ?P1 ?P2))
-        (not (equal ?P2 ?P3))
-        (attribute ?P1 Asleep)
-        (attribute ?P2 Asleep)
-        (instance ?P1 Human)
-        (instance ?P2 Human)
-        (holdsDuring ?TIME
-          (and
-            (located ?P1 ?X)
-            (located ?P2 ?X))))) Possibility))    
-    
-(subclass DoubleBed Bed)
-(documentation DoubleBed EnglishLanguage "A &%DoubleBed is a type of &%Bed that is 1.35m
-by 2.0m in size")
-(termFormat EnglishLanguage DoubleBed "full-sized bed")
-
-(=>
-  (instance ?X DoubleBed)
-  (and
-    (width ?X (MeasureFn 1.35 Meter))
-    (length ?X (MeasureFn 2.0 Meter))))
-
-(=>
-  (instance ?X DoubleBed)
-  (modalAttribute
-    (exists (?P1 ?P2)
-      (and
-        (not (equal ?P1 ?P2))
-        (not (equal ?P2 ?P3))
-        (attribute ?P1 Asleep)
-        (attribute ?P2 Asleep)
-        (instance ?P1 Human)
-        (instance ?P2 Human)
-        (holdsDuring ?TIME
-          (and
-            (located ?P1 ?X)
-            (located ?P2 ?X))))) Possibility))    
-       
-(subclass SingleBed Bed)
-(documentation SingleBed EnglishLanguage "A &%SingleBed is a type of &%Bed that is 1m
-by 2.0m in size")
-(termFormat EnglishLanguage SingleBed "twin-sized bed")
-
-(=>
-  (instance ?X SingleBed)
-  (and
-    (width ?X (MeasureFn 1.0 Meter))
-    (length ?X (MeasureFn 2.0 Meter))))
-
-(subclass BunkBed Bed)
-(documentation BunkBed EnglishLanguage "A &%BunkBed is a type of &%Bed has one bed 
-directly above another")
-(termFormat EnglishLanguage BunkBed "bunk bed")
-
-(=>
-  (instance ?X BunkBed)
-  (exists (?BED1 ?BED2)
-    (and
-      (instance ?BED1 SingleBed)
-      (instance ?BED2 SingleBed)
-      (part ?BED1 ?X)
-      (part ?BED2 ?X)
-      (orientation ?BED1 ?BED2 Above))))
-
-(subclass MurphyBed Bed)
-(documentation MurphyBed EnglishLanguage "A &%MurphyBed is a type of &%Bed that can
-be stored vertically inside a wall, closet or cabinet")
-(termFormat EnglishLanguage MurphyBed "pull-down bed")
-
-(=>
-  (instance ?X MurphyBed)
-  (exists (?STORAGE)
-    (and
-      (instance ?STORAGE Compartment)
-      (meetsSpatially ?STORAGE ?X)
-      (hasPurpose ?STORAGE
-        (exists (?K)
-          (and
-            (instance ?K Keeping)
-            (patient ?K ?X)
-            (destination ?K ?STORAGE)
-            (holdsDuring 
-              (WhenFn ?K)
-              (attribute ?X Vertical))))))))
-
-(subclass RollawayBed Bed)
-(documentation RollawayBed EnglishLanguage "A &%RollawayBed is a type of &%Bed that is
-mounted on rollers so that it can be easily moved")
-(termFormat EnglishLanguage RollawayBed "rollaway bed")
-
-(=>
-  (instance ?X RollawayBed)
-  (exists (?WHEEL)
-    (and
-      (instance ?WHEEL Wheel)
-      (part ?WHEEL ?X))))
-
-(subclass SofaBed Bed)
-(documentation SofaBed EnglishLanguage "A &%SofaBed is a &%Bed that can be kept inside
-a compartment in a &%Sofa")
-(termFormat EnglishLanguage SofaBed "sofa bed")
-
-(=>
-  (instance ?X SofaBed)
-  (exists (?SOFA ?STORAGE)
-    (and
-      (instance ?STORAGE Compartment)
-      (part ?STORAGE ?SOFA)
-      (instance ?SOFA Sofa)
-      (hasPurpose ?STORAGE
-        (exists (?K)
-          (and
-            (instance ?K Keeping)
-            (patient ?K ?X)
-            (destination ?K ?STORAGE)))))))
-
-(subclass Crib Bed)
-(documentation Crib EnglishLanguage "A &%Crib is a &%Bed for babies")
-(termFormat EnglishLanguage Crib "crib")
-
-(=>
-  (instance ?X Crib)
-  (hasPurpose ?X
-    (exists (?BABY)
-      (and
-        (instance ?BABY HumanBaby)
-        (attribute ?BABY Asleep)
-        (located ?BABY ?X)))))
-        
-;; if a GroupOfPeople has an adult and a baby in it, then a Crib is within the 
-;; adult's scope of interest
-
-(=>
-  (and
-    (instance ?GRP GroupOfPeople)
-    (member ?ADULT ?GRP)
-    (member ?BABY ?GRP)
-    (instance ?BABY HumanBaby)
-    (instance ?ADULT HumanAdult)
-    (instance ?CRIB Crib))
-  (inScopeOfInterest ?ADULT ?CRIB))
-
-(subclass Hammock Bed)
-(documentation Hammock EnglishLanguage "&%Hammock is a type of &%Bed made of rope or 
-canvas and is suspended between two stationary objects")
-(termFormat EnglishLanguage Hammock "hammock")
-
-(=>
-  (instance ?X Hammock)
-  (and
-    (material Fabric ?X)    
-    (exists (?POLE1 ?POLE2 ?GROUND)
-      (and
-        (orientation ?POLE1 ?POLE2 Near)
-        (connected ?POLE1 ?X)
-        (connected ?POLE2 ?X)
-        (instance ?GROUND LandArea)
-        (located ?X ?GROUND)
-        (orientation ?X ?GROUND Above)))))
-        
-(=>
-  (instance ?X Hammock)
-  (hasPurpose ?X 
-    (exists (?PROC)
-      (and
-        (instance ?PROC LyingDown)
-        (located ?PROC ?X)))))
       
+(=>
+  (and
+    (customer ?CUST ?AGENT)
+    (propertyAmenity ?AGENT ?PHYS)
+    (subclass ?PHYS Process))
+  (modalAttribute
+    (exists (?S ?LOC)
+      (and
+        (element ?LOC (PropertyFn ?AGENT))
+        (agent ?S ?HOTEL)
+        (or
+          (instance ?S ?PHYS)
+          (and
+            (instance ?PROC ?PHY)
+            (subProcess ?S ?PROC)))
+        (located ?S ?LOC))) Possibility))
+
+(subrelation freePropertyAmenity propertyAmenity)
+(documentation freePropertyAmenity EnglishLanguage "(&%freePropertyAmenity ?AGENT ?PHYS)
+means that &%Agent ?AGENT provides &%Physical ?PHYS at no additional cost")
+(termFormat EnglishLanguage freePropertyAmenity "free property amenity")
+
+(=>
+  (and
+    (freePropertyAmenity ?AGENT ?PHYS)
+    (instance ?X ?PHYS)
+    (customer ?CUST ?AGENT)
+    (or
+      (and
+        (instance ?X Process)
+        (or
+          (agent ?X ?CUST)
+          (experiencer ?X ?CUST)))
+      (and
+        (possesses ?AGENT ?X)
+        (instance ?X Object)
+        (uses ?CUST ?X))))
+  (price ?X (MeasureFn 0 UnitedStatesDollar) ?AGENT))
   
-(subclass Mattress Artifact)
-(documentation Mattress EnglishLanguage "A &%Mattress is a &%component of a &%Bed 
-that is a cushion to make it more comfortable")
-(termFormat EnglishLanguage Mattress "mattress")
-
-(=>
-  (instance ?X Mattress)
-  (exists (?BED)
-    (and
-      (instance ?BED Bed)
-      (component ?X ?BED))))
-
-(=>
-  (instance ?X Mattress)
-  (hasPurpose ?X
-    (exists (?PERSON)
-      (and
-        (attribute ?PERSON Asleep)
-        (orientation ?PERSON ?X On)))))
-      
-(subclass BedFrame Artifact)
-(documentation BedFrame EnglishLanguage "A &%BedFram is a %&component of a &%Bed that
-supports the mattress")
-(termFormat EnglishLanguage BedFrame "bed frame")
+(subrelation paidPropertyAmenity propertyAmenity)
+(documentation paidPropertyAmenity EnglishLanguage "(&%paidPropertyAmenity ?AGENT ?PHYS)
+means that &%Agent ?AGENT provides &%Physical ?PHYS at additional cost")
+(termFormat EnglishLanguage paidPropertyAmenity "paid property amenity")
 
 (=>
   (and
-    (instance ?X Bed)
-    (component ?BEDFRAME ?X)
-    (instance ?BEDFRAME BedFrame)
-    (component ?MATTRESS ?X)
-    (instance ?MATTRESS Mattress))
-  (orientation ?MATTRESS ?BEDFRAME On))
+    (paidPropertyAmenity ?AGENT ?PHYS)
+    (instance ?X ?PHYS)
+    (customer ?CUST ?AGENT)
+    (or
+      (and
+        (instance ?X Process)
+        (or
+          (agent ?X ?CUST)
+          (experiencer ?X ?CUST)))
+      (and
+        (possesses ?AGENT ?X)
+        (instance ?X Object)
+        (uses ?CUST ?X))))
+  (and
+    (price ?X ?PRICE ?AGENT)
+    (greaterThan ?PRICE (MeasureFn 0 UnitedStatesDollar))))
+        
+(instance activityCapability BinaryPredicate)
+(documentation activityCapability EnglishLanguage "(&%activityCapability ?AGENT ?ACT)
+means that &%Process ?ACT can be located on the property owned by &%Agent ?AGENT")
+(termFormat EnglishLanguage activityCapability "activity capability")
 
-(subclass FourPosterBed BedFrame)
-(documentation FourPosterBed EnglishLanguage "&%FourPosterBed is a type of &%BedFrame
-with a post at each corner to support curtains or a canopy")
-(termFormat EnglishLanguage FourPosterBed "four-poster bed")
+(domain activityCapability 1 Agent)
+(domainSubclass activityCapability 2 Process)
 
 (=>
-  (instance ?X FourPosterBed)
-  (exists (?SHAPE)
+  (activityCapability ?AGENT ?ACT)
+  (exists (?LOC)
     (and
-      (attribute ?X ?SHAPE)
-      (instance ?SHAPE Quadrilateral)
-      (forall (?CORNER)
+      (element ?LOC (PropertyFn ?AGENT))
+      (capability ?ACT located ?LOC))))
+      
+(instance propertyPolicy BinaryPredicate)
+(documentation propertyPolicy EnglishLanguage "(&%propertyPolicy ?AGENT ?POLICY) means
+that ?POLICY is a &%Policy with &%policyLocationCoverage that covers all elements of
+&%PropertyFn ?AGENT")
+(termFormat EnglishLanguage propertyPolicy "property policy")
+
+(domain propertyPolicy 1 Agent)
+(domain propertyPolicy 2 Policy)
+
+(=>
+  (propertyPolicy ?AGENT ?POLICY)
+  (forall (?X)
+    (=>
+      (element ?X (PropertyFn ?AGENT))
+      (policyLocationCoverage ?POLICY ?X))))
+      
+(instance orgStaff BinaryPredicate)
+(documentation orgStaff EnglishLanguage "(&%orgStaff ?ORG ?POS) means that &%Agent
+?ORG employs &%Human with &%Attribute ?POS")
+(termFormat EnglishLanguage orgStaff "organization staff")
+
+(domain orgStaff 1 Agent)
+(domain orgStaff 2 RelationalAttribute)
+
+(=>
+  (orgStaff ?AGENT ?POS)
+  (exists (?H)
+    (and
+      (employs ?AGENT ?H)
+      (attribute ?H ?POS))))
+
+(instance managedBy BinaryPredicate)
+(documentation managedBy EnglishLanguage "(&%managedBy ?OBJ ?AGENT) means that 
+&%Object ?OBJ is &%Managing by &%Agent ?AGENT.  ?AGENT may no necessarily own ?OBJ.")
+(termFormat EnglishLanguage managedBy "managed by")
+
+(domain managedBy 1 Physical)
+(domain managedBy 2 Agent)
+
+(=>
+  (managedBy ?OBJ ?AGENT)
+  (exists (?AGENT2 ?MAN)
+    (and
+      (possesses ?AGENT2 ?OBJ)
+      (instance ?MAN Managing)
+      (patient ?MAN ?OBJ)
+      (agent ?MAN ?AGENT))))
+      
+(subclass InternetAddress ContactSite)
+
+(instance checkInTime BinaryPredicate)
+(documentation checkInTime EnglishLanguage "(&%checkInTime ?HOTEL ?TIME) means that
+&%TravelerAccomodation ?HOTEL only starts &%CheckInService after ?TIME")
+(termFormat EnglishLanguage checkInTime "check-in time")
+
+(domain checkInTime 1 Organization)
+(domainSubclass checkInTime 2 TimePoint)
+
+(=>
+  (checkInTime ?HOTEL ?TIME)
+  (modalAttribute
+    (exists (?T ?C)
+      (and
+        (instance ?T ?TIME)
+        (instance ?C CheckInService)
+        (agent ?C ?HOTEL)
+        (before (BeginFn (WhenFn ?C)) ?T))) Unlikely))
+        
+(instance checkOutTime BinaryPredicate)
+(documentation checkOutTime EnglishLanguage "(&%checkOutTime ?HOTEL ?TIME) means that
+&%TravelerAccommodation ?HOTEL expects guests to &%CheckOutService before ?TIME")
+(termFormat EnglishLanguage checkOutTime "check-out time")
+
+(=>
+  (and
+    (checkOutTime ?HOTEL ?TIME)
+    (guest ?GUEST ?HOTEL))
+  (expects ?HOTEL
+    (exists (?T ?C)
+      (and
+        (instance ?T ?TIME)
+        (patient ?C ?GUEST)
+        (instance ?C CheckOutService)
+        (agent ?C ?HOTEL)
+        (before (BeginFn (WhenFn ?C)) ?T)))))
+
+(instance numberOfFloors BinaryPredicate)
+(documentation numberOfFloors EnglishLanguage "(&%numberOfFloors ?BLDG ?NUM) means 
+that &%Building ?BLDG has &%Integer ?NUM number of &%BuildingLevel")
+(termFormat EnglishLanguage numberOfFloors "number of floors")
+
+(domain numberOfFloors 1 Building)
+(domain numberOfFloors 2 Integer)
+
+(=>
+  (numberOfFloors ?BLDG ?NUM)
+  (exists (?FLOORS)
+    (and
+      (forall (?X)
         (=>
           (and
-            (pointOfIntersection ?SIDE1 ?SIDE2 ?CORNER)
-            (sideOfFigure ?SIDE1 ?SHAPE)
-            (sideOfFigure ?SIDE2 ?SHAPE)
-            (not (equal ?SIDE1 ?SIDE2)))
-          (exists (?POST ?FLOOR)
-            (and
-              (meetsSpatially ?CORNER ?POST)
-              (instance ?POST Artifact)
-              (instance ?FLOOR Floor)
-              (orientation ?BED ?FLOOR On)
-              (orientation ?POST ?FLOOR Vertical))))))))
-          
+            (instance ?X BuildingLevel)
+            (part ?X ?BLDG))
+          (member ?X ?FLOORS)))
+      (memberCount ?FLOORS ?NUM))))
+
+(instance yearBuilt BinaryPredicate)
+(documentation yearBuilt EnglishLanguage "(&%yearBuilt ?OBJ ?YEAR) means that the 
+&%Making of &%Object ?OBJ was completed on &%Year ?YEAR")
+(termFormat EnglishLanguage yearBuilt "year built")
+
+(domain yearBuilt 1 Object)
+(domainSubclass yearBuilt 2 Year)
+
+(=>
+  (yearBuilt ?OBJ ?YEAR)
+  (exists (?TIME ?MAKE)
+    (and
+      (instance ?TIME ?YEAR)
+      (instance ?MAKE Making)
+      (result ?MAKE ?OBJ)
+      (temporallyBetweenOrEqual
+        (BeginFn ?TIME)
+        (EndFn (WhenFn ?REPAIR))
+        (EndFn ?TIME)))))
       
-(subclass BedAttribute RelationalAttribute)
-(documentation BedAttribute EnglishLanguage "&%BedAttribute is the class of attributes
-attached to the type of cushion a &%Bed has")
-(termFormat EnglishLanguage BedAttribute "bed attribute")
+        
+(instance lastRenovation BinaryPredicate)
+(documentation lastRenovation EnglishLanguage "(&%lastRenovation ?OBJ ?YEAR) means
+that &%Object ?OBJ was last repaired on &%Year ?YEAR")    
+(termFormat EnglishLanguage lastRenovation "last renovation")
+
+(domain lastRenovation 1 Object)
+(domainSubclass lastRenovation 2 Year)
+
+(=>
+  (lastRenovation ?OBJ ?YEAR)
+  (exists (?TIME ?REPAIR)
+    (and
+      (instance ?REPAIR Repairing)
+      (patient ?REPAIR ?OBJ)
+      (instance ?TIME ?YEAR)
+      (temporallyBetweenOrEqual
+        (BeginFn ?TIME)
+        (EndFn (WhenFn ?REPAIR))
+        (EndFn ?TIME)))))
+
+(instance colocatedAgent BinaryPredicate)
+(documentation colocatedAgent EnglishLanguage "(&%colocatedAgent ?ORG1 ?ATTR1)
+means that an &%Organization with &%Attribute ?ATTR1 is colocated with ?ORG1")
+(termFormat EnglishLanguage colocatedAgent "colocated business")
+
+(domain colocatedAgent 1 Agent)
+(domain colocatedAgent 2 RelationalAttribute)
+
+(=>
+  (colocatedAgent ?ORG ?ATTR)
+  (exists (?ORG2 ?LOC)
+    (and
+      (instance ?ORG2 Agent)
+      (attribute ?ORG2 ?ATTR)
+      (located ?ORG ?LOC)
+      (located ?ORG2 ?LOC))))
+   
+        
+;; TO HOTEL FUNCTION ROOM
+;; =================================================================================
+
+;; proposition here actually refers more to the design or arrangement of the room
+(instance capacityByArrangement TernaryPredicate)
+(documentation capacityByArrangement EnglishLanguage "(&%capacityByArrangement ?AREA 
+?PROP ?QTY) means that &%Integer ?QTY is the maximum capacity of &%Region ?AREA when
+&%Proposition ?PROP is followed.")
+(termFormat EnglishLangauge capacityByArrangement "capacity by arrangement")
+
+(domain capacityByArrangement 1 Region)
+(domain capacityByArrangement 2 Proposition)
+(domain capacityByArrangement 3 Integer)
+
+(=>
+  (capacityByArrangement ?AREA ?PROP ?INT)
+  (=>
+    (represents ?AREA ?PROP)
+    (modalAttribute
+      (exists (?GRP)
+        (and
+          (instance ?GRP GroupOfPeople)
+          (memberCount ?GRP ?PPL)
+          (lessThanOrEqualTo ?PPL ?INT)
+          (located ?GRP ?AREA))) Possibility)))
+          
+(instance functionRoomAmenity BinaryPredicate)
+(documentation functionRoomAmenity EnglishLanguage "(&%functionRoomAmenity ?RM ?PHYS)
+means that &%Physical ?PHYS is available for people who &%Renting &%HotelFunctionRoom 
+?RM")
+(termFormat EnglishLanguage functionRoomAmenity "function room amenity")
+
+(domainSubclass functionRoomAmenity 1 HotelFunctionRoom)
+(domainSubclass functionRoomAmenity 2 Physical)
 
 (=>
   (and
-    (attribute ?X ?ATTR)
-    (instance ?ATTR BedAttribute))
-  (instance ?X Bed))
-  
-(instance WaterBed BedAttribute)
-(documentation WaterBed EnglishLanguage "&%WaterBed describes how the cushion of a &%Bed
-is filled with water")
-(termFormat EnglishLanguage WaterBed "water bed")
-
-(=>
-  (attribute ?X WaterBed)
-  (exists (?MATTRESS ?WATER)
-    (and
-      (component ?MATTRESS ?X)
-      (contains ?MATTRESS ?WATER)
-      (instance ?WATER Water))))
-
-(subclass BedLinen Artifact)
-(documentation BedLinen EnglishLanguage "&%BedLinen is an &%Artifact made of &%Fabric
-that is used to &%Covering a &%Bed")
-(termFormat EnglishLanguage BedLinen "bed linen")
-
-(=>
-  (instance ?X BedLinen)
-  (material Fabric ?X))
-
-(=>
-  (instance ?X BedLinen)
-  (hasPurpose ?X
-    (exists (?COVER ?BED)
+    (functionRoomAmenity ?FR ?PHY)
+    (instance ?RM ?FR)
+    (element ?RM (PropertyFn ?HOTEL))
+    (instance ?RENT Renting)
+    (patient ?RENT ?RM)
+    (agent ?RENT ?HOTEL)
+    (destination ?RENT ?CUST)
+    (subclass ?PHY Object))
+  (modalAttribute
+    (exists (?O ?P)
       (and
-        (instance ?COVER Covering)
-        (patient ?COVER ?BED)
-        (instance ?BED Bed)
-        (instrument ?COVER ?X)))))
+        (instance ?O ?PHY)
+        (instance ?P Process)
+        (or
+          (resource ?P ?O)
+          (instrument ?P ?O)
+          (patient ?P ?O))
+        (or
+          (agent ?P ?CUST)
+          (experiencer ?P ?CUST)))) Possibility))
+
+(subrelation freeFunctionRoomAmenity functionRoomAmenity)
+(documentation freeFunctionRoomAmenity EnglishLanguage "(&%freeFunctionRoomAmenity
+?RM ?PHY) means that the use of ?PHY provided by &%TravelerAccommodation to customers
+renting &%HotelFunctionRoom does not incur charges")
+(termFormat EnglishLanguage freeFunctionRoomAmenity "free function room amenity")
+
+(=>
+  (and
+    (freeFunctionRoomAmenity ?FR ?PHYS)
+    (instance ?RM ?FR)
+    (element ?RM (PropertyFn ?AGENT))
+    (instance ?R Renting)
+    (patient ?R ?RM)
+    (destination ?R ?CUST)
+    (instance ?X ?PHYS)
+    (possesses ?AGENT ?X)
+    (customer ?CUST ?AGENT)
+    (or
+      (and
+        (instance ?X Process)
+        (or
+          (agent ?X ?CUST)
+          (experiencer ?X ?CUST)))
+      (and
+        (possesses ?AGENT ?X)
+        (instance ?X Object)
+        (uses ?CUST ?X))))
+  (price ?X (MeasureFn 0 UnitedStatesDollar) ?AGENT))
+
+(subrelation paidFunctionRoomAmenity functionRoomAmenity)
+(documentation paidFunctionRoomAmenity EnglishLanguage "(&%paidFunctionRoomAmenity
+?RM ?PHY) means that the use of ?PHY provided by &%TravelerAccommodation to customers
+renting &%HotelFunctionRoom incurs charges")
+(termFormat EnglishLanguage paidFunctionRoomAmenity "free function room amenity")
+
+(=>
+  (and
+    (paidFunctionRoomAmenity ?FR ?PHYS)
+    (instance ?RM ?FR)
+    (element ?RM (PropertyFn ?AGENT))
+    (instance ?R Renting)
+    (patient ?R ?RM)
+    (destination ?R ?CUST)
+    (instance ?X ?PHYS)
+    (possesses ?AGENT ?X)
+    (customer ?CUST ?AGENT)
+    (or
+      (and
+        (instance ?X Process)
+        (or
+          (agent ?X ?CUST)
+          (experiencer ?X ?CUST)))
+      (and
+        (possesses ?AGENT ?X)
+        (instance ?X Object)
+        (uses ?CUST ?X))))
+  (and
+    (price ?X ?PRICE ?AGENT)
+    (greaterThan ?PRICE (MeasureFn 0 UnitedStatesDollar))))
+  
+;; LOCATION RELATIONS
+;; =================================================================================
+
+(instance nearOrientation BinaryPredicate)
+(documentation nearOrientation EnglishLanguage "(&%nearOrientation ?OBJ1 ?OBJ2) means
+that ?OBJ1 has &%orientation &%Near to ?OBJ2")
+(termFormat EnglishLanguage nearOrientation "near orientation")
+
+(domain nearOrientation 1 Physical)
+(domainSubclass nearOrientation 2 Physical)
+
+(=>
+  (nearOrientation ?OBJ1 ?OBJ2)
+  (exists (?X)
+    (and
+      (instance ?X ?OBJ2)
+      (orientation ?OBJ1 ?X Near))))
+
+(instance onOrientation BinaryPredicate)
+(documentation onOrientation EnglishLanguage "(&%onOrientation ?OBJ1 ?OBJ2) means
+that ?OBJ1 has &%orientation &%On ?OBJ2")
+(termFormat EnglishLanguage onOrientation "on orientation")
+
+(domain onOrientation 1 Physical)
+(domainSubclass onOrientation 2 Physical)
+
+(=>
+  (onOrientation ?OBJ1 ?OBJ2)
+  (exists (?X)
+    (and
+      (instance ?X ?OBJ2)
+      (orientation ?OBJ1 ?X On))))
       
-;; ---------------------------------------------------------------------------------
-;; Views
-;; ---------------------------------------------------------------------------------
+(instance adjacentOrientation BinaryPredicate)
+(documentation adjacentOrientation EnglishLanguage "(&%adjacentOrientation ?OBJ1 ?OBJ2)
+means that ?OBJ1 has &%orientation &%Adjacent to ?OBJ2")
+(termFormat EnglishLanguage adjacentOrientation "adjacent orientation")
+
+(=>
+  (adjacentOrientation ?OBJ1 ?OBJ2)
+  (exists (?X)
+    (and
+      (instance ?X ?OBJ2)
+      (orientation ?OBJ1 ?X Adjacent))))
 
 (instance viewType BinaryPredicate)
 (documentation viewType EnglishLanguage "(&%viewType ?REGION ?OBJ) means that a person
@@ -782,70 +914,6 @@ in ?REGION can see ?OBJ")
 ;; ---------------------------------------------------------------------------------
 ;; Rooms
 ;; ---------------------------------------------------------------------------------
-
-(subclass Balcony StationaryArtifact)
-(documentation Balcony EnglishLanguage "A &%Balcony is a platform projecting from the
-wall of a building, surrounded by some type of railing")
-(termFormat EnglishLanguage Balcony "balcony")
-
-(=>
-  (instance ?BALCONY Balcony)
-  (exists (?WALL ?LANDAREA)
-    (and
-      (meetsSpatially ?WALL ?BALCONY)
-      (instance ?LANDAREA LandArea)
-      (located ?WALL ?LANDAREA)
-      (orientation ?BALCONY ?LANDAREA Above))))
-      
-(subclass SittingArea Region)
-(documentation SittingArea EnglishLanguage "&%SittingArea refers to a &%Region, either
-&%Indoor (like a Living Room) or &%Outdoor (like a Garden sitting area) where people
-normally sit and entertain guests")
-(termFormat EnglishLanguage SittingArea "sitting area")
-
-(=>
-  (instance ?AREA SittingArea)
-  (exists (?SEAT)
-    (and
-      (instance ?SEAT Seat)
-      (located ?SEAT ?AREA))))
-
-(instance AdjoiningRoom RelationalAttribute)
-(documentation AdjoiningRoom EnglishLanguage "&%AdjoiningRoom describes a &%Room that
-has another Room &%Adjacent to it, and a doorway existing on their common wall to
-allow access from one room to another")
-(termFormat EnglishLanguage AdjoiningRoom "adjoining room")
-
-(=>
-  (attribute ?X AdjoiningRoom)
-  (instance ?X Room))
-  
-(=>
-  (attribute ?X AdjoiningRoom)
-  (exists (?ROOM ?WALL ?DOOR)
-    (and
-      (attribute ?ROOM AdjoiningRoom)
-      (not (equal ?ROOM ?X))
-      (orientation ?X ?ROOM Adjacent)
-      (instance ?WALL Wall)
-      (part ?WALL ?ROOM)
-      (part ?WALL ?X)
-      (instance ?DOOR Door)
-      (part ?DOOR ?WALL))))
-
-(instance BusinessExecutive BusinessPerson)
-(documentation BusinessExecutive EnglishLanguage "&%BusinessExecutive refers to a person
-responsible for the management of a business")
-(termFormat EnglishLanguage BusinessExecutive "business executive")
-
-(=>
-  (attribute ?X BusinessExecutive)
-  (exists (?BUSINESS ?MANAGE)
-    (and
-      (instance ?MANAGE Managing)
-      (instance ?BUSINESS Organization)
-      (patient ?MANAGE ?BUSINESS)
-      (agent ?MANAGE ?X))))
       
 (subclass HotelRoomAttribute RelationalAttribute)
 (documentation HotelRoomAttribute EnglishLanguage "&%HotelRoomAttribute gives descriptions
@@ -1031,8 +1099,7 @@ ground that overlooks the the ground floor")
       (instance ?LOFT StationaryArtifact)
       (orientation ?LOFT ?FLOOR Above)
       (orientation ?LOFT ?CEILING Below))))
-      
-      
+            
 (instance Oversized RelationalAttribute)
 (documentation Oversized EnglishLanguage "&%Oversized means that something has a 
 larger measure than normal")
@@ -1121,691 +1188,86 @@ a &%BuildingLevel in a &%HotelBuilding that &%hasPurpose to house &%Female &%gue
 a &%HotelBuilding that provides superior levels of service and security for a premium
 price")
 (termFormat EnglishLanguage ClubLevel "club level")
-
-;; ---------------------------------------------------------------------------------
-;; Bathroom Objects
-;; ---------------------------------------------------------------------------------
-
-(subclass Shower BathingDevice)
-(documentation Shower EnglishLanguage "&%Shower refers to a plumbing fixture that
-sprays water over you.")
-(termFormat EnglishLanguage Shower "shower")
-
-(=>
-  (instance ?SHOWER Shower)
-  (hasPurpose ?SHOWER
-    (exists (?SPRAY)
-      (and
-        (instance ?SPRAY WaterMotion)
-        (origin ?SPRAY ?SHOWER)))))
-
-(=>
-  (instance ?SHOWER Shower)
-  (exists (?X ?FLOOR)
-    (and
-      (or
-        (instance ?X Wall)
-        (instance ?X Ceiling))
-      (connected ?SHOWER ?X)
-      (instance ?FLOOR Floor)
-      (orientation ?SHOWER ?FLOOR Above))))
-
-(subclass BathTub BathingDevice)
-(subclass BathTub FluidContainer)
-(documentation BathTub BathingDevice "&%BathTub refers to a &%BathingDevice that you
-can fill with water to use to watch the body")
-(termFormat EnglishLanguage BathTub "tub")
-
-(=>
-  (instance ?TUB BathTub)
-  (hasPurpose ?TUB
-    (exists (?WATER)
-      (and
-        (instance ?WATER Water)
-        (contains ?TUB ?WATER)))))
-
-(subclass Excrement BodySubstance)
-(documentation Excrement EnglishLanguage "&%Excrement refers to the waste matter 
-that is discharged from the body")
-(termFormat EnglishLanguage Excrement "excrement")
-
-(=>
-  (instance ?X Excrement)
-  (exists (?PROC ?ORG)
-    (and
-      (instance ?ORG Organism)
-      (instance ?PROC PhysiologicalProcess)
-      (result ?PROC ?X)
-      (agent ?PROC ?ORG))))
-
-(subclass Feces Excrement)
-(documentation Feces EnglishLanguage "&%Feces is a type of &%Solid &%Excrement 
-evacuated from the bowels")
-(termFormat EnglishLanguage Feces "feces")
-
-(=>
-  (instance ?X Feces)
-  (attribute ?X Solid))
-
-(=>
-  (instance ?X Feces)
-  (exists (?PROC ?INT)
-    (and
-      (instance ?PROC PhysiologicProcess)
-      (instrument ?PROC ?INT)
-      (instance ?INT Intestine)
-      (result ?PROC ?X))))
-      
-(subclass Urine Excrement)
-(documentation Urine EnglishLanguage "&%Urine is a type of &%Liquid &%Excrement that
-is secreted by the &%Kidney")
-(termFormat EnglishLanguage Urine "urine")
-
-(=>
-  (instance ?X Urine)
-  (attribute ?X Solid))
- 
-(=>
-  (instance ?X Urine)
-  (exists (?PROC ?KIDNEY)
-    (and
-      (instance ?PROC PhysiologicProcess)
-      (instrument ?PROC ?KIDNEY)
-      (instance ?KIDNEY Kidney)
-      (result ?PROX ?X))))
-    
-(subclass Excretion OrganismProcess)
-(documentation Excretion EnglishLanguage "&%Excretion is a type of &%OrganismProcess
-that discharges waste from tissues, organs or the body")
-(termFormat EnglishLanguage Excretion "excretion")
-
-(=>
-  (instance ?PROC Excretion)
-  (exists (?ORG ?WASTE ?PART)
-    (and
-      (instance ?ORG Organism)
-      (agent ?PROC ?ORG)
-      (patient ?PROC ?WASTE)
-      (instance ?WASTE Excrement)
-      (instance ?PART BodyPart)
-      (instrument ?PROC ?PART))))
-
-(subclass Urination Excretion)
-(documentation Urination EnglishLanguage "&%Urination is a type of &%Excretion that 
-discharges &%Urine")
-(termFormat EnglishLanguage Urination "urination")
-
-(=>
-  (instance ?PROC Urination)
-  (exists (?URINE)
-    (and
-      (instance ?URINE Urine)
-      (patient ?PROC ?URINE))))
-      
-(subclass Defecation Excretion)
-(documentation Defecation EnglishLanguage "&%Defecation is a type of &%Excretion that
-discharges &%Feces")
-(termFormat EnglishLanguage Defecation "defecation")
-
-(=>
-  (instance ?PROC Defecation)
-  (exists (?FECES)
-    (and
-      (instance ?FECES Feces)
-      (patient ?PROC ?FECES))))
-              
-(subclass Bidet WashingDevice)
-(documentation Bidet EnglishLanguage "&%Bidet is a &%WashingDevice intended for
-washing genitals and the anal area while on the toilet")
-(termFormat EnglishLanguage Bidet "bidet")
-
-(=>
-  (instance ?X Bidet)
-  (hasPurpose ?X
-    (exists (?PROC ?WASH ?PART)
-      (and
-        (or
-          (instance ?PROC Defecation)
-          (instance ?PROC Urination))
-        (instrument ?PROC ?PART)
-        (instance ?WASH Washing)
-        (patient ?WASH ?PART)
-        (instrument ?WASH ?X)
-        (before 
-          (BeginFn (WhenFn ?PROC))
-          (BeginFn (WhenFn ?WASH)))))))
-       
-;; additional axiom for toilet
-(=>
-  (instance ?X Toilet)
-  (hasPurpose ?X
-    (exists (?PROC)
-      (and
-        (or 
-          (instance ?PROC Defecation)
-          (instance ?PROC Urination))
-        (destination ?PROC ?X)))))
-        
         
 ;; ---------------------------------------------------------------------------------
 ;; General Concepts
 ;; ---------------------------------------------------------------------------------
-     
-    
-(subclass FabricIron Device)
-(documentation FabricIron EnglishLanguage "&%FabricIron is a type of &%Device that
-has a flat metal base used to smooth cloth")
-(termFormat EnglishLanguage FabricIron "iron")
 
-(=>
-  (instance ?IRON FabricIron)
-  (exists (?BASE)
-    (and
-      (bottom ?BASE ?IRON)
-      (instance ?BASE MetalProduct)
-      (attribute ?BASE Flat))))
-
-(subclass IroningBoard Device)
-(documentation IroningBoard EnglishLanguage "&%IroningBoard is a type of &%Device 
-consisting of a flat, padded board used as a surface for ironing")
-(termFormat EnglishLanguage IroningBoard "ironing board")
-
-(=>
-  (instance ?BOARD IroningBoard)
-  (hasPurpose ?BOARD
-    (exists (?IRON ?FABRIC ?OBJ)
-      (and
-        (instance ?IRON Ironing)
-        (patient ?IRON ?OBJ)
-        (part ?FABRIC ?OBJ)
-        (instance ?FABRIC Fabric)
-        (holdsDuring 
-          (WhenFn ?IRON)
-          (orientation ?OBJ ?BOARD On))))))
       
-(subclass Smoothing SurfaceChange)
-(documentation Smoothing EnglishLanguage "&%Smoothing is a type of &%SurfaceChange
-to make something &%Smooth")
-(termFormat EnglishLanguage Smoothing "smoothing")
+;; if a GroupOfPeople has an adult and a baby in it, then a Crib is within the 
+;; adult's scope of interest
 
 (=>
   (and
-    (instance ?SMOOTH Smoothing)
-    (patient ?SMOOTH ?OBJ))
-  (exists (?PART)
-    (and
-      (superficialPart ?PART ?OBJ)
-      (holdsDuring
-        (EndFn (WhenFn ?SMOOTH))
-        (attribute ?PART Smooth)))))
-        
-(subclass Ironing Smoothing)
-(documentation Ironing EnglishLanguage "&%Ironing refers to a &%Smoothing process where
-a heated &%Device is used to smooth something")
-(termFormat EnglishLanguage Ironing "ironing")
+    (instance ?GRP GroupOfPeople)
+    (member ?ADULT ?GRP)
+    (member ?BABY ?GRP)
+    (instance ?BABY HumanBaby)
+    (instance ?ADULT HumanAdult)
+    (instance ?CRIB Crib))
+  (inScopeOfInterest ?ADULT ?CRIB))
+
+(subclass Brand ContentBearingPhysical)
+(documentation Brand EnglishLanguage "&%Brand refers to a unique design, sign, symbol,
+name or a combination of these that is employed in creating an image that identifies 
+a product that differentiates it from its competitors (BusinessDictionary.com)")
+(termFormat EnglishLanguage Brand "brand")
 
 (=>
-  (and
-    (instance ?I Ironing)
-    (patient ?I ?OBJ))
-  (exists (?HEAT ?IRON ?PART)
+  (instance ?BRAND Brand)
+  (exists (?OBJ)
     (and
-      (superficialPart ?PART ?OBJ)
-      (instance ?HEAT Heating)
-      (patient ?HEAT ?IRON)
-      (patient ?I ?PART)
-      (instrument ?I ?IRON))))
+      (instance ?OBJ Object)
+      (brand ?BRAND ?OBJ))))
 
 (=>
-  (and
-    (instance ?I Ironing)
-    (patient ?I ?OBJ)
-    (part ?FABRIC ?OBJ)
-    (instance ?FABRIC Fabric))
-  (exists (?IRON ?HEAT)
+  (instance ?BRAND Brand)
+  (exists (?AGENT ?CREATION)
     (and
-      (instance ?HEAT Heating)
-      (patient ?HEAT ?IRON)
-      (instance ?IRON FabricIron)
-      (instrument ?I ?IRON))))
+      (instance ?CREATION Creation)
+      (result ?CREATION ?BRAND)
+      (agent ?CREATION ?AGENT))))
 
-(subclass WhirlpoolTub FluidContainer)
-(documentation WhirlpoolTub EnglishLanguage "&%WhirlpoolTub refers to a &%FluidContainer
-used by &%Humans for relaxation with jets used to create water currents to massage the 
-body")
-(termFormat EnglishLanguage WhirlpoolTub "whirlpool tub")
+(subrelation productBrand represents)
+(documentation productBrand EnglishLanguage "(&%productBrand ?BRAND ?OBJ) means that 
+the perception associated with &%Brand ?BRAND is reflected on &%Physical ?OBJ")
+(termFormat EnglishLanguage productBrand "product brand")
 
 (=>
-  (instance ?TUB WhirlpoolTub)
-  (exists (?VALVE)
-    (and
-      (instance ?VALVE PressureControlValve)
-      (part ?VALVE ?TUB)
-      (hasPurpose ?VALVE
-        (exists (?WATER ?CREATION ?FR)
-          (and
-            (instance ?WATER Water)
-            (located ?WATER ?TUB)
-            (instance ?CREATION Creation)
-            (instrument ?CREATION ?VALVE)
-            (result ?CREATION (FlowFn ?FR))
-            (located ?WATER ?FR)))))))
-
-(subclass HotTub WhirlpoolTub)
-(documentation HotTub EnglishLanguage "&%HotTub refers to a &%WhirlpoolTub that is
-capable of heating the water located in it")
-(termFormat EnglishLanguage HotTub "hot tub")
-
-(=>
-  (and
-    (instance ?X HotTub)
-    (located ?WATER ?X)
-    (instance ?WATER Water))
-  (modalAttribute
-    (exists (?HEAT)
-      (and
-        (instance ?HEAT Heating)
-        (instrument ?HEAT ?X)
-        (patient ?HEAT ?WATER))) Possibility))
-
-(subclass Cycling LandTransportation)
-(documentation Cycling EnglishLanguage "&%Cycling is a type of &%LandTransportation
-that uses a &%Cycle as an &%instrument")
-(termFormat EnglishLanguage Cycling "cycling")
-
-(=>
-  (instance ?CYC Cycling)
-  (exists (?CYCLE)
-    (and
-      (instance ?CYCLE Cycle)
-      (instrument ?CYC ?CYCLE))))
+  (productBrand ?BRAND ?OBJ)
+  (instance ?BRAND Brand))
       
-(subclass SizeAttribute RelationalAttribute)
-(documentation SizeAttribute EnglishLanguage "&%SizeAttribute refers to attributes
-that pertain to the &%measure of some &%Object")
-(termFormat EnglishLanguage SizeAttribute "size attribute")
+(instance brandIcon BinaryPredicate)
+(documentation brandIcon EnglishLanguage "(&%brandIcon ?BRAND ?ICON) means that &%Icon
+?ICON is associated with &%Brand ?BRAND")
+(termFormat EnglishLanguage brandIcon "brand icon")
 
-(=> 
-  (and
-    (attribute ?X ?ATTR)
-    (instance ?ATTR SizeAttribute))
-  (instance ?X Object))
-  
-(instance DoubleSize SizeAttribute)
-(documentation DoubleSize EnglishLanguage "&%DoubleSize refers to how an &%Object can 
-fit 2 of its target users at the same time")
-(termFormat EnglishLanguage DoubleSize "double size")
+(domain brandIcon 1 Brand)
+(domain brandIcon 2 Icon)
 
 (=>
-  (and
-    (instance ?X WhirlpoolTub)
-    (attribute ?X DoubleSize))
-  (modalAttribute
-    (exists (?T1)
-      (holdsDuring ?T1
-        (exists (?P1 ?P2)
-          (and
-            (instance ?P1 Human)
-            (instance ?P2 Human)
-            (not (equal ?P1 ?P2))
-            (located ?P1 ?X)
-            (located ?P2 ?X))))) Possibility))
-      
-(subclass Kennel TrapOrCage)
-(documentation Kennel EnglishLanguage "&%Kennel is a &%TrapOrCage where a &%DomesticAnimal
-is &%Confining by its owner")
-(termFormat EnglishLanguage Kennel "kennel")
-
-(=>
-  (instance ?KENNEL Kennel)
-  (hasPurpose ?KENNEL
-    (exists (?ANIMAL ?CONFINING)
-      (and
-        (instance ?ANIMAL DomesticAnimal)
-        (instance ?CONFINING Confining)
-        (patient ?CONFINING ?ANIMAL)
-        (located ?CONFINING ?KENNEL)))))
-        
-(subclass DryingDevice Device)
-(documentation DryingDevice EnglishLanguage "&%DryingDevice refers to any &%Device
-used as an instrument in the &%Drying process")
-(termFormat EnglishLanguage DryingDevice "drying device")
-
-(=>
-  (instance ?D DryingDevice)
-  (hasPurpose ?D
-    (exists (?DRYING)
-      (and
-        (instance ?DRYING Drying)
-        (instrument ?DRYING ?D)))))
-
-(subclass ClothesDryer DryingDevice)
-        
-(subclass HairDryer DryingDevice)
-(subclass HairDryer ElectricDevice)
-(documentation HairDryer EnglishLanguage "&%HairDryer is a type of &%DryingDevice
-used specifically for &%Drying &%Hair")
-(termFormat EnglishLanguage HairDryer "hair dryer")
-
-(=>
-  (instance ?HD HairDryer)
-  (hasPurpose ?HD
-    (exists (?HAIR ?DRYING)
-      (and
-        (instance ?HAIR Hair)
-        (instance ?DRYING Drying)
-        (patient ?DRYING ?HAIR)
-        (instrument ?DRYING ?HD)))))
-
-(subclass SelfServiceLaundry Room)
-(documentation SelfServiceLaundry EnglishLanguage "&%SelfServiceLaundry is a &%Room 
-where a collection of coin-operatend washing machines and dryers are available for 
-customers")
-(termFormat EnglishLanguage SelfServiceLaundry "self-service laundry")
-
-(=>
-  (instance ?ROOM SelfServiceLaundry)
-  (exists (?WASHER ?DRYER)
+  (brandIcon ?BRAND ?ICON)
+  (exists (?AGENT)
     (and
-      (instance ?WASHER Collection)
-      (memberType ?WASHER ClothesWashingMachine)
-      (located ?WASHER ?ROOM)
-      (instance ?DRYER Collection)
-      (memberType ?DRYER ClothesDryer)
-      (located ?DRYER ?ROOM))))
-      
-(=>
-  (instance ?ROOM SelfServiceLaundry)
-  (attribute ?ROOM CommunalAttribute))
-        
-(subclass Microwave MajorAppliance)
-(subclass Microwave ElectricDevice)
-(documentation Microwave EnglishLanguage "&%Microwave is an &%ElectricDevice that heats
-food by passing an electromagnetic wave through it")
-(termFormat EnglishLanguage Microwave "microwave")
+      (managedBy ?BRAND ?AGENT)
+      (managedBy ?ICON ?AGENT)
+      (represents ?ICON ?BRAND))))
+
+(instance subBrand BinaryPredicate)
+(documentation subBrand EnglishLanguage "(&%subBrand ?BRAND1 ?BRAND2) means that 
+&%Brand ?BRAND2 uses the identity and reputation propagated by ?BRAND1 but is applied
+to a more specific set of objects")
+(termFormat EnglishLanguage subBrand "sub-brand")
 
 (=>
-  (instance ?M Microwave)
-  (hasPurpose ?M
-    (exists (?FOOD ?HEATING)
-      (and
-        (instance ?FOOD PreparedFood)
-        (instance ?HEATING Heating)
-        (instrument ?HEATING ?M)
-        (patient ?HEATING ?FOOD)))))
-        
-(=>
-  (and
-    (instance ?M Microwave)
-    (attribute ?M DeviceOn))
-  (exists (?PROC)
+  (subBrand ?BRAND1 ?BRAND2)
+  (exists (?COLL ?OBJ)
     (and
-      (instance ?PROC RadiatingElectromagentic)
-      (instrument ?PROC ?M))))
+      (instance ?COLL Collection)
+      (represents ?BRAND1 ?COLL)
+      (member ?OBJ ?COLL)
+      (represents ?BRAND2 ?OBJ))))
       
-(subclass SmokeDetector Device)
-(documentation SmokeDetector EnglishLanguage "&%SmokeDetector is a &%Device that is able
-to &%Discovering the presence of &%Smoke")
-(termFormat EnglishLanguage SmokeDetector "smoke detector")
-
-(=>
-  (instance ?D SmokeDetector)
-  (hasPurpose ?D
-    (exists (?DISCOVER ?SMOKE)
-      (and
-        (instance ?DISCOVER Discovering)
-        (instrument ?DISCOVER ?D)
-        (patient ?DISCOVER ?SMOKE)
-        (instance ?SMOKE Smoke)))))
-
-(subclass Sprinkler Device)
-(documentation Sprinkler EnglishLanguage "&%Sprinkler is a type of &%Device that loosely
-distributes a substance, either solid (e.g. Salt or herbs) or liquid (e.g. water sprinkler)")
-(termFormat EnglishLanguage Sprinkler "sprinkler")
-
-(subclass WaterSprinkler Sprinkler)
-(documentation WaterSprinkler EnglishLanguage "&%WaterSprinkler is a type of &%Sprinkler 
-that releases &%Water")
-(termFormat EnglishLanguage WaterSprinkler "water sprinkler")
-
-(=>
-  (instance ?W WaterSprinkler)
-  (hasPurpose ?W
-    (exists (?WM)
-      (and
-        (instance ?WM WaterMotion)
-        (origin ?WM ?W)))))
-
-(subclass FireSprinklerSystem Collection)
-(documentation FireSprinklerSystem EnglishLanguage "&%FireSprinklerSystem is a &%Collection
-of &%Devices that allow water to be released when a &%Fire is detected")
-(termFormat EnglishLanguage FireSprinklerSystem "sprinkler system")
-
-(=>
-  (instance ?X FireSprinklerSystem)
-  (exists (?DETECT ?SPRINKLER)
-    (and
-      (instance ?DETECT SmokeDetector)
-      (instance ?SPRINKLER WaterSprinkler)
-      (member ?DETECT ?X)
-      (member ?SPRINKLER ?X))))
-      
-(=>
-  (instance ?X FireSprinklerSystem)
-  (exists (?FIRE ?DISCOVER ?WM)
-    (and
-      (instance ?DISCOVER Discovering)
-      (instance ?FIRE Fire)
-      (instrument ?DISCOVER ?X)
-      (patient ?DISCOVER ?FIRE)
-      (instance ?WM WaterMotion)
-      (origin ?WM ?X)
-      (causes ?DISCOVER ?WM))))
-      
-(subclass IceMachine Machine)
-(documentation IceMachine EnglishLanguage "&%IceMachine is a type of &%Machine that
-produces &%Ice")
-(termFormat EnglishLanguage IceMachine "ice machine")
-
-(=>
-  (instance ?IM IceMachine)
-  (hasPurpose ?IM
-    (exists (?PROC ?ICE)
-      (and
-        (instrument ?PROC ?IM)
-        (result ?PROC ?ICE)
-        (instance ?ICE Ice)))))
-      
-(subclass AlarmClock Clock)
-(documentation AlarmClock EnglishLanguage "&%AlarmClock is a type of &%Clock that will
-radiate sound when a certain time is set")
-(termFormat EnglishLanguage AlarmClock "alarm clock")
-
-(=>
-  (instance ?AC AlarmClock)
-  (hasPurpose ?AC
-    (exists (?TIME ?M ?Q)
-      (and
-        (instance ?M Measuring)
-        (agent ?M ?AC)
-        (result ?M ?Q)
-        (equal ?Q ?TIME)
-        (holdsDuring
-          (WhenFn ?M)
-          (exists (?S)
-            (and
-              (instance ?S RadiatingSound)
-              (agent ?S ?AC))))))))
-
-(subclass AMFMAlarmClock AlarmClock)
-(subclass AMFMAlarmClock RadioReceiver)
-(documentation AMFMAlarmClock EnglishLanguage "&%AMFMAlarmClock is a type of &%AlarmClock
-that is also a &%RadioReceiver, meaning it can get &%RadioBroadcast from &%RadioStation")
-(termFormat EnglishLanguage AMFMAlarmClock "am / fm alarm clock")       
-     
-(subclass ElectricCoffeeMaker ElectricDevice)
-(documentation ElectricCoffeeMaker EnglishLanguage "&%ElectricCoffeeMaker is a 
-&%Device that makes &%Coffee")
-(termFormat EnglishLanguage CoffeeMaker "coffee maker")
-
-(=>
-  (instance ?C ElectricCoffeeMaker)
-  (hasPurpose ?C
-    (exists (?COFFEE ?M)
-      (and
-        (instance ?M Making)
-        (instrument ?M ?C)
-        (result ?M ?COFFEE)
-        (instance ?COFFEE Coffee)))))
-
-(instance Clean SubjectiveAssessmentAttribute)
-(documentation Clean EnglishLanguage "&%Clean describes how something is free from 
-dirt or impurities")
-(termFormat EnglishLanguage Clean "clean")
-
-(instance Dirty SubjectiveAssessmentAttribute)
-(documentation Dirty EnglishLanguage "&%Dirty describes how something has been soiled
-with dirt, dust or grime")
-(termFormat EnglishLanguage Dirty "dirty")
-
-(=>
-  (attribute ?X Clean)
-  (instance ?X Object))
-
-(=>
-  (atrribute ?X Dirty)
-  (instance ?X Object))
-  
-(contraryAttribute Dirty Clean)
-
-(subclass Whiteboard DataDisplayDevice)
-(subclass Whiteboard DataStorageDevice)
-(subclass Whiteboard DisplayArtifact)
-(documentation Whiteboard EnglishLanguage "%&Whiteboard refers to flat surface where 
-information can be encoded using erasable pens.  This baord is normally colored White")
-(termFormat EnglishLanguage Whiteboard "whiteboard")
-
-(=>
-  (instance ?OBJ Whiteboard)
-  (color ?OBJ White))
-  
-(=>
-  (instance ?OBJ Whiteboard)
-  (structure ?OBJ Flat))
-  
-(=>
-  (instance ?OBJ Whiteboard)
-  (hasPurpose ?OBJ
-    (exists (?WRITE)
-      (and
-        (instance ?WRITE Writing)
-        (destination ?WRITE ?OBJ)))))
-
-(subclass Steam Water)
-(documentation Steam EnglishLanguage "&%Steam refers to the &%Gas form of &%Water that
-is a result of &%Boiling it and diffusing it into the air")
-(termFormat EnglishLanguage Steam "steam")
-
-(=>
-  (instance ?STEAM Steam)
-  (exists (?BOIL ?WATER)
-    (and
-      (instance ?BOIL Boiling)
-      (instance ?WATER Water)
-      (patient ?BOIL ?WATER)
-      (result ?BOIL ?STEAM)
-      (attribute ?STEAM Gas))))
-
-;; change subclassing of HotWaterHeater from MajorAppliance to HeatingDevice
-(subclass WaterHeater HeatingDevice)
-
-(=>
-  (instance ?X WaterHeater)
-  (hasPurpose ?X
-    (exists (?HEAT ?WATER)
-      (and
-        (instance ?HEAT Heating)
-        (instance ?WATER Water)
-        (patient ?HEAT ?WATER)
-        (instrument ?HEAT ?X)))))
-
-(subclass TemperatureAttribute SubjectiveAssessmentAttribute)
-(documentation TemperatureAttribute EnglishLanguage "&%TemperatureAttribute is an
-attribute that describes the temperature of a certain object")
-(termFormat EnglishLanguage TemperatureAttribute "temperature attribute")
-
-(=>
-  (and
-    (attribute ?X ?Y)
-    (instance ?Y TemperatureAttribute)
-    (instance ?X Object))
-  (exists (?TEMP)
-    (and
-      (measure ?X ?TEMP)
-      (instance ?TEMP TemperatureMeasure)
-      (attribute ?TEMP ?Y))))
-      
-(instance ColdTemperature TemperatureAttribute)
-(documentation ColdTemperature EnglishLanguage "&%ColdTemperature is a type of 
-&%TemperatureAttribute that has a low or inadequate temperature")
-(termFormat EnglishLanguage ColdTemperature "cold")
-(successorAttributeClosure ColdTemperature HotTemperature)
-
-(instance CoolTemperature TemperatureAttribute)
-(documentation CoolTemperature EnglishLanguage "&%CoolTemperature describes how there
-is some relief from heat but not very cold, is between cold and warm")
-(termFormat EnglishLanguage CoolTemperature "cool")
-(successorAttribute ColdTemperature CoolTemperature)
-
-(instance WarmTemperature TemperatureAttribute)
-(documentation WarmTemperature EnglishLanguage "&%WarmTemperature describes how there
-is a comfortable or agreeable degree of heat")
-(termFormat EnglishLanguage WarmTemperature "warm")
-(successorAttribute CoolTemperature WarmTemperature)
-
-(instance HotTemperature TemperatureAttribute)
-(documentation HotTemperature EnglishLanguage "&%HotTemperature describes how something 
-has a high temperature")
-(termFormat EnglishLanguage HotTemperature "hot")
-(successorAttribute WarmTemperature HotTemperature)
-
-(=>
-  (and
-    (immediateInstance ?X ?CLASS)
-    (immediateInstance ?Y ?CLASS)
-    (attribute ?X ColdTemperature)
-    (attribute ?Y HotTemperature))
-  (exists (?TEMPX ?TEMPY)
-    (and
-      (measure ?X ?TEMPX)
-      (instance ?TEMPX TemperatureMeasure)
-      (measure ?Y ?TEMPY)
-      (instance ?TEMPY TemperatureMeasure)
-      (greaterThan ?TEMPY ?TEMPX))))
-
-(instance Multilingual RelationalAttribute)
-(documentation Multilingual EnglishLanguage "&%Multilingual describes a person who is
-able to speak more than one language fluently")
-(termFormat EnglishLanguage Multilingual "multilingual")
-
-(=>
-  (attribute ?X Multilingual)
-  (instance ?X Human))
-
-(=>
-  (and
-    (attribute ?X Multilingual)
-    (instance ?SPEAK Speaking)
-    (agent ?SPEAK ?X))
-  (modalAttribute
-    (exists (?LANG1 ?LANG2)
-      (and
-        (instance ?LANG1 SpokenLanguage)
-        (instance ?LANG2 SpokenLanguage)
-        (not (equal ?LANG1 ?LANG2))
-        (or
-          (patient ?SPEAK ?LANG1)
-          (patient ?SPEAK ?LANG2)))) Possibility))
 
 ;; additional rule for Internet
 
@@ -1898,12 +1360,6 @@ is an &%InternetConnection that does not use cables to connect to the
         (part ?CABLE ?CONN)
         (instance ?CABLE Cable)))))
         
-;; will delay defining this as it is not the intent of hotel.kif        
-(subclass Racquetball Sport)
-(documentation Racquetball EnglishLanguage "&%Racquetball is a type of &%Sport where
-a ball is hit with short-handled rackets towards a wall")
-(termFormat EnglishLanguage Racquetball "racquetball")
-
 (subclass Casino StationaryArtifact)
 (documentation Casino EnglishLanguage "&%Casino is a type of &%StationaryArtifact that
 has the purpose of housing gambling activities")
@@ -1927,19 +1383,8 @@ has the purpose of housing gambling activities")
     (instance ?CASINO Casino))
   (attribute ?X CasinoHotels))
 
-;; naics.kif: GamblingIndustries
 
-(=>
-  (attribute ?X GamblingIndustries)
-  (hasPurpose ?X
-    (exists (?GAME ?BET)
-      (and
-        (instance ?GAME Game)
-        (agent ?GAME ?X)
-        (instance ?BET Betting)
-        (destination ?BET ?X)
-        (subProcess ?BET ?GAME)))))
-        
+      
 (instance DutyFree NormativeAttribute)
 (documentation DutyFree EnglishLanguage "&%DutyFree describes how &%DutyTax is not
 charged for an imported product")
@@ -1968,751 +1413,8 @@ charged for an imported product")
         (instance ?OBJ Product))
       (attribute ?OBJ DutyFree))))  
 
-(subclass RecreationalVehicle Vehicle)
-(subclass RecreationalVehicle MobileResidence)
-(documentation RecreationalVehicle EnglishLanguage "A &%RecreationalVehicle is a type
-of motorized &%Vehicle that is used for camping or can serve as a &%Residence that is
-mobile")
-(termFormat EnglishLanguage RecreationalVehicle "rv")
-
-(=>
-  (instance ?RV RecreationalVehicle)
-  (modalAttribute
-    (exists (?BED ?DINING ?KITCHEN)
-      (and
-        (instance ?BED Bed)
-        (instance ?DINING DiningArea)
-        (instance ?KITCHEN KitchenArea)
-        (located ?BED ?RV)
-        (located ?DINING ?RV)
-        (located ?KITCHEN ?RV))) Likely))
-        
-(subclass ElectronicLock Lock)
-(documentation ElectronicLock EnglishLanguage "&%ElectronicLock is a type of &%Lock
-that depends on some &%ElectronicSignalling process to open")
-(termFormat EnglishLanguage ElectronicLock "electronic lock")
-
-(=>
-  (instance ?LOCK ElectronicLock)
-  (hasPurpose ?LOCK
-    (exists (?ES ?PROC)
-      (and
-        (instance ?ES ElectronicSignalling)
-        (destination ?ES ?LOCK)
-        (instance ?PROC Opening)
-        (instrument ?PROC ?LOCK)
-        (before 
-          (BeginFn (WhenFn ?ES))
-          (BeginFn (WhenFn ?PROC)))))))
-        
-(subclass RunningTrack StationaryArtifact)
-(subclass RunningTrack LandTransitway)
-(documentation RunningTrack EnglishLanguage "&%RunningTrack is a &%StationaryArtifact
-which serves as a path for people running")
-(termFormat EnglishLanguage RunningTrack "running track")
-
-(=>
-  (instance ?TRACK RunningTrack)
-  (hasPurpose ?TRACK
-    (exists (?RUN ?HUMAN)
-      (and
-        (instance ?HUMAN Human)
-        (instance ?RUN Running)
-        (agent ?RUN ?HUMAN)
-        (path ?RUN ?TRACK)))))
-
-(instance Deaf SensoryDisability)
-(documentation Deaf EnglishLanguage "&%Deaf describes an animal
-that is unable to hear")
-(termFormat EnglishLanguage Deaf "deaf")
-
-(=>
-  (attribute ?X Deaf)
-  (not
-    (capability Hearing agent ?X)))
-        
-(subclass KnockLight Device)
-(documentation KnockLight EnglishLanguage "&%KnockLight is a type of &%Device that
-flashes light when a door knock is made. It is used by the hearing impaired")
-(termFormat EnglishLanguage KnockLight "knock light")
-
-(=>
-  (and
-    (instance ?KL KnockLight)
-    (instance ?ROOM Room)
-    (located ?KL ?ROOM)
-    (instance ?DOOR Door)
-    (part ?DOOR ?ROOM))
-  (hasPurpose ?KL
-    (exists (?SOUND ?LIGHT ?IMPACT)
-      (and
-        (instance ?IMPACT Impacting)
-        (patient ?IMPACT ?DOOR)
-        (causes ?IMPACT ?SOUND)
-        (instance ?SOUND RadiatingSound)
-        (agent ?SOUND ?DOOR)
-        (causes ?SOUND ?LIGHT)
-        (instance ?LIGHT RadiatingLight)
-        (agent ?LIGHT ?KL)))))
-
-;; A knocklight allows a deaf person to know when somebody is knocking
-(=>
-  (and
-    (instance ?KL KnockLight)
-    (attribute ?X Deaf)
-    (located ?KL ?LOC)
-    (located ?X ?LOC)
-    (instance ?DOOR Door)
-    (part ?DOOR ?LOC))
-  (hasPurposeForAgent ?KL
-    (knows
-      (exists (?KNOCK)
-        (and
-          (instance ?KNOCK Impacting)
-          (patient ?KNOCK ?DOOR)))) ?X))
-
-
-;; VideoRecording
-               
-(=>
-  (instance ?VIDEO VideoRecording)
-  (modalAttribute
-    (exists (?AUDIO)
-      (and
-        (instance ?AUDIO AudioRecording)
-        (part ?AUDIO ?VIDEO))) Possibility))
-        
-
-(subclass MediaSystem Collection)
-(documentation MediaSystem EnglishLanguage "&%MediaSystem is a &%Collection of 
-components that enable the &%RadiatingSound of &%AudioRecording and &%RadiatingLight 
-of &%VideoRecording")
-(termFormat EnglishLanguage MediaSystem "media system")
-
-(=>
-  (instance ?PLAYER MediaSystem)
-  (hasPurpose ?PLAYER
-    (or
-      (exists (?VIDEO ?RL)
-        (and
-          (instance ?VIDEO VideoRecording)
-          (instance ?RL RadiatingLight)
-          (patient ?RL ?VIDEO)
-          (instrument ?RL ?PLAYER)))
-      (exists (?AUDIO ?RS)
-        (and
-          (instance ?AUDIO AudioRecording)
-          (instance ?RS RadiatingSound)
-          (patient ?RS ?AUDIO)
-          (instrument ?RS ?PLAYER))))))
-        
-(subclass AudioCDSystem MediaSystem)
-(documentation AudioCDSystem EnglishLanguage "&%AudioCDSystem is a type of &%MediaSystem that
-plays &%AudioRecording")
-(termFormat EnglishLanguage AudioCDSystem "cd player")
-
-(=>
-  (instance ?PLAYER AudioCDSystem)
-  (hasPurpose ?PLAYER
-    (exists (?DISC ?AUDIO ?RS ?DIGITAL ?PROC)
-      (and
-        (instrument ?PROC ?PLAYER)
-        (patient ?PROC ?DISC)
-        (instance ?DISC CompactDisc)
-        (instance ?AUDIO AudioRecording)
-        (represents ?DIGITAL ?AUDIO)
-        (part ?DIGITAL ?DISC)
-        (instance ?RS RadiatingSound)
-        (subProcess ?RS ?PROC)
-        (instrument ?RS ?PLAYER)
-        (patient ?RS ?DISC)))))
-                
-(subclass DVDSystem MediaSystem)
-(documentation DVDSystem EnglishLanguage "&%DVDSystem is a type of &%MediaSystem
-that is able to play the contents of &%VideoRecording and &%AudioRecording stored
-in a &%DVD")
-(termFormat EnglishLanguage DVDSystem "dvd player")
-
-(=>
-  (instance ?X DVDSystem)
-  (hasPurpose ?X
-    (exists (?DVD ?PROC)
-      (and
-        (instance ?DVD DVD)
-        (instrument ?PROC ?X)
-        (patient ?PROC ?DVD)
-        (or
-          (exists (?VIDEO ?DVIDEO ?RL)
-            (and
-              (instance ?VIDEO VideoRecording)
-              (represents ?DVIDEO ?VIDEO)
-              (part ?DVIDEO ?DVD)
-              (instance ?RL RadiatingLight)
-              (subProcess ?RL ?PROC)
-              (instrument ?RL ?X)
-              (patient ?RL ?VIDEO)))
-          (exists (?AUDIO ?DAUDIO ?RS)
-            (and        
-              (instance ?AUDIO AudioRecording)
-              (represents ?DAUDIO ?AUDIO)
-              (part ?DAUDIO ?DVD)
-              (instance ?RS RadiatingSound)
-              (subProcess ?RS ?PROC)
-              (instrument ?RS ?X)
-              (patient ?RL ?AUDIO))))))))
-
-(subclass VCRSystem MediaSystem)
-(documentation VCRSystem EnglishLanguage "&%VCRSystem is a type of &%MediaSystem that
-can play &%AudioRecording and &%VideoRecording that is stored in a &%VHS")
-(termFormat EnglishLanguage VCRSystem "vcr system")
-
-(=>
-  (instance ?VCR VCRSystem)
-  (hasPurpose ?VCR
-    (exists (?VHS ?PROC ?VIDEO ?AVIDEO ?RL ?AUDIO ?AAUDIO ?RS)
-      (and
-        (instance ?VHS VHSCassette)
-        (instrument ?PROC ?VCR)
-        (patient ?PROC ?VHS)
-        (instance ?VIDEO VideoRecording)
-        (represents ?AVIDEO ?VIDEO)
-        (part ?VIDEO ?VHS)
-        (instance ?AUDIO AudioRecording)
-        (represents ?AAUDIO ?AUDIO)
-        (part ?AAUDIO ?AVIDEO)
-        (part ?AUDIO ?VHS)
-        (instance ?RL RadiatingLight)
-        (patient ?RL ?VIDEO)
-        (subProcess ?RL ?PROC)
-        (instance ?RS RadiatingSound)
-        (patient ?RS ?AUDIO)
-        (subProcess ?RS ?PROC)))))
-        
-(subclass PrayerMat Rug)
-(documentation PrayerMat EnglishLanguage "&%PrayerMat is a type of &%Rug which is used
-in &%Praying")
-(termFormat EnglishLanguage PrayerMat "prayer mat")
-
-(=>
-  (instance ?MAT PrayerMat)
-  (hasPurpose ?MAT
-    (exists (?PRAY ?PERSON)
-      (and
-        (instance ?PRAY Praying)
-        (agent ?PRAY ?PERSON)
-        (instance ?PERSON Human)
-        (holdsDuring (WhenFn ?PRAY)
-          (orientation ?PERSON ?MAT On))))))
-
-(subclass VideoGame Game)
-(documentation VideoGame EnglishLanguage "&%VideoGame is a &%Game in &%VideoRecording
-form")
-(termFormat EnglishLanguage VideoGame "video game")
-
-(=>
-  (instance ?GAME VideoGame)
-  (exists (?VIDEO)
-    (and
-      (instance ?VIDEO VideoRecording)
-      (represents ?VIDEO ?GAME))))
-  
-(subclass VideoGamePlayer MediaSystem)
-(documentation VideoGamePlayer EnglishLanguage "&%VideoGamePlayer is a &%MediaSystem
-that enables the playing of a &%VideoGame")
-(termFormat EnglishLanguage VideoGamePlayer "video game player")
-
-(=>
-  (instance ?X VideoGamePlayer)
-  (hasPurpose ?X
-    (exists (?GAME ?RL ?MOVE ?CONTROLLER ?PLAYER)
-      (and
-        (instance ?GAME VideoGame)
-        (instrument ?GAME ?X)
-        (agent ?GAME ?PLAYER)
-        (instance ?MOVE Maneuver)
-        (instrument ?MOVE ?CONTROLLER)
-        (agent ?MOVE ?PLAYER)
-        (subProcess ?MOVE ?GAME)
-        (part ?CONTROLLER ?X)
-        (instance ?RL RadiatingLight)
-        (agent ?RL ?X)
-        (patient ?RL ?GAME)))))
-          
-          
-(subclass BabyMonitoringSystem RadioSystem)
-(documentation BabyMonitoringSystem EnglishLanguage "&%BabyMonitoringSystem refers to
-the radio system that &%Broadcasting at 49Mhz, consisting of a transmitter and receiver,
-where the transmitter is kept where the baby is kept, and the receiver is kept with
-the person looking after the baby to be able to hear sounds and monitor the baby")
-(termFormat EnglishLanguage BabyMonitoringSystem "baby monitor")
-
-(=>
-  (instance ?X BabyMonitoringSystem)
-  (exists (?TX ?RX)
-    (and
-      (instance ?RX RadioReceiver)
-      (instance ?TX Device)
-      (engineeringSubcomponent ?RX ?X)
-      (engineeringSubcomponent ?TX ?X)
-      (hasPurpose ?X
-        (exists (?BABY ?CARER ?SOUND ?LOC1 ?LOC2 ?PROC ?RADIO)
-          (and
-            (instance ?BABY HumanBaby)
-            (instance ?CARER Human)
-            (located ?BABY ?LOC1)
-            (located ?CARER ?LOC2)
-            (not (equal ?LOC1 ?LOC2))
-            (instance ?PROC Maintaining)
-            (patient ?PROC ?BABY)
-            (agent ?PROC ?CARER)
-            (located ?TX ?LOC1)
-            (located ?RX ?LOC2)
-            (instance ?SOUND RadiatingSound)
-            (located ?SOUND ?LOC1)
-            (instance ?RADIO RadioEmission)
-            (patient ?RADIO ?SOUND)
-            (destination ?RADIO ?RX)
-            (agent ?RADIO ?TX)))))))
-            
-(subclass RemoteControl Controller)
-(documentation RemoteControl EnglishLanguage "&%RemoteControl is &%Controller that 
-does some &%ElectronicSignalling to communicate and control another &%Device")
-(termFormat EnglishLanguage RemoteControl "remote control")
-
-(=>
-  (instance ?X RemoteControl)
-  (hasPurpose ?X
-    (exists (?SIGNAL ?DEVICE)
-      (and
-        (instance ?SIGNAL ElectronicSignalling)
-        (agent ?SIGNAL ?X)
-        (destination ?SIGNAL ?DEVICE)
-        (instance ?DEVICE Device)
-        (not (equal ?X ?DEVICE))))))
-        
-(subclass TVRemoteControl RemoteControl)
-(documentation TVRemoteControl EnglishLanguage "&%TVRemoteControl is a type of 
-&%RemoteControl that signals to a &%TelevisionReceiver")
-(termFormat EnglishLanguage TVRemoteControl "tv remote")
-
-(=>
-  (instance ?X TVRemoteControl)
-  (hasPurpose ?X
-    (exists (?SIGNAL ?DEVICE)
-      (and
-        (instance ?SIGNAL ElectronicSignalling)
-        (agent ?SIGNAL ?X)
-        (destination ?SIGNAL ?DEVICE)
-        (instance ?DEVICE TelevisionReceiver)))))
-
-(subclass ElectricalOutlet Device)
-(documentation ElectricalOutlet EnglishLanguage "&%ElectricalOutlet refers to a 
-&%Device that is used to connect a plug to a power source so that &%Electricity can 
-flow from the source to an &%ElectricDevice")
-(termFormat EnglishLanguage ElectricalOutlet "electrical outlet")
-
-(=>
-  (instance ?X ElectricalOutlet)
-  (exists (?HOLE)
-    (and
-      (instance ?HOLE Collection)
-      (memberType ?HOLE Hole)
-      (part ?HOLE ?X))))
       
-(=>
-  (instance ?X ElectricalOutlet)
-  (hasPurpose ?X
-    (exists (?POWER ?WIRE)
-      (and
-        (instance ?POWER PowerSource)
-        (instance ?WIRE Collection)
-        (memberType ?WIRE WireLine)
-        (connectsEngineeringComponents ?WIRE ?X ?POWER)))))
-
-(subclass ElectricalPlug Plug)
-(documentation ElectricalPlug EnglishLanguage "&%ElectricalPlug is a type of &%Plug 
-made of metal that is normally used to conduct electricity from an &%ElectricalOutlet
-to an &%ElectricalDevice")
-(termFormat EnglishLanguage ElectricalPlug "electrical plug")
-
-(=>
-  (instance ?X ElectricalPlug)
-  (material Metal ?X))
-  
-(=>
-  (instance ?X ElectricalPlug)
-  (hasPurpose ?X
-    (exists (?OUTLET)
-      (and
-        (instance ?OUTLET ElectricalOutlet)
-        (completelyFills ?X ?OUTLET)))))
-        
-(=>
-  (and
-    (instance ?PLUG ElectricalPlug)
-    (instance ?DEVICE ElectricalDevice)
-    (instance ?OUTLET ElectricalOutlet)
-    (connectedEngineeringComponents ?DEVICE ?PLUG)
-    (completelyFills ?PLUG ?OUTLET)
-    (instance ?POWER PowerSource)
-    (connectedEngineeringComponents ?POWER ?OUTLET))
-  (exists (?RE)
-    (and
-      (instance ?RE RadiatingElectromagnetic)
-      (origin ?RE ?POWER)
-      (destination ?RE ?DEVICE))))
-
-(subclass OutletAdapter Device)
-(documentation OutletAdapter EnglishLanguage "An &%OutletAdapter is a device that, on
-one side has &%Hole and on another side has metal prongs so that an &%ElectricalPlug
-can fit into an &%ElectricalOutlet")
-(termFormat EnglishLanguage OutletAdapter "outlet adapter")
-
-(=>
-  (instance ?ADAPT OutletAdapter)
-  (exists (?HOLE)
-    (and
-      (instance ?HOLE Collection)
-      (memberType ?HOLE Hole)
-      (part ?HOLD ?ADAPT)
-      (material Metal ?ADAPT))))
-      
-(=>
-  (instance ?ADAPT OutletAdapter)
-  (hasPurpose ?ADAPT
-    (exists (?OUTLET ?PLUG)
-      (and
-        (instance ?PLUG ElectricalPlug)
-        (instance ?OUTLET ElectricalOutlet)
-        (completelyFills ?PLUG ?ADAPT)
-        (completelyFills ?ADAPT ?OUTLET)
-        (connectsEngineeringComponents ?ADAPT ?PLUG ?OUTLET)))))
-
-(subclass AirConditioner ElectricDevice)
-(documentation AirConditioner EnglishLanguage "&%AirConditioner is a type of
-&%ElectricDevice that is designed to provide comfort during hot or cold weather by
-keeping the air in an area a specific temperature")
-(termFormat EnglishLanguage AirConditioner "air conditioner")
-
-(=>
-  (instance ?X AirConditioner)
-  (hasPurpose ?X
-    (exists (?PROC ?TEMP ?AREA)
-      (and
-        (located ?X ?AREA)
-        (instance ?PROC Process)
-        (instrument ?PROC ?X)
-        (result ?PROC (airTemperature ?AREA ?TEMP))))))
-
-(instance Surrounded PositionalAttribute)
-(documentation Surrounded EnglishLanguage "&%Surrounded describes how an object or a
-collection of objects &%meetsSpatially with all sides of another object")
-(termFormat EnglishLanguage Surround "surround")
-
-(=>
-  (orientation ?OBJ1 ?OBJ2 Surrounded)
-  (forall (?X)
-    (=>
-      (side ?X ?OBJ1)
-      (meetsSpatially ?X ?OBJ2))))
-          
-(subclass Courtyard StationaryArtifact)
-(documentation Courtyard EnglishLanguage "&%Courtyard is an unroofed area wholly or 
-partly surrounded by walls or buildings")
-(termFormat EnglishLanguage Courtyard "courtyard")
-
-(=>
-  (instance ?X Courtyard)
-  (and
-    (not
-      (exists (?ROOF)
-        (and
-          (instance ?ROOF Roof)
-          (top ?ROOF ?X))))
-    (exists (?BLDG)
-      (and
-        (instance ?BLDG Building)
-        (orientation ?X ?BLDG Surrounded)))))
-        
-(subclass SpeakerDevice ElectricDevice)
-(documentation SpeakerDevice EnglishLanguage "&%SpeakerDevice is a type of device that
-converts electrical signals into sounds loud enough to be heard at a distance")
-(termFormat EnglishLanguage SpeakerDevice "speaker")
-
-(=>
-  (instance ?X SpeakerDevice)
-  (hasPurpose ?X
-    (exists (?RS)
-      (and
-        (instance ?RS RadiatingSound)
-        (instrument ?RS ?X)
-        (attribute ?RS Audible)))))
-
-(subclass Earphone Device)
-(documentation Earphone EnglishLanguage "&%Earphone is a type of &%Device that that
-converts electric signals into sound and is usually held over or inserted in the ear")
-(termFormat EnglishLanguage Earphone "earphone")
-
-(=>
-  (instance ?X Earphone)
-  (hasPurpose ?X
-    (exists (?ES ?RS ?SIGNAL ?EAR ?PROC)
-      (and
-        (instance ?ES ElectricalSignalling)
-        (patient ?ES ?SIGNAL)
-        (destination ?ES ?X)
-        (instance ?PROC Process)
-        (instrument ?PROC ?X)
-        (patient ?PROC ?SIGNAL)
-        (result ?PROC ?RS)
-        (instance ?RS RadiatingSound)
-        (origin ?RS ?X)
-        (before 
-          (BeginFn (WhenFn ?ES))
-          (BeginFn (WhenFn ?PROC)))
-        (before 
-          (BeginFn (WhenFn ?PROC))
-          (BeginFn (WhenFn ?RS)))
-        (instance ?EAR Ear)
-        (orientation ?X ?EAR Adjacent)))))
-        
-        
-(subclass PublicAddressSystem CommunicationSystem)
-(documentation PublicAddressSystem EnglishLanguage "&%PublicAddressSystem refers to an
-electronic amplification system used as a communication system in public areas")
-(termFormat EnglishLanguage PublicAddressSystem "public address system")
-
-(=>
-  (instance ?X PublicAddressSystem)
-  (and
-    (memberType ?X Microphone)
-    (memberType ?X SpeakerDevice)))
-
-(=>
-  (instance ?X PublicAddressSystem)
-  (hasPurpose ?X
-    (exists (?RS ?AREA ?GRP)
-      (and
-        (instance ?AREA LandArea)
-        (located ?X ?AREA)
-        (instance ?GRP GroupOfPeople)
-        (located ?GRP ?AREA)
-        (instance ?RS RadiatingSound)
-        (instrument ?RS ?X)
-        (forall (?PERSON)
-          (=>
-            (member ?PERSON ?GRP)
-            (exists (?HEAR)
-              (and
-                (instance ?HEAR Hearing)
-                (patient ?HEAR ?RS)
-                (agent ?HEAR ?PERSON)))))))))
-
-(subclass Wheelchair LandVehicle)
-(documentation Wheelchair EnglishLanguage "&%Wheelchair is a type of &%LandVehicle 
-that is used to individually transport those who cannot walk")
-(termFormat EnglishLanguage Wheelchair "wheelchair")
-
-(=>
-  (instance ?X Wheelchair)
-  (exists (?WHEEL ?SEAT)
-    (and
-      (instance ?SEAT Seat)
-      (instance ?WHEEL Wheel)
-      (part ?SEAT ?X)
-      (part ?WHEEL ?X))))
-      
-(=>
-  (instance ?X Wheelchair)
-  (hasPurpose ?X
-    (exists (?TRANSPORT ?HUMAN)
-      (and
-        (instance ?HUMAN Human)
-        (not (capability Walking agent ?HUMAN))
-        (instance ?TRANSPORT Transportation)
-        (agent ?TRANSPORT ?HUMAN)
-        (instrument ?TRANSPORT ?X)))))
-
-(instance WheelchairAccessible ObjectiveNorm)
-(documentation WheelchairAccessible EnglishLanguage "&%WheelchairAccessible describes
-how a location lets a person using a wheelchair move around without interference and 
-with access to all features of that place.")
-(termFormat EnglishLanguage WheelchairAccessible "wheelchair accessible")
-
-(=>
-  (attribute ?X WheelchairAccessible)
-  (attribute ?X HandicappedFriendly))
-
-(=>
-  (and
-    (attribute ?X WheelchairAccessible)
-    (or
-      (instance ?X Building)
-      (instance ?X Room)))
-  (modalAttribute
-    (exists (?MOTION ?WHEELCHAIR)
-      (and
-        (instance ?MOTION Motion)
-        (instrument ?MOTION ?WHEELCHAIR)
-        (instance ?WHEELCHAIR Wheelchair)
-        (located ?MOTION ?X))) Possibility))
-
-(instance HandicappedFriendly SubjectiveAssessmentAttribute)
-(documentation HandicappedFriendly EnglishLanguage "&%HandicappedFriendly describes an 
-object that can be easily used by somebody who has some &%Disability")
-(termFormat EnglishLanguage HandicappedFriendly "handicapped friendly")
-
-(=>
-  (attribute ?X HandicappedFriendly)
-  (instance ?X Object))
-  
-(=>
-  (attribute ?X HandicappedFriendly)
-  (exists (?ATTR ?PERSON)
-    (and
-      (instance ?ATTR Disability)
-      (instance ?PERSON Human)
-      (attribute ?PERSON ?ATTR)
-      (inScopeOfInterest ?PERSON ?X))))
-        
-        
-(subclass Recliner Seat)
-(documentation Recliner EnglishLanguage "&%Recliner is a type of &%Seat whose back can
-be lowered and the foot can be rasied to allow the sitter to recline in it.")
-(termFormat EnglishLanguage Recliner "recliner")
-
-(=>
-  (instance ?X Recliner)
-  (modalAttribute
-    (exists (?INCLINE)
-      (and
-        (instance ?INCLINE Inclining)
-        (patient ?INCLINE ?X))) Possibility))
-
-(subclass MultimediaProjector MediaSystem)
-(documentation MultimediaProjector EnglishLanguage "&%MultimediaProjector is a type
-of &%MediaSystem that projects images on a screen")
-(termFormat EnglishLanguage MultimediaProject "multimedia projector")
-
-(=>
-  (instance ?X MultimediaProjector)
-  (hasPurpose ?X
-    (exists (?RS ?SCREEN ?VIDEO)
-      (and
-        (instance ?RS RadiatingLight)
-        (instrument ?RS ?X)
-        (patient ?RS ?VIDEO)
-        (or
-          (instance ?VIDEO VideoRecording)
-          (instance ?VIDEO Image))
-        (destination ?RS ?SCREEN)
-        (instance ?SCREEN Artifact)
-        (attribute ?SCREEN Flat)
-        (not (connected ?X ?SCREEN))))))
-
-(subclass AudioRecorder Device)
-(documentation AudioRecorder EnglishLanguage "&%AudioRecorder is a type of &%Device
-that creates an &%AudioRecording by capturing sound and storing it in a &%DataStorageDevice")
-(termFormat EnglishLanguage AudioRecorder "audio recorder")
-
-(=>
-  (instance ?X AudioRecorder)
-  (hasPurpose ?X
-    (exists (?RS ?RECORD ?PROC)
-      (and
-        (instance ?RS RadiatingSound)
-        (instance ?PROC IntentionalProcess)
-        (instrument ?PROC ?X)
-        (patient ?PROC ?RS)
-        (result ?PROC ?RECORD)
-        (instance ?RECORD AudioRecording)))))
-        
-(subclass TapeRecorder AudioRecorder)
-(documentation TapeRecorder EnglishLanguage "&%TapeRecorder is a type of &%AudioRecorder
-that stores the recorded &%AudioRecording on a &%RecordingTape")
-(termFormat EnglishLanguage TapeRecorder "tape recorder")
-
-(=>
-  (instance ?X TapeRecorder)
-  (hasPurpose ?X
-    (exists (?AUDIO ?TAPE ?PROC)
-      (and
-        (instance ?PROC IntentionalProcess)
-        (instrument ?PROC ?X)
-        (result ?PROC ?AUDIO)
-        (instance ?AUDIO AudioRecording)
-        (instance ?TAPE RecordingTape)
-        (holdsDuring ?PROC
-          (connected ?TAPE ?X))
-        (before 
-          (BeginFn (WhenFn ?PROC))
-          (BeginFn (WhenFn (part ?AUDIO ?TAPE))))))))
-       
-
-(subclass VideoDisplay ElectricDevice)
-(documentation VideoDisplay EnglishLanguage "&%VideoDisplay is a type of &%ElectricDevice
-that can &%RadiatingLight to show &%VideoRecording")
-(termFormat EnglishLanguage VideoDisplay "video display")
-
-(=>
-  (instance ?X VideoDisplay)
-  (hasPurpose ?X
-    (exists (?RL ?VIDEO)
-      (and
-        (instance ?RL RadiatingLight)
-        (instance ?VIDEO VideoRecording)
-        (patient ?RL ?VIDEO)
-        (instrument ?RL ?X)))))
-
-(subclass SatelliteTelevisionSystem CommunicationSystem)
-(documentation SatelliteTelevisionSystem EnglishLanguage "&%SatelliteTelevisionSystem       
-is a &%CommunicationSystem where &%ArtificialSatellite is used to transfer TV signals")
-(termFormat EnglishLanguage SatelliteTelevisionSystem "satellite tv")
-
-(=>
-  (instance ?TV SatelliteTelevisionSystem)
-  (exists (?SAT ?RECEIVE)
-    (and
-      (instance ?SAT ArtificialSatellite)
-      (member ?SAT ?TV)
-      (instance ?RECEIVE TelevisionReceiver)
-      (member ?RECEIVE ?TV))))
-
-(subclass TelevisionSet ElectricDevice)
-(documentation TelevisionSet EnglishLanguage "&%TelevisionSet is an &%ElectricDevice
-comprised of a &%TelevisionReceiver and some form of &%VideoDisplay and is part of
-a &%TelevisionSystem")
-(termFormat EnglishLanguage TelevisionSet "television set")
-
-(=>
-  (instance ?TV TelevisionSet)
-  (exists (?RECEIVER ?DISPLAY)
-    (and
-      (instance ?RECEIVER TelevisionReceiver)
-      (instance ?DISPLAY VideoDisplay)
-      (part ?RECEIVER ?TV)
-      (part ?DISPLAY ?TV))))
-      
-(subclass TemperatureControl Controller)
-(documentation TemperatureControl EnglishLanguage "&%TemperatureControl is a type
-of &%Controller that is used to set the ideal &%airTemperature in the room. It is normally
-a part of an &%ElectricDevice that conditions the room to reach that temperature")
-(termFormat EnglishLanguage TemperatureControl "temperature control")
-
-(=>
-  (instance ?CTRL TemperatureControl)
-  (exists (?DEVICE ?TEMP)
-    (and
-      (instance ?DEVICE ElectricDevice)
-      (part ?CTRL ?DEVICE)
-      (hasPurpose ?DEVICE
-        (exists (?PROC ?AREA)
-          (and
-            (instance ?AREA Region)
-            (instance ?PROC Process)
-            (instrument ?PROC ?X)
-            (result ?PROC (airTemperature ?AREA ?TEMP))))))))
-            
+;; axiom for temperature control as a physical amenity      
 (=>
   (physicalAmenity ?HR TemperatureControl)
   (exists (?DEVICE ?ROOM ?TEMP)
@@ -2723,180 +1425,6 @@ a part of an &%ElectricDevice that conditions the room to reach that temperature
       (located ?TEMP ?ROOM)
       (part ?TEMP ?DEVICE))))
 
-(subclass TDDPhone Telephone)
-(documentation TDDPhone EnglishLanguage "&%TDDPhone, which stands for Telecommunications
-Device for the Deaf, describes a &%Telephone that is designed so that &%Deaf people can 
-use it")
-
-(=>
-  (instance ?TDD TDDPhone)
-  (hasPurpose ?TDD
-    (exists (?AGENT ?PHONING)
-      (and
-        (instance ?PHONING Telephoning)
-        (instrument ?PHONING ?TDD)
-        (agent ?PHONING ?AGENT)
-        (attribute ?AGENT Deaf)))))
-      
-(subclass Sail Artifact)
-(documentation Sail EnglishLanguage "&%Sail refers to an &%Artifact made of some type
-of &%Fabric which by means of which wind is used to propel a sailing vessel")
-(termFormat EnglishLanguage Sail "sail")
-
-(=>
-  (instance ?SAIL Sail)
-  (exists (?MAST)
-    (and
-      (material Fabric ?SAIL)
-      (instance ?MAST Mast)
-      (connected ?SAIL ?MAST))))
-
-(subclass ACPowerSource PowerSource)
-(documentation ACPowerSource EnglishLanguage "&%ACPowerSource refers to an alternating
-current &%PowerSource")
-(termFormat EnglishLanguage ACPowerSource "ac power source")
-
-(subclass SinglePhasePowerSource ACPowerSource)
-(subclass ThreePhasePowerSource ACPowerSource)
-
-(instance voltageMeasure BinaryPredicate)
-(documentation voltageMeasure EnglishLanguage "(&%voltageMeasure ?OBJ ?MEAS) describes
-how much electricity ?OBJ, a power source, generates")
-(termFormat EnglishLanguage voltageMeasure "voltage measure")
-
-(domain voltageMeasure 1 PowerSource)
-(domain voltageMeasure 2 Measure)
-
-(=>
-  (voltageMeasure ?OBJ ?MEAS)
-  (equal ?MEAS (MeasureFn ?QUANT Volt)))
-  
-(=>
-  (voltageMeasure ?OBJ ?MEAS)
-  (exists (?ELEC ?PROC)
-    (and
-      (instance ?ELEC Electricity)
-      (instance ?PROC Process)
-      (instrument ?PROC ?OBJ)
-      (result ?PROC ?ELEC)
-      (measure ?ELEC ?MEAS))))
-     
-(subclass GuideBook Book)
-(documentation GuideBook EnglishLanguage "&%GuideBook is a type of &%Book that offers
-basic information about a place, normally designed for the use of visitors or tourists.")
-(termFormat EnglishLanguage GuideBook "guide book")
-
-(=>
-  (instance ?X GuideBook)
-  (exists (?LOC)
-    (and
-      (instance ?LOC GeographicArea)
-      (refers ?X ?LOC))))
-      
-(subclass DiningGuide GuideBook)
-(documentation DiningGuide EnglishLanguage "&%DiningGuide is a type of &%GuideBook that
-offers information about dining places around a specific location")
-(termFormat EnglishLanguage DiningGuide "dining guide")
-
-(=>
-  (instance ?X DiningGuide)
-  (exists (?LOC ?REST)
-    (and
-      (instance ?LOC GeographicArea)
-      (refers ?X ?LOC)
-      (instance ?REST Restaurant)
-      (located ?REST ?LOC)
-      (refers ?X ?REST))))
-
-(subclass TelephoneHandset Device)
-(documentation TelephoneHandset EnglishLanguage "&%TelephoneHandset is the part of the
-&%Telephone that has a &%Earphone and a &%Microphone for the transmission and reception
-of sound")
-(termFormat EnglishLanguage TelephoneHandset "telephone handset")
-
-(=>
-  (instance ?X TelephoneHandset)
-  (exists (?EARPHONE ?MIC)
-    (and
-      (instance ?EARPHONE Earphone)
-      (instance ?MIC Microphone)
-      (part ?EARPHONE ?X)
-      (part ?MIC ?X))))
-      
-(subclass TelephoneCradle Device)
-(documentation TelephoneCradle EnglishLanguage "&%TelephoneCradle is the part of the
-&%Telephone that is connected to the &%TelephoneSystem through some wire.")
-(termFormat EnglishLanguage TelephoneCradle "telephone cradle")
-
-(=>
-  (instance ?X TelephoneCradle)
-  (hasPurpose ?X
-    (exists (?SYS ?WIRE)
-      (and
-        (instance ?SYS TelephoneSystem)
-        (instance ?WIRE WireLine)
-        (connectsEngineeringComponents ?WIRE ?X ?SYS)))))
-
-(subclass CordedTelephone FixedPhone)
-(documentation CordedTelephone EnglishLanguage "&%CordedTelephone is a type of &%FixedPhone 
-whose &%TelephoneHandset is connected to its &%TelephoneCradle by a &%WireLine")
-(termFormat EnglishLanguage CordedTelephone "corded telephone")
-
-(=>
-  (instance ?X CordedTelephone)
-  (exists (?HANDSET ?CRADLE ?WIRE)
-    (and
-      (instance ?HANDSET TelephoneHandset)
-      (instance ?CRADLE TelephoneCradle)
-      (part ?HANDSET ?X)
-      (part ?CRADLE ?X)
-      (instance ?WIRE WireLine)
-      (connectsEngineeringComponents ?WIRE ?HANDSET ?CRADLE))))
-        
-(subclass CordlessTelephone FixedPhone)
-(documentation CordlessTelephone EnglishLanguage "&%CordlessTelephone is a type of 
-&%FixedPhone whose &%TelephoneHandset is not connected to its &%TelephoneCradle by a 
-&%WireLine")
-(termFormat EnglishLanguage CordlessTelephone "cordless telephone")
-
-(=>
-  (instance ?X CordlessTelephone)
-  (exists (?HANDSET ?CRADLE)
-    (and
-      (instance ?HANDSET TelephoneHandset)
-      (instance ?CRADLE TelephoneCradle)
-      (part ?HANDSET ?X)
-      (part ?CRADLE ?X)
-      (not 
-        (exists (?WIRE)
-          (and
-            (instance ?WIRE WireLine)
-            (connectsEngineeringComponents ?WIRE ?HANDSET ?CRADLE)))))))
-
-(subclass FireAlarm Device)
-(documentation FireAlarm EnglishLanguage "&%FireAlarm is a &%Device that releases
-a distinctive noise to inform people that there is a &%Fire")
-(termFormat EnglishLanguage FireAlarm "fire alarm")
-            
-(=>
-  (and
-    (instance ?X FireAlarm)
-    (attribute ?X DeviceOn)
-    (located ?X ?LOC))
-  (exists (?RS)
-    (and
-      (instance ?RS RadiatingSound)
-      (instrument ?RS ?X)
-      (hasPurpose ?RS
-        (exists (?GRP)
-          (and
-            (instance ?GRP GroupOfPeople)
-            (located ?GRP ?LOC)
-            (knows ?GRP 
-              (exists (?FIRE)
-                (and
-                  (instance ?FIRE Fire)
-                  (located ?FIRE ?LOC))))))))))
 
 ;; additional axiom for InRoom movies
 (=>
@@ -2914,51 +1442,6 @@ a distinctive noise to inform people that there is a &%Fire")
             (instrument ?RL ?MS)
             (patient ?RL ?MP))) Possibility))))
 
-(subclass GrabBar Artifact)
-(documentation GrabBar EnglishLanguage "&%GrabBar is a bar attached to a &%Wall to
-provide a handgrip for steadying yourself")
-(termFormat EnglishLanguage GrabBar "grab bar")
-
-(=>
-  (instance ?X GrabBar)
-  (and
-    (exists (?WALL)
-      (and
-        (instance ?WALL Wall)
-        (connected ?X ?WALL)))
-    (hasPurpose ?X
-      (exists (?GRAB)
-        (and
-          (instance ?GRAB Grabbing)
-          (instrument ?GRAB ?X))))))
-          
-(=>
-  (instance ?X GrabBar)
-  (modalAttribute
-    (exists (?HUMAN)
-      (and
-        (attribute ?HUMAN PhysicalDisability)
-        (inScopeOfInterest ?HUMAN ?X))) Likely))
-
-(subclass HighRise Building)
-(documentation HighRise EnglishLanguage "&%HighRise refers to a type of &%Building
-that has greater than 10 &%BuildingLevel")
-(termFormat EnglishLanguage HighRise "high rise")
-
-(=>
-  (instance ?X HighRise)
-  (exists (?LEVELS ?NUM)
-    (and
-      (instance ?LEVELS Collection)
-      (forall (?FLR)
-        (=>
-          (and
-            (instance ?FLR BuildingLevel)
-            (part ?FLR ?X))
-          (member ?FLR ?LEVELS)))
-      (memberCount ?LEVELS ?NUM)
-      (greaterThanOrEqualTo ?NUM 10))))
-
 ;; axiom for hotel employing a tennis professional  
 (=>
   (and
@@ -2975,272 +1458,8 @@ that has greater than 10 &%BuildingLevel")
         (located ?TENNIS ?LOC)
         (located ?HOTEL ?LOC))) Possibility))
       
-(subclass Soaking Wetting)
-(documentation Soaking EnglishLanguage "&%Soaking refers to the process of &%Wetting
-wherein an &%Object is &%Surrounded by &%Water")
-(termFormat EnglishLanguage Soaking "soaking")
-
-(=>
-  (instance ?SOAK Soaking)
-  (exists (?WATER ?OBJ)
-    (and
-      (instance ?OBJ Object)
-      (patient ?SOAK ?OBJ)
-      (instance ?WATER Water)
-      (resource ?SOAK ?WATER)
-      (holdsDuring ?SOAK
-        (orientation ?OBJ ?WATER Surrounded)))))
-
-(subclass GrecianTub BathTub)
-(documentation GrecianTub EnglishLanguage "&%GrecianTub is a combination of soaking tubs
-and standard tubs, meaning it has inreased depth for soaking, but can fit into tight
-spaces by not being as long as standard tubs")
-(termFormat EnglishLanguage GrecianTub "grecian tub")
-
-(=>
-  (instance ?X GrecianTub)
-  (hasPurpose ?X
-    (exists (?HUMAN ?SOAK)
-      (and
-        (instance ?SOAK Soaking)
-        (instance ?HUMAN Human)
-        (agent ?SOAK ?HUMAN)
-        (patient ?SOAK ?HUMAN)
-        (located ?SOAK ?X)))))
-       
-(subclass HemisphereFigure ThreeDimensionalFigure)
-(documentation HemisphereFigure EnglishLanguage "&%HemisphereFigure describes a figure
-that is half of a &%Sphere")
-(termFormat EnglishLanguage HemisphereFigure "hemisphere")
-
-(=>
-  (and
-    (attribute ?X ?HEMI)
-    (instance ?HEMI HemisphereFigure))
-  (exists (?Y)
-    (and
-      (instance ?Y Sphere)
-      (half ?HEMI ?Y))))
+(subclass Fax ArtifactMediatedCommunication)
       
-(subclass Dome Ceiling)
-(documentation Dome EnglishLanguage "&%Dome is a type of &%Ceiling with a &%HemisphereFigure
-shape")
-(termFormat EnglishLanguage Dome "dome")
-
-(=>
-  (instance ?X Dome)
-  (exists (?HEMI)
-    (and
-      (attribute ?X ?HEMI)
-      (instance ?HEMI HemisphereFigure))))
-
-(instance Historical RelationalAttribute)
-(documentation Historical EnglishLanguage "&%Historical describes something that was
-important in &%History")
-(termFormat EnglishLanguage Historical "historical")
-
-(=>
-  (attribute ?X Historical)
-  (instance ?X Physical))
-  
-(=>
-  (attribute ?X Historical)
-  (refers History ?X))
-
-(=>
-  (and
-    (attribute ?X Historical)
-    (instance ?X City))
-  (exists (?EV)
-    (and
-      (instance ?EV Physical)
-      (attribute ?EV Historical)
-      (located ?EV ?X))))
-
-(instance Rural RelationalAttribute)
-(documentation Rural EnglishLanguage "&%Rural describes that is characteristic of
-country life as opposed to the city life")
-(termFormat EnglishLanguage Rural "rural")
-
-(instance Suburban RelationalAttribute)
-(documentation Suburban EnglishLanguage "&%Suburban describes something that is 
-characteristic of a residential district on the outskirts of a city")
-(termFormat EnglishLanguage Suburban "suburban")
-
-(instance Urban RelationalAttribute)
-(documentation Urban EnglishLanguage "&%Urban describes something that is characteristic
-of a city or city life")
-(termFormat EnglishLanguage Urban "urban")
-
-(subclass Patio Region)
-(documentation Patio EnglishLanguage "&%Patio refers to an &%Region adjoining a building,
-usually &%Paved, that is used for outdoor activities")
-(termFormat EnglishLanguage Patio "patio")
-
-(=>
-  (instance ?X Patio)
-  (and
-    (modalAttribute
-      (attribute ?X Paved) Likely)
-    (exists (?BLDG)
-      (and
-        (instance ?BLDG Building)
-        (orientation ?X ?BLDG Adjacent)
-        (located ?X Outdoors)))))
-        
-(subclass Lanai Patio)
-(subclass Lanai StationaryArtifact)
-(documentation Lanai EnglishLanguage "&%Lanai refers to a roofed outdoor area %&Adjacent
-to a &%Building often furnished and used as a living room")
-
-(=>
-  (instance ?X Lanai)
-  (exists (?ROOF)
-    (and
-      (instance ?ROOF Roof)
-      (part ?ROOF ?X)
-      (modalAttribute
-        (exists (?AREA)
-          (and
-            (instance ?AREA SittingArea)
-            (located ?AREA ?X))) Likely))))
-
-(subAttribute WaterThemePark AmusementAndThemeParks)
-(documentation WaterThemePark EnglishLanguage "&%WaterThemePark is an &%AmusementAndThemeParks
-that features waterplay areas, such as water slides, splash pads, spraygrounds, and 
-swimming pools")
-(termFormat EnglishLanguage WaterThemePark "water theme park")
-
-(=>
-  (attribute ?X WaterThemePark)
-  (exists (?POOL)
-    (and
-      (instance ?POOL SwimmingPool)
-      (element ?POOL (PropertyFn ?X)))))
-      
-(subclass WaterParkTicket Ticket)
-(documentation WaterParkTicket EnglishLanguage "&%WaterParkTicket is a type of 
-&%Ticket that gains a person entry to a &%WaterThemePark")
-(termFormat EnglishLanguage WaterParkTicket "water park ticket")
-
-(=>
-  (instance ?T WaterParkTicket)
-  (exists (?ORG)
-    (and
-      (attribute ?ORG WaterThemePark)
-      (issuedBy ?T ?ORG))))
-      
-(=>
-  (and
-    (instance ?T Ticket)
-    (possesses ?T ?CUST)
-    (issuedBy ?T ?ORG)
-    (attribute ?ORG AmusementGamblingAndRecreationIndustries)
-    (located ?ORG ?LOC))
-  (confersNorm ?ORG
-    (exists (?REC)
-      (and
-        (instance ?REC RecreationOrExercise)
-        (experiencer ?REC ?CUST)
-        (located ?REC ?LOC))) Permission))
-
-(instance hasUniform BinaryPredicate) 
-(documentation hasUniform EnglishLanguage "(&%hasUniform ?GRP ?UNIFORM) means that
-?GRP is associated or identified by ?UNIFORM and members of ?GRP are expected to wear
-?UNIFORM")
-(termFormat EnglishLanguage hasUniform "has uniform")
-(domain hasUniform 1 Group)
-(domainSubclass hasUniform 2 UniformClothing)
-
-(=>
-  (hasUniform ?GRP ?UNIFORM)
-  (modalAttribute
-    (exists (?PERS ?CLOTHING ?TIME)
-      (and
-        (member ?PERS ?GRP)
-        (instance ?CLOTHING ?UNIFORM)
-        (holdsDuring ?TIME
-          (wears ?PERS ?CLOTHING)))) Likely))
-                   
-(subclass UniformClothing Clothing)
-(documentation Uniform EnglishLanguage "&%Uniform is a type of clothing with a 
-distinctive design worn by members of a particular group as a means of identification")
-(termFormat EnglishLanguage UniformClothing "uniform")
-
-(=>
-  (subclass ?X UniformClothing)
-  (exists (?GRP)
-    (hasUniform ?GRP ?X)))
-    
-(=>
-  (instance ?X UniformClothing)
-  (exists (?PROC ?DESIGN)
-    (and
-      (instance ?PROC IntentionalProcess)
-      (result ?PROC ?DESIGN)
-      (represents ?X ?DESIGN))))
-
-(subclass Tripod Device)
-(documentation Tripod EnglishLanguage "&%Tripod refers to a &%Device with 3 legs to
-support some other &%Object")
-(termFormat EnglishLanguage Tripod "tripod")
-
-(=>
-  (instance ?X Tripod)
-  (exists (?LEG1 ?LEG2 ?LEG3)
-    (and
-      (part ?LEG1 ?X)
-      (part ?LEG2 ?X)
-      (part ?LEG3 ?X)
-      (meetsSpatially ?LEG1 ?LEG2)
-      (meetsSpatially ?LEG2 ?LEG3)
-      (meetsSpatially ?LEG1 ?LEG3))))
-   
-(=>
-  (instance ?X Tripod)
-  (hasPurpose ?X
-    (exists (?OBJ ?PUT ?PROC)
-      (and
-        (instance ?OBJ Artifact)
-        (instance ?PUT Putting)
-        (patient ?PUT ?OBJ)
-        (destination ?PUT ?X)
-        (instance ?PROC Process)
-        (instrument ?PROC ?OBJ)
-        (before
-          (EndFn (WhenFn ?PUT))
-          (BeginFn (WhenFn ?PROC)))))))
-          
-(subclass Easel Tripod)
-(documentation Easel EnglishLanguage "&%Easel is a type of &%Tripod that supports
-a flat object such as a canvas or a flipboard")
-(termFormat EnglishLanguage Easel "easel")
-
-(=>
-  (instance ?X Easel)
-  (hasPurpose ?X
-    (exists (?OBJ ?PUT)
-      (and
-        (instance ?OBJ Artifact)
-        (attribute ?OBJ Flat)
-        (instance ?PUT Putting)
-        (patient ?PUT ?OBJ)
-        (destination ?PUT ?X)))))
-
-(subclass Solarium Room)
-(documentation Solarium EnglishLanguage "&%Solarium is a type of &%Room part of which
-is made with &%Transparent material like glass to afford exposure to the sun.")
-(termFormat EnglishLanguage Solarium "solarium")
-
-(=>
-  (instance ?X Solarium)
-  (exists (?WALL)
-    (and
-      (instance ?WALL Wall)
-      (part ?WALL ?X)
-      (attribute ?WALL Transparent))))
-
-     
 ;; ---------------------------------------------------------------------------------
 ;; Food
 ;; --------------------------------------------------------------------------------- 
@@ -3263,8 +1482,6 @@ that the ?ATTR type of &%Meal is available at ?TIME according to ?PLAN")
 ;; there is a guest staying in that room, there is a meal available at the stated
 ;; time intervals for that guest to consume (if he wants to) 
 
-;; TODO: Design some way to connect MealPlan with a Hotel or a Room (or is it 
-;; connected to Price? 
 (=>
   (instance ?X (MealPlanFn ?TYPE))
   (exists (?ATTR ?TIME)
@@ -3371,128 +1588,6 @@ the US")
 ;; Facilities
 ;; --------------------------------------------------------------------------------- 
 
-;; Gym or Exercise Center
-(subclass ExerciseCenter SportsFacility)
-(documentation ExerciseCenter EnglishLanguage "&%ExerciseCenter refers to a type of
-&%SportsFacility that has equipment and services for physical training
-and keeping fit")
-(termFormat EnglishLanguage ExerciseCenter "exercise center")
-
-(=>
-  (instance ?X ExerciseCenter)
-  (hasPurpose ?X
-    (exists (?DEVICE)
-      (and
-        (or
-          (instance ?DEVICE AerobicExerciseDevice)
-          (instance ?DEVICE AnaerobicExerciseDevice))
-        (located ?DEVICE ?X)))))
-
-(subclass GameRoom Room)
-(documentation GameRoom EnglishLanguage "&%GameRoom refers to a type of &%Room
-that have facilities for &%Game that can be played")        
-(termFormat EnglishLanguage GameRoom "game room")
-
-(=>
-  (instance ?X GameRoom)
-  (hasPurpose ?X 
-    (exists (?GAME)
-      (and
-        (instance ?GAME Game)
-        (located ?GAME ?X)))))
-
-(subclass Nursery Room)
-(documentation Nursery EnglishLanguage "&%Nursery refers to a &%Room for babies")
-(termFormat EnglishLanguage Nursery "nursery")
-
-(=>
-  (instance ?X Nursery)
-  (exists (?CRIB)
-    (and
-      (instance ?CRIB Crib)
-      (located ?CRIB ?X))))
-      
-(=>
-  (and
-    (instance ?X Nursery)
-    (element ?X (PropertyFn ?HOTEL))
-    (attribute ?HOTEL TravelerAccommodation))
-  (and
-    (attribute ?X CommunalAttribute)
-    (employs ?HOTEL ?NANNY)
-    (hasPurpose ?NANNY
-      (exists (?CARE)
-        (and
-          (instance ?CARE ChildCareServices)
-          (serviceProvider ?CARE ?NANNY))))))
-          
-(subclass SteamBath Room)
-(documentation SteamBath EnglishLanguage "&%SteamBath refers to a room that is filled
-with &%Steam in order to make people sweat")
-(termFormat EnglishLanguage SteamBath "steam bath")
-
-(=>
-  (instance ?X SteamBath)
-  (exists (?STEAM)
-    (and
-      (instance ?STEAM Steam)
-      (located ?STEAM ?X))))
-
-(=>
-  (instance ?X SteamBath)
-  (hasPurpose ?X
-    (exists (?BATH)
-      (and
-        (instance ?BATH Bathing)
-        (located ?BATH ?X)))))
-
-             
-(subclass HeatedPool SwimmingPool)
-(documentation HeatedPool EnglishLanguage "&%HeatedPool is a type of &%SwimmingPool that
-has &%HotWaterHeater so that the &%Water in the pool is constantly kept at a certain 
-warm temperature")
-(termFormat EnglishLanguage HeatedPool "heated pool")
-
-(=>
-  (and
-    (instance ?X HeatedPool)
-    (contains ?X ?WATER)
-    (instance ?WATER Water)
-    (part ?X ?HEATER)
-    (instance ?HEATER WaterHeater)
-    (attribute ?HEATER DeviceOn))
-  (attribute ?WATER WarmTemperature))
-
-(subclass RoomHeater HeatingDevice)
-(documentation RoomHeater EnglishLanguage "&%RoomHeater is a type of &%HeatingDevice
-that heats the air in a confined space")
-(termFormat EnglishLanguage RoomHeater "room heater")
-
-(=>
-  (instance ?X RoomHeater)
-  (hasPurpose ?X
-    (exists (?AIR ?HEATING ?ROOM)
-      (and
-        (instance ?AIR Air)
-        (instance ?ROOM Room)
-        (located ?AIR ?ROOM)
-        (instance ?HEATING Heating)
-        (patient ?HEATING ?AIR)
-        (instrument ?HEATING ?X)))))
-
-(subclass RacquetballCourt SportsFacility)
-(documentation RacquetballCourt EnglishLanguage "&%RacquetballCourt is a type of
-&%SportsFacility where &%Racquetball is played")
-(termFormat EnglishLanguage RacquetballCourt "racquetball court")
-
-(=>
-  (instance ?X RacquetballCourt)
-  (hasPurpose ?X
-    (exists (?PLAY)
-      (and
-        (instance ?PLAY Racquetball)
-        (located ?PLAY ?X)))))        
-
 (subclass BusinessCenter Room)
 (documentation BusinessCenter EnglishLanguage "&%BusinessCenter is a type of facility
 that is equipped with different objects that allow a person to do his &%Working")
@@ -3556,213 +1651,7 @@ in a &%HotelBuilding that is rented out and can be used for virtually any purpos
       (and
         (instance ?MTG FormalMeeting)
         (located ?MTG ?X))) Possibility))
-        
-(subclass DanceHall StationaryArtifact)
-(documentation DanceHall EnglishLanguage "&%DanceHall is a &%StationaryArtifact equipped
-with floors amenable to &%Dancing and devices that blare out &%Music")
-(termFormat EnglishLanguage DanceHall "dance hall")
 
-(=>
-  (instance ?DISCO DanceHall)
-  (hasPurpose ?DISCO
-    (exists (?DANCE ?MUSIC)
-      (and
-        (instance ?MUSIC Music)
-        (instance ?DANCE Dancing)
-        (cooccur ?MUSIC ?DANCE)
-        (located ?MUSIC ?DISCO)
-        (located ?DANCE ?DISCO)))))
-        
-(subclass NightClub DanceHall)
-(documentation NightClub EnglishLanguage "&%NightClub is a type of &%DanceHall that
-typically opens at &%NightTime and has a &%Tavern located in it")
-(termFormat EnglishLanguage NightClub "night club")
-
-(=>
-  (instance ?X NightClub)
-  (exists (?TIME ?BAR)
-    (and
-      (instance ?BAR Tavern)
-      (located ?BAR ?X)
-      (standardRetailHours ?X ?TIME)
-      (during (BeginFn ?TIME) NightTime))))
-  
-(subclass ScubaDiving Swimming)
-(documentation ScubaDiving EnglishLanguage "&%ScubaDiving is &%Swimming &%Below a
-&%WaterArea with the aid of some &%Device to help in &%Breathing")
-(termFormat EnglishLanguage ScubaDiving "scuba diving")
-
-(=>
-  (instance ?SCUBA ScubaDiving)
-  (exists (?WATER ?DEVICE ?BREATH)
-    (and
-      (instance ?WATER WaterArea)
-      (orientation ?SCUBA ?WATER Below)
-      (instance ?DEVICE Device)
-      (instance ?BREATH Breathing)
-      (instrument ?BREATH ?DEVICE)
-      (subProcess ?BREATH ?SCUBA))))
-
-(instance AmericansWithDisabilitiesAct Proposition)
-(documentation AmericansWithDisabilitiesAct EnglishLanguage "The 
-&%AmericansWithDisabilitiesAct is a &%Proposition promulgated by the US Employment
-Opportunity Commission to give civil right protections to individuals with &%Disability
-similar to those provided to individuals on the basis of race, color, sex, national
-origin, age and religion.  It guarantees equal opportunities for individuals with
-&%Disability in public accommodation, employment, transportation, State and local
-government services and telecommunications")
-(termFormat EnglishLanguage AmericansWithDisabilityAct "ADA")
-
-(subrelation conforms represents)
-(documentation conform EnglishLanguage "(&%conforms ?OBJ ?PROP) describes
-how ?OBJ follows the ideas outlined by ?PROP")
-(termFormat EnglishLanguage conforms "conforms")
-
-
-(domain conforms 1 Object)
-(domain conforms 2 Proposition)
-
-(=>
-  (conforms ?OBJ AmericansWithDisabilityAct)
-  (attribute ?OBJ HandicappedFriendly))
-
-(instance USFEMA GovernmentOrganization)
-(documentation USFEMA EnglishLanguage 
-"&%USFEMA, which stands for Federal Emergency Management Agency, is a 
-&%GovernmentOrganization in charge of disaster mitigation, preparedness, response, 
-recovery, education and references")
-(termFormat EnglishLanguage USFEMA "fema")
-
-(subrelation approves inScopeOfInterest)
-(documentation approves EnglishLanguage "(&%approves ?AGENT1 ?AGENT2) means that
-?AGENT1 is satisfied that ?AGENT2 has met some requirement or proposition, and publicly
-declares such")
-(termFormat EnglishLanguage approves "approves")
-
-(domain approves 1 CognitiveAgent)
-(domain approves 2 CognitiveAgent)
-
-(=>
-  (approves ?AGENT1 ?AGENT2)
-  (exists (?PROP)
-    (believes ?AGENT1
-      (conforms ?AGENT2 ?PROP))))
-
-(subclass WetBar Artifact)
-(documentation WetBar EnglishLanguage "&%WetBar is a place for preparing food and 
-beverage that has a sink with running water")
-(termFormat EnglishLanguage WetBar "wet bar")
-
-(=>
-  (instance ?X WetBar)
-  (exists (?SINK ?OBJ)
-    (and
-      (instance ?SINK WashBasin)
-      (part ?SINK ?X)
-      (instance ?OBJ Object)
-      (attribute ?OBJ Flat)
-      (hasPurpose ?OBJ
-        (exists (?PREP ?FOOD)
-          (and
-            (instance ?PREP Making)
-            (result ?PREP ?FOOD)
-            (or
-              (instance ?FOOD PreparedFood)
-              (instance ?FOOD Beverage))
-            (located ?PREP ?OBJ))))
-      (part ?OBJ ?X))))
-
-(subclass SurveillanceSystem Collection)
-(documentation SurveillanceSystem EnglishLanguage "&%SurveillanceSystem is a &%Collection
-of devices that work together to provide security by recording sound or video in a
-certain location and showing it instantly to people, presumably a &%SecurityUnit")
-(termFormat EnglishLanguage SurveillanceSystem "surveillance system")
-
-(=>
-  (instance ?X SurveillanceSystem)
-  (and
-    (memberType ?X Camera)
-    (memberType ?X VideoDisplay)))
-
-(=>
-  (and
-    (instance ?X SurveillanceSystem)
-    (member ?X ?VIDEO)
-    (member ?X ?DISPLAY)
-    (located ?VIDEO ?LOC1)
-    (instance ?VIDEO Camera)
-    (located ?DISPLAY ?LOC2)
-    (not (equal ?LOC1 ?LOC2))
-    (instance ?DISPLAY VideoDisplay))
-  (hasPurpose ?X
-    (exists (?PROC ?VID ?RL ?CAPTURE)
-      (and
-        (instance ?PROC Process)
-        (located ?PROC ?LOC1)
-        (represents ?VID ?PROC)
-        (instrument ?CAPTURE Camera)
-        (result ?CAPTURE ?VID)
-        (instance ?RL RadiatingLight)
-        (instrument ?RL ?DISPLAY)
-        (patient ?RL ?VID)
-        (before
-          (BeginFn ?PROC)
-          (BeginFn ?CAPTURE))
-        (before
-          (BeginFn ?CAPTURE)
-          (BeginFn ?RL))))))
-
-(=>
-  (instance ?X SecurityUnit)
-  (modalAttribute
-    (exists (?S)
-      (and
-        (instance ?S SurveillanceSystem)
-        (inScopeOfInterest ?X ?S))) Likely))
-
-(subclass Telex CommunicationDevice)
-(documentation Telex EnglishLanguage "&%Telex is a &%Telegraph-like &%CommunicationDevice 
-that is used to send messages over a &%TelephoneSystem.")
-(termFormat EnglishLanguage Telex "telex")
-
-(=>
-  (instance ?TELEX Telex)
-  (exists (?PRINTER)
-    (and
-      (instance ?PRINTER Printer)
-      (part ?PRINTER ?TELEX))))
-      
-(=>
-  (instance ?TELEX Telex)
-  (hasPurpose ?TELEX
-    (exists (?SYS ?TELEX2 ?MSG)
-      (and
-        (instance ?SYS TelephoneSystem)
-        (instance ?TELEX2 Telex)
-        (instance ?MSG Messaging)
-        (or
-          (and
-            (origin ?MSG ?TELEX)
-            (destination ?MSG ?TELEX2))
-          (and
-            (origin ?MSG ?TELEX2)
-            (destination ?MSG ?TELEX)))
-        (path ?MSG ?SYS)))))
-
-(=>
-  (and
-    (destination ?MSG ?TELEX)
-    (instance ?MSG Messaging)
-    (patient ?MSG ?M)
-    (instance ?TELEX Telex))
-  (exists (?PROC ?TEXT)
-    (and
-      (instrument ?PROC ?TELEX)
-      (result ?PROC ?TEXT)
-      (represents ?TEXT ?M)
-      (instance ?TEXT Text)
-      (before (BeginFn (WhenFn ?MSG)) (BeginFn (WhenFn ?PROC))))))
-        
 ;; ---------------------------------------------------------------------------------
 ;; Amenities
 ;; ---------------------------------------------------------------------------------
@@ -3918,6 +1807,7 @@ to customer")
 (documentation ChildCareService EnglishLanguage "&%ChildCareService refers to 
 an agent looking after children and babies")
 (termFormat EnglishLanguage ChildCareService "child-care service")
+
 
 (=>
   (instance ?SVC ChildCareService)
@@ -4362,18 +2252,6 @@ needs of a &%serviceRecipient")
 ;; Other CommercialAgents that can be found inside Hotel
 ;; ---------------------------------------------------------------------------------
 
-;; PassengerCarRental from naics.kif
-(=>
-  (attribute ?X PassengerCarRental)
-  (hasPurpose ?X
-    (exists (?RENT ?CAR ?CUST)
-      (and
-        (customer ?CUST ?X)
-        (instance ?CAR Automobile)
-        (instance ?RENT Renting)
-        (possesses ?X ?CAR)
-        (agent ?RENT ?CUST)))))
-        
 ;; WellnessSpa
 (subAttribute WellnesDaySpa FitnessAndRecreationalSportsCenters)
 (documentation WellnessDaySpa EnglishLanguage "&%WellnessDaySpa refers to a type of
@@ -4388,19 +2266,6 @@ facials or massages")
       (and
         (instance ?MASSAGE Massaging)
         (agent ?MASSAGE ?X)))))
-
-;; TravelArrangementAndReservationServices
-(=>
-  (attribute ?X TravelArrangementAndReservationServices)
-  (hasPurpose ?X
-    (exists (?PROC ?RESERVE)
-      (and
-        (instance ?RESERVE TravelReservation)
-        (instance ?PROC IntentionalProcess)
-        (agent ?PROC ?X)
-        (or
-          (result ?PROC ?RESERVE)
-          (patient ?PROC ?RESERVE))))))
 
 ;; Tour Arrangement and Reservation Services
 (subAttribute TourArrangementAndReservationServices TravelArrangementAndReservationServices)
@@ -4422,55 +2287,6 @@ of customers to %&TouristSites")
           (result ?PROC ?RESERVE)
           (patient ?PROC ?RESERVE))))))
 
-;; Florists
-(=>
-  (attribute ?X Florists)
-  (hasPurpose ?X
-    (exists (?FLOWER ?PROC)
-      (and
-        (instance ?PROC Designing)
-        (instance ?FLOWER Collection)
-        (memberType ?FLOWER Flower)
-        (patient ?PROC ?FLOWER)
-        (agent ?PROC ?X)))))
-        
-;; GiftNoveltyAndSouvenirStores
-(=>
-  (attribute ?X GiftNoveltyAndSouvenirStores)
-  (and
-    (instance ?X RetailStore)
-    (hasPurpose ?X
-      (exists (?SELL ?OBJ)
-        (and
-          (instance ?SELL Selling)
-          (agent ?SELL ?X)
-          (patient ?SELL ?OBJ)
-          (instance ?OBJ Object))))))
-
-;; NewsDealersAndNewsstands
-(=>
-  (attribute ?X NewsDealersAndNewsstands)
-  (hasPurpose ?X
-    (exists (?SELL ?NEWS)
-      (and
-        (instance ?NEWS Newspaper)
-        (instance ?SELL Selling)
-        (patient ?SELL ?NEWS)
-        (agent ?SELL ?X)))))
-
-;;  SnackAndNonalcoholicBeverageBar
-(=>
-  (attribute ?X SnackAndNonalcoholicBeverageBars)
-  (hasPurpose ?X
-    (exists (?SELL ?FOOD)
-      (and
-        (instance ?FOOD (FoodForFn Human))
-        (instance ?SELL Selling)
-        (patient ?SELL ?FOOD)
-        (agent ?SELL ?X)))))
-
-
-;; ticket or theater desk
 (subclass ArtsAndRecreationTicketingServices PerformingArtsSpectatorSportsAndRelatedIndustries)
 (documentation ArtsAndRecreationTicketingServices EnglishLanguage "&%ArtsAndRecreationTicketingServices
 refer to agencies that sell &%Ticket to &%Sport events or &%Performance")
@@ -4495,24 +2311,7 @@ refer to agencies that sell &%Ticket to &%Sport events or &%Performance")
                 (patient ?WATCH ?PERF)
                 (or
                   (instance ?PERF Performance)
-                  (instance ?PERF Sport)))) Permission))))))
-
-;; hair salon
-
-(=>
-  (attribute ?X BarberShops)
-  (hasPurpose ?X
-    (exists (?HAIR ?HUMAN ?CUT ?STYLIST)
-      (and
-        (instance ?HAIR Hair)
-        (part ?HAIR ?HUMAN)
-        (instance ?HUMAN Human)
-        (instance ?CUT Cutting)
-        (patient ?CUT ?HAIR)
-        (located ?CUT ?X)
-        (agent ?CUT ?STYLIST)
-        (employs ?X ?STYLIST)))))
-                  
+                  (instance ?PERF Sport)))) Permission))))))                
         
 ;; ---------------------------------------------------------------------------------
 ;; Hotel Employees
@@ -4900,7 +2699,19 @@ means that ?POLICY is applicable")
 (termFormat EnglishLanguage policyInclusion "policy inclusion")
 (domain policyInclusion 1 HotelPackage)
 (domainSubclass policyInclusion 2 Policy)
-        
+
+(instance mealPlanInclusion BinaryPredicate)
+(documentation mealPlanInclusion EnglishLanguage "(&%mealPlanInclusion ?PKG ?PLAN) means
+that the conditions in &%MealPlan ?PLAN is applicable to the consume of the &%HotelPackage")
+(termFormat EnglishLanguage mealPlanInclusion "meal plan inclusion")
+(domain mealPlanInclusion 1 HotelPackage)
+(domainSubclass mealPlanInclusion 2 MealPlan)
+
+(=>
+  (instance ?X HotelPackage)
+  (exists (?UNIT ?INT)
+    (roomStay ?X ?INT ?UNIT)))        
+            
 (subclass GolfPackage HotelPackage)
 (documentation GolfPackage EnglishLanguage "&%GolfPackage is a type of &%HotelPackage
 that includes Golfing")
@@ -4937,6 +2748,19 @@ that includes Golfing")
 (documentation TourReservation EnglishLanguage "&%TourReservation refers to a &%Reservation
 specifically for &%TourService")
 (termFormat EnglishLanguage TourReservation "tour reservation")
+
+(subclass HotelReservation Reservation)
+(documentation HotelReservation EnglishLanguage "&%HotelReservation refers to a
+&%Reservation specifically for &%TravelerAccommodation stays")
+(termFormat English HotelReservation "hotel reservation")
+
+(=>
+  (and
+    (fulfillingEntity ?AGENT ?RESERVE)
+    (instance ?RESERVE HotelReservation))
+  (attribute ?AGENT TravelerAccommodation))
+  
+  
 
 ;; ---------------------------------------------------------------------------------
 ;; Proposed Changes to Meal
@@ -5017,163 +2841,3 @@ food that is normally served during &%BreakfastTime in &%NorthAmerica or &%Europ
       (instance ?ATTR (MealAttributeFn ?MEAL Europe))))
   (equal ?ATTR ContinentalBreakfast))
 
-;; ---------------------------------------------------------------------------------
-;; Communication
-;; ---------------------------------------------------------------------------------  
-  
-(subclass ArtifactMediatedCommunication Communication)
-(documentation ArtifactMediatedCommunication EnglishLanguage "&%ArtifactMediatedCommunication
-refers to &%Communication that uses some &%Artifact as an &%instrument or &%path for
-the &%Transfer of messages or information")
-(termFormat EnglishLanguage ArtifactMediatedCommunication "artifact mediated communication")
-
-(=>
-  (instance ?X ArtifactMediatedCommunication)
-  (exists (?OBJ)
-    (and
-      (instance ?OBJ Artifact)
-      (instrument ?X ?OBJ))))
-      
-(subclass TelephoneCommunication ArtifactMediatedCommunication)
-(documentation TelephoneCommunication EnglishLanguage "&%TelephoneCommunication refers
-to a &%Communication that is done through the use of the &%TelephoneSystem")
-(termFormat EnglishLanguage TelephoneCommunication "telephone communication")
-
-(=>
-  (instance ?X TelephoneCommunication)
-  (exists (?TEL1 ?TEL2 ?ORIGIN ?DEST)
-    (and
-      (origin ?X ?ORIGIN)
-      (destination ?X ?DESTINATION)
-      (siteForContact ?ORIGIN ?TEL1)
-      (siteForContact ?DEST ?TEL2)
-      (instance ?TEL1 Telephone)
-      (instance ?TEL2 Telephone)
-      (instrument ?X ?TEL1)
-      (instrument ?X ?TEL2))))
-
-(subclass OperatorAssistedTelephoneCommunication TelephoneCommunication)
-(documentation OperatorAssistedTelephoneComunication EnglishLanguage
-"&%OperatorAssistedTelephoneCommunication refers to &%TelephoneCommunication where
-an intermediary person connects origin and destination")
-(termFormat EnglishLanguage OperatorAssistedTelephoneCommunication "operator assisted
-telephone communication")
-
-(=>
-  (instance ?X OperatorAssistedTelephoneCommunication)
-  (exists (?ORIGIN ?DEST ?OPERATOR)
-    (and
-      (origin ?X ?ORIGIN)
-      (destination ?X ?DEST)
-      (instance ?OPERATOR Human)
-      (hasPurpose ?OPERATOR
-        (exists (?PROC)
-          (and
-            (instance ?PROC IntentionalProcess)
-            (agent ?PROC ?OPERATOR)
-            (subProcess ?PROC ?X)
-            (result ?PROC ?RESULT)
-            (equal ?RESULT
-              (modalAttribute
-                (exists (?COMM)
-                  (and
-                    (instance ?COMM Communication)
-                    (origin ?COMM ?ORIGIN)
-                    (destination ?COMM ?DEST))) Possibility))))))))
-
-(subclass DirectDialTelephoneCommunication TelephoneCommunication)
-(documentation DirectDialTelephoneCommunication EnglishLanguage 
-"&%DirectDialTelephoneCommunication refers to &%TelephoneCommunication where there 
-is no operator that connects origin and destination")
-(termFormat EnglishLanguage DirectDialTelephoneCommunication "direct dial telephone
-communication")
-
-(=>
-  (instance ?X DirectDialTelephoneCommunication)
-  (not
-    (exists (?OPERATOR)
-      (and
-        (instance ?OPERATOR Human)
-        (hasPurpose ?OPERATOR
-          (exists (?PROC)
-            (and
-              (instance ?PROC IntentionalProcess)
-              (agent ?PROC ?OPERATOR)
-              (subProcess ?PROC ?X)
-              (result ?PROC ?RESULT)
-              (equal ?RESULT
-                (modalAttribute
-                  (exists (?COMM)
-                    (and
-                      (instance ?COMM Communication)
-                      (origin ?COMM ?ORIGIN)
-                      (destination ?COMM ?DEST))) Possibility)))))))))
-                      
-(subclass VoiceMail AudioRecording)
-(documentation VoiceMail EnglishLanguage "&%VoiceMail refers to an &%AudioRecording
-that is done through the &%TelephoneSystem")                      
-
-(=>
-  (instance ?X VoiceMail)
-  (exists (?TEL)
-    (and
-      (instance ?TEL TelephoneCommunication)
-      (patient ?TEL ?X))))
-
-;; RELATED ATTRIBUTES (although can be applied to other contexts)
-(instance Local RelationalAttribute)
-(documentation Local EnglishLanguage "&%Local refers to something within the same
-region or area")
-(termFormat EnglishLanguage Local "local")
-
-(=>
-  (and
-    (instance ?X TelephoneCommunication)
-    (attribute ?X Local))
-  (exists (?TEL1 ?TEL2 ?ORIGIN ?DEST ?CODE)
-    (and
-      (origin ?X ?ORIGIN)
-      (destination ?X ?DEST)
-      (telephoneNumber ?TEL1 ?ORIGIN)
-      (telephoneNumber ?TEL2 ?DEST)
-      (telecomAreaCode ?CODE ?TEL1)
-      (telecomAreaCode ?CODE ?TEL2))))
-
-(instance Domestic RelationalAttribute)
-(documentation Domestic EnglishLanguage "&%Domestic refers to something within the same
-&%Nation")
-(termFormat EnglishLanguage Domestic "domestic")
-      
-(=>
-  (and
-    (instance ?X TelephoneCommunication)
-    (attribute ?X Domestic))
-  (exists (?ORIGIN ?DEST ?COUNTRY)
-    (and
-      (origin ?X ?ORIGIN)
-      (destination ?X ?DEST)
-      (located ?ORIGIN ?COUNTRY)
-      (located ?DEST ?COUNTRY)
-      (instance ?COUNTRY Nation))))
-
-(instance International RelationalAttribute)
-(documentation International EnglishLanguage "&%International refers to something outside
-of the country")
-(termFormat EnglishLanguage International "international")
-      
-(=>
-  (and
-    (instance ?X TelephoneCommunication)
-    (attribute ?X International))
-  (exists (?ORIGIN ?DEST ?CTRY1 ?CTRY2)
-    (and
-      (origin ?X ?ORIGIN)
-      (destination ?X ?DEST)
-      (located ?ORIGIN ?CTRY1)
-      (located ?DEST ?CTRY2)
-      (instance ?CTRY1 Nation)
-      (instance ?CTRY2 Nation)
-      (not (equal ?CTRY1 ?CTRY2)))))
-
-;; proposed changes to other files:
-(subclass Fax ArtifactMediatedCommunication)
