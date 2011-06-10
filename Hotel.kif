@@ -2760,8 +2760,138 @@ specifically for &%TourService")
     (instance ?RESERVE HotelReservation))
   (attribute ?AGENT TravelerAccommodation))
   
-  
+(instance numberOccupant BinaryPredicate)
+(documentation numberOccupant EnglishLanguage "(&%numberOccupant ?RESERVE ?NUM) means
+that the &%Reservation ?RESERVE indicates &%Integer ?NUM of &%Human that will potentially
+be staying in the &%TravelerAccommodation")
+(termFormat EnglishLanguage numberOccupant "number of occupants")
 
+(domain numberAdultOccupant 1 HotelReservation)
+(domain numberAdultOccupant 2 Integer)  
+
+(=>
+  (and 
+    (numberOccupant ?RESERVE ?NUM)
+    (fulfillingEntity ?RESERVE ?HOTEL))
+  (exists (?COL)
+    (and
+      (instance ?COL GroupOfPeople)
+      (memberType ?COL Human)
+      (memberCount ?COL ?NUM)
+      (potentialCustomer ?COL ?HOTEL))))
+  
+(subrelation numberAdultOccupant numberOccupant)
+(documentation numberAdultOccupant EnglishLanguage "(&%numberAdultOccupant ?RESERVE 
+?NUM) means that the &%Reservation ?RESERVE indicates &%Integer ?NUM of &%HumanAdult 
+that will be fulfilling the reservation")
+(termFormat EnglishLanguage numberAdultOccupant "number of adult occupants")
+
+
+(=>
+  (and
+    (numberAdultOccupant ?RESERVE ?NUM)
+    (fulfillingEntity ?RESERVE ?HOTEL))
+  (exists (?COL)
+    (and
+      (instance ?COL GroupOfPeople)
+      (memberType ?COL HumanAdult)
+      (memberCount ?COL ?NUM)
+      (potentialCustomer ?COL ?HOTEL))))
+      
+(subrelation numberChildOccupant numberOccupant)
+(documentation numberChildOccupant EnglishLanguage "(&%numberChildOccupant ?RESERVE 
+?NUM) means tht the &%Reservation ?RESERVE indicates &%Integer ?NUM of &%HumanChild 
+is included in the reservation")
+(termFormat EnglishLanguage numberChildOccupant "number of child occupants")
+
+(=>
+  (and
+    (numberChildOccupant ?RESERVE ?NUM)
+    (fulfillingEntity ?RESERVE ?HOTEL))
+  (exists (?COL ?SUBCOL)
+    (and
+      (instance ?COL GroupOfPeople)
+      (subCollection ?SUBCOL ?COL)
+      (instance ?SUBCOL GroupOfPeople)
+      (memberType ?SUBCOL HumanChild)
+      (memberCount ?SUBCOL ?NUM)
+      (potentialCustomer ?COL ?HOTEL))))
+      
+(subrelation numberSeniorOccupant numberOccupant)
+(documentation numberSeniorOccupant EnglishLanguage "(&%numberSeniorOccupant ?RESERVE
+?NUM) means that the &%Reservation ?RESERVE indicates &%Integer ?NUM of &%HumanAdult
+that has &%age &%greaterThanOrEqualTo 60")
+(termFormat EnglishLanguage numberSeniorOccupant "number of senior occupants")
+
+(=>
+  (and 
+    (numberSeniorOccupant ?RESERVE ?NUM)
+    (fulfillingEntity ?RESERVE ?HOTEL))
+  (exists (?COL)
+    (and
+      (instance ?COL GroupOfPeople)
+      (forall (?X)
+        (=>
+          (member ?X ?COL)
+          (and
+            (instance ?X HumanAdult)
+            (age ?X (MeasureFn ?AGE YearDuration))
+            (greaterThanOrEqualTo ?AGE 60))))
+      (memberCount ?COL ?NUM)
+      (potentialCustomer ?COL ?HOTEL))))
+      
+(instance reservedRoom BinaryPredicate)
+(documentation reservedRoom EnglishLanguage "(&%reservedRoom ?RESERVE ?ROOMTYPE)
+means that the &$HotelUnit ?ROOMTYPE is the requested room type for the hotel stay 
+indicated by &%HotelReservation ?RESERVE")
+(termFormat EnglishLanguage reservedRoom "reserved room")
+
+(domain reservedRoom 1 HotelReservation)
+(domainSubclass reservedRoom 2 HotelUnit)
+
+(=>
+  (and
+    (reservedRoom ?RESERVE ?ROOMTYPE)
+    (reservationStart ?RESERVE ?TIME1)
+    (reservationEnd ?RESERVE ?TIME2)
+    (reservingEntity ?RESERVE ?CUST))
+  (modalAttribute
+    (holdsDuring
+      (TimeIntervalFn ?TIME1 ?TIME2)
+      (and
+        (instance ?X ?ROOMTYPE)
+        (stays ?CUST ?X))) Likely))
+        
+(instance reservedPackage BinaryPredicate)
+(documentation reservedPackage EnglishLanguage "(&%reservedPackage ?RESERVE ?PACKAGE)
+means that the &%customer has reserved for the &%HotelPackage ?PACKAGE")
+(termFormat EnglishLanguage reservedPackage "reserved package")
+
+(domain reservedPackage 1 Reservation)
+(domain reservedPackage 2 Proposition)
+
+(=>
+  (and
+    (reservedPackage ?RESERVE ?PACKAGE)
+    (reservingEntity ?RESERVE ?CUST))
+  (modalAttribute
+    (exists (?PROC)
+      (and
+        (realization ?PROC ?PACKAGE)
+        (experiencer ?PROC ?CUST))) Likely))
+        
+(instance rateDetail BinaryPredicate)
+(documentation rateDetail EnglishLanguage "(&%rateDetail ?RESERVE ?FORMULA) gives
+the price detail associated with each item in the reservation")
+(termFormat EnglishLanguage rateDetail "rate detail")
+
+(domain 1 rateDetail Reservation)
+(domain 2 rateDetail Formula)
+
+(=>
+  (rateDetail ?RES ?FORM)
+  (equal ?FORM (price ?OBJ ?PRICE ?AGENT ?PS)))
+       
 ;; ---------------------------------------------------------------------------------
 ;; Proposed Changes to Meal
 ;; ---------------------------------------------------------------------------------
@@ -2841,3 +2971,227 @@ food that is normally served during &%BreakfastTime in &%NorthAmerica or &%Europ
       (instance ?ATTR (MealAttributeFn ?MEAL Europe))))
   (equal ?ATTR ContinentalBreakfast))
 
+;; ---------------------------------------------------------------------------------
+;; Pricing Scheme
+;; ---------------------------------------------------------------------------------
+  
+(subclass PricingScheme Proposition)
+(documentation PricingScheme EnglishLanguage "&%PricingScheme refers to the conditions
+attached to the &%price of a &%Product or service.")
+(termFormat EnglishLanguage PricingScheme "pricing scheme")
+
+(=>
+  (instance ?PS PricingScheme)
+  (exists (?AGENT ?AMT ?PHY)
+    (productPrice ?PHY ?AMT ?AGENT ?PS)))
+
+(instance productPrice QuaternaryPredicate)
+(documentation productPrice EnglishLanguage "(&%productPrice ?PHYS ?AMT ?AGENT ?PS)
+means that the &%CurrencyMeasure ?AMT charged by &%Agent ?AGENT for &%Physical ?PHYS 
+has the &%PricingScheme ?PS applied to it")
+(termFormat EnglishLanguage productPrice "product price")
+
+(domain productPrice 1 Entity)
+(domain productPrice 2 CurrencyMeasure)
+(domain productPrice 3 Agent)
+(domain productPrice 4 PricingScheme)
+
+(=>
+  (and
+    (productPrice ?PROP ?AMT ?AGENT ?PS)
+    (instance ?PROP Proposition))
+  (modalAttribute
+    (exists (?X)
+      (and
+        (realization ?X ?PROP)
+        (productPrice ?X ?AMT ?AGENT ?PS))) Promise))
+
+(instance priceRange QuaternaryPredicate)
+(documentation priceRange EnglishLanguage "(&%priceRange ?OBJ ?MIN ?MAX ?AGENT) 
+means that &%Agent ?AGENT attaches range of possible &%productPrice for ?OBJ with
+minimum ?MIN and maximum ?MAX")
+(termFormat priceRange EnglishLanguage "price range")
+
+(domain priceRange 1 Entity)
+(domain priceRange 2 CurrencyMeasure)
+(domain priceRange 3 CurrencyMeasure)
+(domain priceRange 4 Agent)
+
+(=>
+  (priceRange ?PHYS ?MIN ?MAX ?AGENT)
+  (exists (?PRICE ?PS)
+    (and
+      (productPrice ?PHYS ?PRICE ?AGENT ?PS)
+      (lessThanOrEqualTo ?PRICE ?MAX)
+      (greaterThanOrEqualTo ?PRICE ?MIN))))
+ 
+(instance validFor BinaryPredicate)
+(documentation validFor EnglishLanguage "(&%validFor ?SCHEME ?AGENT) means that 
+&%CurrencyMeasure that &%PricingScheme refers to applies to &%Agent ?AGENT")
+(termFormat EnglishLanguage validFor "valid for")
+
+(domain validFor 1 PricingScheme)
+(domain validFor 2 Agent)
+
+(=>
+  (and
+    (validFor ?PS ?BUYER)
+    (productPrice ?OBJ ?AMT ?SELLER ?PS)
+    (instance ?S Selling)
+    (agent ?S ?SELLER)
+    (destination ?S ?BUYER)
+    (patient ?S ?OBJ))
+  (exists (?PAY)
+    (and
+      (instance ?PAY Payment)
+      (origin ?PAY ?BUYER)
+      (destination ?PAY ?SELLER)
+      (transactionAmount ?PAY ?AMT)
+      (subProcess ?PAY ?SELLING))))
+      
+(instance validForDuring TernaryPredicate)
+(documentation validForDuring EnglishLanguage "(&%validForDuring ?SCHEME ?AGENT ?TIMEINT)
+means that &%CurrencyMeasure that &%PricingScheme ?SCHEME refers to holds only for 
+&%TimeInterval ?TIMEINT")
+(termFormat EnglishLanguage validForDuring "valid for during")
+
+(=>
+  (and
+    (validForDuring ?PS ?BUYER ?TIMEINT)
+    (productPrice ?OBJ ?AMT ?SELLER ?PS))
+  (holdsDuring ?TIMEINT
+    (validFor ?PS ?BUYER)))
+    
+(instance ratePolicy BinaryPredicate)
+(documentation ratePolicy EnglishLanguage "(&%ratePolicy ?SCHEME ?POLICY) describes 
+the &%Policy ?POLICY attached to the given rate with the ?SCHEME")
+(termFormat ratePolicy EnglishLanguage "rate policy")
+
+(domain ratePolicy 1 PricingScheme)
+(domain ratePolicy 2 Policy)    
+
+(instance discountRate BinaryPredicate)
+(documentation discountRate EnglishLanguage "(&%discountRate ?SCHEME ?NUM) means that
+a discount of ?NUM percent is applied to the price")
+(termFormat EnglishLanguage discountRate "discount rate")
+
+(domain discountRate 1 PricingScheme)
+(domain discountRate 2 RealNumber)
+
+(=>
+  (and
+    (productPrice ?OBJ ?AMT ?SELLER ?PS)
+    (discountRate ?PS ?NUM)
+    (validFor ?PS ?BUYER))
+  (modalAttribute
+    (exists (?SELL)
+      (and
+        (instance ?SELL Selling)
+        (patient ?SELL ?OBJ)
+        (agent ?SELL ?SELLER)
+        (destination ?SELL ?BUYER)
+        (transactionAmount ?SELL ?TOTAL)
+        (lessThan ?TOTAL ?AMT))) Promise))
+        
+;; ---------------------------------------------------------------------------------
+;; Loyalty Programs
+;; ---------------------------------------------------------------------------------
+        
+(subclass LoyaltyClub GroupOfPeople)
+(documentation LoyaltyClub EnglishLanguage "A &%LoyaltyClub is a &%GroupOfPeople that
+gets benefits from different organizations that are &%affiliatedOrganization with 
+the club")
+(termFormat EnglishLanguage LoyaltyClub "loyalty club")
+
+(=>
+  (instance ?X LoyaltyClub)
+  (exists (?ORG)
+    (affiliatedOrganization ?X ?ORG)))
+    
+;; other important relations that can be used for this:
+;; (groupMember ?HUMAN ?CLUB) -- indicates that a person is a member of a loyalty club
+;; (affiliatedOrganization ?CLUB ?COMP) -- indicates that a company is affiliated
+;; with a loyalty club and offers some benefits to its members
+
+;; propose to subclass Plan not from Procedure but from Proposition, as a plan
+;; need not necessarily be sequence-dependent (for example, a DietPlan does not 
+;; necessarily dictate the order by which you eat food, just what types of food
+;; to eat). Rather, it is more a proposition for different things that can be done
+;; to ensure the objective.
+(subclass LoyaltyProgram Plan)
+(documentation LoyaltyProgram EnglishLanguage "&%LoyaltyProgram refers to structured
+marketing efforts to increase Loyalty.")
+(termFormat EnglishLanguage LoyaltyProgram "loyalty program")
+
+(instance planOwner BinaryPredicate)
+(documentation planOwner EnglishLanguage "(&%planOwner ?AGENT ?PLAN) means that &%Agent
+?AGENT is responsible for executing the directives in &%Plan ?PLAN")
+(termFormat EnglishLanguage planOwner "plan owner")
+
+(domain planOwner 1 Agent)
+(domain planOwner 2 Plan)
+
+(=>
+  (planOwner ?AGENT ?PLAN)
+  (exists (?PROC)
+    (and
+      (realization ?PROC ?PLAN)
+      (agent ?PROC ?AGENT))))
+      
+(instance affiliatedProgram BinaryPredicate)
+(documentation affiliatedProgram EnglishLanguage "(&%affiliatedProgram ?PLAN ?GRP) means
+that the &%Plan ?PLAN applies to all members of &%GroupOfPeople ?GRP")
+(termFormat EnglishLanguage affiliatedProgram "affiliated program")
+
+(domain affiliatedProgram 1 Plan)
+(domain affiliatedProgram 2 GroupOfPeople)
+
+(=>
+  (and
+    (affiliatedProgram ?PLAN ?GRP)
+    (groupMember ?MEMB ?GRP)
+    (realization ?PROC ?PLAN))
+  (experiencer ?PROC ?MEMB))
+  
+(subclass LoyaltyMembershipTier RelationalAttribute)
+(documentation LoyaltyMembershipTier EnglishLanguage "&%LoyaltyMembershipTier is the 
+subclass of &%Attribute that describes what level in the &%LoyaltyProgram a particular 
+&%groupMember belongs to. This normally indicates the level of benefits a member
+can avail of")
+(termFormat EnglishLanguage LoyaltyMembershipTier "loyalty membership tier")
+
+(=>
+  (instance ?TIER LoyaltyMembershipTier)
+  (exists (?PROG)
+    (loyaltyProgramTier ?PROG ?TIER)))
+    
+(=>
+  (and
+    (attribute ?H ?T)
+    (instance ?T LoyaltyMembershipTier))
+  (and
+    (instance ?H Human)
+    (exists (?GRP ?PROG)
+      (and
+        (instance ?GRP LoyaltyClub)
+        (groupMember ?H ?GRP)
+        (affiliatedProgram ?PROG ?GRP)))))
+        
+(instance loyaltyProgramTier BinaryPredicate)
+(documentation loyaltyProgramTier EnglishLanguage "(&%loyaltyProgramTier ?PROG ?TIER) 
+means that &%LoyaltyMembershipTier ?TIER is associated with &%LoyaltyProgram ?PROG")
+(termFormat EnglishLanguage loyaltyProgramTier "loyalty program tier")
+
+(domain loyaltyProgramTier 1 LoyaltyProgram)
+(domain loyaltyProgramTier 2 LoyaltyMembershipTier)
+
+(=>
+  (and
+    (groupMember ?MEMB ?GRP)
+    (instance ?GRP LoyaltyClub)
+    (affiliatedProgram ?PROG ?GRP)
+    (exists (?TIER)
+      (loyaltyProgramTier ?PROG ?TIER)))
+  (attribute ?MEMB ?TIER))
+
+  
