@@ -1,0 +1,111 @@
+;;Take CarryBot to be an agent (capable of action)
+;;Entities that need to be defined: 
+;;widthLimit - a BinaryPredicate between a CarryBot and a Length Measure that is how wide CarryBot's carrying tray is.
+;;lengthLimit - a BinaryPredicate between a CarryBot and a Length Measure that is how long the CarryBot's carrying tray is (length is
+;;distance away from front of bot).
+;;halfLengthMassLimit -  a BinaryPredicate between a CarryBot and a Mass Measure that is how much weight the CarryBot can carry when
+;;the Center of Mass of an object is in the middle of its tray. 
+;;fullLengthMassLimit - a BinaryPredicate between a CarryBot and a Mass Measure that is how much weight the CarryBot can carry when the 
+;;Center of Mass of an object is at the far end of its tray.
+
+;;Define a NormativeAttribute, Impossibility. This will be used for the cannotCarry BinaryPredicate.
+(<=>
+  (modalAttribute ?FORMULA Impossibility)
+  (not
+    (modalAttribute ?FORMULA Possibility)))
+    
+(instance Impossibility NormativeAttribute)
+
+;;Define a BinaryPredicate, canCarry. 
+(=>
+  (and
+    (canCarry ?ROBOT ?OBJECT)
+    (instance ?OBJECT Object)
+    (instance ?ROBOT CarryBot))
+  (modalAttribute
+    (exists (?CARRY)
+      (and
+        (instance ?CARRY Carrying)
+        (instrument ?CARRY ?ROBOT)
+        (patient ?CARRY ?OBJECT))) Possibility))
+        
+ 
+;;Define a BinaryPredicate, cannotCarry. This will be used for the widthLimit and lengthLimit BinaryPredicates
+(domain cannotCarry 1 CarryBot)
+(domainSubclass cannotCarry 2 Object)
+(instance cannotCarry BinaryPredicate)
+(=>
+  (cannotCarry ?ROBOT ?OBJECT)
+  (modalAttribute
+    (exists (?CARRY)
+      (and
+        (instance ?CARRY Carrying)
+        (instrument ?CARRY ?ROBOT)
+        (patient ?CARRY ?OBJECT))) Impossibility))
+        
+
+;;If all 3 dimensions of an object, or diameter of a sphere, are greater than the widthLimit, then the robot cannot carry the object. 
+;;THINGS STILL TO WORK ON - UNIT DIFFERENCES
+(instance widthLimit BinaryPredicate)
+(domain widthLimit 1 CarryBot)
+(domain widthLimit 2 LengthMeasure)
+(=>
+  (and
+    (instance ?ROBOT CarryBot)
+    (instance ?OBJECT Object)
+    (widthLimit ?ROBOT ?WIDTHLIMIT)
+    (or
+      (and
+        (defaultMaximumLength ?OBJECT (MeasureFn ?NUM1 ?UNIT1))
+        (defaultMaximumWidth ?OBJECT (MeasureFn ?NUM2 ?UNIT2))
+        (defaultMaximumHeight ?OBJECT (MeasureFn ?NUM3 ?UNIT3))
+        (greaterThan ?NUM1 ?WIDTHLIMIT)
+        (greaterThan ?NUM2 ?WIDTHLIMIT)
+        (greaterThan ?NUM3 ?WIDTHLIMIT))
+      (and
+        (defaultMaximumSphereRadius ?OBJECT (MeasureFn ?NUM4 ?UNIT4))
+        (greaterThan (MultiplicationFn ?NUM4 2) ?WIDTHLIMIT))))
+  (cannotCarry ?ROBOT ?OBJECT))  
+  
+  
+;;If at least 2 dimensions of an object (no spheres) are greater than the lengthLimit, then the robot cannot carry the object. 
+;;UNIT DIFFERENCES
+(instance lengthLimit BinaryPredicate)
+(domain lengthLimit 1 CarryBot)
+(domain lengthLimit 2 LengthMeasure)
+(=>
+  (and
+    (lengthLimit ?ROBOT ?LENGTHLIMIT)
+    (defaultMaximumLength ?OBJECT (MeasureFn ?NUM1 ?UNIT1))
+    (defaultMaximumWidth ?OBJECT (MeasureFn ?NUM2 ?UNIT2))
+    (defaultMaximumHeight ?OBJECT (MeasureFn ?NUM3 ?UNIT3))
+    (or
+      (and
+        (greaterThan ?NUM1 ?LENGTHLIMIT)
+        (greaterThan ?NUM2 ?LENGTHLIMIT))
+      (and
+        (greaterThan ?NUM2 ?LENGTHLIMIT)
+        (greaterThan ?NUM3 ?LENGTHLIMIT))
+      (and
+        (greaterThan ?NUM1 ?LENGTHLIMIT)
+        (greaterThan ?NUM2 ?LENGTHLIMIT))))
+  (cannotCarry ?ROBOT ?OBJECT))
+  
+  
+;;If an object is heavier than the massLimit, the robot cannot carry the object.
+;;UNIT DIFFERENCES
+(instance massLimit BinaryPredicate)
+(domain massLimit 1 CarryBot)
+(domain massLimit 2 PhysicalQuantity)
+(=>
+  (and
+    (massLimit ?ROBOT ?MASSLIMIT)
+    (defaultMaximumMeasure ?OBJECT (MeasureFn ?NUM ?UNITOFMASS))
+    (instance ?UNITOFMASS UnitOfMass)
+    (greaterThan ?NUM ?MASSLIMIT))
+  (cannotCarry ?ROBOT ?OBJECT))
+      
+        
+        
+  
+      
