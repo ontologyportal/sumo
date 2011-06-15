@@ -9,19 +9,18 @@
 ;;Center of Mass of an object is at the far end of its tray.
 
 ;;Define a NormativeAttribute, Impossibility. This will be used for the cannotCarry BinaryPredicate.
+(instance Impossibility NormativeAttribute)
 (<=>
   (modalAttribute ?FORMULA Impossibility)
   (not
     (modalAttribute ?FORMULA Possibility)))
     
-(instance Impossibility NormativeAttribute)
-
 ;;Define a BinaryPredicate, canCarry. 
+(domain canCarry 1 CarryBot)
+(domain canCarry 2 Object)
+(instance canCarry BinaryPredicate)
 (=>
-  (and
-    (canCarry ?ROBOT ?OBJECT)
-    (instance ?OBJECT Object)
-    (instance ?ROBOT CarryBot))
+  (canCarry ?ROBOT ?OBJECT)
   (modalAttribute
     (exists (?CARRY)
       (and
@@ -32,7 +31,7 @@
  
 ;;Define a BinaryPredicate, cannotCarry. This will be used for the widthLimit and lengthLimit BinaryPredicates
 (domain cannotCarry 1 CarryBot)
-(domainSubclass cannotCarry 2 Object)
+(domain cannotCarry 2 Object)
 (instance cannotCarry BinaryPredicate)
 (=>
   (cannotCarry ?ROBOT ?OBJECT)
@@ -68,7 +67,8 @@
   (cannotCarry ?ROBOT ?OBJECT))  
   
   
-;;If at least 2 dimensions of an object (no spheres) are greater than the lengthLimit, then the robot cannot carry the object. 
+;;If at least 2 dimensions of an object are greater than the lengthLimit, then the robot cannot carry the object. Or, if the object is a sphere,
+;;the diameter can't be larger than half of the length limit.
 ;;UNIT DIFFERENCES
 (instance lengthLimit BinaryPredicate)
 (domain lengthLimit 1 CarryBot)
@@ -79,6 +79,7 @@
     (defaultMaximumLength ?OBJECT (MeasureFn ?NUM1 ?UNIT1))
     (defaultMaximumWidth ?OBJECT (MeasureFn ?NUM2 ?UNIT2))
     (defaultMaximumHeight ?OBJECT (MeasureFn ?NUM3 ?UNIT3))
+    (defaultMaximumSphereRadius ?OBJECT (MeasureFn ?NUM4 ?UNIT4))
     (or
       (and
         (greaterThan ?NUM1 ?LENGTHLIMIT)
@@ -88,7 +89,8 @@
         (greaterThan ?NUM3 ?LENGTHLIMIT))
       (and
         (greaterThan ?NUM1 ?LENGTHLIMIT)
-        (greaterThan ?NUM2 ?LENGTHLIMIT))))
+        (greaterThan ?NUM3 ?LENGTHLIMIT))
+      (greaterThan (MultiplicationFn ?NUM4 2) (MultiplicationFn ?LENGTHLIMIT .5))))
   (cannotCarry ?ROBOT ?OBJECT))
   
   
@@ -96,7 +98,7 @@
 ;;UNIT DIFFERENCES
 (instance massLimit BinaryPredicate)
 (domain massLimit 1 CarryBot)
-(domain massLimit 2 PhysicalQuantity)
+(domain massLimit 2 Quantity)
 (=>
   (and
     (massLimit ?ROBOT ?MASSLIMIT)
@@ -105,6 +107,9 @@
     (greaterThan ?NUM ?MASSLIMIT))
   (cannotCarry ?ROBOT ?OBJECT))
       
+;;If there exists a doorway that is a member of a Collection of doorways (all which lie in the robots path) and is less wide or less tall than the 
+;;robot/object combination, then the robot cannot carry the object. This means robot must have attributes width, length, and height that are updated
+;;when it is determined that a robot can carry an object.
         
         
   
