@@ -1,19 +1,10 @@
-;;Take CarryBot to be an agent (capable of action)
 ;;Entities that need to be defined: 
 ;;widthLimit - a BinaryPredicate between a CarryBot and a Length Measure that is how wide CarryBot's carrying tray is.
 ;;lengthLimit - a BinaryPredicate between a CarryBot and a Length Measure that is how long the CarryBot's carrying tray is (length is
 ;;distance away from front of bot).
-;;halfLengthMassLimit -  a BinaryPredicate between a CarryBot and a Mass Measure that is how much weight the CarryBot can carry when
-;;the Center of Mass of an object is in the middle of its tray. 
-;;fullLengthMassLimit - a BinaryPredicate between a CarryBot and a Mass Measure that is how much weight the CarryBot can carry when the 
-;;Center of Mass of an object is at the far end of its tray.
+;;massLimit -  a BinaryPredicate between a CarryBot and a Mass Measure that is how much weight the CarryBot can carry.
 
-;;Define a NormativeAttribute, Impossibility. This will be used for the cannotCarry BinaryPredicate.
-(instance Impossibility NormativeAttribute)
-(<=>
-  (modalAttribute ?FORMULA Impossibility)
-  (not
-    (modalAttribute ?FORMULA Possibility)))
+(subclass CarryBot Agent)
     
 ;;Define a BinaryPredicate, canCarry. 
 (domain canCarry 1 CarryBot)
@@ -27,44 +18,30 @@
         (instance ?CARRY Carrying)
         (instrument ?CARRY ?ROBOT)
         (patient ?CARRY ?OBJECT))) Possibility))
-        
- 
-;;Define a BinaryPredicate, cannotCarry. This will be used for the widthLimit and lengthLimit BinaryPredicates
-(domain cannotCarry 1 CarryBot)
-(domain cannotCarry 2 Object)
-(instance cannotCarry BinaryPredicate)
-(=>
-  (cannotCarry ?ROBOT ?OBJECT)
-  (modalAttribute
-    (exists (?CARRY)
-      (and
-        (instance ?CARRY Carrying)
-        (instrument ?CARRY ?ROBOT)
-        (patient ?CARRY ?OBJECT))) Impossibility))
-        
 
 ;;If all 3 dimensions of an object, or diameter of a sphere, are greater than the widthLimit, then the robot cannot carry the object. 
-;;THINGS STILL TO WORK ON - UNIT DIFFERENCES
 (instance widthLimit BinaryPredicate)
 (domain widthLimit 1 CarryBot)
 (domain widthLimit 2 LengthMeasure)
 (=>
   (and
     (instance ?ROBOT CarryBot)
-    (instance ?OBJECT Object)
+    (instance ?INSTANCE ?OBJECT)
+    (subclass ?OBJECT Object)
     (widthLimit ?ROBOT ?WIDTHLIMIT)
     (or
       (and
-        (defaultMaximumLength ?OBJECT (MeasureFn ?NUM1 ?UNIT1))
-        (defaultMaximumWidth ?OBJECT (MeasureFn ?NUM2 ?UNIT2))
-        (defaultMaximumHeight ?OBJECT (MeasureFn ?NUM3 ?UNIT3))
-        (greaterThan ?NUM1 ?WIDTHLIMIT)
-        (greaterThan ?NUM2 ?WIDTHLIMIT)
-        (greaterThan ?NUM3 ?WIDTHLIMIT))
+        (defaultMaximumLength ?OBJECT ?LENGTH)
+        (defaultMaximumWidth ?OBJECT ?WIDTH)
+        (defaultMaximumHeight ?OBJECT ?HEIGHT)
+        (greaterThan ?LENGTH ?WIDTHLIMIT)
+        (greaterThan ?WIDTH ?WIDTHLIMIT)
+        (greaterThan ?HEIGHT ?WIDTHLIMIT))
       (and
-        (defaultMaximumSphereRadius ?OBJECT (MeasureFn ?NUM4 ?UNIT4))
-        (greaterThan (MultiplicationFn ?NUM4 2) ?WIDTHLIMIT))))
-  (cannotCarry ?ROBOT ?OBJECT))  
+        (defaultMaximumSphereRadius ?OBJECT ?RADIUS)
+        (greaterThan (MultiplicationFn ?RADIUS 2) ?WIDTHLIMIT))))
+  (not
+    (canCarry ?ROBOT ?INSTANCE)))  
   
   
 ;;If at least 2 dimensions of an object are greater than the lengthLimit, then the robot cannot carry the object. Or, if the object is a sphere,
@@ -76,22 +53,28 @@
 (=>
   (and
     (lengthLimit ?ROBOT ?LENGTHLIMIT)
-    (defaultMaximumLength ?OBJECT (MeasureFn ?NUM1 ?UNIT1))
-    (defaultMaximumWidth ?OBJECT (MeasureFn ?NUM2 ?UNIT2))
-    (defaultMaximumHeight ?OBJECT (MeasureFn ?NUM3 ?UNIT3))
-    (defaultMaximumSphereRadius ?OBJECT (MeasureFn ?NUM4 ?UNIT4))
+    (instance ?INSTANCE ?OBJECT)
+    (subclass ?OBJECT Object)
     (or
       (and
-        (greaterThan ?NUM1 ?LENGTHLIMIT)
-        (greaterThan ?NUM2 ?LENGTHLIMIT))
+        (defaultMaximumLength ?OBJECT ?LENGTH)
+        (defaultMaximumWidth ?OBJECT ?WIDTH)
+        (defaultMaximumHeight ?OBJECT ?HEIGHT))
+        (or
+          (and
+            (greaterThan ?LENGTH ?LENGTHLIMIT)
+            (greaterThan ?WIDTH ?LENGTHLIMIT))
+          (and
+            (greaterThan ?LENGTH ?LENGTHLIMIT)
+            (greaterThan ?HEIGHT ?LENGTHLIMIT))
+          (and
+            (greaterThan ?WIDTH ?LENGTHLIMIT)
+            (greaterThan ?HEIGHT ?LENGTHLIMIT)))
       (and
-        (greaterThan ?NUM2 ?LENGTHLIMIT)
-        (greaterThan ?NUM3 ?LENGTHLIMIT))
-      (and
-        (greaterThan ?NUM1 ?LENGTHLIMIT)
-        (greaterThan ?NUM3 ?LENGTHLIMIT))
-      (greaterThan (MultiplicationFn ?NUM4 2) (MultiplicationFn ?LENGTHLIMIT .5))))
-  (cannotCarry ?ROBOT ?OBJECT))
+        (defaultMaximumSphereRadius ?OBJECT ?RADIUS)
+        (greaterThan (MultiplicationFn ?RADIUS 2) (MultiplicationFn ?LENGTHLIMIT .5)))))
+  (not
+    (canCarry ?ROBOT ?INSTANCE)))
   
   
 ;;If an object is heavier than the massLimit, the robot cannot carry the object.
@@ -102,15 +85,42 @@
 (=>
   (and
     (massLimit ?ROBOT ?MASSLIMIT)
-    (defaultMaximumMeasure ?OBJECT (MeasureFn ?NUM ?UNITOFMASS))
+    (instance ?INSTANCE ?OBJECT)
+    (subclass ?OBJECT Object)
     (instance ?UNITOFMASS UnitOfMass)
+    (defaultMaximumMeasure ?OBJECT (MeasureFn ?NUM ?UNITOFMASS))
     (greaterThan ?NUM ?MASSLIMIT))
-  (cannotCarry ?ROBOT ?OBJECT))
+  (not
+    (canCarry ?ROBOT ?INSTANCE)))
       
-;;If there exists a doorway that is a member of a Collection of doorways (all which lie in the robots path) and is less wide or less tall than the 
-;;robot/object combination, then the robot cannot carry the object. This means robot must have attributes width, length, and height that are updated
-;;when it is determined that a robot can carry an object.
-        
+;;If there exists a doorway that lies in the robot's path and is less wide or less tall than the robot/object combination,
+;;then the robot cannot carry the object. This means the robot must have attributes width and height. 
+
+
+;;(=>
+;;  (and
+;;    (instance ?DOOR Door)
+;;    (instance ?ROBOT CarryBot)
+;;    (instance ?MOVE Translocation)
+;;    (instance ?INSTANCE ?OBJECT)
+;;    (instrument ?MOVE ?ROBOT)
+;;    (patient ?MOVE ?INSTANCE)
+;;    (destination ?MOVE ?GOAL)
+;;    (between ?ROBOT ?DOOR ?GOAL)
+;;    (width ?DOOR ?DOORWIDTH)
+;;    (width ?ROBOT ?BOTWIDTH)
+;;    (height ?DOOR ?DOORHEIGHT)
+;;    (height ?ROBOT ?BOTHEIGHT)
+;;    (or
+;;      (defaultMaximumHeight ?INSTANCE ?HEIGHT)
+;;      (defaultMaximumWidth ?INTSTANCE ?WIDTH)
+;;      (defaultMaximumRadius ?INSTANCE ?RADIUS))
+;;    (or
+;;      (lessThan ?DOORHEIGHT (AdditionFn ?HEIGHT ?BOTHEIGHT))
+;;      (lessThan ?DOORWIDTH (AdditionFn ?WIDTH ?BOTHEIGHT))
+;;      (lessThan ?DOORHEIGHT (AdditionFn ?HEIGHT (MultiplicationFn ?RADIUS 2)))))
+;;  (not
+;;    (canCarry ?ROBOT ?INSTANCE)))
         
   
       
