@@ -1,0 +1,289 @@
+;;Vocabulary used in LinkedIn
+
+;;In LinkedIn, you often specify which degree(s) you have achieved.  For the moment, I
+;;will only specify the attributes of certain degrees in the United States, due to the fact that for 
+;;the moment mostly U.S. citizens are using LinkedIn.
+
+;;I will define Degree as a function with the subrelations of BachelorDegreeFn, 
+;;MastersDegreeFn, and DoctorateDegreeFn.
+
+(documentation AwardingADegree EnglishLanguage "This refers to the process where some sort of &%PostSecondarySchool(i.e., a &%JuniorCollege, &%College, &%University, or &%GraduateSchool) awards an &%AcademicDegree to a graduating student. The &%patient of this action is the &%AcademicDegree or &%DegreeFn, the &%agent of the action is the &%PostSecondarySchool that is awarding the degree, and the &%destination of the action is the &%Student (or exceptional human, in the case of an &%HonoraryDegreeFn), that is receiving the award.")
+(subclass AwardingADegree Declaring)
+(termFormat EnglishLanguage AwardingADegree "awarding a degree")
+;; Say a person is given a degree from a post secondary school.  They are the patient and the school is the 
+;;agent of the action.  Before the award-giving, they are a student.  After, the person possesses an academic
+;;degree (and it is implied that they are no longer a student).  Also, the award-giving is the same as 
+;;graduation.
+(=>
+    (and
+        (instance ?AWARD AwardingADegree)
+        (instance ?PERSON Human)
+        (instance ?SCHOOL PostSecondarySchool)
+        (patient ?AWARD ?PERSON)
+        (agent ?AWARD ?SCHOOL))
+    (and
+        (holdsDuring
+            (BeginFn
+                (WhenFn ?AWARD))
+            (attribute ?PERSON Student))
+        (holdsDuring
+            (EndFn
+                (WhenFn ?AWARD))
+			(possesses ?PERSON AcademicDegree))
+		(equal (WhenFn ?AWARD) Graduation)))
+		
+(documentation expectedDegree EnglishLanguage "This refers to the relation in which a &%Student is working towards a degree that they have not yet earned.  (expectedDegree ?STUDENT (DegreeFn ?F ?S)) will document the case of a &%Student (?STUDENT) who is working towards a degree in a &%FieldOfStudy ?F at a &%PostSecondarySchool ?S.  For further information on DegreeFn, see &%DegreeFn.")
+(subrelation expectedDegree inScopeOfInterest)
+(termFormat EnglishLanguage expectedDegree "expected degree")
+;; If there is a student that is attending a post secondary school, then that student is expecting a degree
+;;from that school in a particular field of study.
+(=>
+	(and
+		(instance ?S Student)
+		(instance ?SCHOOL PostSecondarySchool)
+		(attends ?S ?SCHOOL))
+	(expectedDegree ?S (DegreeFn ?FIELDOFSTUDY ?SCHOOL)))
+
+(documentation DegreeFn EnglishLanguage "A binary function that, when given a &%FieldOfStudy and a &%PostSecondarySchool, will return an instance of an &%AcademicDegree.  For (DegreeFn ?X ?Y), ?X will represent the &%FieldOfStudy and ?Y will represent the &%PostSecondarySchool from which the degree was earned.")
+(instance DegreeFn BinaryFunction)
+(domain DegreeFn 1 FieldOfStudy)
+(domain DegreeFn 2 PostSecondarySchool)
+(range DegreeFn AcademicDegree)
+(termFormat EnglishLanguage DegreeFn "degree")
+;; If there is a degree being given, then the school is giving the degree and the student is receiving it.
+(=>
+	(and
+		(instance ?A AwardingADegree)
+		(patient ?A (DegreeFn ?FIELDOFSTUDY ?SCHOOL)))
+	(and
+		(instance ?H Human)
+		(agent ?A ?SCHOOL)
+		(destination ?A ?H)))
+		
+(documentation HonoraryDegreeFn EnglishLanguage "This is a binary function that represents an honorary degree.  An honorary degree is an &%AcademicDegree for which the &%GraduateSchool has waived the usual requirements, such as &%Matriculation, residence, and &%EducationalCourses.  The degree is typically a doctorate or, less commonly, a master's degree, and may be awarded to someone who has no prior connection with the &%University.  Usually the degree is awarded as a way of honoring a person's contributions to a specific field, or to society in general.  Note: &%HonoraryDegreeFn is not the same as &%DoctorateDegreeFn or &%MasterDegreeFn, as these in themselves are subrelations of &%SubstantiveDegreeFn.")
+(instance HonoraryDegreeFn BinaryFunction)
+(subrelation HonoraryDegreeFn DegreeFn)
+(domain HonoraryDegreeFn 1 FieldOfStudy)
+(domain HonoraryDegreeFn 2 PostSecondarySchool)
+(range HonoraryDegreeFn AcademicDegree)
+(termFormat EnglishLanguage HonoraryDegreeFn "honorary degree")
+;; If an honorary degree is being given to a person by a school, then it is not necessary that said person
+;;went to that school.  It is also unlikely that the person is a student.
+(=>
+	(and
+		(instance ?H Human)
+		(instance ?A AwardingADegree)
+		(patient ?A (HonoraryDegreeFn ?FIELDOFSTUDY ?SCHOOL))
+		(destination ?A ?H)
+		(agent ?A ?SCHOOL)
+		(exists (?INTERVAL)
+			(instance ?INTERVAL TimeInterval)))
+	(and
+		(not
+			(modalAttribute
+				(holdsDuring ?INTERVAL
+					(attends ?S ?SCHOOL)) Necessary))
+		(modalAttribute (attribute ?H Student) Unlikely)))
+;; If there is a person that is being awarded an honorary degree by a school, then it is likely that said 
+;;honorary degree is an honorary doctorate degree.
+(=>
+	(and
+		(instance ?H Human)
+		(instance ?A AwardingADegree)
+		(patient ?A (HonoraryDegreeFn ?FIELDOFSTUDY ?SCHOOL))
+		(agent ?A ?SCHOOL))
+	(modalAttribute
+		(equals 
+			(HonoraryDegreeFn ?FIELDOFSTUDY ?SCHOOL) (HonoraryDoctorateDegreeFn ?FIELDOFSTUDY ?SCHOOL)) Likely))
+
+(documentaton HonoraryDoctorateDegreeFn EnglishLanguage "This is a binary function that represents an &%HonoraryDegreeFn that is awarded as a doctorate.  Within (HonoraryDoctorateDegreeFn ?X ?Y), ?X will represent the &%FieldOfStudy and ?Y will represent the &%GraduateSchool that awarded the degree.  Note: this is not to be confused with DoctorateDegreeFn, as this is a subrelation of SubstantiveDegreeFn.  To see what an honorary degree entails, see &%HonoraryDegreeFn.")
+(instance HonoraryDoctorateDegreeFn BinaryFunction)
+(subrelation HonoraryDoctorateDegreeFn HonoraryDegreeFn)
+(domain HonoraryDoctorateDegreeFn 1 FieldOfStudy)
+(domain HonoraryDoctorateDegreeFn 2 GraduateSchool)
+(range HonoraryDoctorateDegreeFn AcademicDegree)
+(termFormat EnglishLanguage HonoraryDoctorateDegreeFn "honorary doctorate degree")
+
+
+(documentation HonoraryMasterDegreeFn EnglishLanguage "This is a binary function that represents an &%HonoraryDegreeFn that is awarded as a master's degree.  Within (HonoraryMasterDegreeFn ?X ?Y), ?X will represent the &%FieldOfStudy and ?Y will represent the &%GraduateSchool that awarded the degree.  Note: this is not to be confused with MasterDegreeFn, as this is a subrelation of SubstantiveDegreeFn.  To see what an honorary degree entails, see &%HonoraryDegreeFn.")
+(instance HonoraryMasterDegreeFn BinaryFunction)
+(subrelation HonoraryMasterDegreeFn HonoraryDegreeFn)
+(domain HonoraryMasterDegreeFn 1 FieldOfStudy)
+(domain HonoraryMasterDegreeFn 2 GraduateSchool)
+(range HonoraryMasterDegreeFn AcademicDegree)
+(termFormat EnglishLanguage HonoraryMasterDegreeFn "honorary master's degree")
+
+(documentation HonoraryBachelorDegreeFn EnglishLanguage "This is a binary function that represents an &%HonoraryDegreeFn that is awarded as a bachelor's degree.  Within (HonoraryBachelorDegreeFn ?X ?Y), ?X will represent the &%FieldOfStudy and ?Y will represent the &%College or &%University that awarded the degree.  Note: this is not to be confused with BachelorDegreeFn, as this is a subrelation of SubstantiveDegreeFn.  This is also rare, as most &%HonoraryDegreeFns are &%HonoraryDoctorateDegreeFns and &%HonoraryMasterDegreeFns.  To see what an honorary degree entails, see &%HonoraryDegreeFn.")
+(instance HonoraryBachelorDegreeFn BinaryFunction)
+(subrelation HonoraryBachelorDegreeFn HonoraryDegreeFn)
+(domain HonoraryBachelorDegreeFn 1 FieldOfStudy)
+(domain HonoraryBachelorDegreeFn 2 PostSecondarySchool)
+(range HonoraryBachelorDegreeFn AcademicDegree)
+(termFormat EnglishLanguage HonoraryBachelorDegreeFn "honorary bachelor's degree")
+;;If there is a student that is being awarded an honorary bachelor's degree by a school, then that school is 
+;;either a college or a university.
+(=>
+	(and
+		(instance ?S Student)
+		(instance ?A AwardingADegree)
+		(destination ?A ?S)
+		(patient ?A (HonoraryBachelorDegreeFn ?FIELDOFSTUDY ?SCHOOL))
+		(agent ?A ?SCHOOL))
+	(or
+		(equal ?SCHOOL College)
+		(equal ?SCHOOL University)))
+
+(documentation HonoraryAssociateDegreeFn EnglishLanguage "This is a binary function that represents an &%HonoraryDegreeFn that is awarded as an associate's degree.  Within (HonoraryAssociateDegreeFn ?X ?Y), ?X will represent the &%FieldOfStudy and ?Y will represent the &%JuniorCollege that awarded the degree.  Note: this is not to be confused with AssociateDegreeFn, as this is a subrelation of SubstantiveDegreeFn.  This is also rare, as most &%HonoraryDegreeFns are &%HonoraryDoctorateDegreeFns and &%HonoraryMasterDegreeFns.  To see what an honorary degree entails, see &%HonoraryDegreeFn.")
+(instance HonoraryAssociateDegreeFn BinaryFunction)
+(subrelation HonoraryAssociateDegreeFn HonoraryDegreeFn)
+(domain HonoraryAssociateDegreeFn 1 FieldOfStudy)
+(domain HonoraryAssociateDegreeFn 2 JuniorCollege)
+(range HonoraryAssociateDegreeFn AcademicDegree)
+(termFormat EnglishLanguage HonoraryAssociateDegreeFn "honorary associate's degree")
+
+(documentation SubstantiveDegreeFn EnglishLanguage "This is a binary function that represents a &%Degree that was earned after a certain amount of time at a &%PostSecondarySchool.  This is not to be confused with HonoraryDegreeFn, which is a degree that can be awarded by a &%PostSecondarySchool to someone who has made considerable advances in a certain %FieldOfStudy.  A %SubstantiveDegreeFn is only awarded to a &%Student after they fulfill a set of graduation requirements (for example, a certain number of classes and a research thesis).")
+(instance SubstantiveDegreeFn BinaryFunction)
+(subrelation SubstantiveDegreeFn DegreeFn)
+(domain SubstantiveDegreeFn 1 FieldOfStudy)
+(domain SubstantiveDegreeFn 2 PostSecondarySchool)
+(range SubstantiveDegreeFn AcademicDegree)
+(termFormat EnglishLanguage SubstantiveDegreeFn "substantive degree")
+;; If there is a student that is awarded a substantive degree by a school, then there is some time interval
+;;for which that student attended that school.
+(=>
+	(and
+		(instance ?S Student)
+		(instance ?A AwardingADegree)
+		(destination ?A ?S)
+		(patient ?A (SubstantiveDegreeFn ?FIELDOFSTUDY ?SCHOOL))
+		(agent ?A ?SCHOOL)
+		(exists (?INTERVAL)
+			(instance ?INTERVAL TimeInterval)))
+	(holdsDuring ?INTERVAL
+		(attends ?S ?SCHOOL)))
+		
+(documentation AssociateDegreeFn EnglishLanguage "This is a binary function that refers to an Associate's degree.  This is a degree that is earned after 2 years at a &%JuniorCollege.  For (AssociateDegreeFn ?X ?Y), the ?X should represent the &%FieldOfStudy and ?Y should represent the &%JuniorCollege.  Note: this is not to be confused with HonoraryAssociateDegreeFn (&%HonoraryAssociateDegreeFn).")
+(instance AssociateDegreeFn BinaryFunction)
+(subrelation AssociateDegreeFn SubstantiveDegreeFn)
+(domain AssociateDegreeFn 1 FieldOfStudy)
+(domain AssociateDegreeFn 2 JuniorCollege)
+(range AssociateDegreeFn AcademicDegree)
+(termFormat EnglishLanguage AssociateDegreeFn "associate's degree")
+;;If there is a student that is given an associate's degree by a junior college, then the student went to the 
+;;junior college for a certain amount of time.  It is likely that said amount of time is 2 years.
+(=>
+	(and
+		(instance ?S Student)
+		(instance ?A AwardingADegree)
+		(destination ?A ?S)
+		(patient ?A (AssociateDegreeFn ?FIELDOFSTUDY ?JC))
+		(agent ?A ?JC)
+		(exists (?INTERVAL)
+			(instance ?INTERVAL TimeInterval)
+			(holdsDuring ?INTERVAL (attends ?S ?JC))))
+	(modalAttribute (equal ?INTERVAL (MeasureFn 2 YearDuration)) Likely))
+
+(documentation BachelorDegreeFn EnglishLanguage "A binary function that refers specifically to a Bachelor's degree.  (BachelorDegreeFn ?X ?Y) will represent the %AcademicDegree that is awarded to someone who has completed their undergraduate studies.  ?X will represent the &%FieldOfStudy and ?Y will represent the &%College or &%University it came from.")
+(instance BachelorDegreeFn BinaryFunction)
+(subrelation BachelorDegreeFn SubstantiveDegreeFn)
+(domain BachelorDegreeFn 1 FieldOfStudy)
+(domain BachelorDegreeFn 2 PostSecondarySchool)
+(range BachelorDegreeFn AcademicDegree)
+(termFormat EnglishLanguage BachelorDegreeFn "bachelor's degree")
+;;If a student is being given a bachelor's degree by a school, then there is some time interval where that student 
+;;attended that school.  It is likely that said period is 4 years long.
+(=>
+	(and
+		(instance ?S Student)
+		(instance ?A AwardingADegree)
+		(destination ?A ?S)
+		(patient ?A (BachelorDegreeFn ?FIELDOFSTUDY ?SCHOOL))
+		(agent ?A ?SCHOOL)
+		(exists (?INTERVAL)
+			(instance ?INTERVAL TimeInterval)
+			(holdsDuring ?INTERVAL (attends ?S ?SCHOOL))))
+	(modalAttribute 
+		(equal ?INTERVAL (MeasureFn 4 YearDuration)) Likely)))
+;; If there is a student that is awarded a bachelor's degree by a school, then that school is either a 
+;;college or a university.
+(=>
+	(and
+		(instance ?S Student)
+		(instance ?A AwardingADegree)
+		(destination ?A ?S)
+		(patient ?A (BachelorDegreeFn ?FIELDOFSTUDY ?SCHOOL))
+		(agent ?A ?SCHOOL))
+	(or
+		(equal ?SCHOOL College)
+		(equal ?SCHOOL University)))
+
+(documentation MasterDegreeFn EnglishLanguage "This binary function refers specifically to a Master's degree.  For (MasterDegreeFn ?X ?Y), ?X will represent the &%FieldOfStudy and ?Y will represent the &%GraduateSchool from which it came.  Note: this only covers master's degrees that were directly earned by attending a certain school and meeting the school's graduation requirements.  This is not to be confused with %HonoraryMasterDegreeFn, which can be earned by someone who has never attended the university from which they are receiving the degree.")
+(instance MasterDegreeFn BinaryFunction)
+(subrelation MasterDegreeFn SubstantiveDegreeFn)
+(domain MasterDegreeFn 1 FieldOfStudy)
+(domain MasterDegreeFn 2 Graduateschool)
+(range MasterDegreeFn AcademicDegree)
+(termFormat EnglishLanguage MasterDegreeFn "master's degree")
+;; If there is a student that is being awarded a master's degree by a graduate school, then there is some
+;;time interval where that student attended that school.  It is likely that said interval is 2 years.
+(=>
+	(and
+		(instance ?S Student)
+		(instance ?A AwardingADegree)
+		(destination ?A ?S)
+		(patient ?A (MasterDegreeFn ?FIELDOFSTUDY ?GRADSCHOOL))
+		(agent ?A ?GRADSCHOOL)
+		(exists (?INTERVAL)
+			(instance ?INTERVAL TimeInterval)
+			(holdsDuring ?INTERVAL
+				(attends ?S ?SCHOOL)))
+	(modalAttribute 
+		(equal ?INTERVAL (MeasureFn 2 YearDuration)) Likely)))
+;; If there is a student that is attending a graduate school and expects a master's degree in ?FIELDOFSTUDY1
+;;from that school, then that student has a bachelor's degree.  It is a possibility the field of study for 
+;;the expected master's degree and the bachelor's degree are the same.  
+(=>
+	(and
+		(instance ?S Student)
+		(instance ?GRADSCHOOL GraduateSchool)
+		(attends ?S ?GRADSCHOOL)
+		(expectedDegree ?S (MasterDegreeFn ?FIELDOFSTUDY1 ?GRADSCHOOL)))
+	(possesses ?S (BachelorDegreeFn ?FIELDOFSTUDY2 ?SCHOOL)))
+
+(documentation DoctorateDegreeFn EnglishLanguage "This binary function refers to the terminal degree in a field of study, or a doctorate degree.  For (DoctorateDegreeFn ?X ?Y), ?X will represent the &%FieldOfStudy and ?Y will represent the &%GraduateSchool from which it came.  Note: this only covers doctorate degrees that were directly earned by attending a certain school and meeting the school's graduation requirements.  This is not to be confused with %HonoraryDegreeFn, which can be earned by someone who has never attended the university from which they are receiving the degree.")
+(instance DoctorateDegreeFn BinaryFunction)
+(subrelation DoctorateDegreeFn SubstantiveDegreeFn)
+(domain DoctorateDegreeFn 1 FieldOfStudy)
+(domain DoctorateDegreeFn 2 GraduateSchool)
+(range DoctorateDegreeFn AcademicDegree)
+(termFormat DoctorateDegreeFn "doctorate degree")
+;;If there is a student that is attending a graduate school and expects a graduate degree from that school,
+;;then that student has a bachelor degree and it is likely that they have a master's degree.
+(=>
+	(and
+		(instance ?S Student)
+		(instance ?GRADSCHOOL GraduateSchool)
+		(attends ?S ?GRADSCHOOL)
+		(expectedDegree ?S (DoctorateDegreeFn ?FIELDOFSTUDY3 ?GRADSCHOOL2)))
+	(and
+		(possesses ?S (BachelorDegreeFn ?FIELDOFSTUDY1 ?SCHOOL))
+		(modalAttribute
+			(possesses ?S (MasterDegreeFn ?FIELDOFSTUDY2 ?GRADSCHOOL1) Likely))))
+;;If there is a student that is being awarded a doctorate degree from a graduate school, then there is some
+;;time interval during which that person went to that school.  That interval is somewhere between 1 and 9 
+;;years.
+(=>
+	(and
+		(instance ?S Student)
+		(instance ?A AwardingADegree)
+		(destination ?A ?S)
+		(patient ?A (DoctorateDegreeFn ?FIELDOFSTUDY ?GRADSCHOOL))
+		(agent ?A ?GRADSCHOOL)
+		(exists (?INTERVAL)
+			(instance ?INTERVAL TimeInterval)
+			(holdsDuring ?INTERVAL
+				(attends ?S ?SCHOOL)))
+	(and
+		(greaterThan (MeasureFn 9 YearDuration) ?INTERVAL)
+		(greaterThan ?INTERVAL (MeasureFn 1 YearDuration))))
+
