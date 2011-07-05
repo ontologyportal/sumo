@@ -1,0 +1,200 @@
+;; This file refers to a list of terms that have been introduced into society since the advent of facebook.
+
+;;---------------------------------------------------------------------------------------------------------
+(documentation Facebook EnglishLanguage "Facebook is a popular social networking &%WebSite for people over the age of 13 that allows people to connect and interact with one another online.")
+(termFormat EnglishLanguage Facebook "Facebook")
+(instance Facebook WebSite)
+
+(documentation FacebookAccount EnglishLanguage "This refers to a &%UserAccount that is specific to &%Facebook.  In order to have a Facebook account, one must be over 13 years of age.  A Facebook account allows the user to form a profile, gain facebook friends, and participate in conversations and activities, among other things.")
+(termFormat EnglishLanguage FacebookAccount "Facebook account")
+(subclass FacebookAccount UserAccount)
+;;If there is a person that has a facebook account, then that person is at least 13 years of age.
+(=>
+    (and
+        (instance ?FBACCOUNT FacebookAccount)
+        (hasAccount ?USER ?FBACCOUNT))
+    (and
+        (age ?USER (MeasureFn ?NUMBER YearDuration))
+        (greaterThanOrEqualTo ?NUMBER 13)))
+
+(documentation ProfilePage EnglishLanguage "This refers to the &%WebPage on which one's personal information is displayed.  When someone makes a &%UserAccount, they are usually prompted to set up a &%ProfilePage for themselves.")
+(termFormat EnglishLanguage ProfilePage "profile page")
+(subclass ProfilePage WebSite)
+;; If there is a profile page, then there exists (1) a user to whom it refers and (2) a user who created it.
+;;It is likely that the user it refers to is also the one who created it.
+(=>
+    (instance ?PROFILE ProfilePage)
+    (and
+        (exists (?USER1)
+            (and
+                (instance ?USER1 InternetUser)
+                (refers ?PROFILE ?USER1)))
+        (exists(?USER2 ?CREATION)
+            (and
+                (instance ?USER2 InternetUser)
+                (instance ?CREATION Creation)
+                (result ?CREATION ?PROFILE)
+                (agent ?CREATION ?USER2)))
+        (modalAttribute
+            (equals ?USER1 ?USER2) Likely)))
+
+(documentation ProfileWall EnglishLanguage "This term refers specifically to the area on a &%ProfilePage where people communicate with each other.  It is a &%Collection of &%StatusUpdates and &%WallPosts, and &%RecentActivity.")
+(termFormat EnglishLanguage ProfileWall "profile wall")
+(subclass ProfileWall Collection)
+(component ProfileWall ProfilePage)
+;;If there is a profile wall, then it is a collection that is made up of status updates, wall posts, 
+;;and recent activity.
+(=>
+    (instance ?WALL ProfileWall)
+    (and
+        (memberType ?WALL StatusUpdate)
+        (memberType ?WALL WallPost)
+        (memberType ?WALL RecentActivity)))
+        
+(documentation StatusUpdate EnglishLanguage "This is a term commonly used in social networking sites.  A status update is a form of microblogging in which someone states what is currently going on in their life.  It usually a very brief sentence.")
+(termFormat EnglishLanguage StatusUpdate "status update")
+(subclass StatusUpdate WrittenCommunication)
+;;If there is a status update, it is posted both on the profile wall and on the news feed.
+(=>
+    (and
+        (instance ?STATUSUPDATE StatusUpdate)
+        (instance ?NEWSFEED NewsFeed)
+        (instance ?WALL ProfileWall))
+    (and
+        (located ?STATUSUPDATE ?WALL)
+        (located ?STATUSUPDATE ?NEWSFEED))
+;;If there is a status update, then it refers to the person who wrote it.
+(=>
+    (instance ?STATUSUPDATE StatusUpdate)
+    (exists (?USER1 ?CREATION)
+        (and
+            (instance ?CREATION Creation)
+            (instance ?USER1 InternetUser)
+            (agent ?CREATION ?USER1)
+            (result ?CREATION ?STATUSUPDATE)
+            (refers ?STATUSUPDATE ?USER1)))
+
+(documentation WallPost EnglishLanguage "A wall post is a term used in Facebook to describe what happens when someone posts something (a text post, video, photo, or link) onto a &%FacebookFriend's &%ProfileWall.")
+(termFormat EnglishLanguage WallPost "wall post")
+(subclass WallPost Communication)
+;;If there is a wall post, then it is located on someone's profile wall and it shows up in the news feed.
+(=>
+    (instance ?WALLPOST WallPost)
+    (and
+        (instance ?NEWSFEED NewsFeed)
+        (instance ?PROFILEWALL ProfileWall)
+        (exists (?USER1 ?USER2 ?CREATION)
+            (instance ?USER1 FacebookUser)
+            (instance ?USER2 FacebookUser)
+            (instance ?CREATION Creation)
+            (refers ?PROFILEWALL ?USER1)
+            (agent ?CREATION ?USER1)
+            (result ?CREATION ?WALLPOST)
+            (located ?WALLPOST ?PROFILEWALL))
+        (not
+            (equal ?USER1 ?USER2))))
+;;If there is a wall post, then it is either a text wall post, a video, a photograph, or a link.
+(=>
+    (instance ?WALLPOST WallPost)
+    (or
+        (instance ?WALLPOST TextWallPost)
+        (instance ?WALLPOST MotionPicture)
+        (instance ?WALLPOST Photograph)))
+        
+(documentation HTML EnglishLanguage "HTML is simply a computer language that is used to describe &%WebPages.  It stands for Hyper Text Markup Language, and an HTML Document is the same as a &%WebPage.")
+(termFormat EnglishLanguage HTML "HTML")
+(subclass HTML ComputerLanguage)
+
+(documentation Hyperlink EnglishLanguage "A hyperlink is a &%UniformResourceLocator that connects one &%WebPage to another.")
+(termFormat EnglishLanguage Hyperlink "hyperlink")
+;;If there is a hyperlink, then it is expressed in HTML
+(=>
+    (instance ?LINK Hyperlink)
+    (expressedInLanguage ?LINK HTML))
+;;***Does a hyperlink count as a form of communication (transmit a message) or transportation?  The computer "moves" 
+;;the user from one website to another, but the user does not physically move.  You can't use connects because
+;;this refers to a spatial connection, and links refers to the connection between two points on a graph.  Might
+;;it be changesLocation? ("(changes location ?EVENT ?OBJECT) means that during the translocation event ?EVENT, 
+;;?OBJECT's location changes. ?OBJECT might also be the agent, patient, or experiencer of ?EVENT.")
+
+(documentation TextWallPost EnglishLanguage "This is a term that refers specifically to a &%WallPost that is made up entirely of &%Words.")
+(termFormat EnglishLanguage TextWallPost "text wall post")
+(subclass TextWallPost WrittenCommunication)
+(subclass TextWallPost WallPost)
+
+(documentation RecentActivity EnglishLanguage "'Recent activity' is a term used on facebook to describe someone's recent facebook activity.  This includes every action made by the user except for &%StatusUpdates.")
+(termFormat EnglishLanguage RecentActivity "recent activity")
+;; If someone is the agent of an action (that is not a status update) on facebook, then that action counts as
+;;recent activity.
+(=>
+    (and
+        (instance ?USER InternetUser)
+        (instance ?ACTION IntentionalProcess)
+        (agent ?ACTION InternetUser)
+        (patient ?ACTION Facebook)
+        (not
+            (and
+                (instance ?STATUS StatusUpdate)
+                (result ?ACTION ?STATUS))))
+    (result ?ACTION RecentActivity))
+
+(documentation FacebookUser EnglishLanguage  "A facebook user is an &%InternetUser who has a &%FacebookAccount.")
+(termFormat EnglishLanguage FacebookUser "Facebook user")
+(subclass FacebookUser InternetUser)
+;;If someone is a facebook user, then they have a facebook account.
+(=>
+    (and
+        (instance ?USER FacebookUser)
+        (instance ?FBACCOUNT FacebookAccount))
+    (hasAccount ?USER ?FBACCOUNT))
+
+(documentation facebookFriend EnglishLanguage "This is a term that refers to the relationship between two people who have been deemed 'friends' on &%Facebook.  This does not necessarily mean that they are friends in real life or that they even know each other outside of &%Facebook.  Therefore, this term is not to be confused with &%friend.  It is possible for two people to be &%friends and not &%facebookFriends and vice versa.  However, if (facebookFriend ?USER1 ?USER2), then (facebookFriend ?USER2 ?USER1).  Note: this term is not to be confused with &%Befriending.")
+(termFormat EnglishLanguage facebookFriend "Facebook friend")
+(domain facebookFriend 1 FacebookUser)
+(domain facebookFriend 2 FacebookUser)
+(instance facebookFriend SymmetricRelation)
+(instance facebookFriend BinaryPredicate)
+
+(documentation Friending EnglishLanguage "This is a verb, coined by Facebook, that refers to the action of one &%FacebookUser becoming &%facebookFriends with another &%FacebookUser.")
+(termFormat EnglishLanguage Friending "friending")
+(subclass Friending SocialInteraction)
+;;If there is an instance of friending, then two facebook users who were not previously facebook friends become 
+;;facebook friends.
+(=>
+    (instance ?FRIENDING Friending)
+    (and
+        (exists (?USER1 ?USER2)
+            (instance ?USER1 FacebookUser)
+            (instance ?USER2 FacebookUser))
+        (holdsDuring
+            (BeginFn
+                (WhenFn ?FRIENDING))
+            (not
+                (facebookFriend ?USER1 ?USER2)))
+        (holdsDuring
+            (EndFn
+                (WhenFn ?FRIENDING))
+            (facebookFriend ?USER1 ?USER2))))
+            
+(documentation Befriending EnglishLanguage "This is a verb that refers to the action of one &%CognitiveAgent becoming &%friends with another &%CognitiveAgent.  Note: this is not to be confused with &%Friending.")
+(termFormat EnglishLanguage Befriending "befriending")
+(subclass Befriending SocialInteraction)
+;;If there is an instance of befriending, then two cognitive agents who were not previously friends become friends.
+(=>
+    (instance ?BEFRIENDING Befriending)
+    (and
+        (exists (?THING1 ?THING2)
+            (instance ?THING1 CognitiveAgent)
+            (instance ?THING2 CognitiveAgent))
+        (holdsDuring
+            (BeginFn
+                (WhenFn ?BEFRIENDING))
+            (not
+                (friend ?THING1 ?THING2)))
+        (holdsDuring
+            (EndFn
+                (WhenFn ?BEFRIENDING))
+            (friend ?THING1 ?THING2))))
+
+(documentation NewsFeed EnglishLanguage "This is a term that refers to a 'news feed' on a social networking site.  A news feed is where people can see the activity of both themselves and their &%facebookFriends.")
+(termFormat EnglishLanguage NewsFeed "news feed")
