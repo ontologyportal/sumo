@@ -63,10 +63,21 @@ means that &%Agent ?AGENT attaches range of possible &%productPrice for ?OBJ wit
 minimum ?MIN and maximum ?MAX")
 (termFormat EnglishLanguage priceRange "price range")
 
-(domain priceRange 1 Entity)
+(domainSubclass priceRange 1 Entity)
 (domain priceRange 2 CurrencyMeasure)
 (domain priceRange 3 CurrencyMeasure)
 (domain priceRange 4 Agent)
+
+(=>
+  (priceRange ?ENT ?MIN ?MAX ?AGENT)
+  (exists (?PRICE ?PS)
+    (and
+      (lessThanOrEqualTo ?PRICE ?MAX)
+      (greaterThanOrEqualTo ?PRICE ?MIN)
+      (or
+        (publishedPrice ?ENT ?PRICE ?AGENT ?PS)
+        (productPrice ?ENT ?PRICE ?AGENT)
+        (unitPrice ?ENT ?PRICE ?AGENT ?PS)))))
 
 (instance validFor BinaryPredicate)
 (documentation validFor EnglishLanguage "(&%validFor ?SCHEME ?AGENT) means that 
@@ -74,7 +85,7 @@ minimum ?MIN and maximum ?MAX")
 (termFormat EnglishLanguage validFor "valid for")
 
 (domain validFor 1 PricingScheme)
-(domain validFor 2 Agent)
+(domainSubclass validFor 2 Agent)
 
 (instance validityPeriod BinaryPredicate)
 (documentation validityPeriod EnglishLanguage "(&%validityPeriod ?SCHEME ?TIMEINT) means
@@ -127,7 +138,7 @@ the &%CurrencyMeasure ?PRICE is given to &%Entity ?ENT")
       (and
         (instance ?S Selling)
         (patient ?S ?ITEM)
-        (instance ?ITEM ?ENT)
+        (immediateInstance ?ITEM ?ENT)
         (agent ?S ?SELLER)
         (destination ?S ?BUYER))
       (transactionAmount ?S ?PRICE)) Promise))
@@ -141,19 +152,30 @@ the &%CurrencyMeasure ?PRICE is given to &%Entity ?ENT")
   (modalAttribute
     (=>
       (and
-        (instance ?ITEM ?ENT)
+        (immediateInstance ?ITEM ?ENT)
         (realization ?PROCESS ?ITEM)
         (instance ?S Selling)
         (patient ?S ?PROCESS)
         (agent ?S ?SELLER)
         (destination ?S ?BUYER))
       (transactionAmount ?S ?PRICE)) Promise))
-      
-;; TODO: Add rule (once Agreement ontology is finished) that states that there exists
-;; a clause in Agreement that sets price to CurrencyMeasure. Also, that the partyToAgreement
-;; in this case is the buyer and the seller, and that Physical is given monetaryValue
-;; of CurrencyMeasure
 
+(=>
+  (and
+    (negotiatedPrice ?ENT ?PRICE ?AGREE)
+    (partyToAgreement ?SELLER ?AGREE)
+    (partyToAgreement ?BUYER ?AGREE))
+  (exists (?CLAUSE)
+    (agreementClause
+      (=>
+        (and
+          (instance ?B Buying)
+          (patient ?B ?ITEM)
+          (immediateInstance ?ITEM ?ENT)
+          (agent ?B ?BUYER)
+          (origin ?B ?SELLER))
+        (transactionAmount ?B ?PRICE)) Obligation ?AGREE ?SELLER)))
+   
 (instance publishedPrice QuaternaryPredicate)
 (documentation publishedPrice EnglishLanguage "(&%publishedPrice ?ENT ?PRICE ?AGENT ?PS)
 means that the &%CurrencyMeasure ?PRICE is given by &%Agent ?AGENT to &%Entity ?ENT, 
@@ -165,7 +187,59 @@ based on conditions outlined in &%PricingScheme ?PS")
 (domain publishedPrice 3 CognitiveAgent)
 (domain publishedPrice 4 PricingScheme)
 
+(=>
+  (and
+    (instance ?B Buying)
+    (patient ?B ?ITEM)
+    (origin ?B ?AGENT)
+    (or
+      (publishedPrice ?ENT ?PRICE ?AGENT ?PS)
+      (unitPrice ?ENT ?QUANT ?AGENT ?PS))
+    (subclass ?ENT Physical)
+    (immediateInstance ?ITEM ?ENT)
+    (validPaymentType ?PS ?PAY))
+  (modalAttribute
+    (exists (?PAYMENT)
+      (and
+        (instance ?PAYMENT ?PAY)
+        (subProcess ?PAYMENT ?B))) Likely))
 
+(=>
+  (and
+    (or
+      (publishedPrice ?ENT ?PRICE ?AGENT ?PS)
+      (unitPrice ?ENT ?QUANT ?AGENT ?PS))
+    (subclass ?ENT Physical)
+    (immediateInstance ?ITEM ?ENT)
+    (validFor ?PS ?CUSTCLASS)
+    (instance ?CUSTOMER ?CUSTCLASS))
+  (modalAttribute
+    (=>
+      (and
+        (instance ?B Buying)
+        (agent ?B ?CUSTOMER)
+        (origin ?B ?AGENT)
+        (patient ?B ?ITEM))
+      (transactionAmount ?B ?PRICE)) Likely))
+
+(=>      
+  (and
+    (or
+      (publishedPrice ?ENT ?PRICE ?AGENT ?PS)
+      (unitPrice ?ENT ?QUANT ?AGENT ?PS))
+    (subclass ?ENT Physical)
+    (immediateInstance ?ITEM ?ENT)
+    (validityPeriod ?PS ?TIMEINT))
+  (holdsDuring ?TIMTEINT
+    (modalAttribute
+      (=>
+        (and
+          (instance ?S ?SELLING)
+          (agent ?S ?AGENT)
+          (patient ?S ?ITEM))
+        (transactionAmount ?S ?PRICE)) Likely)))
+    
+      
 (instance unitPrice QuaternaryPredicate)
 (documentation unitPrice EnglishLanguage "(&%unitPrice ?ENT ?QUANT ?AGENT ?PS) is meant
 for objects that are not sold by the piece but by a certain unit of measure, for 
@@ -184,4 +258,38 @@ a &%PricingScheme ?PS by &%CognitiveAgent ?AGENT")
     (and
       (equal ?QUANT (PerFn ?MEAS (MeasureFn ?AMT ?UOM)))
       (instance ?MEAS CurrencyMeasure)))) 
-            
+
+(instance productPrice TernaryPredicate)
+(documentation productPrice EnglishLanguage "(&%productPrice ?ENT ?QUANT ?AGENT) means
+that &%CognitiveAgent ?AGENT sells items of type &%Entity ?ENT for &%CurrencyMeasure 
+?QUANT")
+(termFormat EnglishLanguage productPrice "product price")
+
+(domainSubclass productPrice 1 Entity)
+(domain productPrice 2 CurrencyMeasure)
+(domain productPrice 3 CognitiveAgent)
+      
+(=>
+  (productPrice ?ENT ?PRICE ?AGENT)
+  (modalAttribute
+    (=>
+      (and
+        (instance ?S Selling)
+        (immediateInstance ?I ?ENT)
+        (patient ?S ?I)
+        (agent ?S ?AGENT))
+    (transactionAmount ?S ?PRICE)) Likely))
+    
+(=>
+  (and
+    (productPrice ?ENT ?PRICE1 ?AGENT)
+    (publishedPrice ?ENT ?PRICE2 ?AGENT ?PS)
+    (validFor ?PS ?CUSTCLASS)
+    (instance ?ITEM ?ENT)
+    (instance ?B Buying)
+    (immediateInstance ?CUST ?CUSTCLASS)
+    (agent ?B ?CUST)
+    (origin ?B ?AGENT)
+    (lessThan ?PRICE2 ?PRICE1))
+  (modalAttribute
+    (transactionAmount ?B ?PRICE1) Likely))

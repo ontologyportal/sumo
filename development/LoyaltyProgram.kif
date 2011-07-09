@@ -1,0 +1,229 @@
+;; ---------------------------------------------------------------------------------
+;; Loyalty Programs Classes
+;; ---------------------------------------------------------------------------------
+        
+(subclass LoyaltyClub GroupOfPeople)
+(documentation LoyaltyClub EnglishLanguage "A &%LoyaltyClub is a &%GroupOfPeople that
+gets benefits from different organizations that are &%affiliatedOrganization with 
+the club")
+(termFormat EnglishLanguage LoyaltyClub "loyalty club")
+
+(=>
+  (instance ?X LoyaltyClub)
+  (exists (?ORG)
+    (affiliatedOrganization ?X ?ORG)))
+    
+;; other important relations that can be used for this:
+;; (groupMember ?HUMAN ?CLUB) -- indicates that a person is a member of a loyalty club
+;; (affiliatedOrganization ?CLUB ?COMP) -- indicates that a company is affiliated
+;; with a loyalty club and offers some benefits to its members
+
+;; propose to subclass Plan not from Procedure but from Proposition, as a plan
+;; need not necessarily be sequence-dependent (for example, a DietPlan does not 
+;; necessarily dictate the order by which you eat food, just what types of food
+;; to eat). Rather, it is more a proposition for different things that can be done
+;; to ensure the objective.
+(subclass LoyaltyProgram Plan)
+(documentation LoyaltyProgram EnglishLanguage "&%LoyaltyProgram refers to structured
+marketing efforts to increase Loyalty.")
+(termFormat EnglishLanguage LoyaltyProgram "loyalty program")
+
+(=>
+  (instance ?LP LoyaltyProgram)
+  (exists (?AGENT)
+    (planOwner ?AGENT ?LP)))
+
+;; modeled this as UnitOfCurrency so that all the relationships related to price
+;; can also be used with this, no need to create separate pricing mechanism for a
+;; loyalty program catalog    
+(subclass LoyaltyProgramPoint UnitOfCurrency)
+(documentation LoyaltyProgramPoints EnglishLanguage "&%LoyaltyProgramPoints is 
+currency that is earned by terms stipulated by a &%LoyaltyProgram.  These points can
+be exchanged for merchandise, trips, and other things in a loyalty program cataog")
+(termFormat EnglishLanguage LoyaltyProgramPoint "loyalty program point")
+
+(=>
+  (instance ?POINT LoyaltyProgramPoint)
+  (exists (?LP)
+    (and
+      (instance ?LP LoyaltyProgram)
+      (loyaltyProgramCurrency ?LP ?POINT))))
+      
+(subclass LoyaltyMembershipTier RelationalAttribute)
+(documentation LoyaltyMembershipTier EnglishLanguage "&%LoyaltyMembershipTier is the 
+subclass of &%Attribute that describes what level in the &%LoyaltyProgram a particular 
+&%groupMember belongs to. This normally indicates the level of benefits a member
+can avail of")
+(termFormat EnglishLanguage LoyaltyMembershipTier "loyalty membership tier")
+
+(=>
+  (instance ?TIER LoyaltyMembershipTier)
+  (exists (?PROG)
+    (loyaltyProgramTier ?PROG ?TIER)))
+    
+(=>
+  (and
+    (attribute ?H ?T)
+    (instance ?T LoyaltyMembershipTier))
+  (and
+    (instance ?H Human)
+    (exists (?GRP ?PROG)
+      (and
+        (instance ?GRP LoyaltyClub)
+        (groupMember ?H ?GRP)
+        (affiliatedProgram ?PROG ?GRP)))))
+        
+;; ----------------------------------------------------------------------------------
+;; Relationships
+;; ----------------------------------------------------------------------------------    
+  
+(instance planOwner BinaryPredicate)
+(documentation planOwner EnglishLanguage "(&%planOwner ?AGENT ?PLAN) means that &%Agent
+?AGENT is responsible for executing the directives in &%Plan ?PLAN")
+(termFormat EnglishLanguage planOwner "plan owner")
+
+(domain planOwner 1 Agent)
+(domain planOwner 2 Plan)
+
+(=>
+  (planOwner ?AGENT ?PLAN)
+  (exists (?PROC)
+    (and
+      (realization ?PROC ?PLAN)
+      (agent ?PROC ?AGENT))))
+      
+(instance affiliatedProgram BinaryPredicate)
+(documentation affiliatedProgram EnglishLanguage "(&%affiliatedProgram ?PLAN ?GRP) means
+that the &%Plan ?PLAN applies to all members of &%GroupOfPeople ?GRP")
+(termFormat EnglishLanguage affiliatedProgram "affiliated program")
+
+(domain affiliatedProgram 1 Plan)
+(domain affiliatedProgram 2 GroupOfPeople)
+
+(=>
+  (and
+    (affiliatedProgram ?PLAN ?GRP)
+    (groupMember ?MEMB ?GRP)
+    (realization ?PROC ?PLAN))
+  (experiencer ?PROC ?MEMB))
+        
+(instance loyaltyProgramTier BinaryPredicate)
+(documentation loyaltyProgramTier EnglishLanguage "(&%loyaltyProgramTier ?PROG ?TIER) 
+means that &%LoyaltyMembershipTier ?TIER is associated with &%LoyaltyProgram ?PROG")
+(termFormat EnglishLanguage loyaltyProgramTier "loyalty program tier")
+
+(domain loyaltyProgramTier 1 LoyaltyProgram)
+(domain loyaltyProgramTier 2 LoyaltyMembershipTier)
+
+(=>
+  (and
+    (groupMember ?MEMB ?GRP)
+    (instance ?GRP LoyaltyClub)
+    (affiliatedProgram ?PROG ?GRP)
+    (exists (?TIER)
+      (loyaltyProgramTier ?PROG ?TIER)))
+  (attribute ?MEMB ?TIER))
+
+(instance loyaltyProgramCurrency BinaryPredicate)
+(documentation loyaltyProgramCurrency EnglishLanguage "(&%loyaltyProgramCurrency ?LP ?CURR)
+means that &%LoyaltyProgramPoint ?CURR is the &%UnitOfCurrency used for benefits in the
+&%LoyaltyProgram ?LP")
+(termFormat EnglishLanguage loyaltyProgramCurrency "loyalty program currency")
+
+(domain loyaltyProgramCurrency 1 LoyaltyProgram)
+(domain loyaltyProgramCurrency 2 LoyaltyProgramPoint)
+
+(instance loyaltyProgramCatalog BinaryPredicate)
+(documentation loyaltyProgramCatalog EnglishLanguage "(&%loyaltyProgramCatalog ?LP ?CAT)
+means that &%Catalog ?CATALOG is associated with &%LoyaltyProgram ?LP")
+(termFormat EnglishLanguage loyaltyProgramCatalog "loyalty program catalog")
+
+(domain loyaltyProgramCatalog 1 LoyaltyProgram)
+(domain loyaltyProgramCatalog 2 Catalog)
+
+(=>
+  (and
+    (loyaltyProgramCatalog ?LP ?CAT)
+    (affiliatedProgram ?LP ?LC)
+    (instance ?LC LoyaltyClub)
+    (groupMember ?MEMB ?LC))
+  (modalAttribute
+    (exists (?B ?ITEM)
+      (and
+        (instance ?B Buying)
+        (agent ?B ?MEMB)
+        (patient ?B ?ITEM)
+        (catalogItem ?CAT ?ITEM))) Possibility))
+
+;; this describes earned points by an agent and when it is valid        
+(instance earnedPointsValidity TernaryPredicate)
+(documentation earnedPointsValidity EnglishLanguage "(&%earnedPointsValidity ?PERSON
+?MEAS ?TIME) means that the number of points ?MEAS can be used to buy stuff in a 
+&%Catalog by &%Human ?PERSON within &%TimeInterval ?TIME")
+(termFormat EnglishLanguage earnedPointsValidity "earned points validity")
+
+(domain earnedPointsValidity 1 Human)
+(domain earnedPointsValidity 2 CurrencyMeasure)
+(domain earnedPointsValidity 3 TimeInterval)
+
+(=>
+  (earnedPointsValidity ?PERSON ?MEAS ?TIME)
+  (exists (?CURR ?AMT)
+    (and
+      (instance ?CURR LoyaltyProgramPoint)
+      (equal ?MEAS (MeasureFn ?AMT ?CURR)))))
+      
+(=>
+  (earnedPointsValidity ?PERSON ?MEAS ?TIME)
+  (holdsDuring ?TIME
+    (modalAttribute
+      (uses ?MEAS ?PERSON) Possibility)))
+
+(instance amountEarned TernaryPredicate)
+(documentation amountEarned EnglishLanguage "(&%amountEarned ?AGENT ?MEASURE
+?PROCESS) describes the &%CurrencyMeasure ?MEASURE that &%Agent ?AGENT earned for doing &%Process ?PROCESS")
+(termFormat EnglishLanguage amountEarned "amount earned")
+
+(=>
+  (amountEarned ?AGENT ?MEASURE ?PROCESS)
+  (exists (?P)
+    (and
+      (instance ?P Payment)
+      (patient ?P ?MEASURE)
+      (destination ?P ?AGENT)
+      (holdsDuring
+        (EndFn (WhenFn ?P))
+        (possesses ?AGENT ?MEASURE)))))
+        
+(instance currencyExchange BinaryPredicate)
+(documentation currencyExchange EnglishLanguage "While &%currencyExchangeRate describes the amount of a particular &%UnitOfCurrency is equivalent to 1 unit of another &%UnitOfCurrency, there are some &%UnitOfCurrency that does not use rates but uses equivalence of actual &%CurrencyMeasure from with one &%UnitOfCurrency to another &%CurrencyMeasure of a different &%UnitOfCurrency. For example, you may be able to exchange 10,000 rewards points from a hotel to 100 miles from an airline, but 20,000 points doesn't necessarily mean 200 points.  &%currencyExchange aims to provide these relationships")
+(termFormat EnglishLanguage currencyExchange "currency exchange")
+
+(domain currencyExchange 1 CurrencyMeasure)
+(domain currencyExchange 2 CurrencyMeasure)
+
+(=>
+  (currencyExchange ?AMT1 ?AMT2)
+  (exists (?UOC1 ?UOC2 ?VALUE1 ?VALUE2)
+    (and
+      (equals ?AMT1 (MeasureFn ?VALUE1 ?UOC1))
+      (equals ?AMT2 (MeasureFn ?VALUE2 ?UOC2)))))
+      
+(=>
+  (currencyExchange ?AMT1 ?AMT2)
+  (modalAttribute
+    (=>
+      (possesses ?AGENT ?AMT1)
+      (exists (?T)
+        (and
+          (instance ?T Transaction)
+          (agent ?T ?AGENT)
+          (patient ?T ?AMT1)
+          (holdsDuring
+            (EndFn (WhenFn ?T))
+            (and
+              (not (possesses ?AGENT ?AMT1))
+              (possesses ?AGENT ?AMT2)))))) Possibility))
+             
+        
+      
