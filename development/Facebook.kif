@@ -1,4 +1,6 @@
 ;; This file refers to a list of terms that have been introduced into society since the advent of facebook.
+;;Author: Brianna Pritchett
+;;Created: July 1, 2011
 
 ;;---------------------------------------------------------------------------------------------------------
 (documentation Facebook EnglishLanguage "Facebook is a popular social networking &%WebSite for people over the age of 13 that allows people to connect and interact with one another online.")
@@ -87,7 +89,7 @@
             (instance ?USER1 FacebookUser)
             (instance ?USER2 FacebookUser)
             (instance ?CREATION Creation)
-            (refers ?PROFILEWALL ?USER1)
+            (refers ?PROFILEWALL ?USER2)
             (agent ?CREATION ?USER1)
             (result ?CREATION ?WALLPOST)
             (located ?WALLPOST ?PROFILEWALL))
@@ -111,11 +113,13 @@
 (=>
     (instance ?LINK Hyperlink)
     (expressedInLanguage ?LINK HTML))
-;;***Does a hyperlink count as a form of communication (transmit a message) or transportation?  The computer "moves" 
+;;*Does a hyperlink count as a form of communication (transmit a message) or transportation?  The computer "moves" 
 ;;the user from one website to another, but the user does not physically move.  You can't use connects because
 ;;this refers to a spatial connection, and links refers to the connection between two points on a graph.  Might
 ;;it be changesLocation? ("(changes location ?EVENT ?OBJECT) means that during the translocation event ?EVENT, 
-;;?OBJECT's location changes. ?OBJECT might also be the agent, patient, or experiencer of ?EVENT.")
+;;?OBJECT's location changes. ?OBJECT might also be the agent, patient, or experiencer of ?EVENT.") Also, URL and UniformResourceLocator are defined 
+;;separately, and most applications of URL are defined off of the SUMO term URL.  (websiteAddress ?URL ?AGENT) could also work, though this is defined as 
+;;a siteForContact and this is not necessarily true of a hyperlink.
 
 (documentation TextWallPost EnglishLanguage "This is a term that refers specifically to a &%WallPost that is made up entirely of &%Words.")
 (termFormat EnglishLanguage TextWallPost "text wall post")
@@ -124,6 +128,7 @@
 
 (documentation RecentActivity EnglishLanguage "'Recent activity' is a term used on facebook to describe someone's recent facebook activity.  This includes every action made by the user except for &%StatusUpdates.")
 (termFormat EnglishLanguage RecentActivity "recent activity")
+(
 ;; If someone is the agent of an action (that is not a status update) on facebook, then that action counts as
 ;;recent activity.
 (=>
@@ -176,6 +181,27 @@
                 (WhenFn ?FRIENDING))
             (facebookFriend ?USER1 ?USER2))))
             
+(documentation Unfriending EnglishLanguage "This is a verb, coined by Facebook, that refers to the action of one &%FacebookUser undoing the act of &%Friending another &%FacebookUser.")
+(termFormat EnglishLanguage Unfriending "unfriending")
+(subclass Unfriending SocialInteraction)
+;;If there is an instance of unfriending, then two facebook users who were previously facebook friends stop being 
+;;facebook friends.
+(=>
+    (instance ?FRIENDING Friending)
+    (and
+        (exists (?USER1 ?USER2)
+            (instance ?USER1 FacebookUser)
+            (instance ?USER2 FacebookUser))
+        (holdsDuring
+            (BeginFn
+                (WhenFn ?FRIENDING))
+            (facebookFriend ?USER1 ?USER2))
+        (holdsDuring
+            (EndFn
+                (WhenFn ?FRIENDING))
+            (not
+                (facebookFriend ?USER1 ?USER2)))))
+            
 (documentation Befriending EnglishLanguage "This is a verb that refers to the action of one &%CognitiveAgent becoming &%friends with another &%CognitiveAgent.  Note: this is not to be confused with &%Friending.")
 (termFormat EnglishLanguage Befriending "befriending")
 (subclass Befriending SocialInteraction)
@@ -198,3 +224,47 @@
 
 (documentation NewsFeed EnglishLanguage "This is a term that refers to a 'news feed' on a social networking site.  A news feed is where people can see the activity of both themselves and their &%facebookFriends.")
 (termFormat EnglishLanguage NewsFeed "news feed")
+(subclass NewsFeed WebPage)
+
+(documentation Uploading EnglishLanguage "This verb refers to what happens when data is sent, either as a &%ComputerFile or a &%ComputerProgram, from a &%Computer to some external device.  This device is most likely another &%Computer or a &%Server, though it can be any &%DigitalDataStorageDevice as well.  This is the opposite of &%Downloading.")
+(subclass Uploading Transfer)
+(subclass Uploading ITProcess)
+(termFormat EnglishLanguage Uploading "uploading")
+;;If there is an instance of uploading, then some data is being sent from a computer.
+(=>
+    (instance ?UPLOAD Uploading)
+    (exists (?FILE ?COMPUTER)
+        (and
+            (instance ?UPLOAD Transfer)
+            (or
+                (instance ?FILE ComputerFile)
+                (instance ?FILE ComputerProgram))
+            (instance ?COMPUTER Computer)
+            (patient ?UPLOAD ?FILE)
+            (agent ?UPLOAD ?COMPUTER)
+            (origin ?UPLOAD ?COMPUTER))))
+    
+(documentation Downloading EnglishLanguage "This verb refers to what happens when data is sent, either as a &%ComputerFile or &%ComputerProgram, to a &%Computer or &%DigitalDataStorageDevice.  The source of the download is usually another &%Computer or &%Server or, in the case of modern jargon, some &%WebPage. This verb is the opposite of &%Uploading.")
+(subclass Downloading Transfer)
+(subclass Downloading ITProcess)
+(termFormat EnglishLanguage Downloading "downloading")
+;;If there is an instance of downloading, then some data is being sent to a computer.
+(=>
+    (instance ?DOWNLOAD Downloading)
+    (exists (?FILE ?COMPUTER)
+        (and
+            (instance ?DOWNLOAD Transfer)
+            (or
+                (instance ?FILE ComputerFile)
+                (instance ?FILE ComputerProgram))
+            (instance ?COMPUTER Computer)
+            (patient ?DOWNLOAD ?FILE)
+            (agent ?DOWNLOAD ?COMPUTER)
+            (destination ?DOWNLOAD ?COMPUTER))))
+            
+(documentation tags EnglishLanguage "(tags ?USER1 ?USER2) means that ?USER1 has made a reference to ?USER2 in a &%PostFn.  This term is used specifically on social networking sites, and it is only a tag if both ?USER1 and ?USER2 have accounts on that specific site (e.g., if Sue and Mary have &%FacebookAccounts but John does not, then Sue can tag Mary and Mary can tag Sue, but neither of them can tag John, even though they may mention him in a post.)  Notice that this is an antisymmetric, and not asymmetric, relation because you can tag yourself in a post.")
+(instance tags BinaryPredicate)
+(instance tags AntisymmetricRelation)
+(subrelation tags refers)
+(domain tags 1 InternetUser)
+(domain tags 2 InternetUser)
