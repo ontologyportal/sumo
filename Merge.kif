@@ -3208,60 +3208,80 @@ brings it about that the &%Formula does not have the &%ObjectiveNorm.")
 
 (instance partlyLocated SpatialRelation)
 (instance partlyLocated BinaryPredicate)
-(instance partlyLocated CaseRole)
 (domain partlyLocated 1 Physical)
 (domain partlyLocated 2 Object)
-(documentation partlyLocated EnglishLanguage "(&%partlyLocated ?THING ?OBJ) means that the 
-instance of &%Physical ?THING is at least partially located at ?OBJ.  For 
+(documentation partlyLocated EnglishLanguage "(&%partlyLocated ?OBJ1 ?OBJ2) means 
+that the instance of &%Physical ?OBJ1 is at least partially located at ?OBJ2.  For 
 example, Istanbul is partly located in &%Asia and partly located in &%Europe.  
 Note that &%partlyLocated is the most basic localization relation:  &%located 
 is an immediate &%subrelation of &%partlyLocated and &%exactlyLocated is 
 an immediate &%subrelation of &%located.") 
 
 (=>
-   (and
-      (instance ?OBJ1 Object)
-      (partlyLocated ?OBJ1 ?OBJ2))
-   (overlapsSpatially ?OBJ1 ?OBJ2)) 
+  (and
+    (instance ?OBJ1 Object)
+    (partlyLocated ?OBJ1 ?OBJ2))
+  (overlapsSpatially ?OBJ1 ?OBJ2)) 
 
 (=>
-   (and
-      (instance ?OBJ1 Object)
-      (partlyLocated ?OBJ1 ?OBJ2))
-   (exists (?SUB)
-      (and
-         (part ?SUB ?OBJ1)
-         (located ?SUB ?OBJ2))))
-
-(=>
-  (origin ?PROCESS ?LOC)
-  (partlyLocated ?PROCESS ?LOC))
-
-(=>
-  (destination ?PROCESS ?LOC)
-  (partlyLocated ?PROCESS ?LOC))
-
+  (and
+    (instance ?OBJ1 Object)
+    (partlyLocated ?OBJ1 ?OBJ2))
+  (exists (?SUB)
+    (and
+      (part ?SUB ?OBJ1)
+      (located ?SUB ?OBJ2))))
+      
 (instance located AntisymmetricRelation)
 (instance located TransitiveRelation)
 (subrelation located partlyLocated)
-(documentation located EnglishLanguage "(&%located ?PHYS ?OBJ) means that ?PHYS is &%partlyLocated 
-at ?OBJ, and there is no &%part or &%subProcess of ?PHYS that is not &%located at 
-?OBJ.")
+(documentation located EnglishLanguage "(&%located ?OBJ1 ?OBJ2) means that ?OBJ1 is 
+&%partlyLocated at ?OBJ2, and there is no &%part of ?OBJ1 that is not &%located at 
+?OBJ2.")
 
 (=>
-   (located ?OBJ1 ?OBJ2)
-   (forall (?SUB)
-      (=>
-         (part ?SUB ?OBJ1)
-         (located ?SUB ?OBJ2))))
+  (located ?OBJ1 ?OBJ2)
+  (forall (?SUB)
+    (=>
+      (part ?SUB ?OBJ1)
+      (located ?SUB ?OBJ2))))
+
+(instance eventPartlyLocated CaseRole)
+(subrelation eventPartlyLocated partlyLocated)
+(domain eventPartlyLocated 1 Process)
+(domain eventPartlyLocated 2 Object)
+(documentation eventPartlyLocated EnglishLanguage "(&%eventPartlyLocated ?PROC ?OBJ)
+means that some &%subProcess of &%Process ?PROC is located in &%Object ?OBJ.")
+(termFormat EnglishLanguage eventPartlyLocated "event partly located")
 
 (=>
-   (located ?PROCESS ?OBJ)
-   (forall (?SUB)
-      (=>
-         (subProcess ?SUB ?PROCESS)
-         (located ?SUB ?OBJ))))
+  (eventPartlyLocated ?PROC ?OBJ)
+  (exists (?SUB)
+    (and
+      (subProcess ?SUB ?PROC)
+      (eventLocated ?SUB ?OBJ))))
+      
+(=>
+  (origin ?PROCESS ?LOC)
+  (eventPartlyLocated ?PROCESS ?LOC))
 
+(=>
+  (destination ?PROCESS ?LOC)
+  (eventPartlyLocated ?PROCESS ?LOC))
+     
+(subrelation eventLocated eventPartlyLocated)
+(documentation eventLocated EnglishLanguage "(&%eventLocated ?PROC ?OBJ) means that
+the entire &%Process ?PROC is located on &%Object ?OBJ, meaning that all &%subProcess 
+of ?PROC is located on ?OBJ")
+(termFormat EnglishLanguage eventLocated "event located")
+
+(=>
+  (eventLocated ?PROCESS ?OBJ)
+  (forall (?SUB)
+    (=>
+      (subProcess ?SUB ?PROCESS)
+      (eventLocated ?SUB ?OBJ))))
+      
 (subrelation exactlyLocated located)
 (documentation exactlyLocated EnglishLanguage "The actual, minimal location of an 
 Object.  This is a subrelation of the more general &%Predicate 
@@ -3397,12 +3417,12 @@ of &%Processes, not between instances.")
         (exists (?INST1) 
           (and 
             (instance ?INST1 ?PROC1) 
-            (located ?INST1 ?PLACE))))
+            (eventLocated ?INST1 ?PLACE))))
       (holdsDuring ?TIME 
         (exists (?INST2) 
           (and 
             (instance ?INST2 ?PROC2) 
-            (located ?INST2 ?PLACE)))))))
+            (eventLocated ?INST2 ?PLACE)))))))
 
 (instance prevents BinaryPredicate)
 (instance prevents IrreflexiveRelation)
@@ -3424,13 +3444,13 @@ of &%Processes, not between instances.")
         (exists (?INST1) 
           (and 
             (instance ?INST1 ?PROC1) 
-            (located ?INST1 ?PLACE))))
+            (eventLocated ?INST1 ?PLACE))))
       (not 
         (holdsDuring ?TIME 
           (exists (?INST2) 
             (and 
               (instance ?INST2 ?PROC2) 
-              (located ?INST2 ?PLACE))))))))
+              (eventLocated ?INST2 ?PLACE))))))))
 
 (instance refers BinaryPredicate)
 (domain refers 1 Entity)
@@ -6563,7 +6583,7 @@ the &%TimePoint at which the interval begins.")
 
 (=>
    (origin ?PROCESS ?OBJ)
-   (located (WhereFn ?PROCESS (BeginFn (WhenFn ?PROCESS))) (WhereFn ?OBJ (BeginFn (WhenFn ?OBJ)))))
+   (eventLocated (WhereFn ?PROCESS (BeginFn (WhenFn ?PROCESS))) (WhereFn ?OBJ (BeginFn (WhenFn ?OBJ)))))
 
 (=>
    (equal (BeginFn ?INTERVAL) ?POINT)
@@ -8104,8 +8124,8 @@ distinguished part (proper or not) of a &%Process.")
    (subProcess ?SUBPROC ?PROC)
    (forall (?REGION)
       (=>
-         (located ?PROC ?REGION)
-         (located ?SUBPROC ?REGION))))
+         (eventLocated ?PROC ?REGION)
+         (eventLocated ?SUBPROC ?REGION))))
 
 (=> 
   (and 
@@ -8125,7 +8145,7 @@ distinguished part (proper or not) of a &%Process.")
    (exists (?OBJ)
       (and
          (instance ?OBJ Organism)
-         (located ?PROC ?OBJ))))
+         (eventLocated ?PROC ?OBJ))))
 
 (=>
    (and
@@ -8151,7 +8171,7 @@ particular &%Organ or &%Tissue.")
     (instance ?PROC OrganOrTissueProcess)
     (exists (?THING)
         (and
-            (located ?PROC ?THING)
+            (eventLocated ?PROC ?THING)
             (or
                 (instance ?THING Organ)
                 (instance ?THING Tissue)))))
