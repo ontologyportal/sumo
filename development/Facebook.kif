@@ -3,23 +3,38 @@
 ;;Created: July 1, 2011
 
 ;;---------------------------------------------------------------------------------------------------------
-(documentation Facebook EnglishLanguage "Facebook is a popular social networking &%WebSite for people over the age of 13 that allows people to connect and interact with one another online.")
+;;;;;;;;;;;;
+;;Facebook;;
+;;;;;;;;;;;;
+
+(documentation Facebook EnglishLanguage "Facebook is a popular social networking &%WebSite for people over the age of 13 that allows people to connect and 
+interact with one another online.")
 (termFormat EnglishLanguage Facebook "Facebook")
 (instance Facebook WebSite)
 
-(documentation FacebookAccount EnglishLanguage "This refers to a &%UserAccount that is specific to &%Facebook.  In order to have a Facebook account, one must be over 13 years of age.  A Facebook account allows the user to form a profile, gain facebook friends, and participate in conversations and activities, among other things.")
+(documentation SocialNetworkingAccount EnglishLanguage "This refers specifically to a &%UserAccount that is held on a social networking &%WebSite such as
+&%LinkedIn or &%Facebook.")
+(termFormat EnglishLanguage SocialNetworkingAccount "social networking account")
+(subclass SocialNetworkingAccount UserAccount)
+
+(documentation FacebookAccount EnglishLanguage "This refers to a &%UserAccount that is specific to &%Facebook.  In order to have a Facebook account, one 
+must be over 13 years of age.  A Facebook account allows the user to make a &%ProfilePage, gain &%facebookFriends, and participate in conversations and activities, 
+among other things.")
 (termFormat EnglishLanguage FacebookAccount "Facebook account")
-(subclass FacebookAccount UserAccount)
-;;If there is a person that has a facebook account, then that person is at least 13 years of age.
+(subclass FacebookAccount SocialNetworkingAccount)
+;;If there is a person that has a Facebook account, then that person is at least 13 years of age.
 (=>
     (and
         (instance ?FBACCOUNT FacebookAccount)
         (hasAccount ?USER ?FBACCOUNT))
     (and
         (age ?USER (MeasureFn ?NUMBER YearDuration))
-        (greaterThanOrEqualTo ?NUMBER 13)))
+        (modalAttribute
+            (not
+                (greaterThanOrEqualTo ?NUMBER 13)) Prohibition)))
 
-(documentation ProfilePage EnglishLanguage "This refers to the &%WebPage on which one's personal information is displayed.  When someone makes a &%UserAccount, they are usually prompted to set up a &%ProfilePage for themselves.")
+(documentation ProfilePage EnglishLanguage "This refers to the &%WebPage on which one's personal information is displayed.  When someone makes a 
+&%UserAccount, they are usually prompted to set up a &%ProfilePage for themselves.")
 (termFormat EnglishLanguage ProfilePage "profile page")
 (subclass ProfilePage WebSite)
 ;; If there is a profile page, then there exists (1) a user to whom it refers and (2) a user who created it.
@@ -40,43 +55,53 @@
         (modalAttribute
             (equals ?USER1 ?USER2) Likely)))
 
-(documentation ProfileWall EnglishLanguage "This term refers specifically to the area on a &%ProfilePage where people communicate with each other.  It is a &%Collection of &%StatusUpdates and &%WallPosts, and &%RecentActivity.")
+(documentation ProfileWall EnglishLanguage "This term refers specifically to the area on a &%ProfilePage where people communicate with each other.  It is 
+a &%Collection of &%StatusUpdates and &%WallPosts, and &%RecentActivity.")
 (termFormat EnglishLanguage ProfileWall "profile wall")
 (subclass ProfileWall Collection)
 (component ProfileWall ProfilePage)
 ;;If there is a profile wall, then it is a collection that is made up of status updates, wall posts, 
 ;;and recent activity.
 (=>
-    (instance ?WALL ProfileWall)
     (and
-        (memberType ?WALL StatusUpdate)
-        (memberType ?WALL WallPost)
-        (memberType ?WALL RecentActivity)))
+        (instance ?WALL ProfileWall)
+        (instance ?WALL Collection))
+    (exists (?STATUS ?WALLPOST ?RECENTACTIVITY)
+        (and
+            (instance ?STATUS StatusUpdate)
+            (instance ?WALLPOST WallPost)
+            (instance ?RECENTACTIVITY RecentActivity)
+            (memberType ?WALL ?STATUS)
+            (memberType ?WALL ?WALLPOST)
+            (memberType ?WALL ?RECENTACTIVITY))))
         
-(documentation StatusUpdate EnglishLanguage "This is a term commonly used in social networking sites.  A status update is a form of microblogging in which someone states what is currently going on in their life.  It usually a very brief sentence.")
+(documentation StatusUpdate EnglishLanguage "This is a term commonly used in social networking sites.  A status update is a form of microblogging in which 
+someone states what is currently going on in their life.  It usually a very brief sentence.")
 (termFormat EnglishLanguage StatusUpdate "status update")
 (subclass StatusUpdate WrittenCommunication)
 ;;If there is a status update, it is posted both on the profile wall and on the news feed.
-(=>
-    (and
+(forall(?STATUSUPDATE)
+    (=>
         (instance ?STATUSUPDATE StatusUpdate)
-        (instance ?NEWSFEED NewsFeed)
-        (instance ?WALL ProfileWall))
-    (and
-        (located ?STATUSUPDATE ?WALL)
-        (located ?STATUSUPDATE ?NEWSFEED))
+        (exists (?WALL ?NEWSFEED)
+            (and
+                (instance ?NEWSFEED NewsFeed)
+                (instance ?WALL ProfileWall)
+                (located ?STATUSUPDATE ?WALL)
+                (located ?STATUSUPDATE ?NEWSFEED)))))
 ;;If there is a status update, then it refers to the person who wrote it.
 (=>
     (instance ?STATUSUPDATE StatusUpdate)
-    (exists (?USER1 ?CREATION)
+    (exists (?USER ?CREATION)
         (and
             (instance ?CREATION Creation)
-            (instance ?USER1 InternetUser)
-            (agent ?CREATION ?USER1)
+            (instance ?USER InternetUser)
+            (agent ?CREATION ?USER)
             (result ?CREATION ?STATUSUPDATE)
-            (refers ?STATUSUPDATE ?USER1)))
+            (refers ?STATUSUPDATE ?USER))))
 
-(documentation WallPost EnglishLanguage "A wall post is a term used in Facebook to describe what happens when someone posts something (a text post, video, photo, or link) onto a &%FacebookFriend's &%ProfileWall.")
+(documentation WallPost EnglishLanguage "A wall post is a term used in Facebook to describe what happens when someone posts something (a text post, video, 
+photo, or link) onto a &%FacebookFriend's &%ProfileWall.")
 (termFormat EnglishLanguage WallPost "wall post")
 (subclass WallPost Communication)
 ;;If there is a wall post, then it is located on someone's profile wall and it shows up in the news feed.
@@ -86,13 +111,14 @@
         (instance ?NEWSFEED NewsFeed)
         (instance ?PROFILEWALL ProfileWall)
         (exists (?USER1 ?USER2 ?CREATION)
-            (instance ?USER1 FacebookUser)
-            (instance ?USER2 FacebookUser)
-            (instance ?CREATION Creation)
-            (refers ?PROFILEWALL ?USER2)
-            (agent ?CREATION ?USER1)
-            (result ?CREATION ?WALLPOST)
-            (located ?WALLPOST ?PROFILEWALL))
+            (and
+                (instance ?USER1 FacebookUser)
+                (instance ?USER2 FacebookUser)
+                (instance ?CREATION Creation)
+                (refers ?PROFILEWALL ?USER2)
+                (agent ?CREATION ?USER1)
+                (result ?CREATION ?WALLPOST)
+                (located ?WALLPOST ?PROFILEWALL)))
         (not
             (equal ?USER1 ?USER2))))
 ;;If there is a wall post, then it is either a text wall post, a video, a photograph, or a link.
@@ -102,40 +128,22 @@
         (instance ?WALLPOST TextWallPost)
         (instance ?WALLPOST MotionPicture)
         (instance ?WALLPOST Photograph)))
-        
-(documentation HTML EnglishLanguage "HTML is simply a computer language that is used to describe &%WebPages.  It stands for Hyper Text Markup Language, and an HTML Document is the same as a &%WebPage.")
-(termFormat EnglishLanguage HTML "HTML")
-(subclass HTML ComputerLanguage)
-
-(documentation Hyperlink EnglishLanguage "A hyperlink is a &%UniformResourceLocator that connects one &%WebPage to another.")
-(termFormat EnglishLanguage Hyperlink "hyperlink")
-;;If there is a hyperlink, then it is expressed in HTML
-(=>
-    (instance ?LINK Hyperlink)
-    (expressedInLanguage ?LINK HTML))
-;;*Does a hyperlink count as a form of communication (transmit a message) or transportation?  The computer "moves" 
-;;the user from one website to another, but the user does not physically move.  You can't use connects because
-;;this refers to a spatial connection, and links refers to the connection between two points on a graph.  Might
-;;it be changesLocation? ("(changes location ?EVENT ?OBJECT) means that during the translocation event ?EVENT, 
-;;?OBJECT's location changes. ?OBJECT might also be the agent, patient, or experiencer of ?EVENT.") Also, URL and UniformResourceLocator are defined 
-;;separately, and most applications of URL are defined off of the SUMO term URL.  (websiteAddress ?URL ?AGENT) could also work, though this is defined as 
-;;a siteForContact and this is not necessarily true of a hyperlink.
 
 (documentation TextWallPost EnglishLanguage "This is a term that refers specifically to a &%WallPost that is made up entirely of &%Words.")
 (termFormat EnglishLanguage TextWallPost "text wall post")
 (subclass TextWallPost WrittenCommunication)
 (subclass TextWallPost WallPost)
 
-(documentation RecentActivity EnglishLanguage "'Recent activity' is a term used on facebook to describe someone's recent facebook activity.  This includes every action made by the user except for &%StatusUpdates.")
+(documentation RecentActivity EnglishLanguage "'Recent activity' is a term used on facebook to describe someone's recent facebook activity.  This includes
+ every action made by the user except for &%StatusUpdates.")
 (termFormat EnglishLanguage RecentActivity "recent activity")
-(
 ;; If someone is the agent of an action (that is not a status update) on facebook, then that action counts as
 ;;recent activity.
 (=>
     (and
         (instance ?USER InternetUser)
         (instance ?ACTION IntentionalProcess)
-        (agent ?ACTION InternetUser)
+        (agent ?ACTION ?USER)
         (patient ?ACTION Facebook)
         (not
             (and
@@ -153,14 +161,19 @@
         (instance ?FBACCOUNT FacebookAccount))
     (hasAccount ?USER ?FBACCOUNT))
 
-(documentation facebookFriend EnglishLanguage "This is a term that refers to the relationship between two people who have been deemed 'friends' on &%Facebook.  This does not necessarily mean that they are friends in real life or that they even know each other outside of &%Facebook.  Therefore, this term is not to be confused with &%friend.  It is possible for two people to be &%friends and not &%facebookFriends and vice versa.  However, if (facebookFriend ?USER1 ?USER2), then (facebookFriend ?USER2 ?USER1).  Note: this term is not to be confused with &%Befriending.")
+(documentation facebookFriend EnglishLanguage "This is a term that refers to the relationship between two people who have been deemed 'friends' on 
+&%Facebook.  This does not necessarily mean that they are friends in real life or that they even know each other outside of &%Facebook.  Therefore, this 
+term is not to be confused with &%friend.  It is possible for two people to be &%friends and not &%facebookFriends and vice versa.  However, if 
+(facebookFriend ?USER1 ?USER2), then (facebookFriend ?USER2 ?USER1).  Note: this term is not to be confused with &%Befriending.")
 (termFormat EnglishLanguage facebookFriend "Facebook friend")
 (domain facebookFriend 1 FacebookUser)
 (domain facebookFriend 2 FacebookUser)
 (instance facebookFriend SymmetricRelation)
+(instance facebookFriend IntentionalRelation)
 (instance facebookFriend BinaryPredicate)
 
-(documentation Friending EnglishLanguage "This is a verb, coined by Facebook, that refers to the action of one &%FacebookUser becoming &%facebookFriends with another &%FacebookUser.")
+(documentation Friending EnglishLanguage "This is a verb, coined by Facebook, that refers to the action of one &%FacebookUser becoming &%facebookFriends
+ with another &%FacebookUser.")
 (termFormat EnglishLanguage Friending "friending")
 (subclass Friending SocialInteraction)
 ;;If there is an instance of friending, then two facebook users who were not previously facebook friends become 
@@ -169,8 +182,9 @@
     (instance ?FRIENDING Friending)
     (and
         (exists (?USER1 ?USER2)
-            (instance ?USER1 FacebookUser)
-            (instance ?USER2 FacebookUser))
+            (and
+                (instance ?USER1 FacebookUser)
+                (instance ?USER2 FacebookUser)))
         (holdsDuring
             (BeginFn
                 (WhenFn ?FRIENDING))
@@ -181,7 +195,8 @@
                 (WhenFn ?FRIENDING))
             (facebookFriend ?USER1 ?USER2))))
             
-(documentation Unfriending EnglishLanguage "This is a verb, coined by Facebook, that refers to the action of one &%FacebookUser undoing the act of &%Friending another &%FacebookUser.")
+(documentation Unfriending EnglishLanguage "This is a verb, coined by Facebook, that refers to the action of one &%FacebookUser undoing the act of 
+&%Friending another &%FacebookUser.")
 (termFormat EnglishLanguage Unfriending "unfriending")
 (subclass Unfriending SocialInteraction)
 ;;If there is an instance of unfriending, then two facebook users who were previously facebook friends stop being 
@@ -190,8 +205,9 @@
     (instance ?FRIENDING Friending)
     (and
         (exists (?USER1 ?USER2)
-            (instance ?USER1 FacebookUser)
-            (instance ?USER2 FacebookUser))
+            (and
+                (instance ?USER1 FacebookUser)
+                (instance ?USER2 FacebookUser)))
         (holdsDuring
             (BeginFn
                 (WhenFn ?FRIENDING))
@@ -202,7 +218,8 @@
             (not
                 (facebookFriend ?USER1 ?USER2)))))
             
-(documentation Befriending EnglishLanguage "This is a verb that refers to the action of one &%CognitiveAgent becoming &%friends with another &%CognitiveAgent.  Note: this is not to be confused with &%Friending.")
+(documentation Befriending EnglishLanguage "This is a verb that refers to the action of one &%CognitiveAgent becoming &%friends with another 
+&%CognitiveAgent.  Note: this is not to be confused with &%Friending.")
 (termFormat EnglishLanguage Befriending "befriending")
 (subclass Befriending SocialInteraction)
 ;;If there is an instance of befriending, then two cognitive agents who were not previously friends become friends.
@@ -210,8 +227,9 @@
     (instance ?BEFRIENDING Befriending)
     (and
         (exists (?THING1 ?THING2)
-            (instance ?THING1 CognitiveAgent)
-            (instance ?THING2 CognitiveAgent))
+            (and
+                (instance ?THING1 CognitiveAgent)
+                (instance ?THING2 CognitiveAgent)))
         (holdsDuring
             (BeginFn
                 (WhenFn ?BEFRIENDING))
@@ -222,11 +240,32 @@
                 (WhenFn ?BEFRIENDING))
             (friend ?THING1 ?THING2))))
 
-(documentation NewsFeed EnglishLanguage "This is a term that refers to a 'news feed' on a social networking site.  A news feed is where people can see the activity of both themselves and their &%facebookFriends.")
+(documentation NewsFeed EnglishLanguage "This is a term that refers to a 'news feed' on a social networking site.  A news feed is where people can see the 
+activity of both themselves and their &%facebookFriends.")
 (termFormat EnglishLanguage NewsFeed "news feed")
-(subclass NewsFeed WebPage)
 
-(documentation Uploading EnglishLanguage "This verb refers to what happens when data is sent, either as a &%ComputerFile or a &%ComputerProgram, from a &%Computer to some external device.  This device is most likely another &%Computer or a &%Server, though it can be any &%DigitalDataStorageDevice as well.  This is the opposite of &%Downloading.")
+(documentation TopNewsFeed EnglishLanguage "There are two ways to look at &%Facebook's &%NewsFeed: the TopNewsFeed and the &%MostRecentFeed.  The TopNewsFeed
+shows posts that Facebook believes are the most relevant to the user.  These posts are determined by an algorithm that takes into account factors such as how
+many &%facebookFriends are commenting on a post and how often you interact with those friends.")
+;;If there is a NewsFeed, then a TopNewsFeed is a component of it.
+(=>
+    (and
+        (instance ?NEWSFEED NewsFeed)
+        (instance ?TOPNEWS TopNewsFeed))
+    (component ?TOPNEWS ?NEWSFEED))
+
+(documentation MostRecentFeed EnglishLanguage "There are two ways to look at &%Facebook's &%NewsFeed: The &%TopNewsFeed and the &%MostRecentFeed.  The 
+MostRecentFeed simply takes the activity of your &%facebookFriends and displays it in chronological order.")
+;;If there is a NewsFeed, then a MostRecentFeed is a component of it.
+(=>
+    (and
+        (instance ?NEWSFEED NewsFeed)
+        (instance ?MOSTRECENT MostRecentFeed))
+    (component ?TOPNEWS ?NEWSFEED))
+
+(documentation Uploading EnglishLanguage "This verb refers to what happens when data is sent, either as a &%ComputerFile or a &%ComputerProgram, from a 
+&%Computer to some external device.  This device is most likely another &%Computer or a &%Server, though it can be any &%DigitalDataStorageDevice as well.  
+This is the opposite of &%Downloading.")
 (subclass Uploading Transfer)
 (subclass Uploading ITProcess)
 (termFormat EnglishLanguage Uploading "uploading")
@@ -240,11 +279,15 @@
                 (instance ?FILE ComputerFile)
                 (instance ?FILE ComputerProgram))
             (instance ?COMPUTER Computer)
+            (instance ?STORAGEDEVICE DigitalDataStorageDevice)
             (patient ?UPLOAD ?FILE)
             (agent ?UPLOAD ?COMPUTER)
-            (origin ?UPLOAD ?COMPUTER))))
+            (origin ?UPLOAD ?COMPUTER)
+            (destination ?UPLOAD ?STORAGEDEVICE))))
     
-(documentation Downloading EnglishLanguage "This verb refers to what happens when data is sent, either as a &%ComputerFile or &%ComputerProgram, to a &%Computer or &%DigitalDataStorageDevice.  The source of the download is usually another &%Computer or &%Server or, in the case of modern jargon, some &%WebPage. This verb is the opposite of &%Uploading.")
+(documentation Downloading EnglishLanguage "This verb refers to what happens when data is sent, either as a &%ComputerFile or &%ComputerProgram, to a 
+&%Computer or &%DigitalDataStorageDevice.  The source of the download is usually another &%Computer or &%Server or, in the case of modern jargon, 
+some &%WebPage. This verb is the opposite of &%Uploading.")
 (subclass Downloading Transfer)
 (subclass Downloading ITProcess)
 (termFormat EnglishLanguage Downloading "downloading")
@@ -258,13 +301,157 @@
                 (instance ?FILE ComputerFile)
                 (instance ?FILE ComputerProgram))
             (instance ?COMPUTER Computer)
+            (instance ?STORAGEDEVICE DigitalDataStorageDevice)
             (patient ?DOWNLOAD ?FILE)
             (agent ?DOWNLOAD ?COMPUTER)
+            (origin ?DOWNLOAD ?STORAGEDEVICE)
             (destination ?DOWNLOAD ?COMPUTER))))
             
-(documentation tags EnglishLanguage "(tags ?USER1 ?USER2) means that ?USER1 has made a reference to ?USER2 in a &%PostFn.  This term is used specifically on social networking sites, and it is only a tag if both ?USER1 and ?USER2 have accounts on that specific site (e.g., if Sue and Mary have &%FacebookAccounts but John does not, then Sue can tag Mary and Mary can tag Sue, but neither of them can tag John, even though they may mention him in a post.)  Notice that this is an antisymmetric, and not asymmetric, relation because you can tag yourself in a post.")
+(documentation tags EnglishLanguage "(tags ?USER1 ?USER2) means that ?USER1 has made a reference to ?USER2 in a &%PostFn.  This term is used specifically on 
+social networking sites, and it is only a tag if both ?USER1 and ?USER2 have accounts on that specific site (e.g., if Sue and Mary have &%FacebookAccounts 
+but John does not, then Sue can tag Mary and Mary can tag Sue, but neither of them can tag John, even though they may mention him in a post.)  Notice that 
+this is an antisymmetric, and not asymmetric, relation because you can tag yourself in a post.")
 (instance tags BinaryPredicate)
 (instance tags AntisymmetricRelation)
 (subrelation tags refers)
 (domain tags 1 InternetUser)
 (domain tags 2 InternetUser)
+
+(documentation HomePage EnglishLanguage "A homepage is an instance of a &%WebPage on a social networking site that can usually be accessed by pressing the 
+"home" button on the site.  Its main component is the &%NewsFeed, but it also contains references to upcoming events, people you may know, and friends who
+are online.")
+(subclass HomePage WebSite)
+;;If there is a home page, then a news feed is a component of it.
+(=>
+    (and
+        (instance ?HOMEPAGE)
+        (instance ?NEWSFEED NewsFeed))
+    (component ?NEWSFEED ?HOMEPAGE))
+
+(documentation FriendRequest EnglishLanguage "This is a term that is used specifically on Facebook.  A friend request can be sent from one &%FacebookUser to 
+another &%ComputerUser if they wish to become &%facebookFriends.  Note that the person receiving the request does not necessarily have to be a 
+&%FacebookUser because if they are not already on &%Facebook, then a friend request will result in their receiving an email saying that someone would 
+like them to join &%Facebook.")
+(subclass FriendRequest Request)
+(termFormat EnglishLanguage FriendRequest "friend request")
+;;If there is an instance of a friend request, then there is a facebook user who is (friend)requesting a computer user.
+(=>
+    (instance ?FRIENDREQUEST FriendRequest)
+    (exists (?USER1 ?USER2 ?REQUEST)
+        (and
+            (instance ?REQUEST Requesting)
+            (instance ?USER1 FacebookUser)
+            (agent ?REQUEST ?USER1)
+            (instance ?USER2 ComputerUser)
+            (patient ?REQUEST ?USER2)
+            (result ?REQUEST ?FRIENDREQUEST))))
+
+;;;;;;;;;;;;;;;;;
+;;Notifications;;
+;;;;;;;;;;;;;;;;;
+
+;;Try to move to Merge.kif
+(documentation Notifying EnglishLanguage "This is an instance of &%Stating in which the recipient of the &%Statement was not already aware of the 
+&%Statement being made.")
+(subclass Notifying Stating)
+;;If there is an instance of notifying, then the person being notified was not already aware of the statement.
+(=>
+    (and
+        (instance ?NOTIFY Notifying)
+        (instance ?FORMULA Formula)
+        (instance ?AGENT CognitiveAgent)
+        (patient ?NOTIFY ?FORMULA)
+        (destination ?NOTIFY ?AGENT))
+    (not
+        (holdsDuring
+            (BeginFn (WhenFn ?NOTIFY))
+                (knows ?AGENT ?FORMULA))))
+
+(documentation Notification EnglishLanguage "A notification is a &%Statement that acts as an announcement, notice, or warning to the patient.")
+(subclass Notification Statement)
+;;If there is a notification, then it is the result of an instance of notifying
+(=>
+    (and
+        (instance ?NOTIFY Notifying)
+        (result ?NOTIFY ?NOTIFICATION)
+        (instance ?NOTIFICATION Statement))
+    (instance ?NOTIFICATION Notification))
+
+(documentation BirthdayNotificationFn EnglishLanguage "On many social networking sites, a user is notified when someone with whom they are connected has a 
+&%birthday.  For instance, on &%Facebook, a &%FacebookUser is notified every time a &%facebookFriend has a &%birthday.  (BirthdayNotificationFn ?PERSON) 
+signifies a &%Notification representing ?PERSON's &%birthday.")
+(instance BirthdayNotificationFn UnaryRelation)
+(domain 1 BirthdayNotificationFn Person)
+(range BirthdayNotificationFn Notification)
+;;If it is someone's birthday and they have a Facebook account, then there is a birthday notification for them.
+(=>
+    (and
+        (birthday ?PERSON ?DAY)
+        (instance ?FBACCOUNT FacebookAccount)
+        (hasAccount ?PERSON ?FBACCOUNT))
+    (holdsDuring ?DAY 
+        (BirthdayNotificationFn ?PERSON)))
+        
+;;If it is someone's birthday and they have a LinkedIn account, then there is a birthday notification for them.
+(=>
+    (and
+        (birthday ?PERSON ?DAY)
+        (instance ?LIACCOUNT LinkedInAccount)
+        (hasAccount ?PERSON ?LIACCOUNT))
+    (holdsDuring ?DAY 
+        (BirthdayNotificationFn ?PERSON)))
+
+;;If it is ?PERSON's birthday, then their connections/friends see a birthday notification for them.
+(=>
+    (BirthdayNotificationFn ?PERSON)
+    (forall (?FRIEND ?NOTIFY)
+        (=>
+            (and
+                (facebookFriend ?PERSON ?FRIEND)
+                (instance ?NOTIFY Notifying)
+                (agent ?NOTIFY Facebook))
+            (and
+                (result ?NOTIFY (BirthdayNotificationFn ?PERSON))
+                (patient ?NOTIFY ?FRIEND)))))
+
+;;;;;;;;;;;;;;;;;
+;;Communication;;
+;;;;;;;;;;;;;;;;;
+
+;;To be covered: instant messaging and video chatting as used on Facebook.  Ideally, also cover the concepts of online/offline/idle.
+
+;;;;;;;;;;;;;;
+;;HyperLinks;;
+;;;;;;;;;;;;;;
+
+;;Note- try to move to engineering.kif or QoSontology.kif once complete
+(documentation HTML EnglishLanguage "HTML is simply a computer language that is used to describe &%WebPages.  It stands for Hyper Text Markup Language, and
+ an HTML Document is the same as a &%WebPage.")
+(termFormat EnglishLanguage HTML "HTML")
+(subclass HTML ComputerLanguage)
+
+(documentation Hyperlink EnglishLanguage "A hyperlink is a link from a hypertext file to another location/file.")
+(termFormat EnglishLanguage Hyperlink "hyperlink")
+;;If there is a hyperlink, then it is expressed in HTML
+(=>
+    (instance ?LINK Hyperlink)
+    (expressedInLanguage ?LINK HTML))
+;;*Does a hyperlink count as a form of communication (transmit a message) or transportation?  The computer "moves" 
+;;the user from one website to another, but the user does not physically move.  You can't use connects because
+;;this refers to a spatial connection, and links refers to the connection between two points on a graph.  Might
+;;it be changesLocation? ("(changes location ?EVENT ?OBJECT) means that during the translocation event ?EVENT, 
+;;?OBJECT's location changes. ?OBJECT might also be the agent, patient, or experiencer of ?EVENT.") Also, URL and UniformResourceLocator are defined 
+;;separately, and most applications of URL are defined off of the SUMO term URL.  (websiteAddress ?URL ?AGENT) could also work, though this is defined as 
+;;a siteForContact and this is not necessarily true of a hyperlink. QoSontology.kif, Engineering.kif, realization, represents
+
+;;Semiotics
+
+;;Understand that there is a link, click on link- Interpreting (handle content bearing objects), movement from one webpage to another.
+
+(documentation WebCrawler EnglishLanguage "A Web crawler is a &%ComputerProgram that browses the World Wide Web in a methodical, automated manner or in an 
+orderly fashion.  A Web crawler is one type of bot, or software agent. In general, it starts with a list of URLs to visit, called seeds. As the crawler 
+visits these URLs, it identifies all the hyperlinks in the page and adds them to the list of URLs to visit.  This list is called the crawl frontier. URLs 
+from the frontier are recursively visited according to a set of policies.  Their most common use is in search engines, where, in response to a query, they 
+"crawl" through the Web and index the significant words on the pages they find.")
+(subclass WebCrawler ComputerProgram)
+
