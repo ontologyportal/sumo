@@ -3,6 +3,77 @@
 ;;Created: July 1, 2011
 
 ;;---------------------------------------------------------------------------------------------------------
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;General social networking;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(documentation SocialNetworkingSite EnglishLanguage "A social networking site is a service located on some &%WebSite that focuses primarily on building and
+ maintaining relationships between people.  &%Facebook and &%LinkedIn are two popular examples of social networking sites.  These sites consist of a 
+ representation of each user (usually maintained by a &%ProfilePage), his or her social links, and a variety of additional services.  They often provide some 
+ medium for &%InstantMessaging and &%StatusUpdates.")
+(subclass SocialNetworkingSite WebSite)
+(termFormat EnglishLanguage SocialNetworkingSite "social networking site")
+
+(documentation SocialNetworkingAccount EnglishLanguage "This refers specifically to a &%UserAccount that is held on a social networking &%WebSite such as
+ &%LinkedIn or &%Facebook.")
+(termFormat EnglishLanguage SocialNetworkingAccount "social networking account")
+(subclass SocialNetworkingAccount UserAccount)
+
+(documentation SocialNetworkingConnection EnglishLanguage "This refers to the connections made between two people who have &%SocialNetworkingAccounts on the
+same &%SocialNetworkingSite.  Some examples would be &%facebookFriends, &%classmates, &%colleagues, and followers.  Note that while many connections are
+symmetrical (e.g. &%facebookFriend, &%classmate), many are not (e.g. follower).  Therefore, this is neither a symmetric nor an antisymmetric relation.")
+(instance SocialNetworkingConnection BinaryRelation)
+(instance SocialNetworkingConnection IntentionalRelation)
+(domain SocialNetworkingConnection 1 SocialNetworkingUser)
+(domain SocialNetworkingConnection 2 SocialNetworkingUser)
+(termFormat EnglishLanguage SocialNetworkingConnection "social networking connection")
+;;If there is a social networking connection, then it is between two social networking users that are not the same person but have accounts on the same social 
+;;networking site.
+;;NOTE: IF ACCOUNTFN IS DEFINED, THEN REDO THIS AXIOM.
+(=>
+    (instance ?CONNECTION SocialNetworkingConnection)
+    (exists (?USER1 ?USER2 ?ACCOUNT1 ?ACCOUNT2 ?SITE)
+        (and
+            (instance ?USER1 SocialNetworkingUser)
+            (instance ?USER2 SocialNetworkingUser)
+            (not
+                (equal ?USER1 ?USER2))
+            (instance ?SITE SocialNetworkingSite)
+            (instance ?ACCOUNT1 (AccountOfServiceFn ?SITE))
+            (instance ?ACCOUNT2 (AccountOfServiceFn ?SITE))
+            (hasAccount ?USER1 ?ACCOUNT1)
+            (hasAccount ?USER2 ?ACCOUNT2))))
+            
+
+(documentation SocialNetworkingUser EnglishLanguage "This refers to some &%InternetUser who has a &%SocialNetworkingAccount on a &%SocialNetworkingSite.  
+When someone becomes a social networking user, they are usually asked to make a &%ProfilePage and, over time, they create &%SocialNetworkingConnections.")
+(subclass SocialNetworkingUser InternetUser)
+(termFormat EnglishLanguage SocialNetworkingUser "social networking user")
+;;If someone is a social networking user, then they have a social networking account.
+(=>
+    (instance ?USER SocialNetworkingUser)
+    (exists (?ACCOUNT)
+        (and
+            (instance ?ACCOUNT SocialNetworkingAccount)
+            (hasAccount ?USER ?ACCOUNT))))
+            
+(documentation AccountOfServiceFn EnglishLanguage "This function takes some &%SocialNetworkingSite as an argument and returns a &%SocialNetworkingAccount.  
+(AccountOfServiceFn Network) represents an account that someone holds with Network.  For instance, (equals FacebookAccount (AccountOfServiceFn Facebook)).")
+(domain AccountOfServiceFn 1 SocialNetworkingSite)
+(rangeSubclass AccountOfServiceFn SocialNetworkingAccount)
+(instance AccountOfServiceFn UnaryFunction)
+;;If there is an account, then someone owns it.
+(=>
+    (exists (?ACCOUNT)
+        (and
+            (instance ?SITE SocialNetworkingSite)
+            (instance ?ACCOUNT (AccountOfServiceFn ?SITE))))
+    (exists (?USER)
+        (and
+            (instance ?USER SocialNetworkingUser)
+            (hasAccount ?USER ?ACCOUNT))))
+    
 ;;;;;;;;;;;;
 ;;Facebook;;
 ;;;;;;;;;;;;
@@ -10,12 +81,7 @@
 (documentation Facebook EnglishLanguage "Facebook is a popular social networking &%WebSite for people over the age of 13 that allows people to connect and 
 interact with one another online.")
 (termFormat EnglishLanguage Facebook "Facebook")
-(instance Facebook WebSite)
-
-(documentation SocialNetworkingAccount EnglishLanguage "This refers specifically to a &%UserAccount that is held on a social networking &%WebSite such as
-&%LinkedIn or &%Facebook.")
-(termFormat EnglishLanguage SocialNetworkingAccount "social networking account")
-(subclass SocialNetworkingAccount UserAccount)
+(instance Facebook SocialNetworkingSite)
 
 (documentation FacebookAccount EnglishLanguage "This refers to a &%UserAccount that is specific to &%Facebook.  In order to have a Facebook account, one 
 must be over 13 years of age.  A Facebook account allows the user to make a &%ProfilePage, gain &%facebookFriends, and participate in conversations and activities, 
@@ -36,7 +102,7 @@ among other things.")
 (documentation ProfilePage EnglishLanguage "This refers to the &%WebPage on which one's personal information is displayed.  When someone makes a 
 &%UserAccount, they are usually prompted to set up a &%ProfilePage for themselves.")
 (termFormat EnglishLanguage ProfilePage "profile page")
-(subclass ProfilePage WebSite)
+(subclass ProfilePage WebPage)
 ;; If there is a profile page, then there exists (1) a user to whom it refers and (2) a user who created it.
 ;;It is likely that the user it refers to is also the one who created it.
 (=>
@@ -53,13 +119,20 @@ among other things.")
                 (result ?CREATION ?PROFILE)
                 (agent ?CREATION ?USER2)))
         (modalAttribute
-            (equals ?USER1 ?USER2) Likely)))
+            (equal ?USER1 ?USER2) Likely)))
 
 (documentation ProfileWall EnglishLanguage "This term refers specifically to the area on a &%ProfilePage where people communicate with each other.  It is 
 a &%Collection of &%StatusUpdates and &%WallPosts, and &%RecentActivity.")
 (termFormat EnglishLanguage ProfileWall "profile wall")
 (subclass ProfileWall Collection)
-(component ProfileWall ProfilePage)
+
+;;If there is a profile page, then a profile wall is a component of it.
+(=>
+    (instance ?PROFILEWALL ProfileWall)
+    (exists (?PROFILEPAGE)
+        (and
+            (instance ?PROFILEPAGE ProfilePage)
+            (component ?PROFILEPAGE ProfilePage))))
 ;;If there is a profile wall, then it is a collection that is made up of status updates, wall posts, 
 ;;and recent activity.
 (=>
@@ -74,11 +147,23 @@ a &%Collection of &%StatusUpdates and &%WallPosts, and &%RecentActivity.")
             (memberType ?WALL ?STATUS)
             (memberType ?WALL ?WALLPOST)
             (memberType ?WALL ?RECENTACTIVITY))))
+            
+(documentation Posting EnglishLanguage "This is a subclass of &%ContentDevelopment that has the purpose of &%Disseminating.  An example of the result of 
+posting could include a &%WallPost or a &%StatusUpdate.  Note that this is different from &%Publication.  A publication has been &%Manufactured and is a 
+&%Text, meaning that it is an &%Artifact.")
+(subclass Posting ContentDevelopment)
+;;If there is an instance of posting, then it has the purpose of disseminating
+(=>
+    (instance ?POST Posting)
+    (exists (?DISSEMINATE)
+        (and
+            (instance ?DISSEMINATE Disseminating)
+            (hasPurpurpose ?POST ?DISSEMINATE))))
         
 (documentation StatusUpdate EnglishLanguage "This is a term commonly used in social networking sites.  A status update is a form of microblogging in which 
-someone states what is currently going on in their life.  It usually a very brief sentence.")
+someone states what they are currently doing.  It usually a very brief sentence.")
 (termFormat EnglishLanguage StatusUpdate "status update")
-(subclass StatusUpdate WrittenCommunication)
+(subclass StatusUpdate ContentDevelopment)
 ;;If there is a status update, it is posted both on the profile wall and on the news feed.
 (forall(?STATUSUPDATE)
     (=>
@@ -99,6 +184,13 @@ someone states what is currently going on in their life.  It usually a very brie
             (agent ?CREATION ?USER)
             (result ?CREATION ?STATUSUPDATE)
             (refers ?STATUSUPDATE ?USER))))
+;;If there is a status update, then it is the result of some instance of posting.
+(=>
+    (instance ?STATUSUPDATE StatusUpdate)
+    (exists (?POST)
+        (and
+            (instance ?POST Posting)
+            (result ?POST ?STATUSUPDATE))))      
 
 (documentation WallPost EnglishLanguage "A wall post is a term used in Facebook to describe what happens when someone posts something (a text post, video, 
 photo, or link) onto a &%FacebookFriend's &%ProfileWall.")
@@ -128,6 +220,13 @@ photo, or link) onto a &%FacebookFriend's &%ProfileWall.")
         (instance ?WALLPOST TextWallPost)
         (instance ?WALLPOST MotionPicture)
         (instance ?WALLPOST Photograph)))
+;;If there is an instance of a wall post, then it is the result of an instance of posting.
+(=>
+    (instance ?WALLPOST WallPost)
+    (exists (?POST)
+        (and
+            (instance ?POST Posting)
+            (result ?WALLPOST ?POST))))
 
 (documentation TextWallPost EnglishLanguage "This is a term that refers specifically to a &%WallPost that is made up entirely of &%Words.")
 (termFormat EnglishLanguage TextWallPost "text wall post")
@@ -153,7 +252,7 @@ photo, or link) onto a &%FacebookFriend's &%ProfileWall.")
 
 (documentation FacebookUser EnglishLanguage  "A facebook user is an &%InternetUser who has a &%FacebookAccount.")
 (termFormat EnglishLanguage FacebookUser "Facebook user")
-(subclass FacebookUser InternetUser)
+(subclass FacebookUser SocialNetworkingUser)
 ;;If someone is a facebook user, then they have a facebook account.
 (=>
     (and
@@ -171,6 +270,7 @@ term is not to be confused with &%friend.  It is possible for two people to be &
 (instance facebookFriend SymmetricRelation)
 (instance facebookFriend IntentionalRelation)
 (instance facebookFriend BinaryPredicate)
+(instance facebookFriend SocialNetworkingConnection)
 
 (documentation Friending EnglishLanguage "This is a verb, coined by Facebook, that refers to the action of one &%FacebookUser becoming &%facebookFriends
  with another &%FacebookUser.")
@@ -249,19 +349,21 @@ shows posts that Facebook believes are the most relevant to the user.  These pos
 many &%facebookFriends are commenting on a post and how often you interact with those friends.")
 ;;If there is a NewsFeed, then a TopNewsFeed is a component of it.
 (=>
-    (and
-        (instance ?NEWSFEED NewsFeed)
-        (instance ?TOPNEWS TopNewsFeed))
-    (component ?TOPNEWS ?NEWSFEED))
+    (instance ?NEWSFEED NewsFeed)
+    (exists (?TOPNEWS)
+        (and
+            (instance ?TOPNEWS TopNewsFeed)
+            (component ?TOPNEWS ?NEWSFEED))))
 
 (documentation MostRecentFeed EnglishLanguage "There are two ways to look at &%Facebook's &%NewsFeed: The &%TopNewsFeed and the &%MostRecentFeed.  The 
 MostRecentFeed simply takes the activity of your &%facebookFriends and displays it in chronological order.")
 ;;If there is a NewsFeed, then a MostRecentFeed is a component of it.
 (=>
-    (and
-        (instance ?NEWSFEED NewsFeed)
-        (instance ?MOSTRECENT MostRecentFeed))
-    (component ?TOPNEWS ?NEWSFEED))
+    (instance ?NEWSFEED NewsFeed)
+    (exists (?MOSTRECENT)
+        (and
+            (instance ?MOSTRECENT MostRecentFeed)
+            (component ?MOSTRECENT ?NEWSFEED))))
 
 (documentation Uploading EnglishLanguage "This verb refers to what happens when data is sent, either as a &%ComputerFile or a &%ComputerProgram, from a 
 &%Computer to some external device.  This device is most likely another &%Computer or a &%Server, though it can be any &%DigitalDataStorageDevice as well.  
@@ -285,9 +387,9 @@ This is the opposite of &%Downloading.")
             (origin ?UPLOAD ?COMPUTER)
             (destination ?UPLOAD ?STORAGEDEVICE))))
     
-(documentation Downloading EnglishLanguage "This verb refers to what happens when data is sent, either as a &%ComputerFile or &%ComputerProgram, to a 
-&%Computer or &%DigitalDataStorageDevice.  The source of the download is usually another &%Computer or &%Server or, in the case of modern jargon, 
-some &%WebPage. This verb is the opposite of &%Uploading.")
+(documentation Downloading EnglishLanguage "This verb refers to what happens when a &%Computer or &%Server makes a copy of a certain set of data (usually
+saved as a &%ComputerFile or &%ComputerProgram), and sends it to a peripheral &%DigitalDataDevice or another &%Computer. This verb is the opposite of 
+&%Uploading.")
 (subclass Downloading Transfer)
 (subclass Downloading ITProcess)
 (termFormat EnglishLanguage Downloading "downloading")
@@ -320,13 +422,14 @@ this is an antisymmetric, and not asymmetric, relation because you can tag yours
 (documentation HomePage EnglishLanguage "A homepage is an instance of a &%WebPage on a social networking site that can usually be accessed by pressing the 
 "home" button on the site.  Its main component is the &%NewsFeed, but it also contains references to upcoming events, people you may know, and friends who
 are online.")
-(subclass HomePage WebSite)
+(subclass HomePage WebPage)
 ;;If there is a home page, then a news feed is a component of it.
 (=>
-    (and
-        (instance ?HOMEPAGE)
-        (instance ?NEWSFEED NewsFeed))
-    (component ?NEWSFEED ?HOMEPAGE))
+    (instance ?HOMEPAGE)
+    (exists (?NEWSFEED)
+        (and
+            (instance ?NEWSFEED NewsFeed)
+            (component ?NEWSFEED ?HOMEPAGE))))
 
 (documentation FriendRequest EnglishLanguage "This is a term that is used specifically on Facebook.  A friend request can be sent from one &%FacebookUser to 
 another &%ComputerUser if they wish to become &%facebookFriends.  Note that the person receiving the request does not necessarily have to be a 
@@ -376,49 +479,101 @@ like them to join &%Facebook.")
         (result ?NOTIFY ?NOTIFICATION)
         (instance ?NOTIFICATION Statement))
     (instance ?NOTIFICATION Notification))
-
-(documentation BirthdayNotificationFn EnglishLanguage "On many social networking sites, a user is notified when someone with whom they are connected has a 
-&%birthday.  For instance, on &%Facebook, a &%FacebookUser is notified every time a &%facebookFriend has a &%birthday.  (BirthdayNotificationFn ?PERSON) 
-signifies a &%Notification representing ?PERSON's &%birthday.")
-(instance BirthdayNotificationFn UnaryRelation)
-(domain 1 BirthdayNotificationFn Person)
-(range BirthdayNotificationFn Notification)
-;;If it is someone's birthday and they have a Facebook account, then there is a birthday notification for them.
+    
+(documentation AutomatedSystem EnglishLanguage "An automated system is the &%agent of an &%AutomatedProcess.  "Automated" simply means that actions can be
+carried out by something other than a &%CognitiveAgent.")
+(subclass AutomatedSystem Agent)
+;;If an automated system is the agent of some process, then a cognitive agent is not the agent of that same process.
 (=>
     (and
-        (birthday ?PERSON ?DAY)
-        (instance ?FBACCOUNT FacebookAccount)
-        (hasAccount ?PERSON ?FBACCOUNT))
-    (holdsDuring ?DAY 
-        (BirthdayNotificationFn ?PERSON)))
-        
-;;If it is someone's birthday and they have a LinkedIn account, then there is a birthday notification for them.
+        (instance ?AUTO AutomatedSystem)
+        (agent ?AUTO ?PROCESS))
+    (and
+        (instance ?COG CognitiveAgent)
+        (not
+            (agent ?COG ?PROCESS))))
+;;If there is an automated process, then an automated system is the agent of that process.
+(=>
+    (exists (?AUTOPROCESS ?AUTOSYSTEM)
+        (and
+            (instance ?AUTOPROCESS AutomatedProcess)
+            (instance ?AUTOSYSTEM AutomatedSystem)))
+    (agent ?AUTOPROCESS ?AUTOSYSTEM))
+
+(documentation AutomatedProcess EnglishLanguage "An automated process is some &%Process that is not a &%NaturalProcess and does not require the &%agent
+to be some &%CognitiveAgent.  The &%agent will usually be an &%AutomatedSystem.")
+(subclass AutomatedProcess Process)
+
+(documentation AutomatedNotificationSystem EnglishLanguage "An automated notification system is an &%AutomatedSystem that deals specifically with
+&%Notifications.  It is set to send out a notification every time some criteria is met.  This criteria could include the occurrence of a &%ReccurentTimePoint
+or a significant drop in one's bank account.")
+(subclass AutomatedNotificationSystem AutomatedSystem)
+;;If an automated notification system acts, then the result is a notification.
 (=>
     (and
-        (birthday ?PERSON ?DAY)
-        (instance ?LIACCOUNT LinkedInAccount)
-        (hasAccount ?PERSON ?LIACCOUNT))
-    (holdsDuring ?DAY 
-        (BirthdayNotificationFn ?PERSON)))
+        (instance ?AUTONOTIFY AutomatedNotificationSystem)
+        (instance ?AUTOPROCESS AutomatedProcess)
+        (instance ?AUTOPROCESS Notifying)
+        (instance ?NOTIFICATION Notification)
+        (agent ?AUTOPROCESS ?AUTONOTIFY))
+    (result ?AUTOPROCESS ?NOTIFICATION))
 
-;;If it is ?PERSON's birthday, then their connections/friends see a birthday notification for them.
+(documentation BirthdayNotification EnglishLanguage "On many social networking sites, a user is notified when someone with whom they are connected has a 
+&%birthday.  For instance, on &%Facebook, a &%FacebookUser is notified every time a &%facebookFriend has a &%birthday.")
+(subclass BirthdayNotification Notification)
+;;A birthday notification is the result of an automated notification system.
 (=>
-    (BirthdayNotificationFn ?PERSON)
-    (forall (?FRIEND ?NOTIFY)
-        (=>
-            (and
-                (facebookFriend ?PERSON ?FRIEND)
-                (instance ?NOTIFY Notifying)
-                (agent ?NOTIFY Facebook))
-            (and
-                (result ?NOTIFY (BirthdayNotificationFn ?PERSON))
-                (patient ?NOTIFY ?FRIEND)))))
+    (instance ?BIRTHDAYNOTIFICATION BirthdayNotification)
+    (exists (?AUTONOTIFY ?PROCESS)
+        (and
+            (instance ?AUTONOTIFY AutoNotificationSystem)
+            (agent ?PROCESS ?AUTONOTIFY)
+            (result ?PROCESS ?BIRTHDAYNOTIFICATION))))
+;;To do: find a way to cover the following facts:
+;;  -If there is a birthday notification, then it represents someone's birthday.
+;;  -For all sites that send out birthday notifications: if someone has an account on that site and it is their birthday, then for the length of that day, 
+;;   all of their connections see a birthday notification.
+
+(documentation automatedNotification EnglishLanguage "This binary relation takes an &%agent and a &%destination describes a &%Notification.  
+(automatedNotification ?AGENT ?DESTINATION) describes an automated notification that is sent from ?AGENT to ?DESTINATION.")
+(instance automatedNotification BinaryRelation)
+(domain automatedNotification 1 agent)
+(domain automatedNotification 2 destination)
 
 ;;;;;;;;;;;;;;;;;
 ;;Communication;;
 ;;;;;;;;;;;;;;;;;
 
-;;To be covered: instant messaging and video chatting as used on Facebook.  Ideally, also cover the concepts of online/offline/idle.
+(documentation IMClient EnglishLanguage "This represents an &%InstantMessaging client such as Trillian, Pidgin, or Google Talk.  The client is a platform on 
+which two or more computers can communicate.  Note that an IM client is not necessary for &%InstantMessaging to occur, as many web sites can support 
+instant messaging without the need to download a client.")
+(subclass IMClient CommunicationDevice)
+
+(documentation InstantMessaging EnglishLanguage "Instant messaging is a form of real-time text-based communication in which two or more computers can send
+messages to each other and have them be seen instantly.  In many cases, this is more commonly known as 'chat.'")
+(subclass InstantMessaging WrittenCommunication)
+
+(documentation IMStatusAttribute EnglishLanguage "An &%IMClient allows two or more people to engage in &%InstantMessaging if they are both logged into and
+currently using the client.  When someone is using an &%IMClient, they can check whether or not their connections (often called "buddies") are available 
+for &%InstantMessaging.  The client will let them know by telling them the other person's IM status.  Note: do not use with the relation &%status, as this
+refers to the current status of a &%ComputerProcess.")
+(subclass IMStatusAttribute RelationalAttribute)
+
+(documentation Online EnglishLanguage "If someone is online, this means that they are currently logged in to the &%IMClient (or the &%WebPage where the 
+&%InstantMessaging occurs).  Someone will register as being online if and only if they are currently active.  Their connections may instant message them.
+If they are logged in but not doing anything, then they will register as &%Idle.")
+(instance Online IMStatusAttribute)
+
+(documentation Idle EnglishLanguage "If someone is idle, this means that they are currently logged in to the &%IMClient (or the &%WebPage where the 
+&%InstantMessaging occurs), but are not active.  Usually, their connections are given the option of attempting to instant message them, with the 
+knowledge that there will likely be no reply.")
+(instance Idle IMStatusAttribute)
+
+(documentation Offline EnglishLanguage "If someone is offline, this means that they are not currently logged in to the relevant &%InstantMessaging system.  
+Their connections do not have the option of communicating with them.")
+(instance Offline IMStatusAttribute)
+
+
 
 ;;;;;;;;;;;;;;
 ;;HyperLinks;;
@@ -436,17 +591,6 @@ signifies a &%Notification representing ?PERSON's &%birthday.")
 (=>
     (instance ?LINK Hyperlink)
     (expressedInLanguage ?LINK HTML))
-;;*Does a hyperlink count as a form of communication (transmit a message) or transportation?  The computer "moves" 
-;;the user from one website to another, but the user does not physically move.  You can't use connects because
-;;this refers to a spatial connection, and links refers to the connection between two points on a graph.  Might
-;;it be changesLocation? ("(changes location ?EVENT ?OBJECT) means that during the translocation event ?EVENT, 
-;;?OBJECT's location changes. ?OBJECT might also be the agent, patient, or experiencer of ?EVENT.") Also, URL and UniformResourceLocator are defined 
-;;separately, and most applications of URL are defined off of the SUMO term URL.  (websiteAddress ?URL ?AGENT) could also work, though this is defined as 
-;;a siteForContact and this is not necessarily true of a hyperlink. QoSontology.kif, Engineering.kif, realization, represents
-
-;;Semiotics
-
-;;Understand that there is a link, click on link- Interpreting (handle content bearing objects), movement from one webpage to another.
 
 (documentation WebCrawler EnglishLanguage "A Web crawler is a &%ComputerProgram that browses the World Wide Web in a methodical, automated manner or in an 
 orderly fashion.  A Web crawler is one type of bot, or software agent. In general, it starts with a list of URLs to visit, called seeds. As the crawler 
@@ -455,3 +599,7 @@ from the frontier are recursively visited according to a set of policies.  Their
 "crawl" through the Web and index the significant words on the pages they find.")
 (subclass WebCrawler ComputerProgram)
 
+(documentation InlineLink EnglishLanguage "An inline link is very much like a &%Hyperlink in that both of them link one &%WebPage to another.  The only 
+difference is that a hyperlink must be activated if remote content is to be displayed, while an inline link displays the remote content directly on the 
+page.")
+(subclass InlineLink Hyperlink)
