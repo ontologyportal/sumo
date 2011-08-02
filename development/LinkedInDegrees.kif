@@ -1,5 +1,5 @@
 ;;Vocabulary used in LinkedIn
-
+;;Creator: Brianna Pritchett
 ;;In LinkedIn, you often specify which degree(s) you have achieved.  For the moment, I
 ;;will only specify the attributes of certain degrees in the United States, due to the fact that for 
 ;;the moment mostly U.S. citizens are using LinkedIn.
@@ -205,7 +205,7 @@
                 (instance ?INTERVAL TimeInterval)
                 (holdsDuring ?INTERVAL (attends ?S ?SCHOOL)))))
     (modalAttribute 
-        (equal ?INTERVAL (MeasureFn 4 YearDuration)) Likely)))
+        (equal ?INTERVAL (MeasureFn 4 YearDuration)) Likely))
 ;; If there is a student that is awarded a bachelor's degree by a school, then that school is either a 
 ;;college or a university.
 (=>
@@ -290,13 +290,85 @@
         (greaterThan (MeasureFn 9 YearDuration) ?INTERVAL)
         (greaterThan ?INTERVAL (MeasureFn 1 YearDuration))))
 
-(documentation LinkedIn EnglishLanguage "LinkedIn is a popular social networking &%WebSite for people over the age of 18 that allows people to form professional connections and interact with one another online.")
-(termFormat EnglishLanguage LinkedIn "LinkedIn")
-(instance LinkedIn WebSite)
+;;--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-(documentation LinkedInAccount EnglishLanguage "This refers to a &%UserAccount that is specific to &%LinkedIn.  In order to have a LinkedIn account, one must be over 18 years of age.  A LinkedIn account allows the user to form a profile, gain connections, and participate in conversations and activities, among other things.")
+;;When you add someone on LinkedIn, you have the following options:
+;;-colleague
+;;-classmate
+;;-we've done business together
+;;-friend
+;;-other
+
+(documentation colleague EnglishLanguage "This refers to the relation between two people that have expertise (&%hasExpertise) in the same &%FieldOfStudy.  This is not to be confused with &%Coworker, which is a term used to describe two people who have been employed by the same agent.")
+(domain colleague 1 Human)
+(domain colleague 2 Human)
+(instance colleague BinaryPredicate)
+(instance colleague SymmetricRelation)
+(termFormat colleague EnglishLanguage "colleague")
+(instance colleague SocialNetworkingConnection)
+;; If there are two people that are colleagues, then they both have expertise in a certain field of study
+(=>
+    (and
+        (instance ?H1 Human)
+        (instance ?H2 Human)
+        (hasExpertise ?H1 ?FIELDOFSTUDY1)
+        (hasExpertise ?H2 ?FIELDOFSTUDY2)
+        (equal ?FIELDOFSTUDY1 ?FIELDOFSTUDY2))
+    (colleague ?H1 ?H2))
+
+(documentation expectedYearOfGraduation EnglishLanguage "This refers to the expected year of &%Graduation for a &%Student who has not yet graduated.")
+(domain expectedYearOfGraduation 1 Student)
+(domain expectedYearOfGraduation 2 Year)
+(instance expectedYearOfGraduation BinaryPredicate)
+(subrelation expectedYearOfGraduation inScopeOfInterest)
+(termFormat expectedYearOfGraduation EnglishLanguage "expected year of graduation")
+;; If there is a student that is in school, then that student expects to graduate in a certain year.
+(=>
+    (and
+        (instance ?STUDENT Student)
+        (instance ?SCHOOL School)
+        (attends ?STUDENT ?SCHOOL)
+        (instance ?GRADUATE Graduation)
+        (exists (?YEAR ?TIMEINTERVAL1)
+            (and
+                (instance ?YEAR Year)
+                (time ?TIMEINTERVAL1 ?GRADUATE)
+                (agent ?GRADUATE ?SCHOOL)
+                (patient ?GRADUATE ?STUDENT)
+                (during ?TIMEINTERVAL1 ?YEAR))))
+    (expectedYearOfGraduation ?STUDENT (YearFn ?YEAR)))
+    
+(documentation classmate EnglishLanguage "This refers to the relation between two people who attend the same &%School and share an &%expectedYearOfGraduation.")
+(domain classmate 1 Student)
+(domain classmate 2 Student)
+(instance classmate BinaryPredicate)
+(instance classmate SymmetricRelation)
+(instance classmate SocialNetworkingConnection)
+(termFormat classmate EnglishLanguage "classmate")
+;;If there are two students that are go to the same school and have the same year of graduation, then they are classmates.
+(=>
+    (and
+        (instance ?STUDENT1 Student)
+        (instance ?STUDENT2 Student)
+        (instance ?SCHOOL School)
+        (attends ?STUDENT1 ?SCHOOL)
+        (attends ?STUDENT2 ?SCHOOL)
+        (instance ?YEAR Year)
+        (expectedYearOfGraduation ?STUDENT1 (YearFn ?YEAR))
+        (expectedYearOfGraduation ?STUDENT2 (YearFn ?YEAR)))
+    (classmate ?STUDENT1 ?STUDENT2))
+    
+
+(documentation LinkedIn EnglishLanguage "LinkedIn is a popular social networking &%WebSite for people over the age of 18 that allows people to form 
+professional connections and interact with one another online.")
+(termFormat EnglishLanguage LinkedIn "LinkedIn")
+(instance LinkedIn SocialNetworkingSite)
+
+(documentation LinkedInAccount EnglishLanguage "This refers to a &%UserAccount that is specific to &%LinkedIn.  In order to have a LinkedIn account, one 
+must be over 18 years of age.  A LinkedIn account allows the user to form a profile, gain connections, and participate in conversations and activities, 
+among other things.")
 (termFormat EnglishLanguage LinkedInAccount "LinkedIn account")
-(subclass LinkedInAccount UserAccount)
+(subclass LinkedInAccount SocialNetworkingAccount)
 ;;If there is a person that has a LinkedIn account, then that person is at least 18 years of age.
 (=>
     (and
@@ -304,4 +376,6 @@
         (hasAccount ?USER ?LIACCOUNT))
     (and
         (age ?USER (MeasureFn ?NUMBER YearDuration))
-        (greaterThanOrEqualTo ?NUMBER 18)))
+        (modalAttribute 
+            (not
+                (greaterThanOrEqualTo ?NUMBER 18)) Prohibition)))
