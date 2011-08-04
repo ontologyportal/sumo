@@ -612,12 +612,122 @@ that &%Airport ?APT has the code &%SymbolicString ?STRING according to &%CodeMap
   (airportCode ?MAP ?STRING ?APT)
   (instance ?APT Airport))
   
-(subrelation airportName names)
-(documentation airportName EnglishLanguage "(&%airportName ?APT ?NAME) means that 
+(subrelation nearAirport names)
+(documentation nearAirport EnglishLanguage "(&%nearAirport ?APT ?NAME) means that 
 &%Airport ?APT has name ?NAME")
-(termFormat EnglishLanguage airportName "airport name")
+(termFormat EnglishLanguage nearAirport "airport name")
 
 (=>
-  (airportName ?APT ?NAME)
+  (nearAirport ?APT ?NAME)
   (instance ?APT Airport))
+
+(instance GranaryRoom HotelRoomAttribute)
+(termFormat EnglishLanguage GranaryRoom "granary room")
+(documentation GranaryRoom EnglishLanguage "&%GranaryRoom describes a &%HotelUnit
+that used to be a room where &%CerealGrain was kept, but has been converted into 
+a &%HotelUnit")
+
+(=>
+  (attribute ?ROOM GranaryRoom)
+  (exists (?MAKING ?TI ?REGION)
+    (and
+      (instance ?MAKING Making)
+      (result ?MAKING ?ROOM)
+      (located ?ROOM ?REGION)
+      (before ?TI (WhenFn ?MAKING))
+      (holdsDuring ?TI
+        (hasPurpose ?REGION
+          (exists (?KEEP ?CG)
+            (and
+              (instance ?KEEP Keeping)
+              (instance ?CG CerealGrain)
+              (eventLocated ?KEEP ?REGION)
+              (patient ?KEEP ?CG))))))))
+          
+     
   
+(subclass FamilyPlan HotelPackage)
+(documentation FamilyPlan EnglishLanguage "&%FamilyPlan normally refers to a 
+&%HotelPackage that allows &%HumanChild younger than 12 to stay for free")
+(termFormat EnglishLanguage FamilyPlan "family plan")
+
+(=>
+  (and
+    (instance ?FP FamilyPlan)
+    (offers ?HOTEL ?FP)
+    (attribute ?HOTEL TravelerAccommodation)
+    (instance ?FAM FamilyGroup)
+    (member ?CHILD1 ?FAM)
+    (member ?CHILD2 ?FAM)
+    (instance ?CHILD1 HumanChild)
+    (instance ?CHILD2 HumanChild))
+  (modalAttribute
+    (inScopeOfInterest ?FAM ?FP) Likely))
+ 
+(subclass AllInclusivePackage HotelPackage)
+(documentation AllInclusivePackage EnglishLanguage "&%AllInclusivePackage normally refers
+to a &%HotelPackage that already includes a complete &%MealPlan offering &%FullBoard, 
+the &%HotelUnit stay, as well as other things that could be important for the stay
+- such as scuba diving gear or golf course entrance and such.")
+(termFormat EnglishLanguage AllInclusivePackage "all-inclusive package")
+
+(=>
+  (instance ?PKG AllInclusivePackage)
+  (exists (?MP ?INT ?HU)
+    (and
+      (mealPlanInclusion ?PKG ?MP)
+      (instance ?MP FullBoard)
+      (roomStay ?PKG ?INT ?HU))))
+
+(subclass ConventionCenter Building)
+(documentation ConventionCenter EnglishLanguage "A &%ConventionCenter is a type of
+&%Building which has the purpose of holding large groups holding &%FormalMeeting.  
+There are typically no rooms for sleeping.")
+(termFormat EnglishLangage ConventionCenter "convention center")
+
+(=>
+  (instance ?CC ConventionCenter)
+  (hasPurpose ?C
+    (exists (?FM ?GRP)
+      (and
+        (instance ?FM FormalMeeting)
+        (agent ?FM ?GRP)
+        (instance ?GRP GroupOfPeople)
+        (eventLocated ?FM ?CC)
+        (modalAttribute
+          (exists (?ORG1 ?ORG2 ?PPL1 ?PPL2 ?POS1 ?POS2)
+            (and
+              (member ?PPL1 ?GRP)
+              (occupies ?PPL1 ?POS1 ?ORG1)
+              (occupies ?PPL2 ?POS2 ?ORG2)
+              (member ?PPL2 ?GRP)
+              (not (equal ?PPL1 ?PPL2))
+              (not (equal ?ORG1 ?ORG2)))) Likely)))))
+    
+(subclass EmailAccess ServiceProcess)
+(documentation EmailAccess EnglishLanguage "&%EmailAccess describes how a &%serviceProvider
+has the necessary equipment to allow a &%serviceRecipient to perform &%Emailing")
+(termFormat EnglishLanguage EmailAccess "email access")
+
+(=>
+  (instance ?E EmailAccess)
+  (exists (?SP ?COMP ?EM ?USER)
+    (and
+      (serviceProvider ?E ?SP)
+      (serviceRecipient ?E ?USER)
+      (possesses ?SP ?COMP)
+      (instance ?EM Emailing)
+      (instrument ?EM ?COMP)
+      (agent ?EM ?USER)
+      (subProcess ?EM ?E))))
+      
+(subrelation freeOffers offers)
+(documentation freeOffers EnglishLanguage "(&%freeOffers ?AGENT ?PROP) describes how 
+an &%Agent ?AGENT offers something at no cost.")
+(termFormat EnglishLangauge freeOffers "free offers")
+
+(=>
+  (offers ?AGENT ?PROP)
+  (and
+    (productPrice ?PROP (MeasureFn 0 ?UNIT))
+    (instance ?UNIT UnitOfCurrency)))

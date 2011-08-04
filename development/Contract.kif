@@ -127,27 +127,52 @@ means that ?ENDDATE is the date on which ?AGREEMENT is no longer &%ActiveAgreeme
     (not (property ?AGREEMENT ActiveAgreement))))
    
 (instance agreementClause QuaternaryPredicate)
-(documentation agreementClause EnglishLanguage "(&%agreementClause ?CLAUSE ?ATTR
-?AGREEMENT ?AGENT) means that &%Formula ?CLAUSE, which has &%modalAttribute ?ATTR, 
-is part of &%Agreement ?AGREEMENT and was issued by &%CognitiveAgent ?AGENT")
+(documentation agreementClause EnglishLanguage "(&%agreementClause ?PROP ?ATTR
+?AGREEMENT ?AGENT) means that &%Proposition ?PROP, which has &%modalAttribute ?ATTR, 
+is part of &%Agreement ?AGREEMENT and, with &%CognitiveAgent ?AGENT being the one
+responsible to make the statement true")
 (termFormat EnglishLanguage agreementClause "agreement clause")
 
-(domain agreementClause 1 Formula)
+(domain agreementClause 1 Proposition)
 (domain agreementClause 2 DeonticAttribute)
 (domain agreementClause 3 Agreement)
 (domain agreementClause 4 CognitiveAgent)
 
 (=>
-  (agreementClause ?CLAUSE ?ATTR ?AGREEMENT ?AGENT)
-  (exists (?PROP ?PROC)
-    (and
-      (partyToAgreement ?AGENT ?AGREEMENT)
-      (instance ?PROC ContentDevelopment)
-      (result ?PROC ?CLAUSE)
-      (agent ?PROC ?AGENT)
-      (containsInformation ?CLAUSE ?PROP)
-      (subProposition ?PROP ?AGREEMENT)
-      (modalAttribute ?CLAUSE ?ATTR))))
+  (agreementClause ?PROP ?ATTR ?AGREEMENT ?AGENT)
+  (and
+    (exists (?CLAUSE)        
+      (containsInformation ?CLAUSE ?PROP))
+    (partyToAgreement ?AGENT ?AGREEMENT)))
+
+(=>
+  (and
+    (agreementClause ?PROP ?ATTR ?AGREEMENT ?AGENT)
+    (or
+      (equals ?ATTR Obligation)
+      (equals ?ATTR Promise)))
+  (modalAttribute
+    (exists (?PROC)
+      (and
+        (realization ?PROC ?PROP)
+        (agent ?PROC ?AGENT))) Likely))
+        
+(=>
+  (agreementClause ?PROP Prohibition ?AGREEMENT ?AGENT)
+  (not
+    (holdsRight
+      (exists (?PROC)
+        (and
+          (realization ?PROC ?PROP)
+          (agent ?PROC ?AGENT))) ?AGENT)))
+        
+(=>
+  (agreementClause ?PROP Permission ?AGREEMENT ?AGENT)
+  (holdsRight
+    (exists (?PROC)
+      (and
+        (realization ?PROC ?PROP)
+        (agent ?PROC ?AGENT))) ?AGENT))
       
 (instance ActiveAgreement RelationalAttribute)
 (documentation ActiveAgreement EnglishLanguage "&%ActiveAgreement describes an &%Agreement
