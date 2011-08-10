@@ -654,7 +654,7 @@ principles or a plan or course of action adopted by that organization.")
       (destination ?BT ?Destination))))
       
 ;;;-------------------------------------------------------------------------------------------------------      
-;;; Accommodation Service
+;;; 7. Accommodation Service
 ;;;-------------------------------------------------------------------------------------------------------      
 ;;; business trips usually have an accommodation service associated to them, provided by a Hotel-Organization
 ;;; an accommodation service is a CommercialService, which subclasses from ServiceProcess and from FinancialTransaction Merge 9047-MILO 11916
@@ -786,11 +786,12 @@ principles or a plan or course of action adopted by that organization.")
     (policyOwner ?ORG ?TP)
     (policyClause prefAccomm Obligation ?TP ?ORG))
   (exists (?ORD)
-    (instance ?ORD Ordering)
-    (agent ?ORD ?ORG)
-    (patient ?ORD ?FORM)
-    (containsInformation ?ORD ?FORM)
-    (subjectiveAttribute ?PH Favorite ?ORG)))  
+    (and
+      (instance ?ORD Ordering)
+      (agent ?ORD ?ORG)
+      (patient ?ORD ?FORM)
+      (containsInformation ?ORD ?FORM)
+      (subjectiveAttribute ?PH Favorite ?ORG)))) 
     
 ;;; Companies might prefer certain properties (modeled above) or they might prefer a chain of Hotels.  
 (subclass PreferredChain HotelChain)
@@ -802,11 +803,12 @@ principles or a plan or course of action adopted by that organization.")
     (policyOwner ?ORG ?TP)
     (policyClause prefAccomm Obligation ?TP ?ORG))
   (exists (?ORD)
-    (instance ?ORD Ordering)
-    (agent ?ORD ?ORG)
-    (patient ?ORD ?FORM)
-    (containsInformation ?ORD ?FORM)
-    (subjectiveAttribute ?PC Favorite ?ORG)))  
+    (and
+      (instance ?ORD Ordering)
+      (agent ?ORD ?ORG)
+      (patient ?ORD ?FORM)
+      (containsInformation ?ORD ?FORM)
+      (subjectiveAttribute ?PC Favorite ?ORG))))  
 
 ;;; "Ordering"  is  stronger than preferring but has the implicit idea that not following the recommendation results in sanctions. 
 ;;; (maybe TravelPolicies are collections of 'orderings' instead of a collection of 'declaring'?)
@@ -829,7 +831,7 @@ principles or a plan or course of action adopted by that organization.")
       (serviceReceiver ?AS ?EMPLOYEE)
       (serviceProvider ?AS ?H)
       (instance ?H Hotel-Organization)
-      (subjectiveAttribute ?H Favorite ?ORG)))
+      (subjectiveAttribute ?H Favorite ?ORG))))
  
 ; preferred accommodation might be a HotelChain         
 (=> 
@@ -847,7 +849,7 @@ principles or a plan or course of action adopted by that organization.")
          (serviceReceiver ?AS ?EMPLOYEE)
          (serviceProvider ?AS ?HC)
          (instance ?HC HotelChain)
-         (subjectiveAttribute ?H Favorite ?ORG)))  
+         (subjectiveAttribute ?H Favorite ?ORG))))  
          
 ; need to say that a RoomRate is out of policy               
          
@@ -902,7 +904,7 @@ principles or a plan or course of action adopted by that organization.")
     (not
       (attribute ?H PrivateRate))))
       
-;;  A private rate hotel might be required or not.
+;;  A private rate hotel might be required or not. If it's required there is a policy clause that `obliges' the accommodation service to have a private rate
   
 (=> 
   (and
@@ -920,10 +922,10 @@ principles or a plan or course of action adopted by that organization.")
           (agent ?AS ?H)
           (attribute ?H TravelerAccommodation)
           (instance ?H Hotel-Organization)
-          (attribute ?H PrivateRate)))) Permission ?TP ?ORG)))      
-      
- ;;; given a specific BusinessTrip ?BT and an accommodation service ?AS, if the TravelPolicy has private rate hotel required, 
- ;;; then a hotel with private rate should be used.
+          (attribute ?H PrivateRate)))) Obligation ?TP ?ORG)))      
+                  
+;;; given a specific BusinessTrip ?BT and an accommodation service ?AS, if the TravelPolicy has private rate hotel as required, 
+;;; then a hotel with private rate should be used.
 
 (=> 
    (and
@@ -942,9 +944,35 @@ principles or a plan or course of action adopted by that organization.")
          (attribute ?H PrivateRate)
          (instance ?H Hotel-Organization)))) 
          
-;;; Even if a Private Rate Hotel is not required, the PrivateHotelRate can be used as a bound on the RoomRate allowed, instead of a given max rate allowed.
-;;; Condition (8) in John's summary    Room rate limited to private rate, has a little flowchart to explain how this relates to private rates    
+;;; a private rate hotel (PRH) room rate might be required in the policy...
+;; Even if a Private Rate Hotel is not required, and a private hotel rate is not required, the PrivateHotelRate can be used as a bound on the RoomRate allowed, instead of a given max rate allowed.
+;;; Condition (8) in John's summary reads    "Room rate limited to private rate",  a little flowchart to explain how this relates to private rates.
+    
+;; given a hotel ?H room ?ROOM the there is a RoomRate which is the amount of rental that one pays for the room per night, usually.
 
+(=>
+  (instance ?RR RoomRate)
+  (exists (?H ?ROOM ?ORG ?PS)
+  (and
+    (instance ?H Hotel-Organization)
+    (instance ?ROOM HotelRoom)
+    (located ?ROOM ?H)
+    (rentalPrice ?ROOM ?RR ?ORG ?PS))))
+    
+;;; If a given hotel is a PrivateRate hotel and ROOM is any room in it, then ROOM has a PrivateRate hotel rate (as well as a normal rate?).
+
+(=>
+  (and
+    (instance ?H Hotel-Organization)
+    (attribute ?H PrivateRate)
+    (instance ?ROOM HotelRoom)
+    (located ?ROOM ?H))
+  (exists (?RATE1 ?PS ?ORG)
+    (and
+      (instance ?PS PricingScheme)
+      (rentalPrice ?ROOM ?RATE1 ?ORG ?PS))))
+   
+;; The pricing scheme should give us a different room rate when the Hotel has a Private Rate.       
 ;;;-------------------------------------------------------------------------------------------------------
 ;;; 4.  Room types 
 ;;; this is an ad hoc definition for RC  travel policies.
@@ -1135,20 +1163,21 @@ principles or a plan or course of action adopted by that organization.")
   (and
     (instance ?TP TravelPolicy)
     (policyOwner ?ORG ?TP)
-    (subClause ?PerDiemBound Obligation ?TP ?ORG))
+    (policyClause ?PerDiemBound Obligation ?TP ?ORG))
   (exists (?AS ?H ?RATE ?ROOM ?BOUND)
-    (instance ?AS AccommodationService)
-    (instance ?H Hotel)
-    (instance ?PS PricingScheme)
-    (serviceProvider ?AS ?H)
-    (serviceInstrument ?AS ?ROOM)
-    (rentalPrice ?ROOM ?RATE ?H ?PS))
-    (not
-      (greaterThan ?RATE ?BOUND)
-    (equals ?BOUND (PerDiemFn ?ORG)))
+    (and
+      (instance ?AS AccommodationService)
+      (instance ?H Hotel)
+      (instance ?PS PricingScheme)
+      (serviceProvider ?AS ?H)
+      (serviceInstrument ?AS ?ROOM)
+      (rentalPrice ?ROOM ?RATE ?H ?PS)
+      (not
+        (greaterThan ?RATE ?BOUND))
+      (equals ?BOUND (PerDiemFn ?ORG)))))
 
 ;;;---------------------------------------------------------------------------------------------------------
-;;; 8. Single leg transportation (flight or rail),  no hotel
+;;; 7. Single leg transportation (flight or rail),  no hotel
 ;;; the condition reads: "Check whether the flights or rails are round trips or have multiple legs with some hotel stay in between.  
 ;;; A one-way, single leg trip will fail the check."
 
@@ -1177,7 +1206,7 @@ principles or a plan or course of action adopted by that organization.")
 
 ;; a travel policy clause forbids single leg transportation accommodation if it says that for a single leg transportation, no accommodation service is permitted.  
 ;;;---------------------------------------------------------------------------------------------------------
-;;;; 7. Out of Policy Some accommodation services are OOP (out-of-police) for a given company policy and a given employee
+;;;; 8. Out of Policy Some accommodation services are OOP (out-of-police) for a given company policy and a given employee
 
 (subclass OutOfPolicyAccom AccommodationService)
  
@@ -1193,13 +1222,10 @@ principles or a plan or course of action adopted by that organization.")
       (not
         (consistent ?PROP1 ?PROP2)))))
         
-;;; this is wrong as Service does not have a propositional content...
+;;; Services do not have a propositional content...
 ;;;-----------------------------------------------------------------------------------------------------
-;; 
-
-;;;-----------------------------------------------------------------------------------------------------
-;;; CostOfTrip is the sum of transportation services cost plus accommodation costs plus meals plus incidental costs 
-
+;;  9. CostOfTrip is the sum of transportation services cost plus accommodation costs plus meals plus incidental costs 
+;;;----------------------------------------------------------------------------------------------------- 
 ;; given a TravelPolicy, then there exists an organization, a person and a business trip such that the TravelPolicy is imposed by the organization, 
 ;; the person represents the org in some event, the business trip is taken by the person--still need  to say in behalf of the organization 
 ;; and that the business trip conforms to the Travel Policy.
@@ -1214,18 +1240,13 @@ principles or a plan or course of action adopted by that organization.")
         (agent ?BUSINESSTRIP ?INDIVIDUAL))))
         
 ;;; Missing conditions: 
-;;; 2. Should a mark be made when the hotel (not only the rate) is out of policy? (3) actually modeled hotel out of policy not rate...
-;;; 4. room rate limited to private rate? (8)
-;;; numbers in parenthesis as John has them.
+;;; Should a mark be made when the hotel (not only the rate) is out of policy? (3) actually modeled hotel out of policy not rate...
 
 ;;; Employees have CorporateCreditCards whose purpose is to pay for BusinessTrips
 
-;;; If a trip is less than 24 h duration hotel accommodation is not allowed.
-
-;;; If a trip has a single leg (flight or ground transportation) hotel accommodation is not allowed.
-;;; business trips have a total cost= transportation costs+accommodation costs+incidental costs      
+;;; If a trip is less than 24 h duration hotel accommodation is not allowed. 
       
-;;; A difficult clause of a policy:
+;;; (A difficult clause)
 ;;; A traveler may use surface transportation for personal reasons even though air travel is the appropriate mode of transportation. 
 ;;; The cost of meals and lodging, parking, mileage, tolls, taxis, and ferries incurred while in transit by surface transportation may be reimbursed. 
 ;;; Such costs shall not exceed the cost of airfare, based on the lower of the regular coach fare available for the location of travel from a standard 
