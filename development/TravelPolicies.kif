@@ -17,6 +17,7 @@
 ;; Geography.kif
 ;; Contract.kif
 ;; Government.kif
+;; Catalog.kif
 
 ;; Access to and use of these products is governed by the GNU General Public 
 ;; License <http://www.gnu.org/copyleft/gpl.html>. 
@@ -43,10 +44,7 @@
 
 ;;; Examples of Travel and Expense Policy models:
 ;;; www.westrav.com/corporate/TravelPolicy.html;
-;;; wiki.mygazoo.com/display/fin/Policies+and+Procedures;
-;;; wiki/display/eng/Policies+on+Hotel+Bookings+by+RC+Corporate+Clients+-+A+Preliminary+Report+from+A+Knowledge+Engineering+Approach
 ;;; www.ucop.edu/ucophome/policies/bfb/g28summary.pdf Policy and Regulations Governing Travel University of California
-
 ;;; ---------------------------------------------------------------------------------
 ;;; 2. Policy
 ;;; ---------------------------------------------------------------------------------
@@ -232,7 +230,7 @@ principles or a plan or course of action adopted by that organization.")
 
 (subclass TravelPolicy Policy)
 (subclass TravelPolicyDocument PolicyDocument)
-(subrelation travelPolicyClause policyClause)
+;;(subrelation travelPolicyClause policyClause)
 
 ;;; clearly  TravelPolicy is a subclass of Policy;
 ;;; TravelPolicyDocument a subclass of PolicyDocument and
@@ -240,7 +238,6 @@ principles or a plan or course of action adopted by that organization.")
 
 ;;; A TravelPolicy legislates over the *business trips* (or company travel) that individuals
 ;;; that represent the organization in a Transaction (mainly employees) are allowed/required to take.
-
 ;;; Business Trips
 
 ;;; To model business trips, first a SocialRole for an agent representing an Organization (in an Event) 
@@ -630,7 +627,6 @@ principles or a plan or course of action adopted by that organization.")
 ;;;------------------------------------------------------------------------
 ;;; 6. More about BusinessTrips
 ;;;-------------------------------------------------------------------------
-
 ;;; BusinessTrips have a start date and an end date
 
 (=>
@@ -779,7 +775,8 @@ principles or a plan or course of action adopted by that organization.")
 ;;; "Ordering"  is somewhat stronger than recommending but has the implicit idea that not following the recommendation results in sanctions. 
 ;;; (maybe TravelPolicies are collections of 'orderings' instead of a collection of 'declaring'?)
 
-;;; given a specific BusinessTrip and an accommodation service, if the TravelPolicy has preferred accommodation, then the preferred hotel should be used.
+;;; given a specific BusinessTrip and an accommodation service, if the TravelPolicy has preferred accommodation ?H, then the preferred hotel should be used.
+
 
 (=> 
    (and
@@ -794,257 +791,8 @@ principles or a plan or course of action adopted by that organization.")
    (exists (?H)
        (and
          (serviceReceiver ?AS ?EMPLOYEE)
-         (serviceProvider ?AS ?H))))
+         (serviceProvider ?AS ?H)
+         (instance ?H Hotel-Organization))))
          
 ;;  would like to say that what the policy says about accomm is consistent with the accomm service actually used, but ?AS is not a proposition      
-;(=>
-;  (and
-;  (instance ?BT BusinessTrip)
-;  (agent ?BT ?EMPLOYEE)
-;  (employs ?COMPANY ?EMPLOYEE)
-;  (policyOwner ?COMPANY ?TP)   
-;  (policyClause ?PrefAccom Obligation ?TP ?COMPANY))              
-;  (modalAttribute ?FORM Obligation)
-;  (consistent ?PrefAccom ?AS))))
-       
-       
-;;;------------------------------------------------------------------------------------------------------
-;;; 2. Classes of Employees
-;;; Corporations have classes of employees, as far as travel policies  are concerned, VIP and non-VIP employees
-
-;;; it's subjective for the company to decide who's VIP, who's not, but it's an objective norm...
-
-(instance VIP SubjectiveAssessmentAttribute)
-(instance non-VIP SubjectiveAssessmentAttribute)
-(disjoint VIP non-VIP)
-
-(=>
-  (attribute ?P VIP)
-  (exists (?ORG)
-    (and
-      (employs ?ORG ?P)
-      (instance ?P Human)
-      (attribute ?P VIP))))
-      
-;;;------------------------------------------------------------------------------------------------------
-;;; 3. Classes of hotels
-;;; As far as RC is concerned there are Private Rate Hotels and non-Private Rate Hotels, for a given company ?ORG who owns the travel policy ?TP
-
-;;; while it is an objective norm if a hotel is considered Private Rate or not, only the company who owns the travel policy decides
-;;; whether a given Hotel is a PrivateRate Hotel (or not), for them
-
-(instance PrivateRate SubjectiveAssessmentAttribute)
-(instance non-PrivateRate SubjectiveAssessmentAttribute)
-(disjoint PrivateRate non-PrivateRate)
-
-(=>
-  (and
-    (instance ?H Hotel-Organization)
-    (instance ?ORG Organization)
-    (instance ?TP TravelPolicy)
-    (policyOwner ?ORG ?TP))      
-  (or
-    (attribute ?H PrivateRate)
-    (not
-      (attribute ?H PrivateRate))))
-      
-;;   A private rate hotel is required or not (I think this only makes sense if the private hotel is permitted, not required...)
-  
-(=> 
-  (and
-    (instance ?ORG Organization)
-    (instance ?TP TravelPolicy)
-    (policyOwner ?ORG ?TP))
-  (exists (?CLAUSE)
-    (policyClause
-      (=>
-      (instance ?AS AccommodationService)
-      (exists (?ORD ?H)
-        (and
-          (instance ?ORD Ordering)
-          (agent ?ORD ?ORG)
-          (agent ?AS ?H)
-          (attribute ?H TravelerAccommodation)
-          (instance ?H Hotel-Organization)
-          (attribute ?H PrivateRate)))) Permission ?TP ?ORG)))      
-      
- ;;; given a specific BusinessTrip ?BT and an accommodation service ?AS, if the TravelPolicy has private rate hotel required, 
- ;;; then the hotel with private rate should be used.
-
-(=> 
-   (and
-     (instance ?BT BusinessTrip)
-     (instance ?AS AccommodationService)
-     (subProcess ?AS ?BT)  
-     (instance ?TP TravelPolicy)
-     (agent ?BT ?EMPLOYEE)
-     (employs ?COMPANY ?EMPLOYEE)
-     (policyOwner ?COMPANY ?TP) 
-     (policyClause ?PrivRate Obligation ?TP ?COMPANY))    
-   (exists (?H)
-       (and
-         (serviceReceiver ?AS ?EMPLOYEE)
-         (serviceProvider ?AS ?H)
-         (attribute ?H PrivateRate)))) 
-
-;;;-------------------------------------------------------------------------------------------------------
-;;; 4.  Room types 
-;;; this is an ad hoc definition for RC  travel policies.
-;;; Consider the following kinds of room type: KingBedRoom, QueenBedRoom, DoubleRoom, SuiteRoom, SuperiorRoom,
-
-(instance RC-roomType CodeMap)
-
-(=>
-  (codeMapping RC-roomType ?String ?HotelRoom)
-  (represents ?String ?HotelRoom))
-    
-(codeMapping RC-roomType "KI" KingBedRoom)
-(codeMapping RC-roomType "QU" QueenBedRoom)
-(codeMapping RC-roomType "SU" SuiteRoom)
-(codeMapping RC-roomType "DB" DoubleRoom)
-(codeMapping RC-roomType "SP" DeluxeRoom)
-
-;; hotel.kif has both SuiteRoom and DeluxeRoom=called Superior in RC policy. Hotel-11.kif 881-886 define SuiteRoom
-
-;; A QueenBedBedroom has a queen bed located in it, similar for a KingBedBedroom.
-;; Hotel.kif 92-97 already has that a hotel room has a bed, so the following are just sub-cases for the travel app
-
-(=>
-  (instance ?QB QueenBedRoom)
-  (exists (?B)
-    (and
-      (instance ?QB HotelRoom)
-      (instance ?B QueenBed)
-      (located ?B ?QB))))
-
-(=>
-  (instance ?KB KingBedRoom)
-  (exists (?B)
-    (and
-      (instance ?KB HotelRoom)
-      (instance ?B KingBed)
-      (located ?B ?KB))))
-
-;; A double room has either a double bed or two single beds 
-;; actually most hotels I know in the US have  two *full* beds. need to add this detail?
-(=>
-  (instance ?DR DoubleRoom)
-    (exists (?B ?B1 ?B2)
-      (or
-        (and
-        (instance ?B DoubleBed)
-        (instance ?DR HotelRoom)
-        (located ?B ?DR))
-        (and
-        (instance ?B1 SingleBed)
-        (instance ?B2 SingleBed)
-        (instance ?DR HotelRoom)
-        (located ?B1 ?DR)
-        (located ?B2 ?DR)))))
-        
-;;; The accommodation service has a serviceProvider, the hotel, a serviceRecipient, the customer and a serviceInstrument, the hotel room provided.        
-        
-;;; The policy is to restrict the room type, that is, one policy clause is "Do not permit SuiteRoom", "do not permit KingBedRoom", etc..
-
-(=> 
-  (and
-    (instance ?ORG Organization)
-    (instance ?TP TravelPolicy)
-    (policyOwner ?ORG ?TP))
-  (exists (?CLAUSE)
-    (policyClause
-      (=>
-      (instance ?AS AccommodationService)
-      (exists (?ORD ?H ?ROOM)
-        (and
-          (instance ?ORD Ordering)
-          (agent ?ORD ?ORG)
-          (serviceProvider ?AS ?H)
-          (serviceInstrument ?AS ?ROOM)
-          (attribute ?H TravelerAccommodation)
-          (instance ?H Hotel-Organization)
-          (attribute ?ROOM SuiteRoom)))) Prohibition ?TP ?ORG)))
-          
-;;; given a specific BusinessTrip ?BT and an accommodation service ?AS, if the TravelPolicy has "Do not permit SuiteRoom", code:SU
-;;; then a room which is not a suite should be used.
-
-(=> 
-   (and
-     (instance ?BT BusinessTrip)
-     (instance ?AS AccommodationService)
-     (subProcess ?AS ?BT)  
-     (instance ?TP TravelPolicy)
-     (agent ?BT ?EMPLOYEE)
-     (employs ?COMPANY ?EMPLOYEE)
-     (policyOwner ?COMPANY ?TP) 
-     (policyClause ?SuiteRoom Prohibition ?TP ?COMPANY))    
-   (exists (?H ?ROOM)
-       (and
-         (serviceRecipient ?AS ?EMPLOYEE)
-         (serviceProvider ?AS ?H)
-         (serviceInstrument ?AS ?ROOM)
-         (not
-           (attribute ?ROOM SuiteRoom)))))
-           
-;; similar rules for KingBedRoom, QueenBedRoom, DeLuxeRoom, DoubleRoom. a way of doing it once only?           
-            
-;;;-------------------------------------------------------------------------------------------------------
-;;; an accommodation service has a rate associated to it.
-
-;;; 5. Maximum Room Rate Allowed:
-
-;;; this is an ad hoc definition for RC  travel policies.
-;;; Consider the following kinds of maximum rate per room:
-;;; {0, .01, 1, 10, 100, 1000, 10000, 105, 110, 115, 119, 120,...,200}
-;;; Karen has PricingScheme in Catalog.kif
-
-     
-;;;-------------------------------------------------------------------------------------------------------
-;;; 6. Some accommodation services are OOP (out-of-police) for a given company policy and a given employee
-
-(subclass OutOfPolicyAccom AccommodationService)
- 
-(=>
-  (instance ?OOP OutOfPolicyAccom)
-  (exists (?ORG ?POL ?PROP1)
-    (and
-      (instance ?ORG Organization)
-      (instance ?POL Policy)
-      (policyOwner ?ORG ?POL)
-      (containsInformation ?POL ?PROP1)
-      (not
-        (consistent ?PROP1 ?OOP)))))
-        
-;;; this is wrong as Service does not have a propositional content... yet...
-
-;;;-----------------------------------------------------------------------------------------------------
-;;; CostOfTrip is the sum of transportation services cost plus accommodation costs plus living expenses costs 
-
-
-;; given a TravelPolicy, then there exists an organization, a person and a business trip such that the TravelPolicy is imposed by the organization, 
-;; the person represents the org in some event, the business trip is taken by the person--still need  to say in behalf of the organization 
-;; and that the business trip conforms to the Travel Policy.
-
-(=>
-    (instance ?T TravelPolicy)
-    (exists (?ORG ?INDIVIDUAL ?BUSINESSTRIP)
-      (and
-        (policyOwner ?ORG ?T)
-        (organizationRepresentative ?INDIVIDUAL ?ORG)
-        (instance ?BUSINESSTRIP BusinessTrip)
-        (agent ?BUSINESSTRIP ?INDIVIDUAL))))
-
-;;; Employees have CorporateCreditCards whose purpose is to pay for BusinessTrips
-
-;;; If a trip is less than 24 h duration hotel accommodation is not allowed.
-
-;;; If a trip has a single leg flight or ground transportation hotel accomodation is not allowed.
-
-;;; business trips have a total cost= transportation costs+accommodation costs+incidental costs      
- 
-      
-;;; A difficult clause of a policy:
-;;; A traveler may use surface transportation for personal reasons even though air travel is the appropriate mode of transportation. 
-;;; The cost of meals and lodging, parking, mileage, tolls, taxis, and ferries incurred while in transit by surface transportation may be reimbursed. 
-;;; Such costs shall not exceed the cost of airfare, based on the lower of the regular coach fare available for the location of travel from a standard 
-;;; commercial air carrier or the preferred travel program fare, plus transportation costs to and from the terminals.
+         
