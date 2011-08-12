@@ -1,4 +1,4 @@
-;; This file refers to a list of terms that have been introduced into society since the advent of facebook.
+;;This file refers to a list of terms that have been introduced into society since the advent of Facebook.
 ;;Author: Brianna Pritchett
 ;;Created: July 1, 2011
 
@@ -20,23 +20,24 @@
 (termFormat EnglishLanguage SocialNetworkingAccount "social networking account")
 (subclass SocialNetworkingAccount UserAccount)
 
-(documentation SocialNetworkingConnection EnglishLanguage "This refers to the connections made between two people who have &%SocialNetworkingAccounts on the
+(documentation connectedInSocialNetwork EnglishLanguage "This refers to the connections made between two people who have &%SocialNetworkingAccounts on the
 same &%SocialNetworkingSite.  Some examples would be &%facebookFriends, &%classmates, &%colleagues, and followers.  Note that while many connections are
 symmetrical (e.g. &%facebookFriend, &%classmate), many are not (e.g. follower).  Therefore, this is neither a symmetric nor an antisymmetric relation.")
-(instance SocialNetworkingConnection BinaryRelation)
-(instance SocialNetworkingConnection IntentionalRelation)
-(domain SocialNetworkingConnection 1 SocialNetworkingUser)
-(domain SocialNetworkingConnection 2 SocialNetworkingUser)
-(termFormat EnglishLanguage SocialNetworkingConnection "social networking connection")
-;;If there is a social networking connection, then it is between two social networking users that are not the same person but have accounts on the same social 
-;;networking site.
-;;NOTE: IF ACCOUNTFN IS DEFINED, THEN REDO THIS AXIOM.
+(instance connectedInSocialNetwork BinaryRelation)
+(instance connectedInSocialNetwork IntentionalRelation)
+(subrelation connectedInSocialNetwork inScopeOfInterest)
+(domain connectedInSocialNetwork 1 SocialNetworkingUser)
+(domain connectedInSocialNetwork 2 SocialNetworkingUser)
+(subrelation coworker connectedInSocialNetwork)
+(termFormat EnglishLanguage connectedInSocialNetwork "connected in social network")
+;;If two people are connected in a social network, then they are both social networking users who have accounts on the same social networking site.
 (=>
-    (instance ?CONNECTION SocialNetworkingConnection)
-    (exists (?USER1 ?USER2 ?ACCOUNT1 ?ACCOUNT2 ?SITE)
+    (and
+        (instance ?USER1 SocialNetworkingUser)
+        (instance ?USER2 SocialNetworkingUser)
+        (connectedInSocialNetwork ?USER1 ?USER2))
+    (exists (?ACCOUNT1 ?ACCOUNT2 ?SITE)
         (and
-            (instance ?USER1 SocialNetworkingUser)
-            (instance ?USER2 SocialNetworkingUser)
             (not
                 (equal ?USER1 ?USER2))
             (instance ?SITE SocialNetworkingSite)
@@ -44,7 +45,15 @@ symmetrical (e.g. &%facebookFriend, &%classmate), many are not (e.g. follower). 
             (instance ?ACCOUNT2 (AccountOfServiceFn ?SITE))
             (hasAccount ?USER1 ?ACCOUNT1)
             (hasAccount ?USER2 ?ACCOUNT2))))
-            
+
+(documentation follows EnglishLanguage "This is an example of a connection within a &%SocialNetworkingSite such as Twitter or Tumblr.  (follows ?USER1 ?USER2)
+means that ?USER1 has subscribed to ?USER2's posts.  In other words, ?USER1 will be able to see everything that ?USER2 has posted.")
+(instance follows BinaryRelation)
+(instance follows IntentionalRelation)
+(subrelation follows connectedInSocialNetwork)
+(domain follows 1 SocialNetworkingUser)
+(domain follows 2 SocialNetworkingUser)
+(instance follows AsymmetricRelation)
 
 (documentation SocialNetworkingUser EnglishLanguage "This refers to some &%InternetUser who has a &%SocialNetworkingAccount on a &%SocialNetworkingSite.  
 When someone becomes a social networking user, they are usually asked to make a &%ProfilePage and, over time, they create &%SocialNetworkingConnections.")
@@ -65,10 +74,9 @@ When someone becomes a social networking user, they are usually asked to make a 
 (instance AccountOfServiceFn UnaryFunction)
 ;;If there is an account, then someone owns it.
 (=>
-    (exists (?ACCOUNT)
-        (and
-            (instance ?SITE SocialNetworkingSite)
-            (instance ?ACCOUNT (AccountOfServiceFn ?SITE))))
+    (and
+        (instance ?SITE SocialNetworkingSite)
+        (instance ?ACCOUNT (AccountOfServiceFn ?SITE)))
     (exists (?USER)
         (and
             (instance ?USER SocialNetworkingUser)
@@ -83,9 +91,10 @@ interact with one another online.")
 (termFormat EnglishLanguage Facebook "Facebook")
 (instance Facebook SocialNetworkingSite)
 
-(documentation FacebookAccount EnglishLanguage "This refers to a &%UserAccount that is specific to &%Facebook.  In order to have a Facebook account, one 
-must be over 13 years of age.  A Facebook account allows the user to make a &%ProfilePage, gain &%facebookFriends, and participate in conversations and activities, 
-among other things.")
+(documentation FacebookAccount EnglishLanguage "This refers to a &%UserAccount that is 
+specific to &%Facebook.  In order to have a Facebook account, one must be over 13 years 
+of age.  A Facebook account allows the user to make a &%ProfilePage, gain &%facebookFriends, 
+and participate in conversations and activities, among other things.")
 (termFormat EnglishLanguage FacebookAccount "Facebook account")
 (subclass FacebookAccount SocialNetworkingAccount)
 ;;If there is a person that has a Facebook account, then that person is at least 13 years of age.
@@ -107,19 +116,16 @@ among other things.")
 ;;It is likely that the user it refers to is also the one who created it.
 (=>
     (instance ?PROFILE ProfilePage)
-    (and
-        (exists (?USER1)
-            (and
-                (instance ?USER1 InternetUser)
-                (refers ?PROFILE ?USER1)))
-        (exists(?USER2 ?CREATION)
-            (and
-                (instance ?USER2 InternetUser)
-                (instance ?CREATION Creation)
-                (result ?CREATION ?PROFILE)
-                (agent ?CREATION ?USER2)))
-        (modalAttribute
-            (equal ?USER1 ?USER2) Likely)))
+    (exists (?USER1 ?USER2 ?CREATION)
+        (and
+            (instance ?USER1 InternetUser)
+            (refers ?PROFILE ?USER1)
+            (instance ?USER2 InternetUser)
+            (instance ?CREATION Creation)
+            (result ?CREATION ?PROFILE)
+            (agent ?CREATION ?USER2)
+            (modalAttribute
+                (equal ?USER1 ?USER2) Likely))))
 
 (documentation ProfileWall EnglishLanguage "This term refers specifically to the area on a &%ProfilePage where people communicate with each other.  It is 
 a &%Collection of &%StatusUpdates and &%WallPosts, and &%RecentActivity.")
@@ -165,15 +171,14 @@ someone states what they are currently doing.  It usually a very brief sentence.
 (termFormat EnglishLanguage StatusUpdate "status update")
 (subclass StatusUpdate ContentDevelopment)
 ;;If there is a status update, it is posted both on the profile wall and on the news feed.
-(forall(?STATUSUPDATE)
-    (=>
-        (instance ?STATUSUPDATE StatusUpdate)
-        (exists (?WALL ?NEWSFEED)
-            (and
-                (instance ?NEWSFEED NewsFeed)
-                (instance ?WALL ProfileWall)
-                (located ?STATUSUPDATE ?WALL)
-                (located ?STATUSUPDATE ?NEWSFEED)))))
+(=>
+    (instance ?STATUSUPDATE StatusUpdate)
+    (exists (?WALL ?NEWSFEED)
+        (and
+            (instance ?NEWSFEED NewsFeed)
+            (instance ?WALL ProfileWall)
+            (located ?STATUSUPDATE ?WALL)
+            (located ?STATUSUPDATE ?NEWSFEED))))
 ;;If there is a status update, then it refers to the person who wrote it.
 (=>
     (instance ?STATUSUPDATE StatusUpdate)
@@ -199,20 +204,18 @@ photo, or link) onto a &%FacebookFriend's &%ProfileWall.")
 ;;If there is a wall post, then it is located on someone's profile wall and it shows up in the news feed.
 (=>
     (instance ?WALLPOST WallPost)
-    (and
-        (instance ?NEWSFEED NewsFeed)
-        (instance ?PROFILEWALL ProfileWall)
-        (exists (?USER1 ?USER2 ?CREATION)
-            (and
-                (instance ?USER1 FacebookUser)
-                (instance ?USER2 FacebookUser)
-                (instance ?CREATION Creation)
-                (refers ?PROFILEWALL ?USER2)
-                (agent ?CREATION ?USER1)
-                (result ?CREATION ?WALLPOST)
-                (located ?WALLPOST ?PROFILEWALL)))
-        (not
-            (equal ?USER1 ?USER2))))
+    (exists (?USER1 ?USER2 ?CREATION ?PROFILEWALL)
+        (and
+            (instance ?PROFILEWALL ProfileWall)
+            (instance ?USER1 FacebookUser)
+            (instance ?USER2 FacebookUser)
+            (instance ?CREATION Creation)
+            (refers ?PROFILEWALL ?USER2)
+            (agent ?CREATION ?USER1)
+            (result ?CREATION ?WALLPOST)
+            (located ?WALLPOST ?PROFILEWALL)
+            (not
+                (equal ?USER1 ?USER2)))))
 ;;If there is a wall post, then it is either a text wall post, a video, a photograph, or a link.
 (=>
     (instance ?WALLPOST WallPost)
@@ -270,30 +273,29 @@ term is not to be confused with &%friend.  It is possible for two people to be &
 (instance facebookFriend SymmetricRelation)
 (instance facebookFriend IntentionalRelation)
 (instance facebookFriend BinaryPredicate)
-(instance facebookFriend SocialNetworkingConnection)
+(subrelation facebookFriend connectedInSocialNetwork)
 
 (documentation Friending EnglishLanguage "This is a verb, coined by Facebook, that refers to the action of one &%FacebookUser becoming &%facebookFriends
- with another &%FacebookUser.")
+ with another &%FacebookUser.  This is not to be confused with &%Befriending.")
 (termFormat EnglishLanguage Friending "friending")
 (subclass Friending SocialInteraction)
 ;;If there is an instance of friending, then two facebook users who were not previously facebook friends become 
 ;;facebook friends.
 (=>
     (instance ?FRIENDING Friending)
-    (and
-        (exists (?USER1 ?USER2)
-            (and
-                (instance ?USER1 FacebookUser)
-                (instance ?USER2 FacebookUser)))
-        (holdsDuring
-            (BeginFn
-                (WhenFn ?FRIENDING))
-            (not
-                (facebookFriend ?USER1 ?USER2)))
-        (holdsDuring
-            (EndFn
-                (WhenFn ?FRIENDING))
-            (facebookFriend ?USER1 ?USER2))))
+    (exists (?USER1 ?USER2)
+        (and
+            (instance ?USER1 FacebookUser)
+            (instance ?USER2 FacebookUser)
+            (holdsDuring
+                (BeginFn
+                    (WhenFn ?FRIENDING))
+                (not
+                    (facebookFriend ?USER1 ?USER2)))
+            (holdsDuring
+                (EndFn
+                    (WhenFn ?FRIENDING))
+                (facebookFriend ?USER1 ?USER2)))))
             
 (documentation Unfriending EnglishLanguage "This is a verb, coined by Facebook, that refers to the action of one &%FacebookUser undoing the act of 
 &%Friending another &%FacebookUser.")
@@ -303,42 +305,42 @@ term is not to be confused with &%friend.  It is possible for two people to be &
 ;;facebook friends.
 (=>
     (instance ?FRIENDING Friending)
-    (and
-        (exists (?USER1 ?USER2)
-            (and
-                (instance ?USER1 FacebookUser)
-                (instance ?USER2 FacebookUser)))
-        (holdsDuring
-            (BeginFn
-                (WhenFn ?FRIENDING))
-            (facebookFriend ?USER1 ?USER2))
-        (holdsDuring
-            (EndFn
-                (WhenFn ?FRIENDING))
-            (not
-                (facebookFriend ?USER1 ?USER2)))))
+    (exists (?USER1 ?USER2)
+        (and
+            (instance ?USER1 FacebookUser)
+            (instance ?USER2 FacebookUser)
+            (holdsDuring
+                (BeginFn
+                    (WhenFn ?FRIENDING))
+                (facebookFriend ?USER1 ?USER2))
+            (holdsDuring
+                (EndFn
+                    (WhenFn ?FRIENDING))
+                (not
+                    (facebookFriend ?USER1 ?USER2))))))
             
-(documentation Befriending EnglishLanguage "This is a verb that refers to the action of one &%CognitiveAgent becoming &%friends with another 
+(documentation Befriending EnglishLanguage "This is a verb that refers 
+to the action of one &%CognitiveAgent becoming &%friends with another 
 &%CognitiveAgent.  Note: this is not to be confused with &%Friending.")
 (termFormat EnglishLanguage Befriending "befriending")
 (subclass Befriending SocialInteraction)
-;;If there is an instance of befriending, then two cognitive agents who were not previously friends become friends.
+;;If there is an instance of befriending, then two cognitive agents who 
+;;were not previously friends become friends.
 (=>
     (instance ?BEFRIENDING Befriending)
-    (and
-        (exists (?THING1 ?THING2)
-            (and
-                (instance ?THING1 CognitiveAgent)
-                (instance ?THING2 CognitiveAgent)))
-        (holdsDuring
-            (BeginFn
-                (WhenFn ?BEFRIENDING))
-            (not
-                (friend ?THING1 ?THING2)))
-        (holdsDuring
-            (EndFn
-                (WhenFn ?BEFRIENDING))
-            (friend ?THING1 ?THING2))))
+    (exists (?THING1 ?THING2)
+        (and
+            (instance ?THING1 CognitiveAgent)
+            (instance ?THING2 CognitiveAgent)
+            (holdsDuring
+                (BeginFn
+                    (WhenFn ?BEFRIENDING))
+                (not
+                    (friend ?THING1 ?THING2)))
+            (holdsDuring
+                (EndFn
+                    (WhenFn ?BEFRIENDING))
+                (friend ?THING1 ?THING2)))))
 
 (documentation NewsFeed EnglishLanguage "This is a term that refers to a 'news feed' on a social networking site.  A news feed is where people can see the 
 activity of both themselves and their &%facebookFriends.")
@@ -349,7 +351,9 @@ shows posts that Facebook believes are the most relevant to the user.  These pos
 many &%facebookFriends are commenting on a post and how often you interact with those friends.")
 ;;If there is a NewsFeed, then a TopNewsFeed is a component of it.
 (=>
-    (instance ?NEWSFEED NewsFeed)
+    (and
+        (instance ?NEWSFEED NewsFeed)
+        (located ?NEWSFEED Facebook))
     (exists (?TOPNEWS)
         (and
             (instance ?TOPNEWS TopNewsFeed)
@@ -359,7 +363,9 @@ many &%facebookFriends are commenting on a post and how often you interact with 
 MostRecentFeed simply takes the activity of your &%facebookFriends and displays it in chronological order.")
 ;;If there is a NewsFeed, then a MostRecentFeed is a component of it.
 (=>
-    (instance ?NEWSFEED NewsFeed)
+    (and
+        (instance ?NEWSFEED NewsFeed)
+        (located ?NEWSFEED Facebook))
     (exists (?MOSTRECENT)
         (and
             (instance ?MOSTRECENT MostRecentFeed)
@@ -526,13 +532,35 @@ or a significant drop in one's bank account.")
     (instance ?BIRTHDAYNOTIFICATION BirthdayNotification)
     (exists (?AUTONOTIFY ?PROCESS)
         (and
-            (instance ?AUTONOTIFY AutoNotificationSystem)
+            (instance ?AUTONOTIFY AutomatedNotificationSystem)
             (agent ?PROCESS ?AUTONOTIFY)
             (result ?PROCESS ?BIRTHDAYNOTIFICATION))))
-;;To do: find a way to cover the following facts:
-;;  -If there is a birthday notification, then it represents someone's birthday.
-;;  -For all sites that send out birthday notifications: if someone has an account on that site and it is their birthday, then for the length of that day, 
-;;   all of their connections see a birthday notification.
+;;If there is a birthday notification, then it represents someone's birthday.
+(=>
+    (instance ?BIRTHDAYNOTIFICATION BirthdayNotification)
+    (exists (?PERSON ?DAY)
+        (and
+            (birthday ?PERSON ?DAY)
+            (holdsDuring ?DAY
+                (represents ?BIRTHDAYNOTIFICATION ?PERSON)))))
+;;For all sites that send out birthday notifications: if someone has an account on that site and it is their birthday, then for the length of that day, all 
+;;of their connections see a birthday notification.
+(=>
+    (and
+        (instance ?USER1 SocialNetworkingUser)
+        (birthday ?USER1 ?DAY)
+        (instance ?AUTONOTIFY AutomatedNotificationSystem)
+        (agent ?PROCESS ?AUTONOTIFY)
+        (result ?PROCESS ?BIRTHDAYNOTIFICATION)
+        (instance ?BIRTHDAYNOTIFICATION BirthdayNotification)
+        (represents ?BIRTHDAYNOTIFICATION ?USER1))
+    (holdsDuring ?DAY
+        (forall (?USER2)
+            (=>
+                (and
+                    (instance ?USER2 SocialNetworkingUser)
+                    (connectedInSocialNetwork ?USER1 ?USER2))
+                (destination ?PROCESS ?USER2)))))
 
 (documentation automatedNotification EnglishLanguage "This binary relation takes an &%agent and a &%destination describes a &%Notification.  
 (automatedNotification ?AGENT ?DESTINATION) describes an automated notification that is sent from ?AGENT to ?DESTINATION.")
@@ -573,24 +601,23 @@ knowledge that there will likely be no reply.")
 Their connections do not have the option of communicating with them.")
 (instance Offline IMStatusAttribute)
 
-
-
 ;;;;;;;;;;;;;;
-;;HyperLinks;;
+;;Hyperlinks;;
 ;;;;;;;;;;;;;;
 
 ;;Note- try to move to engineering.kif or QoSontology.kif once complete
 (documentation HTML EnglishLanguage "HTML is simply a computer language that is used to describe &%WebPages.  It stands for Hyper Text Markup Language, and
  an HTML Document is the same as a &%WebPage.")
 (termFormat EnglishLanguage HTML "HTML")
-(subclass HTML ComputerLanguage)
+(subclass HTML MarkupLanguage)
 
-(documentation Hyperlink EnglishLanguage "A hyperlink is a link from a hypertext file to another location/file.")
+(documentation Hyperlink EnglishLanguage "A hyperlink is a link from a &%Hypertext file to another location/file.")
 (termFormat EnglishLanguage Hyperlink "hyperlink")
-;;If there is a hyperlink, then it is expressed in HTML
-(=>
-    (instance ?LINK Hyperlink)
-    (expressedInLanguage ?LINK HTML))
+(subclass Hyperlink DigitalData)
+    
+(documentation Hypertext EnglishLanguage "Hypertext refers specifically to any text that is within an &%HTML document.")
+(termFormat EnglishLanguage Hypertext "hypertext")
+(subclass Hypertext DigitalData)
 
 (documentation WebCrawler EnglishLanguage "A Web crawler is a &%ComputerProgram that browses the World Wide Web in a methodical, automated manner or in an 
 orderly fashion.  A Web crawler is one type of bot, or software agent. In general, it starts with a list of URLs to visit, called seeds. As the crawler 
@@ -598,8 +625,10 @@ visits these URLs, it identifies all the hyperlinks in the page and adds them to
 from the frontier are recursively visited according to a set of policies.  Their most common use is in search engines, where, in response to a query, they 
 "crawl" through the Web and index the significant words on the pages they find.")
 (subclass WebCrawler ComputerProgram)
+(termFormat EnglishLanguage WebCrawler "web crawler")
 
 (documentation InlineLink EnglishLanguage "An inline link is very much like a &%Hyperlink in that both of them link one &%WebPage to another.  The only 
 difference is that a hyperlink must be activated if remote content is to be displayed, while an inline link displays the remote content directly on the 
-page.")
+page, without the need for the link to be followed.")
 (subclass InlineLink Hyperlink)
+(termFormat EnglishLanguage InlineLink "inline link")
