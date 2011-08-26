@@ -392,6 +392,18 @@
 (=>
   (attribute ?ATHLETE Swimmer)
   (hasSkill SwimmingSport ?ATHLETE))
+  
+;; two that are a bit different...  
+(=>
+  (attribute ?PERSON ChessPlayer)
+  (hasSkill Chess ?PERSON)) 
+  
+(subclass Chess Game)
+(subclass RockClimbing Sport)
+
+(=>
+  (attribute ?ATHLETE RockClimber)
+  (hasSkill RockClimbing ?ATHLETE))  
  
 ;;---------------------------------------------------------------------------------- 
 ;; The Criative Economy Occupations  from http://en.wikipedia.org/wiki/Creative_industries
@@ -414,14 +426,86 @@
 ;; change it to (instance Artist SkilledOccupation) ??
 ;; wikipedia: artist -- A person who creates art as an occupation.
 ;; Changed EntertainmentProfession to EntertainmentOccupation
-;; also FilmMakingOccupation and TheaterOccupation (
+;; also FilmMakingOccupation and TheaterOccupation 
 ;; Wikipedia has: Most often, the term ARTIST describes those who create within a context of the fine arts or 'high culture', 
 ;; activities such as drawing, painting, sculpture, acting, dancing, writing, filmmaking, photography, 
 ;; and music—people who use imagination, talent, or skill to create works that may be judged to have an aesthetic value.
 
 ;; model (=>
 ;;    (attribute ?X Musician)
-;;    (hasSkill MusicalPerformance ?X))
+;;    (hasSkill MusicalPerformance ?X)) 
+;;  Mid-level-ontology.kif 15803-15805
+
+; see below the kinds of musical artists  that wikipedia considers
+ (=>
+  (attribute ?PERSON SoloSinger)
+  (hasSkill ?PERSON Singing))  
+     
+;; relating musicians to their instruments???
+;(=>
+;    (instance ?M Musician)
+;    (exists (?INSTRUMENT)
+;        (and
+;            (instance ?INSTRUMENT MusicalInstrument)
+;            (instrument ?MUSIC ?INSTRUMENT)
+;            (hasSkill (PlayingInstrumentFn ?INSTRUMENT) ?M)))         
+            
+;; if instrument=piano -> musician=pianist, etc..
+
+(documentation PlayingInstrumentFn EnglishLanguage "(PlayingInstrumentFn ?INSTRUMENT) denotes the class of events in which a musical instrument of type ?INSTRUMENT is played.")  
+(domain PlayingInstrumentFn 1 Device)       
+(instance PlayingInstrumentFn UnaryFunction)        
+(rangeSubclass PlayingInstrumentFn Process) 
+
+;if someone is a musician then there is an instrument that this person has skill in playing
+(=>
+  (instance ?M Musician)
+  (exists (?I)
+    (and
+     (instance ?I MusicalInstrument)
+     (hasKill (PlayingInstrumentFn ?I) ?M))))
+         
+;; should correspond to the following    instantiations  
+(=>
+  (attribute ?PERSON Pianist)
+  (hasSkill ?PERSON
+     (PlayingInstrumentFn Piano)))   
+     
+(=>
+  (attribute ?PERSON Violinist)
+  (hasSkill ?PERSON
+     (PlayingInstrumentFn Violin)))
+     
+(=>
+  (attribute ?PERSON Guitarist)
+  (hasSkill ?PERSON
+     (PlayingInstrumentFn Guitar)))     
+
+(=>
+  (attribute ?PERSON Cellist)
+  (hasSkill ?PERSON
+     (PlayingInstrumentFn Cello)))
+     
+(subclass Cello StringInstrument)     
+(subclass Saxophone WindInstrument)     
+(=>
+  (attribute ?PERSON Saxophonist)
+  (hasSkill ?PERSON
+     (PlayingInstrumentFn Saxophone))) 
+     
+(=>
+  (attribute ?PERSON Drummer)
+  (hasSkill ?PERSON
+     (PlayingInstrumentFn Drum))) 
+     
+; SUMO Already has   (=>
+;    (instance ?D Drum)
+;    (hasPurpose ?D
+;        (exists (?P)
+;            (and
+;                (instance ?P Drumming)
+;                (instrument ?P ?D)))))                   
+; don't think we need processes for all the instruments but sure for some, like plucking a harp..
 
 (instance Artist SkilledOccupation)
 (instance Cartoon ArtWork)
@@ -566,9 +650,8 @@
 ;;        (subclass ?CLASS MusicalComposition))
 ;;    (composer ?AGENT ?CLASS))                     Media-1.kif 1602-1606   
 ;-------------------------------------------------------------
-;; Management Professions and Occupations not dealt with
+;; Management Professions and Occupations not dealt with to begin with
 ;;------------------------------------------------------------
-;; one exception
 ;; first try:
 ;(=>
 ;  (attribute ?PERSON Politician)
@@ -580,6 +663,29 @@
         (and
             (instance ?PROC PoliticalProcess)
             (agent ?PROC ?POL)))) 
+            
+(=>
+    (instance ?MAN Manager)
+    (exists (?PROC)
+        (and
+            (instance ?PROC Managing)
+            (agent ?PROC ?MAN))))   
+            
+(=>
+    (instance ?Cleric Cleric)
+    (exists (?PROC)
+        (and
+            (instance ?PROC ReligiousProcess)
+            (agent ?PROC ?Cleric))))  
+            
+; not v good, but basically correct? the recruiter even if freelancer is working for the organization       
+(=>    
+    (instance ?R Recruiter)
+    (exists (?PROC ?ORG)
+        (and
+            (instance ?PROC Hiring)
+            (agent ?PROC ?ORG)
+            (organizationRepresentative ?R ?ORG))))                      
              
 ;; same def as PoliticalOrganization? better than belonging to a political organization?
 ;; this will be expanded will doing template Politician
@@ -625,7 +731,7 @@
 ;;| occupation                = above
 ;;| years_active              = time interval need a function (yearsActive ?PERSON ?OCCUPATION ?TIMEINTERVAL) -- Below?
 ;;| employer                  = in SUMO the relation (employs ?ORG ?PERSON) Merge.kif 13566
-;;| organization              = use employs, as this can be any organization not only for profits
+;;| organization              = using relation "employs", as this can be any organization not only for profits
 ;;| agent                     = NOT yet
 ;;| known_for                 = NOT yet
 ;;| notable_works             = NOT yet
@@ -653,28 +759,28 @@
 ;;| criminal_status           = not necessary in SUMO?
 ;;| spouse                    = SUMO has relation (spouse ?PERSON1 ?PERSON2)
 ;;| partner                   = SUMO has relation (domesticPartner ?PERSON1 ?PERSON2)
-;;| children                  = 
-;;| parents                   = 
-;;| relatives                 = 
-;;| callsign                  = for radios/tvs not necessary in SUMO?
-;;| awards                    = 
-;;| signature                 = not necessary in SUMO?
-;;| signature_alt             = not necessary in SUMO?
-;;| signature_size            = not necessary in SUMO?
+;;| children                  = below using relations (parent ?CHILD ?PARENT) and (stepmother ?CHILD ?MOTHER) and (stepfather ?CHILD ?FATHER)
+;;| parents                   = SUMO has relation (parent ?CHILD ?PARENT)
+;;| relatives                 = SUMO has relation (family relation ?ORG1 ?ORG2) for organisms with a common ancestor
+;;| callsign                  = not necessary in SUMO?
+;;| awards                    = recognition for excellence, public announcement? attempt below
+;;| signature                 = not necessary in SUMO
+;;| signature_alt             = not necessary in SUMO
+;;| signature_size            = not necessary in SUMO
 ;;| module                    = not necessary in SUMO
 ;;| module2                   = not necessary in SUMO
 ;;| module3                   = not necessary in SUMO
 ;;| module4                   = not necessary in SUMO
 ;;| module5                   = not necessary in SUMO
 ;;| module6                   = not necessary in SUMO
-;;| website                   = <!-- {{URL|www.example.com}} -->
+;;| website                   = Below
 ;;| footnotes                 = not necessary in SUMO
 ;;| box_width                 = not necessary in SUMO
 ;;}}
  
-;; 0.  have son, daughter but not children/offspring
 ;----------------------------------------------------------------
 ;; residence attribute can be done with relation (inhabits ?PERSON ?PLACE)
+;; in wikipedia residence is city, state, country e.g. for Bill Gates   Medina, Washington, U.S.
 
 ;; education attribute needs DegreeFn from LinkedInDegree.kif
 (documentation hasDegreeFn EnglishLanguage "A binary function that, when given a &%Human, will return an instance of an
@@ -709,15 +815,15 @@
   (almamater ?PERSON ?SCHOOL))    
 
 ;------------------------------------------------------------
-(=>
-  (and
-    (instance ?H Human)
-    (instance ?ORG Organization)
-    (employs ?ORG ?H))
-  (employer ?H ?ORG))
-  
+;(=>
+;  (and
+;    (instance ?H Human)
+;    (instance ?ORG Organization)
+;    (employs ?ORG ?H))
+;  (employer ?H ?ORG))
+; unnecessary 
 ;-----------------------------------------------------------  
-; this might be an unwarrented simplification as time intervals have no gaps 
+; the following might be an unwarrented simplification as time intervals have no gaps 
 ; and people aren't active in their occupations if they're sick or injured or just resting..
 
 (documentation yearsActiveFn EnglishLanguage "A binary function that, when given a &%Human, and an &%Occupation will return an instance of an time interval
@@ -750,36 +856,22 @@
 ;(instance Hindu ReligiousAttribute)     People.kif 1239-1239    
 ;(instance Jain ReligiousAttribute)  People.kif 1321-1321    
 ;(instance Muslim ReligiousAttribute)    People.kif 1251-1251    
-;(instance Neopaganismist ReligiousAttribute)    People.kif 1353-1353    
+;(instance Neopaganismist ReligiousAttribute)    People.kif 1353-1353    NEED TO CORRECT THIS
 ;(instance ReligiousJew ReligiousAttribute)  People.kif 1338-1338    
 ;(instance Shintoist ReligiousAttribute)     People.kif 1368-1368    
 ;(instance Sikh ReligiousAttribute)  People.kif 1383-1383    
 ;(instance Taoist ReligiousAttribute)    People.kif 1398-1398    
 ;(instance Zoroastrian ReligiousAttribute) People.kif 1413-1413
 
-; subcategories can be gotten from term Church People.kif 686
-;(instance ChurchOfJesusChristOfLatterDaySaints Church)  People.kif 1123-1123    --> mormom
-;(subclass Adventistsamfundet Church)    People.kif 1128-1128    --> adventist
-;(subclass AnglicanApostolicEpiscopalFreeChurch Church)  People.kif 816-816  --> episcopalian
-;(subclass AnglicanChurch Church)    People.kif 807-807  --> anglican
-;(subclass BaptistChurch Church)     People.kif 829-829  --> baptist
-;(subclass CharismaticChurch Church)     People.kif 1021-1021  -->  pentecostal
+; subcategories gotten from term Church People.kif 686 which vcvp thinks are WRONG and NEED TO BE REMOVED!!!!
 ;(subclass ChristianUnion Church)    People.kif 1104-1104    NO
 ;(subclass CrusadersUnion Church)    People.kif 1101-1101    NO
 ;(subclass EcumenicalProject Church)     People.kif 1105-1105  NO  
-;(subclass EvangelicalChurch Church)     People.kif 875-875  --> evangelical
-;(subclass FreeChurchOfEngland Church)   People.kif 822-822  --> episcopal
-;(subclass FreeChurchOfScotland Church)  People.kif 819-819  
-;(subclass Katolskakyrkan Church)    People.kif 1129-1129    --> Catholic Church of Sweden just catholic
-;(subclass LutheranChurch Church)    People.kif 1148-1148    --> lutheran
-;(subclass MethodistChurch Church)   People.kif 989-989     --> methodist
+;(subclass Katolskakyrkan Church)    People.kif 1129-1129    --> Catholic Church of Sweden just catholic NO
 ;(subclass Missionskyrkan Church)    People.kif 1131-1131    --> free church of Sweden
-;(subclass MissionssaellskapetBibeltrognaVaenner Church)     People.kif 1130-1130    ecumenical
-;(subclass Ovrigt Church)    People.kif 1136-1136    remove this is Other in Swedish
-;(subclass Pingstroerelsen Church)   People.kif 1132-1132    pentecostal
-;(subclass PresbyterianChurch Church)    People.kif 1139-1139    --> presbyterian
-;(subclass ScottishEpiscopalChurch Church)   People.kif 825-825  --> episcopal
-;(subclass SeventhDayAdventistChurch Church)     People.kif 1103-1103    --> adventist
+;(subclass MissionssaellskapetBibeltrognaVaenner Church)     People.kif 1130-1130    ecumenical NO
+;(subclass Ovrigt Church)    People.kif 1136-1136    remove this is Other in Swedish NO
+;(subclass Pingstroerelsen Church)   People.kif 1132-1132    pentecostal in Swedish
 ;(subclass ShaftesburySociety Church)    People.kif 1100-1100    --> remove it's a Non-profit called Livebility
 ;(subclass SvenskaAlliansmissionen Church)  --> remove?
 
@@ -788,8 +880,6 @@
 ;(subCollection EasternOrthodoxChristianity Christianity)    People.kif 1176-1176    
 ;(subCollection Protestantism Christianity)  People.kif 1189-1189    
 ;(subCollection RomanCatholicism Christianity)   People.kif 1202-1202    
-
-; And
 ;(instance Bahaism BeliefGroup)  People.kif 769-769  
 ;(instance Buddhism BeliefGroup)     People.kif 782-782  
 ;(instance Christianity BeliefGroup)     People.kif 794-794  
@@ -804,8 +894,7 @@
 ;(instance Taoism BeliefGroup)   People.kif 1393-1393    
 ;(instance Zoroastrianism BeliefGroup)
 ;---------------------------------------------------------------
-
-; Adding a few ReligiousAttributes pending discussions with Adam:
+; Adding a few ReligiousAttributes (after discussions with Adam):
 (instance Mormon ReligiousAttribute)  
 (instance Adventist ReligiousAttribute)    
 (instance Episcopalian ReligiousAttribute)  
@@ -817,4 +906,197 @@
 (instance RomanCatholic ReligiousAttribute)    ;subclass of Christian
 (instance Lutheran ReligiousAttribute)    
 (instance Methodist ReligiousAttribute)   
-(instance Presbyterian ReligiousAttribute)    
+(instance Presbyterian ReligiousAttribute) 
+
+;; All the ism's above are not religious doctrines but BeliefGroups ie groups of People that believe in the doctrine.
+;; It is clear that we can have a binary function that sends a  person self-described by a ReligiousAttribute to the belief group associated with the attribute
+;; e.g  if (ReligiousAttribute JoeM Methodist) then  (BeliefGroupFn JoeM Methodist) is the BeliefGroup Methodism.
+
+(documentation BeliefGroupFn EnglishLanguage "A binary function that, when given a  person ?HUMAN and a &%ReligiousAttribute, will return an instance of an
+&%BeliefGroup associated with that religious attribute, e.g.   (BeliefGroupFn BenFranklin Buddhist), is &%Buddhism, not the doctrine, but the Belief group consisting of the people who call themselves Buddhists.")
+
+(instance BeliefGroupFn BinaryFunction)
+(domain BeliefGroupFn 1 Human)
+(domain BeliefGroupFn 2 ReligiousAttribute)
+(range BeliefGroupFn BeliefGroup)
+(termFormat EnglishLanguage BeliefGroupFn "belongs to the Belief Group")
+
+;; in SUMO already have
+;;(=>
+;;    (instance ?GROUP BeliefGroup)
+;;    (exists (?BELIEF)
+;;        (forall (?MEMB)
+;;            (=>
+;;              (member ?MEMB ?GROUP)
+;;              (believes ?MEMB ?BELIEF)))))
+
+;; but the belief itself is not given a type.  to define the abstract doctrine of a given BeliefGroup we have to create the concept ReligiousBelief
+
+(subclass ReligiousBelief Proposition)
+(documentation ReligiousDoctrineFn EnglishLanguage "A unary function that, when given a &%ReligiousAttribute, will return an instance of an
+&%ReligiousBelief self-ascribed by people which describe themselves as having that religious attribute, e.g.   (ReligiousDoctrineFn Taoist),
+ is the theory of Taoism, as an abstract proposition.")
+
+(instance ReligiousDoctrineFn UnaryFunction)
+(domain ReligiousDoctrineFn 1 ReligiousAttribute)
+(range ReligiousDoctrineFn ReligiousBelief)
+(termFormat EnglishLanguage ReligiousDoctrineFn "the theological doctrine associated with being")
+
+;finally we may also want a function that connects a Religious Attribute (say Anglican) with the institution the  BeliefGroup Anglicanism is associated with.
+; but this is controversial so we need to come back and decide what to do with the several Religions-AfricanMethodistEpiscopal, Religions-AlbanianOrthodox, etc in mondial.kif
+;-------------------------------------------------------------------
+; Wikipedia full template needs children of ?PERSON, which includes stepchildren.
+; SUMO has (parent ?CHILD ?PARENT),(stepfather ?CHILD ?FATHER) and (stepmother ?CHILD ?MOTHER)
+; need to have stepChildOf 
+(=>
+   (and
+     (instance ?H Human)
+     (or
+       (stepfather ?CHILD ?H)
+       (stepmother ?CHILD ?H)))
+   (stepChildOf ?CHILD ?H))  
+(=>
+   (and
+     (instance ?H Human)
+     (ChildOF ?CHILD ?H))
+   (or
+     (parent ?CHILD ?H)
+     (stepchildOf ?CHILD ?H))) 
+; to deal with the "children" attribute we can use ChildOf above     
+;--------------------------------------------------------------------------
+; awards: no concept in SUMO yet, two possibilities, first from Plan and Planning in Merge.kif 8628-8636
+;(=>
+;    (and
+;        (instance ?EVENT Congratulating)
+;        (result ?EVENT ?CBO)
+;        (instance ?CBO ContentBearingObject))
+;    (exists (?A)
+;        (and
+;            (instance ?A Award)
+;            (containsInformation ?CBO ?A))))
+; a simple note or smile can be an award?  Maybe the following is better...          
+(=>
+  (instance ?A Award)
+  (exists (?EVENT)
+    (and 
+      (instance ?EVENT Congratulating)
+      (result ?EVENT ?A)
+      (instance ?A ContentBearingObject)
+      (containsInformation ?CBO ?A))))
+      
+(=>
+  (instance ?A Award)
+  (exists (?AWARDER ?AWARDEE)
+    (and
+      (instance ?EVENT Congratulating)
+      (result ?EVENT ?A)
+      (agent ?EVENT ?AWARDER)
+      (recipient ?EVENT ?AWARDEE))))      
+;---------------------------------------------      
+; most celebrities have  websites. SUMO has WebSite and Webpage in Media.kif 1261-1266 but WebSite and WebPage don't mention their contents?
+; only thing we know is that websites have webpages as components. We need to say that the webpage refers to the celebrity.
+
+(=>
+  (instance ?W WebPage)
+  (exists (?TXT)
+    (and
+      (instance ?TXT Text)
+      (component ?TXT ?W))))
+      
+(subclass PersonalWebPage WebPage) 
+(=>
+  (and
+    (instance ?PW PersonalWebPage)
+    (component ?PW ?TXT))
+  (exists (?PERSON)
+    (and
+      (instance ?PW WebPage)
+      (instance ?PERSON Human)      
+      (represents  ?PWB  ?PERSON))))
+      
+(documentation WebPageOfFn EnglishLanguage "(WebPageOfFn ?PERSON) denotes the class of webpages officially associated with a ?PERSON.")  
+(domain WebPageOfFn 1 Human)       
+(instance WebPageOfFn UnaryFunction)        
+(rangeSubclass WebPageOfFn WebPage) 
+
+(=>
+  (and
+  (instance ?P Celebrity)
+  (possesses ?P ?PersonalWebPage))
+  (equal (WebPageOfFn ?P) ?PersonalWebPage))
+  
+; this would end the full Person/biography template, with the exception of the attributes marked with NOT YET, e.g.
+;; known_for
+;; notable_works
+;; which are left for LATER!
+;;----------------------------------------------------------------------------------------------------------------------------------
+;; There are specialized templates for special kinds of biographies and these have other attributes.
+; Some are described in  http://en.wikipedia.org/wiki/Wikipedia:WikiProject_Biography/Infoboxes
+; {{Infobox person}}  first pass done
+; {{Infobox actor}}   same as above  
+; {{Infobox artist}}  main fields in which the artist works BELOW need to add training, patrons, movement (like Impressionism)
+; {{Infobox writer}}  Articles about writers/authors  Biography/Arts and entertainment
+;{{Infobox musical artist}}  Articles about popular musical artists  Biography/Arts and entertainment
+;{{Infobox criminal}}    Articles about criminals    Criminal Biography
+;{{Infobox astronaut}}   Articles about astronauts   Biography/Science and academia
+;{{Infobox military person}}     Articles about a military person    Biography/Military
+;{{Infobox officeholder}}    Congressman, Governor, Judge, Mayor, Politician, President, Senator, Vice President, etc.   Biography/Politics and government
+;{{Infobox monarch}}     Monarch articles    Biography/Politics and government
+;{{Infobox Pageant titleholder}}     Biographies of beauty pageant titleholders  Beauty Pageants
+;{{Infobox philosopher}}     Biographies of philosophers     Biography/Science and academia
+;{{Infobox scientist}}   Scientists, engineers and mathematicians in place of Infobox Biography  Biography/Science and academia
+;{{Infobox boxer}}   Articles about boxers   Biography/Sports and games
+;{{Infobox figure skater}}   Articles about figure skaters (singles, pairs, ice dancing)     Figure Skating
+;{{Infobox football biography}}  Articles about professional football (soccer) players   Biography/Sports and games
+;{{Infobox F1 driver}}   Articles for Formula One drivers    Biography/Sports and games
+;{{Infobox golfer}}  Articles about professional golfers     Biography/Sports and games
+;{{Infobox gymnast}}     Articles about international gymnasts   Biography/Sports and games
+;{{Infobox NASCAR driver}}   Articles about NASCAR (U.S. car/truck racing) drivers   Biography/Sports and games
+;{{Infobox NBA player}}  Articles about professional NBA (U.S. basketball) players   Biography/Sports and games
+;{{Infobox racing driver}}   Articles for Racing Drivers outside the major championships     Biography/Sports and games
+;{{Infobox tennis player}}   Articles about professional tennis players  Biography/Sports and games
+;{{Infobox NFL player}}  Articles about professional NFL (U.S. football) players     Biography/Sports and games
+;{{Infobox MLB player}}  Articles about professional MLB (U.S. baseball) players     Biography/Sports and games
+;{{Infobox lacrosse player}}     Articles about lacrosse players     Biography/Sports and games
+;{{Infobox rugby league biography}}  Articles about rugby league players     Biography/Sports and games
+;{{Infobox royalty}}     Articles about royalty  British Royalty
+;{{Infobox FBI Ten Most Wanted}}     Articles about current and former members of the FBI Ten Most Wanted Fugitives list     FBI
+;{{Infobox Pope}}    Popes in place of Infobox Biography     Catholicism
+;{{Infobox presenter}}   Articles about radio hosts  Radio
+;{{Infobox Ice Hockey Player}}   Articles about ice hockey players   Ice Hockey
+;{{Infobox cricketer}}   Articles about professional cricketers  Biography/Sports and games
+;{{Infobox darts player}}    Articles about professional darts players   Biography/Sports and games, Darts
+;{{Infobox rugby biography}}     Articles about professional Rugby Union or dual code Rugby Union and League footballers     Biography/Sports and games
+;{{Infobox model}}   Articles about models   Fashion
+;{{Infobox fashion designer}}    Articles about fashion designers    Fashion
+;{{Infobox saint}}   Articles about Saints   Saints
+;{{Infobox aviator}}
+;---------------------------------------------------------------------------
+; SUMO has  few FieldsOfStudy  Merge.kif 13686-13691
+; But Arts can be/should be ContentDevelopment like ArtPainting and Photographing
+(subclass Sculpting ContentDevelopment)
+(subclass Pottery ContentDevelopment)
+(subclass Designing ContentDevelopment)
+(subclass GraphicDesigning Designing)
+
+(subclass Pottery ArtWork)
+
+(=>
+  (attribute ?PERSON Potter)
+  (hasSkill Pottery ?PERSON))
+ 
+; based on Library  Mid-level-ontology.kif 6084-6091
+(subclass ArtMuseum Museum)
+(=>
+    (instance ?M ArtMuseum)
+    (exists (?B ?A)
+        (and
+            (possesses ?M ?B)
+            (instance ?B Building)
+            (instance ?A ArtWork)
+            (located ?A ?B)))) 
+            
+(subclass MusicalArtist Artist)            
+; for musical artists wikipedia has six classes: solo_singer (created above),   non_vocal_instrumentalist(musician),   non_performing_personnel(??),    
+; group_or_band (in SUMO MusicalGroup),    classical_ensemble (SUMO has Orchestra) and temporary(??)
+; also have genres of music like: Pop, R&B, Dance-pop. etc... LABELS and GENRES LATER TOO?
