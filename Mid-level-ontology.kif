@@ -16,7 +16,7 @@
 ;; publications, presentations, or other representations of any code or other 
 ;; product which incorporates, builds on, or uses this material. 
 
-;; Version date: April, 2008
+;; Version date: September, 2011
 ;; We ask that people using or referencing this work cite our primary paper:
 
 ;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
@@ -24,125 +24,524 @@
 ;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
 ;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
 
+;; NS: delete.
+;; [1]
+;; (subclass HumanCorpse OrganicObject)
+
+;; NS: delete.
+;; [2]
+;; (documentation HumanCorpse EnglishLanguage "A &%Dead thing which was
+;; formerly a &%Human.")
+
+;; NS: delete.
+;; [3]
+;; (=>
+;;   (instance ?CORPSE HumanCorpse)
+;;   (exists (?HUMAN)
+;;     (and
+;;       (instance ?HUMAN Human)
+;;       (before (WhenFn ?HUMAN) (WhenFn ?CORPSE))
+;;       (not
+;;         (exists (?OTHERPART)
+;;           (and
+;;             (holdsDuring
+;;               (WhenFn ?CORPSE)
+;;               (part ?OTHERPART ?CORPSE))
+;;             (not
+;;               (holdsDuring 
+;;                 (WhenFn ?HUMAN) 
+;;                 (part ?OTHERPART ?HUMAN)))))))))
+
+;; NS: delete.
+;; [4]
+;; (=>
+;;   (instance ?CORPSE HumanCorpse)
+;;   (attribute ?CORPSE Dead))
+
+;; NS: The KR above is inadequate for several reasons: (1)
+;; It completely fails to generalize, saying nothing about
+;; the remains of organisms other than humans, or remains
+;; that are not partonomically identical to the original
+;; living organism; (2) Rule [3] is malformed, because
+;; &%before must be used with TimePoints, not TimeIntervals;
+;; and (3) Axioms that apply the attributes &%Living and
+;; &%Dead to &%Organism and &%HumanCorpse probably result in
+;; unintended conclusions.  Consider rule [4], above, in
+;; conjuction with rules [5] and [6], below, both of which
+;; appear in Merge.kif:
+;;
+;; [5] From Merge.kif.  Already changed there to prevent
+;; concluding that Organisms can be Dead.
+;; (=>
+;;   (and
+;;     (instance ?DEATH Death)
+;;     (experiencer ?DEATH ?AGENT))
+;;   (holdsDuring
+;;     (FutureFn
+;;       (WhenFn ?DEATH))
+;;         (attribute ?AGENT Dead)))
+;;
+;; [6] From Merge.kif.  Already changed there, broadening
+;; the consequent to (instance ?ORG OrganicObject).
+;; (=>
+;;     (and
+;;         (attribute ?ORG ?ATT)
+;;         (instance ?ATT BiologicalAttribute))
+;;     (instance ?ORG Organism))
+;; 
+;;
+;; [6.1] From Merge.kif
+;; (=>
+;;     (and
+;;         (instance ?PATH PathologicProcess)
+;;         (experiencer ?PATH ?ORG))
+;;     (exists (?PART ?DISEASE)
+;;         (and
+;;             (part ?PART ?ORG)
+;;             (instance ?DISEASE DiseaseOrSyndrome)
+;;             (attribute ?PART ?DISEASE))))
+;;
+;; [6] and [6.1] together entail the conclusion that every
+;; skolemized part of an Organism that is affected by a
+;; skolemized disease is also, itself, an instance of
+;; Organism (since DiseaseOrSyndrome is a subclass of
+;; BiologicalAttribute).
+
+;; TO DO: 
+;;
+;; 1. Delete axioms [1] - [4], above, which already are
+;;    commented out.
+;; 
+;; 2. In Merge.kif, delete [6] and replace it with the
+;;    following:  (already done.)
+;;
+;;      (=>
+;;        (and
+;;          (instance ?ATT BiologicalAttribute)
+;;          (holdsDuring ?T1 (attribute ?ORG ?ATT)))
+;;        (instance ?ORG OrganicObject))
+;;
+;; 3. In Merge.kif, rewrite [5] to avoid concluding that
+;;    Organisms can be Dead.  (already done.)
+;;
+;; 4. Apparently, the intent of rule [3], above, is to
+;;    represent the state of most &%Dead &%Humans in a
+;;    rather short time interval following death, when the
+;;    body is still an intact, integral whole, and
+;;    embalming, cremation, mummification, or burial have
+;;    not yet occurred.  Add the section below, which tries
+;;    to address the presumed intent of [1] - [4], but also
+;;    tries to include human remains within a broader theory
+;;    of "organism remains".
+
+;; Start: OrganismRemains
+
+;; NS: new.
+(subclass OrganismRemains OrganicObject)
+(documentation OrganismRemains EnglishLanguage "An
+&%instance of &%OrganismRemains is &%Dead matter of a
+formerly &%Living &%Organism: &%Plant, &%Animal, or
+&%Microorganism.  An &%instance of &%OrganismRemains might
+or might not be recognizable as the remains of a particular
+kind or species of organism, depending on the cause of the
+&%Organism's &%Death (heart failure, stroke, roadkill,
+dismemberment, etc.), the elapsed time since death, the
+speed of decomposition, and any post-mortem processing of
+the dead organism (embalming, cremation, mummification,
+boiling, consumption as food, etc.).")
+
+;; [7] All organism remains are dead.
+(=>
+  (instance ?X OrganismRemains)
+  (holdsDuring (WhenFn ?X) (attribute ?X Dead)))
+
+;; [8] The parts of organism remains were once parts of some
+;; &%Organism.
+(=>
+  (and
+    (instance ?REM OrganismRemains)
+    (holdsDuring ?T2 
+      (part ?OBJ ?REM)))
+  (exists (?ORG ?T1)
+    (and
+      (instance ?ORG Organism)
+      (earlier (WhenFn ?ORG) (WhenFn ?REM))
+      (instance ?T1 TimeInterval)
+      (finishes ?T1 (WhenFn ?ORG))
+      (holdsDuring ?T1 
+        (part ?OBJ ?ORG)))))
+
+;; [8a] - [8d] refine [8] and the rule in Merge.kif that
+;; defines the Death of Organisms.
+
+;; [8a] The organic result of an organism's death is an
+;; instance of OrganismRemains.
+(=>
+  (and
+    (instance ?REM OrganicObject)
+    (instance ?DEATH Death)
+    (instance ?ORG Organism)
+    (experiencer ?DEATH ?ORG)
+    (result ?DEATH ?REM))
+  (instance ?REM OrganismRemains))
+
+;; [8b]
+(=>
+  (instance ?REM OrganismRemains)
+  (exists (?DEATH)
+    (and
+      (instance ?DEATH Death)
+      (result ?DEATH ?REM))))
+
+;; [8c]
+(=>
+  (and
+    (instance ?DEATH Death)
+    (instance ?REM OrganismRemains)
+    (instance ?ORG Organism)
+    (holdsDuring ?T2 (part ?OBJ ?REM))
+    (holdsDuring ?T1 (part ?OBJ ?ORG))
+    (earlier ?T1 ?T2)
+    (result ?DEATH ?REM))
+  (experiencer ?DEATH ?ORG))
+
+;; [8d]
+(=>
+  (and
+    (instance ?DEATH Death)
+    (instance ?REM OrganismRemains)
+    (instance ?ORG Organism)
+    (holdsDuring ?T2 (part ?OBJ ?REM))
+    (holdsDuring ?T1 (part ?OBJ ?ORG))
+    (earlier ?T1 ?T2)
+    (experiencer ?DEATH ?ORG))
+  (result ?DEATH ?REM))
+
+;; [9] Every Organism is alive.
+(=>
+  (instance ?ORG Organism)
+  (holdsDuring (WhenFn ?ORG)
+    (attribute ?ORG Living)))
+
+;; NS: new.  Add DeadFn and [11], below.
 (instance DeadFn UnaryFunction)
-(domainSubclass DeadFn 1 CorpuscularObject)
-(rangeSubclass DeadFn OrganicObject)
-(documentation DeadFn EnglishLanguage "The &%Dead counterpart to the particular live
-organism.  For example &%HumanCorpse is (DeadFn Human).  Note that the dead
-counterpart may not have all the original parts of the live object.  For
-example, a &%CutFlower will lack the roots of a &%FloweringPlant.")
-(=>
-  (instance ?DEAD (DeadFn ?LIVE))
-  (exists (?I)
-    (and
-      (instance ?I ?LIVE)
-      (attribute ?I Living)
-      (attribute ?DEAD Dead))))
+(domainSubclass DeadFn 1 Organism)
+(rangeSubclass DeadFn OrganismRemains)
+(documentation DeadFn EnglishLanguage "(&%DeadFn ?ORGCLASS)
+denotes the &%Class of all remains that were once part
+of &%Living &%Organisms of the type ?ORGCLASS.")
 
+;; [11]
 (=>
-  (instance ?DEAD (DeadFn ?LIVE))
-  (exists (?I)
-    (and
-      (instance ?I ?LIVE)
-      (before (WhenFn ?I) (WhenFn ?DEAD)))))
+  (and
+    (instance ?REM (DeadFn ?ORGTYPE))
+    (instance ?DEATH Death)
+    (result ?DEATH ?REM)
+    (experiencer ?DEATH ?ORG))
+  (instance ?ORG ?ORGTYPE))
 
-(subclass HumanCorpse OrganicObject)
-(documentation HumanCorpse EnglishLanguage "A &%Dead thing which was formerly a &%Human.")
-(equal HumanCorpse (DeadFn Human))
+;; [12]
+(=>
+  (and
+    (instance ?REM OrganicObject)
+    (instance ?DEATH Death)
+    (experiencer ?DEATH ?ORG)
+    (instance ?ORG ?ORGTYPE)
+    (subclass ?ORG Organism)
+    (result ?DEATH ?REM))
+  (instance ?REM (DeadFn ?ORGTYPE)))
 
-(=>
-  (instance ?CORPSE HumanCorpse)
-  (exists (?HUMAN)
-    (and
-      (instance ?HUMAN Human)
-      (before (WhenFn ?HUMAN) (WhenFn ?CORPSE))
-      (not
-        (exists (?OTHERPART)
-          (and
-            (holdsDuring
-              (WhenFn ?CORPSE)
-              (part ?OTHERPART ?CORPSE))
-            (not
-              (holdsDuring 
-                (WhenFn ?HUMAN) 
-                (part ?OTHERPART ?HUMAN)))))))))
-            
-(=>
-  (instance ?CORPSE HumanCorpse)
-  (attribute ?CORPSE Dead))
+;; NS: The diagram below depicts the temporal relationships
+;; between the main attributes and classes metioned above,
+;; as applied to one instance of Organism.  Before it is the
+;; experiencer of its Death, an Organism X has the
+;; BiologicalAttribute Living.  X's Death has as its result
+;; a new instance of OrganismRemains, Y, which consists of
+;; the same material (parts) as the previously existing
+;; Organism X.
+
+;;                        Death
+;;                  (experiencer = X)
+;;                       (result = Y)
+;;                          ^
+;;                          |
+;; |------- Living --------|-|------- Dead -------->
+;;
+;; |----- Organism X -------|-- OrganismRemains Y -->???|
+
+;; The distinction between "existing" as a chunk of more or
+;; less organism-shaped matter and simply being Dead (having
+;; experienced death), as well as the temporal aspects, make
+;; this all seem excessively difficult, but alternatives
+;; that make it possible to express the same distinctions of
+;; meaning all seem about equally awkward.  In the approach
+;; chosen here, Organism and OrganismRemains are conceived
+;; as temporally disjoint.  It would be a mistake to apply
+;; Dead to an instance of Organism for any time interval,
+;; and a mistake to apply Living to an instance of
+;; OrganismRemains for any time interval.  In other words,
+;; in this approach there are no Dead Organisms, only Living
+;; Organisms or Dead OrganismRemains.
+
+;; End: OrganismRemains
 
 (instance HumanSlave SocialRole)
 (documentation HumanSlave EnglishLanguage "A &%Human who is owned by someone else.")
 
+;; NS: delete.
+;; (=>
+;;    (attribute ?SLAVE HumanSlave)
+;;    (exists (?PERSON)
+;;       (and
+;;          (instance ?PERSON Human)
+;;          (not (equal ?PERSON ?SLAVE))
+;;          (possesses ?PERSON ?SLAVE))))
+
+;; NS: add.
 (=>
-   (attribute ?SLAVE HumanSlave)
+   (holdsDuring ?TIME (attribute ?SLAVE HumanSlave))
    (exists (?PERSON)
       (and
          (instance ?PERSON Human)
          (not (equal ?PERSON ?SLAVE))
-         (possesses ?PERSON ?SLAVE))))
+         (holdsDuring ?TIME
+           (possesses ?PERSON ?SLAVE)))))
 
 (subclass HumanAdult Human)
-(documentation HumanAdult EnglishLanguage "The class of &%Humans that are 18 years of 
-age or older.")
 
+;; NS: add.
+(subclass HumanAdult LegalAgent)
+
+(documentation HumanAdult EnglishLanguage "The class of
+&%Humans that are 18 years of age or older.")
+
+;; NS: delete.
+;; (=>
+;;    (and
+;;       (instance ?ADULT HumanAdult)
+;;       (age ?ADULT (MeasureFn ?NUMBER YearDuration)))
+;;    (greaterThanOrEqualTo ?NUMBER 18))
+
+;; NS: add.
 (=>
-   (and
+  (holdsDuring ?TIME
+    (and
       (instance ?ADULT HumanAdult)
-      (age ?ADULT (MeasureFn ?NUMBER YearDuration)))
-   (greaterThanOrEqualTo ?NUMBER 18))
+      (age ?ADULT (MeasureFn ?NUMBER YearDuration))))
+  (greaterThanOrEqualTo ?NUMBER 18))
+
+;; NS. add. An alternate formulation.
+(=>
+  (holdsDuring ?TIME (instance ?H HumanAdult))
+  (exists (?AGE)
+    (and
+      (holdsDuring ?TIME (age ?H ?AGE))
+      (instance ?AGE (IntervalFn (MeasureFn 18 YearDuration) (MeasureFn 120 YearDuration))))))
+
+;; NS: add.
+(=>
+  (and
+    (instance ?H Human)
+    (holdsDuring ?T1
+      (age ?H (MeasureFn ?N YearDuration)))
+    (greaterThanOrEqualTo ?N 18))
+  (holdsDuring ?T1 (instance ?H HumanAdult)))
+
+;; NS: add.
+(=>
+  (holdsDuring ?TIME
+      (instance ?ADULT HumanAdult))
+  (holdsDuring ?TIME
+      (developmentalForm ?ADULT FullyFormed)))
+
+;; NS: add.
+(=>
+  (and
+    (instance ?ORG Human)
+    (holdsDuring ?TIME
+      (attribute ?ORG FullyFormed)))
+  (holdsDuring ?TIME
+    (instance ?ORG HumanAdult)))
+
+;; NS: add.  Missing from Merge.kif.  Narrow to
+;; developmentalForm.
+(=>
+  (and
+    (instance ?ORG OrganicObject)
+    (instance ?ATTR DevelopmentalForm)
+    (holdsDuring ?TIME (property ?ORG ?ATTR)))
+  (holdsDuring ?TIME (developmentalForm ?ORG ?ATTR)))
 
 (subclass HumanYouth Human)
 (documentation HumanYouth EnglishLanguage "The class of &%Humans that are younger than 
 18 years of age.")
 
+;; NS: delete.
+;; (=>
+;;    (and
+;;       (instance ?YOUTH HumanYouth)
+;;       (age ?YOUTH (MeasureFn ?NUMBER YearDuration)))
+;;    (lessThan ?NUMBER 18))
+
+;; NS: add.
 (=>
-   (and
+  (holdsDuring ?TIME
+    (and
       (instance ?YOUTH HumanYouth)
-      (age ?YOUTH (MeasureFn ?NUMBER YearDuration)))
-   (lessThan ?NUMBER 18))
+      (age ?YOUTH (MeasureFn ?NUMBER YearDuration))))
+  (lessThan ?NUMBER 18))
+
+;; NS. An alternate formulation.
+(=>
+  (holdsDuring ?TIME (instance ?H HumanYouth))
+  (exists (?AGE)
+    (and
+      (holdsDuring ?TIME (age ?H ?AGE))
+      (instance ?AGE (IntervalFn (MeasureFn 0 YearDuration) (MeasureFn 17 YearDuration))))))
+
+;; NS: add.
+(=>
+  (and
+    (instance ?H Human)
+    (holdsDuring ?T1 (age ?H (MeasureFn ?N YearDuration)))
+    (lessThan ?N 18))
+  (holdsDuring ?T1 (instance ?H HumanYouth)))
 
 (subclass HumanChild HumanYouth)
 (documentation HumanChild EnglishLanguage "A &%HumanYouth between birth and puberty, i.e a 
 &%Human who is &%NonFullyFormed.")
 
+;; NS: edit.
 (=>
-   (instance ?CHILD HumanChild)
-   (attribute ?CHILD NonFullyFormed))
+  (holdsDuring ?TIME
+    (instance ?CHILD HumanChild))
+  (holdsDuring ?TIME
+    (developmentalForm ?CHILD NonFullyFormed)))
 
+;; NS: add.  Narrowing from Human.
 (=>
-   (and
+  (and
+    (instance ?CHILD Human)
+    (holdsDuring ?TIME
+      (attribute ?CHILD NonFullyFormed)))
+  (holdsDuring ?TIME
+    (instance ?CHILD HumanYouth)))
+  
+;; NS: edit.
+(=>
+  (holdsDuring ?TIME
+    (and
       (instance ?CHILD HumanChild)
-      (age ?CHILD (MeasureFn ?NUMBER YearDuration)))
-   (lessThanOrEqualTo ?NUMBER 14)) 
+      (age ?CHILD (MeasureFn ?NUMBER YearDuration))))
+  (lessThanOrEqualTo ?NUMBER 14))
 
-(subclass Teenager HumanYouth)
-(documentation Teenager EnglishLanguage "A &%HumanYouth between puberty and the age of 20.")
+;; NS: add. An alternate formulation.
+(=>
+  (holdsDuring ?TIME (instance ?H HumanChild))
+  (exists (?AGE)
+    (and
+      (holdsDuring ?TIME (age ?H ?AGE))
+      (instance ?AGE (IntervalFn (MeasureFn 0 YearDuration) (MeasureFn 14 YearDuration))))))
+
+;; NS: add.
+(=>
+  (and
+    (instance ?H Human)
+    (holdsDuring ?T1 (age ?H (MeasureFn ?N YearDuration)))
+    (lessThanOrEqualTo ?N 14))
+  (holdsDuring ?T1 (instance ?H HumanChild)))
+
+;; NS: edit.
+(subclass Teenager Human)
+(documentation Teenager EnglishLanguage "A &%Human between puberty and the age of 20.")
 
 (=>
-   (and
+  (holdsDuring ?TIME
+    (and
       (instance ?TEEN Teenager)
-      (age ?TEEN (MeasureFn ?NUMBER YearDuration)))
-   (and
-      (greaterThan ?NUMBER 12)
-      (lessThan ?NUMBER 20))) 
+      (age ?TEEN (MeasureFn ?NUMBER YearDuration))))
+  (and
+    (greaterThan ?NUMBER 12)
+    (lessThan ?NUMBER 20)))
+
+;; NS: add.  An alternate formulation.
+(=>
+  (holdsDuring ?TIME (instance ?H Teenager))
+  (exists (?AGE)
+    (and
+      (holdsDuring ?TIME (age ?H ?AGE))
+      (instance ?AGE (IntervalFn (MeasureFn 13 YearDuration) (MeasureFn 19 YearDuration))))))
+
+;; NS: add.
+(=>
+  (and
+    (instance ?H Human)
+    (holdsDuring ?T1 (age ?H (MeasureFn ?N YearDuration)))
+    (greaterThan ?N 12)
+    (lessThan ?N 20))
+  (holdsDuring ?T1 (instance ?H Teenager)))
 
 (subclass Boy HumanChild)
 (subclass Boy Man)
 (documentation Boy EnglishLanguage "A &%HumanChild who is &%Male.")
 
+;; NS: add.
+(=>
+  (holdsDuring ?T1
+    (and
+      (instance ?H HumanChild)
+      (attribute ?H Male)))
+  (holdsDuring ?T1 (instance ?H Boy)))
+
 (subclass Girl HumanChild)
 (subclass Girl Woman)
 (documentation Girl EnglishLanguage "A &%HumanChild who is &%Female.")
 
+;; NS: add.
+(=>
+  (holdsDuring ?T1
+    (and
+      (instance ?H HumanChild)
+      (attribute ?H Female)))
+  (holdsDuring ?T1 (instance ?H Girl)))
+
 (subclass HumanBaby HumanChild)
 (documentation HumanBaby EnglishLanguage "A &%Human between birth and the first year of age.")
 
+;; NS: edit.
 (=>
-   (and
+  (holdsDuring ?TIME
+    (and
       (instance ?BABY HumanBaby)
-      (age ?BABY (MeasureFn ?NUMBER YearDuration)))
-   (lessThanOrEqualTo ?NUMBER 1)) 
+      (age ?BABY (MeasureFn ?NUMBER YearDuration))))
+  (lessThanOrEqualTo ?NUMBER 1))
+
+;; NS: add.  An alternate formulation.  Constructing a query
+;; to ask for the age of ?BABY is awkward with both
+;; formulations, and probably won't give the
+;; desired/expected answer.
+(=>
+  (holdsDuring ?TIME (instance ?BABY HumanBaby))
+  (exists (?AGE)
+    (and
+      (holdsDuring ?TIME (age ?BABY ?AGE))
+      (instance ?AGE (IntervalFn (MeasureFn 0 YearDuration) (MeasureFn 1 YearDuration))))))
+
+;; NS: Note that ?BABY, above, will also inherit less restrictive
+;; numeric age constraints from HumanChild and HumanYouth.  How
+;; this will work out in inference depends on the inference
+;; algorithm (presumably resolution), type of query (variable
+;; binding or true/false), number of answers requested, and time
+;; allowed for the inference engine to run.
+
+;; NS: add.
+(=>
+  (and
+    (instance ?H Human)
+    (holdsDuring ?T1 (age ?H (MeasureFn ?N YearDuration)))
+    (lessThanOrEqualTo ?N 1))
+  (holdsDuring ?T1 (instance ?H HumanBaby)))
+
 
 (documentation older EnglishLanguage "(older ?OBJ1 ?OBJ2) means that ?OBJ1 is older than 
 ?OBJ2, i.e. the age of ?OBJ1 is &%greaterThan the age of ?OBJ2.")
@@ -190,14 +589,20 @@ walking, quit working, etc.")
 (subclass Dodging IntentionalProcess)
 (documentation Dodging EnglishLanguage "Purposely moving one's body in such a way as 
 to avoid being hit by something.")
+
+;; NS: edited to temporally relate ?I to ?D.
 (=>
   (and
     (instance ?D Dodging)
-    (agent ?D ?A))
+    (agent ?D ?A)
+    (equal ?DT (WhenFn ?D)))
   (hasPurpose ?D 
     (not 
       (exists (?I)
         (and
+          (or
+            (meetsTemporally ?DT (WhenFn ?I))
+            (overlapsTemporally ?DT (WhenFn ?I)))
           (instance ?I Impacting)
           (patient ?I ?A))))))
 
@@ -219,19 +624,72 @@ something else.")
       (orientation ?A ?O On))))
 
 (subclass Stepping BodyMotion)
-(documentation Stepping EnglishLanguage "The &%BodyMotion of extending one foot forward 
-and then bringing the other foot to the same lateral position as the 
-first leg.")
+(documentation Stepping EnglishLanguage "The &%BodyMotion of
+extending one foot forward and then bringing the other foot
+to the same lateral position as the first leg.")
 
+;; NS. delete.
+;; (=>
+;;    (instance ?AMBULATE Ambulating)
+;;    (exists (?SUB)
+;;       (and
+;;          (subclass ?SUB Stepping)
+;;          (forall (?INST)
+;;             (<=>
+;;                (instance ?INST ?SUB)
+;;                (subProcess ?INST ?AMBULATE))))))
+
+;; NS: add.  The conception here is that each instance of
+;; Ambulating (Walking or Running) includes at least two
+;; Stepping subProcesses: a starting one, and an ending one.
 (=>
-   (instance ?AMBULATE Ambulating)
-   (exists (?SUB)
-      (and
-         (subclass ?SUB Stepping)
-         (forall (?INST)
-            (<=>
-               (instance ?INST ?SUB)
-               (subProcess ?INST ?AMBULATE))))))
+  (and
+    (instance ?AMBULATE Ambulating)
+    (equal ?DURATION (WhenFn ?AMBULATE)))
+   (exists (?STEP1 ?STEPN)
+     (and
+       (instance ?STEP1 Stepping)
+       (instance ?STEPN Stepping)
+       (subProcess ?STEP1 ?AMBULATE)
+       (subProcess ?STEPN ?AMBULATE)
+       (starts (WhenFn ?STEP1) ?DURATION)
+       (finishes (WhenFn ?STEPN) ?DURATION)
+       (not (equal ?STEP1 ?STEPN)))))
+
+;; NS: add.
+(=>
+  (and
+    (instance ?A Ambulating)
+    (subProcess ?S1 ?A)
+    (instance ?S1 Stepping)
+    (subProcess ?S2 ?A)
+    (instance ?S2 Stepping)
+    (equal ?S1-START (BeginFn (WhenFn ?S1)))
+    (equal ?S2-START (BeginFn (WhenFn ?S2)))
+    (not
+      (or
+        (before ?S1-START ?S2-START)
+        (before ?S2-START ?S1-START))))
+  (equal ?S1 ?S2))
+
+;; NS: add.
+(=>
+  (and
+    (instance ?AMBULATE Ambulating)
+    (instance ?STEP Stepping)
+    (subProcess ?STEP ?AMBULATE)
+    (agent ?AMBULATE ?AGENT))
+  (agent ?STEP ?AGENT))
+
+;; NS: add.
+(=>
+  (and
+    (instance ?AMBULATE Ambulating)
+    (instance ?STEP Stepping)
+    (subProcess ?STEP ?AMBULATE)
+    (agent ?STEP ?AGENT))
+  (agent ?AMBULATE ?AGENT))
+
 
 (subclass Wading Walking)
 (documentation Wading EnglishLanguage "Any instance of &%Walking which occurs through a 
@@ -282,8 +740,9 @@ light.")
 
 (subclass ReflectingLight Reflecting)
 (subclass ReflectingLight RadiatingLight)
-(documentation ReflectingLight EnglishLanguage "Those instances of &%RadiatingLight where the 
-&%instrument is not a light source, but is simply a surface which bends light 
+(documentation ReflectingLight EnglishLanguage "Those
+instances of &%RadiatingLight where the &%instrument is not
+a light source, but is simply a surface which bends light
 waves that come in contact with it.")
 
 (documentation wavelength EnglishLanguage "(wavelength ?RADIATION ?MEASURE) means that the 
@@ -373,6 +832,7 @@ specific subclasses like Times Roman.  Other scripts include Devanagri
 (which may be expressed in many different more specific typefaces), or 
 Simplified Chinese.") 
 
+;; NS: edited to fix argument order for &%part.
 (=>
   (instance ?W WrittenCommunication)
   (exists (?T ?C ?S)
@@ -431,8 +891,9 @@ means that the &%NounPhrase ?SUBJECT is the subject of the &%Sentence
 (domain speaksLanguage 2 Language)
 
 (subclass InstrumentalMusic Music)
-(documentation InstrumentalMusic EnglishLanguage "&%Music which is produced (at least in part) 
-by a &%MusicalInstrument.")
+(documentation InstrumentalMusic EnglishLanguage "&%Music
+which is produced (at least in part) by a
+&%MusicalInstrument.")
 
 (=>
    (instance ?MUSIC InstrumentalMusic)
@@ -444,14 +905,16 @@ by a &%MusicalInstrument.")
 (partition Music MonophonicMusic PolyphonicMusic)
 
 (subclass MonophonicMusic Music)
-(documentation MonophonicMusic EnglishLanguage "&%Music which has a single part, i.e. &%Music 
-which cannot be divided into two or more contemporaneous &%subProcesses which 
-are also instances of &%Music.")
+(documentation MonophonicMusic EnglishLanguage "&%Music
+which has a single part, i.e. &%Music which cannot be
+divided into two or more contemporaneous &%subProcesses
+which are also instances of &%Music.")
 
 (subclass PolyphonicMusic Music)
-(documentation PolyphonicMusic EnglishLanguage "&%Music which has two or more parts, i.e. &%Music 
-which can be divided into two or more contemporaneous &%subProcesses which are 
-also instances of &%Music.")
+(documentation PolyphonicMusic EnglishLanguage "&%Music
+which has two or more parts, i.e. &%Music which can be
+divided into two or more contemporaneous &%subProcesses
+which are also instances of &%Music.")
 
 (<=>
    (instance ?MUSIC PolyphonicMusic)
@@ -543,8 +1006,22 @@ above those that normal &%Human ears can detect.")
 (domain soundFrequency 2 FunctionQuantity)
 
 (subclass Bell PercussionInstrument)
-(documentation Bell EnglishLanguage "A &%PercussionInstrument that produces a single tone 
-when it is struck.")
+(documentation Bell EnglishLanguage "A
+&%PercussionInstrument that produces a single tone when it
+is struck.")
+
+;; NS: Apparently, destination is not a subrelation of
+;; patient (this is good), but in the rule below ?B might
+;; just as cogently be considered the patient (the object
+;; acted upon/struck).  The less precise we are about the
+;; distinctions between CaseRoles, the less useful SUMO will
+;; be for practical applications requiring inference.
+;; Impacting is a subclass of Translocation, but no
+;; information regarding the nature of the translocated
+;; object is provided.
+;;
+;; TO DO: Flesh out/clean up Impacting, including the rule
+;; below.
 (=>
   (and
     (instance ?B Bell)
@@ -554,6 +1031,45 @@ when it is struck.")
     (and
       (instance ?MT MusicalTone)
       (causes ?I ?MT))))
+
+;; NS: The ambiguity of &%patient, in particular, creates
+;; unnecessary confusion for axiom authors, and definitely
+;; will be a problem if SUMO is ever used in an application
+;; requiring serious inference.  On the one hand, &%patient
+;; is frequently used to indicate the object acted on (in
+;; grammatical terms, the direct object) of a Process.  On
+;; the other hand, it is also used to gather up just about
+;; all of the objects that play any role in a Process,
+;; except for &%agent, &%origin, &%destination, and perhaps
+;; a few others.  This means that a user (human or
+;; application) won't really be able to determine the object
+;; acted on/direct object of a Process (e.g., Process1)
+;; without posing a query like the following:
+;;
+;;     (and
+;;       (patient Process1 ?X)
+;;       (not (instrument Process1 ?X))
+;;       (not (resource Process1 ?X))
+;;       (not (result Process1 ?X))
+;;       ... etc.)
+;;
+;; The solution is to (a) restrict the meaning of &%patient
+;; to "object acted on/direct object" and define some new
+;; predicate to gather up all of the non-&%agent
+;; subrelations, or (b) define some new predicate that
+;; strictly means "object acted on/direct object", relate it
+;; to those predicates it should subsume, and redefine
+;; &%patient to mean "every case role in a Process that is
+;; not the &%agent".  Either way, all of the axioms that
+;; currently use &%patient and its current subrelations will
+;; have to be reviewed and, if necessary, rewritten.  This
+;; should be done sooner rather than later.
+;;
+;; To determine all of the entities that play any role in
+;; Process1, a user can pose this query:
+;;
+;;    (involvedInEvent Process1 ?X)
+
 
 (subclass Bugle HornInstrument)
 (documentation Bugle EnglishLanguage "A &%HornInstrument that has no valves.")
@@ -565,8 +1081,10 @@ when it is struck.")
         (instance ?V Valve)
         (part ?V ?B)))))
 
-(documentation Drumming EnglishLanguage "Playing a Drum.  Note that this includes both
-musical performance, as well as signalling and cerimonial applications.")
+;; NS: edit.  Fixed a misspelling.
+(documentation Drumming EnglishLanguage "Playing a Drum.
+Note that this includes both musical performance, as well as
+signalling and ceremonial applications.")
 (subclass Drumming RadiatingSound)
 (subclass Drumming Demonstrating)
 
@@ -600,21 +1118,172 @@ cylinder.")
 is played by strumming with one hand while grasping frets with the other hand.")
 
 (subclass WrittenCommunication LinguisticCommunication)
-(documentation WrittenCommunication EnglishLanguage "Any &%LinguisticCommunication where the 
-&%instrument is a &%Text, e.g. a letter, an email, a memo, etc.")
+(documentation WrittenCommunication EnglishLanguage "Any
+&%LinguisticCommunication where the &%instrument is a
+&%Text, e.g. a letter, an email, a memo, etc.")
 
-(=>
-   (instance ?COMMUNICATE WrittenCommunication)
-   (exists (?WRITE ?READ ?TEXT)
-      (and
-         (instance ?WRITE Writing)
-         (instance ?READ Reading)
-         (instance ?TEXT Text)
-         (instrument ?COMMUNICATE ?TEXT)
-         (result ?WRITE ?TEXT)
-         (patient ?READ ?TEXT)
-         (subProcess ?WRITE ?COMMUNICATE)
-         (subProcess ?READ ?COMMUNICATE))))
+;; NS: There is a tendency throughout MILO and the domain
+;; ontologies, and sometimes even within Merge.kif, to
+;; compose rules in relative isolation, as if no more
+;; general rule already stated somewhere else could possibly
+;; be relevant.  One practical result is that we allow (or
+;; force) inference engines to do unnecessary skolemization.
+;; Typically, an inference engine will have no way of
+;; proving that two skolemized terms should be considered
+;; &%equal, so newly introduced terms that "pass in the
+;; night" will proliferate during inference.  Another
+;; problem is the relatively small and imprecise (at least
+;; as used) set of CaseRoles.  Over-skolemization and
+;; CaseRole imprecision combine to pretty much guarantee
+;; that many of the rules in MILO and the domain ontologies
+;; will not produce the intended or desired inference
+;; results.  
+
+;; [12] - [24] below are interrelaed, but should be much
+;; more so.
+
+;; Merge.kif
+;;
+;; [12] (documentation Communication EnglishLanguage "A
+;;      SocialInteraction that involves the transfer of
+;;      information between two or more
+;;      CognitiveAgents. Note that Communication is closely
+;;      related to, but essentially different from,
+;;      ContentDevelopment. The latter involves the creation
+;;      or modification of a ContentBearingObject, while
+;;      Communication is the transfer of information for the
+;;      purpose of conveying a message.")
+;;
+;; [13]
+;; (=>
+;;     (instance ?COMMUNICATE Communication)
+;;     (exists (?PHYS ?ENTITY ?AGENT1 ?AGENT2)
+;;         (and
+;;             (refers ?PHYS ?ENTITY)
+;;             (patient ?COMMUNICATE ?PHYS)
+;;             (instance ?AGENT1 CognitiveAgent)
+;;             (agent ?COMMUNICATE ?AGENT1)
+;;             (instance ?AGENT2 CognitiveAgent)
+;;             (destination ?COMMUNICATE ?AGENT2))))
+;;
+;; NS: [12] and [13] seem not to correspond to each other.
+;;
+;; TO DO: Try to think of a more useful way to capture the
+;;        salient meaning of Communication.  (refers ?PHYS
+;;        ?ENTITY) seems so vague as to be pointless.
+;;        According to the documentation statement, an
+;;        instance of Communication is essentially a
+;;        transfer of information from at least one agent to
+;;        at least one other agent.  I understand why this
+;;        rule is so general, but I'm inclined to view
+;;        Communication as involving (at least)
+;;        representation and ContentBearingPhysicals.
+
+;; Merge.kif
+;;
+;; [14] (subclass LinguisticCommunication Communication)
+;;
+;; [15]
+;; (=>
+;;     (instance ?COMMUNICATE LinguisticCommunication)
+;;     (exists (?OBJ)
+;;         (and
+;;             (represents ?COMMUNICATE ?OBJ)
+;;             (instance ?OBJ LinguisticExpression)
+;;             (patient ?COMMUNICATE ?OBJ))))
+;;
+;; TO DO: Relate [15] to [13], or to a revised version of [13].
+
+;; Merge.kif
+;; 
+;; [16] (subclass Writing ContentDevelopment)
+;;
+;; [17]
+;; (=>
+;;     (instance ?DEVELOP ContentDevelopment)
+;;     (exists (?OBJ)
+;;         (and
+;;             (instance ?OBJ ContentBearingObject)
+;;             (result ?DEVELOP ?OBJ))))
+
+;; Mid-level-ontology.kif
+;;
+;; [18] (subclass WrittenCommunication Communication)
+;;
+;; [19]
+;; (=>
+;;    (instance ?COMMUNICATE WrittenCommunication)
+;;    (exists (?WRITE ?READ ?TEXT)
+;;       (and
+;;          (instance ?WRITE Writing)
+;;          (instance ?READ Reading)
+;;          (instance ?TEXT Text)
+;;          (instrument ?COMMUNICATE ?TEXT)
+;;          (result ?WRITE ?TEXT)
+;;          (patient ?READ ?TEXT)
+;;          (subProcess ?WRITE ?COMMUNICATE)
+;;          (subProcess ?READ ?COMMUNICATE))))
+;;
+;; NS: In Merge.kif, the documentation for &%Reading
+;; indicates that the term denotes the process of reading
+;; aloud, but &%Reading is not related to &%Speaking.  The
+;; process of reading silently is supposedly denoted by
+;; &%Interpreting.  &%Reading is not usefully related to
+;; &%Interpreting.  So, according to [19], an instance of
+;; WrittenCommunication entails reading a text aloud, but
+;; not interpreting (understanding) the text.  Also, [19]
+;; fails to specify any temporal ordering between ?WRITE and
+;; ?READ.
+;;
+;; TO DO: Fix [19].
+
+;; Merge.kif
+;;
+;; [20] (subclass Speaking Vocalizing)
+;;
+;; [21] (subclass Vocalizing RadiatingSound)
+;;
+;; [22] (documentation Vocalizing EnglishLanguage "Any
+;; instance of RadiatingSound where the instrument is the
+;; Human vocal cords. This covers grunts, screams, roars, as
+;; well as Speaking.")
+;; 
+;; [23]
+;; (=>
+;;     (instance ?VOCAL Vocalizing)
+;;     (exists (?HUMAN)
+;;         (and
+;;             (instance ?HUMAN Human)
+;;             (agent ?VOCAL ?HUMAN)
+;;             (instrument ?VOCAL ?HUMAN))))
+;;
+;; NS: [22] and [23] do not correspond, perhaps because
+;; creating a term for vocal cord was not within the scope
+;; of Merge.kif.
+
+;; Merge.kif
+;;
+;; [24]
+;; (=>
+;;     (and
+;;         (instance ?EMIT RadiatingSound)
+;;         (agent ?EMIT ?SOUND))
+;;     (exists (?ATTR)
+;;         (and
+;;             (instance ?ATTR SoundAttribute)
+;;             (attribute ?SOUND ?ATTR))))
+;;
+;; NS: [20], [21], [23], and [24] together entail a CaseRole
+;; mismatch.  In [23], the &%agent is a Human.  In [24], the
+;; &%agent is presumably a sound, but neither Merge.kif nor
+;; Mid-level-ontology.kif contain a representation of
+;; *Sound, *SoundWave, etc.  So, currently, [23] and [24]
+;; entail that the Human who is the agent in a Speaking is
+;; also the instrument (and, so, the patient) in the
+;; Speaking, and is either &%Stressed or &%Audible as well.
+;; 
+;; TO DO: Clean up the CaseRole mess, creating the necessary
+;;        concepts.
 
 (subclass Corresponding LinguisticCommunication)
 (documentation Corresponding EnglishLanguage "Instances of &%LinguisticCommunication which 
@@ -862,6 +1531,11 @@ a &%Weapon.")
 (subclass ProjectileShell Container)
 (documentation ProjectileShell EnglishLanguage "The outer casing of a &%Projectile.")
 
+;; NS: No.  Arrows don't have shells.  And the mechanics are
+;; not described very precisely.  Typically, the casing
+;; stays behind in the gun (does not move).  The true
+;; projectile is the slug/warhead.  TO DO: rework this
+;; subtopic someday.
 (=>
    (instance ?PROJECTILE Projectile)
    (exists (?SHELL)
@@ -1409,19 +2083,96 @@ are projected so that they can be viewed.")
 (documentation Pencil EnglishLanguage "A &%WritingDevice that consists of an encased piece of 
 graphite.")
 
-(subclass DeviceStateAttribute DeviceAttribute)
-(documentation DeviceStateAttribute EnglishLanguage "&%DeviceStateAttribute is the class 
-of attributes that represent different states that a Device may be in.  
-Examples: &%DeviceOff, &%DeviceOn, &%DeviceOpen, and &%DeviceClosed.")
+;; NS: delete.  In general, it's bad practice to list
+;; instances or subclasses in documentation, except as
+;; designated examples.  Otherwise, changes to the file (or
+;; another domain file) tend to make the documentation
+;; obsolete.
+;; (documentation DeviceAttribute EnglishLanguage "This class
+;; contains two &%Attributes to indicate whether a &%Device is or is
+;; not behaving as it is intended to behave, &%Functioning and
+;; &%Malfunctioning.")
+
+;; NS: add.
+(documentation DeviceAttribute EnglishLanguage "This class
+contains &%Attributes that indicate how a &%Device is
+behaving with respect to some norm or expectation.
+Examples: &%Functioning, &%Malfunctioning.")
+
+(=>
+   (and
+      (attribute ?DEVICE ?ATTRIBUTE)
+      (instance ?ATTRIBUTE DeviceAttribute))
+   (instance ?DEVICE Device))
+
+(instance Functioning DeviceAttribute)
+(contraryAttribute Functioning Malfunctioning)
+(documentation Functioning EnglishLanguage "Indicates that a &%Device is performing its 
+intended function.")
+
+(=>
+   (and
+      (attribute ?DEVICE Functioning)
+      (hasPurpose ?DEVICE ?PROP))
+   (truth ?PROP True))
+
+(instance Malfunctioning DeviceAttribute)
+(documentation Malfunctioning EnglishLanguage "Indicates that a &%Device is not performing 
+its intended function.")
+
+(=>
+   (and
+      (attribute ?DEVICE Malfunctioning)
+      (hasPurpose ?DEVICE ?PROP))
+   (truth ?PROP False))
+
+;; NS: delete.  This is wrong, because attributes such as
+;; Malfunctioning and Functioning are instances of
+;; ObjectiveNorm and, so, of RelationalAttribute.  Instances
+;; of DeviceStateAttribute (DeviceOn, DeviceOff, etc.)
+;; probably should be considered instances of
+;; InternalAttribute, since they aren't "normative", but
+;; rather simply descriptive of a device's state.
+
+;; (subclass DeviceStateAttribute DeviceAttribute)
+
+;; NS: add.
+(subclass DeviceStateAttribute InternalAttribute)
+
+(documentation DeviceStateAttribute EnglishLanguage
+"&%DeviceStateAttribute is the class of attributes that represent
+different states that a Device may be in.  Examples: &%DeviceOff,
+&%DeviceOn, &%DeviceOpen, and &%DeviceClosed.")
 
 (instance DeviceClosed DeviceStateAttribute)
-(instance DeviceClosed RelationalAttribute)
+
+;; NS: delete.  Now inconsistent.
+;; (instance DeviceClosed RelationalAttribute)
+
+;; NS: The treatment of attributes in MILO and even in SUMO
+;; is confused, and confusing.  The partition of Attribute
+;; into InternalAttribute and RelationalAttribute is not
+;; explained well enough to prevent it from seeming
+;; spurious.  I suspect that InternalAttribute was intended
+;; to mean (and, perhaps, should be renamed to)
+;; *IntrinsicAttribute.  There are no rules associated with
+;; either InternalAttribute or RelationalAttribute, so the
+;; basis of the partition and its utility are a little hazy.
+
 (instance DeviceOff DeviceStateAttribute)
-(instance DeviceOff InternalAttribute)
+
+;; NS: delete.  Now redundant.
+;; (instance DeviceOff InternalAttribute)
+
 (instance DeviceOn DeviceStateAttribute)
-(instance DeviceOn InternalAttribute)
+
+;; NS: delete.  Now redundant.
+;; (instance DeviceOn InternalAttribute)
+
 (instance DeviceOpen DeviceStateAttribute)
-(instance DeviceOpen RelationalAttribute)
+
+;; NS: delete.  Now inconsistent.
+;; (instance DeviceOpen RelationalAttribute)
 
 (documentation deviceState EnglishLanguage "(deviceState ?DEVICE ?STATE) means that 
 the &%Object ?DEVICE is in the &%DeviceStateAttribute ?STATE.")
@@ -1966,11 +2717,14 @@ finger nails.")
 (documentation ElectricDevice EnglishLanguage "A &%Device that uses &%Electricity as its
 primary power source.")
 
+;; NS: edit.  patient -> instrument.  If I put a toaster on
+;; my counter, the toaster is a "patient" in the putting,
+;; but no Electricity is required.
 (=>
   (and
     (instance ?DEV ElectricDevice)
     (instance ?EV Process)
-    (patient ?EV ?DEV))
+    (instrument ?EV ?DEV))
   (exists (?R)
     (and
       (instance ?R Electricity)
@@ -2128,9 +2882,18 @@ oxcarts, horse-drawn plows, mule-driven mills.")
       (instance ?A Animal)
       (instrument ?P ?A))))
 
-(documentation Flat EnglishLanguage "A three dimensional object for which
-two dimensions are markedly larger than the third the
-two larger dimensions are also not of markedly different length.")
+;; NS: delete.
+;; (documentation Flat EnglishLanguage "A three dimensional object for which
+;; two dimensions are markedly larger than the third the
+;; two larger dimensions are also not of markedly different length.")
+
+;; NS: add.
+(documentation Flat EnglishLanguage "This &%ShapeAttribute
+describes a three dimensional &%Object for which two
+dimensions are markedly larger than the third, and the two
+larger dimensions also are not of markedly different
+lengths.")
+
 (instance Flat ShapeAttribute)
 (=>
   (attribute ?F Flat)
@@ -2143,9 +2906,17 @@ two larger dimensions are also not of markedly different length.")
     (greaterThan ?S1 (MultiplicationFn 2 ?H))
     (greaterThan ?S2 (MultiplicationFn 2 ?H))))
 
-(documentation LongAndThin EnglishLanguage "A three dimensional object that
-has two thin dimensions and one markedly larger one.") 
+;; NS: delete.
+;; (documentation LongAndThin EnglishLanguage "A three dimensional object that
+;; has two thin dimensions and one markedly larger one.") 
+
+;; NS: add.
+(documentation LongAndThin EnglishLanguage "This
+&%ShapeAttribute describes a three dimensional &%Object that
+is markedly longer in one dimension than in the other two.")
+
 (instance LongAndThin ShapeAttribute)
+
 (=>
   (attribute ?F LongAndThin)
   (and
@@ -2187,20 +2958,38 @@ top.")
         (MereologicalSumFn ?C1 ?C2)))))
 
 (subclass Baton Device)
-(documentation Baton EnglishLanguage "A thin stick which is used for &%OrchestralConducting.")
+(documentation Baton EnglishLanguage "A thin stick which is used for &%MusicalConducting.")
+
+;; NS: edit.
 (=>
   (instance ?B Baton)
   (hasPurpose ?B 
-    (exists (?IM ?G)
+    (exists (?M ?G)
       (and
-        (instance ?IM InstrumentalMusic)
+        (instance ?M MusicalPerformance)
         (instance ?G Guiding)
-        (instrument ?G ?B)
-        (causes ?G ?IM)))))
+        (subProcess ?G ?M)
+        (instrument ?G ?B)))))
 
 (=>
   (instance ?B Baton)
   (attribute ?B LongAndThin))
+
+;; NS: Note that a baton (typically a cylindrical aluminum
+;; tube or wooden dowel) would have some strange things
+;; concluded about it, given the rule for LongAndThin stated
+;; above.  In particular, what are the two shorter "sides"
+;; that spatially meet?  In general, I think the current
+;; naive (commonsense) treatment of object faces and
+;; dimensions (&%side, &%top, &%bottom, &%BackFn, &%FrontFn,
+;; etc.), with its implicit but unexplained notion of
+;; default orientation, should be related to a more general
+;; scheme that explicitly treats dimensions in terms of an
+;; object's maximal extent along x, y, and z axes,
+;; regardless of orientation.
+
+;; TO DO: Add the x, y, z axes representation mentioned above,
+;; and relate it to the &%side, &%top, etc. one, where possible.
 
 (subclass SecurityAlarm SecurityDevice)
 (subclass SecurityAlarm ElectricDevice)
@@ -2273,12 +3062,147 @@ degrees &%Celsius.")
 (domain measurementReading 1 MeasuringDevice)
 (domain measurementReading 2 ConstantQuantity)
 
+(subclass CommunicationDevice EngineeringComponent)
+(documentation CommunicationDevice EnglishLanguage "A
+&%CommunicationDevice is a &%Device which serves at the
+&%instrument in a &%Communication &%Process by allowing the
+communicated message to be conveyed between the participants.")
+(relatedInternalConcept Communication CommunicationDevice)
+
+(=>
+  (instance ?DEVICE CommunicationDevice)
+  (capability Communication instrument ?DEVICE))
+
+
 (subclass Telephone ElectricDevice)
 (subclass Telephone CommunicationDevice)
-(documentation Telephone EnglishLanguage "A &%Device that permits &%LinguisticCommunication 
-between remote points by converting sound into electrical signals that are 
-then transmitted.  When the signals are received, they are converted back 
-into sound.")
+(documentation Telephone EnglishLanguage "A &%Telephone is a
+&%CommunicationDevice that enables &%LinguisticCommunication
+between nodes in a &%TelephoneSystem by converting sound into
+electrical signals that are then transmitted.  When the signals
+are received, they are converted back into sound.")
+
+;; NS: edit.  Speaking -> Communication.
+(subclass Telephoning Communication)
+
+;; NS: edit.
+(documentation Telephoning EnglishLanguage "A &%Telephoning is a
+&%Communication in which the &%instrument is a &%Telephone, and
+which typically includes an &%instance of &%Speaking as a
+&%subProcess.")
+
+(=>
+   (instance ?TEL Telephoning)
+   (exists (?DEVICE)
+      (and
+         (instance ?DEVICE Telephone)
+         (instrument ?TEL ?DEVICE))))
+
+;; NS: add.
+(=>
+  (instance ?TEL Telephoning)
+  (exists (?SPEAK)
+    (and
+      (instance ?SPEAK Speaking)
+      (subProcess ?SPEAK ?TEL)
+      (=>
+        (agent ?TEL ?AGENT)
+        (agent ?SPEAK ?AGENT)))))
+
+(subclass TelephoneLine WireLine)
+(documentation TelephoneLine EnglishLanguage "A &%WireLine that carries telephone signals and 
+allows users of &%Telephones or &%Telegraphs to communicate with one another.")
+
+(subclass Fax Communication)
+(documentation Fax EnglishLanguage "The communication of a printed page between remote locations.") 
+
+(=>
+  (instance ?Fax Fax)
+  (exists (?FaxMachine)
+    (and
+      (instance ?FaxMachine FaxMachine)
+      (instrument ?Fax ?FaxMachine))))
+
+;; NS: add.  Device -> TelephonyDevice (in OntologyX.kif).
+(subclass FaxMachine TelephonyDevice)
+
+;; NS: edit.
+(documentation FaxMachine EnglishLanguage "A &%FaxMachine is a
+&%TelephonyDevice that scans a paper page and transmits a coded
+image of the page over a &%TelephoneSystem to a receiving
+&%FaxMachine, which decodes the coded and image and prints a
+replica of the original.  A typical &%FaxMachine is made up of a
+scanner, a printer, a modem, and a control panel with some sort
+of status display.")
+
+;; NS: delete.
+;; (subrelation telephoneNumber uniqueIdentifier)
+
+(instance telephoneNumber BinaryPredicate)
+(instance telephoneNumber AsymmetricRelation)
+(domain telephoneNumber 1 SymbolicString)
+(domain telephoneNumber 2 Agent)
+(relatedInternalConcept telephoneNumber postAddress)
+(documentation telephoneNumber
+EnglishLanguage "(&%telephoneNumber ?NUMBER ?AGENT) means that
+?NUMBER is a telephone number at which ?AGENT can be contacted.")
+;; NS: &%telephoneNumber is defined further in OntologyX.kif.
+;;     &%postAddress is defined in OntologyX.kif.
+
+
+;; NS: delete phoneNumber, dayPhone, eveningPhone.  The rules
+;; commented out below are absurd, and the relations are
+;; superceded by others in OntologyX.kif.
+
+;; (instance phoneNumber BinaryPredicate)
+;; (subrelation phoneNumber refers)
+;; (domain phoneNumber 1 SymbolicString)
+;; (domain phoneNumber 2 Telephone)
+;; (documentation phoneNumber EnglishLanguage "(&%phoneNumber ?Phone ?Agent) holds if ?Phone is 
+;; a phone number corresponding to the Telephone ?Phone.")
+
+;; (instance dayPhone BinaryPredicate)
+;; (domain dayPhone 1 SymbolicString)
+;; (domain dayPhone 2 Agent) 
+;; (documentation dayPhone EnglishLanguage "(&%dayPhone ?Phone ?Agent) means that ?Phone is a phone 
+;; number corresponding to the location where ?Agent can be reached during the day.")
+
+;; (=>
+;; 	(and
+;; 		(dayPhone ?Number ?Agent)
+;; 		(instance ?Day Day))
+;; 	(exists (?Phone)
+;; 		(and
+;; 			(phoneNumber ?Number ?Phone)
+;; 			(holdsDuring (HourFn ?Number ?Day) (possesses ?Agent ?Phone))
+;; 			(lessThan ?Number 18))))
+
+;; (instance eveningPhone BinaryPredicate)
+;; (domain eveningPhone 1 SymbolicString)
+;; (domain eveningPhone 2 Agent) 
+;; (documentation eveningPhone EnglishLanguage "(&%eveningPhone ?Phone ?Agent) means that ?Phone 
+;; is a phone number corresponidng to the location where ?Agent can be reached 
+;; during the evening.")
+
+;; (=>
+;; 	(and
+;; 		(eveningPhone ?Number ?Agent)
+;; 		(instance ?Day Day))
+;; 	(exists (?Phone)
+;; 		(and
+;; 			(phoneNumber ?Number ?Phone)
+;; 			(holdsDuring (HourFn ?Number ?Day) (possesses ?Agent ?Phone))
+;; 			(greaterThan ?Number 18))))
+
+(instance emailAddress BinaryPredicate)
+(subrelation emailAddress refers)
+(domain emailAddress 1 SymbolicString)
+(domain emailAddress 2 Agent)
+
+;; NS: edit.
+(documentation emailAddress EnglishLanguage "(&%emailAddress
+?Address ?Agent) means that ?Address denotes a &%VirtualPlace at
+which ?Agent can be contacted.")
 
 (subclass BroadcastNetwork CommunicationSystem)
 (documentation BroadcastNetwork EnglishLanguage "&%BroadcastNetwork is the subclass of 
@@ -2726,15 +3650,17 @@ be paired with two &%VehicleWheels to rotate and move a &%RoadVehicle.")
       (component ?A ?V)
       (connected ?W ?A))))
 
-(documentation Paper EnglishLanguage "Paper is a flat sheet of fibers, usually produced by 
-spreading a wet solution of wood particles on a flat surface and drying 
-through heat and pressure.  The fibers can also be cotton or a synthetic, 
-although typically the bulk of the substance is wood fibers.  This 
-includes all manner of paper products that may have varying thicknesses, 
-colors or texture.  This is distinguished from flat wood products such as 
-plywood and particle board which have a structural function in building 
-construction.  Sheathing materials such as the paper affixed to sheetrock 
-however, is paper.") 
+(documentation Paper EnglishLanguage "Paper is a flat sheet
+of fibers, usually produced by spreading a wet solution of
+wood particles on a flat surface and drying through heat and
+pressure.  The fibers can also be cotton or a synthetic,
+although typically the bulk of the substance is wood fibers.
+This includes all manner of paper products that may have
+varying thicknesses, colors or texture.  This is
+distinguished from flat wood products such as plywood and
+particle board which have a structural function in building
+construction.  Sheathing materials such as the paper affixed
+to sheetrock however, is paper.")
 (subclass Paper Artifact)
 
 (=>
@@ -2922,8 +3848,8 @@ than one &%Human.")
 	  (and
 	    (attribute ?P1 Sitting)
 	    (attribute ?P2 Sitting)
-	    (located ?P1 ?S)
-	    (located ?P2 ?S)))))))
+	    (eventLocated ?P1 ?S)
+	    (eventLocated ?P2 ?S)))))))
 
 (subclass Bed Furniture)
 (documentation Bed EnglishLanguage "A piece of &%Furniture which is primarily for sleeping.")
@@ -3556,6 +4482,41 @@ difference between these notions cannot be precisely defined.")
          (instance ?C Constructing)
          (resource ?C ?B)))))
 
+(instance diameter BinaryPredicate)
+(instance diameter SingleValuedRelation)
+(instance diameter TotalValuedRelation)
+(domain diameter 1 Circle)
+(domain diameter 2 LengthMeasure) 
+(documentation diameter EnglishLanguage "(&%diameter ?CIRCLE ?LENGTH) means that the diameter 
+of the &%Circle ?CIRCLE has a length of ?LENGTH.")
+
+(=>
+   (diameter ?CIRCLE ?LENGTH)
+   (exists (?HALF)
+      (and
+         (radius ?CIRCLE ?HALF)
+         (equal (MultiplicationFn ?HALF 2) ?LENGTH))))
+
+(instance tangent BinaryPredicate)
+(domain tangent 1 OneDimensionalFigure)
+(domain tangent 2 TwoDimensionalObject)
+(documentation tangent EnglishLanguage "(&%tangent ?LINE ?CIRCLE) means that the straight line 
+?LINE is tangent to the figure ?CIRCLE, i.e. ?LINE touches ?CIRCLE without 
+intersecting it.")
+
+(=>
+   (tangent ?LINE ?CIRCLE)
+   (exists (?POINT1)
+      (and
+         (pointOfFigure ?POINT1 ?LINE)
+         (pointOfFigure ?POINT1 ?CIRCLE)
+         (forall (?POINT2)
+            (=>
+               (and
+                  (pointOfFigure ?POINT2 ?LINE)
+                  (pointOfFigure ?POINT2 ?CIRCLE))
+               (equal ?POINT1 ?POINT2))))))
+
 (subclass TwoDimensionalObject Object)
 (documentation TwoDimensionalObject EnglishLanguage "A real-world physical object
 with a very flat aspect.  This includes drawings on paper, cave
@@ -3575,6 +4536,8 @@ with the 3-d figure ?FIGURE.")
 (instance RoundShape ThreeDimensionalFigure)
 (documentation RoundShape EnglishLanguage "Any &%ThreeDimensionalFigure that has a single
 tangent at every point on its surface.")
+
+;; NS: fixed misspelled name: tangent.
 (=>
   (attribute ?O RoundShape)
   (forall (?P)
@@ -3594,6 +4557,143 @@ produced by rotating a &%RightTriangle around its &%RightAngle.")
 (documentation Cylinder EnglishLanguage "The class of &%ThreeDimensionalFigures such that 
 all &%GeometricPoints that make up the &%Cylinder are equidistant from a 
 &%OneDimensionalFigure, known as the axis of the &%Cylinder.")
+
+(subclass ObliqueAngle TwoDimensionalAngle)
+(documentation ObliqueAngle EnglishLanguage "Any &%TwoDimensionalAngle that has an 
+&%angularMeasure that is greater than 90 &%AngularDegrees.")
+
+(subclass RightAngle TwoDimensionalAngle)
+(documentation RightAngle EnglishLanguage "Any &%TwoDimensionalAngle that has the 
+&%angularMeasure of 90 &%AngularDegrees.")
+
+(=>
+   (instance ?A RightAngle)
+   (angularMeasure ?A (MeasureFn 90 AngularDegree)))
+
+(subclass AcuteAngle TwoDimensionalAngle)
+(documentation AcuteAngle EnglishLanguage "Any &%TwoDimensionalAngle that has an 
+&%angularMeasure that is less than 90 &%AngularDegrees.")
+(partition TwoDimensionalAngle RightAngle ObliqueAngle AcuteAngle)
+(=>
+   (and
+      (instance ?A AcuteAngle)
+      (angularMeasure ?A (MeasureFn ?N AngularDegree)))
+   (lessThan ?N 90))
+
+(subclass Polygon ClosedTwoDimensionalFigure)
+(documentation Polygon EnglishLanguage "A &%ClosedTwoDimensionalFigure that is composed 
+exclusively of straight lines, i.e. &%OneDimensionalFigures.")
+
+(=>
+   (instance ?POLYGON Polygon)
+   (=>
+      (geometricPart ?PART ?POLYGON)
+      (or
+         (sideOfFigure ?PART ?POLYGON)
+         (exists (?SIDE)
+            (and
+               (sideOfFigure ?SIDE ?POLYGON)
+               (geometricPart ?PART ?SIDE))))))
+
+(subclass Triangle Polygon)
+(documentation Triangle EnglishLanguage "Any three-sided &%Polygon.")
+
+(=>
+   (instance ?TRIANGLE Triangle)
+   (equal (CardinalityFn (KappaFn ?SIDE (sideOfFigure ?SIDE ?TRIANGLE))) 3))
+
+(subclass Quadrilateral Polygon)
+(documentation Quadrilateral EnglishLanguage "Any four-sided &%Polygon.")
+
+(=>
+   (instance ?QUAD Quadrilateral)
+   (equal (CardinalityFn (KappaFn ?SIDE (sideOfFigure ?SIDE ?QUAD))) 4))
+
+(subclass Rectangle Quadrilateral)
+(documentation Rectangle EnglishLanguage "Any &%Quadrilateral whose angles are all 
+&%RightAngles.")
+
+(=>
+   (instance ?RECTANGLE Rectangle)
+   (=>
+      (angleOfFigure ?ANGLE ?RECTANGLE)
+      (instance ?ANGLE RightAngle)))
+
+(subclass Square Rectangle)
+(documentation Square EnglishLanguage "Any &%Rectangle whose sides are all equal.")
+
+(=>
+   (instance ?SQUARE Square)
+   (exists (?LENGTH)
+      (forall (?SIDE)
+         (=>
+            (sideOfFigure ?SIDE ?SQUARE)
+            (lineMeasure ?SIDE ?LENGTH)))))
+
+(subclass Oval ClosedTwoDimensionalFigure)
+(documentation Oval EnglishLanguage "The class of &%ClosedTwoDimensionalFigures that are 
+produced by the intersection of a &%Cone with a &%ClosedTwoDimensionalFigure.")
+
+(subclass Circle Oval)
+(documentation Circle EnglishLanguage "The class of &%Ovals such that all &%GeometricPoints 
+that make up the &%Circle are equidistant from a single &%GeometricPoint, 
+known as the center of the &%Circle.")
+
+(=>
+  (instance ?C Circle)
+  (exists (?R)
+    (radius ?C ?R)))
+
+(=>
+  (instance ?C Circle)
+  (exists (?P)
+    (equal (CenterOfCircleFn ?C) ?P)))
+
+(subclass CircleSector ClosedTwoDimensionalFigure)
+(documentation CircleSector EnglishLanguage "A slice of a &%Circle, i.e. any 
+&%ClosedTwoDimensionalFigure which consists of two Radii and the arc of 
+the &%Circle that they bound.")
+
+(subrelation sideOfFigure geometricPart)
+(domain sideOfFigure 1 OneDimensionalFigure)
+(domain sideOfFigure 2 GeometricFigure)
+(documentation sideOfFigure EnglishLanguage "(&%sideOfFigure ?SIDE ?FIGURE) means that the 
+&%OneDimensionalFigure ?POINT is a side of the &%GeometricFigure ?FIGURE.")
+
+(instance radius BinaryPredicate)
+(instance radius SingleValuedRelation)
+(instance radius TotalValuedRelation)
+(domain radius 1 Circle)
+(domain radius 2 LengthMeasure)
+(documentation radius EnglishLanguage "(&%radius ?CIRCLE ?LENGTH) means that the radius of 
+the &%Circle ?CIRCLE has a length of ?LENGTH.")
+
+(=>
+   (radius ?CIRCLE ?RADIUS)
+   (exists (?POINT)
+      (forall (?PART)
+         (=>
+            (pointOfFigure ?PART ?CIRCLE)
+            (geometricDistance ?PART ?POINT ?RADIUS)))))
+
+(documentation CenterOfCircleFn EnglishLanguage "(CenterOfCircleFn ?CIRCLE) denotes the 
+&%GeometricPoint that is the center of the &%Circle ?CIRCLE.")
+(instance CenterOfCircleFn UnaryFunction)
+(instance CenterOfCircleFn TotalValuedRelation)
+(domain CenterOfCircleFn 1 Circle)
+(range CenterOfCircleFn GeometricPoint)
+(documentation DiameterFn EnglishLanguage "(DiameterFn ?CIRCLE) denotes the length of the 
+diameter of the &%Circle ?CIRCLE.")
+(instance DiameterFn UnaryFunction)
+(instance DiameterFn TotalValuedRelation)
+(domain DiameterFn 1 Circle)
+(range DiameterFn LengthMeasure)
+(documentation RadiusFn EnglishLanguage "(RadiusFn ?CIRCLE) denotes the length of the radius 
+of the &%Circle ?CIRCLE.")
+(instance RadiusFn UnaryFunction)
+(instance RadiusFn TotalValuedRelation)
+(domain RadiusFn 1 Circle)
+(range RadiusFn LengthMeasure)
 
 (subclass Sphere ThreeDimensionalFigure)
 (documentation Sphere EnglishLanguage "The class of &%ThreeDimensionalFigures such that 
@@ -4156,6 +5256,13 @@ piece of &%Fabric to another part by means of needle and thread.")
       (instance ?A MetallicAlloy)
       (connects ?A ?OBJ1 ?OBJ2))))
 
+;;; Start of Pathologies and Diseases
+
+;; NS: TO DO: In general, it would be better to treat all
+;; pathologies (diseases, illnesses) as processes, and
+;; deprecate nearly all uses of DiseaseOrSyndrome.  Clean up
+;; this area.
+
 (instance patientMedical BinaryPredicate)
 (domain patientMedical 1 Human)
 (domain patientMedical 2 CognitiveAgent)
@@ -4226,6 +5333,10 @@ caused by a single type of &%Microorganism.")
                (attribute ?VICTIM ?DISEASE)
                (located ?AGENT ?VICTIM)))))))
 
+(subclass BacterialDisease InfectiousDisease)
+(documentation BacterialDisease EnglishLanguage "A disease that is caused by instances of 
+&%Bacterium.")
+
 (subclass InfectiousDisease DiseaseOrSyndrome)
 (documentation InfectiousDisease EnglishLanguage "Any &%DiseaseOrSyndrome that is caused by a 
 &%Microorganism.")
@@ -4240,6 +5351,24 @@ caused by a single type of &%Microorganism.")
       (agent ?P ?O)
       (instance ?O Microorganism)
       (experiencer ?P ?A))))
+
+(subclass TakingIll PathologicProcess)
+(documentation TakingIll EnglishLanguage "Any &%Process where the experiencer contracts a 
+&%DiseaseOrSyndrome.")
+
+(=>
+  (and
+    (instance ?T TakingIll)
+    (experiencer ?T ?A))
+  (exists (?D)
+    (and
+      (instance ?D DiseaseOrSyndrome)
+      (holdsDuring 
+        (BeginFn (WhenFn ?T)) 
+	(not (attribute ?A ?D)))
+      (holdsDuring 
+        (EndFn (WhenFn ?T)) 
+	(attribute ?A ?D)))))
 
 (subclass ViralDisease InfectiousDisease)
 (documentation ViralDisease EnglishLanguage "A disease that is caused by instances of 
@@ -4360,6 +5489,40 @@ to an organic impairment of the &%NervousSystem.")
 (subclass Psychosis PsychologicalDysfunction)
 (documentation Psychosis EnglishLanguage "Any &%PsychologicalDysfunction which is the 
 result of an organic impairment of the &%NervousSystem.")
+
+
+(subclass Atrophy PathologicProcess)
+(subclass Atrophy Decreasing)
+(documentation Atrophy EnglishLanguage "Any decrease in the size of a &%BodyPart which is due to 
+disease or lack of use.")
+(=>
+  (instance ?A Atrophy)
+  (exists (?B)
+    (and
+      (experiencer ?A ?B)
+      (instance ?B BodyPart))))
+
+(subclass Bloating Increasing)
+(subclass Bloating PathologicProcess)
+(documentation Bloating EnglishLanguage "Any &%Process where the stomach or instestines of a 
+&%Human or &%Animal become distended from excessive gas.")
+(=>
+  (instance ?B Bloating)
+  (exists (?P ?S ?I ?G)
+    (and
+      (experiencer ?B ?P)
+      (instance ?G Gas)
+      (or
+        (and
+          (part ?I ?P)
+          (instance ?I Intestine)
+          (contains ?I ?G))
+        (and
+          (part ?S ?P)
+          (instance ?S Stomach)
+          (contains ?S ?G))))))
+
+;;; End of Pathologies and Diseases
 
 (subclass ConjugatedSubstance CompoundSubstance)
 (documentation ConjugatedSubstance EnglishLanguage "A &%CompoundSubstance that results from 
@@ -5215,22 +6378,48 @@ actions.")
                             (agent ?INSTANCE ?AGENT)
                             (experiencer ?INSTANCE ?AGENT))))))
 
-(subrelation expects believes)
-(documentation expects EnglishLanguage "Any belief about the future.  (&%expects 
-?AGENT ?BELIEF) means that (&%believes ?AGENT ?BELIEF) and, if 
-?BELIEF happens, it will happen in the future, i.e. after the 
-expectation.")
 
+;; NS: The propositional attitude stuff below appears to have been
+;; written without an understanding of temporal issues, or of the
+;; English meanings of "hope" and "fear".
+
+;; NS: delete.
+;; (subrelation expects believes)
+
+;; NS: delete.
+;; (documentation expects EnglishLanguage "Any belief about the future.  (&%expects 
+;; ?AGENT ?BELIEF) means that (&%believes ?AGENT ?BELIEF) and, if 
+;; ?BELIEF happens, it will happen in the future, i.e. after the 
+;; expectation.")
+
+;; NS: add.
+(documentation expects EnglishLanguage "(&%holdsDuring ?T1 (&%expects
+?AGENT ?BELIEF)) means (and (&%holdDuring ?T1 (&%believes
+?AGENT (&%holdsDuring ?T2 ?BELIEF))) (&%earlier ?T1 ?T2)).")
+
+;; NS: delete.  This could easily cause temporal contradictions.  Note
+;; that ?FORMULA might have been True at some time before ?AGENT's
+;; expectation (or existence).  Also, ?FORMULA might never be True.
+;; (=>
+;;    (and
+;;       (holdsDuring ?TIME1 (expects ?AGENT ?FORMULA))
+;;       (holdsDuring ?TIME2 (truth ?FORMULA True)))
+;;    (earlier ?TIME1 ?TIME2))
+
+;; NS: add.  Unfortunately, this might be wrong.  Since the second
+;; argument to &%believes is an opaque context (i.e., quoted), ?T2
+;; probably isn't accessible for use in the &%earlier literal.
 (=>
-   (and
-      (holdsDuring ?TIME1 (expects ?AGENT ?FORMULA))
-      (holdsDuring ?TIME2 (truth ?FORMULA True)))
-   (earlier ?TIME1 ?TIME2))
+  (holdsDuring ?T1 (expects ?AGENT ?FORMULA))
+  (and
+    (holdsDuring ?T1 (believes ?AGENT (holdsDuring ?T2 ?FORMULA)))
+    (earlier ?T1 ?T2)))
 
 (subrelation fears expects)
-(documentation fears EnglishLanguage "(&%fears ?AGENT ?FORMULA) means that ?AGENT fears that 
-the proposition ?FORMULA will be true, i.e. he/she believes that it will 
-come to pass in the future and that it will be undesirable for ?AGENT.")
+(documentation fears EnglishLanguage "(&%fears ?AGENT ?FORMULA) means
+that ?AGENT fears that the proposition ?FORMULA will be true,
+i.e. he/she believes that it will come to pass in the future and that
+it will be undesirable for ?AGENT.")
 
 (=>
    (fears ?AGENT ?FORMULA)
@@ -5469,7 +6658,6 @@ short period of time while they undergo treatment for a disease or disorder.")
 a &%HospitalOrganization.")
 
 (subclass MedicalClinic CareOrganization)
-(disjoint MedicalClinic Residence)
 (documentation MedicalClinic EnglishLanguage "A &%CareOrganization which provides medical care 
 on an out-patient basis only, i.e. there are no rooms where patients may take 
 up residence for a period of time while they receive care.")
@@ -5477,15 +6665,49 @@ up residence for a period of time while they receive care.")
 (subclass MedicalClinicBuilding (ComplementFn Residence))
 (subclass MedicalClinicBuilding Building)
 
+(subclass Proprietorship Corporation)
+(documentation Proprietorship EnglishLanguage "A &%Corporation that is owned by a single person.")
+
+(=>
+   (instance ?CORP Proprietorship)
+   (exists (?HUMAN)
+      (and
+         (instance ?HUMAN Human)
+         (possesses ?HUMAN ?CORP)
+         (forall (?PERSON)
+            (=>
+               (possesses ?PERSON ?CORP)
+               (equal ?PERSON ?HUMAN))))))
+
+(subclass Restaurant Corporation)
+(documentation Restaurant EnglishLanguage "Any &%Corporation whose services include selling 
+&%Food to customers which is intended to be eaten on the premises.")
+
+(=>
+   (instance ?COMPANY Restaurant)
+   (exists (?SERVICE ?FOOD ?BUILDING)
+      (and
+         (instance ?SERVICE CommercialService)
+         (agent ?SERVICE ?COMPANY)
+         (instance ?SERVICE Selling)
+         (instance ?BUILDING RestaurantBuilding)        
+         (located ?SERVICE ?BUILDING)
+         (patient ?SERVICE ?FOOD)
+         (instance ?FOOD Food))))
+
+(=>
+   (instance ?PLACE RestaurantBuilding)
+   (capability Cooking located ?PLACE))
+
 (subclass Cafeteria Restaurant)
 (documentation Cafeteria EnglishLanguage "Any &%Restaurant which does not offer table service.  
 &%Food is selected and purchased at a central counter.")
 
 (=>
-  (instance ?COMP Cafeteria)
+  (instance ?COMPANY Cafeteria)
   (not
     (exists (?PERSON)
-      (occupiesPosition ?PERSON Waiter ?COMP))))
+      (occupiesPosition ?PERSON ServicePosition ?COMPANY))))
 
 (subclass Tavern Restaurant)
 (documentation Tavern EnglishLanguage "A &%Restaurant whose primary service is selling 
@@ -5507,6 +6729,19 @@ events in which goods are transported from one place to another by an
 agent who is entrusted with the goods temporarily just in order to move 
 them.  Shipping may be done within an organization or it may be done 
 by an outside commercial agent.  See &%CommercialShipping.")
+
+(subclass TransportationCompany Corporation)
+(documentation TransportationCompany EnglishLanguage "Any &%Corporation whose services 
+include &%Transportation, e.g. a &%RailroadCompany, an airline, a cruise 
+ship line, etc.")
+
+(=>
+   (instance ?COMPANY TransportationCompany)
+   (exists (?SERVICE)
+      (and
+         (instance ?SERVICE CommercialService)
+         (agent ?SERVICE ?COMPANY)
+         (instance ?SERVICE Transportation))))
 
 (subclass CommercialShipping Shipping)
 (subclass CommercialShipping CommercialService)
@@ -5534,31 +6769,41 @@ include &%Transportation by &%Train.")
          (instance ?TRAIN Train))))
                        
 (subclass WholesaleStore MercantileOrganization)
-(subclass WholesaleStore Agency)
-(documentation WholesaleStore EnglishLanguage "A &%MercantileOrganization that sells its 
-goods exclusively to &%Corporations.")
+
+;; NS: edit.
+(documentation WholesaleStore EnglishLanguage "A
+&%MercantileOrganization that sells its goods exclusively to
+&%CommercialAgents, typically for resale, rather than to end-point
+consumers.")
 
 (=>
    (and
       (instance ?STORE WholesaleStore)
       (customer ?CUSTOMER ?STORE))
-   (instance ?CUSTOMER Corporation))
+   (instance ?CUSTOMER CommercialAgent))
 
 (subclass RetailStore MercantileOrganization)
 (disjoint RetailStore WholesaleStore)
-(documentation RetailStore EnglishLanguage "A &%Store where individuals who are not
-representing an &%Organization purchase items.  This distinguishes
-retail stores from wholesale establishments, where the purchasers
-are businesses or their representatives, as well as mail order or
-office buildings where transactions are facillitated but the consumer
-does not take possession of the item on the premises.  More succinctly,
-the complement of &%WholesaleStore, i.e. 
-&%MercantileOrganizations that sell their goods to the general public.")
-                                                    
+
+;; NS: edit.
+(documentation RetailStore EnglishLanguage "A &%RetailStore is a
+&%MercantileOrganization that sells goods to customers who are
+end-point consumers, rather than to &%CommercialAgents who are
+buying the goods in order to resell them at a higher price.  This
+distinguishes retail stores from wholesale establishments, where
+the purchasers are businesses or their representatives, as well
+as mail order or office buildings where transactions are
+facillitated but the consumer does not take possession of the
+item on the premises.  More succinctly, &%RetailStore is the
+complement of &%WholesaleStore, which is the class of
+&%MercantileOrganizations that sell goods to the general
+public.")
+
+;; NS: edit.  located -> agent.
 (=>
   (instance ?X RetailStore)
   (and 
-    (capability Selling eventLocated ?X)
+    (capability Selling agent ?X)
     (exists (?P ?EV)
       (and
         (instance ?EV Selling)
@@ -5588,7 +6833,7 @@ perhaps other items as well.")
       (instance ?M Medicine))))
 
 (subclass GroceryStore RetailStore)
-(documentation GroceryStore EnglishLanguage "A &%RetailStore that sells food, and perhaps 
+(documentation GroceryStore EnglishLanguage "A &%RetailStore that sells &%Food, and perhaps 
 other items as well.")
 
 (=>
@@ -5798,7 +7043,22 @@ country, etc.")
       (instance ?AREA GeopoliticalArea)
       (equal ?CITIZENRY (CitizenryFn ?AREA))
       (equal ?POPULATION (ResidentFn ?AREA)))
-   (greaterThanOrEqualTo (CardinalityFn ?POPULATION) (CardinalityFn ?CITIZENRY)))
+   (greaterThanOrEqualTo ?POPULATION ?CITIZENRY))
+
+(instance PerCapitaFn BinaryFunction)
+(domain PerCapitaFn 1 Quantity)
+(domain PerCapitaFn 2 GeopoliticalArea)
+(range PerCapitaFn Quantity)
+(documentation PerCapitaFn EnglishLanguage "(&%PerCapitaFn ?AREA ?QUANTITY) denotes the 
+average amount of ?QUANTITY possessed by a resident of &%GeopoliticalArea 
+?AREA.")
+
+(=>
+   (equal (PerCapitaFn ?AREA ?QUANTITY1) ?QUANTITY2)
+   (exists (?POPULATION)
+      (and
+         (equal ?POPULATION (CardinalityFn (ResidentFn ?AREA)))
+         (equal ?QUANTITY2 (DivisionFn ?QUANTITY1 ?POPULATION)))))  
 
 (subclass CityDistrict GeopoliticalArea)
 (documentation CityDistrict EnglishLanguage "Any &%geopoliticalSubdivision of a &%City.")
@@ -5904,30 +7164,115 @@ government that sets and enforces foreign policy.")
 (documentation UnitedStatesDepartmentOfInterior EnglishLanguage "Manages and preserves public lands 
 and natural resources in the &%UnitedStates.")
 
-(documentation GovernmentSecretary EnglishLanguage "The class of &%Positions where the position holder 
-is head of an adminstrative department of &%Government.")
-(subclass GovernmentSecretary SkilledOccupation)
+;; NS: delete.
+;; (subclass SkilledOccupation Position)
 
-(instance SecretaryOfTheInterior GovernmentSecretary)
-(documentation SecretaryOfTheInterior EnglishLanguage "The head of the &%UnitedStatesDepartmentOfInterior.")
+;; NS: add.
+(subclass SkilledOccupation OccupationalRole)
+
+(documentation SkilledOccupation EnglishLanguage "Any &%Position which requires 
+learning a set of skills.")
 
 (=>
-   (occupiesPosition ?PERSON SecretaryOfTheInterior UnitedStatesDepartmentOfInterior)
-   (leader UnitedStatesDepartmentOfInterior ?PERSON))
+   (and
+      (instance ?OCCUPATION SkilledOccupation)
+      (attribute ?PERSON ?OCCUPATION))
+   (exists (?TRAINING)
+      (and
+         (instance ?TRAINING EducationalProcess)
+         (destination ?TRAINING ?PERSON)))) 
 
-(instance SecretaryOfTheTreasury GovernmentSecretary)
-(documentation SecretaryOfTheTreasury EnglishLanguage "The head of the United States Treasury Department.")
+
+;; NS: edit.
+(subclass ManualLabor OccupationalRole)
+(documentation ManualLabor EnglishLanguage "Any &%Position which involves manual 
+work.")
+
+(subclass UnskilledOccupation ManualLabor)
+
+(disjoint UnskilledOccupation SkilledOccupation)
+(documentation UnskilledOccupation EnglishLanguage "Any &%Position which does not 
+require learning a set of skills.") 
+
+(subclass OccupationalTrade SkilledOccupation)
+(subclass OccupationalTrade ManualLabor)
+(documentation OccupationalTrade EnglishLanguage "Any &%Position that involves skilled 
+manual work.")
+
+(subclass Profession SkilledOccupation)
+(disjoint Profession OccupationalTrade)
+(documentation Profession EnglishLanguage "Any occupation that requires at least a bachelor's
+degree.")
+
+;; NS: edit.
+(=>
+   (and
+      (or
+         (instance ?ROLE OccupationalTrade)
+         (instance ?ROLE Profession))
+      (holdsDuring ?T1 (attribute ?HUMAN ?ROLE)))
+   (exists (?FIELD)
+      (and
+         (instance ?FIELD FieldOfStudy)
+         (holdsDuring ?T1 (knows ?HUMAN ?FIELD)))))
+
+
+;; NS: edit.
+(documentation GovernmentSecretary EnglishLanguage "This
+&%Position &%Attribute describes a person who is head of an
+adminstrative department of &%Government.")
+
+;; NS: delete.  Redundant.
+;; (subclass GovernmentSecretary SkilledOccupation)
+
+;; NS: edit.  Renamed GovernmentOfficer to GovernmentPosition.
+;; NS: add.
+(instance GovernmentSecretary GovernmentPosition)
+
+;; NS: add.
+(instance SecretaryOfTheInterior GovernmentPosition)
+;; NS: edit.
+(subAttribute SecretaryOfTheInterior GovernmentSecretary)
+;; NS: edit.
+(documentation SecretaryOfTheInterior EnglishLanguage "This
+&%Position &%Attribute describes the head of the
+&%UnitedStatesDepartmentOfInterior.")
+
+;; NS: edit.
+(=>
+  (holdsDuring ?T1
+    (occupiesPosition ?PERSON SecretaryOfTheInterior UnitedStatesDepartmentOfInterior))
+  (holdsDuring ?T1
+    (leader UnitedStatesDepartmentOfInterior ?PERSON)))
+
+;; NS: add.
+(instance SecretaryOfTheTreasury GovernmentPosition)
+;; NS: edit.
+(subAttribute SecretaryOfTheTreasury GovernmentSecretary)
+;; NS: edit.
+(documentation SecretaryOfTheTreasury EnglishLanguage "This
+&%Position &%Attribute describes the head of the United
+States Treasury Department.")
 
 (subclass StateGovernment Government)
 (documentation StateGovernment EnglishLanguage "The class of &%Governments whose 
 jurisdictions are &%StateOrProvinces.")
 
-(=>
-   (instance ?GOVERNMENT StateGovernment)
-   (exists (?STATE)
-      (and
-         (instance ?STATE StateOrProvince)
-         (equal (GovernmentFn ?STATE) ?GOVERNMENT))))
+;; NS: delete.  This is just silly.  It will add two new terms
+;; during inference -- a skolemized StateOrProvince, P1, plus
+;; (GovernmentFn P1) -- neither of which can be usefully related
+;; to any other concepts.
+;; (=>
+;;    (instance ?GOVERNMENT StateGovernment)
+;;    (exists (?STATE)
+;;       (and
+;;          (instance ?STATE StateOrProvince)
+;;          (equal (GovernmentFn ?STATE) ?GOVERNMENT))))
+
+;; NS: add.
+(<=>
+  (instance ?STATE StateOrProvince)
+  (instance (GovernmentFn ?STATE) StateGovernment))
 
 (subclass CityGovernment Government)
 (documentation CityGovernment EnglishLanguage "&%CityGovernment is the class of 
@@ -6191,8 +7536,9 @@ and &%Hydrogen.")
 by distillation.")
 
 (subclass Alkaloid ChemicalBase)
+(subclass Alkaloid PlantSubstance)
 (subclass Alkaloid BiologicallyActiveSubstance)
-(documentation Alkaloid EnglishLanguage "A &%ChemicalBase found in some &%Plants that has 
+(documentation Alkaloid EnglishLanguage "A &%ChemicalBase found in &%Plants that has 
 physiological and psychological effects.")
 (=>
    (instance ?A Alkaloid)
@@ -6539,10 +7885,8 @@ that a &%Field may be very small, e.g. &%Lawn is a subclass of &%Field.")
          (instance ?TREE BotanicalTree)
          (located ?TREE ?FIELD)))))
 
-(subclass Lawn CultivatedLandArea)
 (subclass Lawn Field)
-(documentation Lawn EnglishLanguage "A &%CultivatedLandArea and &%Field 
-containing mowed &%Grass.")
+(documentation Lawn EnglishLanguage "A &%Field of cultivated and mowed &%Grass.")
 
 (=>
   (instance ?L Lawn)
@@ -6590,7 +7934,7 @@ of &%Earth.")
 all subregions of &%EarthsAtmosphere.")
 (=>
   (instance ?AR AtmosphericRegion)
-  (geographicSubregion ?AR EarthsAtmosphere))
+  (subRegion ?AR EarthsAtmosphere))
 
 (subclass Creek BodyOfWater)
 (subclass Creek StreamWaterArea)
@@ -6867,9 +8211,9 @@ and is produced by the sweat glands.")
          (instance ?PART SodiumChloride)
          (part ?PART ?SWEAT))))
 
-(subclass Leaf PlantAnatomicalStructure)
-(subclass Leaf Organ)
-(documentation Leaf EnglishLanguage "An &%Organ of &%Plants whose main purpose is 
+(subclass PlantLeaf PlantAnatomicalStructure)
+(subclass PlantLeaf Organ)
+(documentation PlantLeaf EnglishLanguage "An &%Organ of &%Plants whose main purpose is 
 photosynthesis.")
 
 (subclass PlantBranch PlantAnatomicalStructure)
@@ -7091,10 +8435,9 @@ their initial period of life.")
          (instrument ?PROCESS ?MAMMAL)
          (result ?PROCESS ?MILK))))
 
-(subclass Tea Beverage)
-(subclass Tea PreparedFood)
-(documentation Tea EnglishLanguage "A &%Beverage which is prepared by infusing tea leaves 
-into hot water.")
+(subclass CellNucleus OrganicObject)
+(documentation CellNucleus EnglishLanguage "The part of the &%Cell that contains DNA and 
+RNA.")
 
 (=>
    (instance ?NUCLEUS CellNucleus)
@@ -7102,6 +8445,11 @@ into hot water.")
       (and
          (instance ?CELL Cell)
          (part ?NUCLEUS ?CELL))))
+
+(subclass Tea Beverage)
+(subclass Tea PreparedFood)
+(documentation Tea EnglishLanguage "A &%Beverage which is prepared by infusing tea leaves 
+into hot water.")
 
 (subclass AlcoholicBeverage Beverage)
 (subclass AlcoholicBeverage Depressant)
@@ -7703,6 +9051,7 @@ make up the supporting structure of many &%Invertebrates.")
 (subclass Airway Transitway)
 (documentation Airway EnglishLanguage "The class of Transitways used to transport Air 
 to a location where it is absent or insufficient.")
+
 (subclass Throat AnimalAnatomicalStructure)
 (subclass Throat BodyVessel)
 (subclass Throat Airway)
@@ -8512,6 +9861,21 @@ expressing disapproval with an utterance rather than a &%Gesture, etc.")
 (subclass TonalLanguage SpokenHumanLanguage)
 (documentation TonalLanguage EnglishLanguage "Any &%SpokenHumanLanguage that uses pitch to 
 differentiate otherwise identical words, e.g. Chinese.")
+(subclass Thanking ExpressingInLanguage)
+(documentation Thanking EnglishLanguage "Any &%ExpressingInLanguage of appreciation to a person 
+for something that the person did in the past.")
+
+(=>
+   (and
+      (instance ?THANK Thanking)
+      (agent ?THANK ?AGENT)
+      (patient ?THANK ?THING)
+      (destination ?THANK ?PERSON))
+   (and
+      (instance ?PERSON Human)
+      (or
+         (holdsDuring (WhenFn ?THANK) (wants ?AGENT ?THING))
+         (holdsDuring (WhenFn ?THANK) (desires ?AGENT ?THING)))))
 
 (subclass Greeting Expressing)
 (documentation Greeting EnglishLanguage "Any instance of &%Expressing an acknowledgment of a 
@@ -9409,13 +10773,6 @@ instance, of &%ContentBearingPhysical.  Thus, the title
 Murder_on_the_Orient_Express corresponds to a large class of &%Books,
 and not just to a single copy of the book.")
 
-(documentation brandName EnglishLanguage "(brandName ?NAME ?PRODUCT) means that ?NAME 
-is the brand name for the product class ?PRODUCT, e.g. Cheerios is the 
-brand name for a certain class of breakfast cereal.")
-(domain brandName 2 Product)
-(subrelation brandName names)
-(domain brandName 1 SymbolicString)
-
 (documentation formerName EnglishLanguage "(formerName ?NAME ?THING) means that the 
 string ?NAME is a name formerly used for ?THING.")
 (subrelation formerName names)
@@ -9475,6 +10832,12 @@ observations.")
 (subclass Message FactualText)
 (documentation Message EnglishLanguage "A &%FactualText which is intended to be delivered to 
 and read by a &%Human, &%GroupOfPeople or &%Organization.")
+
+(subclass Report FactualText)
+(subclass Report Article)
+(documentation Report EnglishLanguage "A relatively brief &%FactualText, often it 
+describes the findings of a study or experiment, or a series of 
+observations.")
 
 (subclass Newspaper Periodical)
 (documentation Newspaper EnglishLanguage "A &%Periodical that is published on a daily or 
@@ -9609,6 +10972,11 @@ as &%DramaticActing.")
       (instance ?OPERA Opera)
       (realization ?ACT ?OPERA))
    (instance ?ACT Music))
+
+(instance EnglishLanguage NaturalLanguage)
+(documentation EnglishLanguage EnglishLanguage "A Germanic language that incorporates many roots 
+from the Romance languages.  It is the official language of the &%UnitedStates, 
+the &%UnitedKingdom, and many other countries.")
 
 (instance FrenchLanguage SpokenHumanLanguage)
 (instance FrenchLanguage NaturalLanguage)
@@ -10133,6 +11501,12 @@ normally sit and entertain guests")
 (subclass Kitchen KitchenArea)
 (documentation Kitchen EnglishLanguage "A &%Room intended for &%Cooking.")
 
+(=>
+   (instance ?ROOM Kitchen)
+   (hasPurpose ?ROOM (exists (?COOK)
+                        (and
+                           (instance ?COOK Cooking)
+                           (located ?COOK ?ROOM)))))
 
 (subclass DiningArea Region)
 (documentation DiningArea EnglishLanguage "a &%DiningArea refers to a 
@@ -11211,17 +12585,6 @@ indicates that he has the right to drive a certain class of &%RoadVehicle.")
 (subclass InsurancePolicy Certificate)
 (documentation InsurancePolicy EnglishLanguage "A &%Certificate that states the terms of an 
 insurance contract.")
-
-(subclass Telephoning Speaking)
-(documentation Telephoning EnglishLanguage "Any instance of &%Speaking where the 
-&%instrument of &%Communication is a &%Telephone.")
-
-(=>
-   (instance ?TEL Telephoning)
-   (exists (?DEVICE)
-      (and
-         (instance ?DEVICE Telephone)
-         (instrument ?TEL ?DEVICE))))
 
 (subclass EconomicRelation BinaryRelation)
 (documentation EconomicRelation EnglishLanguage "A class of &%Relations which are used 
@@ -12581,33 +13944,42 @@ a rope wound around the neck until asphyxiation occurs.")
 (subclass Starving Killing)
 (documentation Starving EnglishLanguage "&%Killing someone by depriving them of &%Food.")
 
-(subclass OrchestralConducting Guiding)
-(documentation OrchestralConducting EnglishLanguage "The &%Process of directing an orchestra.")
+(subclass MusicalConducting Guiding)
 
+;; NS: edit.
+(documentation MusicalConducting EnglishLanguage "An &%instance
+of &%MusicalConducting is a &%Guiding in which the
+patient (entity guided) is a &%Musician or a &%MusicalGroup.")
+
+;; NS: edit.
 (=>
-   (instance ?CONDUCT OrchestralConducting)
+   (instance ?CONDUCT MusicalConducting)
    (exists (?MUSIC)
       (and
-         (instance ?MUSIC Music)
-         (result ?CONDUCT ?MUSIC))))
+         (instance ?MUSIC MusicalPerformance)
+         (subProcess ?CONDUCT ?MUSIC))))
 
+;; NS: edit.
 (=>
    (and
-      (instance ?CONDUCT OrchestralConducting)
-      (patient ?CONDUCT ?ORCHESTRA))
-   (instance ?ORCHESTRA Orchestra))
+      (instance ?CONDUCT MusicalConducting)
+      (patient ?CONDUCT ?PATIENT))
+   (or
+     (instance ?PATIENT MusicalGroup)
+     (holdsDuring (WhenFn ?CONDUCT) (attribute ?PATIENT Musician))))
 
 
 (subclass MusicalGroup GroupOfPeople)
 (documentation MusicalGroup EnglishLanguage "A &%GroupOfPeople that create &%Music 
 together.")
 
-(=>
-   (instance ?ORCHESTRA Orchestra)
-   (hasPurpose ?ORCHESTRA (exists (?MUSIC)
-                             (and
-                                (instance ?MUSIC Music)
-                                (agent ?MUSIC ?ORCHESTRA)))))
+;; NS. delete.  See the more specific, nearly identical version below.
+;; (=>
+;;    (instance ?ORCHESTRA Orchestra)
+;;    (hasPurpose ?ORCHESTRA (exists (?MUSIC)
+;;                              (and
+;;                                 (instance ?MUSIC Music)
+;;                                 (agent ?MUSIC ?ORCHESTRA)))))
 
 (subclass Orchestra MusicalGroup)
 (documentation Orchestra EnglishLanguage "A &%GroupOfPeople that create &%InstrumentalMusic 
@@ -12959,13 +14331,14 @@ the &%TheaterProfession, &%FilmMakingProfession, being a comedian, etc.")
     (instance ?P SportsPosition))
   (instance ?O SportsTeam))
 
-(subclass GovernmentOfficer Profession)
-(documentation GovernmentOfficer EnglishLanguage "Any &%Profession where the position occupied 
-is within a &%GovernmentOrganization.")
+(subclass GovernmentPosition Profession)
+(documentation GovernmentPosition EnglishLanguage "Any
+&%Profession where the position occupied is within a
+&%GovernmentOrganization.")
 
 (=>
   (and
-    (instance ?O GovernmentOfficer)
+    (instance ?O GovernmentPosition)
     (occupiesPosition ?P ?O ?ORG))
   (instance ?ORG GovernmentOrganization))
 
@@ -12984,9 +14357,40 @@ events.")
 (documentation ModellingPosition EnglishLanguage "Any &%Position which involves posing for an 
 artist or photographer.")
 
-(instance Soldier SkilledOccupation)
-(documentation Soldier EnglishLanguage "The class of &%SkilledOccupations which involve serving in 
-the armed forces of a &%Nation.")
+;; NS: edit.
+
+(instance Soldier GovernmentPosition)
+;; NS: edit.
+(documentation Soldier EnglishLanguage "This &%Attribute
+describes someone serving in the armed forces of a
+&%Nation.")
+
+;; NS: edit.
+(instance RedcoatSoldier GovernmentPosition)
+;; NS: add.
+(subAttribute RedcoatSoldier Soldier)
+;; NS: edit.
+(documentation RedcoatSoldier EnglishLanguage "This
+&%Attribute describes a &%Soldier who served with the
+British (Loyalists) during the American Revolutionary War.")
+
+;; NS: edit.
+(instance ConfederateSoldier GovernmentPosition)
+;; NS: add.
+(subAttribute ConfederateSoldier Soldier)
+;; NS: edit.
+(documentation ConfederateSoldier EnglishLanguage "This
+&%Attribute describes a &%Soldier who served on the
+Confederate side during the American Civil War.")
+
+;; NS: edit.
+(instance UnionSoldier GovernmentPosition)
+;; NS: add.
+(subAttribute UnionSoldier Soldier)
+;; NS: edit.
+(documentation UnionSoldier EnglishLanguage "This
+&%Attribute describes a &%Soldier who served on the Union
+side during the American Civil War.")
 
 (instance Sailor SkilledOccupation)
 (documentation Sailor EnglishLanguage "The class of &%Positions which involve working on a 
@@ -13012,11 +14416,24 @@ that tried to secede from the &%UnitedStates.")
 (documentation UnionStatesOfAmerica EnglishLanguage "The states of the &%UnitedStates that the 
 &%ConfederateStatesOfAmerica seceded from.")
 
-(subAttribute MilitaryPrivate Soldier)
-(documentation MilitaryPrivate EnglishLanguage "An enlisted &%Soldier of the lowest rank.")
 
+;; NS: add.
+(instance MilitaryPrivate GovernmentPosition)
+;; NS: edit.
+(subAttribute MilitaryPrivate Soldier)
+;; NS: edit.
+(documentation MilitaryPrivate EnglishLanguage "This
+&%Attribute describes an enlisted &%Soldier of the lowest
+rank.")
+
+;; NS: edit.
 (subAttribute MilitaryOfficer Soldier)
-(documentation MilitaryOfficer EnglishLanguage "The class of &%Soldiers who have authority or command.")
+;; NS: add.
+(instance MilitaryOfficer GovernmentPosition)
+;; NS: edit.
+(documentation MilitaryOfficer EnglishLanguage "This
+&%Attribute describes a &%Soldier who has command
+authority.")
 
 (=>
    (instance ?OFFICER MilitaryOfficer)
@@ -13029,30 +14446,52 @@ that tried to secede from the &%UnitedStates.")
             (instance ?PATIENT MilitaryOrganization)
             (instance ?PATIENT Soldier)))))
 
+;; NS: add.
+(subAttribute MilitaryGeneral MilitaryOfficer)
+;; NS: edit.
 (subAttribute MajorGeneral MilitaryGeneral)
+;; NS: add.
+(instance MajorGeneral GovernmentPosition)
 (documentation MajorGeneral EnglishLanguage "A &%MilitaryGeneral that ranks above a 
 &%BrigadierGeneral.")
 
+;; NS: edit.
 (subAttribute BrigadierGeneral MilitaryGeneral)
+;; NS: add.
+(instance BrigadierGeneral GovernmentPosition)
 (documentation BrigadierGeneral EnglishLanguage "A &%MilitaryGeneral that ranks below 
 a &%MajorGeneral.")
 
+;; NS: edit.
 (subAttribute Lieutenant MilitaryOfficer)
+;; NS: add.
+(instance Lieutenant GovernmentPosition)
 (documentation Lieutenant EnglishLanguage "A commissioned &%MilitaryOfficer.")
 
+;; NS: edit.
 (subAttribute CaptainOfficer MilitaryOfficer)
+;; NS: add.
+(instance CaptainOfficer GovernmentPosition)
 (documentation CaptainOfficer EnglishLanguage "A commissioned &%MilitaryOfficer who ranks 
 above a &%Lieutenant but below a &%MajorOfficer.")
 
+;; NS: edit.
 (subAttribute Colonel MilitaryOfficer)
+;; NS: add.
+(instance Colonel GovernmentPosition)
 (documentation Colonel EnglishLanguage "A commissioned &%MilitaryOfficer who ranks above 
 a lieutenant colonel and below a brigadier general.")
 
-(subAttribute Corporal MilitaryOfficer)
-(documentation Corporal EnglishLanguage "A noncomissioned &%MilitaryOfficer.")
-
 (subAttribute Sergeant MilitaryOfficer)
+;; NS: add.
+(instance Sergeant GovernmentPosition)
 (documentation Sergeant EnglishLanguage "A noncomissioned &%MilitaryOfficer.")
+
+;; NS: edit.
+(subAttribute Corporal MilitaryOfficer)
+;; NS: add.
+(instance Corporal GovernmentPosition)
+(documentation Corporal EnglishLanguage "A noncomissioned &%MilitaryOfficer.")
 
 (instance CenturyDuration UnitOfDuration)
 (documentation CenturyDuration EnglishLanguage "The &%TimeDuration of 100 years.")
@@ -14116,7 +15555,9 @@ is used as food for &%DomesticAnimals.")
 This class includes gazelles, addax, blackbucks, etc.")
 
 (subclass Buffalo HoofedMammal)
-(disjoint Buffalo DomesticAnimal)
+;; NS: delete.  Buffalo is neither disjoint from
+;; DomesticAnimal, nor a subclass of DomesticAnimal.
+;; (disjoint Buffalo DomesticAnimal)
 (documentation Buffalo EnglishLanguage "A &%HoofedMammal with long hair whose habitat is the 
 plains of &%NorthAmerica.")
 
@@ -14277,18 +15718,36 @@ that make up the external covering of &%Birds.")
       (part ?F ?B))))
 
 (instance meatOfAnimal BinaryRelation)
-(documentation meatOfAnimal EnglishLanguage "(meatOfAnimal ?MEATCLASS ?ANIMALCLASS) states
-that ?MEATCLASS was once part of the class of &%Animal ?ANIMALCLASS)")
+
+;; NS: edit.
+(documentation meatOfAnimal EnglishLanguage "(&%meatOfAnimal
+?MEATCLASS ?ANIMALCLASS) means that every instance of ?MEATCLASS
+was once part of some instance of ?ANIMALCLASS.")
 (domainSubclass meatOfAnimal 1 Meat)
 (domainSubclass meatOfAnimal 2 Animal)
+
+;; NS: delete.
+;; (=>
+;;   (meatOfAnimal ?MEAT ?ANIMAL)
+;;   (exists (?TIME ?A)
+;;     (and
+;;       (instance ?A ?ANIMAL)
+;;       (instance ?M ?MEAT)
+;;       (during ?TIME (WhenFn ?A))
+;;       (part ?MEAT ?A))))
+
+;; NS: add.  Here we're using &%part in a "substance" sense.
+;; Note that &%material takes a subclass of &%Substance as its
+;; first argument, and so is not useful here.
 (=>
-  (meatOfAnimal ?MEAT ?ANIMAL)
-  (exists (?TIME ?A ?M)
+  (and
+    (meatOfAnimal ?MEAT ?ANIMAL)
+    (instance ?M ?MEAT))
+  (exists (?TIME ?A)
     (and
       (instance ?A ?ANIMAL)
-      (instance ?M ?MEAT)
-      (during ?TIME (WhenFn ?A))
-      (holdsDuring ?TIME
+      (finishes ?TIME (WhenFn ?A))
+      (holdsDuring ?TIME 
         (part ?M ?A)))))
 
 (subclass Beef Meat)
@@ -14461,21 +15920,41 @@ in &%Restaurant that brings food from the kitchen to the customer's table")
         (patient ?C ?FOOD)
         (instance ?FOOD Food)))))
 
+;; NS: edit.
 (instance Maid ServicePosition)
-(documentation Maid EnglishLanguage "Any &%ServicePosition where various needs of a person 
-or family are served over a long period of time.  Note that these &%Positions 
-are, by definition, filled only by &%Women.")
 
-(=>
-  (attribute ?MAID Maid)
-  (instance ?MAID Woman))
+;; NS: deleted for now, since ServicePosition is a subclass
+;; of SkilledOccupation, and so is disjoint from
+;; UnskilledOccupation.
+;; (instance Maid UnskilledOccupation)
 
+;; NS: delete.
+;; (documentation Maid EnglishLanguage "Any &%ServicePosition where various needs of a person 
+;; or family are served over a long period of time.  Note that these &%Positions 
+;; are, by definition, filled only by &%Women.")
+
+;; NS: delete.
+;; (documentation Maid EnglishLanguage "A &%Position which involves &%Serving a person 
+;; or family.  Note that this &%Position is filled only by a &%Woman.")
+
+;; NS: add.
+(documentation Maid EnglishLanguage "This &%Attribute
+describes a &%Woman who works in a &%ServicePosition that
+entails performing various domestic tasks (cleaning,
+cooking, child care) for an individual or family over an
+extended period of time, typically months or years.")
+
+;; NS: TO DO: Review and edit all instances of
+;; SkilledOccupation, UnskilledOccupation.
+
+;; NS: edit.
 (=>
-  (attribute ?MAID Maid)
-  (exists (?SERVE)
-    (and
-      (instance ?SERVE Serving)
-      (agent ?SERVE ?MAID))))       
+   (holdsDuring ?T1 (attribute ?MAID Maid))
+   (exists (?SERVE)
+      (and
+         (during ?SERVE ?T1)
+         (instance ?SERVE Serving)
+         (agent ?SERVE ?MAID))))
 
 (subclass Janitor UnskilledOccupation)
 (documentation Janitor EnglishLanguage "Any &%Position which involves cleaning a &%Building 
@@ -14487,13 +15966,22 @@ or some of the &%Rooms within a &%Building.")
     (attribute ?P ?J))
   (occupation ?P (OccupationFn Washing)))
 
-(instance TheaterProfession SkilledOccupation)
-(subclass TheaterProfession EntertainmentProfession)
-(documentation TheaterProfession EnglishLanguage "Often know as the stage, the 
-&%Position of performing live plays.")
+;; NS: delete.
+;; (instance TheaterProfession SkilledOccupation)
 
+(subclass TheaterProfession EntertainmentProfession)
+
+;; NS: edit.
+(documentation TheaterProfession EnglishLanguage "Instances
+of this &%Class describe the &%Positions of people whose
+work involves putting on plays (theatrical performanes).")
+
+;; NS: edit.
 (instance FilmDirector FilmMakingProfession)
-(documentation FilmDirector EnglishLanguage "&%Positions which involve directing &%MotionPictures.")
+;; NS: edit.
+(documentation FilmDirector EnglishLanguage "A &%Position that
+describes a person who directs &%MotionPictures as a
+profession.")
 
 (subclass FilmMaking ContentDevelopment)
 (documentation FilmMaking EnglishLanguage "&%ContentDevelopment where the result is a 
@@ -14516,18 +16004,25 @@ i.e. acting in films, directing films, producing films, etc.")
     (attribute ?H ?P))
   (occupation ?H (OccupationFn FilmMaking)))
 
+;; NS: edit.
 (instance FilmProducer FilmMakingProfession)
-(documentation FilmProducer EnglishLanguage "&%Positions which involve producing &%MotionPictures, 
-i.e arranging the financing for the &%MotionPicture and supervising its production.")
+;; NS: edit.
+(documentation FilmProducer EnglishLanguage "A &%Position that
+describes a person who produces &%MotionPictures as a profession,
+i.e., who arranges the financing for a &%MotionPicture and
+supervises its production.")
 
 (instance Coach SkilledOccupation)
 (documentation Coach EnglishLanguage "Any occupation that involves training an athlete or a 
 sports team.")
 
+;; NS: edit.
 (instance GameReferee SkilledOccupation)
-(documentation GameReferee EnglishLanguage "A position which involves adjudicating contested 
-&%Maneuvers in a &%Game, i.e. deciding whether or not the &%Maneuvers are 
-permitted by the rules of the &%Game.")
+;; NS: edit.
+(documentation GameReferee EnglishLanguage "This &%Attribute
+describes a person who adjudicates &%Maneuvers in a &%Game, i.e.,
+who decides whether or not the &%Maneuvers are permitted by the
+rules of the &%Game.")
 
 (subclass OccupationalTrade SkilledOccupation)
 (subclass OccupationalTrade ManualLabor)
@@ -14616,33 +16111,51 @@ degree.")
    (instance ?O ReligiousOrganization))
 
 (instance Cleric Profession)
+;; NS: edit.
 (instance Cleric ReligiousPosition)
-(documentation Cleric EnglishLanguage "The &%Profession of being in charge of or ministering 
-to a &%ReligousOrganization.")
+(documentation Cleric EnglishLanguage "The &%Profession of
+being in charge of or ministering to a
+&%ReligousOrganization.")
 
-(<=>
-   (occupiesPosition ?PERSON Cleric ?ORG)
-   (and
-      (leader ?ORG ?PERSON)
-      (instance ?ORG ReligiousOrganization)))
+;; NS: delete.  Not even good as a default.
+;; (<=>
+;;    (occupiesPosition ?PERSON Cleric ?ORG)
+;;    (and
+;;       (leader ?ORG ?PERSON)
+;;       (instance ?ORG ReligiousOrganization)))
 
 (instance Deacon ReligiousPosition)
 (instance Deacon PartTimePosition)
-(documentation Deacon EnglishLanguage "Any &%Position within a &%ReligiousOrganization that is held 
-by a layman, which is part-time, and which involves assisting a &%Cleric.")
+(documentation Deacon EnglishLanguage "Any &%Position within
+a &%ReligiousOrganization that is held by a layman, which is
+part-time, and which involves assisting a &%Cleric.")
+
+;; NS: delete.
+;; (=>
+;;   (instance ?D Deacon)
+;;   (exists (?O ?C)
+;;     (and
+;;       (instance ?O ReligiousOrganization)
+;;       (instance ?C Cleric)
+;;       (subordinateInOrganization ?O ?D ?C))))
+
+;; NS: add.  Barely adequate as a default, probably wrong in
+;; many cases.
 (=>
-  (instance ?D Deacon)
-  (exists (?O ?C)
+  (holdsDuring ?TIME 
     (and
-      (instance ?O ReligiousOrganization)
-      (instance ?C Cleric)
-      (subordinateInOrganization ?O ?D ?C))))
+      (occupiesPosition ?PERSON Deacon ?ORG)
+      (instance ?ORG ReligiousOrganization)))
+  (exists (?C)
+    (holdsDuring ?TIME
+      (and
+        (occupiesPosition ?C Cleric ?ORG)
+        (subordinateInOrganization ?ORG ?PERSON ?C)))))
 
 (instance PoliceOfficer Profession)
-(instance PoliceOfficer GovernmentOfficer)
+(instance PoliceOfficer GovernmentPosition)
 (documentation PoliceOfficer EnglishLanguage "The &%Profession of being a police officer, i.e. 
 working for a law enforcement agency that is part of a &%Government.")
-
 (=>
   (attribute ?P PoliceOfficer)
   (hasSkill PlacingUnderArrest ?P))
@@ -14664,9 +16177,11 @@ the decisions of a law court.")
 (documentation Deputy EnglishLanguage "A &%Position which authorizes the holder of the position 
 to act as the sheriff when the sheriff is not available.")
 
-(instance Coroner GovernmentOfficer)
-(documentation Coroner EnglishLanguage "A &%GovernmentOfficer who investigates deaths that are 
-suspected of being due to something other than natural causes.")
+(instance Coroner GovernmentPosition)
+(documentation Coroner EnglishLanguage "A
+&%GovernmentPosition who investigates deaths that are
+suspected of being due to something other than natural
+causes.")
 
 (subAttribute PoliceDetective PoliceOfficer)
 (documentation PoliceDetective EnglishLanguage "The &%Profession of being a police 
@@ -14679,16 +16194,21 @@ investigation of crimes.")
 i.e. a detective who can be hired for a fee to investigate something.")
 
 (instance Attorney Profession)
-(documentation Attorney EnglishLanguage "The &%Profession of practicing law, whether as a 
-judge or as a legal advocate.")
+;; NS: edit.
+(documentation Attorney EnglishLanguage "This &%Attribute
+describes a person whose &%Profession is the practice of law,
+whether as a &%Judge or as a legal advocate.")
 (=>
   (attribute ?P Attorney)
   (hasExpertise ?P FieldOfLaw))
 
 (subAttribute AttorneyGeneral Attorney)
-(instance AttorneyGeneral GovernmentOfficer)
-(documentation AttorneyGeneral EnglishLanguage "The head law officer of a &%GeopoliticalArea, 
-usually a &%Nation or &%StateOrProvince.")
+(instance AttorneyGeneral GovernmentPosition)
+;; NS: edit.
+(documentation AttorneyGeneral EnglishLanguage "This &%Attribute
+designates the chief law officer of a &%GeopoliticalArea, usually
+a &%Nation or &%StateOrProvince.")
+
 
 (subAttribute PublicDefender Attorney)
 (instance PublicDefender GovernmentOfficer)
@@ -14908,8 +16428,11 @@ and applications of electron emissions.")
 (instance Theology FieldOfStudy)
 (documentation Theology EnglishLanguage "The systematic study of religion.")
 (=>
-  (instance ?Y ReligiousProcess)
-  (refers Theology ?Y))
+  (instance ?X Theology)
+  (exists (?Y)
+    (and
+      (instance ?Y ReligiousProcess)
+      (refers ?X ?Y))))
 
 (instance MilitaryScience FieldOfStudy)
 (documentation MilitaryScience EnglishLanguage "The study of the principles of war.")
@@ -15530,7 +17053,7 @@ is often to gather information helpful to a rival organization.")
 (documentation Kidnapping EnglishLanguage "An event in which one agent keeps another
 against his or her will, in order to force it or a third agent to 
 accede to some demand.  The kidnapped party is normally removed from
-the location where first attacked.  In contrast to a &%HotageTaking,
+the location where first attacked.  In contrast to a &%HostageTaking,
 a kidnapping normally involves an attack on one, or a very small 
 number of people, such as a couple.")
 
@@ -15854,7 +17377,8 @@ although not necessarily, paved and intended for cars.")
 (subclass OccupationalRole Position)
 (documentation OccupationalRole EnglishLanguage "A &%Role of a &%Human in a &%OrganizationalProcess.")
 
-(subclass Civilian SocialRole)
+;; NS: edit.
+(instance Civilian SocialRole)
 (documentation Civilian EnglishLanguage "Someone who is not a member of an active
 &%MilitaryOrganization.")
 
@@ -15950,19 +17474,20 @@ driving the vehicles intend to reach a point but fail to do so.")
 
 (instance Diplomat OccupationalRole)
 (subAttribute Diplomat GovernmentPerson)
-(documentation Diplomat EnglishLanguage "A person who works as a facilitator for communication
-between countries, in the official employ of one of the countries.")
+(documentation Diplomat EnglishLanguage "A person who works as a
+facilitator for communication between countries, in the official
+employ of one of the countries.")
 
 (instance Dissident SocialRole)
-(subAttribute Dissident Civilian)
-(documentation Dissident EnglishLanguage "Someone who is opposed to the leadership
-of a particular country.  Typically, a dissident suffers punishment
-at the hands of the country whose leadership he is opposing.")
+(documentation Dissident EnglishLanguage "Someone who is opposed
+to the leadership of a particular country.  Typically, a
+dissident suffers punishment at the hands of the country whose
+leadership he is opposing.")
 
 (subclass EmbassyBuilding GovernmentBuilding)
-(documentation EmbassyBuilding EnglishLanguage "An embassy is a &%Building that is owned by a
-&%Government to house its diplomatic and consular staff that is in 
-another country.")
+(documentation EmbassyBuilding EnglishLanguage "An embassy is a
+&%Building that is owned by a &%Government to house its
+diplomatic and consular staff that is in another country.")
 
 (=>
   (instance ?X EmbassyBuilding)
@@ -16016,31 +17541,32 @@ purpose of entertaining people.")
       (instance ?GOV Government)
       (holdsDuring ?T1 (employs ?GOV ?X)))))
 
-(subclass Hotel TemporaryResidence)
-(subclass Hotel Building)
-(documentation Hotel EnglishLanguage "A building which servers the purpose of a temporary
-home for people, either for people who are travelling, or occasionally for
-those who do not have another more permanent residence.  A hotel is 
-distinguished from a homeless shelter, or a residence loaned to a friend
-in that the primary purpose of the building is to generate revenue in
-return for the priviledge of staying there.  Many hotels contains other 
-facilities such as &%Restaurants or health clubs or even miscellaneous stores
-although that is not their primary business or purpose.")
+;; KJN: Moved Hotel definition to Hotel.kif
+;; (subclass Hotel Building)
+;; (documentation Hotel EnglishLanguage "A building which servers the purpose of a temporary
+;; home for people, either for people who are travelling, or occasionally for
+;; those who do not have another more permanent residence.  A hotel is 
+;; distinguished from a homeless shelter, or a residence loaned to a friend
+;; in that the primary purpose of the building is to generate revenue in
+;; return for the priviledge of staying there.  Many hotels contains other 
+;; facilities such as &%Restaurants or health clubs or even miscellaneous stores
+;; although that is not their primary business or purpose.")
         
-(=>
-  (instance ?X Hotel)
-  (hasPurpose ?X
-    (exists (?OWN ?EMP ?EV ?P ?PAY)
-      (and
-        (employs ?OWN ?EMP)
-        (possesses ?OWN ?X)
-        (instance ?P Human)
-        (instance ?PAY FinancialTransaction)
-        (agent ?PAY ?P)
-        (patient ?PAY ?EMP)
-        (confersRight ?EMP ?EV ?P)
-        (agent ?EV ?P)
-        (eventLocated ?EV ?X)))))
+;;(=>
+;;  (instance ?X Hotel)
+;;  (hasPurpose ?X
+;;    (exists (?OWN ?EMP ?EV ?P ?PAY)
+;;      (and
+;;        (employs ?OWN ?EMP)
+;;        (possesses ?OWN ?X)
+;;        (instance ?P Human)
+;;        (instance ?PAY FinancialTransaction)
+;;       (agent ?PAY ?P)
+;;        (patient ?PAY ?EMP)
+;;       (confersRight ?EMP ?EV ?P)
+;;        (agent ?EV ?P)
+;;        (located ?EV ?X)))))
+
 
 (subclass Renting FinancialTransaction)
 (subclass Renting Borrowing)
@@ -16207,11 +17733,12 @@ and eat.  Some restaurants may also offer entertainment.")
       (patient ?EV ?X))))
       
 (subclass Subway Hole)
-(documentation Subway EnglishLanguage "A subway is a hollow area of the earth, typically
-under large cities, designed for running trains that move people. It is
-distinguished from other kinds of tunnels in that trains run through
-them, primarily for the purpose of carrying people rather than ore, for
-example.")
+(documentation Subway EnglishLanguage "A subway is a hollow
+area of the earth, typically under large cities, designed
+for running trains that move people. It is distinguished
+from other kinds of tunnels in that trains run through them,
+primarily for the purpose of carrying people rather than
+ore, for example.")
 (=>
   (instance ?X Subway)
   (exists (?SURF)
@@ -16230,9 +17757,10 @@ example.")
         (eventLocated ?EV ?X)))))
         
 (instance Tourist SocialRole)
-(documentation Tourist EnglishLanguage "A tourist is a person who is travelling to a 
-place primarily for reasons of entertainment or education, rather than
-business, although business transaction may take place during the trip.")
+(documentation Tourist EnglishLanguage "A tourist is a
+person who is travelling to a place primarily for reasons of
+entertainment or education, rather than business, although
+business transaction may take place during the trip.")
 
 (subclass TouristSite GeographicArea)
 (documentation TouristSite EnglishLanguage "A tourist site is a location that has some
@@ -16247,11 +17775,13 @@ feature of interest to &%Tourists, which entertains or informs them.")
       (instance ?EV ViolentContest)
       (agent ?EV ?X))))
       
-(documentation TerroristOrganization EnglishLanguage "A group that uses violent means in an
-  attempt to bring about their political aims.  Those violent means are
-  distinguished from a war between nations, or a civil war in that the group
-  is at least partially clandestine and a significant proportion of its acts
-  are against non-military targets.")
+(documentation TerroristOrganization EnglishLanguage "A
+ group that uses violent means in an attempt to bring about
+ their political aims.  Those violent means are
+ distinguished from a war between nations, or a civil war in
+ that the group is at least partially clandestine and a
+ significant proportion of its acts are against non-military
+ targets.")
 
 (instance memberCount BinaryPredicate)
 (domain memberCount 1 Collection)
@@ -16497,10 +18027,11 @@ receiver of the service provided in ?EVENT.")
 (instance benefits AsymmetricRelation)
 (domain benefits 1 Process)
 (domain benefits 2 Agent)
-(documentation benefits EnglishLanguage "(&%benefits ?PROCESS ?AGENT) means that
-?AGENT somehow derives benefit as a result of ?PROCESS.  This is
-a very general relation, and does not entail that ?AGENT is a
-participant in ?PROCESS.")
+(documentation benefits EnglishLanguage "(&%benefits
+?PROCESS ?AGENT) means that ?AGENT somehow derives benefit
+as a result of ?PROCESS.  This is a very general relation,
+and does not entail that ?AGENT is a participant in
+?PROCESS.")
 
 ;; If a process benefits some agent, the process must begin
 ;; before the agent ends.  This is very weak.
@@ -16521,27 +18052,55 @@ instance of &%Organization) is responsible or accountable for
 actions or undertakings of type ?PROCESS-TYPE in the
 &%GeographicArea denoted by ?AREA.")
 
-(instance moves CaseRole)
-(domain moves 1 Motion)
-(domain moves 2 Object)
-(documentation moves EnglishLanguage "(&%moves ?MOTION ?OBJECT) means that during
-the &%Motion event ?MOTION, ?OBJECT moves.  This does not
-necessarily imply that the location of ?OBJECT changes during
-?MOTION.  See also &%changesLocation and &%Translocation.")
-(subrelation moves involvedInEvent)
+;; NS: edit.  move &%moves and &%changesLocation to Merge.kif.
+;; (instance moves CaseRole)
+;; (domain moves 1 Motion)
+;; (domain moves 2 Object)
+;; (documentation moves EnglishLanguage "(&%moves ?MOTION ?OBJECT) means that during
+;; the &%Motion event ?MOTION, ?OBJECT moves.  This does not
+;; necessarily imply that the location of ?OBJECT changes during
+;; ?MOTION.  See also &%changesLocation and &%Translocation.")
+;; (subrelation moves involvedInEvent)
 
-(instance changesLocation CaseRole)
-(domain changesLocation 1 Translocation)
-(domain changesLocation 2 Object)
-(documentation changesLocation EnglishLanguage "(&%changesLocation ?EVENT
-?OBJECT) means that during the &%Translocation event ?EVENT,
-?OBJECT's location changes.  ?OBJECT might also be the &%agent,
-&%patient, or &%experiencer of ?EVENT.")
-(subrelation changesLocation moves)
+;; (instance changesLocation CaseRole)
+;; (domain changesLocation 1 Translocation)
+;; (domain changesLocation 2 Object)
+;; (documentation changesLocation EnglishLanguage "(&%changesLocation ?EVENT
+;; ?OBJECT) means that during the &%Translocation event ?EVENT,
+;; ?OBJECT's location changes.  ?OBJECT might also be the &%agent,
+;; &%patient, or &%experiencer of ?EVENT.")
+;; (subrelation changesLocation moves)
 
 ;; ------------------------------------------------------
 ;; Social relationships
 
+;; acquaintance
+(instance acquaintance BinaryPredicate)
+
+(documentation acquaintance EnglishLanguage "(&%acquaintance ?H1 ?H2) means that ?H1 has
+met and knows something about ?H2, such as ?H2's name and appearance.
+Statements made with this predicate should be temporally specified with
+&%holdsDuring.  Note that &%acquaintance is not symmetric.  For the
+symmetric version, see &%mutualAcquaintance.")
+
+(domain acquaintance 1 Human)
+(domain acquaintance 2 Human)
+
+;; mutualAcquaintance
+(instance mutualAcquaintance BinaryPredicate)
+(instance mutualAcquaintance SymmetricRelation)
+
+(documentation mutualAcquaintance EnglishLanguage "(&%mutualAcquaintance ?H1 ?H2) means
+that ?H1 and ?H2 have met each other and know something about each other,
+such as name and appearance.  Statements made with this predicate should
+be temporally specified with &%holdsDuring.  See also the weaker,
+non-symmetric version of this predicate, &%acquaintance.")
+
+(domain mutualAcquaintance 1 Human)
+(domain mutualAcquaintance 2 Human)
+(subrelation mutualAcquaintance acquaintance)
+
+;; friend
 (instance friend BinaryPredicate)
 (instance friend SymmetricRelation)
 (instance friend IntentionalRelation)
@@ -16554,6 +18113,7 @@ mutual care and concern, and probably also share some common interests.")
 (domain friend 2 Human)
 (subrelation friend mutualAcquaintance)
 
+;; coworker
 (instance coworker BinaryPredicate)
 (instance coworker SymmetricRelation)
 
@@ -16575,6 +18135,7 @@ time at the same work location.")
                            (employs ?ORG ?H1)
                            (employs ?ORG ?H2))))))
 
+;; cohabitant
 (instance cohabitant BinaryPredicate)
 (instance cohabitant SymmetricRelation)
 (instance cohabitant IntentionalRelation)
@@ -16602,6 +18163,31 @@ means that during the time ?T1, ?H1 and ?H2 have the same home.")
                           (member ?UNIT ?H2))))
   (holdsDuring ?T1 (cohabitant ?H1 ?H2)))
 
+;; relative
+(instance relative BinaryPredicate)
+(instance relative SymmetricRelation)
+(domain relative 1 Organism)
+(domain relative 2 Organism)
+
+(documentation relative EnglishLanguage "(&%relative ?O1 ?O2) means that ?O1
+and ?O2 are relatives, whether through common ancestry (consanguinity),
+someone's marriage (affinity), or someone's adoption.  This definition is
+intentionally broad, so as to capture a wide array of `familial'
+relations.  The notion of who counts as `family' also varies between
+cultures, but that aspect of meaning is not addressed here.")
+
+(subrelation familyRelation relative)
+
+(=>
+ (and
+   (holdsDuring ?T1 (legalRelation ?A1 ?A2))
+   (instance ?A1 Organism)
+   (instance ?A2 Organism))
+ (holdsDuring ?T1  (relative ?A1 ?A2)))
+
+(subrelation spouse relative)
+
+;; grandparent
 (instance grandparent BinaryPredicate)
 (instance grandparent AsymmetricRelation)
 (domain grandparent 1 Human)
@@ -16776,6 +18362,7 @@ of ?PERSON, without also being the &%mother of ?PERSON.")
       (not 
         (mother ?P ?M)))))
 
+;; NuclearFamily
 (subclass NuclearFamily FamilyGroup)
 (subclass NuclearFamily SocialUnit)
 
@@ -16907,9 +18494,10 @@ the &%CaseRole predicate ?ROLE.")
 (domain locatedAtTime 2 TimePosition)
 (domain locatedAtTime 3 Object)
 
-(documentation locatedAtTime EnglishLanguage "(&%locatedAtTime ?OBJ ?TIME ?PLACE) means
-that during the time specified by ?TIME, ?OBJ was in the location
-specified by ?PLACE.")
+(documentation locatedAtTime
+EnglishLanguage "(&%locatedAtTime ?OBJ ?TIME ?PLACE) means
+that during the time specified by ?TIME, ?OBJ was in the
+location specified by ?PLACE.")
 
 (<=>
  (locatedAtTime ?OBJ ?TIME ?PLACE)
@@ -16940,12 +18528,13 @@ identity, when in fact it is not.")
 
 (instance stranger BinaryPredicate)
 
-(documentation stranger EnglishLanguage "(&%stranger ?H1 ?H2) means that ?H1 has
-not met ?H2, or, in other words, (&%not (&%acquaintance ?H1
-?H2)).  Statements made with &%stranger should be temporally
-specified with &%holdsDuring.  Note that &%stranger is not
-symmetric, meaning that ?H2 might know ?H1.  For the symmetric
-version, see &%mutualStranger.")
+(documentation stranger EnglishLanguage "(&%stranger ?H1
+?H2) means that ?H1 has not met ?H2, or, in other
+words, (&%not (&%acquaintance ?H1 ?H2)).  Statements made
+with &%stranger should be temporally specified with
+&%holdsDuring.  Note that &%stranger is not symmetric,
+meaning that ?H2 might know ?H1.  For the symmetric version,
+see &%mutualStranger.")
 
 (domain stranger 1 Human)
 (domain stranger 2 Human)
@@ -16964,6 +18553,7 @@ predicate, &%stranger.")
 (domain mutualStranger 1 Human)
 (domain mutualStranger 2 Human)
 (subrelation mutualStranger stranger)
+(subrelation spouse mutualAcquaintance)
 
 (disjointRelation mutualStranger mutualAcquaintance)
 
@@ -17361,17 +18951,6 @@ corresponding to &%part.")
       (holdsDuring (BeginFn (WhenFn ?WHOLE))
       (part ?PART ?WHOLE)))))
 
-(subclass Atrophy PathologicProcess)
-(subclass Atrophy Decreasing)
-(documentation Atrophy EnglishLanguage "Any decrease in the size of a &%BodyPart which is due to 
-disease or lack of use.")
-(=>
-  (instance ?A Atrophy)
-  (exists (?B)
-    (and
-      (experiencer ?A ?B)
-      (instance ?B BodyPart))))
-
 (subclass CausingHappiness Process)
 (documentation CausingHappiness EnglishLanguage "Any &%Process whose result is that the 
 patient of the process is happy.")
@@ -17407,44 +18986,6 @@ patient of the process is unhappy.")
     (holdsDuring 
       (EndFn (WhenFn ?C)) 
     (attribute ?P Unhappiness)))) 
-
-(subclass Bloating Increasing)
-(subclass Bloating PathologicProcess)
-(documentation Bloating EnglishLanguage "Any &%Process where the stomach or instestines of a 
-&%Human or &%Animal become distended from excessive gas.")
-(=>
-  (instance ?B Bloating)
-  (exists (?P ?S ?I ?G)
-    (and
-      (experiencer ?B ?P)
-      (instance ?G Gas)
-      (or
-        (and
-          (part ?I ?P)
-          (instance ?I Intestine)
-          (contains ?I ?G))
-        (and
-          (part ?S ?P)
-          (instance ?S Stomach)
-          (contains ?S ?G))))))
-
-(subclass TakingIll PathologicProcess)
-(documentation TakingIll EnglishLanguage "Any &%Process where the experiencer contracts a 
-&%DiseaseOrSyndrome.")
-
-(=>
-  (and
-    (instance ?T TakingIll)
-    (experiencer ?T ?A))
-  (exists (?D)
-    (and
-      (instance ?D DiseaseOrSyndrome)
-      (holdsDuring 
-        (BeginFn (WhenFn ?T)) 
-	(not (attribute ?A ?D)))
-      (holdsDuring 
-        (EndFn (WhenFn ?T)) 
-	(attribute ?A ?D)))))
 
 (subclass Lengthening Increasing)
 (documentation Lengthening EnglishLanguage "&%Increasing the length of something.")
@@ -17564,6 +19105,16 @@ which reduce the likelihood of conception.")
       (instance ?B Bird)
       (result ?SR ?E))))
 
+(subclass Biopsy DiagnosticProcess)
+(subclass Biopsy Removing)
+(documentation Biopsy EnglishLanguage "Any &%DiagnosticProcess which involves the examination of 
+&%BodySubstances taken from a living &%Organism.")
+(=>
+  (and
+    (instance ?B Biopsy)
+    (patient ?B ?BS))
+  (instance ?BS BodySubstance))
+
 (subclass Mating OrganismProcess)
 (documentation Mating EnglishLanguage "Any process of sexual intercourse between two &%Humans 
 or &%Animals.")
@@ -17668,8 +19219,10 @@ birthday is &%August 19th.")
 (domain birthday 2 Day)
 (subrelation birthday anniversary)
 
-(documentation birthplace EnglishLanguage "(birthplace ?INDIV ?PLACE) means that the &%Animal ?INDIV was born 
-at the location ?PLACE.  The location may be a geographic area or a building, such as a hospital.")
+(documentation birthplace EnglishLanguage "(birthplace
+?INDIV ?PLACE) means that the &%Animal ?INDIV was born at
+the location ?PLACE.  The location may be a geographic area
+or a building, such as a hospital.")
 (instance birthplace BinaryPredicate)
 (domain birthplace 1 Animal)
 (domain birthplace 2 Object)
@@ -17709,8 +19262,10 @@ at the location ?PLACE.  The location may be a geographic area or a building, su
       (experiencer ?D ?P)
       (date ?D ?T))))
 
-(documentation deathplace EnglishLanguage "(deathplace ?INDIV ?PLACE) means that the &%Animal ?INDIV died 
-at the location ?PLACE.  The location may be a geographic area or a building, such as a hospital.")
+(documentation deathplace EnglishLanguage "(deathplace
+?INDIV ?PLACE) means that the &%Animal ?INDIV died at the
+location ?PLACE.  The location may be a geographic area or a
+building, such as a hospital.")
 (instance deathplace BinaryPredicate)
 (domain deathplace 1 Animal)
 (domain deathplace 2 Object)
