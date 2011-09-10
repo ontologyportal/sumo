@@ -2094,6 +2094,7 @@ graphite.")
 ;; not behaving as it is intended to behave, &%Functioning and
 ;; &%Malfunctioning.")
 
+(subclass DeviceAttribute ObjectiveNorm)
 ;; NS: add.
 (documentation DeviceAttribute EnglishLanguage "This class
 contains &%Attributes that indicate how a &%Device is
@@ -3110,9 +3111,6 @@ which typically includes an &%instance of &%Speaking as a
         (agent ?TEL ?AGENT)
         (agent ?SPEAK ?AGENT)))))
 
-(subclass TelephoneLine WireLine)
-(documentation TelephoneLine EnglishLanguage "A &%WireLine that carries telephone signals and 
-allows users of &%Telephones or &%Telegraphs to communicate with one another.")
 
 (subclass Fax Communication)
 (documentation Fax EnglishLanguage "The communication of a printed page between remote locations.") 
@@ -3123,9 +3121,6 @@ allows users of &%Telephones or &%Telegraphs to communicate with one another.")
     (and
       (instance ?FaxMachine FaxMachine)
       (instrument ?Fax ?FaxMachine))))
-
-;; NS: add.  Device -> TelephonyDevice (in OntologyX.kif).
-(subclass FaxMachine TelephonyDevice)
 
 ;; NS: edit.
 (documentation FaxMachine EnglishLanguage "A &%FaxMachine is a
@@ -3139,14 +3134,7 @@ of status display.")
 ;; NS: delete.
 ;; (subrelation telephoneNumber uniqueIdentifier)
 
-(instance telephoneNumber BinaryPredicate)
-(instance telephoneNumber AsymmetricRelation)
-(domain telephoneNumber 1 SymbolicString)
-(domain telephoneNumber 2 Agent)
-(relatedInternalConcept telephoneNumber postAddress)
-(documentation telephoneNumber
-EnglishLanguage "(&%telephoneNumber ?NUMBER ?AGENT) means that
-?NUMBER is a telephone number at which ?AGENT can be contacted.")
+;; ?NUMBER is a telephone number at which ?AGENT can be contacted.")
 ;; NS: &%telephoneNumber is defined further in OntologyX.kif.
 ;;     &%postAddress is defined in OntologyX.kif.
 
@@ -4563,6 +4551,12 @@ all &%GeometricPoints that make up the &%Cylinder are equidistant from a
 (documentation ObliqueAngle EnglishLanguage "Any &%TwoDimensionalAngle that has an 
 &%angularMeasure that is greater than 90 &%AngularDegrees.")
 
+(=>
+  (and
+    (instance ?A ObliqueAngle)
+    (angularMeasure ?A (MeasureFn ?N AngularDegree)))
+  (greaterThan ?N 90))
+
 (subclass RightAngle TwoDimensionalAngle)
 (documentation RightAngle EnglishLanguage "Any &%TwoDimensionalAngle that has the 
 &%angularMeasure of 90 &%AngularDegrees.")
@@ -4603,6 +4597,16 @@ exclusively of straight lines, i.e. &%OneDimensionalFigures.")
    (instance ?TRIANGLE Triangle)
    (equal (CardinalityFn (KappaFn ?SIDE (sideOfFigure ?SIDE ?TRIANGLE))) 3))
 
+(subclass RightTriangle Triangle)
+(documentation RightTriangle EnglishLanguage "Any &%Triangle that contains a &%RightAngle.")
+
+(=>
+   (instance ?T RightTriangle)
+   (exists (?A)
+      (and
+         (instance ?A RightAngle)
+         (angleOfFigure ?A ?T))))
+   
 (subclass Quadrilateral Polygon)
 (documentation Quadrilateral EnglishLanguage "Any four-sided &%Polygon.")
 
@@ -4689,12 +4693,28 @@ diameter of the &%Circle ?CIRCLE.")
 (instance DiameterFn TotalValuedRelation)
 (domain DiameterFn 1 Circle)
 (range DiameterFn LengthMeasure)
+
+(=>
+  (equal (DiameterFn ?C) ?L)
+  (exists (?R)
+    (and
+      (equal (RadiusFn ?C) ?R)
+      (equal (MultiplicationFn ?R 2) ?L))))
+
+
 (documentation RadiusFn EnglishLanguage "(RadiusFn ?CIRCLE) denotes the length of the radius 
 of the &%Circle ?CIRCLE.")
 (instance RadiusFn UnaryFunction)
 (instance RadiusFn TotalValuedRelation)
 (domain RadiusFn 1 Circle)
 (range RadiusFn LengthMeasure)
+
+(=>
+  (and
+    (equal (CenterOfCircleFn ?C) ?P)
+    (pointOfFigure ?P2 ?C)
+    (geometricDistance ?P2 ?P ?R))
+  (equal (RadiusFn ?C) ?R))
 
 (subclass Sphere ThreeDimensionalFigure)
 (documentation Sphere EnglishLanguage "The class of &%ThreeDimensionalFigures such that 
@@ -5333,10 +5353,6 @@ caused by a single type of &%Microorganism.")
             (=>
                (attribute ?VICTIM ?DISEASE)
                (located ?AGENT ?VICTIM)))))))
-
-(subclass BacterialDisease InfectiousDisease)
-(documentation BacterialDisease EnglishLanguage "A disease that is caused by instances of 
-&%Bacterium.")
 
 (subclass InfectiousDisease DiseaseOrSyndrome)
 (documentation InfectiousDisease EnglishLanguage "Any &%DiseaseOrSyndrome that is caused by a 
@@ -7216,8 +7232,8 @@ degree.")
       (and
          (instance ?FIELD FieldOfStudy)
          (holdsDuring ?T1 (knows ?HUMAN ?FIELD)))))
-
-
+         
+     
 ;; NS: edit.
 (documentation GovernmentSecretary EnglishLanguage "This
 &%Position &%Attribute describes a person who is head of an
@@ -10131,38 +10147,6 @@ words, etc. of a song or other sort of &%Music.")
       (instance ?L Lyrics)
       (part ?L ?S))))
 
-(subclass DeviceAttribute ObjectiveNorm)
-(documentation DeviceAttribute EnglishLanguage "This class contains two &%Attributes to 
-indicate whether a &%Device is or is not behaving as it is intended to 
-behave, &%Functioning and &%Malfunctioning.")
-
-(=>
-   (and
-      (attribute ?DEVICE ?ATTRIBUTE)
-      (instance ?ATTRIBUTE DeviceAttribute))
-   (instance ?DEVICE Device))
-
-(instance Functioning DeviceAttribute)
-(contraryAttribute Functioning Malfunctioning)
-(documentation Functioning EnglishLanguage "Indicates that a &%Device is performing its 
-intended function.")
-
-(=>
-   (and
-      (attribute ?DEVICE Functioning)
-      (hasPurpose ?DEVICE ?PROP))
-   (truth ?PROP True))
-
-(instance Malfunctioning DeviceAttribute)
-(documentation Malfunctioning EnglishLanguage "Indicates that a &%Device is not performing 
-its intended function.")
-
-(=>
-   (and
-      (attribute ?DEVICE Malfunctioning)
-      (hasPurpose ?DEVICE ?PROP))
-   (truth ?PROP False))
-
 (instance LegislativeBill DeonticAttribute)
 (documentation LegislativeBill EnglishLanguage "The &%Attribute of being a proposed law, 
 i.e. being under consideration by a legislative body of &%Government.")
@@ -10823,12 +10807,6 @@ local area or language.")
 (instance localShortName BinaryPredicate)
 (domain localShortName 1 SymbolicString)
 (domain localShortName 2 Entity)
-
-(subclass Report FactualText)
-(subclass Report Article)
-(documentation Report EnglishLanguage "A relatively brief &%FactualText, often it 
-describes the findings of a study or experiment, or a series of 
-observations.")
 
 (subclass Message FactualText)
 (documentation Message EnglishLanguage "A &%FactualText which is intended to be delivered to 
@@ -15117,153 +15095,6 @@ associated &%Object is very breakable.")
 (documentation Unbreakable EnglishLanguage "An &%Attribute which indicates that the 
 associated &%Object cannot be broken under normal usage conditions.")
 
-(subclass RightAngle TwoDimensionalAngle)
-(documentation RightAngle EnglishLanguage "Any &%TwoDimensionalAngle that has the 
-&%angularMeasure of 90 &%AngularDegrees.")
-
-(=>
-   (instance ?A RightAngle)
-   (angularMeasure ?A (MeasureFn 90 AngularDegree)))
-
-(subclass AcuteAngle TwoDimensionalAngle)
-(documentation AcuteAngle EnglishLanguage "Any &%TwoDimensionalAngle that has an 
-&%angularMeasure that is less than 90 &%AngularDegrees.")
-(partition TwoDimensionalAngle RightAngle ObliqueAngle AcuteAngle)
-(=>
-  (and
-    (instance ?A AcuteAngle)
-    (angularMeasure ?A (MeasureFn ?N AngularDegree)))
-  (lessThan ?N 90))
-
-(subclass ObliqueAngle TwoDimensionalAngle)
-(documentation ObliqueAngle EnglishLanguage "Any &%TwoDimensionalAngle that has an 
-&%angularMeasure that is greater than 90 &%AngularDegrees.")
-
-(=>
-  (and
-    (instance ?A ObliqueAngle)
-    (angularMeasure ?A (MeasureFn ?N AngularDegree)))
-  (greaterThan ?N 90))
-
-(subclass Polygon ClosedTwoDimensionalFigure)
-(documentation Polygon EnglishLanguage "A &%ClosedTwoDimensionalFigure that is composed 
-exclusively of straight lines, i.e. &%OneDimensionalFigures.")
-
-(=>
-   (instance ?POLYGON Polygon)
-   (=>
-      (geometricPart ?PART ?POLYGON)
-      (or
-         (sideOfFigure ?PART ?POLYGON)
-         (exists (?SIDE)
-            (and
-               (sideOfFigure ?SIDE ?POLYGON)
-               (geometricPart ?PART ?SIDE))))))
-
-(subclass Triangle Polygon)
-(documentation Triangle EnglishLanguage "Any three-sided &%Polygon.")
-
-(=>
-   (instance ?TRIANGLE Triangle)
-   (equal (CardinalityFn (KappaFn ?SIDE (sideOfFigure ?SIDE ?TRIANGLE))) 3))
-
-(subclass RightTriangle Triangle)
-(documentation RightTriangle EnglishLanguage "Any &%Triangle that contains a &%RightAngle.")
-
-(=>
-   (instance ?T RightTriangle)
-   (exists (?A)
-      (and
-         (instance ?A RightAngle)
-         (angleOfFigure ?A ?T))))
-
-(subclass Quadrilateral Polygon)
-(documentation Quadrilateral EnglishLanguage "Any four-sided &%Polygon.")
-
-(=>
-   (instance ?QUAD Quadrilateral)
-   (equal (CardinalityFn (KappaFn ?SIDE (sideOfFigure ?SIDE ?QUAD))) 4))
-
-(subclass Rectangle Quadrilateral)
-(documentation Rectangle EnglishLanguage "Any &%Quadrilateral whose angles are all 
-&%RightAngles.")
-
-(=>
-   (instance ?RECTANGLE Rectangle)
-   (=>
-      (angleOfFigure ?ANGLE ?RECTANGLE)
-      (instance ?ANGLE RightAngle)))
-
-(subclass Square Rectangle)
-(documentation Square EnglishLanguage "Any &%Rectangle whose sides are all equal.")
-
-(=>
-   (instance ?SQUARE Square)
-   (exists (?LENGTH)
-      (forall (?SIDE)
-         (=>
-            (sideOfFigure ?SIDE ?SQUARE)
-            (lineMeasure ?SIDE ?LENGTH)))))
-
-(documentation DiameterFn EnglishLanguage "(DiameterFn ?CIRCLE) denotes the length of the 
-diameter of the &%Circle ?CIRCLE.")
-(instance DiameterFn UnaryFunction)
-(instance DiameterFn TotalValuedRelation)
-(domain DiameterFn 1 Circle)
-(range DiameterFn LengthMeasure)
-
-(=>
-  (equal (DiameterFn ?C) ?L)
-  (exists (?R)
-    (and
-      (equal (RadiusFn ?C) ?R)
-      (equal (MultiplicationFn ?R 2) ?L))))
-
-(documentation RadiusFn EnglishLanguage "(RadiusFn ?CIRCLE) denotes the length of the radius 
-of the &%Circle ?CIRCLE.")
-(instance RadiusFn UnaryFunction)
-(instance RadiusFn TotalValuedRelation)
-(domain RadiusFn 1 Circle)
-(range RadiusFn LengthMeasure)
-
-(=>
-  (and
-    (equal (CenterOfCircleFn ?C) ?P)
-    (pointOfFigure ?P2 ?C)
-    (geometricDistance ?P2 ?P ?R))
-  (equal (RadiusFn ?C) ?R))
-
-(subclass CircleSector ClosedTwoDimensionalFigure)
-(documentation CircleSector EnglishLanguage "A slice of a &%Circle, i.e. any 
-&%ClosedTwoDimensionalFigure which consists of two Radii and the arc of 
-the &%Circle that they bound.")
-
-(subrelation sideOfFigure geometricPart)
-(domain sideOfFigure 1 OneDimensionalFigure)
-(domain sideOfFigure 2 GeometricFigure)
-(documentation sideOfFigure EnglishLanguage "(&%sideOfFigure ?SIDE ?FIGURE) means that the 
-&%OneDimensionalFigure ?POINT is a side of the &%GeometricFigure ?FIGURE.")
-
-(instance tangent BinaryPredicate)
-(domain tangent 1 OneDimensionalFigure)
-(domain tangent 2 TwoDimensionalObject)
-(documentation tangent EnglishLanguage "(&%tangent ?LINE ?CIRCLE) means that the straight line 
-?LINE is tangent to the figure ?CIRCLE, i.e. ?LINE touches ?CIRCLE without 
-intersecting it.")
-
-(=>
-   (tangent ?LINE ?CIRCLE)
-   (exists (?POINT1)
-      (and
-         (pointOfFigure ?POINT1 ?LINE)
-         (pointOfFigure ?POINT1 ?CIRCLE)
-         (forall (?POINT2)
-            (=>
-               (and
-                  (pointOfFigure ?POINT2 ?LINE)
-                  (pointOfFigure ?POINT2 ?CIRCLE))
-               (equal ?POINT1 ?POINT2))))))
-
 (subrelation contestParticipant agent)
 (instance contestParticipant TotalValuedRelation)
 (domain contestParticipant 1 Contest)
@@ -15867,28 +15698,6 @@ while her husband earns income for the family.")
   (exists (?H)
     (wife ?W ?H)))
 
-(subclass SkilledOccupation Position)
-(documentation SkilledOccupation EnglishLanguage "Any &%Position which requires 
-learning a set of skills.")
-
-(=>
-   (and
-      (instance ?OCCUPATION SkilledOccupation)
-      (attribute ?PERSON ?OCCUPATION))
-   (exists (?TRAINING)
-      (and
-         (instance ?TRAINING EducationalProcess)
-         (destination ?TRAINING ?PERSON)))) 
-
-(subclass ManualLabor Position)
-(documentation ManualLabor EnglishLanguage "Any &%Position which involves manual 
-work.")
-
-(subclass UnskilledOccupation ManualLabor)
-(disjoint UnskilledOccupation SkilledOccupation)
-(documentation UnskilledOccupation EnglishLanguage "Any &%Position which does not 
-require learning a set of skills.") 
-
 (instance Waiter ServicePosition)
 (documentation Waiter EnglishLanguage "&%Waiter refers to the &%ServicePosition present
 in &%Restaurant that brings food from the kitchen to the customer's table")
@@ -16025,11 +15834,6 @@ describes a person who adjudicates &%Maneuvers in a &%Game, i.e.,
 who decides whether or not the &%Maneuvers are permitted by the
 rules of the &%Game.")
 
-(subclass OccupationalTrade SkilledOccupation)
-(subclass OccupationalTrade ManualLabor)
-(documentation OccupationalTrade EnglishLanguage "Any &%Position that involves skilled 
-manual work.")
-
 (instance Carpenter OccupationalTrade)
 (documentation Carpenter EnglishLanguage "Any occupation that involves creating and repairing 
 structural and decorative portions of &%Buildings that are made chiefly of &%Wood.
@@ -16085,22 +15889,6 @@ waste to an area where it can be treated and/or disposed of.")
       (instance ?M Making)
       (agent ?M ?H)
       (result ?M ?P))))
-
-(subclass Profession SkilledOccupation)
-(disjoint Profession OccupationalTrade)
-(documentation Profession EnglishLanguage "Any occupation that requires at least a bachelor's
-degree.")
-
-(=>
-   (and
-      (or
-         (instance ?ROLE OccupationalTrade)
-         (instance ?ROLE Profession))
-      (attribute ?HUMAN ?ROLE))
-   (exists (?FIELD)
-      (and
-         (instance ?FIELD FieldOfStudy)
-         (knows ?HUMAN ?FIELD))))
 
 (subclass ReligiousPosition Position)
 (documentation ReligiousPosition EnglishLanguage "Any &%Position within a &%ReligousOrganization.")
@@ -19159,17 +18947,6 @@ from the body of a &%Animal, e.g. a &%Bird or &%Reptile laying eggs.")
   (and
     (instance ?A Animal)
     (attribute ?A Female)))
-
-(subclass Biopsy DiagnosticProcess)
-(subclass Biopsy Removing)
-(documentation Biopsy EnglishLanguage "Any &%DiagnosticProcess which involves the examination of 
-&%BodySubstances taken from a living &%Organism.")
-
-(=>
-  (and
-    (instance ?B Biopsy)
-    (patient ?B ?BS))
-  (instance ?BS BodySubstance))
 
 (instance affiliatedOrganization BinaryPredicate)
 (domain affiliatedOrganization 1 Organization)
