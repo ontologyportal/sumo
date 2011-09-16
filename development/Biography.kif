@@ -24,6 +24,116 @@
 ;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
 ;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
 ;;;----------------------------------------------------------------------------
+;;; 0. Propositional Content of a ContentBearingProcess
+;;; Communication is a "A social interaction that involves the transfer of information between two or more cognitive agents."
+;;; We need to be able to refer to the information transferred between the  cognitive agents.
+
+;;; Communication is exhaustively partitioned into stating, supposing, directing, committing, expressing, and declaring. 
+;;; All the content bearing processes subsumed by these six kinds of communication have a propositional content associated to them.
+
+
+;;; Declaring is "The class of linguistic communications that effect an institutional alteration when performed by competent authority. 
+;;; Some examples are nominating, marrying, and excommunicating." Any declaring has a propositional content corresponding to what was declared.
+;;; (Might have to push this up to all "LinguisticCommunications", but it is certainly true for any declarings. 
+;;; A declaring also has an agent who declared it, a declarator.
+
+;;; We model it with a new CaseRole that is a subrelation of patient and takes a ContentBearingProcess and a Proposition.
+
+(documentation propositionalContentOf EnglishLanguage "(propositionalContentOf ?PROCESS ?ENTITY) means that ?ENTITY is the propositional content of the
+ ?PROCESS which is a ContentBearingProcess. For example, the propositional complement in the sentences 'The judge declared  Mary and Ed  husband and wife' 
+ and 'Bill appointed Mary the new CEO of  the beer company' would be `Mary and Ed are husband and wife' and `Mary is the new CEO of the beer company'.")
+ 
+(subrelation propositionalContentOf patient)
+(domain propositionalContentOf 1 ContentBearingProcess)  
+(domain propositionalContentOf 2 Proposition)   
+(instance propositionalContentOf CaseRole)
+
+; since a wedding is a Declaring, we need the person who declares x and y spouses of each other.
+; and that the propositional content of the declaring is that x and y are spouses.
+(=>
+    (instance ?WED Wedding)
+    (exists (?PERSON)
+      (and
+        (instance ?WED Declaring)
+        (agent ?WED ?PERSON))))
+        
+;;; In  SUMO a Declaring is an official pronunciation, 
+;;; so the declarator should be a competent authority. 
+ 
+(=>
+    (instance ?WED ReligiousWedding)
+    (exists (?PERSON)
+      (and
+        (instance ?WED Declaring)
+        (agent ?WED ?PERSON)
+        (instance ?PERSON Cleric)))) 
+          
+; the propositional content of a wedding declaration is that there are two persons that are spouses of each other.         
+(=> 
+  (instance ?WED Wedding)
+  (exists (?PROP)
+    (and       
+        (propositionalContentOf ?WED ?PROP)
+        (equal ?PROP   
+          (exists (?PERSON1 ?PERSON2)
+            (spouse ?PERSON1 ?PERSON2))))))
+            
+; A coronation is a ceremony marking the formal investiture of a monarch and/or their consort with regal power, 
+; usually involving the placement of a crown upon their head.
+(subclass Coronation Ceremony)           
+(subclass Coronation Appointing)            
+(=>
+  (instance ?C Coronation)
+  (exists (?H1 ?H2)
+    (and
+      (agent ?C ?H1)
+      (patient ?C ?H2)
+      (holdsDuring
+            (ImmediateFutureFn
+                (WhenFn ?C))
+            (occupiesPosition ?H2 Monarch)))))
+    
+(subclass BarMitzvah Ceremony)
+(subclass BarMitzvah Declaring)
+(=>
+    (instance ?BM BarMitzvah)
+    (exists (?PERSON)
+        (holdsDuring
+            (ImmediateFutureFn
+                (WhenFn ?BM))
+                    (attribute ?PERSON FullyFormed)))) 
+                    
+; In general religious use, ordination is the process by which individuals are consecrated, 
+; that is, set apart as clergy to perform various religious rites and ceremonies. 
+  
+(subclass Ordination Declaring)
+(=>
+  (instance ?ORD Ordination)
+  (exists (?H1 ?H2)
+    (and
+      (agent ?ORD ?H1)
+      (patient ?ORD ?H2)
+      (holdsDuring
+            (ImmediateFutureFn
+                (WhenFn ?ORD))
+            (occupiesPosition ?H2 Cleric)))))
+            
+;  Beatification (from Latin beatus, blessed) is a recognition accorded by the Catholic Church of a dead person's entrance into Heaven. A person who is beatified is given the title "Blessed".          
+(subclass Beatification Declaring) 
+(subclass Blessed ReligiousPerson)
+
+(=>
+  (instance ?BEAT Beatification)
+  (exists (?H1 ?H2)
+    (and
+      (agent ?ORD ?H1)
+      (instance ?H1 Pope)
+      (patient ?ORD ?H2)
+      (holdsDuring
+            (ImmediateFutureFn
+                (WhenFn ?ORD))
+            (occupiesPosition ?H2 Blessed)))))                         
+;;;----------------------------------------------------------------------------
 ;;; 1. What kind of biographies do we have in Wikipedia?
 ;;;----------------------------------------------------------------------------
 ;;; Examples: Actors, Composers, Artists, politicians, etc..
@@ -54,6 +164,7 @@
 
 (subclass BirthCertificate Certificate)
 (subclass MarriageCertificate Certificate)
+(subclass DeathCertificate Certificate)
 
 (=>
   (instance ?BC BirthCertificate)
@@ -81,12 +192,44 @@
       (weddingdate  ?P ?DATE)
       (issuedBy ?BC ?ORG))))  
       
+(=>
+  (instance ?DC DeathCertificate)
+  (exists (?P ?D ?ORG ?PLACE ?DATE)
+    (and
+      (instance ?P Human)
+      (instance ?D Death)
+      (experiencer ?D ?P)
+      (instance ?ORG GovernmentOrganization)
+      (instance ?PLACE City)
+      (deathplace ?P ?PLACE)
+      (deathdate  ?P ?DATE)
+      (issuedBy ?BC ?ORG))))      
+      
 ; after birthplace in  Mid-level-ontology.kif 17685-17686     
 (documentation weddingdate EnglishLanguage "(weddingdate ?PERSON1 ?PERSON2 ?DAY) means that ?DAY is the day on which  ?PERSON1 and ?PERSON2 were married.")      
 (domain weddingdate 1 Human)   
 (domain weddingdate 2 Human) 
 (domain birthdate 2 Day)    
 (instance weddingdate TernaryPredicate)
+
+(documentation baptismdate EnglishLanguage "(baptismdate ?PERSON1 ?DAY) means that ?DAY is the day on which  ?PERSON1 was baptized.")      
+(domain baptismdate 1 Human)   
+(domain baptismdate 2 Day)    
+(instance baptismdate BinaryPredicate)
+
+(subclass Burial Funeral)
+(=>
+  (instance ?B Burial)
+  (exists (?BE)
+    (and
+      (instance ?BE Burying)
+      (subProcess ?C ?B))))
+      
+; wikipedia infobox also talks about Resting Place as well as b      
+(documentation burialplace EnglishLanguage "(burialplace ?PERSON1 ?LOCATION) means that ?LOCATION is the place where  ?PERSON1 was buried.")      
+(domain burialplace 1 Human)   
+(domain burialplace 2 Location)    
+(instance burialplace BinaryPredicate)    
 
 (subclass BirthName String)
 
@@ -114,8 +257,9 @@
       (names ?ON ?P)
       (not
         (equal ?ON ?NAME)))))
-        
-;;; SUMO has also keyName (Medi.kif 2934) and (alias ?STRING ?AGENT) in MILO 16817.
+
+;;; SUMO also has formerName     (Mid-level-ontology.kif 9419-9420)  but it seems that this is mostly for institutions that actually changed their names  
+;;; SUMO has also keyName (Medi.kif 2934) and (alias ?STRING ?AGENT) in MILO 16817, but alias is about deception
 ;;; Perhaps issues of names of people should be in some law ontology, when such exists.         
 ;;;-------------------------------------------------------------------------------
 ;;; Nationality is membership of a nation or sovereign state, granted by that state. 
@@ -200,6 +344,7 @@ and environmental data that they have left behind.")
 (instance Physicist Profession)
 (instance PoliticalScientist Profession)
 (instance Librarian Profession)
+(instance RegisteredNurse Profession)
 (instance Scientist Profession)
 (instance SocialScientist Profession)
 (instance Sociologist Profession)
@@ -299,7 +444,11 @@ and environmental data that they have left behind.")
 (=>
   (instance ?PERSON Psychologist)
   (hasExpertise ?PERSON Psychology))   
-  
+
+ (=>
+  (instance ?PERSON RegisteredNurse)
+  (hasExpertise ?PERSON TherapeuticProcess)) 
+   
 (=>
   (instance ?PERSON Scientist)
   (hasExpertise ?PERSON Science)) 
@@ -394,12 +543,30 @@ and environmental data that they have left behind.")
 (subclass Lacrosse Sport)
 (subclass Hockey Sport)
 (subclass IceHockey Sport)
+(subclass Handball Sport)
+(subclass Netball Sport)
+(subclass Volleyball Sport)
+
 (subclass Cricket Sport)
+(subclass Badminton Sport)
+(subclass Squash Sport)
+(subclass Curling Sport)
+(subclass Cycling Sport)
+(subclass Fencing Sport)
+(subclass Diving Sport)
+(subclass TableTennis Sport)
+(subclass MartialArts Sport)
+(subclass Wrestling Sport)
+(subclass Surfing Sport)
+
+(subclass HorseRacing Sport)
+; how different from Equitation is this?
 (subclass CarRacing Racing)
-; Racing is a Sport
+; Racing is a Sport already
 (subclass FormulaOneRacing CarRacing)
 (subclass KartRacing CarRacing)
 ;(subclass NascarRacing CarRacing)
+(subclass MotorcycleRacing Racing)
 
 (instance BaseballProfessional ProfessionalAthlete)
 (instance BasketballProfessional ProfessionalAthlete)
@@ -417,6 +584,7 @@ and environmental data that they have left behind.")
 (instance FormulaOneDriver ProfessinalAthlete)
 (instance NascarDriver ProfessinalAthlete)
 (instance RacingCarDriver ProfessinalAthlete)
+(instance MotorcycleRider ProfessionalAthlete)
 
 (=>
   (attribute ?ATHLETE BaseballProfessional)
@@ -455,6 +623,10 @@ and environmental data that they have left behind.")
   (hasSkill CarRacing ?ATHLETE))    
   
 (=>
+  (attribute ?ATHLETE MotorcycleRider)
+  (hasSkill MotorcycleRacing ?ATHLETE))    
+  
+(=>
   (attribute ?ATHLETE Swimmer)
   (hasSkill SwimmingSport ?ATHLETE))
   
@@ -465,16 +637,46 @@ and environmental data that they have left behind.")
   
 (subclass Chess Game)
 (subclass Darts Game)
+(subclass GoGame Game)
+(subclass Poker Game)
 
 (=>
   (attribute ?PERSON DartsPlayer)
-  (hasSkill Darts ?PERSON)) 
+  (hasSkill Darts ?PERSON))
+  
+(=>
+  (attribute ?PERSON GoPlayer)
+  (hasSkill GoGame ?PERSON))
+  
+(=>
+  (attribute ?PERSON PokerPlayer)
+  (hasSkill Poker ?PERSON))  
+     
 (subclass RockClimbing Sport)
 
 (=>
   (attribute ?ATHLETE RockClimber)
-  (hasSkill RockClimbing ?ATHLETE))  
+  (hasSkill RockClimbing ?ATHLETE))
+  
+;; Only have football and     baseball as team sports, need the others above:
+(subclass BasketballTeam SportsTeam)
+(subclass VolleyballTeam SportsTeam)
+(subclass SoccerTeam SportsTeam)
+(subclass RugbyTeam SportsTeam)
+(subclass LacrosseTeam SportsTeam)
+(subclass CarRacingTeam SportsTeam)
+(subclass MotorcycleRacingTeam SportsTeam)
+
+;;Classes of Auto racing from wikipedia (10 classes)
+; 1.Formula racing (open wheel car)  2.One-make formulae 3.Karting 4.Touring car racing 
+; 5.Stock car racing  6.Rallying  7.Sports cars 8.Grand touring 9.Drag racing  10.Off-road racing
+
+(subclass Coach SportsManager)
+(subclass SportsManager Manager)
+; In sports, a coach is an individual involved in the direction, instruction and training of the operations of a sports team or of individual sportspeople.
+
 ;; for athletes need attributes like Wins, Championships, Most Valuable Player, medals, times, teams, pole, positions, Hall of Fame,etc
+
 ;;---------------------------------------------------------------------------------- 
 ;; The Criative Economy Occupations  from http://en.wikipedia.org/wiki/Creative_industries
 ;;----------------------------------------------------------------------------------
@@ -535,22 +737,28 @@ and environmental data that they have left behind.")
      (instance ?I MusicalInstrument)
      (hasSkill (PlayingInstrumentFn ?I) ?M))))
          
-;; should correspond to the following    instantiations  
+;; should correspond to the following    instantiations:
+
+(subAttribute Pianist Musician)
 (=>
   (attribute ?PERSON Pianist)
   (hasSkill ?PERSON
      (PlayingInstrumentFn Piano)))   
-     
+
+(subAttribute Violinist Musician)     
+
 (=>
   (attribute ?PERSON Violinist)
   (hasSkill ?PERSON
      (PlayingInstrumentFn Violin)))
      
+(subAttribute Guitarist Musician)    
 (=>
   (attribute ?PERSON Guitarist)
   (hasSkill ?PERSON
      (PlayingInstrumentFn Guitar)))     
 
+(subAttribute Cellist Musician) 
 (=>
   (attribute ?PERSON Cellist)
   (hasSkill ?PERSON
@@ -561,7 +769,8 @@ and environmental data that they have left behind.")
 (subclass Oboe WindInstrument)
 (subclass Clarinet WindInstrument)  
 (subclass Flute WindInstrument) 
-  
+
+(subAttribute Saxophonist Musician)   
 (=>
   (attribute ?PERSON Saxophonist)
   (hasSkill ?PERSON
@@ -588,6 +797,7 @@ and environmental data that they have left behind.")
 (subclass Actor ArtisticOccupation)
 (subclass Musician ArtisticOccupation)
 (subclass Writer ArtisticOccupation)
+(subclass Playwright Writer)
 (subclass Sculptor ArtisticOccupation)
 (subclass Dancer ArtisticOccupation)
 
@@ -755,8 +965,8 @@ and environmental data that they have left behind.")
             (agent ?PROC ?MAN))))  
              
 ;; so far the only religious positions are Cleric and Deacon  
-;; should have:Abbess • Abbot • Ablak • Anax • Archbishop • Archdeacon • Ayatollah • Blessed • Bishop • Bodhisattva • Brother • Buddha • Cantor • Cardinal • Catholicos • Chaplain • Deacon • Dean • Demiurge • Elder • Father • Friar • Imam • Kohen • Mahdi • Messiah • Minister • Monsignor • Mother Superior • Mullah • Nath • Pastor • Patriarch • Pope • Primate • Prophet • Rabbi 
-;; • Rebbe • Reverend • Rosh HaYeshiva • Saint • Saoshyant • Sister  • Tirthankar • Vardapet • Venerable ?
+;; should have:Abbess • Blessed  • Buddha • Cantor  • Catholicos  • Dean • Demiurge • Friar • Kohen • Mahdi • Messiah • Minister • Monsignor • Mother Superior • Mullah • Nath • Pastor • Patriarch • Pope • Primate • Prophet • Rabbi 
+;; • Rebbe • Reverend • Rosh HaYeshiva • Saint • Saoshyant • Sister  • Tirthankar • Vardapet • Venerable 
 ;; at the moment    (instance Pope Position)
 (instance Pope ReligiousPosition) 
      
@@ -770,7 +980,29 @@ and environmental data that they have left behind.")
 (instance Rabbi ReligiousPosition)
 (instance Iman ReligiousPosition)            
 (instance Ayatollah ReligiousPosition)
-        
+;is a high ranking title given to Usuli Twelver Shī‘ah clerics
+(instance Abbot ReligiousPosition)
+;the superior of an abbey of monks. 
+(instance Monk ReligousPosition)
+; a male religious living in a cloister and devoting himself to contemplation and prayer and work. 
+(instance Bishop ReligousPosition)   
+;A bishop is an ordained or consecrated member of the Christian clergy who is generally entrusted with a position of authority and oversight. 
+(instance Cardinal ReligiousPosition)
+;  A cardinal is a senior ecclesiastical official, usually an ordained bishop, and ecclesiastical prince of the Catholic Church.
+(instance Chapalin ReligiousPosition)
+; a chaplain is a minister in a specialized setting such as a priest, pastor, rabbi, or imam or lay representative of a religion attached to a 
+; secular institution such as a hospital, prison, military unit, police department, university, or private chapel.
+; In Christian churches, a minister is someone who is authorized by a church or religious organization to perform functions such as teaching of beliefs; 
+
+(subclass Chapel ReligiousBuilding)
+; A chapel is a building used by Christians, members of other religions, and sometimes interfaith communities, as a place of fellowship and worship.
+(subclass ChurchBuilding ReligiousBuilding)
+; In the Christian religion, a church building is a building or structure whose primary purpose is to facilitate the meeting of a church.
+(subclass Mosque ReligiousBuilding)
+; A mosque is a place of worship for followers of Islam. 
+(subclass Synagogue ReligiousBuilding)
+; is a Jewish house of prayer.
+
 ; not v good, but basically correct? recruiter even if freelancer is working for the organization       
 (=>    
     (instance ?R Recruiter)
@@ -855,7 +1087,7 @@ and environmental data that they have left behind.")
 ;;| parents                   = SUMO has relation (parent ?CHILD ?PARENT)
 ;;| relatives                 = SUMO has relation (family relation ?ORG1 ?ORG2) for organisms with a common ancestor
 ;;| callsign                  = not necessary in SUMO?
-;;| awards                    = recognition for excellence, public announcement? attempt below
+;;| s                    = recognition for excellence, public announcement? attempt below
 ;;| signature                 = not necessary in SUMO
 ;;| signature_alt             = not necessary in SUMO
 ;;| signature_size            = not necessary in SUMO
@@ -889,12 +1121,12 @@ and environmental data that they have left behind.")
   (and
     (instance ?HUMAN Human)
     (hasDegree ?HUMAN ?DEGREE))
-  (exists (?SCHOOL ?FIELDOFSTUDY ?AWARDINGDEGREE)
+  (exists (?SCHOOL ?FIELDOFSTUDY ?INGDEGREE)
     (and 
       (instance ?SCHOOL PostSecondarySchool)
       (instance ?FIELDOFSTUDY FieldOfStudy)
-      (patient ?AWARDINGDEGREE (DegreeFn ?FIELDOFSTUDY ?SCHOOL))
-      (destination ?AWARDINGDEGREE ?HUMAN))))
+      (patient ?INGDEGREE (DegreeFn ?FIELDOFSTUDY ?SCHOOL))
+      (destination ?INGDEGREE ?HUMAN))))
 
 ;; almamater for Wikipedia is whether you graduated or not e.g Bill Gates almater is Harvard 
 (=>
@@ -1056,7 +1288,7 @@ and environmental data that they have left behind.")
      (stepchildOf ?CHILD ?H))) 
 ; to deal with the "children" attribute we can use ChildOf above     
 ;--------------------------------------------------------------------------
-; Awards: no concept in SUMO yet, two possibilities, first from Plan and Planning in Merge.kif 8628-8636
+; s: no concept in SUMO yet, two possibilities, first from Plan and Planning in Merge.kif 8628-8636
 ;(=>
 ;    (and
 ;        (instance ?EVENT Congratulating)
@@ -1064,11 +1296,11 @@ and environmental data that they have left behind.")
 ;        (instance ?CBO ContentBearingObject))
 ;    (exists (?A)
 ;        (and
-;            (instance ?A Award)
+;            (instance ?A )
 ;            (containsInformation ?CBO ?A))))
-; a simple note or smile can be an award?  Maybe the following is better...          
+; a simple note or smile can be an ?  Maybe the following is better...          
 (=>
-  (instance ?A Award)
+  (instance ?A )
   (exists (?EVENT)
     (and 
       (instance ?EVENT Congratulating)
@@ -1077,14 +1309,15 @@ and environmental data that they have left behind.")
       (containsInformation ?CBO ?A))))
       
 (=>
-  (instance ?A Award)
-  (exists (?AWARDER ?AWARDEE)
+  (instance ?A )
+  (exists (?ER ?EE)
     (and
       (instance ?EVENT Congratulating)
       (result ?EVENT ?A)
-      (agent ?EVENT ?AWARDER)
-      (recipient ?EVENT ?AWARDEE)))) 
-; must add kinds of Awards like NobelPrize, Oscar, etc?...           
+      (agent ?EVENT ?ER)
+      (recipient ?EVENT ?EE)))) 
+; the WN mapping suggests UnilateralGiving for       
+; must add kinds of s like NobelPrize, Oscar, etc?...           
 ;---------------------------------------------      
 ; Most celebrities have  websites. SUMO has WebSite and Webpage in Media.kif 1261-1266 but WebSite and WebPage don't mention their contents?
 ; only thing we know is that websites have webpages as components. We need to say that the webpage refers to the celebrity.
@@ -1305,6 +1538,7 @@ and environmental data that they have left behind.")
 (instance PrimeMinister OfficeHolder)
 (instance Chancellor OfficeHolder)
 (instance Minister OfficeHolder)
+;a person appointed to a high office in the government; "Minister of Finance"
 ;(instance Spokesperson OfficeHolder)
 (instance Mayor OfficeHolder)
 (instance USStateRepresentative OfficeHolder)
@@ -1375,7 +1609,200 @@ and environmental data that they have left behind.")
 ;-------------------------------------------------------------------
 ; Wikipedia has quite a bit on nobility and monarchs, but apart from easy translations like Consort--> spouse, Issue -->Offspring, 
 ; Coronation date and House (Dynasty), predecessor and successor are the attributes.
-;
+
+; also wikipedia has offstyle, altstyle, dipstyle (diplomatic reference) as ways of addressing monarchs and dignataries
+; need to add anthem and motto later on?
+; Wikipedia has Baptism --> Baptizing in SUMO
+
+(subclass CoatOfArms Icon)
+(documentation CoatOfArms EnglishLanguage "A coat of arms is a distinctive heraldic design, originally on a tunic used to cover and protect armor, 
+but the term is more broadly applied to mean a full heraldic emblem which consists of a shield and certain accessories.")
+
+(subclass Noble SocialRole)
+; need to add dukes, counts, marquis, princes, barons, consorts, dynasty, house, etc?
+; need to link this to aristocracy and to the monarchies still existing
+;;;--------------------------------------------------------------------------------------------------------
+; maybe this should be moved to an extensive discussion of ReligiousProcesses but I think we need
+
+(subclass ReligiousWedding Wedding)
+(subclass ReligiousWedding ReligiousService)
+(subclass ReligiousWedding FormalMeeting)
+(subclass Baptizing FormalMeeting)
+(subclass Baptizing Declaring)
+; the propositional content is that the baptized has joined the church
+(subclass ReligiousFuneral Funeral)
+(subclass ReligiousFuneral ReligiousProcess)
+
+(=>
+  (instance ?B Baptizing)
+  (exists (?C)
+    (and
+      (instance ?C Cerimony)
+      (subProcess ?C ?B)
+      (instance ?C Baptism))))
+               
+;------------------------------------------------------------------------------------------------------------
 ; for models and pageants titleholders wikipedia has physical attributes like Height, Hair_color, Eye_color, Measurements, Dress_size, shoe_size, collar, 
-; suit_size  and agency. Pageants have competitions as well. Fashion designers have labels.
+; suit_size  and agency. 
+; for an adult we can talk about Height, Hair and eye color and measurements
+(=>
+  (and
+  (instance ?A HumanAdult)
+  (height ?A ?H))
+  (not
+    (greaterThan ?H  (MeasureFn 90 Inch))))
+    
+;; should have "the spectral colors" (rainbow colors) as well as Primary and Secondary Colors?
+;; violet   
+;; blue, red, yellow    there as primary colors
+;; cyan/indigo    
+;; green, orange, brown, purple and gray   there as secondary colors
+
+(subclass SpectralColor ColorAttribute)
+(documentation SpectralColor EnglishLanguage "Colors that can be produced by visible light of a narrow band of wavelengths (monochromatic light) are called 
+pure spectral colors.")
+
+(instance Violet SpectralColor)
+(documentation VioletColor EnglishLanguage "The &%Attribute of being violet in color.")
+;;"Eye color" is the color of the iris, which can be green, blue, or brown. More rarely it can be hazel 
+;;(a combination of light brown, green and gold), grey, violet, or even pink.
+
+(instance Iris-Eye Organ)
+(subclass Iris-Eye Organ)
+(documentation Iris-Eye EnglishLanguage "The iris is a thin, circular structure in the &%Eye, responsible for controlling the diameter and size of the pupils.")
+
+(=>
+    (instance ?I Iris-Eye)
+    (exists (?E)
+        (and
+            (instance ?E Eye)
+            (part ?I ?E))))
+            
+; humans have eyes  with irides (odd plural of iris)         
+(=>
+  (instance ?H Human)
+  (exists (?EYE ?IRIS)
+    (and
+    (part ?EYE ?H)
+    (part ?IRIS ?EYE))))
+    
+(=>
+  (instance ?C EyeColor)
+  (exists (?E ?I)
+    (and 
+      (instance ?E Eye)
+      (instance ?I Iris-Eye)
+      (part ?I ?E)
+      (color ?I ?C))))  
+      
+(=> 
+  (and
+    (instance ?H Human)
+    (instance ?C EyeColor))
+   (or
+     (equal ?C Brown)
+     (equal ?C Black)
+     (equal ?C Green)
+     (equal ?C GrayColor)
+     (equal ?C Blue)
+     (equal ?C HazelColor)
+     (equal ?C Violet)
+     (equal ?C Pink)))   
+  
+;; dress size, suite size depend on country leaving for later.
+
+;Pageants have competitions as well. Fashion designers have labels.
 ; Still missing radio hosts/presenters and Saints and other ReligiousPositions.
+;;---------------------------------------------------------------------------
+; Chefs in wikipedia are Celebrity chefs so they have ratings (Michelin stars) and television programs. 
+; Karen dealing with television programs, discussin with her on whether Restaurants need to have chefs or not.
+;--------------------------------------------------------------------------------
+
+; a signature in wikipedia: A signature is a hand-written, possibly stylized, version of someone's name, which may be used to confirm the person's identity. 
+(=>
+    (instance ?SIG Signature)
+    (exists (?DOC ?SIGNING ?P)
+        (and
+            (instance ?SIGNING SigningADocument)
+            (instance ?DOC LinguisticExpression)
+            (instance ?SIG ContentBearingObject)
+            (instance ?P Human)
+            (result ?SIGNING ?SIG)
+            (agent ?SIGNING ?P)
+            (patient ?SIGNING ?DOC))))
+            
+; Needed to change SigningADocument for the above to work.  
+; New version is:
+
+(=>
+  (instance ?SIGNING SigningADocument)
+  (exists (?DOC)
+    (and
+      (instance ?DOC LinguisticExpression)
+      (patient ?SIGNING ?DOC))))
+;; the old version which describes explicitly the contents of the document signed as an Agreement has been renamed as SigningAnAgreement, vcvp.        
+;---------------------------------------------------------------------------------------
+; from http://en.wikipedia.org/wiki/Category:People_infobox_templates
+; Sumo has Journalist, wikipedia has five subcategories: News anchors, Journalists, Weather-persons, Reporters, Current affairs show presenters 
+;(e.g. 20/20, Panorama, Prime Time) maybe should have these subcategories?
+;-------------------------------------------------------------------------------------------
+;A martyr is a person who is put to death or endures suffering because of a belief, principle, or cause.
+(subclass Martyr SocialRole)
+(subclass Belief Proposition)
+
+(=>
+  (instance ?B Belief)
+  (exists (?H)
+    (and
+      (instance ?H Human)
+      (believes ?H ?B))))
+      
+;(=>
+;  (instance ?M Martyr)
+;  (exists (?D ?P ?B)
+;    (and
+;      (instance ?B Belief)
+;      (causes ?B ?SUFF)
+;      (instance ?D Death) 
+;      (instance ?P Pain)
+;      (instance ?SUFF (or ?D ?P)))))
+; this doesn't work, need to think about it.
+
+;-------------------------------------------------------------------------------------------
+(subclass Murderer Criminal)
+(subclass MassMurderer Murderer) 
+;(subclass Murder Killing)
+(=>
+  (instance ?M Murderer)
+  (exists (?K)
+    (and
+      (instance ?K Killing)
+      (agent ?K ?M))))
+      
+; wikipedia: According to the FBI, mass murder is defined as four or more murders occurring during a particular event with no cooling-off period between the murders.
+;(=>
+;  (instance ?MM MassMurderer)
+;  (exists (?N ?M)
+;     (and
+;        (instance ?M Murderer)
+;        (instance ?N Number)
+;        (greaterThan ?N 4)
+;        (equal ?N number of killings commited by ?M)
+
+;  serial killer template too?
+; spy too, vandal, war on terror detainee?
+;----------------------------------------------------------------------------------------------
+(subclass Waist BodyPart)
+;The waist is the part of the abdomen between the rib cage and hips. On proportionate people, the waist is the narrowest part of the torso.
+(subclass HipJoint BodyPart)
+;The hip joint is a synovial joint formed by the articulation of the rounded head of the femur and the cup-like acetabulum of the pelvis. 
+(subclass HipRegion BodyPart)
+;
+(subclass Bust BodyPart)  
+;The breast is the upper ventral region of the torso of a primate, in left and right sides, which in a female contains the mammary gland that secretes milk 
+;used to feed infants.
+
+;----------------------------------------------------------
+; wikipedia also has Major League Pro and Pro Gaming player for players of video game for money. don't think this has entered mainstream quite yet...
+;rebbe a kind of jewish cleric, add? ReligiousPErson biography might be a good category to include Muslim scholars, Jewish leaders, Saints, Blessed and Hindu leaders?
+;scholar, university chancellor?
