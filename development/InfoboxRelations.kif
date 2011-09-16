@@ -142,19 +142,24 @@
       (instrument ?RIDE ?METHOD)
       (subProcess ?RIDE ?SERVICE))))
 
-
-(subclass RegionCollection Collection)
-(documentation RegionCollection EnglishLanguage "RegionCollection is a &%Collection of  &%Region.")
-(termFormat EnglishLanguage RegionCollection "Collection of Regions")
-(=>
-  (instance ?COLLECTION RegionCollection)
-  (memberType ?COLLECTION Region))
+;; KJN: Delete this.  Used only in &%providesDestination, but it seems like it would
+;; be easier to just (also for inferencing purposes) to just do (providesDestination 
+;; ?AIR ?REGION) instead of having to define a collection and then do providesDestinations
+;; on that collection.
+   
+;;(subclass RegionCollection Collection)
+;;(documentation RegionCollection EnglishLanguage "RegionCollection is a &%Collection of  &%Region.")
+;;(termFormat EnglishLanguage RegionCollection "Collection of Regions")
+;;(=>
+;;  (instance ?COLLECTION RegionCollection)
+;;  (memberType ?COLLECTION Region))
   
 
 ;;               INFOBOX RELATIONS:
 
 (subclass Airline TransportationCompany)
-(documentation Airline EnglishLanguage "An Airline is a &%TransportationCompany that specializes in providing &%AirTransportation")
+(documentation Airline EnglishLanguage "An Airline is a &%TransportationCompany that 
+specializes in providing &%AirTransportation")
 (termFormat EnglishLanguage Airline "Airline")
 (=>
   (instance ?AIRLINE Airline)
@@ -190,7 +195,8 @@
       (attribute ?PILOT Pilot)
       (employs ?AIRLINE ?PILOT))))
       
-;; Another way of expressing that an Airline hires Pilots is to use (occupiesPosition ?PILOT Pilot ?AIRLINE) instead of (employs ?AIRLINE ?PILOT)
+;; Another way of expressing that an Airline hires Pilots is to use (occupiesPosition 
+;; ?PILOT Pilot ?AIRLINE) instead of (employs ?AIRLINE ?PILOT)
 (=>
   (instance ?AIRLINE Airline)
   (exists (?FLEET ?AIRCRAFT)
@@ -199,37 +205,76 @@
       (possesses ?AIRLINE ?FLEET)
       (instance ?AIRCRAFT Aircraft)
       (member ?AIRCRAFT ?FLEET))))
-;;In the case of single, self-employed private pilot: Although in the English Language they might not be considered an "airline", for this 
-;;logical definition, they are considered an airline b/c they still provide flights, employ a pilot, and have a fleet of at least 1 plane.
+      
+;; NOTE: In the case of single, self-employed private pilot: Although in the English Language 
+;; they might not be considered an "airline", for this logical definition, they are 
+;; considered an airline b/c they still provide flights, employ a pilot, and have a fleet of at least 1 plane.
 
+;;  KJN: Will change this to CodeMap as it is more appropriate.
+;; (subclass IATAtag SymbolicString)
+;; (documentation IATAtag EnglishLanguage "The 2-character tag given to an &%Airline by the 
+;; &%InternationalAirTransportAssociation to represent that &%Airline at any &%Airport")
+;; (termFormat EnglishLanguage IATAtag "IATA tag")
+;; (=>
+;;  (instance ?TAG IATAtag)
+;;  (exists (?AIRLINE)
+;;    (and
+;;      (equal 2 (StringLengthFn ?TAG))
+;;      (instance ?AIRLINE Airline)
+;;      (member ?AIRLINE InternationalAirTransportAssociation)
+;;      (represents ?TAG ?AIRLINE))))
+  
+(subclass AirlineCodeMap CodeMap)
+(documentation AirlineCodeMap EnglishLanguage "&%AirlineCodeMap denotes the &%SymbolicString
+used by different aviation organizations to identify &%Airline")
+(termFormat EnglishLanguage AirlineCodeMap "airline code map")
 
-(subclass IATAtag SymbolicString)
-(documentation IATAtag EnglishLanguage "The 2-character tag given to an &%Airline by the 
-&%InternationalAirTransportAssociation to represent that &%Airline at any &%Airport")
-(termFormat EnglishLanguage IATAtag "IATA tag")
 (=>
-  (instance ?TAG IATAtag)
-  (exists (?AIRLINE)
-    (and
-      (equal 2 (StringLengthFn ?TAG))
-      (instance ?AIRLINE Airline)
-      (member ?AIRLINE InternationalAirTransportAssociation)
-      (represents ?TAG ?AIRLINE))))
-    
-    
-(subclass IACOtag SymbolicString)
-(documentation IACOtag EnglishLanguage "The 3-character tag given to an &%Airline by the 
-&%InternationalCivilAviationOrganization to represent that &%Airline at any &%Airport")
-(termFormat EnglishLanguage IACOtag "IACO tag")
+  (and
+    (instance ?CM AirlineCodeMap)
+    (codeMapping ?CM ?STR ?AIR))
+  (and
+    (instance ?AIR Airline)
+    (represents ?STR ?AIR)))
+
+(instance IATAAirlineCode CodeMap)
+(documentation IATAAirlineCode EnglishLanguage "The 2-character tag given to an &%Airline by the 
+&%InternationalAirTransportAssociation to represent that &%Airline at any &%Airport")    
+(termFormat EnglishLanguage IATAAirlineCode "IATA airline code")
+
 (=>
-  (instance ?TAG IACOtag)
-  (exists (?AIRLINE)
-    (and
-      (equal 3 (StringLengthFn ?TAG))
-      (instance ?AIRLINE Airline)
-      (member ?AIRLINE InternationalCivilAviationOrganization)
-      (represents ?TAG ?AIRLINE))))
+  (codeMapping IATAAirlineCode ?STR ?AIR)
+  (member ?AIR InternationalAirTransportAssociation))
+
+(=>
+  (codeMapping IATAAirlineCode ?STR ?AIR)
+  (equal 2 (StringLengthFn ?STR)))
+
+;; (subclass IACOtag SymbolicString)
+;; (documentation IACOtag EnglishLanguage "The 3-character tag given to an &%Airline by the 
+;; &%InternationalCivilAviationOrganization to represent that &%Airline at any &%Airport")
+;; (termFormat EnglishLanguage IACOtag "IACO tag")
+;; (=>
+;;  (instance ?TAG IACOtag)
+;;  (exists (?AIRLINE)
+;;    (and
+;;      (equal 3 (StringLengthFn ?TAG))
+;;      (instance ?AIRLINE Airline)
+;;      (member ?AIRLINE InternationalCivilAviationOrganization)
+;;      (represents ?TAG ?AIRLINE))))
      
+(instance IACOAirlineCode CodeMap)
+(documentation IACOAirlineCode EnglishLanguage "The 3-character tag given to an &%Airline by the 
+ &%InternationalCivilAviationOrganization to represent that &%Airline at any &%Airport")
+(termFormat EnglishLanguage IACOAirlineCode "IACO airline code")
+
+(=>
+  (codeMapping IACOAirlineCode ?STR ?AIR)
+  (member ?AIR InternationalCivilAviationOrganization))
+
+(=>
+  (codeMapping IACOAirlineCode ?STR ?AIR)
+  (equal 3 (StringLengthFn ?STR)))
 
 (subclass AOCnumber SymbolicString)
 (documentation AOCnumber EnglishLanguage "The certification number that signifies an &%Airline has 
@@ -282,25 +327,41 @@ fleet size of an &%Integer ?NUM. The &%Fleet can consists of any type of &%Vehic
     (fleetSize ?ORG ?NUM)
     (possesses ?ORG ?FLEET))
   (memberCount ?FLEET ?NUM)) 
-  
-(instance providesDestinations BinaryPredicate)
-(domain providesDestinations 1 TransportationCompany)
-(domain providesDestinations 2 RegionCollection)
-(documentation providesDestinations EnglishLanguage "(provides ?TC ?COL) means 
-&%TransportationCompany, ?TC, provides possible &%Transportation to all Destinations in the &%RegionCollection ?COL.")
-(termFormat EnglishLanguage providesDestination "provides destinations")
+
+;; KJN: Edit.  See note on RegionCollection  
+;;(instance providesDestinations BinaryPredicate)
+;;(domain providesDestinations 1 TransportationCompany)
+;;(domain providesDestinations 2 RegionCollection)
+;;(documentation providesDestinations EnglishLanguage "(provides ?TC ?COL) means 
+;;&%TransportationCompany, ?TC, provides possible &%Transportation to all Destinations in the &%RegionCollection ?COL.")
+;;(termFormat EnglishLanguage providesDestination "provides destinations")
+;;(=>
+;;  (and
+;;    (providesDestinations ?COMPANY ?COLLECTION)
+;;    (member ?DESTINATION ?COLLECTION))
+;;  (modalAttribute
+;;    (exists (?SERVICE)
+;;      (and
+;;        (instance ?SERVICE TransportationService)
+;;        (serviceProvider ?SERVICE ?COMPANY)
+;;        (destination ?SERVICE ?DESTINATION))) Possibility))
+
+(instance providesDestination BinaryPredicate)
+(domain providesDestination 1 TransportationCompany)
+(domain providesDestination 2 Region)
+(documentation providesDestination EnglishLanguage "(providesDestination ?TC ?REG) means 
+&%TransportationCompany, ?TC, provides possible &%Transportation to &%Region ?REG.")
+(termFormat EnglishLanguage providesDestination "provides destination")
+
 (=>
-  (and
-    (providesDestinations ?COMPANY ?COLLECTION)
-    (member ?DESTINATION ?COLLECTION))
+  (providesDestination ?TC ?REG)
   (modalAttribute
-    (exists (?SERVICE)
+    (exists (?SVC)
       (and
-        (instance ?SERVICE TransportationService)
-        (serviceProvider ?SERVICE ?COMPANY)
-        (destination ?SERVICE ?DESTINATION))) Possibility))
-        
-        
+        (instance ?SVC TransportationService)
+        (serviceProvider ?SVC ?TC)
+        (destination ?SVC ?REG))) Possibility))
+
 (subclass Cartridge Projectile)
 (documentation Cartridge EnglishLanguage "The entire projectile consisting of a bullet, casing, gunpowder, and primer.")
 (termFormat EnglishLanguage Cartridge "cartridge")
@@ -332,30 +393,48 @@ fleet size of an &%Integer ?NUM. The &%Fleet can consists of any type of &%Vehic
 ;;========================================================
 ;;                   GENERAL RELATIONS 
 ;;========================================================
-    
-(subrelation dateAired date)
-(domain dateAired 1 RadioStation)
-(domain dateAired 2 Day)
-(documentation dateAired EnglishLanguage "(dateAired ?STATION ?DATE) means 
-that the &%RadioStation ?STATION had its first &%Broadcasting on the &%Day ?DATE")
-(termFormat EnglishLanguage dateAired "aired on the date")
+
+;; KJN: Created dateOfOpening, will use that as the relationship for this    
+;; (subrelation dateAired dateOfOpening)
+;; (domain dateAired 1 RadioStation)
+;; (domain dateAired 2 Day)
+;; (documentation dateAired EnglishLanguage "(dateAired ?STATION ?DATE) means 
+;; that the &%RadioStation ?STATION had its first &%Broadcasting on the &%Day ?DATE")
+;; (termFormat EnglishLanguage dateAired "aired on the date")
+;;(=>
+;;  (dateAired ?STATION ?DATE)
+;;  (exists (?AIRING1)
+;;    (and
+;;     (instance ?AIRING1 Broadcasting)
+;;      (agent ?AIRING1 ?STATION)
+;;     (equal (WhenFn ?AIRING1) ?DATE)
+;;      (not
+;;        (exists (?AIRING2)
+;;          (and
+;;            (instance ?AIRING2 Broadcasting)
+;;            (agent ?AIRING2 ?STATION)
+;;            (not
+;;              (equal ?AIRING1 ?AIRING2))
+;;            (beforeOrEqual (WhenFn ?AIRING2) (WhenFn ?AIRING1))))))))
+  
 (=>
-  (dateAired ?STATION ?DATE)
-  (exists (?AIRING1)
-    (and
-      (instance ?AIRING1 Broadcasting)
-      (agent ?AIRING1 ?STATION)
-      (equal (WhenFn ?AIRING1) ?DATE)
-      (not
-        (exists (?AIRING2)
-          (and
-            (instance ?AIRING2 Broadcasting)
-            (agent ?AIRING2 ?STATION)
-            (not
-              (equal ?AIRING1 ?AIRING2))
-            (beforeOrEqual (WhenFn ?AIRING2) (WhenFn ?AIRING1))))))))
-            
-            
+  (and
+    (dateOfOpening ?RADIO ?DATE)
+    (instance ?RADIO RadioStation))
+  (and
+    (exists (?AIR)
+      (and
+        (instance ?AIR Broadcasting)
+        (agent ?AIR ?RADIO)
+        (during (WhenFn ?AIR) ?DATE)))
+    (not
+      (exists (?AIR2)
+        (and
+          (instance ?AIR2 Broadcasting)
+          (agent ?AIR2 ?RADIO)
+          (not (equal ?AIR ?AIR2))
+          (before (WhenFn ?AIR2) ?DATE))))))
+        
 (subclass Artist SkilledOccupation)
 (documentation Artist EnglishLanguage "the &%SkilledOccupation that is a person who creates &%ArtWork")
 (termFormat EnglishLanguage Artist "Artist")
@@ -370,24 +449,22 @@ that the &%RadioStation ?STATION had its first &%Broadcasting on the &%Day ?DATE
       (agent ?CREATION ?ARTIST))))
       (result ?CREATION ?ART)
       
-
-(instance dateUsed BinaryPredicate)
+(instance dateUsed TernaryPredicate)
 (domain dateUsed 1 Object)
 (domain dateUsed 2 TimePoint)
-(documentation dateUsed EnglishLanguage "the date an &%Object is used by an &%Agent")
+(domain dateUsed 3 Agent)
+(documentation dateUsed EnglishLanguage "The date an &%Object is used by an &%Agent.")
 (termFormat EnglishLanguage dateUsed "date used")
 (=>
-  (dateUsed ?OBJECT ?DATE)
-  (exists (?PROCESS ?AGENT)
+  (dateUsed ?OBJECT ?DATE ?AGENT)
+  (exists (?PROCESS)
     (and
       (instance ?PROCESS Process)
-      (instance ?AGENT Agent)
       (patient ?PROCESS ?OBJECT)
       (agent ?PROCESS ?AGENT)
       (uses ?OBJECT ?AGENT)
       (equal ?DATE (WhenFn ?PROCESS)))))
-      
-      
+           
 (subclass Architect SkilledOccupation)
 (documentation Architect EnglishLanguage "The &%SkilledOccupation that entail designing buildings")
 (termFormat EnglishLanguage Architect "Architect")
@@ -396,26 +473,26 @@ that the &%RadioStation ?STATION had its first &%Broadcasting on the &%Day ?DATE
     (instance ?ARCHITECT Human)
     (attribute ?ARCHITECT Architect))
   (hasExpertise ?ARCHITECT Architecture))
-  
-  
-(instance designedBuilding BinaryPredicate)
-(domain designedBuilding 1 Human)
-(domain designedBuildin 2 Building)
-(documentation designedBuilding EnglishLanguage "(designedBuilding ?ARCHITECT ?BUILDING) 
-means that the &%Architect ?ARCHITECT designed the &%Building ?BUILDING")
-(termFormat EnglishLanguage designedbuilding "designed the building.")
-(=>
-  (designedBuilding ?ARCHITECT ?BUILDING)
-  (exists (?DEVELOPMENT ?BLUEPRINT)
-    (and
-      (attribute ?ARCHITECT Architect)
-      (instance ?DEVELOPMENT ContentDevelopment)
-      (instance ?BLUEPRINT Blueprint)
-      (agent ?DEVELOPMENT ?ARCHITECT)
-      (result ?DEVELOPMENT ?BLUEPRINT)
-      (represents ?BLUEPRINT ?BUILDING))))
-      
-      
+
+;; KJN: a more generic "designs" relationship can be found in the latter part of this
+;; document and can be used in place of this.
+;;(instance designedBuilding BinaryPredicate)
+;;(domain designedBuilding 1 Human)
+;;(domain designedBuildin 2 Building)
+;;(documentation designedBuilding EnglishLanguage "(designedBuilding ?ARCHITECT ?BUILDING) 
+;;means that the &%Architect ?ARCHITECT designed the &%Building ?BUILDING")
+;;(termFormat EnglishLanguage designedbuilding "designed the building.")
+;;(=>
+;;  (designedBuilding ?ARCHITECT ?BUILDING)
+;; (exists (?DEVELOPMENT ?BLUEPRINT)
+;;    (and
+;;      (attribute ?ARCHITECT Architect)
+;;      (instance ?DEVELOPMENT ContentDevelopment)
+;;      (instance ?BLUEPRINT Blueprint)
+;;      (agent ?DEVELOPMENT ?ARCHITECT)
+;;      (result ?DEVELOPMENT ?BLUEPRINT)
+;;      (represents ?BLUEPRINT ?BUILDING))))
+            
 (subclass Awarding UnilateralGiving)
 (documentation Awarding EnglishLanguage "&%Giving to any &%Agent for doing some &%Process.")
 (termFormat EnglishLanguage Awarding "awarding")
@@ -447,7 +524,10 @@ means that the &%Architect ?ARCHITECT designed the &%Building ?BUILDING")
       (instance ?A Awarding)
       (destination ?A ?RECIPIENT)
       (patient ?A ?AWARD))))
-      
+
+;; KJN: Since definition says that Sign displays a range of information, will add it
+;; as a subclass of &%ContentBearingObject
+(subclass Sign ContentBearingObject)      
 (subclass Sign DisplayArtifact)
 (subclass Sign DataDisplayDevice)
 (documentation Sign EnglishLanguage "A Sign is a &%DisplayArtifact that displays any range of information")
@@ -455,8 +535,7 @@ means that the &%Architect ?ARCHITECT designed the &%Building ?BUILDING")
 (=>
   (instance ?SIGN Sign)
   (structure ?SIGN Flat))
-  
-  
+
 (instance broadcastRadius CaseRole)
 (domain broadcastRadius 1 Broadcasting)
 (domain broadcastRadius 2 LengthMeasure)
@@ -489,21 +568,27 @@ means that the &%Architect ?ARCHITECT designed the &%Building ?BUILDING")
               (greaterThan ?DISTANCE2 ?RADIUS))) Possibility)))))
               
 (instance carries BinaryPredicate)
-(domain carries 1 Animal)
+;; KJN: Editing this to be more general not only to Animal but to any Agent
+;;(domain carries 1 Animal)
+(domain carries 1 Agent)
 (domain carries 2 Object)
-(documentation carries EnglishLanguage "(carries ?ANIMAL ?OBJECT) means that 
-an &%Animal ?ANIMAL transers an &%OBJECT ?OBJECT from one point to another")
+;;(documentation carries EnglishLanguage "(carries ?ANIMAL ?OBJECT) means that 
+;;an &%Animal ?ANIMAL transers an &%OBJECT ?OBJECT from one point to another")
+
+(documentation carries EnglishLanguage "(carries ?AGENT ?OBJECT) means that 
+an &%Agent ?AGENT transers an &%OBJECT ?OBJECT from one point to another")
 (termFormat EnglishLanguage carries "carries")
 (=>
-  (carries ?ANIMAL ?OBJECT)
+  (carries ?AGENT ?OBJECT)
   (exists (?CARRYING)
     (and
-      (instrument ?CARRYING ?ANIMAL)
+      (instrument ?CARRYING ?AGENT)
       (patient ?CARRYING ?OBJECT))))
     
 
 (instance Cinematographer FilmMakingProfession)
-(documentation Cinematographer EnglishLanguage "&%Position which involves controlling the &%Camera during a &%FilmMaking")
+(documentation Cinematographer EnglishLanguage "&%Position which involves controlling 
+the &%Camera during a &%FilmMaking")
 (termFormat EnglishLanguage Cinematographer "Cinematographer")
 (=>
   (and
@@ -514,7 +599,6 @@ an &%Animal ?ANIMAL transers an &%OBJECT ?OBJECT from one point to another")
       (instance ?SHOT FilmMaking)
       (agent ?SHOT ?C))))
     
-
 (instance filmCinematographer BinaryPredicate)
 (domain filmCinematographer 1 Human)
 (domain filmCinematographer 2 MotionPicture)
@@ -638,7 +722,6 @@ means that some &%StationaryArtifact ?OBJECT was built over &%TimeInterval ?INTE
       (result ?CONSTRUCTING ?OBJECT)
       (holdsDuring ?INTERVAL ?CONSTRUCTING))))
       
-
 (instance contractor BinaryPredicate)
 (domain contractor 1 StationaryArtifact)
 (domain contractor 2 Agent)
@@ -657,7 +740,6 @@ means that some &%StationaryArtifact ?OBJECT was built over &%TimeInterval ?INTE
       (agent ?PAYMENT ?ORG)
       (destination ?PAYMENT ?AGENT))))
 
-
 (instance creator BinaryRelation)
 (domain creator 1 Agent)
 (domain creator 2 Entity)
@@ -672,11 +754,11 @@ some &%Agent ?AGENT is the creator of some &%Entity ?ENTITY")
       (agent ?CREATION ?AGENT)
       (result ?CREATION ?ENTITY))))
       
-
 (instance describes BinaryPredicate)
 (domain describes 1 Formula)
 (domain describes 2 Object)
-(documentation describes EnglishLanguage "(describes ?FORMULA ?OBJECT) means that some &%Formula ?FORMULA, as said by some &%Agent, is a statement regarding some &%Object ?OBJECT")
+(documentation describes EnglishLanguage "(describes ?FORMULA ?OBJECT) means that some 
+&%Formula ?FORMULA, as said by some &%Agent, is a statement regarding some &%Object ?OBJECT")
 (termFormat EnglishLanguage describes "describes")      
 (=>
   (describes ?FORMULA ?OBJECT)
@@ -687,7 +769,6 @@ some &%Agent ?AGENT is the creator of some &%Entity ?ENTITY")
       (patient ?STATING ?FORMULA)
       (refers ?STATING ?OBJECT))))
       
-
 (instance directed BinaryPredicate)
 (domain directed 1 Human)
 (domain directed 2 MotionPicture)
@@ -703,27 +784,32 @@ some &%Agent ?AGENT is the creator of some &%Entity ?ENTITY")
       (leader ?FILMCREW ?DIRECTOR)
       (agent ?FILMMAKING ?FILMCREW)
       (result ?FILMMAKING ?MOVIE))))
-      
-    
+
+;; changing domain to domainSubclass so that we can say that a distributor distributes
+;; instances of Object, instead of having to define the relationship for each of the
+;; indvidiual product instances
 (instance distributes BinaryPredicate)
 (domain distributes 1 Organization)
-(domain distributes 2 Object)
-(documentation distributes EnglishLanguage "(distributes ?DISTRIBUTOR ?OBJECT) means that the &%Agent ?DISTRIBUTOR is in 
-charge of the &%DistributeProducts &%Process for some &%Object ?OBJECT. This relation could hold in a &%Business or casual setting.")
+;;(domain distributes 2 Object)
+(domainSubclass distributes 2 Object)
+(documentation distributes EnglishLanguage "(distributes ?DISTRIBUTOR ?OBJECT) means 
+that the &%Agent ?DISTRIBUTOR is in charge of the &%DistributeProducts &%Process for 
+some &%Object ?OBJECT. This relation could hold in a &%Business or casual setting.")
 (termFormat EnglishLanguage distributes "distributes")
 (=>
   (distributes ?DISTRIBUTOR ?PRODUCT)
-  (exists (?DISTRIBUTE)
+  (exists (?DISTRIBUTE ?PROD)
     (and
+      (instance ?PROD ?PRODUCT)
       (instance ?DISTRIBUTE DistributeProducts)
       (agent ?DISTRIBUTE ?DISTRIBUTOR)
-      (patient ?DISTRIBUTE ?PRODUCT))))
-      
-      
+      (patient ?DISTRIBUTE ?PROD))))
+            
 (instance discovers BinaryPredicate)
 (domain discovers 1 Agent)
 (domain discovers 2 Object)
-(documentation discovers EnglishLanguage "(discovers ?AGENT ?OBJECT) means that the &%Agent ?AGENT discovered the &%Object ?OBJECT.")
+(documentation discovers EnglishLanguage "(discovers ?AGENT ?OBJECT) means that the 
+&%Agent ?AGENT discovered the &%Object ?OBJECT.")
 (termFormat EnglishLanguage discovers "discovers")
 (=>
   (discovers ?AGENT ?OBJECT)
@@ -735,19 +821,24 @@ charge of the &%DistributeProducts &%Process for some &%Object ?OBJECT. This rel
       
 (instance designs BinaryPredicate)
 (domain designs 1 Agent)
-(domain designs 2 Object)
-(documentation designs EnglishLanguage "(designs ?AGENT ?OBJECT) means that the &%Agent ?AGENT 
-designed some &%Object ?OBJECT by creating a different &%Object that represents ?OBJECT")
+;; KJN: Changing this to Physical, as you can also technically design a complex process
+;;(domain designs 2 Object)
+(domain designs 2 Physical)
+;;(documentation designs EnglishLanguage "(designs ?AGENT ?OBJECT) means that the &%Agent ?AGENT 
+;;designed some &%Object ?OBJECT by creating a different &%Object that represents ?OBJECT")
+(documentation designs EnglishLanguage "(designs ?AGENT ?PHYS) means that the 
+&%Agent ?AGENT was involved in a &%Designing process that resulted in a model that
+&%represents &%Physical ?PHYS")
 (termFormat EnglishLanguage designs "designs")
+
 (=>
-  (designs ?AGENT ?OBJECT)
-  (exists (?DESIGN ?PROP)
+  (designs ?AGENT ?PHYS)
+  (exists (?DP ?DR)
     (and
-      (instance ?DESIGN Designing)
-      (instance ?PROP Object)
-      (agent ?DESIGN ?AGENT)
-      (result ?DESIGN ?PROP)
-      (represents ?PROP ?OBJECT))))
+      (instance ?DP Designing)
+      (agent ?DP ?AGENT)
+      (result ?DP ?DR)
+      (represents ?DR ?OBJECT))))
       
       
 (instance engineers BinaryPredicate)
