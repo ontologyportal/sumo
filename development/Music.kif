@@ -1,0 +1,673 @@
+;; ============================================================================
+;;                  	 REARDEN COMMERCE, INC.
+;;                	Catalog and Selling Ontology
+;; ============================================================================
+
+;; Created by: Karen Joy Nomorosa (karen.nomorosa [at] reardencommerce [dot] com)
+;; Created on: September 13, 2011
+;; Last modified: September 13, 2011
+;; Modified by: Karen Joy Nomorosa (karen.nomorosa [at] reardencommerce [dot] com)
+
+;; Description:  This ontology contains suggestions for changes to anything related to
+;; Music, as well as additional relationships as suggested by Wikipeda Infobox Templates
+
+;; Access to and use of these products is governed by the GNU General Public 
+;; License <http://www.gnu.org/copyleft/gpl.html>. 
+;; By using these products, you agree to be bound by the terms 
+;; of the GPL.
+
+;; We ask the people using or referencing this work cite our primary paper:
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
+;; Proceedings of the 2nd International Conference on Formal Ontology in 
+;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
+;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
+
+;; ----------------------------------------------------------------------------------
+;; Concepts Related to Music
+;; ----------------------------------------------------------------------------------
+
+(subclass Music Proposition)
+(documentation Music EnglishLanguage "&%Music refers to the conception of music - it's
+notes, tempo, arrangement, lyrics, etc. as thought by its composers and lyricist.  Some
+types of &%Music are conceptualized with only the background instrumentation thought of,
+while some types of &%Music are conceptualized with the thought of having both lyrics
+and musical composition combined.")
+(termFormat EnglishLanguage Music "music")
+
+(=>
+  (and
+    (instance ?MC Music)
+    (realization ?MUSIC ?MC))
+  (instance ?MUSIC MakingMusic))
+
+(subclass MusicalComposition Music)
+(documentation MusicalComposition EnglishLanguage "&%MusicalComposition refers to the
+the conception of a musical arrangement not including any &%LyricalContent.")
+(termFormat EnglishLanguage MusicalComposition "musical composition")
+(comment MusicalComposition "Currently, MusicalComposition is treated as text, and there 
+is no propositional content related to it.  This is dangerous, as there could be millions 
+of instances of (for instance) sheet music containing Beethoven's Fifth Symphony, and 
+only having MusicalComposition equal to an object would imply that all of this different 
+instances are different from each other.  You could also have many different arrangements 
+of the same musical composition.  As such, I propose making MusicalComposition a Proposition, 
+which refers more to the conception of the music, and SheetMusic the content bearing 
+object that contains information about a particular MusicalComposition.  (09-13-2011)" 
+"KJN")
+
+(=> 
+  (and
+    (instance ?MC MusicalComposition)
+    (realization ?MC ?MUSIC))
+  (not
+    (exists (?LC ?V)
+      (and
+        (instance ?V MakingVocalMusic)
+        (patient ?V ?LC)
+        (instance ?LC LyricalContent)
+        (subProcess ?V ?MUSIC)))))
+        
+(subclass Song Music)
+(documentation Song EnglishLanguage "&%Song refers to the conception of music that 
+includes both &%MusicalComposition and &%LyricalComposition.  While a &%Song can be
+interpreted without its &%LyricalContent, or its &%LyricalContent is used elsewhere, 
+the idea of &%Song as it was originally conceptualized is that it contains both.")
+(termFormat EnglishLanguage Song "song")
+
+(=>
+  (and
+    (instance ?S Song)
+    (realization ?S ?MUSIC))
+  (exists (?MM ?MV ?LC ?MC)
+    (and
+      (instance ?MM MakingMusic)
+      (instance ?MV MakingVocalMusic)
+      (instance ?LC LyricalContent)
+      (instance ?MC MusicalComposition)
+      (patient ?MM ?MC)
+      (patient ?MV ?LC)
+      (subProcess ?MM ?MUSIC)
+      (subProcess ?MV ?MUSIC))))
+  
+      
+(subclass LyricalContent Proposition)
+(documentation LyricalContent EnglishLanguage "&%LyricalContent is the conceptual 
+idea of &%Lyrics.")
+(comment LyricalContent EnglishLanguage "It is important to distinguish the propositional 
+content of &%Lyrics from the text that displays it.  Some songs are translated from one 
+language to another, but use essentially the same Lyrical content. (09-15-2011)" "KJN")
+(termFormat EnglishLanguage LyricalContent "lyrical content")
+
+(=>
+  (instance ?X LyricalContent)
+  (hasPurpose ?X
+    (exists (?S)
+      (and
+        (instance ?S MakingVocalMusic)
+        (patient ?S ?X)))))  
+        
+(subclass SheetMusic ContentBearingObject)
+(documentation SheetMusic EnglishLanguage "&%SheetMusic refers to the &%ContentBearingObject
+that contains a representation of a &%MusicalComposition, using different musical 
+symbols")
+(termFormat EnglishLanguage SheetMusic "sheet music")
+
+(=>
+  (instance ?SM SheetMusic)
+  (exists (?MC)
+    (and
+      (instance ?MC MusicalComposition)
+      (constainsInformation ?SM ?MC))))
+
+(subclass Recording ContentBearingObject)
+(documentation Recording EnglishLanguage "&%Recording refers to a &%ContentBearingObject
+that represents some &%Process that happened in real life")
+(termFormat EnglishLanguage Recording "recording")
+
+(=>
+  (instance ?R Recording)
+  (exists (?P)
+    (and
+      (instance ?P Process)
+      (record ?R ?P))))
+
+(comment AudioRecording "In Mid-level-ontology.kif, it says that (&%subclass &%AudioRecording
+&%Text).  This does not seem right.  Deleting that statement.  Creating a parent class
+called &%Recording which means something that captures a &%Process that happened in real life.
+&%AudioRecording and &%VideoRecording will inherit from there.  A &%Photograph is also
+a still recording of what happened in real life - as opposed to Graphic Art which is 
+more of an &%ArtWork than a &%Recording, so it will also inherit from &%Recording.
+(09-14-2011)" "KJN")
+
+(subclass AudioRecording Recording)
+(subclass VideoRecording Recording)
+(subclass Photograph Recording)      
+ 
+(subclass MusicRecording AudioRecording)
+(documentation MusicRecording EnglishLanguage "&%MusicRecording refers to an &%AudioRecording
+of the &%Process of &%MakingMusic.")
+(termFormat EnglishLanguage MusicRecording "music recording")
+
+(=>
+  (instance ?M MusicRecording)
+  (exists (?P)
+    (and
+      (instance ?P MakingMusic)
+      (record ?M ?P))))
+
+(subclass RecordingStudio StationaryArtifact)
+(documentation RecordingStudio EnglishLanguage "A &%RecordingStudio is a &%StationaryArtifact,
+such as a &%Room or &%Building that has the necessary equipment to professionaly 
+produce a &%Recording.")
+(termFormat EnglishLanguage RecordingStudio "recording studio")
+
+(=>
+  (instance ?S RecordingStudio)
+  (hasPurpose ?S
+    (exists (?R ?P)
+      (and
+        (instance ?R Recording)
+        (result ?P ?R)
+        (eventLocated ?P ?S)))))
+        
+(=>
+  (instance ?S RecordingStudio)
+  (exists (?D)
+    (and
+      (instance ?D Device)
+      (hasPurpose ?D
+        (exists (?R ?P)
+          (and
+            (instance ?R Recording)
+            (instrument ?P ?D)
+            (result ?P ?R))))
+      (located ?D ?S))))
+  
+(subclass Album List)
+(documentation Album EnglishLanguage "An &%Album is a &%List of &%Recordings that are packaged and sold as a unit.")
+(termFormat EnglishLanguage Album "album")
+
+(=>
+  (instance ?L Album)
+  (forall (?X)
+    (=>
+      (inList ?X ?L)
+      (instance ?X Recording))))      
+      
+;; ----------------------------------------------------------------------------------
+;; Processes Related to Music
+;; ----------------------------------------------------------------------------------
+      
+(subclass ComposingMusic ContentDevelopment)
+(documentation ComposingMusic EnglishLanguage "&%ComposingMusic is a type of &%ContentDevelopment
+that results in a &%MusicalComposition")
+(termFormat EnglishLanguage ComposingMusic "composing music")
+
+(=>
+  (instance ?C ComposingMusic)
+  (exists (?M)
+    (and
+      (instance ?M MusicalComposition)
+      (result ?C ?M))))
+
+(subclass MakingMusic RadiatingSound)
+(documentation MakingMusic EnglishLanguage "&%MakingMusic is a type of &%RadiatingSound
+where the &%result is intended to be melodic and is produced delibrately")
+(termFormat EnglishLanguage MakingMusic "making music")
+(comment MakingMusic "Changing the old Music to &%MakingMusic to be more consistent with
+the verb-form that &%Process seem to take. (09-14-2011)" "KJN")
+
+(subclass MakingInstrumenalMusic MakingMusic)
+(documentation MakingInstrumenalMusic EnglishLanguage "&%MakingInstrumenalMusic is a type
+of &%MakingMusic which is produced using some kind of &%MusicalInstrument")
+(termFormat EnglishLanguage MakingInstrumenalMusic "instrumental music")
+
+(=>
+  (instance ?M MakingInstrumenalMusic)
+  (exists (?I)
+    (and
+      (instance ?I MusicalInstrument)
+      (instrument ?M ?I))))
+
+(subclass MakingVocalMusic MakingMusic)
+(subclass MakingVocalMusic Vocalizing)
+(documentation MakingVocalMusic EnglishLanguage "&%MakingVocalMusic is a type of
+&%MakingMusic which is produced by using the vocal cords")
+(termFormat EnglishLanguage MakingVocalMusic "singing")
+(comment MakingVocalMusic "Currently, &%VocalMusic also inherits from &%Speaking.  Changing
+this to more general &%Vocalizing.  Acapella groups today use their &%VocalCord to create
+music in ways that are more than just speaking. (09-14-2011)" "KJN")
+
+(comment ComposingMusic "Removing a definition for Composing, which basically has the
+same definition of &%ComposingMusic in Mid-level-ontology.kif. (09-16-2011)" "KJN")
+
+;; ----------------------------------------------------------------------------------
+;; Relationships Related to Music or Record
+;; ----------------------------------------------------------------------------------
+
+;; ***** RECORDING ******
+
+(subrelation record represents)
+(documentation record EnglishLanguage "(&%record ?OBJ ?PHYS), a more specific relationship
+than &%represents, means that some &%Physical ?PHYS is captured and interpreted into a 
+&%ContentBearingObject that is stored in some &%DataStorageDevice")
+(termFormat EnglishLanguage record "record")
+(comment record "Adding a more specific relation than &%represents.  While &%represents
+can be something like a &%Logo that represents a &%Brand, &%record is more strict in 
+the sense that it is an accurate rendering of some &%Process that occurred in real life. 
+(09-14-2011)." "KJN")
+
+(domain record 1 ContentBearingObject)
+(domain record 2 Physical)    
+
+(=>
+  (record ?REC ?PHYS)
+  (equivalentContentInstance ?REC ?PHYS))
+  
+(=>
+  (record ?REC ?PHYS)
+  (exists (?DS)
+    (and
+      (instance ?DS DataStorageDevice)
+      (stored ?REC ?DS))))
+      
+(instance stored BinaryPredicate)
+(instance stored AntisymmetricRelation)
+(instance stored TransitiveRelation)
+(documentation stored EnglishLanguage "(&%stored ?REC ?OBJ) means that some 
+&%ContentBearingObject, encoded in some format, is saved in some &%DataStorageDevice
+and can be accessed in some future date.")
+(termFormat EnglishLanguage stored "stored")
+(comment stored "Adding a stored method that is specific to storing &%ContentBearingObject
+such as &%SymbolicString, &%Recording, etc. in a &%DataStorageDevice.  Will be changing
+some axioms to use this instead of other, vaguer ways of describing it.")
+
+(domain stored 1 ContentBearingObject)
+(domain stored 2 DataStorageDevice)
+
+(=>
+  (stored ?O ?D)
+  (exists (?P)
+    (and
+      (instance ?P Writing)
+      (destination ?P ?D)
+      (patient ?P ?O))))
+      
+(=>
+  (equal ?TIME (WhenFn (stored ?O ?D)))
+  (holdsDuring (?TIME)
+    (modalAttribute
+      (exists (?P)
+        (patient ?P ?O)) Possibility)))
+    
+(instance producedOn BinaryPredicate)
+(documentation producedOn EnglishLanguage "(&%producedOn ?R ?TP) refers to the date
+that a &%Recording was finalized into a final copy that is ready for release.")
+(termFormat EnglishLanguage producedOn "produced on")
+
+(domain producedOn 1 Recording)
+(domain producedOn 2 TimePoint)
+
+(=>
+  (producedOn ?R ?D)
+  (exists (?P)
+    (and
+      (instance ?P Process)
+      (result ?P ?R)
+      (equal ?D
+        (WhenFn
+          (EndFn ?P))))))
+    
+(instance producedBy BinaryPredicate)
+(documentation producedBy EnglishLanguage "(&%producedBy ?R ?A) &%Human ?A is responsible
+for all decision-making processes that resulted in &%Recording ?R")
+(termFormat EnglishLanguage producedBy "produced by")
+
+(domain producedBy 1 Recording)
+(domain producedBy 2 Human)
+
+(=>
+  (producedBy ?R ?A)
+  (exists (?M ?P)
+    (and
+      (instance ?M Managing)
+      (agent ?M ?A)
+      (patient ?M ?P)
+      (instance ?P Process)
+      (result ?P ?R))))
+      
+(instance recordingLength BinaryPredicate)
+(documentation recordingLength EnglishLanguage "(&%recordingLength ?R ?T) indicates 
+that playing the complete &%Recording ?R from start to finish lasts &%TimeDuration ?T.")
+(termFormat EnglishLanguage recordingLength "recording length")
+
+(domain recordingLength 1 Recording)
+(domain recordingLength 2 TimeDuration)
+
+(=>
+  (and
+    (recordingLength ?R ?T)
+    (instance ?R AudioRecording))
+  (=>
+    (and
+      (instance ?L Listening)
+      (patient ?L ?R))
+    (duration (WhenFn ?L) ?T)))
+
+(instance recordingCompany BinaryPredicate)
+(documentation recordingCompany EnglishLanguage "(&%recordingCompany ?R ?C) means that 
+&%RecordCompany ?C is responsible for the distribution and production of &%Recording ?R.")
+(termFormat EnglishLanguage recordingCompany "recording company")
+
+(domain recordingCompany 1 Recording)
+(domain recordingCompany 2 Organization)
+          
+;; ***** MUSIC & MUSIC RECORDING ******
+          
+(subrelation composer creator)
+(documentation composer EnglishLanguage "(&%composer ?AGENT ?COMPOSITION) means that 
+&%CognitiveAgent ?AGENT created &%MusicalComposition ?COMPOSITION")
+(termFormat EnglishLanguage composer "composer")
+(comment composer "Right now, &%composer is a &%subrelation of &%authors, but &%authors
+is related to a &%Text versus to a &%Proposition, so I'm changing it such that &%compsoer
+now is a &%subrelation of &%creator, so that it can work with &%MusicalComposition, which
+is now a &%subclass of &%Proposition. (09-14-2011)" "KJN")
+(domain composer 1 CognitiveAgent)
+(domain composer 2 MusicalComposition)
+
+(=>
+  (composer ?A ?M)
+  (exists (?C)
+    (and
+      (agent ?C ?A)
+      (result ?C ?M))))
+
+(subrelation lyricist creator)
+(documentation lyricist EnglishLanguage "(&%lyricist ?LC ?A) means that &%CognitiveAgent 
+?A is the person who created &%LyricalContent ?LC.")
+(termFormat EnglishLanguage lyricist "lyricist")
+
+(domain lyricist 1 LyricalContent)
+(domain lyricist 2 CognitiveAgent)      
+
+(=>
+  (lyricist ?LC ?A)
+  (exists (?C)
+    (and
+      (agent ?C ?A)
+      (result ?C ?LC))))
+
+(instance musicTrack BinaryPredicate)
+(documentation musicTrack EnglishLanguage "(&%musicTrack ?MR ?MC)
+means that &%MusicRecording ?MR is a &%realization of &%Music ?MC")
+(termFormat EnglishLanguage musicTrack "musical track")
+
+(domain musicTrack 1 MusicRecording)
+(domain musicTrack 2 Music)
+
+(=>
+  (musicTrack ?MR ?MC)
+  (exists (?P)
+    (and
+      (instance ?P MakingMusic)
+      (realization ?P ?MC)
+      (record ?MR ?P))))
+                
+(instance musician TernaryPredicate)
+(documentation musician EnglishLanguage "(&%musician ?MR ?P ?I) means that &%Human ?P
+played some &%Process ?I as a &%Musician in &%MusicRecording ?MR")
+(termFormat EnglishLanguage musician "musician")
+
+(domain musician 1 MusicRecording)
+(domain musician 2 Human)
+(domainSubclass musician 3 MakingMusic)
+
+(=>
+  (musician ?MR ?P ?R)
+  (or
+    (exists (?I)
+      (equal ?R (PlayingInstrumentFn ?I)))
+    (equal ?R MakingVocalMusic)))
+
+
+;; ***** ALBUMS ******
+
+(instance albumRelease BinaryPredicate)
+(documentation albumRelease EnglishLanguage "(&%albumRelease ?A ?T) means that by 
+&%TimePoint ?T, (&%AlbumCopiesFn ?A ?DS) was &%releaseForSale in some location. ")
+(termFormat EnglishLanguage albumRelease "album release")
+
+(domain albumRelease 1 Album)
+(domain albumRelease 2 TimePoint)
+
+(=>
+  (albumRelease ?A ?T)
+  (and
+    (exists (?R1 ?DS1)
+      (releaseForSale (AlbumCopiesFn ?A ?DS1) ?R1 ?T))
+    (not
+      (exists (?B ?R2 ?DS2)
+        (and
+          (before ?B ?T)
+          (releaseForSale (AlbumCopiesFn ?A ?DS2) ?R2 ?B))))))          
+          
+;; ----------------------------------------------------------------------------------
+;; Attributes
+;; ----------------------------------------------------------------------------------
+
+(subclass RecordingAttribute RelationalAttribute)
+(documentation RecordingAttribute EnglishLanguage "&%RecordingAttribute refers to 
+&%RelationalAttributes that describe the conditions that a &%Recording was
+recorded under.")
+(termFormat EnglishLanguage RecordingAttribute "recording attribute")
+
+(=>
+  (attribute ?M RecordingAttribute)
+  (or
+    (instance ?M Recording)
+    (instance ?M Album)))
+
+(=>
+  (and
+    (instance ?A RecordingAttribute)
+    (attribute ?M ?A)
+    (instance ?M Album))
+  (forall (?R)
+    (=>
+      (inList ?R ?M)
+      (attribute ?R ?A))))
+    
+(instance LiveRecording RecordingAttribute)
+(documentation LiveRecording EnglishLanguage "&%LiveRecording refers to a 
+&%MusicRecording that was captured directly from a &%Performance")
+(termFormat EnglishLanguage LiveRecording "live recording")
+
+(=>
+  (and
+    (attribute ?M LiveRecording)
+    (instance ?M Recording))
+  (exists (?P)
+    (and
+      (instance ?P Performance)
+      (record ?M ?P))))
+            
+(instance StudioRecording RecordingAttribute)
+(documentation StudioRecording EnglishLanguage "&%StudioRecording refers to a 
+&%MusicRecording that was captured from sessions in a recording studio.")
+(termFormat EnglishLanguage StudioRecording "studio recording")
+
+(=> 
+  (and
+    (attribute ?M StudioRecording)
+    (instance ?M Recording))
+  (exists (?P)
+    (and
+      (record ?M ?P)
+      (eventLocated ?P ?S)
+      (instance ?S RecordingStudio))))
+
+(instance DemoRecording RecordingAttribute)
+(documentation DemoRecording EnglishLanguage "A &%DemoRecording refers to a &%Recording
+that is meant to be for a smaller group of people and is not meant for release or
+distribution to the public")
+(termFormat EnglishLanguage DemoRecording "demo recording")
+
+(=>
+  (and
+    (attribute ?M DemoRecording)
+    (instance ?M Recording))
+  (hasPurpose ?M
+    (exists (?D ?G ?MUSIC)
+      (and
+        (instance ?D Demonstrating)
+        (record ?M ?MUSIC)
+        (patient ?D ?MUSIC)
+        (destination ?D ?G)
+        (instance ?G GroupOfPeople)))))
+
+(instance MashupRecording RecordingAttribute)
+(documentation MashupRecording EnglishLanguage "A &%MashupRecording refers to a &%Recording
+that consists of two or more songs made into one song.")        
+(termFormat EnglishLanguage MashupRecording "mashup")
+
+(=>
+  (and
+    (attribute ?M MashupRecording)
+    (instance ?M Recording))
+  (exists (?M1 ?M2 ?S1 ?S2)
+    (and
+      (musicTrack ?M1 ?S1)
+      (musicTrack ?M2 ?S2)
+      (not (equal ?S1 ?S2))
+      (part ?M1 ?M)
+      (part ?M2 ?M))))
+
+(instance RemixRecording RecordingAttribute)
+(documentation RemixRecording EnglishLanguage "A &%RemixRecording refers to a &%Recording
+that has an original &%Recording that was somehow altered by some &%CognitiveAgent while
+still being able to recognize the original.")
+(termFormat EnglishLanguage RemixRecording "remix recording")
+
+(=>
+  (and
+    (attribute ?M RemixRecording)
+    (instance ?M MusicRecording))
+  (exists (?O ?A)
+    (equal ?M (RemixFn ?O ?A))))
+      
+;; ----------------------------------------------------------------------------------
+;; Functions
+;; ----------------------------------------------------------------------------------
+
+(instance MusicalInterpretationFn TernaryFunction)
+(documentation MusicalInterpretationFn EnglishLanguage "The function 
+(&%MusicalInterpretationFn ?A ?M ?T) returns an &%instance of &%MakingMusic that 
+refers to a particular instance of &%MakingMusic by &%CognitiveAgent ?A of 
+the &%realization of &%Music ?M during &%TimeInterval ?T.")
+(termFormat EnglishLanguage MusicalInterpretationFn "musical interpretation")
+
+(domain MusicalInterpretationFn 1 CognitiveAgent)
+(domain MusicalInterpretationFn 2 Music)
+(domain MusicalInterpretationFn 3 TimeInterval)
+(range MusicalInterpretationFn MakingMusic)
+
+(=>
+  (equal ?MM (MusicalInterpretationFn ?A ?M ?T))
+  (and
+    (realization ?MM ?M)
+    (equal ?T (WhenFn ?MM))
+    (agent ?MM ?A)))
+    
+(instance SongFn BinaryFunction)
+(documentation SongFn EnglishLanguage "The function (&%SongFn ?MC ?LC) returns an
+&%instance of &%Song that refers to the conception of a song that has &%MusicalComposition
+?MC and &%LyricalContent ?LC.")
+(termFormat EnglishLanguage SongFn "song function")
+
+(domain SongFn 1 MusicalComposition)
+(domain SongFn 2 LyricalContent)
+(range SongFn Song)
+
+(=>
+  (and
+    (equal ?S (SongFn ?MC ?LC))
+    (realization ?S ?MUSIC))
+  (exists (?MM ?MV)
+    (and
+      (patient ?MM ?MC)
+      (patient ?MV ?LC)
+      (subProcess ?MM ?MUSIC)
+      (subProcess ?MV ?MUSIC))))
+
+(instance RemixFn BinaryFunction)
+(documentation RemixFn EnglishLanguage "The function (&%RemixFn ?M ?A) returns a
+&%MusicRecording instance where an &%CognitiveAgent ?A does something to a &%MusicRecording
+?M that alters its arrangement, beat, tempo, etc, but still makes ?M recognizable to
+those listening to it.")
+(termFormat EnglishLanguage RemixFn "remix function")
+
+(domain RemixFn 1 MusicRecording)
+(domain RemixFn 2 CognitiveAgent)
+(range RemixFn MusicRecording)
+
+(=>
+  (equal ?S (RemixFn ?M ?A))
+  (exists (?P)
+    (and
+      (instance ?P IntentionalProcess)
+      (patient ?P ?M)
+      (agent ?P ?A)
+      (result ?P ?S)
+      (not (equal ?S ?M))
+      (not (copy ?S ?M)))))
+      
+(instance MusicalComponentFn UnaryFunction)
+(documentation MusicalComponentFn EnglishLanguage "The function (&%MusicalComponentFn
+?S) returns the instance of the &%MusicalComposition component of the &%Song ?S")
+(termFormat EnglishLanguage MusicalComponentFn "musical composition function")
+
+(domain MusicalComponentFn 1 Song)
+(range MusicalComponentFn MusicalComposition)
+
+(instance LyricalComponentFn EnglishLanguage "The function (&%LyricalComponentFn ?S) 
+returns the instance of the &%LyricalContent component of the &%Song ?S")
+(termFormat EnglishLanguage LyricalComponentFn "lyrical component function")
+
+(domain LyricalComponentFn 1 Song)
+(range LyricalComponentFn LyricalContent)
+
+(instance AlbumCopiesFn BinaryFunction)
+(documentation AlbumCopiesFn EnglishLanguage "The function (&%AlbumCopiesFn ?A ?DS)
+returns a subclass of all &%DataStorageDevice ?DS that contains all &%Recording in
+&%Album ?A.")
+(termFormat EnglishLanguage AlbumCopiesFn "album copies function")
+
+(domain AlbumCopiesFn 1 Album)
+(domainSubclass AlbumCopiesFn 2 DataStorageDevice)
+(rangeSubclass AlbumCopiesFn DataStorageDevice)
+
+(=>
+  (and
+    (equal ?D (AlbumCopiesFn ?A ?DS))
+    (instance ?X ?D))
+  (forall (?S)
+    (=>
+      (inList ?S ?A)
+      (exists (?C)
+        (and
+          (copy ?C ?S)
+          (stored ?C ?D))))))
+
+;; ----------------------------------------------------------------------------------
+;; Miscellaneous
+;; ----------------------------------------------------------------------------------
+
+(instance comment TernaryPredicate)
+(documentation comment EnglishLanguage "(&%comment ?ENT ?STR ?PER) is a convenience 
+relationship that allows ontologists represented by &%SymbolicString ?PER to write
+down commentaries ?STR on a defined &%Entity ?ENT")
+(termFormat EnglishLanguage comment "comment")
+
+(domain comment 1 Entity)
+(domain comment 2 SymbolicString)
+(domain comment 3 SymbolicString)      
+      
