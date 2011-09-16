@@ -27,31 +27,33 @@
 ;; administers or operates the HotelBuilding, and HotelBuilding is the physical 
 ;; structure where Hotel is located.
 
-(=> 
-  (attribute ?X TravelerAccommodation)
-  (exists (?PROPERTY ?BLDG)
-    (and
-      (equal ?PROPERTY (PropertyFn ?X))
-      (instance ?BLDG HotelBuilding)
-      (element ?BLDG ?PROPERTY))))
+;; NOTE: Removing this definition to accommodate independent TravelerAccommodation
+;; operators such as Vacation Rentals, Room Rentals, etc. who do not necessarily have
+;; a hotel building - who might just be renting out a room in their homes, etc.
+;; And so the basic definition of TravelerAccommodation is basically anyone who allows
+;; someone to rent a HotelUnit for a specific amount of time.
+;; (=> 
+;;   (attribute ?X TravelerAccommodation)
+;;   (exists (?PROPERTY ?BLDG)
+;;     (and
+;;       (equal ?PROPERTY (PropertyFn ?X))
+;;       (instance ?BLDG HotelBuilding)
+;;       (element ?BLDG ?PROPERTY))))
 
+
+;; NOTE: Renting is a subclass of FinancialTransaction, so the relationship &%rents,
+;; which implies that an instance of Renting exists, already implies that 
+;; TravelerAccommodation provides       
 (=>
   (attribute ?X TravelerAccommodation)
   (hasPurpose ?X
-    (exists (?CUST ?ROOM ?BLDG ?TIMEINT)
+    (exists (?GUEST ?ROOM)
       (and
-        (customer ?CUST ?X)
+        (rents ?GUEST ?X ?ROOM ?TI)
         (instance ?ROOM HotelUnit)
-        (part ?ROOM ?BLDG)
-        (element ?BLDG (PropertyFn ?X))
-        (confersRight ?X
-          (holdsDuring ?TIMEINT
-            (and
-              (stays ?CUST ?ROOM)
-              (instance ?PAY FinancialTransaction)
-              (agent ?PAY ?CUST)
-              (destination ?PAY ?X))) ?CUST)))))
-              
+        (element ?ROOM (PropertyFn ?X))))))
+
+        
 (subrelation guest customer)
 (documentation guest EnglishLanguage "&%guest refers to the &%customer living in a
 &%TemporaryResidence for the duration of his stay there")
@@ -62,14 +64,12 @@
 
 (=>
   (and
-    (guest ?GUEST ?HOTEL)
-    (attribute ?HOTEL TravelerAccommodation))
-  (exists (?ROOM)
-    (and
-      (instance ?ROOM HotelUnit)
-      (element ?ROOM (PropertyFn ?HOTEL))
-      (stays ?GUEST ?ROOM))))
-    
+    (rents ?GUEST ?HOTEL ?ROOM ?TI)
+    (attribute ?HOTEL TravelerAccommodation)
+    (instance ?ROOM HotelUnit))
+  (holdsDuring ?TI
+    (guest ?GUEST ?HOTEL)))
+
 (subclass HotelBuilding ResidentialBuilding)
 (documentation HotelBuilding EnglishLanguage "A &%ResidentialBuilding which provides 
 temporary accommodations to guests in exchange for money.")
@@ -102,6 +102,15 @@ detached &%Building")
     (and
       (attribute ?HOTEL TravelerAccommodation)
       (element ?ROOM (PropertyFn ?HOTEL)))))
+
+(=>
+  (instance ?ROOM HotelUnit)
+  (hasPurpose ?ROOM
+    (exists (?AGENT ?CUST ?TI)
+      (and
+        (not (equal ?AGENT ?CUST))
+        (element ?ROOM (PropertyFn ?AGENT))
+        (rents ?CUST ?AGENT ?ROOM ?TI)))))
       
 (subclass HotelRoom Room)
 (subclass HotelRoom HotelUnit)
@@ -1475,34 +1484,33 @@ that the ?ATTR type of &%Meal is available at ?TIME according to ?PLAN")
 (termFormat EnglishLanguage includedMeal "included meal")
 
 (domain includedMeal 1 MealPlan)
-(domain includedMeal 2 MealAttribute)
-(domainSubclass includedMeal 3 TimeInterval)
+(domain includedMeal 2 RelationalAttribute)
 
 ;; if a room has an associated mealplan that indicates included meals, then while 
 ;; there is a guest staying in that room, there is a meal available at the stated
 ;; time intervals for that guest to consume (if he wants to) 
 
 (=>
-  (instance ?X (MealPlanFn ?TYPE))
-  (exists (?ATTR ?TIME)
-    (and
-      (includedMeal ?X ?ATTR ?TIME)
-      (holdsDuring
-        (WhenFn (guest ?CUST ?RM))
-        (forall (?INT)
-          (=>
-            (instance ?INT ?TIME)
-            (holdsDuring ?INT
-              (exists (?MEAL)
+  (and
+    (offers ?HOTEL ?MP)
+    (instance ?MP MealPlan)
+    (includedMeal ?MP ?ATTR)
+    (attribute ?HOTEL TravelerAccommodation)
+    (guest ?GUEST ?HOTEL)
+    (buys ?GUEST ?HOTEL ?MP))
+  (holdsDuring
+    (WhenFn (guest ?GUEST ?HOTEL))
+    (exists (?TI)
+      (holdsDuring ?TI
+        (exists (?MEAL)
+          (and
+            (attribute ?MEAL ?ATTR)
+            (hasPurpose ?MEAL
+              (exists (?E)
                 (and
-                  (instance ?MEAL Meal)
-                  (attribute ?MEAL ?ATTR)
-                  (hasPurpose ?MEAL
-                    (exists (?E)
-                      (and
-                        (instance ?E Eating)
-                        (patient ?E ?MEAL)
-                        (agent ?E ?CUST)))))))))))))
+                  (instance ?E Eating)
+                  (agent ?E ?GUEST)
+                  (patient ?E ?MEAL))))))))))
 
 (subclass FullBoard MealPlan)
 (documentation FullBoard EnglishLanguage "&%FullBoard is an arrangement in which a
@@ -1512,9 +1520,9 @@ that the ?ATTR type of &%Meal is available at ?TIME according to ?PLAN")
 (=>
   (instance ?X FullBoard)
   (and
-    (includedMeal ?X Breakfast BreakfastTime)
-    (includedMeal ?X Lunch LunchTime)
-    (includedMeal ?X Dinner DinnerTime)))
+    (includedMeal ?X Breakfast)
+    (includedMeal ?X Lunch)
+    (includedMeal ?X Dinner)))
 
 (subclass HalfBoard MealPlan)
 (documentation HalfBoard EnglishLanguage "&%HalfBoard is an arrangement in which a 
@@ -1524,8 +1532,8 @@ that the ?ATTR type of &%Meal is available at ?TIME according to ?PLAN")
 (=>
   (instance ?X HalfBoard)
   (and
-    (includedMeal ?X Breakfast BreakfastTime)
-    (includedMeal ?X Dinner DinnerTime)))
+    (includedMeal ?X Breakfast)
+    (includedMeal ?X Dinner)))
 
 (subclass MealPlanEuropean MealPlan)
 (documentation MealPlanEuropean EnglishLanguage "&%MealPlanEuropean describes an 
@@ -1535,8 +1543,8 @@ arrangement where no meals are provided for by the &%TravelerAccommodation")
 (=>
   (instance ?X MealPlanEuropean)
   (not
-    (exists (?ATTR ?TIME)
-      (includedMeal ?X ?ATTR ?TIME))))
+    (exists (?ATTR)
+      (includedMeal ?X ?ATTR))))
 
 (subclass MealPlanContinental MealPlanBreakfast)
 (documentation MealPlanContinental EnglishLanguage "&%MealPlanContinental is an arrangement 
@@ -1545,7 +1553,7 @@ in which a  &%TravelerAccommodation provides a continental breakfast")
 
 (=>
   (instance ?X MealPlanContinental)
-  (includedMeal ?X ContinentalBreakfast BreakfastTime))
+  (includedMeal ?X ContinentalBreakfast))
   
 (subclass MealPlanBreakfast MealPlan)
 (documentation MealPlanBreakfast EnglishLanguage "&%MealPlanBreakfast is an arrangement 
@@ -1565,25 +1573,11 @@ and either &Lunch or &%Dinner")
 (=>
   (instance ?X MealPlanModifiedAmerican)
   (and
-    (includedMeal ?X Breakfast BreakfastTime)
+    (includedMeal ?X Breakfast)
     (or
-      (includedMeal ?X Dinner DinnerTime)
-      (includedMeal ?X Lunch LunchTime))))
+      (includedMeal ?X Dinner)
+      (includedMeal ?X Lunch))))
       
-(instance MealAttributeFn BinaryFunction)
-(documentation MealAttributeFn EnglishLanguage "(&%MealAttributeFn ?MEAL ?AREA) returns
-a &%MealAttribute to describe the &%Meal ?MEAL in a specific &%Region ?AREA.
-This covers the cases where Steak and Eggs would be dinner in Asia but breakfast in 
-the US")
-(termFormat EnglishLanguage MealAttributeFn "meal attribute function")
-(domain MealAttributeFn 1 Meal)
-(domain MealAttributeFn 2 Region)
-(range MeallAttributeFn MealAttribute)
-
-(=>
-  (instance ?ATTR (MealAttributeFn ?MEAL ?REGION))
-  (attribute ?MEAL ?ATTR))  
-
 ;; ---------------------------------------------------------------------------------
 ;; Facilities
 ;; --------------------------------------------------------------------------------- 
@@ -1945,8 +1939,8 @@ performing some action (like a phone call or knocking on the door) to wake up a 
 
 (subclass TransportationService ServiceProcess)
 (documentation TransportationService EnglishLanguage "&%TransportationService refers to
-how an agent that possesses some kind of Automobile drives people around")
-(termFormat EnglishLanguage TransportationService "car service")        
+how an agent that possesses some kind of ground vehicle transports people around")
+(termFormat EnglishLanguage TransportationService "transportation service")        
         
 (=>
   (instance ?SVC TransportationService)
@@ -1956,7 +1950,7 @@ how an agent that possesses some kind of Automobile drives people around")
       (possesses ?AGENT ?VEHICLE)
       (customer ?CUST ?AGENT)
       (instance ?VEHICLE Automobile)
-      (isntance ?TRANS Transportation)
+      (instance ?TRANS Transportation)
       (agent ?TRANS ?AGENT)
       (patient ?TRANS ?CUST)
       (instrument ?TRANS ?VEHICLE)
@@ -2036,29 +2030,24 @@ amount in another currency")
 
 (=>
   (instance ?X CurrencyExchangeService)
-  (exists (?AMT1 ?NUM1 ?CURR1 ?NUM2 ?CURR2 ?AMT2 ?AGENT ?CUST ?GIVE1 ?GIVE2)
+  (exists (?AMT ?AMT1 ?CURR1 ?AMT2 ?CURR2 ?CUST)
     (and
-      (instance ?AMT1 CurrencyMeasure)
-      (equal ?AMT1 (MeasureFn ?NUM1 ?CURR1))
-      (instance ?CURR1 UnitOfCurrency)
+      (agent ?X ?CUST)
+      (not (equal ?CURR1 ?CURR2))
+      (instance ?AMT CurrencyMeasure)
       (holdsDuring
-        (WhenFn ?X)
-        (currencyExchangeRate ?CURR1 (MeasureFn ?NUM2 ?CURR2)))
-      (equal ?AMT2 (MeasureFn (MultiplicationFn ?NUM1 ?NUM2) ?CURR2))
-      (instance ?GIVE1 Giving)
-      (agent ?GIVE1 ?CUST)
-      (patient ?GIVE1 ?AMT1)
-      (destination ?GIVE1 ?AGENT)
-      (instance ?GIVE2 Giving)
-      (agent ?GIVE2 ?AGENT)
-      (patient ?GIVE2 ?AMT2)
-      (destination ?GIVE2 ?CUST)
-      (before 
-        (BeginFn (WhenFn ?GIVE1))
-        (BeginFn (WhenFn ?GIVE2)))
-      (subProcess ?GIVE1 ?X)
-      (subProcess ?GIVE2 ?X)
-      (serviceProvider ?X ?AGENT))))
+        (WhenFn (StartFn ?X))
+        (and
+          (monetaryValue ?M1 ?AMT)
+          (possesses ?CUST ?M1)
+          (equal ?AMT (MeasureFn ?NUM1 ?CURR1))))
+      (holdsDuring
+        (WhenFn (EndFn ?X))
+        (and
+          (monetaryValue ?M2 ?AMT)
+          (possesses ?CUST ?M2)
+          (not (possesses ?CUST ?M1))
+          (equal ?AMT (MeasureFn ?NUM2 ?CURR2)))))))
       
 (subclass PhotocopyingService ServiceProcess)
 (documentation PhotocopyingService EnglishLanguage "&%PhotocopyingService is a type of
@@ -2380,7 +2369,7 @@ person whose primary job it is to open and close doors")
           (instance ?PROC Closing))))))
         
 ;; ---------------------------------------------------------------------------------
-;; Policy
+;; Policy: this generic bit on policies moved to TravelPolicies.kif, kn:OK, vcvp 08/03/2011 
 ;; ---------------------------------------------------------------------------------
 
 ;; in the wordnet mappings, Policy is subsumed by Plan, however looking at the definition
@@ -2388,32 +2377,32 @@ person whose primary job it is to open and close doors")
 ;; specification", which is not necessarily the case. As such, will be subclassing
 ;; it from Proposition instead.
 
-(subclass Policy Proposition)
-(documentation Policy EnglishLanguage "&%Policy is a type of &%Proposition created and
-enforced by an &%Organization such as a government or a business, which contains guiding
-principles or a plan or course of action adopted by that organization.")
-(termFormat EnglishLanguage Policy "policy")
+;;  (subclass Policy Proposition)
+;;(documentation Policy EnglishLanguage "&%Policy is a type of &%Proposition created and
+;;enforced by an &%Organization such as a government or a business, which contains guiding
+;;principles or a plan or course of action adopted by that organization.")
+;;(termFormat EnglishLanguage Policy "policy")
 
-(=>
-  (instance ?POLICY Policy)
-  (exists (?ORG)
-    (policyOwner ?ORG ?POLICY)))
+;;(=>
+;;  (instance ?POLICY Policy)
+;;  (exists (?ORG)
+;;    (policyOwner ?ORG ?POLICY)))
     
     
-(instance policyOwner BinaryPredicate)
-(documentation policyOwner EnglishLanguage "(&%policyOwner ?&%Organization ?&%Policy)
-describes how ?&%Policy is adopted and enforced by ?&%Organization")
-(termFormat EnglishLanguage policyOwner "policy owner")
-(domain policyOwner 1 Organization)
-(domain policyOwner 2 Policy)
+;;(instance policyOwner BinaryPredicate)
+;;(documentation policyOwner EnglishLanguage "(&%policyOwner ?&%Organization ?&%Policy)
+;;describes how ?&%Policy is adopted and enforced by ?&%Organization")
+;;(termFormat EnglishLanguage policyOwner "policy owner")
+;;(domain policyOwner 1 Organization)
+;;(domain policyOwner 2 Policy)
 
-(=>
-  (policyOwner ?AGENT ?POLICY)
-  (exists (?CREATE)
-    (and
-      (instance ?CREATE Creation)
-      (agent ?CREATE ?AGENT)
-      (result ?CREATE ?POLICY))))
+;;(=>
+;;  (policyOwner ?AGENT ?POLICY)
+;;  (exists (?CREATE)
+;;    (and
+;;     (instance ?CREATE Creation)
+;;      (agent ?CREATE ?AGENT)
+;;      (result ?CREATE ?POLICY))))
  
 (instance policyLocationCoverage BinaryPredicate)
 (documentation policyLocationCoverage EnglishLanguage "(&%policyLocationCoverage 
@@ -2679,13 +2668,39 @@ package includes a ?QTY number of days stay at room type ?ROOM at the
 (domain roomStay 2 Integer)
 (domainSubclass roomStay 3 HotelUnit)
 
+(=>
+  (and
+    (propositionOwner ?HP ?AGENT)
+    (instance ?HP HotelPackage)
+    (accommodationProvider ?HP ?HOTEL)
+    (roomStay ?HP ?NUM ?ROOM)
+    (buys ?CUST ?AGENT ?HP))
+  (exists (?T)
+    (and
+      (equal ?TI (MeasureFn ?NUM DayDuration))
+      (holdsDuring ?TI
+        (guest ?CUST ?HOTEL)))))   
+
+(instance accommodationProvider BinaryPredicate)
+(documentation accommodationProvider EnglishLanguage "(&%accommodationProvider ?PKG ?ORG)
+means that ?ORG, which is a &%TravelerAccommodation business, will provide the 
+accommodations for the &%HotelPackage ?PKG")
+(termFormat EnglishLanguage accommodationProvier "accommodations provider")
+
+(domain accommodationProvider 1 HotelPackage)
+(domain accommodationProvider 2 Organization)
+
+(=>
+  (accommodationProvider ?PKG ?HOTEL)
+  (attribute ?HOTEL TravelerAccommodation))
+    
 (instance physicalInclusion BinaryPredicate)
 (documentation physicalInclusion EnglishLanguage "(&%physicalInclusion ?PACKAGE ?OBJ) means
 that the resource ?OBJ is available for the guest's use or consumption")
 (termFormat EnglishLanguage physicalInclusion "physical inclusion")
 (domain physicalInclusion 1 HotelPackage)
 (domainSubclass physicalInclusion 2 Object)
-
+    
 (instance processInclusion BinaryPredicate)
 (documentation processInclusion EnglishLanguage "(&processInclusion ?PACKAGE ?SVC) means
 that the guest can be the experiencer of serviceRecipient of ?SVC")
@@ -2891,307 +2906,3 @@ the price detail associated with each item in the reservation")
 (=>
   (rateDetail ?RES ?FORM)
   (equal ?FORM (price ?OBJ ?PRICE ?AGENT ?PS)))
-       
-;; ---------------------------------------------------------------------------------
-;; Proposed Changes to Meal
-;; ---------------------------------------------------------------------------------
-
-(subclass BreakfastTime TimeInterval)
-(documentation BreakfastTime EnglishLanguage "&%BreakfastTime is the time interval by
-which the first meal of the day is typically eaten, which is in the morning")
-(termFormat EnglishLanguage BreakfastTime "breakfast time")
-
-(=>
-  (instance ?TIME BreakfastTime)
-  (exists (?MORN)
-    (and
-      (instance ?MORN Morning)
-      (during ?TIME ?MORN))))
-      
-(subclass LunchTime TimeInterval)
-(documentation LunchTime EnglishLanguage "&%LunchTime is the time interval by which
-lunch, or the mid-day meal, is typically eaten, which is usually sometime between 
-11am and 3pm")
-(termFormat EnglishLanguage LunchTime "lunch time")
-
-(=>
-  (instance ?TIME LunchTime)
-  (exists (?ELEVEN ?THREE)
-    (and
-      (during ?TIME 
-        (TimIntervalFn 
-          (BeginFn ?ELEVEN)
-          (EndFn ?THREE)))
-      (instance ?ELEVEN (HourFn 11 ?DAY))
-      (instance ?THREE (HourFn 15 ?DAY)))))
-      
-(subclass DinnerTime TimeInterval)
-(documentation DinnerTime EnglishLanguage "&%DinnerTime is the time interval by which
-dinner, or the evening meal, is typically eaten, which is usually sometime during the
-evening")
-(termFormat EnglishLanguage DinnerTime "dinner time")      
-
-(=>
-  (instance ?TIME DinnerTime)
-  (exists (?NIGHT)
-    (and
-      (instance ?NIGHT NightTime)
-      (during ?TIME ?NIGHT))))
-
-(instance Breakfast RelationalAttribute)
-(documentation Breakfast EnglishLanguage "&%Breakfast describes food that is 
-usually the first meal of the day, eaten during the &%Morning")
-(termFormat EnglishLanguage Breakfast "breakfast")
-
-(instance Lunch RelationalAttribute)
-(documentation Lunch EnglishLanguage "&%Lunch describes food that is usually eaten
-mid-day, in the &%Afternoon")
-(termFormat EnglishLanguage Lunch "lunch")
-
-(instance Dinner RelationalAttribute)
-(documentation Dinner EnglishLanguage "&%Dinner describes food that is usually the last
-meal of the day, eaten during the &%NightTime")
-(termFormat EnglishLanguage Dinner "dinner")
-
-(instance Brunch RelationalAttribute)
-(documentation Brunch EnglishLanguage "&%Brunch describes food that is a combination
-of &%Breakfast and &%Lunch, usually eaten late &%Morning")
-(termFormat EnglishLanguage Brunch "brunch")
-
-(subAttribute ContinentalBreakfast Breakfast)
-(documentation ContinentalBreakfast EnglishLanguage "&%ContinentalBreakfast refers to
-food that is normally served during &%BreakfastTime in &%NorthAmerica or &%Europe")
-(termFormat EnglishLanguage ContinentalBreakfast "continental breakfast")
-
-(=>
-  (and
-    (attribute ?MEAL Breakfast)
-    (or
-      (instance ?ATTR (MealAttributeFn ?MEAL NorthAmerica))
-      (instance ?ATTR (MealAttributeFn ?MEAL Europe))))
-  (equal ?ATTR ContinentalBreakfast))
-
-;; ---------------------------------------------------------------------------------
-;; Pricing Scheme
-;; ---------------------------------------------------------------------------------
-  
-(subclass PricingScheme Proposition)
-(documentation PricingScheme EnglishLanguage "&%PricingScheme refers to the conditions
-attached to the &%price of a &%Product or service.")
-(termFormat EnglishLanguage PricingScheme "pricing scheme")
-
-(=>
-  (instance ?PS PricingScheme)
-  (exists (?AGENT ?AMT ?PHY)
-    (productPrice ?PHY ?AMT ?AGENT ?PS)))
-
-(instance productPrice QuaternaryPredicate)
-(documentation productPrice EnglishLanguage "(&%productPrice ?PHYS ?AMT ?AGENT ?PS)
-means that the &%CurrencyMeasure ?AMT charged by &%Agent ?AGENT for &%Physical ?PHYS 
-has the &%PricingScheme ?PS applied to it")
-(termFormat EnglishLanguage productPrice "product price")
-
-(domain productPrice 1 Entity)
-(domain productPrice 2 CurrencyMeasure)
-(domain productPrice 3 Agent)
-(domain productPrice 4 PricingScheme)
-
-(=>
-  (and
-    (productPrice ?PROP ?AMT ?AGENT ?PS)
-    (instance ?PROP Proposition))
-  (modalAttribute
-    (exists (?X)
-      (and
-        (realization ?X ?PROP)
-        (productPrice ?X ?AMT ?AGENT ?PS))) Promise))
-
-(instance priceRange QuaternaryPredicate)
-(documentation priceRange EnglishLanguage "(&%priceRange ?OBJ ?MIN ?MAX ?AGENT) 
-means that &%Agent ?AGENT attaches range of possible &%productPrice for ?OBJ with
-minimum ?MIN and maximum ?MAX")
-(termFormat EnglishLanguage priceRange "price range")
-
-(domain priceRange 1 Entity)
-(domain priceRange 2 CurrencyMeasure)
-(domain priceRange 3 CurrencyMeasure)
-(domain priceRange 4 Agent)
-
-(=>
-  (priceRange ?PHYS ?MIN ?MAX ?AGENT)
-  (exists (?PRICE ?PS)
-    (and
-      (productPrice ?PHYS ?PRICE ?AGENT ?PS)
-      (lessThanOrEqualTo ?PRICE ?MAX)
-      (greaterThanOrEqualTo ?PRICE ?MIN))))
- 
-(instance validFor BinaryPredicate)
-(documentation validFor EnglishLanguage "(&%validFor ?SCHEME ?AGENT) means that 
-&%CurrencyMeasure that &%PricingScheme refers to applies to &%Agent ?AGENT")
-(termFormat EnglishLanguage validFor "valid for")
-
-(domain validFor 1 PricingScheme)
-(domain validFor 2 Agent)
-
-(=>
-  (and
-    (validFor ?PS ?BUYER)
-    (productPrice ?OBJ ?AMT ?SELLER ?PS)
-    (instance ?S Selling)
-    (agent ?S ?SELLER)
-    (destination ?S ?BUYER)
-    (patient ?S ?OBJ))
-  (exists (?PAY)
-    (and
-      (instance ?PAY Payment)
-      (origin ?PAY ?BUYER)
-      (destination ?PAY ?SELLER)
-      (transactionAmount ?PAY ?AMT)
-      (subProcess ?PAY ?SELLING))))
-      
-(instance validForDuring TernaryPredicate)
-(documentation validForDuring EnglishLanguage "(&%validForDuring ?SCHEME ?AGENT ?TIMEINT)
-means that &%CurrencyMeasure that &%PricingScheme ?SCHEME refers to holds only for 
-&%TimeInterval ?TIMEINT")
-(termFormat EnglishLanguage validForDuring "valid for during")
-
-(=>
-  (and
-    (validForDuring ?PS ?BUYER ?TIMEINT)
-    (productPrice ?OBJ ?AMT ?SELLER ?PS))
-  (holdsDuring ?TIMEINT
-    (validFor ?PS ?BUYER)))
-    
-(instance ratePolicy BinaryPredicate)
-(documentation ratePolicy EnglishLanguage "(&%ratePolicy ?SCHEME ?POLICY) describes 
-the &%Policy ?POLICY attached to the given rate with the ?SCHEME")
-(termFormat EnglishLanguage ratePolicy "rate policy")
-
-(domain ratePolicy 1 PricingScheme)
-(domain ratePolicy 2 Policy)    
-
-(instance discountRate BinaryPredicate)
-(documentation discountRate EnglishLanguage "(&%discountRate ?SCHEME ?NUM) means that
-a discount of ?NUM percent is applied to the price")
-(termFormat EnglishLanguage discountRate "discount rate")
-
-(domain discountRate 1 PricingScheme)
-(domain discountRate 2 RealNumber)
-
-(=>
-  (and
-    (productPrice ?OBJ ?AMT ?SELLER ?PS)
-    (discountRate ?PS ?NUM)
-    (validFor ?PS ?BUYER))
-  (modalAttribute
-    (exists (?SELL)
-      (and
-        (instance ?SELL Selling)
-        (patient ?SELL ?OBJ)
-        (agent ?SELL ?SELLER)
-        (destination ?SELL ?BUYER)
-        (transactionAmount ?SELL ?TOTAL)
-        (lessThan ?TOTAL ?AMT))) Promise))
-        
-;; ---------------------------------------------------------------------------------
-;; Loyalty Programs
-;; ---------------------------------------------------------------------------------
-        
-(subclass LoyaltyClub GroupOfPeople)
-(documentation LoyaltyClub EnglishLanguage "A &%LoyaltyClub is a &%GroupOfPeople that
-gets benefits from different organizations that are &%affiliatedOrganization with 
-the club")
-(termFormat EnglishLanguage LoyaltyClub "loyalty club")
-
-(=>
-  (instance ?X LoyaltyClub)
-  (exists (?ORG)
-    (affiliatedOrganization ?X ?ORG)))
-    
-;; other important relations that can be used for this:
-;; (groupMember ?HUMAN ?CLUB) -- indicates that a person is a member of a loyalty club
-;; (affiliatedOrganization ?CLUB ?COMP) -- indicates that a company is affiliated
-;; with a loyalty club and offers some benefits to its members
-
-;; propose to subclass Plan not from Procedure but from Proposition, as a plan
-;; need not necessarily be sequence-dependent (for example, a DietPlan does not 
-;; necessarily dictate the order by which you eat food, just what types of food
-;; to eat). Rather, it is more a proposition for different things that can be done
-;; to ensure the objective.
-(subclass LoyaltyProgram Plan)
-(documentation LoyaltyProgram EnglishLanguage "&%LoyaltyProgram refers to structured
-marketing efforts to increase Loyalty.")
-(termFormat EnglishLanguage LoyaltyProgram "loyalty program")
-
-(instance planOwner BinaryPredicate)
-(documentation planOwner EnglishLanguage "(&%planOwner ?AGENT ?PLAN) means that &%Agent
-?AGENT is responsible for executing the directives in &%Plan ?PLAN")
-(termFormat EnglishLanguage planOwner "plan owner")
-
-(domain planOwner 1 Agent)
-(domain planOwner 2 Plan)
-
-(=>
-  (planOwner ?AGENT ?PLAN)
-  (exists (?PROC)
-    (and
-      (realization ?PROC ?PLAN)
-      (agent ?PROC ?AGENT))))
-      
-(instance affiliatedProgram BinaryPredicate)
-(documentation affiliatedProgram EnglishLanguage "(&%affiliatedProgram ?PLAN ?GRP) means
-that the &%Plan ?PLAN applies to all members of &%GroupOfPeople ?GRP")
-(termFormat EnglishLanguage affiliatedProgram "affiliated program")
-
-(domain affiliatedProgram 1 Plan)
-(domain affiliatedProgram 2 GroupOfPeople)
-
-(=>
-  (and
-    (affiliatedProgram ?PLAN ?GRP)
-    (groupMember ?MEMB ?GRP)
-    (realization ?PROC ?PLAN))
-  (experiencer ?PROC ?MEMB))
-  
-(subclass LoyaltyMembershipTier RelationalAttribute)
-(documentation LoyaltyMembershipTier EnglishLanguage "&%LoyaltyMembershipTier is the 
-subclass of &%Attribute that describes what level in the &%LoyaltyProgram a particular 
-&%groupMember belongs to. This normally indicates the level of benefits a member
-can avail of")
-(termFormat EnglishLanguage LoyaltyMembershipTier "loyalty membership tier")
-
-(=>
-  (instance ?TIER LoyaltyMembershipTier)
-  (exists (?PROG)
-    (loyaltyProgramTier ?PROG ?TIER)))
-    
-(=>
-  (and
-    (attribute ?H ?T)
-    (instance ?T LoyaltyMembershipTier))
-  (and
-    (instance ?H Human)
-    (exists (?GRP ?PROG)
-      (and
-        (instance ?GRP LoyaltyClub)
-        (groupMember ?H ?GRP)
-        (affiliatedProgram ?PROG ?GRP)))))
-        
-(instance loyaltyProgramTier BinaryPredicate)
-(documentation loyaltyProgramTier EnglishLanguage "(&%loyaltyProgramTier ?PROG ?TIER) 
-means that &%LoyaltyMembershipTier ?TIER is associated with &%LoyaltyProgram ?PROG")
-(termFormat EnglishLanguage loyaltyProgramTier "loyalty program tier")
-
-(domain loyaltyProgramTier 1 LoyaltyProgram)
-(domain loyaltyProgramTier 2 LoyaltyMembershipTier)
-
-(=>
-  (and
-    (groupMember ?MEMB ?GRP)
-    (instance ?GRP LoyaltyClub)
-    (affiliatedProgram ?PROG ?GRP)
-    (exists (?TIER)
-      (loyaltyProgramTier ?PROG ?TIER)))
-  (attribute ?MEMB ?TIER))
-
-  

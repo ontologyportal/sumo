@@ -5,7 +5,7 @@
 
 ;; Created by: Karen Joy Nomorosa (karen.nomorosa [at] reardencommerce [dot] com)
 ;; Created on: March 8, 2011
-;; Last modified: April 1, 2011
+;; Last modified: August 3, 2011
 ;; Modified by: Karen Joy Nomorosa (karen.nomorosa [at] reardencommerce [dot] com)
 
 ;; Description:  This ontology describes different concepts related to Dining
@@ -27,7 +27,6 @@
 ;; ----------------------------------------------------------------------------
 ;; Restaurant Subclasses
 ;; ----------------------------------------------------------------------------
-
       
 (subclass Coffeeshop Cafeteria)
 (documentation Coffeeshop EnglishLanguage "a type of &%Cafeteria that 
@@ -170,94 +169,6 @@ refers to a place for eating that is not inside a building")
 ;; ----------------------------------------------------------------------------
 ;; Menu / Food Concepts
 ;; ----------------------------------------------------------------------------
-
-
-;; Catalog
-(subclass Catalog Proposition)
-(documentation Catalog EnglishLanguage "a &%Catalog is a &%Proposition of the 
-classes of resources that an agent provides or offers")
-(termFormat EnglishLanguage Catalog "catalog")
-
-(=>
-  (instance ?CATALOG Catalog)
-  (exists (?X)
-    (and
-      (subclass ?X Agent)
-      (offers ?AGENT ?CATALOG))))
-
-;; (catalogItem ?OBJ ?CATALOG)
-(instance catalogItem BinaryRelation)
-(documentation catalogItem EnglishLanguage "(&%catalogItem ?OBJ ?CATALOG) means that 
-an instance of ?OBJ is a member of ?CATALOG")
-(domainSubclass catalogItem 1 Physical)
-(domain catalogItem 2 Catalog)
-
-(=>
-  (catalogItem ?OBJ ?CATALOG)
-  (exists (?X)
-    (and
-      (instance ?X ?OBJ)
-      (abstractCounterpart ?PROP ?X)
-      (instance ?PROP Proposition)
-      (subProposition ?PROP ?CATALOG))))
-      
-;; (offers ?AGENT ?CATALOG)
-(documentation offers EnglishLanguage "(&%offers ?AGENT ?CATALOG) means that 
-?AGENT offers items of ?CATALOG to its customers")
-(instance offers BinaryPredicate)
-(domain offers 1 Agent)
-(domain offers 2 Catalog)
-(termFormat EnglishLanguage offers "offers")
-
-;; if an agent offers a process as a catalog item, then that agent is capable of
-;; being an agent in that process
-(=>
-  (and
-    (offers ?AGENT ?CATALOG)
-    (catalogItem ?CLASS ?CATALOG)
-    (subclass ?CLASS Process))
-  (capability ?CLASS agent ?AGENT))
-
-;; if an agent offers an object as a catalog item, then that agent is capable of being
-;; an agent in a process that has that object as the patient (such as selling or
-;; cooking or serving)
-(=>
-  (and
-    (offers ?AGENT ?CATALOG)
-    (catalogItem ?CLASS ?CATALOG)
-    (subclass ?CLASS Object)
-    (instance ?PROCESSINST ?PROCESS)
-    (subclass ?PROCESS Process)
-    (instance ?OBJ ?CLASS)
-    (patient ?PROCESSINST ?OBJ))
-  (capability ?PROCESS agent ?AGENT))
-
-;; (offersAtTime ?AGENT ?CATALOG ?TIMEINT)
-(documentation offersAtTime EnglishLanguage "(%&offersAtTime ?AGENT ?CATALOG ?TIMEINT) 
-means that ?AGENT offers items of ?CATALOG to its customer only during the specified 
-?TIMEINT")      
-(instance offersAtTime TernaryPredicate)
-(domain offers 1 Agent)
-(domain offers 2 Catalog)
-(domain offers 3 TimeInterval)
-
-(=>
-  (and
-    (offersAtTime ?AGENT ?CATALOG ?TIMEINT)
-    (catalogItem ?CLASS ?CATALOG)
-    (subclass ?CLASS Process))
-  (capabilityDuring ?CLASS agent ?AGENT ?TIMEINT))
-
-(=>
-  (and
-    (offersAtTime ?AGENT ?CATALOG ?TIMEINT)
-    (catalogItem ?CLASS ?CATALOG)
-    (subclass ?CLASS Object)
-    (instance ?PROCESSINSTANCE ?PROCESS)
-    (subclass ?PROCESS Process)
-    (instance ?OBJ ?CLASS)
-    (patient ?PROCESSINSTANCE ?OBJ))
-  (capabilityDuring ?PROCESS agent ?AGENT ?TIMEINT))
       
 ;; Menu
 (subclass Menu Catalog)
@@ -340,175 +251,7 @@ describes &%ContentBearingObject that can be interpreted by a &%Blind &%Human")
       (attribute ?H Blind)
       (capability Interpreting agent ?H)
       (capability Interpreting patient ?X))))
-      
-(subclass Meal Collection)
-(documentation Meal EnglishLanguage "&%Meal refers to a &%Collection of (%&FoodForFn 
-&%Human) that is eaten at one time")
-(termFormat EnglishLanguage Meal "meal")
-
-(=>
-  (instance ?X Meal)
-  (forall (?ITEM)
-    (=>
-      (member ?ITEM ?X)
-      (instance ?ITEM (FoodForFn Human)))))
-
-;; a meal is meant to be eaten 
-(=>
-  (instance ?X Meal)
-  (hasPurpose ?X
-    (exists (?E)
-      (and
-        (instance ?E Eating)
-        (patient ?E ?X)))))
-
-;; decided to make breakfast, etc. an attribute because the same instances of food,
-;; for instance, can be breakfast, lunch, or dinner, depending on what time you eat it
-;; also, it allows us to attach the attribute to food instances (such as 'breakfast food')
-;; or to a menu (such as 'breakfast menu'), or to a buffet (such as 'brunch buffet')            
-(instance Breakfast RelationalAttribute)
-(documentation Breakfast EnglishLanguage "&%Breakfast describes food that is 
-usually the first meal of the day, eaten during the morning")
-(termFormat EnglishLanguage Breakfast "breakfast")
-
-;; breakfast meal is typically eaten in the morning
-(=>
-  (and
-    (instance ?X Meal)
-    (attribute ?X Breakfast)
-    (instance ?E Eating)
-    (patient ?E ?X)
-    (time ?E ?TIME)
-    (equal ?PROB1
-      (ProbabilityFn 
-        (and
-          (instance ?MORNING Morning)
-          (during ?TIME ?MORNING))))
-    (equal ?PROB2
-      (ProbabilityFn 
-        (and
-          (not (instance ?NOTMORNING Morning))
-          (during ?TIME ?NOTMORNING)))))
-  (greaterThan ?PROB1 ?PROB2))
-
-(instance Lunch RelationalAttribute)
-(documentation Lunch EnglishLanguage "&%Lunch refers to something that is usually eaten
-mid-day")
-(termFormat EnglishLanguage Lunch "lunch")
-
-;; lunch is typically eaten in the afternoon
-(=>
-  (and
-    (instance ?X Meal)
-    (attribute ?X Lunch)
-    (instance ?E Eating)
-    (patient ?E ?X)
-    (time ?E ?TIME)
-    (equal ?PROB1
-      (ProbabilityFn 
-        (and
-          (instance ?PM Afternoon)
-          (during ?TIME ?PM))))
-    (equal ?PROB2
-      (ProbabilityFn 
-        (and
-          (not (instance ?PM Afternoon))
-          (during ?TIME ?PM)))))
-  (greaterThan ?PROB1 ?PROB2))
-  
-(instance Dinner RelationalAttribute)
-(documentation Dinner EnglishLanguage "&%Dinner refers to something that is typically
-eaten during the evening")
-(termFormat EnglishLanguage Dinner "dinner")
-
-(=>
-  (and
-    (instance ?X Meal)
-    (attribute ?X Dinner)
-    (instance ?E Eating)
-    (patient ?E ?X)
-    (time ?E ?TIME)
-    (equal ?PROB1
-      (ProbabilityFn 
-        (and
-          (instance ?PM NightTime)
-          (during ?TIME ?PM))))
-    (equal ?PROB2
-      (ProbabilityFn 
-        (and
-          (not (instance ?PM NightTime))
-          (during ?TIME ?PM)))))
-  (greaterThan ?PROB1 ?PROB2))
-
-(instance HighTea RelationalAttribute)
-(documentation HighTea EnglishLanguage "&%HighTea refers to something eaten mid-day that
-consists of light snacks and tea")
-(termFormat EnglishLanguage HighTea "high tea")
-
-(=>
-  (and
-    (instance ?X Meal)
-    (attribute ?X HighTea))
-  (exists (?TEA)
-    (and
-      (instance ?TEA Tea)
-      (member ?TEA ?X))))
-      
-(instance Brunch RelationalAttribute)
-(documentation Brunch EnglishLanguage "&%Brunch refers the combination of breakfast 
-and lunch")
-(termFormat EnglishLanguage Brunch "brunch")
-
-;; brunch is normally eaten in place of both breakfast and lunch
-(=>
-  (and
-    (instance ?X Meal)
-    (attribute ?X Brunch)
-    (member ?FOOD ?X)
-    (instance ?E Eating)
-    (patient ?E ?FOOD)
-    (agent ?E ?AGENT)
-    (time ?E ?TIME)
-    (during ?TIME ?DAY)
-    (instance ?DAY Day))
-  (and
-    (ProbabilityFn ?PROB1
-      (not
-        (exists (?LUNCH1 ?BFAST1 ?E1 ?E2 ?TIME1 ?TIME2)
-          (and
-            (instance ?LUNCH1 Meal)
-            (attribute ?LUNCH1 Lunch)
-            (instance ?BFAST1 Meal)
-            (attribute ?BFAST1 Breakfast)
-            (instance ?E1 Eating)
-            (instance ?E2 Eating)
-            (patient ?E1 ?LUNCH1)
-            (patient ?E2 ?BFAST1)
-            (time ?E1 ?TIME1)
-            (time ?E2 ?TIME2)
-            (agent ?E1 ?AGENT)
-            (agent ?E2 ?AGENT)
-            (during ?TIME1 ?DAY)
-            (during ?TIME2 ?DAY)))))
-    (ProbabilityFn ?PROB2
-      (exists (?LUNCH2 ?BFAST2 ?E3 ?E4 ?TIME3 ?TIME4)
-        (and
-          (instance ?LUNCH2 Meal)
-          (attribute ?LUNCH2 Lunch)
-          (instance ?BFAST2 Meal)
-          (attribute ?BFAST2 Breakfast)
-          (instance ?E3 Eating)
-          (instance ?E4 Eating)
-          (patient ?E3 ?LUNCH2)
-          (patient ?E4 ?BFAST2)
-          (time ?E3 ?TIME3)
-          (time ?E4 ?TIME4)
-          (agent ?E3 ?AGENT)
-          (agent ?E4 ?AGENT)
-          (during ?TIME3 ?DAY)
-          (during ?TIME4 ?DAY))))
-    (greaterThan ?PROB1 ?PROB2)))
-            
+                  
 (subclass Buffet Collection)
 (documentation Buffet EnglishLanguage "&%Buffet refers to a &%Collection of food that
 is served in a central location where guests can get their own servings")
@@ -547,6 +290,17 @@ is served in a central location where guests can get their own servings")
         (agent ?G ?AGENT)
         (before (WhenFn ?G) (WhenFn ?E))))))
 
+;; if a buffet is a breakfast buffet, then it is likely that all of the food in the
+;; buffet is a breakfast food
+(=>
+  (and
+    (instance ?X Buffet)
+    (attribute ?X Breakfast))
+  (modalAttribute
+    (forall (?FOOD)
+      (=>
+        (member ?FOOD ?X)
+        (attribute ?FOOD Breakfast))) Likely))
   
 ;; ----------------------------------------------------------------------------
 ;; Restaurant Properties
@@ -1502,8 +1256,6 @@ food preparation.")
 (termFormat EnglishLanguage ContinentalCuisine "Continental Cuisine")  
 (subAttribute ArabCuisine WestAsianCuisine)  
 (termFormat EnglishLanguage ArabCuisine "Arab Cuisine")  
-(subAttribute LevantineCuisine WestAsianCuisine)  
-(termFormat EnglishLanguage LevantineCuisine "Levantine Cuisine")  
 (subAttribute BritishCuisine NorthernEuropeanCuisine)  
 (termFormat EnglishLanguage BritishCuisine "British Cuisine")  
 (subAttribute NordicCuisine NorthernEuropeanCuisine)  
