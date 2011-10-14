@@ -246,25 +246,26 @@ is the &%FinancialAccount from which the amount specifed on the check is paid.")
 (documentation accountHolder EnglishLanguage "(&%accountHolder ?Account ?Agent) means that ?Agent 
 is the account holder of the &%FinancialAccount ?Account.")
 
-(instance issuedBy BinaryPredicate)
-(domain issuedBy 1 Certificate)
-(domain issuedBy 2 CognitiveAgent)
-(documentation issuedBy EnglishLanguage "(&%issuedBy ?Certificate ?Agent) means that a 
-&%Certificate ?Certificate is produced and offered by ?Agent.")
+;; KJN: Moving this to Mid-level-ontology as it is more general than a financial instrument
+;;(instance issuedBy BinaryPredicate)
+;;(domain issuedBy 1 Certificate)
+;;(domain issuedBy 2 CognitiveAgent)
+;;(documentation issuedBy EnglishLanguage "(&%issuedBy ?Certificate ?Agent) means that a 
+;;&%Certificate ?Certificate is produced and offered by ?Agent.")
 
-(=>
-  (and
-    (issuedBy ?TICKET ?AGENT)
-    (instance ?TICKET Ticket)
-    (possesses ?CUST ?TICKET))
-  (confersNorm ?AGENT
-    (exists (?T)
-      (holdsDuring ?T
-        (exists (?P)
-          (and
-            (instance ?P Process)
-            (agent ?P ?AGENT)
-            (experiencer ?P ?CUST))))) Permission))
+;;(=>
+;;  (and
+;;    (issuedBy ?TICKET ?AGENT)
+;;    (instance ?TICKET Ticket)
+;;    (possesses ?CUST ?TICKET))
+;;  (confersNorm ?AGENT
+;;    (exists (?T)
+;;      (holdsDuring ?T
+;;        (exists (?P)
+;;          (and
+;;            (instance ?P Process)
+;;            (agent ?P ?AGENT)
+;;            (experiencer ?P ?CUST))))) Permission))
 
 (instance signedBy BinaryPredicate)
 (domain signedBy 1 Certificate)
@@ -859,6 +860,45 @@ the fee charged.")
       (instance ?Org Government)
       (agent ?Tax ?Org))))
 
+(subclass TaxReturn FormText)
+(documentation TaxReturn EnglishLanguage "A &%FormText that is used for calculating the amount 
+of income tax owed in a given year.")
+
+(=>
+ (instance ?RETURN TaxReturn)
+ (hasPurpose ?RETURN 
+    (exists (?CALCULATE ?AMOUNT ?TAX)
+      (and
+        (instance ?CALCULATE Calculating)
+        (instrument ?CALCULATE ?RETURN)
+        (result ?CALCULATE ?AMOUNT)
+        (transactionAmount ?TAX ?AMOUNT)
+        (instance ?TAX Tax)))))
+                             
+(subclass IncomeTax Tax)
+(documentation IncomeTax EnglishLanguage "A &%Tax on annual income.")
+
+
+(subclass DutyTax Tax)
+(documentation DutyTax EnglishLanguage "A &%Tax that is levied on imports and/or exports.")
+(=>
+  (and
+    (instance ?X DutyTax)
+    (refers ?X ?OBJ)
+    (patient ?X ?OBJ))
+  (exists (?T ?N1 ?N2)
+    (and
+      (instance ?T Transfer)
+      (patient ?T ?OBJ)
+      (origin ?T ?N1)
+      (destination ?T ?N2)
+      (instance ?N1 Nation)
+      (instance ?N2 Nation)
+      (not (equal ?N1 ?N2))
+      (earlier (WhenFn ?T) (WhenFn ?X))
+      (causes ?T ?X))))
+      
+      
 ;;  Types of Accounts    
 
 (subclass InterestBearingAccount FinancialAccount)
@@ -1065,6 +1105,39 @@ the end of each trading session.")
       (partyToAgreement ?Debt ?Agent)
       (partyToAgreement ?Debt ?Bank))))
 
+(subclass PensionPlan FinancialAccount)
+(documentation PensionPlan EnglishLanguage "A qualified retirement plan set up by a 
+corporation, labor union, government, or other organization for its 
+employees.  Examples include profit-sharing plans, stock bonus and 
+employee stock ownership plans, thrift plans, target benefit plans, 
+money purchase plans, and defined benefit plans.")
+
+(=>
+  (and
+    (instance ?P PensionPlan)
+    (accountHolder ?P ?A)
+    (employs ?O ?A))
+  (financialAccount ?P ?O))
+
+(subclass ProfitSharingPlan PensionPlan)
+(documentation ProfitSharingPlan EnglishLanguage "An arrangement in which an employer 
+shares its profits with its employees.  The compensation can be stocks, 
+bonds or cash, and can be immediate or deferred until retirement.")
+
+(=>
+  (and
+    (instance ?PSP ProfitSharingPlan)
+    (accountHolder ?PSP ?H)
+    (employs ?O ?H)
+    (profit ?A ?P)
+    (agent ?A ?O))
+    (exists (?C ?PAY)
+      (and
+        (instance ?PAY FinancialTransaction)
+        (transactionAmount ?PAY ?C)
+        (lessThan ?C ?P)
+        (destination ?PAY ?PSP))))
+  
 (subclass CreditAccount LiabilityAccount)
 (documentation CreditAccount EnglishLanguage "Credit extended by a business to a customer")
 
@@ -1215,16 +1288,23 @@ or other credit, and subject to seizure in the event of FinancialDefault.")
 (documentation RealEstate EnglishLanguage "Land, including all the natural resources and permanent buildings on it.")
 
 (=>
-   (instance ?Estate RealEstate)
-   (or 
-      (instance ?Estate StationaryArtifact)
-      (instance ?Estate LandArea)
-      (exists (?Artifact ?Area)
-         (and 
-            (instance ?Artifact StationaryArtifact)
-            (instance ?Area LandArea)
-            (equal ?Estate (MereologicalSumFn ?Artifact ?Area))))))
+  (instance ?Estate RealEstate)
+  (or 
+    (instance ?Estate StationaryArtifact)
+    (instance ?Estate LandArea)
+    (exists (?Artifact ?Area)
+      (and 
+        (instance ?Artifact StationaryArtifact)
+        (instance ?Area LandArea)
+        (equal ?Estate (MereologicalSumFn ?Artifact ?Area))))))
 
+(=>
+  (and
+    (instance ?T Trespassing)
+    (patient ?T ?P))
+  (instance ?P RealEstate))
+            
+            
 (subclass Mortgage SecuredLoan)
 (documentation Mortgage EnglishLanguage "A loan to finance the purchase of real estate, usually with specified payment 
 periods and interest rates.") 
@@ -1391,12 +1471,13 @@ Administration (FHA).")
   (instance ?Loan FHALoan)
   (insured ?Loan FederalHousingAdministration))
 
-(instance insured BinaryPredicate)
-(instance insured AsymmetricRelation)
-(domain insured 1 Contract)
-(domain insured 2 Organization)
-(documentation insured EnglishLanguage "(insured ?Contract ?Org) means that ?Contract is insured 
-by the ?Organization.")
+;; KJN: Moving this to Mid-level-ontology.kif to remove dependencies.
+;;(instance insured BinaryPredicate)
+;;(instance insured AsymmetricRelation)
+;;(domain insured 1 Contract)
+;;(domain insured 2 Organization)
+;;(documentation insured EnglishLanguage "(insured ?Contract ?Org) means that ?Contract is insured 
+;;by the ?Organization.")
 
 (subclass FederalHousingAdministration Government)
 
@@ -1732,21 +1813,22 @@ accounts are profitable.")
 (documentation potentialLoss EnglishLanguage "The maximum amount of money the Agent can lose by choosing 
 this type of Investment.")
 
-(instance price TernaryPredicate)
-(domain price 1 Physical)
-(domain price 2 CurrencyMeasure)
-(domain price 3 Agent)
-(documentation price EnglishLanguage "(&%price ?Obj ?Money ?Agent) means that ?Agent pays the amount of 
-money ?Money for ?Obj.")
+;; KJN: Moving this to Mid-level-ontology.kif to join it with other price concepts.
+;;(instance price TernaryPredicate)
+;;(domain price 1 Physical)
+;;(domain price 2 CurrencyMeasure)
+;;(domain price 3 Agent)
+;;(documentation price EnglishLanguage "(&%price ?Obj ?Money ?Agent) means that ?Agent pays the amount of 
+;;money ?Money for ?Obj.")
 
-(=>
-   (price ?Obj ?Money ?Agent)
-   (exists (?Buying)
-      (and
-         (instance ?Buying Buying)
-         (agent ?Buying ?Agent)
-         (patient ?Buying ?Obj)
-         (transactionAmount ?Buying ?Money))))
+;;(=>
+;;   (price ?Obj ?Money ?Agent)
+;;   (exists (?Buying)
+;;      (and
+;;         (instance ?Buying Buying)
+;;         (agent ?Buying ?Agent)
+;;         (patient ?Buying ?Obj)
+;;         (transactionAmount ?Buying ?Money))))
 
 (subrelation bidPrice price)
 (domain bidPrice 1 Object)
@@ -2050,6 +2132,12 @@ are traded on the over-the-counter bulletin board.")
     (askPrice ?Stock (MeasureFn ?Price UnitedStatesDollar) ?Date))
   (lessThan ?Price 5))
 
+(documentation stockHolder EnglishLanguage "(stockHolder ?Stock ?Agent) means that 
+?Agent possesses the &%Stock ?Stock.")
+(instance stockHolder BinaryPredicate)
+(domain stockHolder 1 Stock)
+(domain stockHolder 2 CognitiveAgent)
+    
 (subclass StockSplit FinancialTransaction)
 (documentation StockSplit EnglishLanguage "Exchange of the number of shares of stock outstanding 
 for a larger number.")
@@ -3355,23 +3443,24 @@ and then transmits a completed transaction notice.")
         (destination ?Transaction ?Org)
         (origin ?Transaction ?Customer)))))  
 
-(instance customer IrreflexiveRelation)
-(instance customer BinaryPredicate)
-(instance customer AsymmetricRelation)
-(domain customer 1 CognitiveAgent)
-(domain customer 2 CognitiveAgent)
-(documentation customer EnglishLanguage "A very general relation that exists whenever there
-is a &%FinancialTransaction between the two &%Agents such that the first is
-the &%destination of the &%FinancialTransaction and the second is the
-&%agent.")
+;; KJN: Moving this to Mid-level-ontology.kif as it seems to be a more general concept.
+;;(instance customer IrreflexiveRelation)
+;;(instance customer BinaryPredicate)
+;;(instance customer AsymmetricRelation)
+;;(domain customer 1 CognitiveAgent)
+;;(domain customer 2 CognitiveAgent)
+;;(documentation customer EnglishLanguage "A very general relation that exists whenever there
+;;is a &%FinancialTransaction between the two &%Agents such that the first is
+;;the &%destination of the &%FinancialTransaction and the second is the
+;;&%agent.")
 
-(<=>
-  (customer ?Agent1 ?Agent2)
-  (exists (?Service)
-    (and
-      (instance ?Service FinancialTransaction)
-      (agent ?Service ?Agent2)
-      (destination ?Service ?Agent1))))
+;;(<=>
+;;  (customer ?Agent1 ?Agent2)
+;;  (exists (?Service)
+;;    (and
+;;      (instance ?Service FinancialTransaction)
+;;      (agent ?Service ?Agent2)
+;;      (destination ?Service ?Agent1))))
 
 (=>
   (and
@@ -3398,6 +3487,18 @@ of &%Organization ?ORG in a &%SocialInteraction involving ?PERSON2.")
 
 (instance Manager Position)
 (documentation Manager EnglishLanguage "One who directs a business or other enterprise.")
+
+;; KJN: Imported from Mid-level-ontology.kif to remove dependencies
+(instance Banker SkilledOccupation)
+(documentation Banker EnglishLanguage "Any &%SkilledOccupation which involves working in a 
+&%Bank-FinancialOrganization.")
+
+(=>
+   (and
+      (instance ?H Human)
+      (occupiesPosition ?H ?B ?O)
+      (attribute ?B Banker))
+   (instance ?O Bank-FinancialOrganization))
 
 (subclass ATMSlot Hole)
 (documentation ATMSlot EnglishLanguage "A narrow opening in an ATM machine where cards are inserted.")
@@ -3465,21 +3566,22 @@ during the evening.")
 (documentation emailAddress EnglishLanguage "(&%emailAddress ?Address ?Agent) means that ?Address is 
 an electronic address of the location where ?Agent can be reached.")
 
-(subclass Fax Communication)
-(documentation Fax EnglishLanguage "The communication of a printed page between remote locations.") 
+;;KJN: Moving this to Mid-level-ontology.kif
+;;(subclass Fax Communication)
+;;(documentation Fax EnglishLanguage "The communication of a printed page between remote locations.") 
 
-(=>
-  (instance ?Fax Fax)
-  (exists (?FaxMachine)
-    (and
-      (instance ?FaxMachine FaxMachine)
-      (instrument ?Fax ?FaxMachine))))
+;;(=>
+;;  (instance ?Fax Fax)
+;;  (exists (?FaxMachine)
+;;    (and
+;;      (instance ?FaxMachine FaxMachine)
+;;      (instrument ?Fax ?FaxMachine))))
 
-(subclass FaxMachine Device)
-(documentation FaxMachine EnglishLanguage "Fax machines scan a paper form and transmit a coded 
-image over the telephone system. The receiving machine prints a facsimile of 
-the original. A fax machine is made up of a scanner, printer and modem with 
-fax signaling.")
+;;(subclass FaxMachine Device)
+;;(documentation FaxMachine EnglishLanguage "Fax machines scan a paper form and transmit a coded 
+;;image over the telephone system. The receiving machine prints a facsimile of 
+;;the original. A fax machine is made up of a scanner, printer and modem with 
+;;fax signaling.")
 
 (subrelation availableBalance currentAccountBalance)
 (domain availableBalance 1 FinancialAccount)

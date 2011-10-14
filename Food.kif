@@ -66,7 +66,7 @@ is a product of &%Cooking.")
 (termFormat EnglishLanguage CookedAttribute "cooked")
 
 (=>
-  (attribute ?FOOD Cooked)
+  (attribute ?FOOD CookedAttribute)
   (exists (?PROC)
     (and
       (instance ?PROC Cooking)
@@ -78,11 +78,11 @@ not involved in the making of something")
 (termFormat EnglishLanguage RawAttribute "raw")
 
 (=>
-  (attribute ?FOOD Raw)
+  (attribute ?FOOD RawAttribute)
   (instance ?FOOD (FoodForFn Organism)))
 
 (=>
-  (attribute ?FOOD Raw)
+  (attribute ?FOOD RawAttribute)
   (not
     (exists (?PROC)
       (and
@@ -106,12 +106,13 @@ is a material that makes up ?FOOD")
       (instance ?Y ?ING)
       (result ?PROC ?Y))))
       
+
 (instance ingredientAmount TernaryRelation)
 (documentation ingredientAmount EnglishLanguage "(&%ingredientAmount ?ING ?FOOD ?AMT 
 means that ?AMT of ?ING is used to make ?FOOD")
 (termFormat EnglishLanguage ingredientAmount "amount of ingredient")
-(domainSubclass ingredientAmount 1 Food)
-(domainSubclass ingredientAmount 2 Food)
+(domainSubclass ingredientAmount 1 SelfConnectedObject)
+(domainSubclass ingredientAmount 2 SelfConnectedObject)
 (domain ingredientAmount 3 PhysicalQuantity)
 
 (=>
@@ -124,9 +125,186 @@ means that ?AMT of ?ING is used to make ?FOOD")
       (instance ?PROC Process)
       (patient ?PROC ?X)
       (result ?PROC ?Y))))
+
+;; ----------------------------------------------------------------------------
+;; Meals
+;; ----------------------------------------------------------------------------
+
+(subclass Meal Collection)
+(documentation Meal EnglishLanguage "&%Meal refers to a &%Collection of (%&FoodForFn 
+&%Human) that is eaten at one time")
+(termFormat EnglishLanguage Meal "meal")
+
+(=>
+  (instance ?X Meal)
+  (forall (?ITEM)
+    (=>
+      (member ?ITEM ?X)
+      (instance ?ITEM (FoodForFn Human)))))
+
+;; a meal is meant to be eaten 
+(=>
+  (instance ?X Meal)
+  (hasPurpose ?X
+    (exists (?E)
+      (and
+        (instance ?E Eating)
+        (patient ?E ?X)))))
+
+;; decided to make breakfast, etc. an attribute because the same instances of food,
+;; for instance, can be breakfast, lunch, or dinner, depending on what time you eat it
+;; also, it allows us to attach the attribute to food instances (such as 'breakfast food')
+;; or to a menu (such as 'breakfast menu'), or to a buffet (such as 'brunch buffet')            
+(instance Breakfast RelationalAttribute)
+(documentation Breakfast EnglishLanguage "&%Breakfast describes food that is 
+usually the first meal of the day, eaten during the morning")
+(termFormat EnglishLanguage Breakfast "breakfast")
+
+;; breakfast meal is typically eaten in the morning
+(=>
+  (and
+    (instance ?X Meal)
+    (attribute ?X Breakfast)
+    (instance ?E Eating)
+    (patient ?E ?X))
+  (modalAttribute
+    (and
+      (during (WhenFn ?E) ?TIME)
+      (instance ?TIME BreakfastTime)) Likely))
+           
+
+(subAttribute ContinentalBreakfast Breakfast)
+(documentation ContinentalBreakfast EnglishLanguage "&%ContinentalBreakfast refers to
+food that is normally served during &%BreakfastTime in &%NorthAmerica or &%Europe")
+(termFormat EnglishLanguage ContinentalBreakfast "continental breakfast")
+
+(=>
+  (attribute ?MEAL ContinentalBreakfast)
+  (or
+    (equal ContinentalBreakfast (MealAttributeFn ?MEAL NorthAmerica))
+    (equal ContinentalBreakfast (MealAttributeFn ?MEAL Europe))))
+      
+(instance Lunch RelationalAttribute)
+(documentation Lunch EnglishLanguage "&%Lunch refers to something that is usually eaten
+mid-day")
+(termFormat EnglishLanguage Lunch "lunch")
+
+(=>
+  (and
+    (instance ?X Meal)
+    (attribute ?X Lunch)
+    (instance ?E Eating)
+    (patient ?E ?X))
+  (modalAttribute
+    (and
+      (during (WhenFn ?E) ?TIME)
+      (instance ?TIME LunchTime)) Likely))
+
+(instance Dinner RelationalAttribute)
+(documentation Dinner EnglishLanguage "&%Dinner refers to something that is typically
+eaten during the evening")
+(termFormat EnglishLanguage Dinner "dinner")
+
+(=>
+  (and
+    (instance ?X Meal)
+    (attribute ?X Dinner)
+    (instance ?E Eating)
+    (patient ?E ?X))
+  (modalAttribute
+    (and
+      (during (WhenFn ?E) ?TIME)
+      (instance ?TIME DinnerTime)) Likely))
+
+
+(instance HighTea RelationalAttribute)
+(documentation HighTea EnglishLanguage "&%HighTea refers to something eaten mid-day that
+consists of light snacks and tea")
+(termFormat EnglishLanguage HighTea "high tea")
+
+(=>
+  (and
+    (instance ?X Meal)
+    (attribute ?X HighTea))
+  (exists (?TEA)
+    (and
+      (instance ?TEA Tea)
+      (member ?TEA ?X))))
+
+      
+
+(instance Brunch RelationalAttribute)
+(documentation Brunch EnglishLanguage "&%Brunch refers the combination of breakfast 
+and lunch")
+(termFormat EnglishLanguage Brunch "brunch")
+    
+(subclass BreakfastTime TimeInterval)
+(documentation BreakfastTime EnglishLanguage "&%BreakfastTime is the time interval by
+which the first meal of the day is typically eaten, which is in the morning")
+(termFormat EnglishLanguage BreakfastTime "breakfast time")
+
+(=>
+  (instance ?TIME BreakfastTime)
+  (exists (?MORN)
+    (and
+      (instance ?MORN Morning)
+      (during ?TIME ?MORN))))
+      
+(subclass LunchTime TimeInterval)
+(documentation LunchTime EnglishLanguage "&%LunchTime is the time interval by which
+lunch, or the mid-day meal, is typically eaten, which is usually sometime between 
+11am and 3pm")
+(termFormat EnglishLanguage LunchTime "lunch time")
+
+(=>
+  (instance ?TIME LunchTime)
+  (exists (?ELEVEN ?THREE)
+    (and
+      (during ?TIME 
+        (TimeIntervalFn 
+          (BeginFn ?ELEVEN)
+          (EndFn ?THREE)))
+      (instance ?ELEVEN (HourFn 11 ?DAY))
+      (instance ?THREE (HourFn 15 ?DAY)))))
+      
+(subclass DinnerTime TimeInterval)
+(documentation DinnerTime EnglishLanguage "&%DinnerTime is the time interval by which
+dinner, or the evening meal, is typically eaten, which is usually sometime during the
+evening")
+(termFormat EnglishLanguage DinnerTime "dinner time")      
+
+(=>
+  (instance ?TIME DinnerTime)
+  (exists (?NIGHT)
+    (and
+      (instance ?NIGHT NightTime)
+      (during ?TIME ?NIGHT))))
+
+(instance MealAttributeFn BinaryFunction)
+(documentation MealAttributeFn EnglishLanguage "(&%MealAttributeFn ?MEAL ?AREA) returns
+a &%RelationalAttribute to describe the &%Meal ?MEAL in a specific &%Region ?AREA. 
+This coveres the cases where Steak and Eggs would be dinner in Asia but breakfast in
+the US.")
+(termFormat EnglishLanguage MealAttributeFn "meal attribute function")
+
+(domain MealAttributeFn 1 Meal)
+(domain MealAttributeFn 2 Region)
+(range MealAttributeFn RelationalAttribute)
+
+(exists (?MEAL ?REGION)
+(attribute ?MEAL (MealAttributeFn ?MEAL ?REGION)))
       
 ;; organizing the Meat taxonomy
 ;; help coming from: http://en.wikipedia.org/wiki/List_of_meat_animals
+;; ================================================================================
+
+(=>
+  (instance ?M Meat)
+  (exists (?DA ?AC)
+    (and
+      (instance ?DA (DeadFn ?AC))
+      (part ?M ?DA)
+      (subclass ?AC Animal))))
 
 ;; ----------------------------------------------------------------------------
 ;; Seafood
@@ -148,6 +326,17 @@ inhabit &%BodiesOfWater")
       (instance ?SEA BodyOfWater)
       (inhabits ?X ?SEA))))
 
+(subclass FishMeat Seafood)
+(documentation FishMeat EnglishLanguage "&%Meat that was originally part of a &%Fish.")
+(meatOfAnimal FishMeat Fish)
+
+(subclass SalmonMeat FishMeat)
+(documentation SalmonMeat EnglishLanguage "&%SalmonMeat is &%Meat that comes from &%Salmon.")    
+      
+(subclass Shellfish Seafood)
+(documentation Shellfish EnglishLanguage "&%Shellfish refers to &%Seafood coming from
+crustaceans, which are creatures live in bodies of water that have an exoskeleton")
+      
 (subclass CrabMeat Shellfish)
 (meatOfAnimal CrabMeat Crab)
 (termFormat EnglishLanguage CrabMeat "crab")
@@ -257,15 +446,15 @@ Prunus amygdalus Batsch., Amygdalus communis L., Amygdalus dulcis
 Mill.), is the nut of this species of tree native to the Middle 
 East and South Asia. [Wikipedia]")
 
-(subclass Amaretto Liquer)
+(subclass Amaretto Liqueur)
 
-(subclass Aperitif DistilledAlcohoicBeverage)
+(subclass Aperitif DistilledAlcoholicBeverage)
 (documentation Aperitif EnglishLanguage "A class that includes digestifs.  A bitter alcoholic beverage
 taken with food, supposed to aid in digestion.  This class does not include wine, brandy or other 
 alcoholic beverages that may be used as aperitifs.")
 
 (=>
-  (instance ?X Aperatif)
+  (instance ?X Aperitif)
   (attribute ?X Bitterness))
 
 (instance Sweetness TasteAttribute)
@@ -287,7 +476,7 @@ alcoholic beverages that may be used as aperitifs.")
 
 (subclass Bagel BreadOrBiscuit)
 
-(subclass Baileys Liquer)
+(subclass Baileys Liqueur)
 
 (subclass Bamboo Grass)
 
@@ -310,7 +499,10 @@ alcoholic beverages that may be used as aperitifs.")
 
 (=>
   (instance ?C Calamari)
-  (material (MeatOfAnimalFn Squid) ?C))
+  (exists (?S)
+    (and
+      (meatOfAnimal ?S Squid)
+      (material ?S ?C))))
 
 (subclass Campari Aperitif)
 
@@ -328,7 +520,7 @@ alcoholic beverages that may be used as aperitifs.")
 (subclass CashewNut Nut)
 (subclass Celery FloweringPlant)
 
-(subclass Chambord Liquer)
+(subclass Chambord Liqueur)
 
 (subclass Champagne Wine)
 
@@ -345,7 +537,7 @@ alcoholic beverages that may be used as aperitifs.")
 
 (subclass Cod Fish)
 
-(subclass Cointreau Liquer)
+(subclass Cointreau Liqueur)
 
 (subclass Couscous Pasta)
 
@@ -395,7 +587,8 @@ medicinal purposes. [Wikipedia]")
 
 (subclass Garlic FloweringPlant)
 
-(equal GoatMeat (MeatOfAnimalFn Goat))
+(subclass GoatMeat Meat)
+(meatOfAnimal GoatMeat Goal)
 
 (subclass Gouda Cheese)
 
@@ -408,6 +601,7 @@ crushing, or pureeing a &%FruitOrVegetable.")
 (subclass Juice PlantAgriculturalProduct)
 (initialPart Juice FruitOrVegetable)
 
+(instance JuiceOfFn UnaryFunction)
 (domainSubclass JuiceOfFn 1 FruitOrVegetable)
 (rangeSubclass JuiceOfFn Juice)
 (documentation JuiceOfFn EnglishLanguage "This function defines the class of &%Juice
@@ -421,7 +615,7 @@ created from a given &%FruitOrVegetable.")
       (resource ?P ?Z)
       (result ?P ?X))))
 
-(subclass Kahlua Liquer)
+(subclass Kahlua Liqueur)
 
 (subclass Ketchup PreparedFood)
 (=>
@@ -459,7 +653,7 @@ been flavored with one of various substances.")
 
 (subclass Lobster Crustacean)
 
-(subclass GrandMarnier Liquer)
+(subclass GrandMarnier Liqueur)
 
 (subclass Mayonnaise PreparedFood)
 (documentation Mayonnaise EnglishLanguage "Mayonnaise, is a stable emulsion of oil, 
@@ -507,17 +701,17 @@ gills (lamellae, sing. lamella) or pores on the underside of the cap. [Wikipedia
 (subclass Onion FloweringPlant)
 (subclass Oyster Mollusk)
 
-(subclass Pancakes BreadOrBiscuit)
+(subclass Pancake BreadOrBiscuit)
 (documentation Pancake EnglishLanguage "A pancake is a thin, flat, 
 round cake prepared from a batter, or dough in some cases, and cooked 
-on a hot griddle or frying pan. Most pancakes are quick breads; some 
-use a yeast-raised or fermented batter. Most pancakes are cooked one 
+on a hot griddle or frying pan. Most Pancakes are quick breads; some 
+use a yeast-raised or fermented batter. Most Pancakes are cooked one 
 side on a griddle and flipped partway through to cook the other side. 
-Depending on the region, pancakes may be served at any time, with a 
+Depending on the region, Pancake may be served at any time, with a 
 variety of toppings or fillings including jam, chocolate chips, fruit, 
 syrup or meat. [Wikipedia]")
 (=>
-  (instance ?P Pancakes)
+  (instance ?P Pancake)
   (exists (?F)
     (and
       (instance ?F Frying)
@@ -537,7 +731,7 @@ with other ingredients like ravioli and tortellini. [Wikipedia]")
   (instance ?P Pasta)
   (material Flour ?P))
 
-(subclass PatronTequilla Tequilla)
+(subclass PatronTequilla Tequila)
 (subclass Peach Fruit)
 
 (subclass Penne Pasta)
@@ -625,8 +819,8 @@ sugarcane that is then aged.")
 
 (subclass Scallop Mollusk)
 
-(documentation Schnapps EnglishLanguage "A &%Liquer made from distilling fruit.")
-(subclass Schnapps Liquer)
+(documentation Schnapps EnglishLanguage "A &%Liqueur made from distilling fruit.")
+(subclass Schnapps Liqueur)
 (=>
   (instance ?S Schnapps)
   (exists (?D)
@@ -862,6 +1056,20 @@ from a &%CerealGrain typically aged in oak casks.")
         (partiallyFills ?W ?C))
       (earlier ?D ?T)
       (earlier ?T ?DR))))
+
+;; KJN: Moved from Mid-level-ontology.kif      
+(subclass Brandy DistilledAlcoholicBeverage)
+(documentation Brandy EnglishLanguage "A &%DistilledAlcoholicBeverage that is prepared by 
+distilling &%Wine.")
+(=>
+  (instance ?B Brandy)
+  (exists (?D ?W)
+    (and
+      (instance ?D Distilling)
+      (instance ?W Wine)
+      (resource ?D ?W)
+      (result ?D ?B))))
+      
 
 (subclass WaterChestnut Vegetable)
 (subclass Ziti Pasta)
