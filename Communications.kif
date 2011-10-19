@@ -56,6 +56,56 @@ or computer data transfer.")
 			(instance ?LINE MainTelephoneLine)
 			(engineeringSubcomponent ?LINE ?SYSTEM))))
 
+(subclass TelephoneCradle Device)
+(documentation TelephoneCradle EnglishLanguage "&%TelephoneCradle is the part of the
+&%Telephone that is connected to the &%TelephoneSystem through some wire.")
+(termFormat EnglishLanguage TelephoneCradle "telephone cradle")
+
+(=>
+  (instance ?X TelephoneCradle)
+  (hasPurpose ?X
+    (exists (?SYS ?WIRE)
+      (and
+        (instance ?SYS TelephoneSystem)
+        (instance ?WIRE WireLine)
+        (connectsEngineeringComponents ?WIRE ?X ?SYS)))))      
+
+(subclass CordedTelephone FixedPhone)
+(documentation CordedTelephone EnglishLanguage "&%CordedTelephone is a type of &%FixedPhone 
+whose &%TelephoneHandset is connected to its &%TelephoneCradle by a &%WireLine")
+(termFormat EnglishLanguage CordedTelephone "corded telephone")
+
+(=>
+  (instance ?X CordedTelephone)
+  (exists (?HANDSET ?CRADLE ?WIRE)
+    (and
+      (instance ?HANDSET TelephoneHandset)
+      (instance ?CRADLE TelephoneCradle)
+      (part ?HANDSET ?X)
+      (part ?CRADLE ?X)
+      (instance ?WIRE WireLine)
+      (connectsEngineeringComponents ?WIRE ?HANDSET ?CRADLE))))
+        
+(subclass CordlessTelephone FixedPhone)
+(documentation CordlessTelephone EnglishLanguage "&%CordlessTelephone is a type of 
+&%FixedPhone whose &%TelephoneHandset is not connected to its &%TelephoneCradle by a 
+&%WireLine")
+(termFormat EnglishLanguage CordlessTelephone "cordless telephone")
+
+(=>
+  (instance ?X CordlessTelephone)
+  (exists (?HANDSET ?CRADLE)
+    (and
+      (instance ?HANDSET TelephoneHandset)
+      (instance ?CRADLE TelephoneCradle)
+      (part ?HANDSET ?X)
+      (part ?CRADLE ?X)
+      (not 
+        (exists (?WIRE)
+          (and
+            (instance ?WIRE WireLine)
+            (connectsEngineeringComponents ?WIRE ?HANDSET ?CRADLE)))))))
+        
 ;;	B. Telephones - mobile cellular
 
 ;;	C. Telephone system
@@ -120,6 +170,50 @@ as an &%engineeringSubcomponent of a &%TelephoneSystem of the GeopoliticalArea
 (documentation Orbita EnglishLanguage "An &%Orbita is one type of 
 &%CommunicationSatellite.")
 
+(subclass Telex CommunicationDevice)
+(documentation Telex EnglishLanguage "&%Telex is a &%Telegraph-like &%CommunicationDevice 
+that is used to send messages over a &%TelephoneSystem.")
+(termFormat EnglishLanguage Telex "telex")
+
+(=>
+  (instance ?TELEX Telex)
+  (exists (?PRINTER)
+    (and
+      (instance ?PRINTER Printer)
+      (part ?PRINTER ?TELEX))))
+      
+(=>
+  (instance ?TELEX Telex)
+  (hasPurpose ?TELEX
+    (exists (?SYS ?TELEX2 ?MSG)
+      (and
+        (instance ?SYS TelephoneSystem)
+        (instance ?TELEX2 Telex)
+        (instance ?MSG Messaging)
+        (or
+          (and
+            (origin ?MSG ?TELEX)
+            (destination ?MSG ?TELEX2))
+          (and
+            (origin ?MSG ?TELEX2)
+            (destination ?MSG ?TELEX)))
+        (path ?MSG ?SYS)))))
+
+(=>
+  (and
+    (destination ?MSG ?TELEX)
+    (instance ?MSG Messaging)
+    (patient ?MSG ?M)
+    (instance ?TELEX Telex))
+  (exists (?PROC ?TEXT)
+    (and
+      (instrument ?PROC ?TELEX)
+      (result ?PROC ?TEXT)
+      (represents ?TEXT ?M)
+      (instance ?TEXT Text)
+      (before (BeginFn (WhenFn ?MSG)) (BeginFn (WhenFn ?PROC))))))
+
+
 ;;	D. Radio broadcast stations
 (subclass BroadcastingStation StationaryArtifact)
 (subclass BroadcastingStation CommunicationDevice)
@@ -153,6 +247,42 @@ FM radio broadcasting possible in a given area.")
 (documentation ShortwaveRadioSystem EnglishLanguage "A &%ShortwaveRadioSystem consists 
 of &%Radios, &%ShortwaveRadioStations, and other components that work 
 together to make shortwave radio broadcasting possible in a given area.")
+
+(subclass BabyMonitoringSystem RadioSystem)
+(documentation BabyMonitoringSystem EnglishLanguage "&%BabyMonitoringSystem refers to
+the radio system that &%Broadcasting at 49Mhz, consisting of a transmitter and receiver,
+where the transmitter is kept where the baby is kept, and the receiver is kept with
+the person looking after the baby to be able to hear sounds and monitor the baby")
+(termFormat EnglishLanguage BabyMonitoringSystem "baby monitor")
+
+(=>
+  (instance ?X BabyMonitoringSystem)
+  (exists (?TX ?RX)
+    (and
+      (instance ?RX RadioReceiver)
+      (instance ?TX Device)
+      (engineeringSubcomponent ?RX ?X)
+      (engineeringSubcomponent ?TX ?X)
+      (hasPurpose ?X
+        (exists (?BABY ?CARER ?SOUND ?LOC1 ?LOC2 ?PROC ?RADIO)
+          (and
+            (instance ?BABY HumanBaby)
+            (instance ?CARER Human)
+            (located ?BABY ?LOC1)
+            (located ?CARER ?LOC2)
+            (not (equal ?LOC1 ?LOC2))
+            (instance ?PROC Maintaining)
+            (patient ?PROC ?BABY)
+            (agent ?PROC ?CARER)
+            (located ?TX ?LOC1)
+            (located ?RX ?LOC2)
+            (instance ?SOUND RadiatingSound)
+            (eventLocated ?SOUND ?LOC1)
+            (instance ?RADIO RadioEmission)
+            (patient ?RADIO ?SOUND)
+            (destination ?RADIO ?RX)
+            (agent ?RADIO ?TX)))))))
+            
 
 (subclass RadioStation BroadcastingStation)
 (subclass BroadcastingStation EngineeringComponent)
@@ -211,6 +341,20 @@ is a &%CommunicationSystem for cable television.")
       (instance ?DEVICE TelevisionReceiver)
       (engineeringSubcomponent ?DEVICE ?SYSTEM))))
 
+(subclass SatelliteTelevisionSystem CommunicationSystem)
+(documentation SatelliteTelevisionSystem EnglishLanguage "&%SatelliteTelevisionSystem       
+is a &%CommunicationSystem where &%ArtificialSatellite is used to transfer TV signals")
+(termFormat EnglishLanguage SatelliteTelevisionSystem "satellite tv")
+
+(=>
+  (instance ?TV SatelliteTelevisionSystem)
+  (exists (?SAT ?RECEIVE)
+    (and
+      (instance ?SAT ArtificialSatellite)
+      (member ?SAT ?TV)
+      (instance ?RECEIVE TelevisionReceiver)
+      (member ?RECEIVE ?TV))))      
+      
 (subclass BroadcastNetwork CommunicationSystem)
 (documentation BroadcastNetwork EnglishLanguage "&%BroadcastNetwork is the subclass of 
 &%CommunicationSystems consisting of &%BroadcastingStations that are linked 
@@ -251,6 +395,37 @@ transmitted through a cable from a &%CableTelevisionSystem.")
   (instance ?T TelevisionReceiver)
   (capability TelevisionBroadcasting patient ?T))
 
+(subclass TelevisionSet ElectricDevice)
+(documentation TelevisionSet EnglishLanguage "&%TelevisionSet is an &%ElectricDevice
+comprised of a &%TelevisionReceiver and some form of &%VideoDisplay and is part of
+a &%TelevisionSystem")
+(termFormat EnglishLanguage TelevisionSet "television set")
+
+(=>
+  (instance ?TV TelevisionSet)
+  (exists (?RECEIVER ?DISPLAY)
+    (and
+      (instance ?RECEIVER TelevisionReceiver)
+      (instance ?DISPLAY VideoDisplay)
+      (part ?RECEIVER ?TV)
+      (part ?DISPLAY ?TV))))
+
+(subclass TVRemoteControl RemoteControl)
+(documentation TVRemoteControl EnglishLanguage "&%TVRemoteControl is a type of 
+&%RemoteControl that signals to a &%TelevisionReceiver")
+(termFormat EnglishLanguage TVRemoteControl "tv remote")
+
+(=>
+  (instance ?X TVRemoteControl)
+  (hasPurpose ?X
+    (exists (?SIGNAL ?DEVICE)
+      (and
+        (instance ?SIGNAL ElectronicSignalling)
+        (agent ?SIGNAL ?X)
+        (destination ?SIGNAL ?DEVICE)
+        (instance ?DEVICE TelevisionReceiver)))))
+
+  
 ;;	H. Internet country code
 (instance Internet CommunicationSystem)	
 (documentation Internet EnglishLanguage "The &%Internet is a &%CommunicationSystem
