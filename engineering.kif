@@ -132,13 +132,14 @@ length, mass, force etc.")
 		(and (instance ?MODEL Model)
 			(result ?MODELING ?MODEL))))
 
-(documentation abstractPart EnglishLanguage "A meronymy relation similar to &%part, but
-for abstract rather than physical things.")
-(termFormat EnglishLanguage abstractPart "part")
-(instance abstractPart PartialOrderingRelation)
-(domain abstractPart 1 Abstract)
-(domain abstractPart 2 Abstract)
-(format EnglishLanguage abstractPart "%1 is %n a &%part of %2")
+;; KJN: Moving this to MILO as it is very general      
+;;(documentation abstractPart EnglishLanguage "A meronymy relation similar to &%part, but
+;;for abstract rather than physical things.")
+;;(termFormat EnglishLanguage abstractPart "part")
+;;(instance abstractPart PartialOrderingRelation)
+;;(domain abstractPart 1 Abstract)
+;;(domain abstractPart 2 Abstract)
+;;(format EnglishLanguage abstractPart "%1 is %n a &%part of %2")
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;  MATH             ;;
@@ -596,23 +597,34 @@ phenomenon, its constitutive relation has special structure.")
 (documentation Twoport EnglishLanguage "A &%Multipole with exactly two sections.")
 (subclass Twoport Fourpole)
 
-(documentation IdealOperationalAmplifier EnglishLanguage "A &%Fourpole modeling an
-&%OperationalAmplifier with ideal properties.")
-(lexicon IdealOperationalAmplifier LexNoun "ideal operational amplifier")
-(lexicon IdealOperationalAmplifier LexNoun "operational amplifier")
-(subclass IdealOperationalAmplifier Fourpole)
-
-(documentation Transducer EnglishLanguage "A &%Device which is capable of converting one 
-form of energy into another.  Formally, a &%Twoport that neither stores 
-nor dissipates, but only transfers energy between its two ports.") 
-(lexicon Transducer LexNoun "transducer")
-(subclass Transducer Device)
 (=>
   (instance ?M Twoport)
   (exists (?T)
     (and
       (instance ?T Transducer)
       (represents ?M ?T))))
+
+
+(documentation IdealOperationalAmplifier EnglishLanguage "A &%Fourpole modeling an
+&%OperationalAmplifier with ideal properties.")
+(lexicon IdealOperationalAmplifier LexNoun "ideal operational amplifier")
+(lexicon IdealOperationalAmplifier LexNoun "operational amplifier")
+(subclass IdealOperationalAmplifier Fourpole)
+
+;; KJN: Moving this to MILO as Engine, which has a lot of definitions within MILO, depends on it
+;;(documentation Transducer EnglishLanguage "A &%Device which is capable of converting one 
+;;form of energy into another.  Formally, a &%Twoport that neither stores 
+;;nor dissipates, but only transfers energy between its two ports.") 
+;;(lexicon Transducer LexNoun "transducer")
+;;(subclass Transducer Device)
+;;(=>
+;;  (instance ?M Twoport)
+;;  (exists (?T)
+;;    (and
+;;      (instance ?T Transducer)
+;;      (represents ?M ?T))))
+(lexicon Transducer LexNoun "transducer")
+
 
 (documentation Transformer EnglishLanguage "A &%Transducer for which the ratio of
 across variables and through variables respectively is equal.")
@@ -777,6 +789,13 @@ position when pushed or pulled or pressed")
 (subclass Spring MechanicalDevice)
 
 (subclass Rotor MechanicalDevice)
+(subclass Rotor EngineeringComponent)
+(documentation Rotor EnglishLanguage "The &%Rotating component of a motor, generator or similar 
+&%Device.")
+
+(=>
+  (instance ?R Rotor)
+  (capability Rotating instrument ?R))
 
 (documentation Stator EnglishLanguage "Stationary part of a motor or generator in or
 around which the rotor revolves.")
@@ -1050,6 +1069,44 @@ p-n junctions, it is used e.g. in controlled rectifiers.")
 (documentation Controller EnglishLanguage "a mechanism that controls the operation of some
 device")
 (subclass Controller UnknownDomainDevice)
+
+(subclass RemoteControl Controller)
+(documentation RemoteControl EnglishLanguage "&%RemoteControl is &%Controller that 
+does some &%ElectronicSignalling to communicate and control another &%Device")
+(termFormat EnglishLanguage RemoteControl "remote control")
+
+(=>
+  (instance ?X RemoteControl)
+  (hasPurpose ?X
+    (exists (?SIGNAL ?DEVICE)
+      (and
+        (instance ?SIGNAL ElectronicSignalling)
+        (agent ?SIGNAL ?X)
+        (destination ?SIGNAL ?DEVICE)
+        (instance ?DEVICE Device)
+        (not (equal ?X ?DEVICE))))))
+
+(subclass TemperatureControl Controller)
+(documentation TemperatureControl EnglishLanguage "&%TemperatureControl is a type
+of &%Controller that is used to set the ideal &%airTemperature in the room. It is normally
+a part of an &%ElectricDevice that conditions the room to reach that temperature")
+(termFormat EnglishLanguage TemperatureControl "temperature control")
+
+(=>
+  (instance ?CTRL TemperatureControl)
+  (exists (?DEVICE ?TEMP)
+    (and
+      (instance ?DEVICE ElectricDevice)
+      (part ?CTRL ?DEVICE)
+      (hasPurpose ?DEVICE
+        (exists (?PROC ?AREA)
+          (and
+            (instance ?AREA Region)
+            (instance ?PROC Process)
+            (instrument ?PROC ?X)
+            (result ?PROC (airTemperature ?AREA ?TEMP))))))))
+        
+
 
 ;;;;;;;;;;;;;;;;;
 ;;  METHODS    ;;
