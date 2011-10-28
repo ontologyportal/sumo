@@ -52,10 +52,7 @@ other property.")
 (subAttribute FinancialContract Contract)
 (documentation FinancialContract EnglishLanguage "A financial agreement between two or more parties")
 
-;; KJN: Edit.  This seems to make more sense given that every other implementation of
-;; FinancialAccount treats it as a subclass rather than an attribute.
-;;(subAttribute FinancialAccount Contract)
-(subclass FinancialAccount Agreement)
+(subAttribute FinancialAccount Contract)
 (documentation FinancialAccount EnglishLanguage "A formal banking, brokerage, or business relationship 
 established to provide for regular services, dealings, and other financial 
 transactions.")
@@ -75,7 +72,7 @@ transactions.")
 
 (=>
   (and
-    (instance ?Account FinancialAccount)
+    (property ?Account FinancialAccount)
     (accountAt ?Account ?Bank))
   (exists (?Activity)
     (and
@@ -471,12 +468,6 @@ gain a financial return.")
       (instance ?Payment Payment)
       (transactionAmount ?Payment ?Money)
       (destination ?Payment ?Seller))))
-      
-(=>
-  (instance ?Investing Investing)
-  (hasPurpose ?Investing
-    (exists (?Profit)
-      (profit ?Investing ?Profit))))      
 
 (subclass AutomaticTransaction FinancialTransaction)
 (documentation AutomaticTransaction EnglishLanguage "&%Transactions which occur through computer 
@@ -913,7 +904,6 @@ of income tax owed in a given year.")
 (subclass InterestBearingAccount FinancialAccount)
 (documentation InterestBearingAccount EnglishLanguage "FinancialAccounts that have a fixed or adjustable interest rate.")
 
-
 (=>
   (instance ?Account InterestBearingAccount)
   (exists (?Rate ?Period)
@@ -972,6 +962,7 @@ is disjoint with &%PersonalAccounts.")
 brokerage use.")
 
 (subclass SavingsAccount InterestBearingAccount)
+(subclass SavingsAccount DepositAccount)
 (documentation SavingsAccount EnglishLanguage "An account in a bank on which interest is usually paid and from 
 which withdrawals can be made usually only by presentation of a passbook or by written authorization 
 on a prescribed form.") 
@@ -1017,7 +1008,7 @@ by its full faith and credit, having a maturity of one year or less. Exempt from
 (=>
   (instance ?Account TreasuryBill)
   (riskLevel ?Account LowRisk))
-  
+
 (subclass CertificateOfDeposit SavingsAccount)
 (documentation CertificateOfDeposit EnglishLanguage "CDs (certificates of deposit) are bank, credit union or savings 
 and loan instruments that allow the depositor to lock in an interest rate for a specific period of 
@@ -1097,9 +1088,7 @@ set of objectives. Benefits include diversification and professional money manag
 are issued and redeemed on demand, based on the fund's net asset value which is determined at 
 the end of each trading session.") 
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass Liability FinancialContract)
-(subAttribute Liability FinancialContract)
+(subclass Liability FinancialContract)
 (documentation Liability EnglishLanguage "A financial obligation, debt, claim, or potential loss")
 
 (subclass LiabilityAccount FinancialAccount)
@@ -1112,7 +1101,7 @@ the end of each trading session.")
     (accountAt ?Account ?Bank))
   (exists (?Debt)
     (and
-      (property ?Debt Liability)
+      (instance ?Debt Liability)
       (partyToAgreement ?Debt ?Agent)
       (partyToAgreement ?Debt ?Bank))))
 
@@ -1724,12 +1713,17 @@ Exchange.")
       (instance ?Investment Investment)
       (possesses ?Agent ?Investment))))
 
-;; KJN: Moving this to Mid-level-ontology.kif to remove dependencies.      
-;;(instance profit AsymmetricRelation)
-;;(domain profit 1 FinancialTransaction)
-;;(domain profit 2 CurrencyMeasure)
-;;(documentation profit EnglishLanguage "The positive gain from an investment or business operation after 
-;;subtracting for all expenses.") 
+(instance profit AsymmetricRelation)
+(domain profit 1 FinancialTransaction)
+(domain profit 2 CurrencyMeasure)
+(documentation profit EnglishLanguage "The positive gain from an investment or business operation after 
+subtracting for all expenses.") 
+
+(=>
+  (instance ?Investing Investing)
+  (hasPurpose ?Investing
+        (exists (?Profit)
+          (profit ?Investing ?Profit))))
 
 (subclass AssetAllocation FinancialTransaction)
 (documentation AssetAllocation EnglishLanguage "The process of dividing investments among different kinds of 
@@ -2010,23 +2004,17 @@ other property.")
 &%FixedAnnuity insurance policy or fixed annuity issued by a corporation, government, 
 or other organization which offers evidence of debt or equity.")
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass Annuity FinancialContract)
-(subAttribute Annuity FinancialContract)
+(subclass Annuity FinancialContract)
 (documentation Annuity EnglishLanguage "A contract sold by an insurance company designed to provide 
 payments to the holder at specified intervals, usually after retirement. &%FixedAnnuities 
 guarantee a certain payment amount, while &%VariableAnnuities do not, but do have the 
 potential for greater returns, but both are relatively safe, low-yielding investments.") 
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass FixedAnnuity Annuity) 
-(subAttribute FixedAnnuity Annuity) 
+(subclass FixedAnnuity Annuity) 
 (documentation FixedAnnuity EnglishLanguage "An investment vehicle offered by an insurance company, that 
 guarantees a stream of fixed payments over the life of the annuity. The insurer, not the 
 insured, takes the investment risk.")
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass VariableAnnuity Annuity)
 (subclass VariableAnnuity Annuity)
 (documentation VariableAnnuity EnglishLanguage "An investment vehicle offered by an insurance company that 
 does not guarantee a payment amount but does have the potential for greater returns than  
@@ -2470,78 +2458,59 @@ Typically, AAA is highest (best), and D is lowest (worst).")
 
 ;;  Options  
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass Option FinancialContract)
-(subAttribute Option FinancialContract)
+(subclass Option FinancialContract)
 (documentation Option EnglishLanguage "An option is a contract to buy or sell 100 shares 
 of a stock at a fixed price (the strike price) on or before a fixed date.")   
 
 (=>
-  (property ?Option Option)
+  (instance ?Option Option)
   (exists (?Type ?Date ?Stock ?Price)
     (and
       (or
         (equal ?Type CallOption)
         (equal ?Type PutOption))
-      (property ?Option ?Type)
+      (instance ?Option ?Type)
       (agreementExpirationDate ?Option ?Date)
       (strikePrice ?Option ?Price)
       (underlier ?Option ?Stocks)
       (measure ?Stock (MeasureFn 100 ShareUnit)))))
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass ConventionalOption Option)
-(subAttribute ConventionalOption Option)
+(subclass ConventionalOption Option)
 (documentation ConventionalOption EnglishLanguage "Short-term option contracts.")
 
 (=>
-  (property ?Option ConventionalOption)
+  (instance ?Option ConventionalOption)
   (exists (?Number)
     (and
       (agreementPeriod ?Option ?Period)
       (duration ?Period (MeasureFn ?Number MonthDuration))
       (lessThan ?Number 9))))
 
-      
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass LEAPS Option)
-(subAttribute LEAPS Option)
+(subclass LEAPS Option)
 (documentation LEAPS EnglishLanguage "Calls and puts with an expiration as long as 
 thirty-nine months. Currently, equity LEAPS have two series at any 
 time with a January expiration. For example, in October 2000, LEAPS 
 are available with expirations of January 2002 and January 2003.")
 
 (=>
-  (property ?Option ConventionalOption)
+  (instance ?Option ConventionalOption)
   (exists (?Number)
     (and
       (agreementPeriod ?Option ?Period)
       (duration ?Period (MeasureFn ?Number MonthDuration))
       (lessThan ?Number 39))))
 
-;; KJN: Edit. Incorrect definition, should be subAttribute      
 (subrelation optionHolder partyToAgreement)
-;;(domain optionHolder 1 Option)
-(domain optionHolder 1 Agreement)
+(domain optionHolder 1 Option)
 (domain optionHolder 2 CognitiveAgent) 
 (documentation optionHolder EnglishLanguage "(&%optionHolder ?Option ?Agent) means that 
 ?Agent is the holder of the option.")
 
-(=>
-  (optionHolder ?OPTION ?AGENT)
-  (property ?OPTION Option))
-
-;; KJN: Edit. Incorrect definition, should be subAttribute
 (subrelation optionSeller partyToAgreement)
-;;(domain optionSeller 1 Option)
-(domain optionSeller 1 Agreement)
+(domain optionSeller 1 Option)
 (domain optionSeller 2 CognitiveAgent)
 (documentation optionSeller EnglishLanguage "(&%optionSeller ?Option ?Agent) means that 
 ?Agent is the writer of the option.")
-
-(=>
-  (optionSeller ?OPTION ?AGENT)
-  (property ?OPTION Option))
 
 (instance strikePrice BinaryPredicate)
 (domain strikePrice 1 FinancialInstrument)
@@ -2550,9 +2519,7 @@ are available with expirations of January 2002 and January 2003.")
 which the contract may be exercised, whereby a call option buyer can buy 
 the underlier or a put option buyer can sell the underlier.") 
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass CallOption Option)
-(subAttribute CallOption Option)
+(subclass CallOption Option)
 (documentation CallOption EnglishLanguage "An option contract that gives the holder the 
 right to buy a certain quantity (usually 100 shares) of an underlying 
 security from the writer of the option, at a specified price (the strike 
@@ -2560,7 +2527,7 @@ price) up to a specified date (the expiration date).")
 
 (=>
   (and
-    (property ?Option Option)
+    (instance ?Option Option)
     (optionHolder ?Option ?Agent)
     (strikePrice ?Option ?Price)
     (agreementExpirationDate ?Option ?ExpDate)
@@ -2578,7 +2545,7 @@ price) up to a specified date (the expiration date).")
 
 (=>
   (and
-    (property ?Option Option)
+    (instance ?Option Option)
     (optionSeller ?Option ?Seller)
     (strikePrice ?Option ?Price)
     (agreementExpirationDate ?Option ?ExpDate)
@@ -2594,9 +2561,7 @@ price) up to a specified date (the expiration date).")
       (measure ?Stocks (MeasureFn 100 ShareUnit))
       (agent ?Sell ?Agent))) ?Seller))
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass PutOption Option)
-(subAttribute PutOption Option)
+(subclass PutOption Option)
 (documentation PutOption EnglishLanguage "An option contract that gives the holder the 
 right to sell a certain quantity of an underlying security to the writer 
 of the option, at a specified price (strike price) up to a specified date 
@@ -2604,7 +2569,7 @@ of the option, at a specified price (strike price) up to a specified date
 
 (=>
   (and
-    (property ?Option Option)
+    (instance ?Option Option)
     (optionHolder ?Option ?Agent)
     (strikePrice ?Option ?Price)
     (agreementExpirationDate ?Option ?ExpDate)
@@ -2622,7 +2587,7 @@ of the option, at a specified price (strike price) up to a specified date
 
 (=>
   (and
-    (property ?Option Option)
+    (instance ?Option Option)
     (optionSeller ?Option ?Agent)
     (strikePrice ?Option ?Price)
     (agreementExpirationDate ?Option ?ExpDate)
@@ -2638,48 +2603,34 @@ of the option, at a specified price (strike price) up to a specified date
       (measure ?Stocks (MeasureFn 100 ShareUnit))
       (agent ?Buy ?Agent))) ?Agent))
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass StockOption Option)
-(subAttribute StockOption Option)
+(subclass StockOption Option)
 (documentation StockOption EnglishLanguage "An option in which the underlier is the 
 common stock of a corporation, giving the holder the right to buy or 
 sell its stock, at a specified price, by a specific date.")
 
 (=>
    (and
-      (property ?Option StockOption)
+      (instance ?Option StockOption)
       (underlier ?Option ?Stock))
-   (property ?Stock CommonStock))
+   (instance ?Stock CommonStock))
 
-;; KJN: Edit. Incorrect definition, should be subAttribute   
 (instance premium BinaryPredicate)
-;;(domain premium 1 Option)
-(domain premium 1 Agreement)
+(domain premium 1 Option)
 (domain premium 2 CurrencyMeasure)
 (documentation premium EnglishLanguage "Total price of an option.")
 
-(=>
-  (premium ?OPTION ?AMT)
-  (property ?OPTION Option))
-  
 (=>
   (and
     (premium ?Option ?Premium)
     (optionHolder ?Option ?Agent))
   (potentialLoss ?Agent ?Option ?Premium))
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
 (instance underlier BinaryPredicate)
-;;(domain underlier 1 Option)
-(domain underlier 1 Agreement)
+(domain underlier 1 Option)
 (domain underlier 2 FinancialInstrument)
 (documentation underlier EnglishLanguage "(&%underlier ?Option ?Instrument) means that 
 ?Instrument is a security which is subject to delivery upon exercise of 
 ?Option.") 
-
-(=>
-  (underlier ?OPTION ?FI)
-  (property ?OPTION Option))
 
 (instance ExerciseAnOption FinancialTransaction)
 (documentation ExerciseAnOption EnglishLanguage "An activity when the owner of the the &%Option 
@@ -2690,7 +2641,7 @@ underlying stock. In the case of a put, the option owner sells the underlying st
   (and
     (instance ?Exercise ExerciseAnOption)
     (patient ?Exercise ?Option)
-    (property ?Option CallOption) 
+    (instance ?Option CallOption) 
     (time ?Exercise ?Time)
     (underlier ?Option ?Stocks))
   (exists (?Buy)
@@ -2704,7 +2655,7 @@ underlying stock. In the case of a put, the option owner sells the underlying st
   (and
     (instance ?Exercise ExerciseAnOption)
     (patient ?Exercise ?Option)
-    (property ?Option PutOption) 
+    (instance ?Option PutOption) 
     (time ?Exercise ?Time)
     (underlier ?Option ?Stocks))
   (exists (?Sell)
@@ -2714,35 +2665,28 @@ underlying stock. In the case of a put, the option owner sells the underlying st
       (time ?Sell ?Time)
       (measure ?Stocks (MeasureFn 100 ShareUnit)))))
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(instance AmericanStyleOption Option)
-(subAttribute AmericanStyleOption Option)
+(instance AmericanStyleOption Option)
 (documentation AmericanStyleOption EnglishLanguage "An option that can be exercised at any time 
 prior to its expiration date")
 
 (=>
-  (and
-    (property ?Option AmericanStyleOption)
+   (and
+      (instance ?Option AmericanStyleOption)
       (optionHolder ?Option ?Agent)
       (agreementExpirationDate ?Option ?Day))
-    (holdsRight 
-      (exists (?Exercise)
-        (and
-          (instance ?Exercise ExerciseAnOption)
-          (patient ?Exercise ?Option)
-          (before 
-            (EndFn (WhenFn ?Exercise)) 
-            (EndFn ?Day)))) ?Agent)) 
+   (holdsRight (exists (?Exercise)
+                    (and
+                         (instance ?Exercise ExerciseAnOption)
+                         (patient ?Exercise ?Option)
+                         (before (EndFn (WhenFn ?Exercise)) (EndFn ?Day)))) ?Agent)) 
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(instance EuropeanStyleOption Option)
-(subAttribute EuropeanStyleOption Option)
+(instance EuropeanStyleOption Option)
 (documentation EuropeanStyleOption EnglishLanguage "An option that can be exercised only during 
 a specified period of time just prior to its expiration.") 
 
 (=>
   (and
-    (property ?Option EuropeanStyleOption)
+    (instance ?Option EuropeanStyleOption)
     (agreementExpirationDate ?Option ?Date))
   (exists (?Period ?Time)
     (and
@@ -2754,9 +2698,7 @@ a specified period of time just prior to its expiration.")
           (equal (WhenFn ?Exercise) ?Time))
       (temporalPart ?Time ?Period)))))
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass EquityOption Option)
-(subAttribute EquityOption Option)
+(subclass EquityOption Option)
 (documentation EquityOption EnglishLanguage "An option on shares of an individual common stock.") 
 
 ;;    Types of Orders   
@@ -3154,17 +3096,14 @@ at a price lower than the preceding one for the same security.")
 
 ;; Income, employment, compensations 
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass Employment ServiceContract)
-(subAttribute Employment ServiceContract)
-;;(subclass Employment FinancialContract)
-(subAttribute Employment FinancialContract)
+(subclass Employment ServiceContract)
+(subclass Employment FinancialContract)
 
 (<=>
   (employs ?Org ?Agent)
   (exists (?Employment)
     (and
-      (property ?Employment Employment)
+      (instance ?Employment Employment)
       (partyToAgreement ?Employment ?Org)
       (partyToAgreement ?Employment ?Agent))))
 
@@ -3545,9 +3484,10 @@ of &%Organization ?ORG in a &%SocialInteraction involving ?PERSON2.")
       (employs ?Org ?Person1)
       (agent ?Service ?Person1)
       (destination ?Service ?Person2))))
-
-(instance Manager Position)
-(documentation Manager EnglishLanguage "One who directs a business or other enterprise.")
+      
+;; moved to close to its definiton, as a rule in Biography.kif
+;;(instance Manager Position)
+;;(documentation Manager EnglishLanguage "One who directs a business or other enterprise.")
 
 ;; KJN: Imported from Mid-level-ontology.kif to remove dependencies
 (instance Banker SkilledOccupation)
@@ -3620,13 +3560,12 @@ during the evening.")
       (holdsDuring (HourFn ?Number ?Day) (possesses ?Agent ?Phone))
       (greaterThan ?Number 18))))
 
-;; KJN: already defined in Mid-level-ontology.kif
-;;(instance emailAddress BinaryPredicate)
-;;(subrelation emailAddress refers)
-;;(domain emailAddress 1 SymbolicString)
-;;(domain emailAddress 2 Agent)
-;;(documentation emailAddress EnglishLanguage "(&%emailAddress ?Address ?Agent) means that ?Address is 
-;;an electronic address of the location where ?Agent can be reached.")
+(instance emailAddress BinaryPredicate)
+(subrelation emailAddress refers)
+(domain emailAddress 1 SymbolicString)
+(domain emailAddress 2 Agent)
+(documentation emailAddress EnglishLanguage "(&%emailAddress ?Address ?Agent) means that ?Address is 
+an electronic address of the location where ?Agent can be reached.")
 
 ;;KJN: Moving this to Mid-level-ontology.kif
 ;;(subclass Fax Communication)
@@ -3644,17 +3583,6 @@ during the evening.")
 ;;image over the telephone system. The receiving machine prints a facsimile of 
 ;;the original. A fax machine is made up of a scanner, printer and modem with 
 ;;fax signaling.")
-
-;; KJN: Moved in from Mid-level-ontology.kif.  
-(documentation financialAccount EnglishLanguage "A formal banking, brokerage, or business 
-relationship established to provide for regular services, dealings, and 
-other financial transactions.  (&%financialAccount ?ACCOUNT ?ORG) means that 
-?ACCOUNT is a financial account opened at the &%FinancialCompany 
-?ORG.")
-(domain financialAccount 1 FinancialAccount)
-(domain financialAccount 2 FinancialCompany)
-(instance financialAccount BinaryPredicate)
-(subrelation financialAccount partyToAgreement)
 
 (subrelation availableBalance currentAccountBalance)
 (domain availableBalance 1 FinancialAccount)
@@ -3745,10 +3673,6 @@ the time period ?Period.")
 (domain lastStatement 2 BankStatement)
 (documentation lastStatement EnglishLanguage "(&%lastStatement ?Account ?Statement) means that 
 ?Statement is the most recent monthly report sent to a debtor or bank depositor.")
-
-(=>
-  (lastStatement ?ACCT ?STATEMENT)
-  (instance ?ACCT FinancialAccount))
 
 (=>
   (and
@@ -3857,16 +3781,12 @@ status of a &%FinancialAccount, viz. &%Active, &%Locked, &%New, and &%Pending.")
 (instance Locked StatusAttribute)
 (instance Pending StatusAttribute)
 
-;; KJN: Edit. Incorrect usage of Position
 (instance administrator BinaryPredicate)
 (domain administrator 1 FinancialAccount)
-;;(domain administrator 2 Position)
-(domain administrator 2 CognitiveAgent)
+(domain administrator 2 Position)
 
-;; KJN: Edit. Incorrect usage of Position.  
 (instance administratorStatus BinaryPredicate)
-;;(domain administratorStatus 1 Position)
-(domain administratorStatus 1 CognitiveAgent)
+(domain administratorStatus 1 Position)
 (domain administratorStatus 2 StatusAttribute)
 (documentation administratorStatus EnglishLanguage "(&%administratorStatus ?Administrator ?Status) 
 holds is ?Status describes the status of the administrator.")
@@ -3936,7 +3856,7 @@ if ?Amount is the interest amount as shown on the BankStatement ?Statement.")
       (exists (?Amount)
     (interestEarned ?Account ?Amount ?Period)))
 
-;;(instance buyingPowerAmount TernaryPredicate)
+(instance buyingPowerAmount TernaryPredicate)
 (subrelation buyingPowerAmount availableBalance)
 (domain buyingPowerAmount 1 FinancialAccount)
 (domain buyingPowerAmount 2 Day)
@@ -3945,7 +3865,7 @@ if ?Amount is the interest amount as shown on the BankStatement ?Statement.")
 if ?Amount is the buying power amount of the &%FinancialAccount ?Account on the &%Day 
 ?Day.")
 
-;;(instance marginBalanceAmount TernaryPredicate)
+(instance marginBalanceAmount TernaryPredicate)
 (subrelation marginBalanceAmount availableBalance)
 (domain marginBalanceAmount 1 FinancialAccount)
 (domain marginBalanceAmount 2 Day)
@@ -3954,7 +3874,7 @@ if ?Amount is the buying power amount of the &%FinancialAccount ?Account on the 
 holds if ?Amount is the margin balance amount of the &%FinancialAccount ?Account 
 on the &%Day ?Day.")
 
-;;(instance shortBalanceAmount TernaryPredicate)
+(instance shortBalanceAmount TernaryPredicate)
 (subrelation shortBalanceAmount availableBalance)
 (domain shortBalanceAmount 1 FinancialAccount)
 (domain shortBalanceAmount 2 Day)
@@ -3963,7 +3883,7 @@ on the &%Day ?Day.")
 holds if ?Amount is the short balance amount of the &%FinancialAccount ?Account 
 on the &%Day ?Day.")
 
-;;(instance marketValueAmount TernaryPredicate)
+(instance marketValueAmount TernaryPredicate)
 (subrelation marketValueAmount availableBalance)
 (domain marketValueAmount 1 FinancialAccount)
 (domain marketValueAmount 2 Day)
