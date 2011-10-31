@@ -1265,6 +1265,18 @@ to be &%False by the &%agent of the &%LinguisticCommunication.")
          (instance ?ORG Organization)
          (result ?FOUND ?ORG)))) 
 
+(subclass Club Organization)
+(documentation Club EnglishLanguage "A Club is an &%Organization of people that share some &%desire")
+(=>
+  (and
+    (instance ?CLUB Club)
+    (member ?MEM1 ?CLUB)
+    (member ?MEM2 ?CLUB))
+  (exists (?DESIRE)
+    (and
+      (desires ?MEM1 ?DESIRE)
+      (desires ?MEM2 ?DESIRE))))
+                  
 (documentation yearOfFounding EnglishLanguage "(yearOfFounding ?ORG ?NUMBER) means that the &%Organization 
 ?ORG was founded in the year expressed in ?NUMBER.")
 (instance yearOfFounding BinaryPredicate)
@@ -1299,7 +1311,23 @@ For example, (&%dateEstablished &%UnitedNations
     (and
       (instance ?DAY ?DATE)
       (overlapsTemporally ?DAY (BeginFn (WhenFn ?THING))))))
-            
+
+(instance dateUsed TernaryPredicate)
+(domain dateUsed 1 Object)
+(domain dateUsed 2 TimePoint)
+(domain dateUsed 3 Agent)
+(documentation dateUsed EnglishLanguage "The date an &%Object is used by an &%Agent.")
+(termFormat EnglishLanguage dateUsed "date used")
+(=>
+  (dateUsed ?OBJECT ?DATE ?AGENT)
+  (exists (?PROCESS)
+    (and
+      (instance ?PROCESS Process)
+      (patient ?PROCESS ?OBJECT)
+      (agent ?PROCESS ?AGENT)
+      (uses ?OBJECT ?AGENT)
+      (overlapsTemporally ?DATE (WhenFn ?PROCESS)))))
+      
 (subclass Accrediting Declaring)
 (documentation Accrediting EnglishLanguage "Any process of certifying an &%EducationalOrganization.")
 (=>
@@ -1488,6 +1516,37 @@ at a high angle and fires explosive shells.")
         (instance ?GUN Gun)
         (patient ?S ?B)))))
 
+(subclass BulletCartridge Projectile)
+(documentation BulletCartridge EnglishLanguage "The entire projectile consisting of a bullet, 
+casing, gunpowder, and primer.")
+(termFormat EnglishLanguage BulletCartridge "bullet cartridge")
+
+(=>
+  (instance ?CARTRIDGE BulletCartridge)
+  (hasPurpose ?CARTRIDGE
+    (exists (?BULLET ?CASE)
+      (and
+        (instance ?BULLET Bullet)
+        (instance ?CASE CartridgeCase)
+        (properPart ?BULLET ?CARTRIDGE)
+        (properPart ?CASE ?CARTRIDGE)))))
+          
+(subclass CartridgeCase EngineeringComponent)
+(documentation CartridgeCase EnglishLanguage "the part of a cartridge that holds the bullet")
+(termFormat EnglishLanguage CartridgeCase "case")
+(=>
+  (instance ?CASE CartridgeCase)
+  (exists (?CARTRIDGE ?BULLET ?K)
+    (and
+      (instance ?CARTRIDGE BulletCartridge)
+      (instance ?BULLET Bullet)
+      (instance ?K Keeping)
+      (properPart ?CASE ?CARTRIDGE)
+      (properPart ?BULLET ?CARTRIDGE)
+      (agent ?K ?CASE)
+      (patient ?K ?BULLET))))
+                
+        
 (subclass GunBarrel EngineeringComponent)
 (documentation GunBarrel EnglishLanguage "The part of a &%Gun through which a &%Projectile travels 
 when it is fired.")
@@ -2709,6 +2768,20 @@ radiation for the purpose of locating and tracking distant objects.")
   (instance ?RADAR Radar)
   (capability RadiatingElectromagnetic agent ?RADAR))
 
+(instance discovers BinaryPredicate)
+(domain discovers 1 Agent)
+(domain discovers 2 Object)
+(documentation discovers EnglishLanguage "(discovers ?AGENT ?OBJECT) means that the 
+&%Agent ?AGENT discovered the &%Object ?OBJECT.")
+(termFormat EnglishLanguage discovers "discovers")
+(=>
+  (discovers ?AGENT ?OBJECT)
+  (exists (?DISCOVERING)
+    (and
+      (instance ?DISCOVERING Discovering)
+      (agent ?DISCOVERING ?AGENT)
+      (patient ?DISCOVERING ?OBJECT))))  
+  
 (subclass Sonar CorpuscularObject)
 (documentation Sonar EnglishLanguage "Something that emits and receives sound 
 for the purpose of locating and tracking distant objects.  Note that
@@ -3598,6 +3671,30 @@ surface, including a frozen body of water or snow.")
 (documentation RoadVehicle EnglishLanguage "The class of &%LandVehicles that are not 
 &%RollingStock.")
 
+(subclass Fleet Collection)
+(documentation Fleet EnglishLanguage "A &%Collection of &%Vehicle")
+(termFormat EnglishLanguage Fleet "Fleet")
+
+(=>
+  (instance ?FLEET Fleet)
+  (memberType ?FLEET Vehicle))
+
+(instance fleetSize BinaryPredicate)
+(domain fleetSize 1 Agent)
+(domain fleetSize 2 Integer)
+(documentation fleetSize EnglishLanguage "(fleetSize ?AGENT ?NUM) means the &%Agent 
+?AGENT has a fleet size of an &%Integer ?NUM. The &%Fleet can consists of any type of 
+&%Vehicle")
+(termFormat EnglishLanguage fleetSize "Fleet Size")
+
+(=>
+  (and
+    (instance ?FLEET Fleet)
+    (fleetSize ?AGENT ?NUM)
+    (possesses ?AGENT ?FLEET))
+  (memberCount ?FLEET ?NUM)) 
+
+  
 (subclass Axle Device)
 (documentation Axle EnglishLanguage "Axle is a class of &%Devices each of which can 
 be paired with two &%VehicleWheels to rotate and move a &%RoadVehicle.")
@@ -4300,6 +4397,25 @@ a &%Horse.")
       (instance ?H Horse)
       (instrument ?R ?H))))
 
+(instance carries BinaryPredicate)
+;; KJN: Editing this to be more general not only to Animal but to any Agent
+;;(domain carries 1 Animal)
+(domain carries 1 Agent)
+(domain carries 2 Object)
+;;(documentation carries EnglishLanguage "(carries ?ANIMAL ?OBJECT) means that 
+;;an &%Animal ?ANIMAL transers an &%OBJECT ?OBJECT from one point to another")
+
+(documentation carries EnglishLanguage "(carries ?AGENT ?OBJECT) means that 
+an &%Agent ?AGENT transers an &%OBJECT ?OBJECT from one point to another")
+(termFormat EnglishLanguage carries "carries")
+(=>
+  (carries ?AGENT ?OBJECT)
+  (exists (?CARRYING)
+    (and
+      (instrument ?CARRYING ?AGENT)
+      (patient ?CARRYING ?OBJECT))))
+      
+      
 (subclass Tray Holder)
 (documentation Tray EnglishLanguage "A &%Holder that is designed for &%Food, dishes, and 
 flatware.")
@@ -12461,6 +12577,41 @@ assembled audience.")
 audience that effects an institutional change, e.g. a change in the laws of 
 the government.")
 
+(subclass Commenting IntentionalProcess)
+(documentation Commenting EnglishLanguage "Commenting is an &%IntentionalProcess 
+where an &%Agent speaks about a &%Process it is &%Looking at.")
+(termFormat EnglishLanguage Commenting "Commenting")
+
+(=>
+  (and
+    (instance ?COMMENTING Commenting)
+    (instance ?PROCESS Process)
+    (patient ?COMMENTING ?PROCESS))
+  (exists (?AGENT ?SPEAKING ?LOOKING)
+    (and
+      (instance ?AGENT Agent)
+      (instance ?SPEAKING Speaking)
+      (instance ?LOOKING Looking)
+      (agent ?SPEAKING ?AGENT)
+      (agent ?LOOKING ?AGENT)
+      (patient ?LOOKING ?PROCESS)
+      (refers ?SPEAKING ?PROCESS))))
+      
+(instance commentator BinaryPredicate)
+(domain commentator 1 Agent)
+(domain commentator 2 Process)
+(documentation commentator EnglishLanguage "(commentator ?AGENT ?PROCESS) means that some &%Agent 
+?AGENT is &%Looking at some &%Process ?PROCESS and &%Speaking about it simultaneously.")
+(termFormat EnglishLanguage commentator "commentator")
+(=>
+  (commentator ?AGENT ?PROCESS)
+  (exists (?COMMENTING)
+    (and
+      (instance ?COMMENTING Commenting)
+      (agent ?COMMENTING ?AGENT)
+      (patient ?COMMENTING ?PROCESS))))
+      
+
 (subclass Reciting Speaking)
 (documentation Reciting EnglishLanguage "Any instance of &%Speaking where what is 
 uttered is contained within a &%Text.")
@@ -12657,6 +12808,21 @@ not one is guilty of the crime of which one has been accused.")
       (instance ?C CriminalAction)
       (refers ?P ?C))))
 
+(instance describes BinaryPredicate)
+(domain describes 1 Formula)
+(domain describes 2 Object)
+(documentation describes EnglishLanguage "(describes ?FORMULA ?OBJECT) means that some 
+&%Formula ?FORMULA, as said by some &%Agent, is a statement regarding some &%Object ?OBJECT")
+(termFormat EnglishLanguage describes "describes")      
+(=>
+  (describes ?FORMULA ?OBJECT)
+  (exists (?STATING ?AGENT)
+    (and
+      (instance ?STATING Stating)
+      (agent ?STATING ?AGENT)
+      (patient ?STATING ?FORMULA)
+      (refers ?STATING ?OBJECT))))      
+      
 (subclass Testifying Stating)
 (documentation Testifying EnglishLanguage "Giving testimony as part of a &%JudicialProcess.")
 
@@ -13531,6 +13697,11 @@ situation where the &%agent &%grasps the &%Ball.")
 ;;      (instance ?M PitchersMound)
 ;;      (origin ?P ?M))))
 
+(subclass Sign ContentBearingObject)      
+(subclass Sign DisplayArtifact)
+(subclass Sign DataDisplayDevice)
+(documentation Sign EnglishLanguage "A Sign is a &%DisplayArtifact that displays any range of information")
+(termFormat EnglishLanguage Sign "Sign")
 
 (subclass PlayingCard GameArtifact)
 (subclass PlayingCard ContentBearingObject)
@@ -14044,11 +14215,6 @@ under the water level by filling tanks with water.")
       (instrument ?TRANSPORT ?CRAFT)
       (eventLocated ?TRANSPORT ?REGION))))
 
-(=>
-  (instance ?CRAFT Aircraft)
-  (capability AirTransportation instrument ?CRAFT))
-
-
 (subclass SpaceTransportation Transportation)
 (documentation SpaceTransportation EnglishLanguage "Any instance of &%Transportation where the 
 &%instrument is a &%Spacecraft and which is through a &%SpaceRegion.")
@@ -14148,11 +14314,35 @@ instrument is an &%Oar that is manually powered.")
 events in which the &%instrument is an instance of
 &%RoadVehicle.")  
   
+(subclass FlyingAircraft Driving)
+(documentation FlyingAircraft EnglishLanguage "Controlling the direction, speed, 
+and altitude of an &%Aircraft")
+(termFormat EnglishLanguage FlyingAircraft "Flying")
 
+(=>
+  (instance ?FLY FlyingAircraft)
+  (exists (?CRAFT)
+    (and
+      (instance ?CRAFT Aircraft)
+      (patient ?FLY ?CRAFT))))
+
+(=>
+  (instance ?FLY FlyingAircraft)
+  (exists (?FLIGHT)
+    (and
+      (instance ?FLIGHT AirTransportation)
+      (subProcess ?FLY ?FLIGHT))))
+       
+  
 (subclass Aircraft Vehicle)
 (documentation Aircraft EnglishLanguage "Any Vehicle which is capable of 
 AirTransportation.  Note that this class covers both fixed-wing aircraft
 and helicopters.")
+
+(=>
+  (instance ?CRAFT Aircraft)
+  (capability AirTransportation instrument ?CRAFT))
+
 
 ;; KJN: Moving this to Transportation.kif as it makes more sense there.
 ;;(subclass AirTransportation Transportation)
@@ -14791,6 +14981,38 @@ person.")
          (holdsDuring (ImmediatePastFn (WhenFn ?DEATH)) (possesses ?PERSON ?PROPERTY))
          (confersRight (possesses ?HEIR ?PROPERTY) ?PERSON ?HEIR))))
 
+(subclass Awarding UnilateralGiving)
+(documentation Awarding EnglishLanguage "&%Giving to any &%Agent for doing some &%Process.")
+(termFormat EnglishLanguage Awarding "awarding")
+(=>
+  (instance ?A Awarding)
+  (exists (?RECIPIENT ?GIVER ?PROCESS ?AWARD)
+    (and
+      (instance ?RECIPIENT Agent)
+      (instance ?GIVER Agent)
+      (instance ?PROCESS Process)
+      (instance ?AWARD Object)
+      (agent ?PROCESS ?RECIPIENT)
+      (agent ?A ?GIVER)
+      (patient ?A ?AWARD)
+      (destination ?A ?RECIPIENT)
+      (causes ?PROCESS ?A))))
+
+(instance hasAward BinaryPredicate)
+(domain hasAward 1 Agent)
+(domain hasAward 2 Object)
+(documentation hasAward EnglishLanguage "(hasAward ?RECIPIENT ?AWARD) means the &%Agent 
+?RECIPIENT recieved the &%Object ?AWARD as an award for some action they did.")
+(termFormat EnglishLanguage hasAward "has award")
+(=>
+  (hasAward ?RECIPIENT ?AWARD)
+  (exists (?A)
+    (and
+      (instance ?A Awarding)
+      (destination ?A ?RECIPIENT)
+      (patient ?A ?AWARD))))
+      
+         
 (subclass Bequeathing UnilateralGiving)
 (documentation Bequeathing EnglishLanguage "Any &%UnilateralGiving where the agent 
 wills some part of his/her property to someone else upon his/her death.")
@@ -16689,6 +16911,42 @@ This does not include plumbing, roofing, electrical, foundation and site work.")
       (part ?W ?B)
       (result ?C ?B))))
 
+(instance constructionPeriod BinaryPredicate)
+(domain constructionPeriod 1 StationaryArtifact)
+(domain constructionPeriod 2 TimeInterval)
+(documentation constructionPeriod EnglishLanguage "(constructionPeriod ?OBJECT ?INTERVAL) 
+means that some &%StationaryArtifact ?OBJECT was built over &%TimeInterval ?INTERVAL")
+(termFormat EnglishLanguage constructionPeriod "construction period")
+(=>
+  (constructionPeriod ?OBJECT ?INTERVAL)
+  (holdsDuring ?INTERVAL
+    (exists (?CONSTRUCTING)
+      (and
+        (instance ?CONSTRUCTING Constructing)
+        (result ?CONSTRUCTING ?OBJECT)))))
+      
+(instance contractor BinaryPredicate)
+(domain contractor 1 StationaryArtifact)
+(domain contractor 2 Agent)
+(documentation contractor EnglishLanguage "(contractor ?BUILDING ?AGENT) means that some 
+&%Agent ?AGENT has a contract with another ?AGENT to build a &%StationaryArtifact for
+the agent.") 
+
+(=>
+  (contractor ?BUILDING ?CONTRACTOR)
+  (exists (?CONTRACT ?AGENT)
+    (and
+      (property ?CONTRACT Contract)
+      (partyToAgreement ?AGENT ?CONTRACT)
+      (partyToAgreement ?CONTRACTOR ?CONTRACT)
+      (confersObligation
+        (exists (?CONSTRUCT ?BUILDING)
+          (and
+            (instance ?CONSTRUCT Constructing)
+            (agent ?CONSTRUCT ?CONTRACTOR)
+            (result ?CONSTRUCT ?BUILDING)
+            (instance ?BUILDING StationaryArtifact))) ?AGENT ?CONTRACTOR))))      
+      
 (subclass Agriculture Maintaining)
 (documentation Agriculture EnglishLanguage "&%Agriculture is a class of &%Processes 
 in which land, plants, or animals are cultivated in order to produce 

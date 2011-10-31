@@ -74,9 +74,11 @@
 ;;		2. Transit Control Systems
 ;;		3. Transit Control Devices
 ;;		4. Tolls or Usage Fees
+;;    5. Transportation Standards
 ;;	J. Transportation Businesses
 ;;		1. Business Types
 ;;		2. Personnel
+;;    3. Transportation Services
 
 ;;========================================================================
 
@@ -3055,6 +3057,16 @@ of official documents containing information about a vehicle's ownership
 and identifying characteristics, as required by the appropriate authority 
 for the type and location of individual vehicles.")
 
+(instance FederalAviationAdministration GovernmentOrganization)
+(instance FederalAviationAdministration TransportationAuthority)
+(acronym "FAA" FederalAviationAdministration)
+(termFormat EnglishLanguage FederalAviationAdministration "Federal Aviation Administration")
+ 
+(instance InternationalAirTransportAssociation InternationalOrganization)
+(instance InternationalAirTransportAssociation TransportationAuthority)
+(acronym "IATA" InternationalAirTransportAssociation)
+(termFormat EnglishLanguage InternationalAirTransportAssociation "International Air Transport Association")
+
 ;; 	2. Transit Control Systems
 
 ; AirTrafficControl
@@ -3066,6 +3078,79 @@ for the type and location of individual vehicles.")
 
 ;;	4. Tolls or Usage Fees
 
+;;  5.  Transportation Standards
+
+(subclass AirlineCodeMap CodeMap)
+(documentation AirlineCodeMap EnglishLanguage "&%AirlineCodeMap denotes the &%SymbolicString
+used by different aviation organizations to identify &%Airline")
+(termFormat EnglishLanguage AirlineCodeMap "airline code map")
+
+(=>
+  (and
+    (instance ?CM AirlineCodeMap)
+    (codeMapping ?CM ?STR ?AIR))
+  (and
+    (instance ?AIR Airline)
+    (represents ?STR ?AIR)))
+
+(instance IATAAirlineCode CodeMap)
+(documentation IATAAirlineCode EnglishLanguage "The 2-character tag given to an &%Airline by the 
+&%InternationalAirTransportAssociation to represent that &%Airline at any &%Airport")    
+(termFormat EnglishLanguage IATAAirlineCode "IATA airline code")
+
+(=>
+  (codeMapping IATAAirlineCode ?STR ?AIR)
+  (member ?AIR InternationalAirTransportAssociation))
+
+(=>
+  (codeMapping IATAAirlineCode ?STR ?AIR)
+  (equal 2 (StringLengthFn ?STR)))
+   
+(instance IACOAirlineCode CodeMap)
+(documentation IACOAirlineCode EnglishLanguage "The 3-character tag given to an &%Airline by the 
+ &%InternationalCivilAviationOrganization to represent that &%Airline at any &%Airport")
+(termFormat EnglishLanguage IACOAirlineCode "IACO airline code")
+
+(=>
+  (codeMapping IACOAirlineCode ?STR ?AIR)
+  (member ?AIR InternationalCivilAviationOrganization))
+
+(=>
+  (codeMapping IACOAirlineCode ?STR ?AIR)
+  (equal 3 (StringLengthFn ?STR)))
+
+(subclass AOCnumber SymbolicString)
+(documentation AOCnumber EnglishLanguage "The certification number that signifies an 
+&%Airline has recieved an Air Operator Certification, allowing the airline to use 
+aircraft for commercial purposes.")
+(termFormat EnglishLanguage AOCnumber "AOC number")
+
+(=>
+  (instance ?AOC AOCnumber)
+  (equal 8 (StringLengthFn ?AOC)))
+  
+(=>
+  (instance ?AOC AOCnumber)
+  (exists (?G ?AIRLINE)
+    (and
+      (instance ?G Giving)
+      (agent ?G FederalAviationAdministration)
+      (destination ?G ?AIRLINE)
+      (patient ?G ?AOC))))
+      
+(=>
+  (and
+    (instance ?AOC AOCnumber)
+    (instance ?AIRLINE Airline)
+    (possesses ?AIRLINE ?AOC))
+  (confersRight
+    (exists (?AIR)
+      (and
+        (instance ?AIR AirTransportationService)
+        (serviceProvider ?AIR ?AIRLINE))) 
+    FederalAviationAdministration ?AIRLINE))
+
+  
 ;;---------------------------------------------------------------------
 
 ;;	J. Transportation Businesses
@@ -3161,4 +3246,118 @@ the &%WaterVehicle ?BOAT.")
 ;;(domain OperatingFn 1 Device)
 ;;(rangeSubclass OperatingFn Process)
 
+(subclass Airline TransportationCompany)
+(documentation Airline EnglishLanguage "An Airline is a &%TransportationCompany that 
+specializes in providing &%AirTransportation")
+(termFormat EnglishLanguage Airline "Airline")
+(=>
+  (instance ?AIRLINE Airline)
+  (attribute ?AIRLINE AirTransportationIndustry))
+
+(=>
+  (instance ?AIRLINE Airline)
+  (hasPurpose ?AIRLINE
+    (exists (?AIR)
+      (and
+        (instance ?AIR AirTransportationService)
+        (serviceProvider ?AIR ?AIRLINE)))))
+        
+;; KJN: Comment out until Biography.kif is promoted to production        
+;;(=>
+;;  (instance ?AIRLINE Airline)
+;;  (exists (?PILOT)
+;;    (and
+;;      (instance ?PILOT Human)
+;;      (attribute ?PILOT Pilot)
+;;      (employs ?AIRLINE ?PILOT))))
+      
+;; Another way of expressing that an Airline hires Pilots is to use (occupiesPosition 
+;; ?PILOT Pilot ?AIRLINE) instead of (employs ?AIRLINE ?PILOT)
+(=>
+  (instance ?AIRLINE Airline)
+  (exists (?FLEET ?AIRCRAFT)
+    (and
+      (instance ?FLEET Fleet)
+      (possesses ?AIRLINE ?FLEET)
+      (instance ?AIRCRAFT Aircraft)
+      (member ?AIRCRAFT ?FLEET))))
+      
+      
+;;   3.  Transportation Services
+
+(subclass TransportationService ServiceProcess)
+(documentation TransportationService EnglishLanguage "&%TransportationService refers to
+how an agent that possesses some kind of vehicle transports people around")
+(termFormat EnglishLanguage TransportationService "transportation service")        
+        
+(=>
+  (instance ?SVC TransportationService)
+  (exists (?VEHICLE ?AGENT ?TRANS ?CUST)
+    (and
+      (agent ?SVC ?AGENT)
+      (possesses ?AGENT ?VEHICLE)
+      (customer ?CUST ?AGENT)
+      (instance ?VEHICLE Vehicle)
+      (instance ?TRANS Transportation)
+      (agent ?TRANS ?AGENT)
+      (patient ?TRANS ?CUST)
+      (instrument ?TRANS ?VEHICLE)
+      (subProcess ?TRANS ?SVC))))
+
+(subclass AirTransportationService TransportationService)
+(documentation AirTransportationService EnglishLanguage "A &%TransportationService 
+provided by an &%Agent that involves flying a customer from one &%Airport to another 
+&%Airport.")
+(termFormat EnglishLanguage AirTransportationService "Air Transportation Service")
+(=>
+  (instance ?SERVICE AirTransportationService)
+  (exists (?AIRCRAFT ?AIR)
+    (and
+      (instance ?AIR AirTransportation)
+      (subProcess ?AIR ?SERVICE)
+      (instrument ?AIR ?AIRCRAFT)
+      (instance ?AIRCRAFT Aircraft))))
+      
+(subclass LandTransportationService TransportationService)
+(documentation LandTransportationService EnglishLanguage "A &%TransportationService 
+provided by an &%Agent that involves &%LandTransportation")
+(termFormat EnglishLanguage LandTransportationService "Land Transportation Service")
+(=>
+  (instance ?SERVICE LandTransportationService)
+  (exists (?LAND ?VEHICLE)
+    (and
+      (instance ?LAND LandTransportation)
+      (instance ?VEHICLE LandVehicle)
+      (instrument ?LAND ?VEHICLE)
+      (subProcess ?LAND ?SERVICE))))
+            
+(subclass WaterTransportationService TransportationService)
+(documentation WaterTransportationService EnglishLanguage "A &%TransportationService 
+that involves &%WaterTransportation")
+(termFormat EnglishLanguage WaterTransportationService "Water Transportation Service")
+(=>
+  (instance ?SERVICE WaterTransportationService)
+  (exists (?WATER ?VEHICLE)
+    (and
+      (instance ?WATER WaterTransportation)
+      (instance ?VEHICLE WaterVehicle)
+      (instrument ?WATER ?VEHICLE)
+      (subProcess ?WATER ?SERVICE))))
+
+(instance providesDestination BinaryPredicate)
+(domain providesDestination 1 TransportationCompany)
+(domain providesDestination 2 Region)
+(documentation providesDestination EnglishLanguage "(providesDestination ?TC ?REG) means 
+&%TransportationCompany, ?TC, provides possible &%Transportation to &%Region ?REG.")
+(termFormat EnglishLanguage providesDestination "provides destination")
+
+(=>
+  (providesDestination ?TC ?REG)
+  (modalAttribute
+    (exists (?SVC)
+      (and
+        (instance ?SVC TransportationService)
+        (serviceProvider ?SVC ?TC)
+        (destination ?SVC ?REG))) Possibility))
+      
 ;;========================================================================
