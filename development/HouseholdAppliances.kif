@@ -1,0 +1,1701 @@
+;; ==========================================================
+;;      Household Appliances Energy Management Ontology      
+;; ==========================================================
+;;
+;; This is the source file for the Household Appliances Energy Management Ontology,
+;; an ontology that is being developed as general classification of home electrical
+;; appliances provided by various manufacturers.
+;;
+;; The Household Appliances Energy Management Ontology is copyrighted by Coventry
+;; University (c) 2011. It is released under the GNU Public License
+;; <http://www.gnu.org/copyleft/gpl.html>. Users of this code also consent, by use
+;; of this material, to credit Coventry University in any writings, briefings,
+;; publications, presentations, or other representations of any code or other
+;; product which incorporates, builds on, or uses this material.
+;;
+;; We ask that people using or referencing this work cite our primary paper:
+;; @INPROCEEDINGS{ shah:ontology,
+;;    AUTHOR = "Nazaraf Shah and Kuo-Ming Chao and Tomasz Zlamaniec and Adriana Matei",
+;;    TITLE = "Ontology for Home Energy Management Domain.",
+;;    booktitle = "DICTAP (2)'11",
+;;    PAGES = {337-347},
+;;    YEAR = {2011} }
+;;  
+;; Dependencies:
+;;     Merge.kif                           
+;;     Mid-level-ontology.kif             
+;;
+;; This ontology is based on SUMO. For more information please refer to:
+;;   Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
+;;   Proceedings of the 2nd International Conference on Formal Ontology in 
+;;   Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
+;;   Ogunquit, Maine, October 17-19, 2001.  
+;; Also see http://www.ontologyportal.org
+;; 
+;; Version date: November 2011
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; BatteryPoweredDevice
+
+(subclass BatteryPoweredDevice ElectricDevice)
+(documentation BatteryPoweredDevice EnglishLanguage "%BatteryPoweredDevice is an &%ElectricDevice that
+   can be powered by either build-in &%Battery or attachable. Some battery powered devices can have multiple ")
+(termFormat EnglishLanguage BatteryPoweredDevice "battery powered device")
+
+(=> ; a ElectricDevice connected with a Battery is a BatteryPoweredDevice if there exists a process of transfering electricity from battery to that device
+   (and 
+      (instance ?DEVICE ElectricDevice)
+      (exists (?PROC ?BATTERY)
+         (and ; the process is 'powering'
+            (instance ?BATTERY Battery)
+            (connectedEngineeringComponents ?DEVICE ?PLUG)
+            (instance ?PROC Process)
+            (patient ?PROC Electricity)
+            (destination ?PROC ?DEVICE)
+         (agent ?PROC ?BATTERY))))
+   (instance ?DEVICE BatteryPoweredDevice))
+ 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; DEFINE CLASSES FOR HOUSEHOLD APPLIANCES
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; HouseholdAppliance
+(subclass HouseholdAppliance Device)
+(documentation HouseholdAppliance EnglishLanguage "%HouseholdAppliance is a &%Device designed to be used in a &%PermanentResidence")
+(termFormat EnglishLanguage HouseholdAppliance "household appliance")
+
+(=> ; device that has function partlyLocated or located (subrelation) in a permanent residence
+   (instance ?DEVICE HouseholdAppliance)
+   (hasPurpose ?DEVICE
+      (exists (?PROC ?RESI)
+         (and
+            (instrument ?PROC ?DEVICE)
+            (instance ?PROC Process)
+            (instance ?RESI PermanentResidence)
+            (partlyLocated ?PROC ?RESI)))))
+
+;; BodyCareAppliance
+(subclass BodyCareAppliance HouseholdAppliance)
+(documentation BodyCareAppliance EnglishLanguage "&%HouseholdAppliance designed to be used for exercise or personal body care.")
+(termFormat EnglishLanguage BodyCareAppliance "body care appliance")
+
+(=> ; if it is BodyCareAppliance then hasPurpose - patient is Human/BodyPart
+   (instance ?DEVICE BodyCareAppliance)
+   (hasPurpose ?DEVICE
+      (exists (?PROC ?PATIENT)
+         (and
+            (instance ?PROC Process)
+            (instrument ?PROC ?DEVICE)
+            (patient ?PROC ?PATIENT)
+            (or
+               (instance ?PATIENT Human)
+               (instance ?PATIENT BodyPart))))))
+
+;; BathBodyCareAppliance
+(subclass BathBodyCareAppliance BodyCareAppliance)
+(documentation BathBodyCareAppliance EnglishLanguage "A &%BodyCareAppliance that is using water.")
+(termFormat EnglishLanguage BathBodyCareAppliance "bath body care appliance")
+
+(=> ; BathBodyCareAppliance hasPurpose which includes using water as a resource
+   (instance ?DEVICE BathBodyCareAppliance)
+   (hasPurpose ?DEVICE
+      (exists (?PROC ?WATER)
+         (and
+            (instance ?PROC Process)
+            (instance ?WATER Water)
+            (instrument ?PROC ?DEVICE)
+            (resource ?PROC ?WATER)))))
+
+; ;; BathingDevice
+; (subclass BathingDevice BathBodyCareAppliance) ;; MILO
+
+;; FootSpa
+(subclass FootSpa BathBodyCareAppliance)
+(documentation FootSpa EnglishLanguage "A &%BathBodyCareAppliance that can be giving a foot massage.")
+(termFormat EnglishLanguage FootSpa "foot spa")
+
+(=> 
+   (instance ?DEVICE FootSpa)
+   (hasPurpose ?DEVICE
+      (exists (?PROC ?FOOT)
+         (and
+            (instance ?PROC Process)
+            (instance ?FOOT Foot)
+            (instrument ?PROC ?DEVICE)
+            (patient ?PROC ?FOOT)))))
+
+;; ElectricFootSpa
+(subclass ElectricFootSpa FootSpa)
+(subclass ElectricFootSpa ElectricDevice)
+(documentation ElectricFootSpa  EnglishLanguage "A &%FootSpa that uses electricity for vibration or warming water.")
+(termFormat EnglishLanguage ElectricFootSpa  "foot spa")
+
+;; WhirlpoolBathtub
+(subclass WhirlpoolBathtub WhirlpoolTub) ;; MILO
+(subclass WhirlpoolBathtub ElectricDevice)
+(documentation WhirlpoolBathtub EnglishLanguage "A &%BathTub with nozzles capable of introducing air bobbles into the water.")
+(termFormat EnglishLanguage WhirlpoolBathtub  "whirlpool bathtub")
+
+;; RecreationOrExerciseAppliance  
+(subclass RecreationOrExerciseAppliance BodyCareAppliance)
+(subclass RecreationOrExerciseAppliance RecreationOrExerciseDevice) ;; MILO
+(documentation RecreationOrExerciseAppliance EnglishLanguage "A conjunction of &%BodyCareAppliance and &%RecreationOrExerciseDevice.")
+(termFormat EnglishLanguage RecreationOrExerciseAppliance "whirlpool bathtub")
+
+;; ExerciseTreadmill
+(subclass ExerciseTreadmill RecreationOrExerciseAppliance )
+(documentation ExerciseTreadmill EnglishLanguage "A &%RecreationOrExerciseAppliance for running or walking on a moving platform without changing location.")
+(termFormat EnglishLanguage ExerciseTreadmill "Treadmill")
+
+;; ElectricExerciseTreadmill
+(subclass ElectricExerciseTreadmill ExerciseTreadmill)
+(subclass ElectricExerciseTreadmill ElectricDevice)
+(documentation ElectricExerciseTreadmill EnglishLanguage "A &%ExerciseTreadmill with conveyor belt powered by an &%ElectricMotor.")
+(termFormat EnglishLanguage ElectricExerciseTreadmill "electric treadmill")
+
+(=> ; ElectricExerciseTreadmill has a part that is instance of ElectricMotor
+   (instance ?DEVICE ElectricExerciseTreadmill)
+   (exists (?COMPONENT)
+      (and
+         (instance ?COMPONENT ElectricMotor) ;; MILO
+         (part ?COMPONENT ?DEVICE))))
+
+;; FlywheelExerciseTreadmill
+(subclass FlywheelExerciseTreadmill ExerciseTreadmill)
+(documentation FlywheelExerciseTreadmill EnglishLanguage "A &%ExerciseTreadmill with a flywheel.")
+(termFormat EnglishLanguage FlywheelExerciseTreadmill "flywheel treadmill")
+
+(=> ; FlywheelExerciseTreadmill does not have a part that is instance of ElectricMotor
+   (instance ?DEVICE FlywheelExerciseTreadmill)
+   (not
+      (exists (?COMPONENT)
+         (and
+            (instance ?COMPONENT ElectricMotor) ;; MILO
+            (part ?COMPONENT ?DEVICE)))))
+
+;; HairDryer
+(subclass HairDryer BodyCareAppliance)  ;; also in MILO
+(subclass HairDryer ElectricDevice)
+
+(=>
+   (instance ?DEVICE HairDryer)
+   (and
+      (capability Drying instrument ?DEVICE)
+      (hasPurpose ?DEVICE 
+         (exists (?PROC)
+            (and
+               (instance ?PROC Drying)
+               (instrument ?PROC ?DEVICE))))))
+
+;; HairIron
+(subclass HairIron BodyCareAppliance)
+(subclass HairIron ElectricDevice)
+(subclass HairIron HeatingDevice)
+(documentation HairIron EnglishLanguage "A device that can be used to change the hair structure with use of heat. Can be partitioned into Curling, Straightening, and Crimping iron.")
+(termFormat EnglishLanguage HairIron "hair iron")
+
+(=>
+   (instance ?DEVICE HairIron)
+   (hasPurpose ?DEVICE
+      (exists (?PURPOSE ?AGENT ?HAIR)
+         (and
+            (instance ?PURPOSE ShapeChange)
+            (instance ?AGENT Human)
+            (instance ?HAIR Hair)
+            (agent ?PURPOSE Human)
+            (patient ?PURPOSE ?HAIR)))))
+
+;; ShavingRazor
+(subclass ShavingRazor HairRemoval)
+(subclass ShavingRazor BodyCareAppliance)
+(documentation ShavingRazor EnglishLanguage "A &%ShavingRazor is a tool with blade, designed to use for the act shaving.")
+(termFormat EnglishLanguage ShavingRazor "razor")
+
+(=>
+   (instance ?DEVICE ShavingRazor)
+   (hasPurpose ?DEVICE
+      (exists (?AGENT ?PROCESS)
+         (and
+            (instance ?AGENT Human)
+            (instance ?PROCESS HairRemoval)))))
+
+;; CommunicationAppliance
+(subclass CommunicationAppliance HouseholdAppliance)
+(subclass CommunicationAppliance CommunicationDevice) ; MILO
+(documentation CommunicationAppliance EnglishLanguage "An HouseholdAppliance that can be used for comumication (conjuction with CommunicationDevice).")
+(termFormat EnglishLanguage CommunicationAppliance "communication appliance")
+
+(subclass BabyMonitoringSystem CommunicationAppliance) ;; MILO
+
+(subclass FaxMachine CommunicationAppliance) ;; MILO
+
+(subclass Telephone CommunicationAppliance) ;; MILO
+
+;; EntertainmentAppliance
+(subclass EntertainmentAppliance HouseholdAppliance)
+(subclass EntertainmentAppliance RecreationOrExerciseDevice)
+(documentation EntertainmentAppliance EnglishLanguage "An appliance that has the primary purpose of entertaining people.")
+(termFormat EnglishLanguage EntertainmentAppliance "entertainment appliance")
+
+(=>
+   (instance ?DEVICE EntertainmentAppliance)
+   (hasPurpose ?DEVICE
+      (exists (?REC)
+         (and  
+            (instance ?REC RecreationOrExercise)
+            (instrument ?REC ?DEVICE)))))
+
+;; GameConsole
+(subclass GameConsole EntertainmentAppliance)
+(subclass GameConsole ElectricDevice)
+(documentation GameConsole EnglishLanguage "An &%EntertainmentAppliance for playing video games. Often used as a part of MediaSystem.")
+(termFormat EnglishLanguage GameConsole "game console")
+
+(=>
+   (instance ?DEVICE GameConsole)
+   (exists (?GAME)
+      (and
+         (subclass ?GAME VideoGame)
+         (capability ?GAME instrument ?DEVICE))))
+
+;; MobileGameConsole
+(subclass MobileGameConsole EntertainmentAppliance)
+(subclass MobileGameConsole BatteryPoweredDevice)
+(documentation MobileGameConsole EnglishLanguage "An &%EntertainmentAppliance that can be powered by a &%Battery, and has integraded display.")
+(termFormat EnglishLanguage MobileGameConsole "mobile game console")
+
+(=>
+   (instance ?DEVICE MobileGameConsole)
+   (exists (?DISPLAY)
+      (and
+         (instance ?DISPLAY VideoDisplay)
+         (properPart ?DEVICE ?DISPLAY))))
+
+;; MediaAppliance
+(subclass MediaAppliance EntertainmentAppliance)
+(documentation MediaAppliance EnglishLanguage "%MediaAppliance is an appliance that can be used in playing audio or displaying video.")
+(termFormat EnglishLanguage MediaAppliance "media appliance")
+
+(=> ; same as MediaSystem in MILO but not necessary a collection, plus sound is audiable
+   (instance ?PLAYER MediaAppliance)
+   (hasPurpose ?PLAYER
+      (or
+         (exists (?VIDEO ?RL)
+            (and
+               (instance ?VIDEO VideoRecording)
+               (instance ?RL RadiatingVisibleLight)
+               (patient ?RL ?VIDEO)
+               (instrument ?RL ?PLAYER)))
+         (exists (?AUDIO ?RS)
+            (and
+               (instance ?AUDIO AudioRecording)
+               (instance ?RS RadiatingSound)
+               (attribute ?RS Audible) 
+               (patient ?RS ?AUDIO)
+               (instrument ?RS ?PLAYER))))))
+
+;; AudioAmplifier
+(subclass AudioAmplifier MediaAppliance)
+(documentation AudioAmplifier EnglishLanguage "A part of &%MediaSystem that amplifies the power of audio signal.")
+(termFormat EnglishLanguage AudioAmplifier "audio amplifier")
+
+(=> ; AudioAmplifier takes an electrionic signal as input and generates a new signal
+   (instance ?DEVICE AudioAmplifier)
+   (hasPurpose ?DEVICE
+      (exists (?PROC ?SIGIN ?SIGOUT)
+         (and
+          (instance ?SIGIN ElectricalSignalling)
+          (instance ?SIGOUT ElectricalSignalling)
+          (not (equal ?SIGIN ?SIGOUT))
+          (instance ?PROC Process)
+          (instrument ?PROC ?DEICE)
+          (patient ?PROC ?SIGIN)
+          (result ?PROC ?SIGOUT)))))
+        
+;; SpeakerDevice
+(subclass SpeakerDevice MediaAppliance) ;; MILO
+
+(=> ; capable of RadiatingSound represented by an ElectricalSignalling
+   (instance ?DEVICE SpeakerDevice)
+   (hasPurpose ?DEVICE
+      (exists (?SIGNAL ?RS)
+         (and
+            (instance ?SIGNAL ElectricalSignalling)
+            (instance ?RS RadiatingSound)
+            (instrument ?RS ?DEVICE)
+            (represents ?RS ?SIGNAL)))))
+
+;; RadioReceiver
+(subclass RadioReceiver MediaAppliance) ;; MILO
+
+;; SetTopBox
+(subclass SetTopBox MediaAppliance)
+(documentation SetTopBox EnglishLanguage "A device that can be used as external source of signal for a TV, eg. a DVD player or cable box.")
+(termFormat EnglishLanguage SetTopBox "set-top box")
+
+(=> ; SetTopBox hasPurpose of Signalling a TelevisionSet with a VideoRecording
+   (instance ?DEVICE SetTopBox)
+   (hasPurpose ?DEVICE
+      (exists (?TV ?SIGNAL ?VIDEO)
+         (and
+            (instance ?TV TelevisionSet)
+            (instance ?SIGNAL Signalling)
+            (instance ?VIDEO VideoRecording)
+            (represents ?SIGNAL ?VIDEO)
+            (instrument ?SIGNAL ?DEVICE)
+            (patient ?SIGNAL ?TV)))))
+
+;; PersonalComputer
+(subclass PersonalComputer EntertainmentAppliance)
+(subclass PersonalComputer ElectricDevice)
+(subclass PersonalComputer HomeOfficeAppliance)
+(subclass PersonalComputer Computer) ; MILO
+(documentation PersonalComputer EnglishLanguage "A general-purpose computer useful for, and intended to use by an individual person. That includes Pocket PC, Home media PC, Tablets, Netbooks, Desktops, Workscations, etc.")
+(termFormat EnglishLanguage PersonalComputer "personal computer")
+
+(=> ; PersonalComputer hasPurpose to be used in some process by an individual Human
+   (instance ?COMPUTER PersonalComputer)
+   (hasPurpose  ?DEVICE
+      (exists (?PERSON ?PROCESS)
+         (and
+            (instance ?PERSON Human)
+            (instance ?PROCESS Process)
+            (agent ?PROCESS Human)
+            (instrument ?PROCESS ?COMPUTER)))))
+
+;; PortablePersonalComputer
+(subclass PortablePersonalComputer PersonalComputer)
+(subclass PortablePersonalComputer BatteryPoweredDevice)
+(documentation PortablePersonalComputer EnglishLanguage "A portable &%PersonalComputer - includes laptops, tablets, or Pocket PC")
+(termFormat EnglishLanguage PortablePersonalComputer "portable personal computer")
+
+;; GardenAppliance
+(subclass GardenAppliance HouseholdAppliance)
+(documentation GardenAppliance EnglishLanguage "An appliance for work in &%CultivatedLandAreas (e.g. gardens, &%Lawns)")
+(termFormat EnglishLanguage GardenAppliance "garden tool")
+
+(=>
+   (instance ?DEVICE GardenAppliance)
+   (hasPurpose ?DEVICE
+      (exists (?AREA ?PROC)
+         (and
+         (instance ?PROC Process)
+         (instance ?AREA CultivatedLandArea)
+         (instrument ?PROC ?DEVICE)
+            (located ?PROC ?AREA)))))
+
+;; GrassMower
+(subclass GrassMower GardenAppliance)
+(documentation GrassMower EnglishLanguage "A &%GardenAppliance that can be used to cut grass.")
+(termFormat EnglishLanguage GrassMower "garden tool")
+
+(=> ; hasPurpose moving grass
+   (instance ?DEVICE GrassMower)
+   (hasPurpose ?DEVICE
+      (exists (?GRASS ?PROC)
+         (and
+            (instance ?PROC Cutting)
+            (instance ?GRASS Grass)
+            (patient ?PROC ?GRASS)
+            (instrument ?PROC ?DEVICE)))))
+
+;; ElectricGrassMower
+(subclass ElectricGrassMower GrassMower)
+(subclass ElectricGrassMower ElectricDevice)
+(documentation ElectricGrassMower EnglishLanguage "A &%GardenAppliance that can be used to cut grass, powered by an &%ElectricMotor.")
+(termFormat EnglishLanguage ElectricGrassMower "electric grass mower")
+
+(=>
+   (instance ?DEVICE ElectricGrassMower)
+   (hasPurpose ?DEVICE
+      (exists (?COMPONENT)
+         (and
+            (instance ?COMPONENT ElectricMotor)
+            (part ?COMPONENT ?DEVICE)))))
+
+;; LeafBlower
+(subclass LeafBlower GardenAppliance)
+(documentation LeafBlower EnglishLanguage "A &%GardenAppliance that can be used to move debris by using propelled air blown through a nozzle.")
+(termFormat EnglishLanguage LeafBlower "leaf blower")
+
+(=> 
+   (instance ?DEVICE LeafBlower)
+   (hasPurpose ?DEVICE
+      (exists (?LEAF ?TRANSFER)
+         (and
+            (instance ?LEAF Leaf)           ; MILO
+            (instance ?TRANSFER Transfer)
+            (instrument ?TRANSFER ?DEVICE)
+            (patient ?TRANSFER ?LEAF)))))
+
+;; ElectricLeafBlower
+(subclass ElectricLeafBlower LeafBlower)
+(subclass ElectricLeafBlower ElectricDevice)
+(documentation ElectricLeafBlower EnglishLanguage "A &%LeafBlower powered by an &%ElectricMotor.")
+(termFormat EnglishLanguage ElectricLeafBlower "electric leaf blower")
+
+(=>
+   (instance ?DEVICE ElectricLeafBlower)
+   (exists (?COMPONENT)
+      (and
+         (instance ?COMPONENT ElectricMotor)
+         (part ?COMPONENT ?DEVICE))))
+
+;; HomeOfficeAppliance
+(subclass HomeOfficeAppliance HouseholdAppliance)
+(documentation HomeOfficeAppliance EnglishLanguage "An appliance which is meant to be used to work or study at home.")
+(termFormat EnglishLanguage HomeOfficeAppliance "home office appliance")
+
+;; ComputerScreen
+(subclass ComputerScreen HomeOfficeAppliance)
+(subclass ComputerScreen VideoDisplay)
+(subclass ComputerScreen ElectricDevice)
+(documentation ComputerScreen EnglishLanguage "A device capable of displaying video signal generated by a &%Computer ")
+(termFormat EnglishLanguage ComputerScreen "computer screen")
+
+(=>
+   (instance ?DEVICE ComputerScreen)
+   (hasPurpose ?DEVICE
+      (exists (?RL ?VIDEO ?SIGNAL ?COMPUTER)
+         (and
+            (instance ?RL RadiatingVisibleLight)
+         (instance ?VIDEO VideoRecording)
+         (instance ?SIGNAL Signalling)
+         (instance ?COMPUTER Computer)
+         (instrument ?RL ?DEVICE)  ; ComputerScreen is RadiatingVisibleLight representing an VideoRecording
+         (represents ?RL ?VIDEO)
+         (agent ?SIGNAL ?COMPUTER) ; ComputerScreen is signaled with a VireoRecording from a Computer
+         (patient ?SIGNAL ?DEVICE)
+         (represents ?SIGNAL ?VIDEO)))))
+
+;; CableModem
+(subclass CableModem HomeOfficeAppliance)
+(subclass CableModem CommunicationDevice)
+(subclass CableModem ElectricDevice)
+(documentation CableModem EnglishLanguage "A &%CommunicationDevice capable of bidirectional data transmission over a &%WireLine that was designed to be a &%TelephoneLine.")
+(termFormat EnglishLanguage CableModem "modem")
+
+(=>
+   (instance ?DEVICE CableModem)
+   (hasPurpose ?DEVICE
+      (exists (?SIGNAL ?LINE)
+         (and
+            (instance ?SIGNAL ElectricalSignalling)
+            (instance ?LINE TelephoneLine)
+            (agent ?SIGNAL ?DEVICE)
+            (instrument ?SIGNAL ?LINE)))))
+
+; NetworkRouter
+(subclass NetworkRouter HomeOfficeAppliance)
+(subclass NetworkRouter CommunicationDevice)
+(subclass NetworkRouter ElectricDevice)
+(documentation NetworkRouter EnglishLanguage "A &%CommunicationDevice that forwards data packets between &%Computers or computer networks.")
+(termFormat EnglishLanguage NetworkRouter "network router")
+
+; RouterWithModem
+(subclass RouterWithModem HomeOfficeAppliance)
+(subclass RouterWithModem CableModem)
+(subclass RouterWithModem NetworkRouter)
+(documentation RouterWithModem EnglishLanguage "A &%CommunicationDevice combining &%NetworkRouter and &%CableModem.")
+(termFormat EnglishLanguage RouterWithModem "router with modem")
+
+;; ImageScanner
+(subclass ImageScanner HomeOfficeAppliance)
+(documentation ImageScanner EnglishLanguage "A &%Device that can convert two-dimensional images into digital format.");
+(termFormat EnglishLanguage ImageScanner "scanner")
+
+; UninterruptiblePowerSupplyUnit
+(subclass UninterruptiblePowerSupplyUnit HomeOfficeAppliance)
+(subclass UninterruptiblePowerSupplyUnit PowerSource)
+(documentation UninterruptiblePowerSupplyUnit EnglishLanguage "A &%PowerSource that can supply power from a build-in rechargeable &%Battery .");
+(termFormat EnglishLanguage UninterruptiblePowerSupplyUnit "uninterruptible power supply unit")
+(abbreviation "UPS" UninterruptiblePowerSupplyUnit)
+
+(=>
+   (instance ?DEVICE UninterruptiblePowerSupplyUnit)
+   (exists (?BATTERY)
+      (and
+         (instance ?BATTERY Battery)
+         (part ?DEVICE ?BATTERY))))
+
+; Printer
+(subclass Printer HomeOfficeAppliance) ; MILO
+
+; InkjetPrinter
+(subclass InkjetPrinter Printer)
+(documentation InkjetPrinter EnglishLanguage "A &%Printer operating by propelling droplets of ink onto a &%Page.");
+(termFormat EnglishLanguage InkjetPrinter "ink printer")
+
+; TonerPrinter
+(subclass TonerPrinter Printer)
+(documentation TonerPrinter EnglishLanguage "A &%Printer operating by transfering image to a pring drum with LED array or a laser. The image is then transferred onto a &%Page.");
+(termFormat EnglishLanguage TonerPrinter "laser printer")
+
+; SensorAppliance
+(subclass SensorAppliance HouseholdAppliance)
+(documentation SensorAppliance EnglishLanguage "An appliance that has build-in sensor, e.g. smoke detector or automated weather station.");
+(termFormat EnglishLanguage SensorAppliance "sensory appliance")
+
+(subclass SmokeDetector SensorAppliance) ; MILO
+
+; (subclass WeatherSensor SensorAppliance)
+
+; (subclass ElectronicWeatherSensor WeatherSensor)
+
+;; WashingDevice
+(subclass WashingDevice HouseholdAppliance) ; MILO
+
+;; Dishwasher
+(subclass Dishwasher WashingDevice)
+(documentation Dishwasher EnglishLanguage "A &%WashingDevice for cleaning &%Dishes.")
+(termFormat EnglishLanguage Dishwasher "dishwasher")
+
+(=>
+   (instance ?DEVICE Dishwasher)
+   (hasPurpose ?DEVICE
+      (exists (?DISH ?CLEANING)
+         (and
+            (instance ?DISH Tableware)
+            (instance ?CLEANING Washing)
+            (patient ?CLEANING ?DISH )
+            (instrument ?CLEANING ?DEVICE)))))
+
+;; LaundryAppliance
+(subclass LaundryAppliance HouseholdAppliance)
+(documentation LaundryAppliance EnglishLanguage "A device for cleaning, drying &%Clothing or &%Fabric.")
+(termFormat EnglishLanguage LaundryAppliance "dishwasher")
+
+;; FabricIron
+(subclass FabricIron LaundryAppliance)   ; MILO
+
+;; ClothesDryer
+(subclass ClothesDryer LaundryAppliance) ; MILO
+
+;; TumbleDryer
+(subclass TumbleDryer ClothesDryer)      ; MILO
+(subclass TumbleDryer Container)
+(subclass TumbleDryer ElectricDevice)
+(documentation TumbleDryer EnglishLanguage "a &%ClothesDryer with a rotating tumble.")
+
+;; ClothesWashingMachine
+(subclass ClothesWashingMachine LaundryAppliance)
+(subclass ClothesWashingMachine WashingDevice)
+(subclass ClothesWashingMachine Container)
+(documentation ClothesWashingMachine EnglishLanguage "A &%ClothesWashingMachine is a &%Device designed for washing clothes. If it has tumble dryer function then it is a &%ClothesWasherDryer")
+(termFormat EnglishLanguage ClothesWashingMachine "washing machine")
+
+(=>
+   (instance ?DEVICE ClothesWashingMachine)
+   (hasPurpose ?DEVICE
+      (exists (?CLOTH ?CLEANING)
+         (and
+            (or
+               (instance ?CLOTH Fabric)    ; Clothing is not subclass of Fabric
+               (instance ?CLOTH Clothing))
+            (instance ?CLEANING Washing)
+            (patient ?CLEANING ?CLOTH )
+            (instrument ?CLEANING ?DEVICE)))))
+
+;; ClothesWasherDryer
+(subclass ClothesWasherDryer TumbleDryer)
+(subclass ClothesWasherDryer ClothesWashingMachine)
+(documentation ClothesWasherDryer EnglishLanguage "A &%ClothesWasherDryer is a combination of &%ClothesWashingMachine and &%TumbleDryer.")
+(termFormat EnglishLanguage ClothesWasherDryer "washing machine")
+
+;; VacuumCleaner
+(subclass VacuumCleaner WashingDevice)
+(documentation VacuumCleaner EnglishLanguage "A &%Device designed to collect derbies by creating a partial vacuum with results with air suction.")
+(termFormat EnglishLanguage VacuumCleaner "vacuum cleaner")
+
+(=> ; part of VacuumCleaner is a container
+   (instance ?DEVICE VacuumCleaner)
+   (exists (?CONTAINER)
+      (and 
+         (part ?DEVICE ?CONTAINER)
+            (instance ?CONTAINER Container))))
+
+(=> ; VacuumCleaner hasPurpose wich is to move stuff into a container which is a part of that VacuumCleaner
+   (instance ?DEVICE VacuumCleaner)
+   (hasPurpose ?DEVICE
+      (exists (?PROC ?CONTAINER ?STUFF)
+         (and
+            (instance ?PROC Inserting)
+            (instrument ?PROC ?DEVICE)
+            (instance ?CONTAINER Container)
+            (agent ?PROC ?STUFF)
+            (destination ?PROC ?CONTAINER)
+            (part ?DEVICE ?CONTAINER)))))
+         
+;; DecorativeAppliance
+(subclass DecorativeAppliance HouseholdAppliance)
+(subclass DecorativeAppliance ArtWork) ; SUMO
+(documentation DecorativeAppliance EnglishLanguage "An appliance which main function is to increase beauty of a place.")
+(termFormat EnglishLanguage DecorativeAppliance "decorative appliance")
+
+;; DecorativeLighting
+(subclass DecorativeLighting DecorativeAppliance)
+(subclass DecorativeLighting LightingAppliance)
+(documentation DecorativeLighting EnglishLanguage "An lighting appliance whose main purpose is not to illuminate but to increase beauty of a place.")
+(termFormat EnglishLanguage DecorativeLighting "decorative lighting")
+
+;; DecorativeLightString
+(subclass DecorativeLightString DecorativeLighting)
+(subclass DecorativeLightString ElectricDevice)
+(subclass DecorativeLightString Collection)
+(documentation DecorativeLightString EnglishLanguage "A &%Collection of &%LightBulbs having a decorative purpose.")
+(termFormat EnglishLanguage DecorativeLightString "decorative light string")
+
+;; FoodProcessingAppliance
+(subclass FoodProcessingAppliance HouseholdAppliance)
+(documentation FoodProcessingAppliance EnglishLanguage "An appliance that can be used for &%Cooking.")
+(termFormat EnglishLanguage FoodProcessingAppliance "food processing appliance")
+
+(=>
+   (instance ?DEVICE FoodProcessingAppliance)
+   (hasPurpose ?DEVICE
+      (exists (?COOKING)
+         (and
+            (instance ?COOKING Cooking)
+            (instrument ?COOKING ?DEVICE)))))
+
+;; CookerPad
+(subclass CookerPad FoodProcessingAppliance)
+(subclass CookerPad HeatingDevice)
+(documentation CookerPad EnglishLanguage "A &%MajorAppliance designed for cooking food by heating PotOrPan containing it.")
+(termFormat EnglishLanguage CookerPad "cooker pad")
+
+(=>
+   (instance ?DEVICE CookerPad)
+   (hasPurpose ?DEVICE
+      (exists (?PAN ?FOOD ?HEATING)
+         (and
+            (instance ?PAN PotOrPan)
+            (instance ?FOOD PreparedFood)
+            (instance ?HEATING Heating)
+            (instrument ?HEATING ?DEVICE)
+            (patient ?HEATING ?FOOD )
+            (located ?FOOD ?PAN)))))
+
+;; ElectricCookerPad
+(subclass ElectricCookerPad CookerPad)
+(subclass ElectricCookerPad ElectricDevice)
+(documentation ElectricCookerPad EnglishLanguage "A &%CookerPad that uses electricity as PowerSource")
+(termFormat EnglishLanguage ElectricCookerPad "electric cooker pad")
+
+;; Oven
+(subclass Oven FoodProcessingAppliance) ; MILO
+
+;; ElectricOven
+(subclass ElectricOven Oven)
+(subclass ElectricOven ElectricDevice)
+(documentation ElectricOven EnglishLanguage "An &%Oven with electricity as primary &%PowerSource")
+(termFormat EnglishLanguage ElectricOven "electric Oven")
+
+;; Stove
+(subclass Stove FoodProcessingAppliance) ; MILO
+
+(=>
+   (instance ?D Stove)
+   (exists (?PAD ?OVEN)
+      (and
+         (instance ?PAD CookerPad)
+         (instance ?OVEN Oven)
+         (part ?D ?PAD)
+         (part ?D ?OVEN))))
+
+;; Microwave
+(subclass Microwave SmallKichenAppliance) ;; MILO
+
+;; RefrigerationAppliance
+(subclass RefrigerationAppliance FoodProcessingAppliance)
+(subclass RefrigerationAppliance Container)
+(subclass RefrigerationAppliance CoolingDevice) ;; MILO
+(documentation RefrigerationAppliance EnglishLanguage "An appliance designed to increase maximum food storage time by decreasing its temperature.")
+(termFormat EnglishLanguage RefrigerationAppliance "refrigeration appliance")
+
+;; Freezer
+(subclass Freezer RefrigerationAppliance)
+(documentation Freezer EnglishLanguage "An appliance designed to freeze food by cooling it to below 0 Celsius degrees.")
+(termFormat EnglishLanguage Freezer "freezer")
+
+(=>
+   (instance ?DEVICE FoodProcessingAppliance)
+   (hasPurpose ?DEVICE
+      (exists (?FREEZING)
+         (and
+            (instance ?FREEZING Freezing)
+            (instrument ?FREEZING ?DEVICE)))))
+
+;; Refrigerator
+(subclass Refrigerator RefrigerationAppliance) ; MILO
+
+;; FridgeFreezer
+(subclass FridgeFreezer Freezer)
+(subclass FridgeFreezer Refrigerator)
+(documentation FridgeFreezer "A combination of &%Freezer and a &%Refrigerator")
+(termFormat EnglishLanguage FridgeFreezer "fridge freezer")
+
+;; SmallKichenAppliance
+(subclass SmallKichenAppliance FoodProcessingAppliance)
+(documentation SmallKichenAppliance EnglishLanguage "A &%FoodProcessingAppliance that is portable.")
+(termFormat EnglishLanguage SmallKichenAppliance "small kitchen appliance")
+
+;; Breadmaker
+(subclass Breadmaker SmallKichenAppliance)
+(subclass Breadmaker ElectricDevice)
+(documentation Breadmaker EnglishLanguage "A &%SmallKichenAppliance for baking bread.")
+(termFormat EnglishLanguage Breadmaker "bread maker")
+
+(=>
+   (instance ?DEVICE Breadmaker)
+   (hasPurpose ?DEVICE
+      (exists (?BREAD ?MAKE)
+         (and
+            (instance ?BREAD BreadOrBiscuit) ; MILO
+            (instance ?MAKE Cooking) ; SUMO
+            (result ?MAKE ?BREAD)
+            (instrument ?MAKE ?DEVICE)))))
+
+;; CoffeeMaker
+(subclass CoffeeMaker SmallKichenAppliance)
+(subclass CoffeeMaker FluidContainer)
+(subclass CoffeeMaker HeatingDevice)
+(subclass CoffeeMaker ElectricDevice)
+(documentation CoffeeMaker EnglishLanguage "A &%SmallKichenAppliance used to brew coffee without heating water in a separate &%Device.")
+(termFormat EnglishLanguage CoffeeMaker "coffeemaker")
+
+(=>
+   (instance ?DEVICE CoffeeMaker)
+   (hasPurpose ?DEVICE
+      (exists (?FOOD ?MAKE)
+         (and
+            (instance ?FOOD Beverage) ; SUMO (food that can be drinked)
+            (instance ?MAKE Cooking) ; SUMO
+            (result ?MAKE ?FOOD)
+            (instrument ?MAKE ?DEVICE)))))
+
+;; FoodBlender 
+(subclass FoodBlender SmallKichenAppliance)
+(subclass FoodBlender ElectricDevice)
+(subclass FoodBlender FluidContainer)
+(documentation FoodBlender EnglishLanguage "A &%SmallKichenAppliance designed for mixing, making puree or  emulsion from food ingredient.")
+(termFormat EnglishLanguage FoodBlender "food blender")
+
+(=>
+   (instance ?DEVICE FoodBlender)
+   (hasPurpose ?DEVICE
+      (exists(?COOKING ?RES)
+         (and
+            (instance ?COOKING Cooking)
+            (instance ?RES Mixture)
+            (instance ?RES Beverage)   ; result is a fluid food
+            (located ?COOKING ?DEVICE) ; mixing inside the device
+            (result ?COOKING ?RES)))))
+
+;; FoodMixer ??
+(subclass FoodMixer SmallKichenAppliance)
+(subclass FoodMixer ElectricDevice)
+(disjoint FoodMixer FluidContainer)
+(documentation FoodMixer EnglishLanguage "A &%SmallKichenAppliance designed for mixing, folding, beating, and whipping food ingredient.")
+(termFormat EnglishLanguage FoodMixer "food mixer")
+
+(=>
+   (instance ?DEVICE FoodMixer)
+   (hasPurpose ?DEVICE
+      (exists (?COOKING ?RES)
+         (and
+            (instance ?COOKING Cooking)
+            (instance ?RES Mixture)
+            (instance ?RES PreparedFood)
+            (result ?COOKING ?RES)))))
+
+;; FoodProcessor
+(subclass FoodProcessor SmallKichenAppliance)
+(subclass FoodProcessor ElectricDevice)
+(documentation FoodProcessor EnglishLanguage "A &%SmallKichenAppliance used for some repetitive tasks in the process of food preparation.")
+(termFormat EnglishLanguage FoodProcessor "food processor")
+
+(=>
+   (instance ?DEVICE FoodProcessor)
+   (hasPurpose ?DEVICE
+      (exists (?COOKING ?RES)
+         (and
+            (instance ?COOKING Cooking)
+            (result ?COOKING ?RES)
+            (instance ?RES PreparedFood)))))
+
+;; Kettle
+(subclass Kettle SmallKichenAppliance)
+(subclass Kettle FluidContainer)
+(subclass Kettle HeatingDevice)
+(documentation Kettle EnglishLanguage "A &%FluidContainer used to heat water.")
+(termFormat EnglishLanguage Kettle "kettle")
+
+(=>
+   (instance ?DEVICE Kettle)
+   (hasPurpose ?DEVICE
+      (exists (?BOIL ?WATER)
+         (and
+            (instance ?BOIL Boiling)
+            (instance ?WATER Water)
+            (patient ?BOIL ?WATER)))))
+
+;; ElectricKettle
+(subclass ElectricKettle Kettle)
+(subclass ElectricKettle ElectricDevice)
+(documentation ElectricKettle EnglishLanguage "A &%Kettle that uses electricity as a &%PowerSource.")
+(termFormat EnglishLanguage ElectricKettle "electric kettle")
+
+;; Toaster
+(subclass Toaster SmallKichenAppliance)
+(subclass Toaster ElectricDevice)
+(documentation Toaster EnglishLanguage "A &%SmallKichenAppliance used to toast various kind of bread.")
+(termFormat EnglishLanguage Toaster "toaster")
+
+(=>
+   (instance ?DEVICE Toaster)
+   (hasPurpose ?DEVICE
+      (exists (?HEAT ?BREAD)
+         (and
+            (instance ?HEAT Heating)
+            (instance ?BREAD BreadOrBiscuit)
+            (patient ?HEAT ?BREAD)))))
+
+;; WaffleIron
+(subclass WaffleIron SmallKichenAppliance)
+(subclass WaffleIron ElectricDevice)
+(documentation WaffleIron EnglishLanguage "A &%SmallKichenAppliance used to make waffles")
+(termFormat EnglishLanguage WaffleIron "waffle iron")
+
+;; HouseUtilityAppliance
+(subclass HouseUtilityAppliance HouseholdAppliance)
+; (documentation HouseUtilityAppliance "")
+(termFormat EnglishLanguage HouseUtilityAppliance "house utility appliance")
+
+;; BatteryCharger 
+(subclass BatteryCharger HouseUtilityAppliance)
+(subclass BatteryCharger ElectricDevice)
+(documentation BatteryCharger EnglishLanguage "A &%Device capable of charging a battery by forcing an electric current through it.")
+(termFormat EnglishLanguage BatteryCharger "battery charger")
+
+;; Clock
+(subclass Clock HouseUtilityAppliance) ; MILO
+
+;; ElectronicClock
+(subclass ElectronicClock Clock)
+(documentation ElectronicClock EnglishLanguage "A &%Clock using electricity")
+(termFormat EnglishLanguage ElectronicClock "electronic clock")
+
+;; ElectricBlanket
+(subclass ElectricBlanket HouseUtilityAppliance)
+(subclass ElectricBlanket ElectricDevice)
+(subclass ElectricBlanket HeatingAppliance)
+(subclass ElectricBlanket Fabric)
+(documentation ElectricBlanket EnglishLanguage "A blanket integrated with a electrical heating device.")
+(termFormat EnglishLanguage ElectricBlanket "electric blanket")
+
+;; GarbageDisposer
+(subclass GarbageDisposer HouseUtilityAppliance)
+(subclass GarbageDisposer ElectricDevice)
+(documentation GarbageDisposer EnglishLanguage "A &%Device installed under a kitchen sink drain to shreds food waste into small pieces.")
+(termFormat EnglishLanguage GarbageDisposer "garbage disposer")
+
+;; Humidifier
+(subclass Humidifier HouseUtilityAppliance)
+(subclass Humidifier ElectricDevice)
+(documentation Humidifier EnglishLanguage "A &%Device with purpose of increasing the amount of water vapour in the air.")
+(termFormat EnglishLanguage Humidifier "humidifier")
+
+(=>
+   (instance ?DEVICE Humidifier)
+   (hasPurpose ?DEVICE
+      (exists (?WATER ?EVAP)
+         (and
+            (instance ?WATER Water)
+            (instance ?EVAP Evaporating)
+            (patient ?EVAP ?WATER)))))
+
+;; WaterPurifier
+(subclass WaterPurifier HouseUtilityAppliance)
+(documentation WaterPurifier EnglishLanguage "A &%Device designed to remove some undesirable materials/chemicals from water.")
+(termFormat EnglishLanguage WaterPurifier "water purifier")
+
+(=>
+   (instance ?DEVICE WaterPurifier)
+   (hasPurpose ?DEVICE
+      (exists (?WATER ?PROCESS)
+         (and
+            (instance ?WATER Water)
+            (instance ?PROCESS Process)
+            (patient ?PROCESS ?WATER)
+            (holdsDuring (EndFn (WhenFn ?PROCESS))
+               (attribute ?WATER Clean))))))
+
+;; ElectricWaterPurifier
+(subclass ElectricWaterPurifier WaterPurifier)
+(subclass ElectricWaterPurifier ElectricDevice)
+(documentation ElectricWaterPurifier EnglishLanguage "A &%WaterPuifier that uses electricity to purify water, e.g. RO filter.")
+(termFormat EnglishLanguage ElectricWaterPurifier "electric water purifier")
+
+;; LightingAppliance
+(subclass LightingAppliance HouseholdAppliance)
+(documentation LightingAppliance EnglishLanguage "An appliance that can emit visible light whic purpose is to make other things visible in dark.")
+(termFormat EnglishLanguage LightingAppliance "lighting appliance")
+
+(=> ; LightingAppliance can radiate visible light
+   (instance ?DEVICE LightingAppliance)
+   (hasPurpose ?DEVICE
+      (exists (?RVL)
+         (and
+            (instance ?RVL RadiatingVisibleLight)
+            (agent ?RVL ?DEVICE)))))
+
+;; LightBulb
+(subclass LightBulb LightingAppliance)
+(subclass LightBulb ElectricDevice)
+(documentation LightBulb EnglishLanguage "A &%Device designed to transfer electric energy into light radiation.")
+(termFormat EnglishLanguage LightBulb "light bulb")
+
+(=> ; LightBulb converts elecric energy into visible light
+   (instance ?DEICE LightBulb)
+   (hasPurpose ?DEVICE
+      (exists (?RVL ?RES)
+         (and
+            (instance ?RVL RadiatingVisibleLight) ; MILO
+            (agent ?RVL ?DEVICE)
+         (instance ?RES Electricity)
+         (resource ?RVL ?RES)))))
+
+;; FluorescentBulb
+(subclass FluorescentBulb LightBulb)
+(documentation FluorescentBulb EnglishLanguage "A &%LightBulb using fluorescence to emit light.")
+(termFormat EnglishLanguage FluorescentBulb "fluorescent Bulb")
+
+;; IncandescentBulb
+(subclass IncandescentBulb LightBulb)
+(documentation IncandescentBulb EnglishLanguage "A &%LightBulb using a incandescent light bulb to radiate light by heating up a piece of metal.")
+(termFormat EnglishLanguage IncandescentBulb "incandescent bulb")
+
+(=>
+   (instance ?DEVICE IncandescentBulb)
+   (hasPurpose ?DEVICE
+      (exists (?HEATING ?METAL)
+         (and
+            (instance ?HEATING Heating) ; MILO
+            (instance ?METAL Metal)     ; MILO
+            (patient ?HEATING ?METAL)
+         (agent ?HEATING ?DEVICE)
+            (hasPurpose ?HEATING
+                (exists (?RVL)
+                    (and
+                        (instance ?RVL RadiatingVisibleLight)
+                        (instrument ?RVL ?METAL))))))))
+
+;; LedBulb
+(subclass LedBulb LightBulb)
+(documentation LedBulb  EnglishLanguage "A &%LightBulb using LED diodes to radiate light.")
+(termFormat EnglishLanguage LedBulb  "LED Bulb")
+
+;; AirConditioner
+(subclass AirConditioner ElectricDevice) ;; MILO
+
+;; ElectricFan
+(subclass ElectricFan FanDevice) ;; MILO
+(subclass ElectricFan ElectricDevice)
+(documentation ElectricFan EnglishLanguage "A &%FanDevice powered by an &%ElectricMotor.")
+(termFormat EnglishLanguage ElectricFan "electric fan")
+
+(=>
+   (instance ?DEVICE ElectricFan)
+   (exists (?PART)
+      (and
+         (instance ?PART ElectricMotor)
+         (part ?DEVICE ?PART))))
+
+;; CeilingFan
+(subclass CeilingFan ElectricFan)
+(documentation CeilingFan EnglishLanguage "A &%ElectricFan suspended from a ceiling of a room.")
+(termFormat EnglishLanguage CeilingFan "ceiling fan")
+
+(=>
+   (instance ?DEVICE CeilingFan)
+   (hasPurpose ?DEVICE 
+      (exists (?CEILING)
+         (and
+            (instance ?CEILING Ceiling)    ; MILO
+            (located ?DEVICE ?CEILING)))))
+
+;; WholeHouseFan
+(subclass WholeHouseFan ElectricFan)
+(documentation WholeHouseFan EnglishLanguage "A type of &%ElectricFan designed to pull hot air from living space of a house to the attic.")
+(termFormat EnglishLanguage WholeHouseFan "whole house fan")
+
+(=>
+   (instance ?DEVICE WholeHouseFan)
+   (hasPurpose ?DEVICE 
+      (exists (?CEILING)
+         (and
+            (instance ?CEILING Attic)     ; MILO
+            (located ?DEVICE ?CEILING)))))
+
+;; WindowFan
+(subclass WindowFan ElectricFan)
+(documentation WindowFan EnglishLanguage "A &%ElectricFan instaled on a window. It moves air from or into a room.")
+(termFormat EnglishLanguage WindowFan "window fan")
+
+(=>
+   (instance ?DEVICE WindowFan)
+   (hasPurpose  ?DEVICE ; ??
+      (exists (?CEILING)
+         (and
+            (instance ?CEILING Window)      ; MILO
+            (located ?DEVICE ?CEILING)))))
+
+;; HeatingAppliance
+(subclass HeatingAppliance HouseholdAppliance)
+(subclass HeatingAppliance HeatingDevice)   ; MILO
+(documentation HeatingAppliance EnglishLanguage "&%HeatingDevice designed to be used to heat air in a household.")
+(termFormat EnglishLanguage HeatingAppliance "heating appliance")
+
+;; CentralHeatingSystem
+(subclass CentralHeatingSystem HeatingAppliance)
+(documentation CentralHeatingSystem EnglishLanguage "Heating system in which heat is generated at one location and then transmitted into multiple locations within one building.")
+(termFormat EnglishLanguage CentralHeatingSystem "central heating system")
+
+;; ElectricHeater
+(subclass ElectricHeater HeatingAppliance)
+(subclass ElectricHeater ElectricDevice)
+(documentation ElectricHeater EnglishLanguage "A &%HeatingAppliance using electricity as its main &%PowerSource")
+(termFormat EnglishLanguage ElectricHeater "electric heating appliance")
+
+;; ElectricTankBoiler
+(subclass ElectricTankBoiler HeatingAppliance)
+(subclass ElectricTankBoiler FluidContainer)
+(documentation ElectricTankBoiler EnglishLanguage "A tank boiler that is using electricity as the main source of heat.")
+(termFormat EnglishLanguage ElectricTankBoiler "electric boiler")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; DEFINE UNITS THAT ARE NOT DEFINED IN SUMO OR MILO
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; UnitOfEnergy
+(subclass UnitOfEnergy CompositeUnitOfMeasure)
+
+(instance Joule UnitOfEnergy)
+
+;; KilowattHour
+(instance  KilowattHour UnitOfEnergy)        
+(documentation  KilowattHour EnglishLanguage "The &%KilowattHour is an energy measure unit. Symbol: kW•h, kW h, or kWh. It is equal to energy 3600000 &%Joule which is equivalent of energy produced at 1000 &%Watt during one &%HourDuration.")
+(termFormat EnglishLanguage KilowattHour "kilowatt-hour")
+
+(=> ; define 1kWh = 3.6MJ
+   (equal ?NUMBER (MultiplicationFn 1 ?NUMBER))              ; from ElectronVolt example - couldn't it be just like "(exists ?NUMBER)"?
+   (equal
+      (MeasureFn ?NUMBER KilowattHour)                       ; 1 * ?Number in kWh is qual to ?NUMBER * 3.6M Joules
+      (MeasureFn (MultiplicationFn ?NUMBER 3600000) Joule)))
+
+;; EnergyMeasure
+(subclass EnergyMeasure ConstantQuantity)
+(documentation EnergyMeasure EnglishLanguage "A &%subclass of &%ConstantQuantity, instances of which are measures of the amount of energy.")
+(termFormat EnglishLanguage EnergyMeasure "energy measure")
+
+(=>
+   (and
+      (equal (MeasureFn ?NUMBER ?UNIT) ?QUANT)
+      (instance ?UNIT UnitOfEnergy))
+   (instance ?QUANT EnergyMeasure))
+
+;; UnitOfPower
+(subclass UnitOfPower CompositeUnitOfMeasure)
+(instance Watt UnitOfPower)
+(documentation Watt EnglishLanguage "The &%Watt is an &%UnitOfPower. Symbol: W. One watt is equal to energy of one &%Joule produced during one second.")
+(termFormat EnglishLanguage Watt "watt")
+
+;; PowerMeasure
+(subclass PowerMeasure ConstantQuantity)
+
+(=>
+   (and
+      (equal (MeasureFn ?NUMBER ?UNIT) ?QUANT)
+      (instance ?UNIT UnitOfPower))
+   (instance ?QUANT PowerMeasure))
+
+;; FrequencyMeasure
+(subclass UnitOfFrequency CompositeUnitOfMeasure)
+(documentation UnitOfFrequency EnglishLanguage "&%UnitOfFrequency is a unit for describing a number of occurances of an event in a unit of time, e.g. RPM (Revolutions per minute).")
+
+(subclass FrequencyMeasure ConstantQuantity)
+(documentation FrequencyMeasure EnglishLanguage "Instances of &%FrequencyMeasure are measures of frequency stated in units of &%UnitOfFrequency.")
+
+(=>
+   (and
+      (equal (MeasureFn ?NUMBER ?UNIT) ?QUANT)
+      (instance ?UNIT UnitOfFrequency))
+   (instance ?QUANT FrequencyMeasure))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Attributes and parameters for household appliances
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;
+;; EuropeanUnionEnergyLabel A++ to G
+;;
+
+(subclass EuropeanUnionEnergyLabelClass RelationalAttribute)
+(documentation EuropeanUnionEnergyLabelClass EnglishLanguage "EuropeanUnionEnergyLabelClass can be used to rank different classes of &%ElectricDevices in terms of energy efficiency.")
+(termFormat EnglishLanguage EuropeanUnionEnergyLabelClass "EU Energy Label class")
+
+(instance EuropeanUnionEnergyLabelClassApp EuropeanUnionEnergyLabelClass)
+(documentation EuropeanUnionEnergyLabelClassApp EnglishLanguage "One of possible instances of &%EuropeanUnionEnergyLabelClass.")
+(termFormat EnglishLanguage EuropeanUnionEnergyLabelClassApp "EU Energy Label A++")
+
+(instance EuropeanUnionEnergyLabelClassAp EuropeanUnionEnergyLabelClass)
+(documentation EuropeanUnionEnergyLabelClassAp EnglishLanguage "One of possible instances of &%EuropeanUnionEnergyLabelClass.")
+(termFormat EnglishLanguage EuropeanUnionEnergyLabelClassAp "EU Energy Label A+")
+
+(instance EuropeanUnionEnergyLabelClassA EuropeanUnionEnergyLabelClass)
+(documentation EuropeanUnionEnergyLabelClassA EnglishLanguage "One of possible instances of &%EuropeanUnionEnergyLabelClass.")
+(termFormat EnglishLanguage EuropeanUnionEnergyLabelClassA "EU Energy Label A")
+
+(instance EuropeanUnionEnergyLabelClassB EuropeanUnionEnergyLabelClass)
+(documentation EuropeanUnionEnergyLabelClassB EnglishLanguage "One of possible instances of &%EuropeanUnionEnergyLabelClass.")
+(termFormat EnglishLanguage EuropeanUnionEnergyLabelClassB "EU Energy Label B")
+
+(instance EuropeanUnionEnergyLabelClassC EuropeanUnionEnergyLabelClass)
+(documentation EuropeanUnionEnergyLabelClassC EnglishLanguage "One of possible instances of &%EuropeanUnionEnergyLabelClass.")
+(termFormat EnglishLanguage EuropeanUnionEnergyLabelClassC "EU Energy Label C")
+
+(instance EuropeanUnionEnergyLabelClassD EuropeanUnionEnergyLabelClass)
+(documentation EuropeanUnionEnergyLabelClassD EnglishLanguage "One of possible instances of &%EuropeanUnionEnergyLabelClass.")
+(termFormat EnglishLanguage EuropeanUnionEnergyLabelClassD "EU Energy Label D")
+
+(instance EuropeanUnionEnergyLabelClassE EuropeanUnionEnergyLabelClass)
+(documentation EuropeanUnionEnergyLabelClassE EnglishLanguage "One of possible instances of &%EuropeanUnionEnergyLabelClass.")
+(termFormat EnglishLanguage EuropeanUnionEnergyLabelClassE "EU Energy Label E")
+
+(instance EuropeanUnionEnergyLabelClassF EuropeanUnionEnergyLabelClass)
+(documentation EuropeanUnionEnergyLabelClassF EnglishLanguage "One of possible instances of &%EuropeanUnionEnergyLabelClass.")
+(termFormat EnglishLanguage EuropeanUnionEnergyLabelClassF "EU Energy Label F")
+
+(instance EuropeanUnionEnergyLabelClassG EuropeanUnionEnergyLabelClass)
+(documentation EuropeanUnionEnergyLabelClassG EnglishLanguage "One of possible instances of &%EuropeanUnionEnergyLabelClass.")
+(termFormat EnglishLanguage EuropeanUnionEnergyLabelClassG "EU Energy Label G")
+
+;;
+;; EnergyStar
+;;
+
+(subclass EnergyStarAttribute RelationalAttribute)
+(documentation EnergyStarAttribute EnglishLanguage "EnergyStarAttribute is given to devices that use considerably less energy than required by US standards.")
+(termFormat EnglishLanguage EnergyStarAttribute "EnergyStar")
+
+(instance EnergyStar4Rating EnergyStarAttribute)
+(documentation EnergyStar4Rating EnglishLanguage "Appliance having EnergyStar4Rating meets the 4th version of EnergyStar standards.")
+(termFormat EnglishLanguage EnergyStar4Rating "EnergyStar 4")
+
+(instance EnergyStar5Rating EnergyStarAttribute)
+(documentation EnergyStar5Rating EnglishLanguage "Appliance having EnergyStar4Rating meets the 5th version of EnergyStar standards.")
+(termFormat EnglishLanguage EnergyStar5Rating "EnergyStar 5")
+
+;;
+;; annualEnergyConsumption
+;;
+
+(instance annualEnergyConsumption BinaryPredicate)         ; relates two items - instance of an appliance and its annual energy consumption
+(instance annualEnergyConsumption SingleValuedRelation)    ; at most one value for one term (for one combination of arguments except the last one there is one value (one appliance cannot have multiple values for energy consumption))
+(instance annualEnergyConsumption PartialValuedRelation)   ; it is not a TotalValuedRelation as for some appliances there may be no annualEnergyConsumption
+
+(domainSubclass annualEnergyConsumption 1 ElectricDevice)  ; almost every electric device can have annual energy consumption calculated (relation is PartialValueRelation so not every ElectricDevice need this value)
+(domain annualEnergyConsumption 2 EnergyMeasure)           ; value as any energy measure (the unit can be in Joules or kWh)
+
+(documentation annualEnergyConsumption EnglishLanguage "The estimated amount of energy consumed by a device during one year.")
+(termFormat EnglishLanguage annualEnergyConsumption "annual energy consumption")
+
+;;
+;; Compact Attribute
+;; 
+
+(instance Compact RelationalAttribute)
+(documentation Compact EnglishLanguage "A device having Compact attribute is in some way smaller than other devices of the same class.")
+(termFormat EnglishLanguage Compact "compact")
+
+;;
+;; idleStatePowerConsumption
+;;
+
+(instance idleStatePowerConsumption BinaryPredicate)         
+(instance idleStatePowerConsumption SingleValuedRelation)    
+(instance idleStatePowerConsumption PartialValuedRelation)   
+
+(domainSubclass idleStatePowerConsumption 1 ElectricDevice)  
+(domain idleStatePowerConsumption 2 PowerMeasure)
+
+(documentation idleStatePowerConsumption EnglishLanguage "The average power used by a device while it is in idle state.")
+(termFormat EnglishLanguage idleStatePowerConsumption "idle power consumption")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; for Refrigerator, Freezer, and combined
+;;
+
+;;
+;; freshFoodCompartmentVolume
+;;
+
+(instance freshFoodCompartmentVolume BinaryPredicate)         ; relates two items
+(instance freshFoodCompartmentVolume SingleValuedRelation)    ; at most one value for one appliance
+(instance freshFoodCompartmentVolume PartialValuedRelation)   ; not all appliances need to have this value
+
+(domainSubclass freshFoodCompartmentVolume 1 Refrigerator)  
+(domain freshFoodCompartmentVolume 2 VolumeMeasure)
+
+(documentation freshFoodCompartmentVolume EnglishLanguage "The volume of the fresh food compartment in a Refrigerator.")
+(termFormat EnglishLanguage freshFoodCompartmentVolume "fresh food compartment volume")
+
+;; 
+;; froozenFoodCompartmentVolume
+;;
+
+(instance froozenFoodCompartmentVolume BinaryPredicate)         ; relates two items
+(instance froozenFoodCompartmentVolume SingleValuedRelation)    ; at most one value for one appliance
+(instance froozenFoodCompartmentVolume PartialValuedRelation)   ; not all appliances need to have this value
+
+(domainSubclass froozenFoodCompartmentVolume 1 Freezer)  
+(domain froozenFoodCompartmentVolume 2 VolumeMeasure)
+
+(documentation froozenFoodCompartmentVolume EnglishLanguage "The volume of the froozen food compartment in a Freezer.")
+(termFormat EnglishLanguage froozenFoodCompartmentVolume "froozen food compartment volume")
+
+;;;;;;
+;; ENERGY STAR for Refrigerators 
+;;
+
+;;
+;; Compact device volume and height
+;;
+
+(=> ; Compact Refrigerator without Freezer has freshFoodCompartmentVolume no more than 219.45 Liter
+   (and
+      (attribute ?X Compact)
+      (attribute freshFoodCompartmentVolume ?VOLUME)
+      (instance ?X Refrigerator)
+      (not (instance ?X Freezer)))
+   (lessThanOrEqualTo ?VOLUME (MeasureFn 219.45 Liter))) ;; 7.75 ft3 according to EnergyStar data
+
+(=> ; Compact Freezer without Refrigerator has froozenFoodCompartmentVolume no more than 219.45 Liter
+   (and
+      (attribute ?X Compact)
+      (attribute froozenFoodCompartmentVolume ?VOLUME)
+      (instance ?X Freezer)
+      (not (instance ?X Refrigerator)))
+   (lessThanOrEqualTo ?VOLUME (MeasureFn 219.45 Liter))) ;; 7.75 ft3 according to EnergyStar data
+
+(=> ; Compact FridgeFreezer has total volume (freshFoodCompartmentVolume and froozenFoodCompartmentVolume) no bigger than 219.45 Liter
+   (and
+      (attribute ?X Compact)
+      (attribute freshFoodCompartmentVolume ?VOLUME1)
+      (attribute froozenFoodCompartmentVolume ?VOLUME2)
+      (instance ?X FridgeFreezer)
+      (not (instance ?X Freezer)))
+   (lessThanOrEqualTo (AdditionFn ?VOLUME1 ?VOLUME2) (MeasureFn 219.45 Liter))) ;; 7.75 ft3 according to EnergyStar data
+
+(=> ; Compact Refrigerator/Freezer is equal or less to 36 Inch in height
+   (and
+      (attribute ?X Compact)
+      (height ?X ?VALUE)
+      (or
+         (instance ?X Refrigerator)
+         (instance ?X Freezer)))
+   (lessThanOrEqualTo ?VALUE (MeasureFn 36 Inch)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; for ClothesWashingMachine, TumbleDryer, and combinations
+;;
+
+;;
+;; ClothesWasherLoadConfiguration
+;;
+
+(subclass ClothesWasherLoadConfiguration RelationalAttribute)
+(documentation ClothesWasherLoadConfiguration EnglishLanguage "ClothesWasherFrontLoadConfiguration is an attribute class that defines if a &%ClothesWashingMachine or %&ClothesDryer is loaded from top of from front.")
+
+(instance ClothesWasherTopLoadConfiguration ClothesWasherLoadConfiguration)
+(documentation ClothesWasherTopLoadConfiguration EnglishLanguage "&%ClothesWashingMachine or %&ClothesDryer with ClothesWasherTopLoadConfiguration attribute is loaded from top.")
+
+(instance ClothesWasherFrontLoadConfiguration ClothesWasherLoadConfiguration)
+(documentation ClothesWasherFrontLoadConfiguration EnglishLanguage "&%ClothesWashingMachine or %&ClothesDryer with ClothesWasherTopLoadConfiguration attribute is loaded from front.")
+
+(=> ; ClothesWasherLoadConfiguration attribute is applicable only to ClothesWashingMachine or ClothesDryer
+   (and 
+      (attribute ?X ?Y)
+      (instance ?Y ClothesWasherLoadConfiguration))
+   (or
+      (instance ?X ClothesWashingMachine)
+      (instance ?X ClothesDryer)))
+
+;;
+;; energyConsumptionPerWashingCycle - based on European Union Energy Label
+;;
+
+(subrelation energyConsumptionPerWashingCycle attribute)
+(instance energyConsumptionPerWashingCycle BinaryPredicate)         
+(instance energyConsumptionPerWashingCycle SingleValuedRelation)    
+(instance energyConsumptionPerWashingCycle PartialValuedRelation)   
+(documentation energyConsumptionPerWashingCycle EnglishLanguage "Estimated ammount of energy used by a &%ClothesWashingMachine in one washing cycle.")
+(termFormat EnglishLanguage energyConsumptionPerWashingCycle "energy consumption per washing cycle")
+
+(domainSubclass energyConsumptionPerWashingCycle 1 ClothesWashingMachine)  
+(domain energyConsumptionPerWashingCycle 2 EnergyMeasure)           
+
+;;
+;; waterConsumptionPerWashingCycle - based on European Union Energy Label
+;;
+
+(instance waterConsumptionPerWashingCycle BinaryPredicate)         
+(instance waterConsumptionPerWashingCycle SingleValuedRelation)    
+(instance waterConsumptionPerWashingCycle PartialValuedRelation)   
+(documentation waterConsumptionPerWashingCycle EnglishLanguage "Estimated ammount of water used by a &%ClothesWashingMachine in one washing cycle.")
+(termFormat EnglishLanguage waterConsumptionPerWashingCycle "water use per one clothes washing cycle")
+
+(domainSubclass waterConsumptionPerWashingCycle 1 ClothesWashingMachine)  
+(domain waterConsumptionPerWashingCycle 2 VolumeMeasure)           
+
+;;
+;; clothesWasherWaterFactor
+;;
+
+(instance clothesWasherWaterFactor BinaryPredicate)         
+(instance clothesWasherWaterFactor SingleValuedRelation)    
+(instance clothesWasherWaterFactor PartialValuedRelation)   
+(documentation clothesWasherWaterFactor EnglishLanguage "Ratio of water required per cycle (in &%UnitedStatesGallon) to total useful volume of the &%ClothesWashingMachine (in cubic ft3)");
+
+(domainSubclass clothesWasherWaterFactor 1 ClothesWashingMachine)  
+(domain clothesWasherWaterFactor 2 PositiveRealNumber)           
+
+(=> ; clothesWasherWaterFactor for ClothesWashingMachine is calculated by dividing waterConsumptionPerWashingCycle (in UnitedStatesGallon) by laundryApplianceMaximumClothesVolume (in 
+   (and
+      (subclass ?X ClothesWashingMachine)
+      (laundryApplianceMaximumClothesVolume ?X (MeasureFn ?VOL Liter))
+      (waterConsumptionPerWashingCycle ?X (MeasureFn ?WATER UnitedStatesGallon)))
+   (clothesWasherWaterFactor ?X (DivisionFn ?WATER (MultiplicationFn ?VOL 28.316846592)))) ;; 1 cubic foot = 28.316846592 litres
+
+;;
+;; washPerformanceClass
+;;
+
+(instance washPerformanceClass BinaryPredicate)         
+(instance washPerformanceClass SingleValuedRelation)    
+(instance washPerformanceClass PartialValuedRelation)   
+(documentation washPerformanceClass EnglishLanguage "EuropeanUnionEnergyLabelClass given for a LaundryAppliance for its washing performance only.")
+(termFormat EnglishLanguage washPerformanceClass "wash performance class")
+
+(domainSubclass washPerformanceClass 1 ClothesWashingMachine)  
+(domain washPerformanceClass 2 EuropeanUnionEnergyLabelClass)           
+
+;;
+;; spinDryingPerformanceClass
+;;
+
+(instance spinDryingPerformanceClass BinaryPredicate)
+(instance spinDryingPerformanceClass SingleValuedRelation)
+(instance spinDryingPerformanceClass PartialValuedRelation)
+(documentation spinDryingPerformanceClass EnglishLanguage "EuropeanUnionEnergyLabelClass given for a LaundryAppliance for its drying performance only.")
+(termFormat EnglishLanguage spinDryingPerformanceClass "spin drying performance class")
+
+(domainSubclass spinDryingPerformanceClass 1 LaundryAppliance)
+(domain spinDryingPerformanceClass 2 EuropeanUnionEnergyLabelClass)
+
+;;
+;; maximumSpinSpeed
+;;
+
+(instance maximumSpinSpeed BinaryPredicate)         
+(instance maximumSpinSpeed SingleValuedRelation)    
+(instance maximumSpinSpeed PartialValuedRelation)
+(documentation maximumSpinSpeed EnglishLanguage "Highest possible frequency of a tumble spin in a &%TumbleDryer.")
+(termFormat EnglishLanguage maximumSpinSpeed "maximum spin speed")
+
+(domainSubclass maximumSpinSpeed 1 TumbleDryer)  
+(domain maximumSpinSpeed 2 FrequencyMeasure)
+
+;;
+;; totalCottonCapicity
+;;
+
+(instance totalCottonCapicity BinaryPredicate)         
+(instance totalCottonCapicity SingleValuedRelation)    
+(instance totalCottonCapicity PartialValuedRelation)   
+(documentation totalCottonCapicity  EnglishLanguage "Maximum mass of cotton that a &%LaundryAppliance can work with in one cycle.")
+(termFormat EnglishLanguage totalCottonCapicity "total cotton capicity ")
+
+(domainSubclass totalCottonCapicity 1 LaundryAppliance)
+(domain totalCottonCapicity 2 MassMeasure)
+
+;;
+;; laundryApplianceMaximumClothesVolume
+;;
+
+(instance laundryApplianceMaximumClothesVolume BinaryPredicate)         
+(instance laundryApplianceMaximumClothesVolume SingleValuedRelation)    
+(instance laundryApplianceMaximumClothesVolume PartialValuedRelation)   
+(documentation laundryApplianceMaximumClothesVolume EnglishLanguage "Highest possible voulme of cothes processedn in a single &%LaundryAppliance run.")
+(termFormat EnglishLanguage laundryApplianceMaximumClothesVolume "maximum clothes volume")
+
+(domainSubclass laundryApplianceMaximumClothesVolume 1 LaundryAppliance)
+(domain laundryApplianceMaximumClothesVolume 2 VolumeMeasure)
+
+;;
+;; clothesWasherModifiedEnergyFactor
+;;
+
+(instance clothesWasherModifiedEnergyFactor BinaryPredicate)         
+(instance clothesWasherModifiedEnergyFactor SingleValuedRelation)    
+(instance clothesWasherModifiedEnergyFactor PartialValuedRelation)   
+(abbreviation "MEF" clothesWasherModifiedEnergyFactor)
+(documentation clothesWasherModifiedEnergyFactor EnglishLanguage "(MEF) Capacity of clothes divided by sum of mechanical energy per cycle and water heating energy per cycle and drying energy. The higher the more efficient.")
+
+(domainSubclass clothesWasherModifiedEnergyFactor 1 LaundryAppliance)
+(domain clothesWasherModifiedEnergyFactor 2 PositiveRealNumber)
+
+(=>
+   (and
+      (instance ?X ClothesWashingMachine)
+      (attribute ?X EnergyStar5Rating))
+   (and
+      (clothesWasherModifiedEnergyFactor ?X ?VALUE)
+      (lessThanOrEqualTo ?VALUE 2))) ;; also WaterFactor is > 6.0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; for Dishwasher
+;;
+
+;;
+;; platePlacesCount
+;;
+
+(instance platePlacesCount BinaryPredicate)         
+(instance platePlacesCount SingleValuedRelation)    
+(instance platePlacesCount PartialValuedRelation)   
+(documentation platePlacesCount EnglishLanguage "A number of plate places in a &%Dishwasher.")
+(termFormat EnglishLanguage platePlacesCount "plate places count")
+
+(domainSubclass platePlacesCount 1 Dishwasher)
+(domain platePlacesCount 2 PositiveInteger)
+
+;;
+;; servingPiecesCount
+;;
+
+(instance servingPiecesCount BinaryPredicate)         
+(instance servingPiecesCount SingleValuedRelation)    
+(instance servingPiecesCount PartialValuedRelation)   
+(documentation servingPiecesCount EnglishLanguage "A number of places for serving pieces in a &%Dishwasher.")
+(termFormat EnglishLanguage servingPiecesCount "places for serving pieces count")
+
+(domainSubclass servingPiecesCount 1 Dishwasher)
+(domain servingPiecesCount 2 PositiveInteger)
+
+;;
+;; Compact Attribute
+;;
+
+(=>  ;; if compact then has no more than 8 plate places and 6 serving pieces
+   (and
+      (instance ?DEVICE Dishwasher)
+      (attribute ?DEVICE Compact)
+      (platePlacesCount ?DEVICE ?PLATEC)
+      (servingPiecesCount ?DEVICE ?PIECIESC))
+   (and
+      (lessThanOrEqualTo ?PLATEC 8)                                            
+      (lessThanOrEqualTo ?PIECIESC 6)))
+
+;;
+;; waterUsePerDishwasherCycle
+;;
+
+(instance waterUsePerDishwasherCycle BinaryPredicate)         
+(instance waterUsePerDishwasherCycle SingleValuedRelation)    
+(instance waterUsePerDishwasherCycle PartialValuedRelation)   
+(documentation waterUsePerDishwasherCycle EnglishLanguage "Estimated ammount of water used by a &%Dishwasher in one washing cycle.")
+(termFormat EnglishLanguage waterUsePerDishwasherCycle "water use per dishwasher cycle")
+
+(domainSubclass waterUsePerDishwasherCycle 1 Dishwasher)
+(domain waterUsePerDishwasherCycle 2 VolumeMeasure)
+
+;; 
+;; energy star rules
+;;
+
+(=>   ;; compact, star 4
+   (and
+      (instance ?X Dishwasher)
+      (attribute ?X Compact)
+      (attribute ?X EnergyStar4Rating)
+      (annualEnergyConsumption ?X (MeasureFn ?ENERGY KilowattHour)))
+   (lessThanOrEqualTo ?ENERGY 234)) ;; and no more than 4 gallons per cycle
+
+(=>   ;; compact, star 5
+   (and
+      (instance ?X Dishwasher)
+      (attribute ?X Compact)
+      (attribute ?X EnergyStar5Rating)
+      (annualEnergyConsumption ?X (MeasureFn ?ENERGY KilowattHour)))
+   (lessThanOrEqualTo ?ENERGY 222)) ;; and no more than 3.5 gallons per cycle
+
+(=>   ;; not compact, star 4
+   (and
+      (instance ?X Dishwasher)
+      (not (attribute ?X Compact))
+      (attribute ?X EnergyStar4Rating)
+      (annualEnergyConsumption ?X (MeasureFn ?ENERGY KilowattHour)))
+   (lessThanOrEqualTo ?ENERGY 324)) ;; and no more than 5.8 gallons per cycle
+
+(=>   ;; not compact, star 5
+   (and
+      (instance ?X Dishwasher)
+      (not (attribute ?X Compact))
+      (attribute ?X EnergyStar5Rating)
+      (annualEnergyConsumption ?X (MeasureFn ?ENERGY KilowattHour)))
+   (lessThanOrEqualTo ?ENERGY 295)) ;; and no more than 4.25 gallons per cycle
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; for MediaSystem
+;;
+
+;;
+;; videoPlaybackPowerConsumption
+;;
+
+(instance videoPlaybackPowerConsumption BinaryPredicate)         
+(instance videoPlaybackPowerConsumption SingleValuedRelation)    
+(instance videoPlaybackPowerConsumption PartialValuedRelation)   
+(documentation videoPlaybackPowerConsumption EnglishLanguage "Average energy usage by a &%MediaAppliance during video playback.")
+(termFormat EnglishLanguage videoPlaybackPowerConsumption "power consumption during video playback")
+
+(domainSubclass videoPlaybackPowerConsumption 1 MediaAppliance)
+(domain videoPlaybackPowerConsumption 2 PowerMeasure)
+
+;;
+;; videoRecordingPowerConsumption
+;;
+
+(instance videoRecordingPowerConsumption BinaryPredicate)         
+(instance videoRecordingPowerConsumption SingleValuedRelation)    
+(instance videoRecordingPowerConsumption PartialValuedRelation)   
+(documentation videoRecordingPowerConsumption EnglishLanguage "Average energy usage by a &%MediaAppliance during video recording.")
+(termFormat EnglishLanguage videoRecordingPowerConsumption "power consumption during video recording")
+
+(domainSubclass videoRecordingPowerConsumption 1 MediaAppliance)
+(domain videoRecordingPowerConsumption 2 PowerMeasure)
+
+;;
+;; audioPlaybackPowerConsumption
+;;
+
+(instance audioPlaybackPowerConsumption BinaryPredicate)         
+(instance audioPlaybackPowerConsumption SingleValuedRelation)    
+(instance audioPlaybackPowerConsumption PartialValuedRelation)   
+(documentation audioPlaybackPowerConsumption EnglishLanguage "Average energy usage by a &%MediaAppliance during audio playback.")
+(termFormat EnglishLanguage audioPlaybackPowerConsumption "power consumption during audio playback")
+
+(domainSubclass audioPlaybackPowerConsumption 1 MediaAppliance)
+(domain audioPlaybackPowerConsumption 2 PowerMeasure)
+
+;;
+;; audioRecordingPowerConsumption
+;;
+
+(instance audioRecordingPowerConsumption BinaryPredicate)         
+(instance audioRecordingPowerConsumption SingleValuedRelation)    
+(instance audioRecordingPowerConsumption PartialValuedRelation)   
+(documentation audioRecordingPowerConsumption EnglishLanguage "Average energy usage by a &%MediaAppliance during audio recording.")
+(termFormat EnglishLanguage audioRecordingPowerConsumption "power consumption during audio recording")
+
+(domainSubclass audioRecordingPowerConsumption 1 MediaAppliance)
+(domain audioRecordingPowerConsumption 2 PowerMeasure)
+
+;;
+;; amplifierEfficiency  Amplifier / A/V with Audio                  
+;;
+
+(instance amplifierEfficiency BinaryPredicate)         
+(instance amplifierEfficiency SingleValuedRelation)    
+(instance amplifierEfficiency PartialValuedRelation)   
+(documentation amplifierEfficiency EnglishLanguage "Proportion of a energy of the &%Amplifier output signal to the energy used by that &%Amplifier.")
+(termFormat EnglishLanguage amplifierEfficiency "amplifier efficiency")  
+
+(domainSubclass amplifierEfficiency 1 MediaAppliance)
+(domain amplifierEfficiency 2 PowerMeasure)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; for BatteryCharger
+;;
+
+;; BatteryChemistry    BatteryCharger  (NiCd, Li-lon, NiMh, LeadAcid, Ni-Cad, and combinations)
+;; supportedBatteryVoltage    BatteryCharger, BatteryPoweredDevice  (can be multiple)
+
+;;
+;; averageChargerEnergyRatio
+;;
+
+(instance averageChargerEnergyRatio BinaryPredicate)
+(instance averageChargerEnergyRatio SingleValuedRelation)    
+(instance averageChargerEnergyRatio PartialValuedRelation) 
+(documentation averageChargerEnergyRatio EnglishLanguage "Average proportion of energy obtained by a &%Battery to the total energy used by a &%BatteryCharger while charging that battery.")
+(termFormat EnglishLanguage averageChargerEnergyRatio "average charger energy ratio")  
+
+(domainSubclass averageChargerEnergyRatio 1 BatteryCharger)
+(domain averageChargerEnergyRatio 2 PositiveRealNumber)
+
+;;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  ;; DEFINE APPLIANCE MODELS FOR HOUSEHOLD APPLIANCES
+;;  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  
+;;  ;;
+;;  ;; Asko W6324
+;;  ;;
+;;  
+;;  (subclass AskoW6324 ClothesWasherDryer)
+;;  (documentation AskoW6324 EnglishLanguage "&%ClothesWasherDryer produced by Asko, with model number W6324.")
+;;  
+;;  (=> (instance ?X AskoW6324) (attribute ?X EnergyStar5Rating))
+;;  (=> (instance ?X AskoW6324) (attribute ?X ClothesWasherFrontLoadConfiguration))
+;;  ;(brand AskoW6324 AskoBrand)
+;;  ;(modelNumber AskoW6324 "W6324")
+;;  (annualEnergyConsumption AskoW6324 (MeasureFn 140 KilowattHour))
+;;  (clothesWasherModifiedEnergyFactor AskoW6324 2.68)
+;;  (clothesWasherWaterFactor AskoW6324 3.3)
+;;  ;(energyConsumptionPerWashingCycle AskoW6324 (MeasureFn ?? KilowattHour))
+;;  ;(waterConsumptionPerWashingCycle AskoW6324 (MeasureFn ?? Liter))
+;;  ;(washPerformanceClass AskoW6324 EuropeanUnionEnergyLabelClassA)
+;;  ;(spinDryingPerformanceClass AskoW6324 EuropeanUnionEnergyLabelClassA)
+;;  ;(maximumSpinSpeed AskoW6324 1200)
+;;  ;(totalCottonCapicity AskoW6324 (MeasureFn 8 Kilogram))
+;;  ;(laundryApplianceMaximumClothesVolume AskoW6324 (MeasureFn ?? Liter))
+;;  
+;;  ;;
+;;  ;; INDESIT IWC8123
+;;  ;;
+;;  
+;;  (subclass IndesitIWC8123 ClothesWasherDryer)
+;;  (documentation IndesitIWC8123 EnglishLanguage "&%ClothesWasherDryer produced by INDESIT, with model number IWC8123.")
+;;  
+;;  ;(=> (instance ?X IndesitIWC8123) (attribute ?X EnergyStar5Rating))
+;;  (=> (instance ?X IndesitIWC8123) (attribute ?X ClothesWasherFrontLoadConfiguration))
+;;  ;(brand IndesitIWC8123 IndesitBrand)
+;;  ;(modelNumber IndesitIWC8123 "IWC8123")
+;;  ;(annualEnergyConsumption IndesitIWC8123 (MeasureFn 140 KilowattHour))
+;;  ;(clothesWasherModifiedEnergyFactor IndesitIWC8123 2.68)
+;;  ;(clothesWasherWaterFactor IndesitIWC8123 3.3)
+;;  ;(energyConsumptionPerWashingCycle IndesitIWC8123 (MeasureFn ?? KilowattHour))
+;;  (waterConsumptionPerWashingCycle IndesitIWC8123 (MeasureFn 69 Liter))
+;;  (washPerformanceClass IndesitIWC8123 EuropeanUnionEnergyLabelClassA)
+;;  (spinDryingPerformanceClass IndesitIWC8123 EuropeanUnionEnergyLabelClassA)
+;;  (maximumSpinSpeed IndesitIWC8123 1200)
+;;  (totalCottonCapicity IndesitIWC8123 (MeasureFn 8 Kilogram))
+;;  ;(laundryApplianceMaximumClothesVolume IndesitIWC8123 (MeasureFn ?? Liter))
