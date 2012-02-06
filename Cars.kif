@@ -1,0 +1,414 @@
+;; Ontology of cars and car parts
+
+;; Access to and use of these products is governed by the GNU General Public 
+;; License <http://www.gnu.org/copyleft/gpl.html>. 
+;; By using these products, you agree to be bound by the terms 
+;; of the GPL.
+
+;; Author: Adam Pease
+
+;; We ask that people using or referencing this work cite our primary paper and book:
+
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
+;; Proceedings of the 2nd International Conference on Formal Ontology in 
+;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
+;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
+
+;; Pease, A., (2011). Ontology: A Practical Guide. Articulate Software Press, 
+;; Angwin, CA. ISBN 978-1-889455-10-5.
+
+(=>
+  (instance ?C Combustion)
+  (exists (?O)
+    (and
+      (instance ?O Oxygen)
+      (resource ?C ?O))))
+
+(documentation InternalCombustionEngine EnglishLanguage "The internal combustion 
+engine is an engine in which the combustion of a fuel (normally a fossil fuel) 
+occurs with an oxidizer (usually air) in a combustion chamber. In an internal 
+combustion engine, the expansion of the high-temperature and high -pressure 
+gases produced by combustion apply direct force to some component of the engine. 
+This force is applied typically to pistons, turbine blades, or a nozzle. This 
+force moves the component over a distance, transforming chemical energy into 
+useful mechanical energy. 
+  The term internal combustion engine usually refers to an engine in which 
+combustion is intermittent, such as the more familiar four-stroke and two-stroke 
+piston engines, along with variants, such as the six-stroke piston engine and 
+the Wankel rotary engine. A second class of internal combustion engines use 
+continuous combustion: gas turbines, jet engines and most rocket engines, each 
+of which are internal combustion engines on the same principle as previously 
+described.
+  The internal combustion engine (or ICE) is quite different from external 
+combustion engines, such as steam or Stirling engines, in which the energy is 
+delivered to a working fluid not consisting of, mixed with, or contaminated by 
+combustion products. [from Wikipedia]")
+
+(=>
+  (instance ?I InternalCombustionEngine)
+  (hasPurpose ?I
+    (exists (?F ?C)
+      (and
+        (instance ?F Fuel)
+        (instance ?C Combustion)
+        (instrument ?C ?I)
+        (resource ?C ?F)))))
+
+(=>
+  (instance ?I InternalCombustionEngine)
+  (hasPurpose ?I
+    (exists (?C ?M ?P)
+      (and
+        (instance ?C Combustion)
+        (instance ?M Motion)
+        (part ?P ?I)
+        (patient ?M ?P)))))
+
+(subclass FuelVapor GasMixture)
+(documentation FuelVapor EnglishLanguage "A mixture of a gas (often &%Air) 
+and fuel, typically produced intentionally in &%Engines for the purpose of 
+&%Combustion.")
+
+(=>
+  (instance ?FV FuelVapor)
+  (exists (?F)
+    (and 
+      (instance ?F Fuel)
+      (part ?F ?FV))))
+
+(subclass EngineCycle Motion)
+
+(subclass ContinuousCombustionEngine InternalCombustionEngine)
+(subclass Turbine InternalCombustionEngine)
+(subclass IntermittentCombustionEngine InternalCombustionEngine)
+
+(subclass FourStrokeEngine IntermittentCombustionEngine)
+(externalImage FourStrokeEngine "http://upload.wikimedia.org/wikipedia/commons/d/dc/4StrokeEngine_Ortho_3D_Small.gif")
+
+(documentation FourStrokeEngine EnglishLanguage "&%InternalCombustionEngines based on the 
+four-stroke (Otto cycle) have one power stroke for every four strokes 
+(up-down-up-down) and employ spark plug ignition. &%Combustion occurs 
+rapidly, and during combustion the volume varies little (constant 
+volume). They are used in cars, larger boats, some motorcycles, and 
+many light aircraft. They are generally quieter, more efficient, and 
+larger than their &%TwoStrokeEngine counterparts. [from Wikipedia]")
+
+(=>
+  (instance ?FSE FourStrokeEngine)
+  (exists (?C)
+    (and
+      (instance ?C Cylinder)
+      (part ?C ?FSE))))
+
+(=>
+  (instance ?FSE FourStrokeEngine)
+  (hasPurpose ?FSE
+    (exists (?I ?CM ?CB ?E ?I2)
+      (and
+        (instance ?I FourStrokeIntake)
+        (instance ?CM FourStrokeCompression)
+        (instance ?CB FourStrokeCombustion)
+        (instance ?E FourStrokeExhaust)
+        (instance ?I2 FourStrokeIntake)
+        (eventLocation ?I ?FSE)
+        (eventLocation ?CM ?FSE)
+        (eventLocation ?CB ?FSE)
+        (eventLocation ?E ?FSE)
+        (eventLocation ?I2 ?FSE)
+        (meetsTemporally ?I ?CM)
+        (meetsTemporally ?CM ?CB)
+        (meetsTemporally ?CB ?E)
+        (meetsTemporally ?E ?I2)))))
+
+(subclass FourStrokeIntake Motion)
+(documentation FourStrokeIntake EnglishLanguage "In this cycle of a four
+stroke engine, air and vaporized fuel are drawn in.")
+
+(=>
+  (and
+    (instance ?F FourStrokeIntake)
+    (instance ?C Cylinder)
+    (instance ?I InternalCombustionChamber)
+    (equals ?C (HoleHostFn ?I))
+    (eventLocation ?F ?C))
+  (exists (?FV ?M)
+    (and
+      (instance ?M GasMotion)
+      (instance ?FV FuelVapor)
+      (subProcess ?M ?F)
+      (destination ?M ?I)
+      (patient ?M ?FV))))
+
+(subclass FourStrokeCompression Motion)
+(documentation FourStrokeCompression EnglishLanguage "In this cycle of a four
+stroke engine, fuel vapor and air are compressed and ignited.")
+
+(=>
+  (and
+    (instance ?F FourStrokeCompression)
+    (instance ?C Cylinder)
+    (instance ?I InternalCombustionChamber)
+    (equals ?C (HoleHostFn ?I))
+    (eventLocation ?F ?C))
+  (holdsDuring 
+    (EndFn (WhenFn ?F))
+    (attribute ?I Pressurized)))
+
+(subclass FourStrokeCombustion Motion)
+(documentation FourStrokeCombustion EnglishLanguage "In this cycle of a four
+stroke engine, fuel combusts and piston is pushed downwards.")
+
+(=>
+  (and
+    (instance ?F FourStrokeCombustion)
+    (instance ?C Cylinder)
+    (instance ?I InternalCombustionChamber)
+    (equals ?C (HoleHostFn ?I))
+    (eventLocation ?F ?C))
+  (exists (?CO) 
+    (and
+      (instance ?CO Combustion)
+      (subProcess ?CO ?F))))
+
+(subclass FourStrokeExhaust Motion)
+(documentation FourStrokeExhaust EnglishLanguage "In this cycle of a four
+stroke engine, exhaust is driven out. During the 1st, 2nd, and 4th stroke 
+the piston is relying on power and the momentum generated by the other pistons.")
+
+(=>
+  (and
+    (instance ?F FourStrokeExhaust)
+    (instance ?C Cylinder)
+    (instance ?I InternalCombustionChamber)
+    (equals ?C (HoleHostFn ?I))
+    (eventLocation ?F ?C))
+  (exists (?FV ?M)
+    (and
+      (instance ?M GasMotion)
+      (instance ?S Smoke)
+      (subProcess ?M ?F)
+      (origin ?M ?I)
+      (patient ?M ?S))))
+
+(subclass TwoStrokeEngine IntermittentCombustionEngine)
+(documentation TwoStrokeEngine EnglishLanguage "Engines based on the 
+two-stroke cycle use two strokes (one up, one down) for every power 
+stroke. Since there are no dedicated intake or exhaust strokes, 
+alternative methods must be used to scavenge the cylinders. The most 
+common method in spark-ignition two-strokes is to use the downward 
+motion of the piston to pressurize fresh charge in the &%Crankcase, 
+which is then blown through the &%Cylinder through ports in the 
+cylinder walls. [from Wikipedia]")
+
+(=>
+  (instance ?I IntermittentCombustionEngine)
+  (hasPurpose ?I
+    (exists (?E ?M ?P)
+      (and
+        (instance ?E Explosion)
+        (instance ?M Motion)
+        (eventLocated ?E ?I)
+        (eventLocated ?M ?I)
+        (causes ?E ?M)))))
+
+(subclass Piston Artifact)
+(subclass EngineCylinder Artifact)
+
+(subclass InternalCombustionChamber Hole)
+(documentation InternalCombustionChamber EnglishLanguage "The &%Hole that
+is part of a &%Cylinder in which &%Cumbustion occurs, forcing gases to
+expand and expelling the piston, to generate power.")
+
+(=>
+  (instance ?E EngineCylinder)
+  (exists (?H)
+    (and
+      (instance ?H InternalCombustionChamber)
+      (equals ?E (HoleHostFn ?H)))))
+
+(subclass Crankcase Hole)
+
+(=>
+  (instance ?E EngineCylinder)
+  (exists (?C)
+    (and
+      (instance ?C Crankcase)
+      (equals ?E (HoleHostFn ?C)))))
+   
+(subclass Crankshaft Artifact)
+(typicalPart Crankshaft IntermittentCombustionEngine)
+(typicallyContainsPart Crankshaft IntermittentCombustionEngine)
+
+(typicalPart Crankshaft Crankcase)
+(typicallyContainsPart Crankshaft Crankcase)
+
+(typicalPart Piston EngineCylinder)
+(typicallyContainsPart Piston EngineCylinder)
+
+(relatedInternalConcept typicallyContainPart typicalPart)
+
+(=>
+  (and
+    (instance ?C Crankshaft)
+    (instance ?I IntermittentCombustionEngine)
+    (part ?I ?C))
+  (hasPurpose ?C
+    (exists (?E ?R)
+      (and
+        (instance ?E Explosion)
+        (instance ?R Rotating)
+        (patient ?R ?C)
+        (eventLocated ?R ?I)
+        (causes ?E ?R)))))
+
+(instance Vacuum InternalAttribute)
+(documentation Vaccuum EnglishLanguage "An area of space in which does not
+contain any matter.")
+
+(=>
+  (and
+    (instance ?X Region)
+    (attribute ?X Vacuum))
+  (not
+    (exists (?O)
+      (and
+        (instance ?O Object)
+        (located ?O ?X)))))
+
+(instance PartialVacuum RelationalAttribute)
+(documentation PartialVacuum EnglishLanguage "An area of space which is at
+a lower pressure than surrounding regions.")
+
+(=>
+  (attribute ?X PartialVacuum)
+  (exists (?O ?G)
+    (and
+      (instance ?O SelfConnectedObject)
+      (instance ?G Region)
+      (not 
+        (equals ?G ?X))
+      (connected ?X ?O)
+      (connected ?G ?O)
+      (measure ?G (MeasureFn ?PM ?P1))
+      (measure ?X (MeasureFn ?PM ?P2))
+      (instance ?PM UnitOfAtmosphericPressure)
+      (greaterThan ?P1 ?P2))))
+
+(instance Pressurized RelationalAttribute)
+(documentation Pressurized EnglishLanguage "An area of space which is at
+a higher pressure than surrounding regions.")
+
+(=>
+  (attribute ?X Pressurized)
+  (exists (?O ?G)
+    (and
+      (instance ?O SelfConnectedObject)
+      (instance ?G Region)
+      (not 
+        (equals ?G ?X))
+      (connected ?X ?O)
+      (connected ?G ?O)
+      (measure ?G (MeasureFn ?PM ?P1))
+      (measure ?X (MeasureFn ?PM ?P2))
+      (instance ?PM UnitOfAtmosphericPressure)
+      (greaterThan ?P2 ?P1))))
+
+(subclass Spark Motion)
+(documentation Spark EnglishLanguage "An electric charge that moves from point to
+point across an air gap, rather than travelling through a solid conductor.")
+
+(=>
+  (instance ?S Spark)
+  (exists (?E ?G) 
+    (and
+      (instance ?E Electricity)
+      (patient ?S ?E)
+      (instance ?G Substance)
+      (attribute ?G Gas)
+      (eventLocated ?S ?G))))
+    
+(subclass SparkPlug ElectricalComponent)
+(documentation SparkPlug EnglishLanguage "A device, used to ignite &%Fuel, 
+that generates a &%Spark.")
+
+(=>
+  (instance ?SP SparkPlug)
+  (hasPurpose ?SP
+    (exists (?S)
+      (and
+        (instance ?S Spark)
+        (instrument ?S ?SP)))))
+
+(=>
+  (instance ?SP SparkPlug)
+  (hasPurpose ?SP
+    (exists (?S ?C)
+      (and
+        (instance ?S Spark)
+        (instrument ?S ?SP)
+        (instance ?C Combustion)
+        (causes ?S ?C)))))
+
+(subclass TwoStrokeIntake Motion)
+(documentation TwoStrokeIntake EnglishLanguages "The portion of a two stroke engine
+cycle where the piston moves into the combustion chamber creating a partial vacuum
+in the crankcase that draws fuel into the crankcase.")
+
+(=>
+  (and 
+    (instance ?E EngineCylinder)
+    (instance ?I InternalCombustionChamber)
+    (instance ?P Piston)
+    (instance ?T TwoStrokeIntake)
+    (holdsDuring ?T
+      (located ?P ?E))
+    (equals ?E (HoleHostFn ?I))
+    (eventLocated ?T ?E))
+  (hasPurpose ?P
+    (holdsDuring ?T
+      (partiallyFills ?P ?I))))
+
+(=>
+  (and
+    (instance ?TSI TwoStrokeIntake)
+    (instance ?C Crankcase)
+    (eventPartlyLocated ?TSC ?C))
+  (holdsDuring ?TSI
+    (attribute ?C PartialVacuum)))
+
+(subclass TwoStrokeCompression Motion)
+(documentation TwoStrokeCompression EnglishLanguages "The portion of a two stroke engine
+cycle where combustion occurs, forcing the piston out of the combustion chamber,
+and the fuel mixture is compressed in the crankcase.")
+
+(=>
+  (and
+    (instance ?TSC TwoStrokeCompression)
+    (eventLocated ?TSC ?E)
+    (instance ?E TwoStrokeEngine))
+  (exists (?C)
+    (and
+      (instance ?C Explosion)
+      (during ?C ?TSC)
+      (eventLocated ?C ?E))))
+
+(subclass TwoStrokeTransfer Motion)
+(documentation TwoStrokeTransfer EnglishLanguages "The portion of a two stroke engine
+cycle where the combustion chamber is opened to the crankcase and the exhaust.  This 
+allows the exhaust to vent, and the pressurized fuel mixture to enter the combustion
+chamber.  The piston is most fully removed from the combustion chamber at this point.")
+
+(=>
+  (and 
+    (instance ?E EngineCylinder)
+    (instance ?C Crankcase)
+    (instance ?P Piston)
+    (instance ?T TwoStrokeTransfer)
+    (holdsDuring ?T
+      (located ?P ?E))
+    (equals ?E (HoleHostFn ?C))
+    (eventLocated ?T ?E))
+  (hasPurpose ?P
+    (holdsDuring ?T
+      (partiallyFills ?P ?C)))) 
+
