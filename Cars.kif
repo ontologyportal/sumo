@@ -615,3 +615,194 @@ as to cause or tend to cause motion away from the agent.")
       (distance ?ALOC ?O ?LARGER)
       (greaterThan ?LARGER ?SMALLER))))
 
+(subrelation systemPart part)
+
+(=>
+  (instance ?S PhysicalSystem)
+  (exists (?P)
+    (hasPurpose ?S ?P)))
+
+(subclass AutoSuspensionSystem PhysicalSystem)
+(documentation AutoSuspensionSystem EnglishLanguage "A system, typically consisting of
+&%Springs and &%Shocks that couples the &%Wheels or &%Axles of a &%RoadVehicle to the rest of the
+body, and serving to dampen the effect of uneven road surfaces on the occupants or cargo.")
+
+(typicallyContainsPart Spring AutoSuspensionSystem)
+
+(instance physicalAmplitude SpatialRelation)
+(domain physicalAmplitude 1 Tremor)
+(domain physicalAmplitude 2 LengthMeasure)
+(documentation physicalAmplitude EnglishLanguage "A relation between a periodic motion and the
+distance between the physical extremes of the period.")
+
+(=>
+  (and
+    (physicalAmplitude ?T ?L)
+    (patient ?T ?O))
+  (exists (?P1 ?P2 ?T1 ?T2)
+    (and
+      (during ?T1 (WhenFn ?T))
+      (during ?T2 (WhenFn ?T))
+      (holdsDuring ?T1
+        (located ?O ?P1))
+      (holdsDuring ?T2
+        (located ?O ?P2))
+      (distance ?P1 ?P2 ?L))))
+
+(=>
+  (and
+    (physicalAmplitude ?T ?L)
+    (patient ?T ?O))
+  (not
+    (exists (?P1 ?P2 ?T1 ?T2)
+      (and
+        (during ?T1 (WhenFn ?T))
+        (during ?T2 (WhenFn ?T))
+        (holdsDuring ?T1
+          (located ?O ?P1))
+        (holdsDuring ?T2
+          (located ?O ?P2))
+        (distance ?P1 ?P2 ?L2)
+        (greaterThan ?L2 ?L)))))
+
+(subclass Damper MechanicalDevice)
+(documentation Damper EnglishLanguage "A &%Device designed to lessen or to remove a &%Tremor from
+a &%PhysicalSystem.  Examples include a car's air shocks, or rubber and fluid-filled
+foundation mounts for buildings in earthquake-prone areas.")
+
+(=>
+  (and
+    (instance ?E Motion)
+    (instance ?T Tremor)
+    (instance ?D Damper)
+    (patient ?T ?O)
+    (part ?D ?O)
+    (causes ?E ?T)
+    (holdsDuring (WhenFn ?E)
+      (physicalAmplitude ?T ?A1))
+    (holdsDuring (ImmediateFutureFn ?E)
+      (physicalAmplitude ?T ?A2)))
+  (greaterThan ?A1 ?A2))
+
+(subclass AutomobileShock Damper)
+(typicalPart AutomobileShock AutoSuspensionSystem)
+(documentation AutomobileShock EnglishLanguage "A &%Damper that is part of a modern &%RoadVehicle's
+&%AutoSuspensionSystem.  It may include various kinds of fluids and valves that have the effect
+of being a &%Damper on &%Motion.")
+
+(subclass LeafSpring Spring)
+(typicalPart LeafSpring AutoSuspensionSystem)
+
+(=>
+  (instance ?L LeafSpring)
+  (attribute ?L LongAndThin))
+
+(=>
+  (and
+    (instance ?L LeafSpring)
+    (part ?L ?RV)
+    (instance ?RV RoadVehicle))
+  (modalAttribute 
+    (exists (?L2)
+      (and
+        (instance ?L2 LeafSpring)
+        (part ?L2 ?RV)
+        (not
+          (equals ?L ?L2))
+        (meetsSpatially ?L ?L2)))
+    Likely))
+
+(subclass FuelFilter Filter)
+(documentation FuelFilter EnglishLanguage "A fuel filter is designed to remove impurities
+from &%Fuel.")
+
+(=>
+  (instance ?FILTER FuelFilter)
+  (hasPurpose ?FILTER
+    (exists (?REMOVE ?FUEL ?NONFUEL ?SOLUTION)
+      (and
+        (instance ?REMOVE Removing)
+        (part ?FUEL ?SOLUTION)
+        (instance ?FUEL Fuel)
+        (not
+          (instance ?NONFUEL Fuel))
+        (patient ?REMOVE ?NONFUEL)
+        (part ?NONFUEL ?SOLUTION)
+        (origin ?REMOVE ?SOLUTION)
+        (instance ?SOLUTION Solution)
+        (instrument ?REMOVE ?FILTER)))))
+
+(subclass AirFilter Filter)
+(documentation FuelFilter EnglishLanguage "An air filter is designed to remove 
+&%Solid impurities from &%Air.")
+
+(=>
+  (instance ?FILTER FuelFilter)
+  (hasPurpose ?FILTER
+    (exists (?REMOVE ?AIR ?NONAIR ?MIX)
+      (and
+        (instance ?REMOVE Removing)
+        (part ?AIR ?MIX)
+        (instance ?AIR Air)
+        (not
+          (instance ?NONAIR Air))
+        (attribute ?NONAIR Solid)
+        (patient ?REMOVE ?NONAIR)
+        (part ?NONAIR ?MIX)
+        (origin ?REMOVE ?MIX)
+        (instance ?MIX Mixture)
+        (instrument ?REMOVE ?FILTER)))))
+
+(subclass GasTank FluidContainer)
+(documentation GasTank EnglishLanguage "A &%Container in a &%Vehicle designed to
+hold a &%Liquid &%Fuel for use in its &%Engine.")
+
+(subclass FuelPump Pump)
+(documentation FuelPump EnglishLanguage "A pump that moves fuel from the gas tank
+through a &%FuelFilter and ultimately to the &%EngineCylinder.")
+
+(=>
+  (instance ?FP FuelPump)
+  (hasPurpose ?FP
+    (exists (?F ?T)
+      (and
+        (instance ?T Transportation)
+        (instance ?F Fuel)
+        (patient ?T ?F)
+        (instrument ?F ?FP)))))
+
+(=>
+  (and
+    (instance ?FP FuelPump)
+    (instance ?T Transportation)
+    (instance ?F Fuel)
+    (patient ?T ?F)
+    (instrument ?F ?FP))
+  (hasPurpose ?FP
+    (exists (?GT ?EC)
+      (and
+        (instance ?GT GasTank)
+        (instance ?EC EngineCylinder)
+        (origin ?T ?GT)
+        (destination ?T ?EC)))))
+
+
+(=>
+  (and
+    (instance ?FP FuelPump)
+    (instance ?T Transportation)
+    (instance ?F Fuel)
+    (patient ?T ?F)
+    (instrument ?F ?FP)
+    (instance ?GT GasTank)
+    (instance ?EC EngineCylinder)
+    (origin ?T ?GT)
+    (destination ?T ?EC)
+    (path ?T ?P))
+  (hasPurpose ?T
+    (exists (?FF)
+      (and
+        (instance ?FF FuelFilter)
+        (betweenOnPath ?GT ?FF ?EC ?P)))))
+
+
