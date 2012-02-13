@@ -669,6 +669,7 @@ distance between the physical extremes of the period.")
 (documentation Damper EnglishLanguage "A &%Device designed to lessen or to remove a &%Tremor from
 a &%PhysicalSystem.  Examples include a car's air shocks, or rubber and fluid-filled
 foundation mounts for buildings in earthquake-prone areas.")
+(externalImage Damper "http://upload.wikimedia.org/wikipedia/commons/2/2b/Damped_spring.gif")
 
 (=>
   (and
@@ -684,12 +685,77 @@ foundation mounts for buildings in earthquake-prone areas.")
       (physicalAmplitude ?T ?A2)))
   (greaterThan ?A1 ?A2))
 
+(instance dampingRatio BinaryRelation)
+(domain dampingRatio 1 PhysicalSystem)
+(domain dampingRatio 2 RealNumber)
+(documentation dampingRatio EnglishLanguage "(dampingRation ?SYSTEM ?NUM) is a measure 
+of to what degree a system is free to oscillate or not.  In an overdamped system ?NUM 
+is greater than 1. The system returns (exponentially decays) to equilibrium without 
+oscillating. Larger values of the damping ratio signify a return to equilibrium more slowly.
+In a critically damped ?NUM equals 1. The system returns to equilibrium as quickly as possible 
+without oscillating. This is often desired for the damping of systems such as doors.
+In an underdamped system 0 < ?NUM < 1. The system oscillates (at reduced frequency compared 
+to the undamped case) with the amplitude gradually decreasing to zero.  Finally, in an
+undamped system ?NUM is 0. The system oscillates at its natural &%resonantFrequency. 
+[adapted from Wikipedia].")
+
+(=>
+  (and 
+    (dampingRatio ?P ?R)
+    (greaterThan ?R 0)
+    (instance ?T Tremor)
+    (patient ?T ?P)
+    (holdsDuring ?T1
+      (physicalAmplitude ?T ?A1))
+    (holdsDuring ?T2
+      (physicalAmplitude ?T ?A2))
+    (during ?T1 ?T)
+    (during ?T2 ?T)
+    (earlier ?T1 ?T2))
+  (greaterThan ?A1 ?A2))
+
+(instance resonantFrequency BinaryRelation)
+(domain resonantFrequency 1 PhysicalSystem)
+(domain resonantFrequency 2 PhysicalQuantity)
+(documentation resonantFrequency EnglishLanguage "The natural resonancy frequency of a 
+system.  A system that is undamped or underdamped will oscillate at this frequency, at
+least for a while, after a force is applied.")
+(relatedInternalConcept resonantFrequency dampingRatio)
+
+(subclass Automobile PhysicalSystem)
+
 (subclass AutomobileShock Damper)
 (typicalPart AutomobileShock AutoSuspensionSystem)
 (documentation AutomobileShock EnglishLanguage "A &%Damper that is part of a modern &%RoadVehicle's
 &%AutoSuspensionSystem.  It may include various kinds of fluids and valves that have the effect
 of being a &%Damper on &%Motion.")
 
+(=>
+  (instance ?A AutomobileShock)
+  (hasPurpose ?A
+    (exists (?C)
+      (and
+        (instance ?C Automobile)
+        (part ?A ?C)))))
+
+(=>
+  (and
+    (instance ?A1 Automobile)
+    (instance ?A2 Automobile)
+    (instance ?S1 AutomobileShock)
+    (part ?S1 ?A1)
+    (not
+      (exists (?S2)
+        (and
+          (instance ?S2 AutomobileShock)
+          (part ?S2 ?A2))))
+    (dampingRatio ?A1 ?R1)
+    (dampingRatio ?A2 ?R2))
+  (greaterThan ?R2 ?R1))    
+
+(typicalPart AutomobileShock Automobile)
+(typicallyContainsPart AutomobileShock Automobile)
+  
 (subclass LeafSpring Spring)
 (typicalPart LeafSpring AutoSuspensionSystem)
 
@@ -753,9 +819,56 @@ from &%Fuel.")
         (instance ?MIX Mixture)
         (instrument ?REMOVE ?FILTER)))))
 
+(subclass AirIntake Tube)
+(documentation AirIntake EnglishLanguage "A &%Tube that channels &%Air on a 
+&%path ultimately into an &%Engine.")
+
+(=>
+  (instance ?AI AirIntake)
+  (hasPurpose ?AI
+    (exists (?A)
+      (and
+        (instance ?A Air)
+        (contains ?AI ?A)))))
+
+(=>
+  (instance ?AI AirIntake)
+  (hasPurpose ?AI
+    (exists (?A)
+      (and
+        (instance ?A Air)
+        (instance ?E Engine)
+        (instance ?T Transfer)
+        (origin ?T ?AI)
+        (destination ?T ?E)
+        (patient ?T ?A)))))
+
 (subclass GasTank FluidContainer)
 (documentation GasTank EnglishLanguage "A &%Container in a &%Vehicle designed to
-hold a &%Liquid &%Fuel for use in its &%Engine.")
+hold a &%Liquid &%Fuel for use in its &%Engine.  Note that this does not include
+container such as portable fuel tanks that may be used to carry gas, but which
+do not directly supply an engine.")
+
+(=>
+  (instance ?GT GasTank)
+  (hasPurpose ?GT
+    (exists (?F)
+      (and
+        (instance ?F Fuel)
+        (contains ?GT ?F)))))
+
+(=>
+  (instance ?GT GasTank)
+  (hasPurpose ?GT
+    (exists (?F ?T ?E)
+      (and
+        (instance ?F Fuel)
+        (contains ?GT ?F)
+        (instance ?E Engine)
+        (instance ?T Transfer)
+        (origin ?T ?GT)
+        (destination ?T ?E)
+        (patient ?T ?F)))))
 
 (subclass FuelPump Pump)
 (documentation FuelPump EnglishLanguage "A pump that moves fuel from the gas tank
@@ -774,6 +887,8 @@ through a &%FuelFilter and ultimately to the &%EngineCylinder.")
 (=>
   (and
     (instance ?FP FuelPump)
+    (instance ?A Automobile)
+    (part ?FP ?A)
     (instance ?T Transportation)
     (instance ?F Fuel)
     (patient ?T ?F)
@@ -782,20 +897,25 @@ through a &%FuelFilter and ultimately to the &%EngineCylinder.")
     (exists (?GT ?EC)
       (and
         (instance ?GT GasTank)
+        (part ?GT ?A)
         (instance ?EC EngineCylinder)
+        (part ?EC ?A)
         (origin ?T ?GT)
         (destination ?T ?EC)))))
-
 
 (=>
   (and
     (instance ?FP FuelPump)
+    (instance ?A Automobile)
+    (part ?FP ?A)
     (instance ?T Transportation)
     (instance ?F Fuel)
     (patient ?T ?F)
     (instrument ?F ?FP)
     (instance ?GT GasTank)
+    (part ?GT ?A)
     (instance ?EC EngineCylinder)
+    (part ?EC ?A)
     (origin ?T ?GT)
     (destination ?T ?EC)
     (path ?T ?P))
@@ -804,5 +924,50 @@ through a &%FuelFilter and ultimately to the &%EngineCylinder.")
       (and
         (instance ?FF FuelFilter)
         (betweenOnPath ?GT ?FF ?EC ?P)))))
+
+(=>
+  (instance ?S Spraying)
+  (exists (?G ?L ?M)
+    (and
+      (attribute ?G Gas)
+      (attribute ?L Liquid)
+      (instance ?M GasMixture)
+      (part ?M ?G)
+      (part ?M ?L)
+      (patient ?S ?G)
+      (patient ?S ?L)
+      (result ?S ?M))))
+
+(subclass FuelAtomizer Device)
+(documentation FuelAtomizer EnglishLanguage "A &%Device designed to atomize fuel to
+put into a &%GasMixture for use in &%Combustion.  
+In a gas-powered automobile that typically has 14.7 parts air per part    
+gasoline.  Principal subclasses are &%FuelInjectors and &%Carburators.")
+
+(=>
+  (instance ?FA FuelAtomizer)
+  (hasPurpose ?FA
+    (exists (?F ?S ?A ?C)
+      (and
+        (instance ?F Fuel)
+        (instance ?S Spraying)
+        (instance ?A Air)
+        (instance ?C Combustion)
+        (patient ?S ?A)
+        (patient ?S ?F)
+        (resource ?C ?F)
+        (resource ?C ?A)))))
+
+(subclass FuelInjector FuelAtomizer)
+(documentation FuelInjector EnglishLanguage "A &%Device that atomizes &%Fuel by
+forcing it through a small orifice under high pressure. They have largely
+superceded the use of &%Carburators in modern &%Automobiles, since the late 1980's.")
+
+
+(subclass Carburator FuelAtomizer)
+(externalImage Carburator "http://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Carburetor.svg/220px-Carburetor.svg.png")
+(documentation Carburator EnglishLanguage "A &%Device that uses the suction created
+by engine cycles, and the venturi effect in the carburator itself to draw fuel
+through and out a small opening to atomize it and combine it with &%Air.")
 
 
