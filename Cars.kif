@@ -386,9 +386,10 @@ a higher pressure than surrounding regions.")
       (instance ?PM UnitOfAtmosphericPressure)
       (greaterThan ?P2 ?P1))))
 
-(subclass Spark Motion)
+(subclass Spark ElectricTransmission)
 (documentation Spark EnglishLanguage "An electric charge that moves from point to
-point across an air gap, rather than travelling through a solid conductor.")
+point across an &%Air gap, rather than travelling through a solid conductor.")
+(subclass Lightning Spark)
 
 (=>
   (instance ?S Spark)
@@ -1682,5 +1683,625 @@ refridgerant.")
 (documentation Clutch EnglishLanguage "A &%Device used to engage and disengage moving
 parts.  It consists of a friction plate and a spring-loaded mechanism that engages
 the plate with varying force as the clutch is released.  In an &%Automobile it
-ultimately connects the &%Engine with the &%Gearbox.")
+ultimately connects the &%Engine with the &%Gearbox. For the purposes of this
+definition, we consider the &%DeviceOn state of the clutch to mean that it is
+not engaged with the clutch plate.")
+
+(=>
+  (and
+    (instance ?C Clutch)
+    (instance ?A Automobile)
+    (instance ?E Engine)
+    (instance ?G Gearbox)
+    (instance ?GEAR Gear)
+    (part ?GEAR ?G)
+    (part ?G ?A)
+    (part ?C ?A)
+    (part ?E ?A)
+    (instance ?M Motion)
+    (patient ?M ?E)
+    (attribute ?C DeviceOn))
+  (not
+    (exists (?M2)
+      (and
+        (instance ?M2 Motion)
+        (patient ?M2 ?G)
+        (causes ?M ?M2)))))
+
+(=>
+  (and
+    (instance ?C Clutch)
+    (instance ?A Automobile)
+    (instance ?E Engine)
+    (instance ?G Gearbox)
+    (instance ?GEAR Gear)
+    (part ?GEAR ?G)
+    (part ?G ?A)
+    (part ?C ?A)
+    (part ?E ?A)
+    (instance ?M Motion)
+    (patient ?M ?E)
+    (attribute ?C DeviceOff))
+  (exists (?M2)
+    (and
+      (instance ?M2 Motion)
+      (patient ?M2 ?G)
+      (causes ?M ?M2))))
+
+(instance minCylinderVolume BinaryRelation)
+(domain minCylinderVolume 1 Engine)
+(domain minCylinderVolume 2 VolumeMeasure)
+(documentation minCylinderVolume EnglishLanguage "The volume of the
+&%CombustionChamber of the &%EngineCylinder at the maximum point of
+compression of the cylinder.")
+
+(=>
+  (and
+    (instance ?EC EngineCycle)
+    (instance ?E InternalCombustionEngine)
+    (instance ?CC CombustionChamber)
+    (part ?CC ?E)
+    (eventLocated ?EC ?E)
+    (holdsDuring 
+      (WhenFn ?EC)
+      (minCylinderVolume ?E ?V1)))
+  (not
+    (exists (?V2 ?T)
+      (and
+        (during ?T (WhenFn ?EC))
+        (holdsDuring ?T
+          (measure ?CC ?V2))
+        (greaterThan ?V1 ?V2)))))
+
+(instance maxCylinderVolume BinaryRelation)
+(domain maxCylinderVolume 1 Engine)
+(domain maxCylinderVolume 2 VolumeMeasure)
+(documentation maxCylinderVolume EnglishLanguage "The volume of the
+&%CombustionChamber of the &%EngineCylinder at the maximum point of
+extension of the piston.")
+
+(=>
+  (and
+    (instance ?EC EngineCycle)
+    (instance ?E InternalCombustionEngine)
+    (instance ?CC CombustionChamber)
+    (part ?CC ?E)
+    (eventLocated ?EC ?E)
+    (holdsDuring 
+      (WhenFn ?EC)
+      (maxCylinderVolume ?E ?V1)))
+  (not
+    (exists (?V2 ?T)
+      (and
+        (during ?T (WhenFn ?EC))
+        (holdsDuring ?T
+          (measure ?CC ?V2))
+        (greaterThan ?V2 ?V1)))))
+
+(instance compressionRatio BinaryRelation)
+(domain compressionRatio 1 Engine)
+(domain compressionRatio 2 RealNumber)
+(documentation compressionRatio EnglishLanguage "The ratio of the volume of the
+&%CombustionChamber of the &%EngineCylinder at the maximum point of
+compression of the cylinder, to the volume of the chamber with the piston fully
+retracted.")
+
+(<=>
+  (compressionRatio ?E ?R)
+  (and
+    (minCylinderVolume ?E (MeasureFn ?MIN ?M))
+    (maxCylinderVolume ?E (MeasureFn ?MAX ?M))
+    (equal ?R (DivisionFn ?MIN ?MAX))))
+
+(subclass EngineConnectingRod Device)
+(documentation EngineConnectingRod EnglishLanguage "A &%Device that connects
+the &%Piston to the &%Crankshaft.")
+
+(=>
+  (instance ?ECR EngineConnectingRod)
+  (hasPurpose ?ECR
+    (exists (?P ?C)
+      (and
+        (instance ?P Piston)
+        (instance ?C Crankshaft)
+        (connectedEngineeringComponents ?P ?ECR)
+        (connectedEngineeringComponents ?C ?ECR)))))
+
+(subclass Compressing Motion)
+(documentation Compressing EnglishLanguage "Forcing some &%SelfConnectedObject
+into a smaller space than at the beginning of the action.")
+
+(=>
+  (and
+    (instance ?SCO SelfConnectedObject)
+    (instance ?C Compressing)
+    (patient ?C ?SCO)
+    (holdsDuring 
+      (ImmediatePastFn (WhenFn ?C))
+      (measure ?SCO (MeasureFn ?N1 ?V)))
+    (instance ?V VolumeMeasure)
+    (holdsDuring 
+      (ImmediateFutureFn (WhenFn ?C))
+      (measure ?SCO (MeasureFn ?N2 ?V))))
+  (greaterThan ?N1 ?N2))
+
+(subclass AirConditioningCompressor Machine)
+(documentation AirConditioningCompressor EnglishLanguage "A &%Machine that pulls
+refrigerant in its &%Gas state out of the &%AirConditioningEvaporator and 
+subjects it to &%Compressing in a &%VaporCompressionCycle.")
+(typicalPart AirConditioningCompressor AirConditioner)
+(typicallyContainsPart AirConditioningCompressor AirConditioner)
+
+(=>
+  (instance ?ACC AirConditioningCompressor)
+  (hasPurpose ?ACC
+    (exists (?C)
+      (and
+        (instance ?C Cooling)
+        (instrument ?C ?ACC)))))
+
+(=>
+  (instance ?ACC AirConditioningCompressor)
+  (hasPurpose ?ACC
+    (exists (?C)
+      (and
+        (instance ?C Compressing)
+        (instrument ?C ?ACC)))))
+
+(subclass VaporCompressionCycle Cooling)
+(documentation VaporCompressionCycle EnglishLanguage "A complete cycle of &%Compressing,
+&%Condensing and &%Evaporating, for the purpose of &%Cooling.")
+(externalImage VaporCompressionCycle "http://upload.wikimedia.org/wikipedia/commons/5/5d/Refrigeration.png")
+
+(=>
+  (instance ?VCC VaporCompressionCycle)
+  (exists (?CMP ?COND ?EV ?CMP2)
+    (and
+      (instance ?CMP Compressing)
+      (instance ?COND Condensing)
+      (instance ?EV Evaporating)
+      (instance ?CMP2 Compressing)
+      (subProcess ?CMP ?VCC)
+      (subProcess ?COND ?VCC)
+      (subProcess ?EV ?VCC)
+      (subProcess ?CMP2 ?VCC)
+      (meetsTemporally 
+        (WhenFn ?CMP)
+        (WhenFn ?COND))
+      (meetsTemporally 
+        (WhenFn ?COND)
+        (WhenFn ?EV))
+      (meetsTemporally 
+        (WhenFn ?EV)
+        (WhenFn ?CMP2)))))
+
+(subclass AirConditioningCondenser Machine)
+(documentation AirConditioningCondenser EnglishLanguage "A &%Machine that pulls
+compressed refrigerant in its &%Gas state out of the &%AirConditioningCompressor and turns 
+it into a &%Liquid via a &%VaporCompressionCycle.")
+(typicalPart AirConditioningCondenser AirConditioner)
+(typicallyContainsPart AirConditioningCondenser AirConditioner)
+
+(=>
+  (instance ?ACC AirConditioningCondenser)
+  (hasPurpose ?ACC
+    (exists (?C)
+      (and
+        (instance ?C Cooling)
+        (instrument ?C ?ACC)))))
+      
+(=>
+  (instance ?ACC AirConditioningCondenser)
+  (hasPurpose ?ACC
+    (exists (?C)
+      (and
+        (instance ?C Condensing)
+        (instrument ?C ?ACC)))))
+
+(subclass AirConditioningEvaporator Machine)
+(documentation AirConditioningEvaporator EnglishLanguage "A &%Machine that pulls
+refrigerant in its &%Liquid state out of the &%AirConditioningCondenser and turns 
+it into a &%Gas via a &%VaporCompressionCycle.")
+(typicalPart AirConditioningEvaporator AirConditioner)
+(typicallyContainsPart AirConditioningEvaporator AirConditioner)
+
+(=>
+  (instance ?ACE AirConditioningEvaporator)
+  (hasPurpose ?ACE
+    (exists (?C)
+      (and
+        (instance ?C Cooling)
+        (instrument ?C ?ACE)))))
+      
+(=>
+  (instance ?ACE AirConditioningEvaporator)
+  (hasPurpose ?ACE
+    (exists (?C)
+      (and
+        (instance ?E Evaporating)
+        (instrument ?C ?ACE)))))
+
+(instance Rotation UnitOfMeasure)
+(documentation RevolutionsPerMinute EnglishLanguage "The number 
+of complete revolutions in one plane of motion for a given object.")
+
+(instance RotationFn BinaryFunction)
+(domain RotationFn 1 Rotation)
+(domain RotationFn 2 TimeDuration)
+(range RotationFn FunctionQuantity)
+
+(subclass CVJoint MechanicalJoint)
+(documentation CVJoint EnglishLanguage "A &%MechanicalJoint that allows two joined
+shafts to turn at the same speed throughout a range of angles with respect to 
+each other.  The most common type of CV joint is a &%BallJoint, although there are
+also other kinds.")
+
+(=>
+  (and
+    (instance ?SH1 Shaft)
+    (instance ?SH2 Shaft)
+    (not
+      (equal ?SH1 ?SH2))
+    (instance ?R1 Rotating)
+    (patient ?R1 ?SH1)
+    (instance ?R2 Rotating)
+    (patient ?R2 ?SH2)
+    (causes ?R1 ?R2)
+    (instance ?CV CVJoint)
+    (connectedEngineeringComponents ?R1 ?CV)
+    (connectedEngineeringComponents ?R2 ?CV)
+    (holdsDuring 
+      (WhenFn ?R1)
+      (equal ?SH1 (RotationFn ?N ?T))))
+  (holdsDuring 
+    (WhenFn ?R2)
+    (equal ?SH2 (RotationFn ?N ?T))))
+
+(subclass EngineCoolingSystem PhysicalSystem)
+(documentation EngineCoolingSystem EnglishLanguage "A system designed to keep the 
+engine cool (and therefore prevent it from seizing), that may also heat the
+passenger compartment as a byproduct.")
+(typicallyContainsPart EngineCoolingSystem Pump)
+
+(=>
+  (and
+    (instance ?ECS EngineCoolingSystem)
+    (instance ?E Engine)
+    (instance ?A Automobile)
+    (part ?ECS ?A)
+    (part ?E ?A))
+  (hasPurpose ?ECS
+    (exists (?C)
+      (and
+        (instance ?C Cooling)
+        (instrument ?C ?ECS)
+        (patient ?C ?E)))))
+
+(subclass LiquidEngineCoolingSystem EngineCoolingSystem)
+(documentation LiquidEngineCoolingSystem EnglishLanguage "A kind of 
+&%EngineCoolingSystem found in most &%Automobiles, that uses a liquid coolant 
+to cool the &%Engine. It consists of a series of tubes through which a coolant 
+can flow, a radiator, a pump, and a temperature sensor that allows
+the engine to reach a normal operating temperature before starting the cooling
+mechanism.")    
+(typicallyContainsPart Thermometer LiquidEngineCoolingSystem)
+
+(=>
+  (and
+    (instance ?LECS LiquidEngineCoolingSystem)
+    (instance ?C Cooling)
+    (instrument ?C ?LECS))
+  (exists (?L)
+    (and
+      (attribute ?L Liquid)
+      (objectTranferred ?C ?L))))
+
+(subclass AirEngineCoolingSystem EngineCoolingSystem)
+(documentation AirEngineCoolingSystem EnglishLanguage "A kind of 
+&%EngineCoolingSystem less commonly found in &%Automobiles than
+a &%LiquidEngineCoolingSystem. It uses a &%Air to cool the &%Engine.") 
+
+(=>
+  (and
+    (instance ?LECS AirEngineCoolingSystem)
+    (instance ?C Cooling)
+    (instrument ?C ?LECS))
+  (exists (?A)
+    (and
+      (instance ?A Air)
+      (objectTranferred ?C ?A))))
+
+(subclass Radiator EngineeringComponent)
+(documentation Radiator EnglishLanguage "A &%Device which is designed for
+having a &%Liquid travel through a metal honeycomb, in order to cool the
+liquid, which in turn is used to cool something else.")
+(typicalPart Radiator LiquidEngineCoolingSystem)
+(typicallyContainsPart Radiator LiquidEngineCoolingSystem)
+
+(=>
+  (instance ?R Radiator)
+  (hasPurpose ?R
+    (exists (?C)
+      (and
+        (instance ?C Cooling)
+        (instrument ?C ?R)))))
+
+(subclass EngineCranking Motion)
+(documentation EngineCranking EnglishLanguage "Starting an 
+&%InternalCombustionEngine, in which an electric motor is employed to
+initiate &%Rotating of the &%Crankshaft and &%Flywheel to the point where 
+&%Combusion can sustain the rotation.")
+
+(=>
+  (instance ?EC EngineCranking)
+  (exists (?EM ?E ?S ?R1 ?C ?R2)
+    (and
+      (instance ?EM ElectricalMotor)
+      (instance ?E InternalCombustionEngine)
+      (instance ?S Shaft)
+      (instance ?C Crankshaft)
+      (part ?S ?EM)
+      (instance ?R1 Rotating)
+      (patient ?R ?S)
+      (part ?C ?E)
+      (instance ?R2 Rotating)
+      (patient ?R2 ?C)
+      (part ?C ?E)
+      (causes ?R1 ?R2))))
+
+(subclass Flywheel EngineeringComponent)
+(documentation Flywheel EnglishLanguage "Any &%Device designed to smooth
+the application of force or keep a &%Shaft spinning in the absence of other
+power inputs.  It can either be massive or spin quickly (or both), in order 
+to have significant intertia.")
+
+(=>
+  (instance ?F Flywheel)
+  (hasPurpose ?F
+    (exists (?R1 ?R2)
+      (and
+        (instance ?R1 Rotating)
+        (instance ?R2 Rotating)
+        (patient ?R1 ?F)
+        (causes ?R1 ?R2)))))
+
+(instance RightAngle PositionalAttribute)
+
+(subclass Differential GearTrain)
+(documentation Differential EnglishLanguage "A set of &%Gears that change the
+axis of &%Rotating of a &%Shaft, in order to transmit power from an &%Automobile
+&%Engine to its &%Wheels.")
+
+(=>
+  (instance ?D Differential)
+  (exists (?G1 ?G2)
+    (and 
+      (instance ?G1 Gear)
+      (instance ?G2 Gear)
+      (part ?G1 ?D)
+      (part ?G2 ?D)
+      (orientation ?G1 ?G2 RightAngle))))
+
+(subclass Distributor Device)
+(documentation Distributor EnglishLanguage "A mechanical &%Device that is part of an
+&%InternalCombustionEngine that sends electric power to the &%SparkPlugs at
+intervals that track the speed of engine rotation.  They have been largely
+superceded in modern &%Automobile engines by electronic devices.")
+
+(=>
+  (instance ?D Distributor)
+  (hasPurpose ?D
+    (exists (?SP ?S ?O ?R ?E)
+      (and
+        (instance ?E Engine)
+        (instance ?SP SparkPlug)
+        (instance ?S Spark)
+        (part ?O ?D)
+        (part ?D ?E)
+        (part ?SP ?E)
+        (instance ?R Rotating)
+        (causes ?R ?S)))))
+
+(subclass Pulley DriveComponent)
+(documentation Pulley EnglishLanguage "A grooved wheel designed to hold a 
+&%Drivebelt, and transmit the force of &%Rotating to another &%Pulley.")
+
+(=>
+  (instance ?P Pulley)
+  (hasPurpose ?P
+    (exists (?P2 ?D ?R1 ?R2)
+      (and
+        (instance ?P2 Pulley)
+        (not
+          (equal ?P ?P2))
+        (instance ?D Drivebelt)
+        (instance ?R1 Rotating)
+        (instance ?R2 Rotating)
+        (connectedEngineeringComponents ?P ?D)
+        (connectedEngineeringComponents ?P2 ?D)
+        (patient ?R1 ?P)
+        (patient ?R2 ?P2)
+        (causes ?R1 ?R2)))))
+
+(subclass Drivebelt Device)
+(documentation Drivebest EnglishLanguage "A &%Pliable belt that links two
+&%Pulleys")
+
+(=>
+  (instance ?D Drivebelt)
+  (attribute ?D Pliable))
+
+(subclass Driveshaft Shaft)
+(documentation Driveshaft EnglishLanguage "A &%Shaft that transmits power
+from the &%AutomobileTransmission to a &%Differential or more directly to
+the &%Wheels of an &%Automobile.")
+
+(=>
+  (instance ?D Driveshaft)
+  (hasPurpose ?D
+    (exists (?R1 ?R2 ?W ?A)
+      (and
+        (instance ?A Automobile)
+        (instance ?W Wheel)
+        (part ?D ?A)
+        (part ?W ?A)
+        (instance ?R1 Rotating)
+        (patient ?R1 ?D)
+        (patient ?R2 ?W)
+        (causes ?R1 ?R2)))))
+
+(subclass AutomobileTransmission Gearbox)
+(documentation AutomobileTransmission EnglishLanguage "A &%Gearbox with
+several &%Gears that allow a given rotational speed of the &%Crankshaft
+to be translated ultimately to different speeds of the &%Driveshaft (within
+the power and maximum RPM capabilities of the &%Engine).")
+
+(=>
+  (instance ?AT AutomobileTransmission)
+  (hasPurpose ?AT
+    (exists (?C ?D ?A ?R1 ?N1 ?R2 ?R3 ?R4 ?N2 ?N3)
+      (and
+        (instance ?C Crankshaft)
+        (instance ?D Driveshaft)
+        (instance ?A Automobile)
+        (part ?D ?A)
+        (part ?AT ?A)
+        (part ?C ?A)
+        (connectedEngineeringComponents ?C ?AT)
+        (connectedEngineeringComponents ?D ?AT)
+        (instance ?R1 Rotation)
+        (instance ?R2 Rotation)        
+        (instance ?R3 Rotation)
+        (instance ?R4 Rotation)
+        (patient ?R1 ?C)
+        (patient ?R2 ?C)
+        (patient ?R3 ?D)
+        (patient ?R4 ?D)
+        (causes ?R1 ?R3)
+        (causes ?R2 ?R4)
+        (not
+          (equal ?R1 ?R2))
+        (holdsDuring ?R1
+          (measure ?C (RotationFn ?N1 MinuteDuration)))
+        (holdsDuring ?R2
+          (measure ?C (RotationFn ?N1 MinuteDuration))) 
+        (holdsDuring ?R3
+          (measure ?D (RotationFn ?N2 MinuteDuration))) 
+        (holdsDuring ?R4
+          (measure ?D (RotationFn ?N3 MinuteDuration))) 
+        (not
+          (equal ?N2 ?N3))))))
+
+(subclass ElectricTransmission Transfer)
+(subclass ElectricTransmission RadiatingElectromagnetic)
+(documentation ElectricTransmission EnglishLanguage "The movement of a
+electric potential (modeled as a &%Substance) from one point to another
+necessarily through a conductive medium (although the degree of 
+conductivity may be quite low, as in &%Lightning through &%Air).")
+
+(=>
+  (instance ?EC ElectricTransmission)
+  (exists (?E)
+    (and
+      (instance ?E Electricity)
+      (objectTransferred ?EC ?E))))
+
+(subclass Charging ElectricTransmission)
+(documentation Charging EnglishLanguage "The &%Process of moving electric
+potential into a &%RechargeableBattery.")
+
+(=>
+  (instance ?C Charging)
+  (exists (?RB)
+    (and
+      (instance ?RB RechargeableBattery)
+      (destination ?C ?RB))))
+
+(subclass Discharging ElectricTransmission)
+(documentation Charging EnglishLanguage "The &%Process of moving electric
+potential out of a &%Battery.")
+
+(=>
+  (instance ?D Discharging)
+  (exists (?B)
+    (and
+      (instance ?B Battery)
+      (origin ?D ?B))))
+
+(subclass RechargeableBattery Battery)
+(documentation RechargeableBattery EnglishLanguage "A &%Battery that may
+be recharged after discharge.  &%LeadAcidWetBattery(s) are the most common
+subclass.")
+
+(=>
+  (instance ?RB RechargeableBattery)
+  (capability Charging destination ?RB))
+
+(subclass NonRechargeableBattery Battery)
+(documentation NonRechargeableBattery EnglishLanguage "A &%Battery that is
+not capable of being subjected to &%Recharging.")
+
+(=>
+  (instance ?RB RechargeableBattery)
+  (not 
+    (capability Charging destination ?RB)))
+
+(subclass LeadAcidWetBattery RechargeableBattery)
+(documentation LeadAcidWetBattery EnglishLanguage "One of the most prevalent
+types of &%Battery.  It consists of plates made (in part) of &%Lead, in
+an &%Acid solution.")
+
+(=>
+  (instance ?LAWB LeadAcidWetBattery)
+  (material Lead LeadAcidWetBattery))
+
+(=>
+  (instance ?LAWB LeadAcidWetBattery)
+  (material Acid LeadAcidWetBattery))
+
+(=>
+  (instance ?LAWB LeadAcidWetBattery)
+  (material Water LeadAcidWetBattery))
+
+(externalImage LeadAcidWetBattery "http://en.wikipedia.org/wiki/File:Photo-CarBattery.jpg")
+
+(subclass Acid Substance)
+(documentation Acid EnglishLanguage "Acids are substances which increase 
+the concentration of hydronium ions (H3O+) in solution, substances which 
+can act as a proton donor, and substances which are are electron-pair acceptors.
+This is a restrictive definition combining the 'Arrhenius definition',
+the 'Brønsted-Lowry definition' and the 'Lewis definition' [adapted from Wikipedia]")
+
+(subclass SulfuricAcid Acid)
+(documentation SulfuricAcid EnglishLanguage "Sulfuric acid 
+is a highly corrosive strong mineral acid with the molecular formula H2SO4. 
+It is a colorless to slightly yellow viscous &%Liquid and is soluble in &%Water.
+The corrosiveness of it is mainly due to its strong acidic nature, strong 
+dehydrating property and if concentrated strong oxidizing property.
+It has many applications and is a central &%Substance in the chemical industry. 
+Principal uses include &%LeadAcidWetBattery(s) for &%Automobiles and other &%Vehicles, 
+mineral processing, fertilizer manufacturing, oil refining, wastewater 
+processing, and &%ChemicalSynthesis. [from Wikipedia]")
+
+(molecularRatio Hydrogen 2 SulfuricAcid)
+(molecularRatio Sulphur 1 SulfuricAcid)
+(molecularRatio Oxygen 4 SulfuricAcid)
+
+(subclass Electrolyte ConductorSubstance)
+(documentation Electrolyte EnglishLanguage "A &%Substance that conducts 
+&%Electricity and is a &%Liquid, typically found in &%Battery(s).  In a
+&%LeadAcidWetBattery the electrolyte is a &%Mixture of distilled &%Water and
+&%SulfuricAcid.")
+ 
+(=>
+  (instance ?E Electrolyte)
+  (hasPurpose ?E
+    (exists (?ET)
+      (and
+        (instance ?ET ElectricTransmission)
+        (patient ?ET ?E)
+        (holdsDuring ?ET
+          (attribute ?E Liquid))))))
+
+
 
