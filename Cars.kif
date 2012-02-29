@@ -1590,8 +1590,8 @@ to contain &%Combustion events.")
       (equal ?CC (HoleHostFn ?H)))))
 
 (subclass CatalyticConverter CombustionChamber)
-(typicalPart CatalyticConverter Automobile)
-(typicallyContainsPart CatalyticConverter Automobile)
+(typicalPart CatalyticConverter AutomobileExhaustSystem)
+(typicallyContainsPart CatalyticConverter AutomobileExhaustSystem)
 
 (=>
   (and
@@ -2124,7 +2124,7 @@ superceded in modern &%Automobile engines by electronic devices.")
         (causes ?R1 ?R2)))))
 
 (subclass Drivebelt Device)
-(documentation Drivebest EnglishLanguage "A &%Pliable belt that links two
+(documentation Drivebelt EnglishLanguage "A &%Pliable belt that links two
 &%Pulleys")
 
 (=>
@@ -2303,5 +2303,461 @@ processing, and &%ChemicalSynthesis. [from Wikipedia]")
         (holdsDuring ?ET
           (attribute ?E Liquid))))))
 
+(subclass EngineControlModule Computer)
+(documentation EngineControlModule EnglishLanguage "A &%Computer that is 
+present in most modern &%Automobiles, which controls the major functions of
+the &%Engine, including the &%Air - &%Fuel &%Mixture, ignition timing and
+pollution control systems.")
+
+(=>
+  (instance ?ECM EngineControlModule)
+  (hasPurpose ?ECM
+    (exists (?A ?E ?P1 ?P2)
+      (and
+        (instance ?A Automobile)
+        (instance ?E Engine)
+        (instance ?P1 Process)
+        (instance ?P2 Process)
+        (part ?E ?A)
+        (part ?ECM ?A)
+        (eventLocated ?P1 ?ECM)
+        (eventLocated ?P2 ?E)
+        (causes ?P1 ?P2)))))
+
+(subclass GasPedal Device)
+(documentation GasPedal EnglishLanguage "A &%Device that controls the
+flow of &%Fuel (which may be &%Diesel as well as &%Gasoline) to the
+&%Engine.")
+
+(=>
+  (instance ?GP GasPedal)
+  (hasPurpose ?GP
+    (exists (?P ?T ?F ?E ?A)
+      (and
+        (instance ?P Pushing)
+        (instance ?T Transfer)
+        (instance ?F Fuel)
+        (instance ?E Engine)
+        (instance ?A Automobile)
+        (part ?GP ?A)
+        (part ?E ?A)
+        (destination ?P ?GP)
+        (destination ?T ?E)
+        (patient ?T ?F)
+        (causes ?P ?T)))))
+
+(instance engineIdleSpeed BinaryRelation)
+(domain engineIdleSpeed 1 InternalCombusionEngine)
+(domain engineIdleSpeed 2 FunctionQuantity)
+(documentation engineIdleSpeed EnglishLanguage "The rotation rate of the
+&%Crankshaft that exists when the &%Engine is running but the &%GasPedal
+is not depressed. Note that under certain conditions of load on the engine 
+and gear ratio, the same speed is possible even when the gas pedal is
+depressed.")
+
+(=>
+  (and
+    (holdsDuring ?T
+      (measure ?C ?S))
+    (engineIdleSpeed ?E ?S)
+    (instance ?A Automobile)
+    (part ?E ?A)
+    (part ?C ?E))
+  (modalAttribute
+    (not
+      (exists (?P ?GP)
+        (and
+          (during ?P ?T)
+          (instance ?P Pushing)
+          (destination ?P ?GP)
+          (part ?GP ?A))))
+    Likely))
+
+(=>
+  (and
+    (engineIdleSpeed ?E (RotationFn ?N1 ?M))
+    (instance ?A Automobile)
+    (instance ?P GasPedal)
+    (instance ?P Pushing)
+    (destination ?P ?GP)
+    (part ?GP ?A)
+    (instance ?C Crankshaft)
+    (part ?C ?A)
+    (measure ?C (RotationFn ?N2 ?M)))
+  (modalAttribute
+    (greaterThan ?N2 ?N1)
+    Likely))
+
+(subclass AutomobileExhaustSystem PhysicalSystem)
+(documentation AutomobileExhaustSystem EnglishLanguage "A &%part of an
+&%Automobile that handles the venting of &%Exhaust from the &%Engine.
+It typically includes an exhaust manifold, &%Muffler and &%Tailpipe.
+Modern engines may also include a &%CatalyticConverter and exhaust
+recirculation hoses and controls.")
+
+(subclass AutomobileMuffler Device)
+(documentation AutomobileMuffler EnglishLanguage "A &%part of an
+&%AutomobileExhaustSystem that serves to reduce the amount of noise
+transmitted from the &%Engine to the environment.")
+
+(subclass ExhaustManifold Device)
+(documentation ExhaustManifold EnglishLanguage "A junction of several &%Tubes,
+which take exhaust &%Gases from the &%Engine &%Cylinders and route them to the
+&%Muffler and &%Tailpipe.")
+
+(typicalPart ExhaustManifold AutomobileExhaustSystem)
+(typicallyContainsPart ExhaustManifold AutomobileExhaustSystem)
+
+(=>
+  (instance ?EM ExhaustManifold)
+  (hasPurpose ?EM
+    (exists (?A ?E ?C ?M ?T)
+      (and
+        (instance ?A Automobile)
+        (instance ?E Exhaust)
+        (instance ?C EngineCylinder)
+        (instance ?M Muffler)
+        (instance ?T Transfer)
+        (part ?EM ?A)
+        (part ?C ?A)
+        (part ?M ?A)
+	(origin ?T ?C)
+        (destination ?T ?M)
+        (patient ?T ?E)
+        (instrument ?T ?E)))))
+
+(=>
+  (instance ?EM ExhaustManifold)
+  (exists (?T1 ?T2)
+    (and
+      (instance ?T1 Tube)
+      (instance ?T2 Tube)
+      (not
+        (equal ?T1 ?T2))
+      (part ?T1 ?EM)
+      (part ?T2 ?EM))))
+
+(subclass ExhaustValve Valve)
+(documentation ExhaustValve EnglishLanguage "A &%Valve that opens to let the
+&%Exhaust escape into the &%ExhaustManifold.")
+(typicalPart ExhaustValve FourStrokeEngine)
+(typicallyContainsPart ExhaustValve FourStrokeEngine)
+
+(=>
+  (instance ?EV ExhaustValue)
+  (hasPurpose ?EV
+    (exists (?E ?T)
+      (and
+        (instance ?T Transfer)
+        (objectTransferred ?T ?E)
+        (path ?T ?EV)
+        (instance ?E Exhaust)))))
+
+(=>
+  (instance ?EV ExhaustValue)
+  (hasPurpose ?EV
+    (exists (?EM)
+      (and
+        (instance ?EM ExhaustManifold)
+        (connectedEngineeringComponents ?EV ?EM)))))
+
+(subclass FanBelt Drivebelt)
+(documentation FanBelt EnglishLanguage "A &%Drivebelt driven from a &%Pulley &%connected
+to the &%Crankshaft, which drives other systems, such as the &%EngineFan, &%EngineWaterPump
+etc.")
+(=>
+  (instance ?FB FanBelt)
+  (hasPurpose ?FB
+    (exists (?P1 ?P2 ?C ?A)
+      (and
+        (instance ?P1 Pulley)
+        (instance ?P2 Pulley)
+        (not
+          (equal ?P1 ?P2))
+        (instance ?C Crankshaft)
+        (instance ?A Automobile)
+        (part ?P1 ?A)
+        (part ?P2 ?A)
+        (part ?C ?A)
+        (part ?FB ?A)
+        (connectedEngineeringComponents ?C ?P1)
+        (connectedEngineeringComponents ?P1 ?FB)
+        (connectedEngineeringComponents ?FB ?P2)))))
+
+(=>
+  (and
+    (instance ?FB FanBelt)
+    (instance ?EF EngineFan)
+    (instance ?A Automobile)
+    (part ?FB ?A)
+    (part ?EF ?A)
+    (instance ?M Motion)
+    (patient ?M ?FB))
+  (hasPurpose ?FB
+    (exists (?M2)
+      (and
+        (instance ?M2 Rotating)
+        (causes ?M ?M2)
+        (patient ?M2 ?EF)))))
+
+(subclass EngineFan FanDevice)
+(documentation EngineFan "A &%FanDevice that is part of an &%Engine, designed
+for &%Cooling the engine, and therefore distinguished from fans that are for
+moving &%Air in the passenger compartment of an &%Automobile.")
+
+(=>
+  (instance ?EF EngineFan)
+  (hasPurpose ?EF
+    (exists (?C ?E ?A)
+      (and 
+        (instance ?A Automobile)
+        (instance ?C Cooling)
+        (instance ?E InternalCombustionEngine)
+        (part ?E ?A)
+        (part ?EF ?A)
+        (instrument ?C ?EF)
+        (patient ?C ?E)))))
+
+(subclass WaterPump Pump)
+(documentation WaterPump EnglishLanguage "A &%Pump that is designed to move &%Water.")
+
+(=>
+  (instance ?WP WaterPump)
+  (hasPurpose ?WP
+    (exists (?T ?W)
+      (and
+        (instance ?T Transfer)
+        (instance ?W Water)
+        (objectTransferred ?T ?W)
+        (instrument ?T ?WP)))))
+
+(subclass EngineWaterPump WaterPump)
+(documentation EngineWaterPump EnglishLanguage "A &%WaterPump that is intended to move
+&%Water (and possibly other additives such as &%Alcohol to lower the &%meltingPoint) 
+in the &%EngineCoolingSystem.")
+
+(typicalPart EngineWaterPump EngineCoolingSystem)
+(typicallyContainsPart EngineWaterPump EngineCoolingSystem)
+
+(subclass FeelerGauge MeasuringDevice)
+(documentation FeelerGauge EnglishLanguage "A &%Device used to measure small gaps.  It
+is typically a &%Collection of several such gauges of varying thicknesses that a user
+places into the gap until one is found that fits with slight resistence, which indicates
+a good assessment of the size of the gap.  A typical use is measure the gap between
+electrodes of a &%SparkPlug.")
+
+(=>
+  (instance ?FG FeelerGauge)
+  (hasPurpose ?FG
+    (exists (?TP ?M)
+      (and
+        (instance ?M Measuring)
+        (instance ?TP TactilePerception)
+        (subProcess ?TP ?M)
+        (instrument ?M ?FG)))))
+
+(instance EngineFlooded RelationalAttribute)
+(documentation EngineFlooded EnglishLanguage "A state in which an &%InternalCombustionEngine
+has too much &%Fuel in its &%CombustionChamber to operate as intended.")
+
+(=>
+  (and
+    (instance ?E InternalCombustionEngine)
+    (instance ?CC CombustionChamber)
+    (part ?CC ?E)
+    (instance ?F Fuel)
+    (instance ?M UnitOfVolume)
+    (holdsDuring ?T
+      (and
+        (contains ?CC ?F)
+        (measure ?F (MeasureFn ?N1 ?M))
+        (attribute ?E EngineFlooded))))
+  (hasPurpose ?CC
+    (not
+      (exists (?T2 ?F2)
+        (and
+          (instance ?F2 Fuel)
+          (contains ?CC ?F2)
+          (measure ?F2 (MeasureFn ?N2 ?M))
+          (greaterThanOrEqualTo ?N2 ?N1))))))
+
+(subclass Gasket Device)
+(documentation Gasket EnglishLanguage "A &%Device that is designed to allow two 
+imperfect surfaces to mate cleanly, without gaps, and therefore prevent leakage 
+of any &%Liquids.")
+
+;; complex rule below needs review.  It attempts to state that a Gasket has the
+;; purpose such that there is no path through the Gasket such that something
+;; can arrive outside the gasketed object and its mate without passing through
+;; the mate.
+
+(=>
+  (instance ?G Gasket)
+  (hasPurpose ?G
+    (exists (?O1 ?O2)
+      (and
+        (instance ?O1 CorpuscularObject)
+        (instance ?O2 CorpuscularObject)
+        (meetsSpatially ?O1 ?G)
+        (meetsSpatially ?O2 ?G)
+        (not 
+          (exists (?H)
+            (and
+              (instance ?H Hole)
+              (equal ?G (HoleHostFn ?H))
+              (instance ?T Translocation)
+              (path ?T ?H)
+              (origin ?T ?O)
+              (destination ?T ?D)
+              (contains ?O1 ?O)
+              (not
+                (contains ?O1 ?D))
+              (meetsSpatially ?O1 ?D)
+              (not
+                (exists (?O3)
+                  (and 
+                    (contains ?H ?O3)
+                    (not
+                      (contains ?O1 ?O3))
+                    (not 
+                      (contains ?O2 ?O3))))))))))))
+
+(documentation governorSpeed EnglishLanguage "The maximum speed under normal conditions 
+that a governor will allow a moving part or vehicle to attain before killing power. Note
+that a vehicle could still conceivably exceed governed speed while coasting down a hill, 
+after the governor has activated.") 
+
+(domain governorSpeed 1 CorpuscularObject) 	
+(domain governorSpeed 2 FunctionQuantity) 
+(instance governorSpeed BinaryPredicate) 
+
+(=>
+  (and
+    (governorSpeed ?V ?Q)
+    (equal ?FASTPROB
+      (ProbabilityFn
+        (measure ?V
+          (PerFn ?L1 ?T1))))
+    (equal ?SLOWPROB
+      (ProbabilityFn
+        (measure ?V
+          (PerFn ?L2 ?T2))))
+    (greaterThan
+      (PerFn ?L1 ?T1)
+      (PerFn ?L2 ?T2)))
+  (greaterThan ?SLOWPROB ?FASTPROB))
+
+(subclass SpeedGovernor Device)
+(documentation SpeedGovernor EnglishLanguage "Any &%Device that is designed
+to limit the speed of an object under power.")
+
+(=>
+  (and
+    (instance ?G Governor)
+    (governorSpeed ?V ?S)
+    (connectedEngineeringComponents ?G ?V))
+  (hasPurpose ?G
+    (not
+      (exists (?SP2)
+        (and
+          (measure ?V ?SP2)
+          (greaterThan ?SP2 ?S))))))
+            
+(subclass EngineGovernor SpeedGovernor)
+(documentation EngineGovernor EnglishLanguage "A &%Device that limits the 
+rotational speed of the &%Crankshaft of an engine.  This is distinguished 
+from an &%AutomobileGovernor which is designed to limit the speed of an 
+entire &%Automobile.")
+
+(=>
+  (and
+    (instance ?EG EngineGovernor)
+    (instance ?E Engine)
+    (connectedEngineeringComponents ?EG ?E)
+    (governorSpeed ?E ?S))
+  (hasPurpose ?EG
+    (not
+      (exists (?R ?P ?M)
+        (and
+          (instance ?P Device)
+          (part ?P ?E)
+          (instance ?R Rotating)
+          (holdsDuring (WhenFn ?R)
+            (and
+              (measure ?P ?M)
+              (greaterThan ?M ?S))))))))
+
+(subclass AutomobileGovernor SpeedGovernor)
+(documentation AutomobileGovernor EnglishLanguage "A &%Device that limits the 
+translational speed of a &%Vehicle.  This is distinguished 
+from an &%EngineGovernor which is designed to limit the rotational speed of part
+of an &%Engine.")
+
+(=>
+  (and
+    (instance ?EG EngineGovernor)
+    (instance ?V Vehicle)
+    (connectedEngineeringComponents ?EG ?V)
+    (governorSpeed ?E ?S))
+  (hasPurpose ?EG
+    (not
+      (exists (?T ?M)
+        (and
+          (instance ?T Translocation)
+          (holdsDuring (WhenFn ?T)
+            (and
+              (measure ?V ?M)
+              (greaterThan ?M ?S))))))))
+
+(subclass Lubricant Substance)
+(documentation Lubricant EnglishLanguage "Any &%Substance that reduces &%Friction
+between two objects that are in contact and move with respect to one another.  Note
+that this does not include &%CorpuscularObjects like &%BallBearings.")
+
+(subclass Grease Lubricant)
+(documentation Grease EnglishLanguage "Any &%Lubricant that is a &%Solid at 
+standard ambient temperature.")
+
+(=>
+  (and
+    (instance ?G Grease)
+    (holdsDuring ?T
+      (measure ?G (MeasureFn 77 FahrenheitDegree))))
+  (holdsDuring ?T
+    (attribute ?G Solid)))
+
+(subclass Lubricating Putting)
+(documentation Lubricating EnglishLanguage "&%Putting a &%Lubricant on some
+&%Object with the purpose to reduce &%Friction when that part moves against another.")
+
+(=>
+  (instance ?LP Lubricating)
+  (exists (?L)
+    (and
+      (instance ?L Lubricant)
+      (objectTransferred ?LP ?L))))
+
+(subclass GreaseFitting Device)
+(documentation GreaseFitting EnglishLanguage "A grease fitting is a small &%Device
+that is designed for use with a &%GreaseGun, and includes a &%Valve that lets
+&%Grease get pumped into (but not out of) a small space, for the purpose of 
+&%Lubricating parts.")
+
+(=>
+  (instance ?GF GreaseFitting)
+  (exists (?V)
+    (and
+      (instance ?V Valve)
+      (part ?V ?GF))))
+
+(=>
+  (instance ?GF GreaseFitting)
+  (hasPurpose ?GF
+    (exists (?P ?G)
+      (and
+        (instance ?G Grease)
+        (instance ?P Putting)
+        (path ?P ?GF)
+        (objectTransferred ?P ?G)))))
 
 
