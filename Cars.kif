@@ -868,7 +868,7 @@ least for a while, after a force is applied.")
 (termFormat EnglishLanguage AutomobileShock "shock")
 (typicalPart AutomobileShock AutoSuspensionSystem)
 (documentation AutomobileShock EnglishLanguage "A &%Damper that is part of a modern &%RoadVehicle's
-&%AutoSuspensionSystem.  It may include various kinds of fluids and valves that have the effect
+&%AutoSuspensionSystem.  It may include various kinds of fluids that have the effect
 of being a &%Damper on &%Motion.")
 
 (=>
@@ -896,6 +896,23 @@ of being a &%Damper on &%Motion.")
 
 (typicalPart AutomobileShock Automobile)
 (typicallyContainsPart AutomobileShock Automobile)
+
+(=>
+  (and
+    (instance ?AS AutomobileShock)
+    (instance ?C Compressing)
+    (instance ?H Hole)
+    (attribute ?F Fluid)
+    (equal ?AS (HoleHostFn ?H))
+    (contains ?AS ?F)
+    (patient ?C ?AS))
+  (exists (?T)
+    (and
+      (instance ?T Transfer)
+      (objectTransferred ?T ?F)
+      (path ?T ?H)
+      (causes ?C ?T))))
+
   
 (subclass LeafSpring Spring)
 (documentation LeafSpring EnglishLanguage "A type of spring found in &%Trucks
@@ -1926,6 +1943,36 @@ retracted.")
     (minCylinderVolume ?E (MeasureFn ?MIN ?M))
     (maxCylinderVolume ?E (MeasureFn ?MAX ?M))
     (equal ?R (DivisionFn ?MIN ?MAX))))
+
+(instance pistonStroke BinaryRelation)
+(subrelation pistonStroke distance)
+(domain pistonStroke 1 Engine)
+(domain pistonStroke 2 LengthMeasure)
+(format EnglishLanguage pistonStroke 
+"the maximum distance that the pistons of engine %1 travel is %n %2")
+(documentation pistonStroke EnglishLanguage "The maximum &%distance that a piston
+travels during normal operation of the &%Engine.")
+
+(=>
+  (and
+    (instance ?EC EngineCycle)
+    (instance ?E InternalCombustionEngine)
+    (instance ?P Piston)
+    (part ?P ?E)
+    (patient ?EC ?P)
+    (eventLocated ?EC ?E)
+    (pistonStroke ?E ?LM))
+  (not
+    (exists (?T1 ?T2 ?L1 ?L2 ?D)
+      (and
+        (during ?T1 (WhenFn ?EC))
+        (during ?T2 (WhenFn ?EC))
+        (holdsDuring ?T1
+          (located ?P ?L1))
+        (holdsDuring ?T2
+          (located ?P ?L2))
+        (distance ?L1 ?L2 ?D)
+        (greaterThan ?D ?LM)))))
 
 (subclass EngineConnectingRod Device)
 (termFormat EnglishLanguage EngineConnectingRod "engine connecting rod")
@@ -3335,15 +3382,559 @@ prevent (or lessen the likelihood of) the &%Injuring of a &%Human.")
         (experiencer ?I ?H)
         (instrument ?P ?SD)
         (prevents ?P ?I)))))
-       
+
+(subclass VehicleSafetyDevice SafetyDevice)
+(termFormat EnglishLanguage VehicleSafetyDevice "vehicle safety device")
+(documentation VehicleSafetyDevice EnglishLanguage "Any &%SafetyDevice 
+that is designed to prevent (or lessen the likelihood of) the &%Injuring 
+of a &%Human while in &%Vehicle.")
+
+(=>
+  (instance ?VSD VehicleSafetyDevice)
+  (hasPurpose ?VSD
+    (exists (?V)
+      (and
+        (instance ?V Vehicle)
+        (part ?VSD ?V)))))
+
 (subclass Balloon FluidContainer)
 (termFormat EnglishLanguage Balloon "balloon")
+(documentation Balloon EnglishLanguage "Any &%Pliable container that is
+made for holding a &%Gas.")
 
-(subclass AutoAirbag SafetyDevice)
+(=>
+  (instance ?B Balloon)
+  (attibute ?B Pliable))
+
+(=>
+  (instance ?B Balloon)
+  (hasPurpose ?B
+    (exists (?G)
+      (and
+        (attribute ?G Gas)
+        (contains ?B ?G)))))
+
+(subclass Inflating Increasing)
+(termFormat EnglishLanguage Inflating "Any &%Process where a &%Balloon is
+filled with a &%Gas.")
+
+(=>
+  (instance ?I Inflating)
+  (exists (?G1 ?G2 ?V1 ?V2 ?S)
+    (and
+      (instance ?G1 ?S)
+      (instance ?G2 ?S)
+      (attribute ?G1 Gas)
+      (attribute ?G2 Gas)
+      (instance ?V1 VolumeMeasure)
+      (holdsDuring (ImmediatePastFn (WhenFn ?I))
+        (measure ?G1 ?V1))
+      (holdsDuring (ImmediateFutureFn (WhenFn ?I))
+        (measure ?G2 ?V2))
+      (greaterThan ?G2 ?G1))))
+
+(subclass AutoAirbag VehicleSafetyDevice)
 (subclass AutoAirbag Balloon)
 (termFormat EnglishLanguage AutoAirbag "airbag")
-(documentation AutoAirbag EnglishLanguage "A device that is designed to present
-&%Injuring of an occupant of a &%Vehicle.  Sensors that detect a sudden &%Decelerating
+(documentation AutoAirbag EnglishLanguage "Sensors that detect a sudden &%Decelerating
 deploy the airbag by an explosive release of a &%Gas that fills the bag before the
 occupant can be thrown against the hard interior surfaces of the &%Vehicle.")
+(typicallyContainsPart AutoAirbag Automobile)
 
+(=>
+  (instance ?AB Airbag)
+  (hasPurpose ?AB
+    (exists (?A ?D ?H ?I ?P)
+      (and
+        (instance ?A Automobile)
+        (instance ?D Decelerating)
+        (instance ?H Impacting)
+        (instance ?I Inflating)
+        (instance ?P Human)
+        (holdsDuring (WhenFn ?D)
+          (contains ?A ?P))
+        (part ?AB ?A)
+        (patient ?D ?A)
+        (patient ?I ?AB)
+        (objectTransferred ?H ?P)
+        (destination ?H ?A)
+        (prevents ?I ?H)))))
+        
+(subclass SeatBelt VehicleSafetyDevice)
+(termFormat EnglishLanguage SeatBelt "seat belt")
+(documentation SeatBelt EnglishLanguage "A flexible belt that is part of
+a &%Vehicle, and worn across the waist, and also typically the shoulder,
+that prevents impact of the wearer into the interior surfaces of the 
+&%Vehicle during rapid &%Decelerating.")
+
+(typicallyContainsPart SeatBelt Automobile)
+
+(=>
+  (instance ?SB SeatBelt)
+  (attribute ?SB Pliable))
+
+(subclass PistonRing Gasket)
+(termFormat EnglishLanguage PistonRing "piston ring")
+(documentation PistonRing EnglishLanguage "A &%Piston typically has several
+such rings to seal the piston against the &%EngineCylinder while allowing it
+to move, and yet contain &%Combustion and the &%Oil that is used for 
+&%Lubricating the involved surfaces.")
+(typicalPart PistonRing Piston)
+(typicallyContainsPart PistonRing Piston)
+
+(subclass PositiveCrankcaseVentilationValve Valve)
+(termFormat EnglishLanguage PositiveCrankcaseVentilationValve "positive crankcase ventilation valve")
+(documentation PositiveCrankcaseVentilationValve EnglishLanguage "A valve
+that is designed to send unburned fuel that escapes into the &%Crankcase
+back to the &%CombustionChamber.")
+(typicalPart PositiveCrankcaseVentilationValve FourStrokeEngine)
+
+(=>
+  (instance ?PCVV PositiveCrankcaseVentilationValve)
+  (hasPurpose ?PCVV
+    (exists (?CR ?F ?CC ?T ?A)
+      (and
+        (instance ?CR Crankcase)
+        (instance ?F Fuel)
+        (instance ?CC CombustionChamber)
+        (instance ?T Transfer)
+        (instance ?A Automobile)
+        (part ?CR ?A)
+        (part ?CC ?A)
+        (part ?PCVV ?A)
+        (origin ?T ?CR)
+        (destination ?T ?CC)
+        (objectTransferred ?T ?F)
+        (path ?T ?PCVV)))))
+
+(subclass Lever Device)
+(termFormat EnglishLanguage Lever "lever")
+(documentation Lever EnglishLanguage "Anything which is actually used
+as a lever, since many things can be used as such, regardless of the
+intent during their &%Manufacture.  A lever necessarily has a &%Fulcrum
+around which the lever exhibits &%Rotating.  A lever has a mechanical
+advantage at the point of output compared to the point of input of
+force.")
+(externalImage Lever "http://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Palanca-ejemplo.jpg/800px-Palanca-ejemplo.jpg")
+
+(=>
+  (instance ?L Lever)
+  (exists (?A)
+    (axis ?A ?L)))
+
+(=>
+  (and
+    (instance ?L Lever)
+    (instance ?P Pushing)
+    (instance ?M1 Motion)
+    (destination ?P ?E1)
+    (physicalEnd ?E1 ?L)
+    (physicalEnd ?E2 ?L)
+    (not
+      (equals ?E1 ?E2))
+    (holdsDuring (ImmediatePastFn (WhenFn ?M1))
+      (located ?E1 ?P1))
+    (holdsDuring (ImmediateFutureFn (WhenFn ?M1))
+      (located ?E1 ?P2))
+    (holdsDuring (ImmediatePastFn (WhenFn ?M1))
+      (located ?E2 ?P3))
+    (holdsDuring (ImmediateFutureFn (WhenFn ?M1))
+      (located ?E2 ?P4))
+    (distance ?P1 ?P2 ?D1)
+    (distance ?P3 ?P4 ?D2))
+  (greaterThan ?D2 ?D1))
+
+(subclass RockerArm Device)
+(termFormat EnglishLanguage RockerArm "A &%Device located in the &%Cylinder
+head of a &%FourStrokeEngine that opens a &%Valve.  It is typically 
+activated by contact from a &%Cam on the &%Camshaft.")
+(typicalPart RockerArm FourStrokeEngine)
+(typicallyContainsPart RockerArm FourStrokeEngine)
+
+(=>
+  (instance ?RA RockerArm)
+  (hasPurpose ?RA
+    (exists (?P1 ?C ?P2 ?V ?O ?FSE)
+      (and
+        (instance ?P1 Pushing)
+        (instance ?C Cam)
+        (instance ?P2 Pushing)
+        (instance ?V Valve)
+        (instance ?O Opening)
+        (instance ?FSE FourStrokeEngine)
+        (part ?RA ?FSE)
+        (part ?C ?FSE)
+        (part ?V ?FSE)
+        (instrument ?P1 ?C)
+        (destination ?P1 ?RA)
+        (instrument ?P2 ?RA)
+        (destination ?P2 ?V)
+        (causes ?P1 ?P2)
+        (causes ?P2 ?O)
+        (patient ?O ?V)))))
+
+(subclass Solenoid ElectricDevice)
+
+(subclass Magnet Object)
+(termFormat EnglishLanguage Magnet "magnet")
+(documentation Magnet EnglishLanguage "Any object that emits &%Magnetism.
+Note that this includes both &%NaturalMagnets and &%Electromagnets and
+therefore the most specific superclass is &%Object, since natural magnets
+are divisible &%Substances and electromagnets are &%CorpuscularObjects.")
+
+(=>
+  (instance ?M Magnet)
+  (exists (?MAG)
+    (and
+      (instance ?MAG Magnetism)
+      (instrument ?MAG ?M))))
+
+(subclass NaturalMagnet Magnet)
+(subclass NaturalMagnet NaturalSubstance)
+(termFormat EnglishLanguage NaturalMagnet "magnet")
+(documentation NaturalMagnet EnglishLanguage "Any &%Substance from nature that
+exhibits &%Magnetism.")
+
+(subclass Electromagnet Magnet)
+(subclass Electromagnet ElectricDevice)
+(termFormat EnglishLanguage Electromagnet "electromagnet")
+(documentation Electromagnet EnglishLanguage "A &%Magnet that is created by
+sending &%Electricity through coils of &%Wire that are wound around a 
+ferromagnetic core.")
+
+(=>
+  (and
+    (instance ?EM Electromagnet)
+    (instance ?T Transfer)
+    (instance ?E Electricity)
+    (objectTransferred ?T ?E)
+    (path ?T ?EM))
+  (exists (?M)
+    (and
+      (instance ?M Magnetism)
+      (instrument ?M ?EM))))
+
+(=>
+  (and
+    (instance ?EM Electromagnet)
+    (not
+      (holdsDuring ?T1
+        (exists (?T ?E)
+          (and
+            (instance ?T Transfer)
+            (instance ?E Electricity)
+            (objectTransferred ?T ?E)
+            (path ?T ?EM))))))
+  (not
+    (holdsDuring ?T1
+      (exists (?M)
+        (and
+          (instance ?M Magnetism)
+          (instrument ?M ?EM))))))
+
+(subclass Solenoid ElectricDevice)
+(termFormat EnglishLanguage Solenoid "solenoid")
+(documentation Solenoid EnglishLanguage "A &%Device that uses an
+&%Electromagnet to actuate an arm or shaft to perform some function.")
+
+(=>
+  (instance ?S Solenoid)
+  (hasPurpose ?S
+    (exists (?P ?T1 ?T2 ?L1 ?L2)
+      (and
+        (part ?P ?S)
+        (holdsDuring ?T1
+          (and 
+            (attribute ?S DeviceOn)
+            (located ?P ?L1)))
+        (holdsDuring ?T2
+          (and 
+            (attribute ?S DeviceOn)
+            (located ?P ?L2)))
+        (not
+          (equal ?L1 ?L2))))))
+
+(subclass StarterMotor Motor)
+(termFormat EnglishLanguage StarterMotor "starter motor")
+(documentation StarterMotor EnglishLanguage "Any &%Motor that has the
+intended use of starting an &%IntermittentCombustionEngine.  In most
+&%Automobiles it is a small electric motor, but in a diesel heavy
+equipment engine there may be an electric motor that starts a gas engine
+that in turn starts the diesel engine.")
+
+(=>
+  (instance ?SM StarterMotor)
+  (hasPurpose ?SM
+    (exists (?P1 ?P2 ?ICE)
+      (and
+        (instance ?ICE InternalCombustionEngine)
+        (instrument ?P1 ?SM)
+        (instrument ?P2 ?ICE)
+        (causes ?P1 ?P2)))))
+
+(subclass SteeringBox Gearbox)
+(termFormat EnglishLanguage SteeringBox "steering box")
+(documentation SteeringBox EnglishLanguage "A &%Gearbox at the end of
+the &%SteeringColumn that transmits &%Motion to the &%SteeringArms.")
+(typicalPart SteeringBox Automobile)
+(typicallyContainsPart SteeringBox Automobile)
+
+(=>
+  (instance ?SB SteeringBox)
+  (hasPurpose ?SB
+    (exists (?SW ?SC)
+      (and
+        (instance ?SW SteeringWheel)
+        (instance ?SC SteeringColumn)
+        (connectedEngineeringComponents ?SW ?SC)
+        (connectedEngineeringComponents ?SC ?SB)))))
+
+(subclass SteeringColumn Shaft)
+(termFormat EnglishLanguage SteeringColumn "steering column")
+(document SteeringColumn EnglishLanguage "A &%Shaft that connects
+the &%SteeringWheel of an &%Automobile to the &%SteeringBox.")
+(typicalPart SteeringColumn Automobile)
+(typicallyContainsPart SteeringColumn Automobile)
+
+(termFormat EnglishLanguage SteeringWheel "steering wheel")
+
+(typicalPart SteeringWheel Automobile)
+(typicallyContainsPart SteeringWheel Automobile)
+
+(subclass Steering Guiding)
+(termFormat EnglishLanguage Steering "steering")
+(documentation Steering EnglishLanguage "A &%Process of &%Guiding
+a &%Vehicle.")
+
+(=>
+  (instance ?S Steering)
+  (exists (?V)
+    (and
+      (instance ?V Vehicle)
+      (patient ?S ?V))))
+
+(subclass Tachometer MeasuringDevice)
+(termFormat EnglishLanguage Tachometer "tachometer")
+(documentation Tachometer EnglishLanguage "A &%Device for &%Measuring the number
+of &%RevolutionsPerMinute of an object, typically an &%Engine &%Crankshaft.")
+
+(=>
+  (instance ?T Tachometer)
+  (hasPurpose ?T
+    (exists (?R ?M ?O)
+      (and
+        (instance ?R Rotating)
+        (patient ?R ?O)
+        (instance ?M Measuring)
+        (instrument ?M ?T)
+        (patient ?M ?O)))))
+
+(documentation beforeOnPath EnglishLanguage "(beforeOnPath ?OBJ1 ?OBJ2 ?PATH ?PROC) means that ?OBJ1 is spatially before ?OBJ2 on the path ?PATH with respect to a particular &%Transfer &%Process.") 	 	
+(domain beforeOnPath 1 Object)
+(domain beforeOnPath 2 Object)
+(domain beforeOnPath 3 Object)
+(domain beforeOnPath 4 Transfer) 
+(instance beforeOnPath QuaternaryPredicate) 
+(instance beforeOnPath SpatialRelation) 
+(instance beforeOnPath TransitiveRelation)
+(format EnglishLanguage beforeOnPath "%1 %n before %2 on path %3 during %4") 
+(termFormat EnglishLanguage betweenOnPath "before on path") 
+
+(=>
+  (and
+    (betweenOnPath ?O1 ?O2 ?O3 ?PATH)
+    (instance ?T Transfer)
+    (path ?T ?PATH)
+    (origin ?T ?O1)
+    (destination ?T ?O3))
+  (and
+    (beforeOnPath ?O1 ?O2 ?PATH ?T)
+    (beforeOnPath ?O2 ?O3 ?PATH ?T)))
+
+(=>
+  (orientation ?O1 ?O2 Upstream)
+  (exists (?T ?L ?P)
+    (and
+      (instance ?T Transfer)
+      (attribute ?L Liquid)
+      (path ?T ?P)
+      (origin ?T ?O1)
+      (beforeOnPath ?O1 ?O2 ?P ?T)
+      (destination ?T ?O2))))
+
+(=>
+  (orientation ?O1 ?O2 Downstream)
+  (exists (?T ?L ?P)
+    (and
+      (instance ?T Transfer)
+      (attribute ?L Liquid)
+      (path ?T ?P)
+      (origin ?T ?O2)
+      (beforeOnPath ?O2 ?O1 ?P ?T)
+      (destination ?T ?O1))))
+
+(=>
+  (orientation ?O1 ?O2 Upwind)
+  (exists (?T ?L ?P)
+    (and
+      (instance ?T Transfer)
+      (attribute ?L Liquid)
+      (path ?T ?P)
+      (origin ?T ?O1)
+      (beforeOnPath ?O1 ?O2 ?P ?T)
+      (destination ?T ?O2))))
+
+(=>
+  (orientation ?O1 ?O2 Downwind)
+  (exists (?T ?L ?P)
+    (and
+      (instance ?T Transfer)
+      (attribute ?L Liquid)
+      (path ?T ?P)
+      (origin ?T ?O2)
+      (beforeOnPath ?O2 ?O1 ?P ?T)
+      (destination ?T ?O1))))
+
+(subclass Tailpipe Tube)
+(typicalPart Tailpipe AutomobileExhaustSystem)
+(typicallyContainsPart Tailpipe AutomobileExhaustSystem)
+(termFormat EnglishLanguage Tailpipe "tailpipe")
+(documentation Tailpipe EnglishLanguage "Typically the last portion of an 
+AutomobileExhaustSystem, which is after the &%Muffler, just before &%Engine
+&%Exhaust is vented to the surrounding &%Air.")
+
+(=>
+  (instance ?T Tailpipe)
+  (hasPurpose ?T
+    (exists (?M)
+      (and
+        (instance ?M Muffler)
+        (connectedEngineeringComponents ?M ?T)))))
+
+(=>
+  (and
+    (instance ?T Tailpipe)
+    (instance ?TR Transfer)
+    (instance ?E Exhaust)
+    (instance ?A Automobile)
+    (part ?T ?A)
+    (path ?TR ?T)
+    (patient ?TR ?E))
+  (hasPurpose ?T
+    (not
+      (exists (?O)
+        (and
+          (part ?O ?A)
+          (beforeOnPath ?T ?O ?T ?TR))))))
+
+(subclass BimetalTemperatureSensor MeasuringDevice)
+(termFormat EnglishLanguage BimetalTemperatureSensor "bi-metal temperature sensor")
+(documentation BimetalTemperatureSensor EnglishLanguage "Two metals bonded together
+that have dissimilar thermal expansion properties.  This leads to the strip curling
+one direction or another with changes in &%TemperatureMeasure, typically activating a 
+switch or other device.")
+
+(=>
+  (instance ?BTS BimetalTemperatureSensor)
+  (exists (?M1 ?M2)
+    (and
+      (instance ?M1 Metal)
+      (instance ?M2 Metal)
+      (part ?M1 ?BTS)
+      (part ?M2 ?BTS)
+      (not
+        (equal ?M1 ?M2)))))
+
+(=>
+  (and
+    (instance ?BTS BimetalTemperatureSensor)
+    (instance ?M1 Metal)
+    (instance ?M2 Metal)
+    (not
+      (equal ?M1 ?M2))
+    (part ?M1 ?BTS)
+    (part ?M2 ?BTS)
+    (instance ?T1 TemperatureMeasure)
+    (instance ?T2 TemperatureMeasure)
+    (instance ?L1 LengthMeasure)
+    (instance ?L2 LengthMeasure)
+    (instance ?L3 LengthMeasure)
+    (instance ?L4 LengthMeasure)
+    (not
+      (equal ?T1 ?T2))
+    (holdsDuring ?TM1
+      (and
+        (measure ?BTS ?T1)
+        (measure ?M1 ?L1)
+        (measure ?M2 ?L2)))
+    (holdsDuring ?TM2
+      (and
+        (measure ?BTS ?T2)
+        (measure ?M1 ?L3)
+        (measure ?M2 ?L4))))
+  (not
+    (equal 
+      (DivisionFn ?L1 ?L2)
+      (DivisionFn ?L3 ?L4))))
+
+(instance physicalEnd BinaryPredicate)    
+(subrelation physicalEnd properPart) 
+(format EnglishLanguage physicalEnd "one end of %2 is %1")
+(documentation physicalEnd EnglishLanguage "A notion of an indeterminate portion
+at the end of an &%Object that has a &%LongAndThin &%ShapeAttribute.")
+(domain physicalEnd 1 Object) 	
+(domain physicalEnd 2 Object)
+
+(=>
+  (physicalEnd ?E ?O)
+  (attribute ?O LongAndThin))
+
+(=>
+  (physicalEnd ?E ?O)
+  (not 
+    (attribute ?E LongAndThin)))
+
+(=>
+  (and
+    (physicalEnd ?E1 ?O)
+    (physicalEnd ?E2 ?O)
+    (not
+      (equal ?E1 ?E2)))
+  (not
+    (overlapsSpatially ?E1 ?E2)))
+
+(=>
+  (and
+    (physicalEnd ?E1 ?O)
+    (physicalEnd ?E2 ?O)
+    (not
+      (equal ?E1 ?E2)))
+  (not
+    (meetsSpatially ?E1 ?E2)))
+
+(=>
+  (and 
+    (physicalEnd ?E ?O)
+    (superficialPart ?SP ?O))
+  (meetsSpatially ?E ?SP))
+
+(=>
+  (and
+    (physicalEnd ?E1 ?O)
+    (physicalEnd ?E2 ?O)
+    (part ?P1 ?E1)
+    (part ?P2 ?E2)
+    (distance ?P1 ?P2 ?D1)
+    (not
+      (equal ?E1 ?E2)))
+  (not
+    (exists (?OP1 ?OP2 ?D2)
+      (and
+        (not
+          (part ?OP1 ?E1))
+        (not
+          (part ?OP2 ?E2))
+        (distance ?OP1 ?OP2 ?D2)
+        (greaterThan ?D2 ?D1)))))
+
+        
