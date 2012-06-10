@@ -3,8 +3,6 @@
 ;; By using these products, you agree to be bound by the terms 
 ;; of the GPL.
 
-;; contact: Adam Pease, Articulate Software, apease [at] articulatesoftware dot com
-
 ;; We ask that people using or referencing this work cite our primary paper and book:
 
 ;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
@@ -15,31 +13,65 @@
 ;; Pease, A., (2011). Ontology: A Practical Guide. Articulate Software Press, 
 ;; Angwin, CA. ISBN 978-1-889455-10-5.
 
-
 (instance contraryAttributeWRT TernaryPredicate)
 (domain contraryAttributeWRT 1 Attribute)
 (domain contraryAttributeWRT 2 Attribute)
 (domain contraryAttributeWRT 3 BinaryPredicate)
 (documentation contraryAttributeWRT EnglishLanguage "(contraryAttributeWRT ?ATT1 ?ATT2 ?ATTPRED) means that nothing can have both attributes at the same time using the attribute predicate ?ATTPRED.")
 
-; only subrelations of &%attribute may be the third argument to &%contraryAttributeWRT
+; can we express this?:
+; only subrelations of &%attribute may be the third argument to &%contraryAttributeWRT:
 ; (condition
 ;   (contraryAttributeWRT ?ATT1 ?ATT2 ?PRED)
 ;   (subrelation ?PRED attribute))
 
+; can we express this?:
+; only instances of the domain of the third argument to &%contraryAttributeWRT
+; are allowed as the first and second argument:
+; (condition
+;   (and
+;     (contraryAttributeWRT ?ATT1 ?ATT2 ?PRED)
+;     (domain ?PRED 2 ?ATT_TYPE))
+;   (and
+;     (instance ?ATT1 ?ATT_TYPE)
+;     (instance ?ATT2 ?ATT_TYPE)))
+
 ; nothing can have two attributes using the same predicate simultaneously 
 ; if they are disjoint with respect to that predicate
-(not
-  (and
-    (contraryAttributeWRT ?ATT1 ?ATT2 ?PRED)
-    (?PRED ?ENTITY ?ATT1)
-    (?PRED ?ENTITY ?ATT2)))
 
+(=>
+  (and
+    (instance ?ATT1 Attribute)
+    (instance ?ATT2 Attribute)
+    (subrelation ?PRED attribute))
+  (not
+    (and
+      (contraryAttributeWRT ?ATT1 ?ATT2 ?PRED)
+      (?PRED ?ENTITY ?ATT1)
+      (?PRED ?ENTITY ?ATT2))))
+
+; would it be more efficient to further restrict the attributes?:
+; (=>
+;   (and
+;     (subrelation ?PRED attribute)
+;     (domain ?PRED 2 ?ATT_TYPE)
+;     (instance ?ATT1 ?ATT_TYPE)
+;     (instance ?ATT2 ?ATT_TYPE))
+;   (not
+;     (and
+;       (contraryAttributeWRT ?ATT1 ?ATT2 ?PRED)
+;       (?PRED ?ENTITY ?ATT1)
+;       (?PRED ?ENTITY ?ATT2))))
 
 (instance havePartTypes BinaryPredicate)
+(instance havePartTypes SpatialRelation)
 (domainSubclass havePartTypes 1 Object)
 (domainSubclass havePartTypes 2 Object)
-(documentation havePartTypes EnglishLanguage "(havePartTypes ?WHOLE_TYPE ?PART_TYPE) means that every instance of ?WHOLE_TYPE has as a &%part an instance of ?PART_TYPE.")
+(relatedInternalConcept havePartTypes parts)
+(documentation havePartTypes EnglishLanguage "(havePartTypes ?WHOLE_TYPE ?PART_TYPE) means that every instance of ?WHOLE_TYPE has as &%parts an instance of ?PART_TYPE.")
+; (havePartTypes ?WHOLE_TYPE ?PART_TYPE) means that every instance of ?WHOLE_TYPE
+; has as &%parts at least one instance of ?PART_TYPE:
+
 (=>
   (and
     (havePartTypes ?WHOLE_TYPE ?PART_TYPE)
@@ -47,15 +79,18 @@
   (exists (?PART)
     (and
       (instance ?PART ?PART_TYPE)
-      (parts ?PART ?WHOLE))
-  ))
-
+      (parts ?PART ?WHOLE))))
 
 
 (instance partTypes BinaryPredicate)
 (domainSubclass partTypes 1 Object)
 (domainSubclass partTypes 2 Object)
-(documentation partTypes EnglishLanguage "(partTypes ?PART_TYPE ?WHOLE_TYPE) means that every instance of ?PART_TYPE is a &%part of an instance of ?WHOLE_TYPE.")
+(subRelation partTypes typicalPart)
+(relatedInternalConcept partTypes parts)
+(documentation partTypes EnglishLanguage "(partTypes ?PART_TYPE ?WHOLE_TYPE) means that every instance of ?PART_TYPE is &%parts of an instance of ?WHOLE_TYPE.")
+; (partTypes ?PART_TYPE ?WHOLE_TYPE) means that every instance of ?PART_TYPE
+; is &%parts of an instance of ?WHOLE_TYPE.
+
 (=>
   (and
     (partTypes ?PART_TYPE ?WHOLE_TYPE)
@@ -63,22 +98,22 @@
   (exists (?WHOLE)
     (and
       (instance ?WHOLE ?WHOLE_TYPE)
-      (parts ?PART ?WHOLE))
-  ))
-
+      (parts ?PART ?WHOLE))))
 
 (instance classIntersection TernaryPredicate)
 (domain classIntersection 1 Class)
 (domain classIntersection 2 Class)
 (documentation classIntersection EnglishLanguage "(classIntersection ?CLASS1 ?CLASS2 ?INT_CLASS) means that ?INT_CLASS is the intersection of the two classes, ?CLASS1 and ?CLASS2.  This means that every instance of ?CLASS1 that is also an instance of ?CLASS2 is an instance of ?INT_CLASS and that every instance of ?INT_CLASS is an instance of both ?CLASS1 and ?CLASS2.")
-; every instance of the intersection is an instance of the two intersecting classes.
+; the intersection is a subclass of each of the two intersecting classes:
+
 (=>
   (classIntersection ?CLASS1 ?CLASS2 ?INTERSECT)
   (and
     (subclass ?INTERSECT ?CLASS1)
     (subclass ?INTERSECT ?CLASS2)))
 
-; every item that is an instance of both classes is an instance of the intersecction.
+; every item that is an instance of both classes is an instance of the intersecction:
+
 (=>
   (and
     (classIntersection ?CLASS1 ?CLASS2 ?INTERSECT)
@@ -86,81 +121,154 @@
     (instance ?ITEM ?CLASS2))
   (instance ?ITEM ?INTERSECT))
 
+; ===============
 
+(subclass GuidingMotion Guiding)
+(documentation GuidingMotion EnglishLanguage "Controlling the motion (direction, trajectory, and/or speed) of an &%Object.")
+(=> 
+  (instance ?GUIDE GuidingMotion)
+  (exists (?MOTION)
+    (and
+      (subprocess ?MOTION ?GUIDE)
+      (instance ?MOTION Motion))))
+
+(=> 
+  (instance ?GUIDE GuidingMotion)
+  (exists (?MOVED)
+    (and
+      (patient ?GUIDE ?MOVED)
+      (instance ?MOVED Object))))
+
+(=> 
+  (and
+    (instance ?GUIDE GuidingMotion)
+    (patient ?GUIDE ?MOVED)
+    (subprocess ?MOTION ?GUIDE)
+    (instance ?MOTION Motion))
+  (patient ?MOTION ?MOVED))
+
+(=> 
+  (and
+    (instance ?GUIDE GuidingMotion)
+    (subprocess ?MOTION ?GUIDE)
+    (instance ?MOTION Motion)
+    (patient ?MOTION ?MOVED))
+  (patient ?GUIDE ?MOVED))
+
+(subclass PhysicalGuiding Guiding)
+(documentation PhysicalGuiding EnglishLanguage "Controlling the motion (direction, trajectory, and/or speed) of a &%CorpuscularObject.")
+
+(=> 
+  (instance ?PGUIDE PhysicalGuiding)
+  (exists (?MOVED)
+    (and
+      (patient ?PGUIDE ?MOVED)
+      (instance ?MOVED CorpuscularObject))))
 
 ; ===============
-(isa shape BinaryPredicate)
+(instance shape BinaryPredicate)
 (subrelation shape property)
 (domain shape 1 Physical)
 (domain shape 2 ShapeAttribute)
+(documentation shape English "(shape ?OBJECT ?SHAPE) means that the shape of ?OBJECT is ?SHAPE.")
+
+; If a &%Physical object has a property which is an instance of &%ShapeAttribute,
+; then that object has that shape:
+
+(=>
+  (and
+    (property ?OBJ ?SHAPE)
+    (instance ?OBJ Physical)
+    (instance ?SHAPE ShapeAttribute))
+  (shape ?OBJ ?SHAPE))
 
 (instance Round ShapeAttribute)
+(documentation Round English "The attribute of being round in at least two dimensions.")
+
 (instance Elliptical ShapeAttribute)
 (subAttribute Elliptical Round)
+(documentation Elliptical English "The attribute of being elliptical or oval in at least two dimensions.")
+
 (=>
   (instance ?SHAPE Oval)
   (shape ?SHAPE Elliptical))
 
 (instance Circular ShapeAttribute)
 (subAttribute Circular Elliptical)
+(documentation Circular English "The attribute of being circular in at least two dimensions.")
+
 (=>
   (instance ?SHAPE Circle)
   (shape ?SHAPE Circular))
 
 (instance DiskShaped ShapeAttribute)
-(subAttribute DiskShaped Round)
+(documentation DiskShaped English "The attribute of being circular in one dimension and flat in the other.")
+(subAttribute DiskShaped Circular)
 (subAttribute DiskShaped Flat)
-(=>
-  (instance ?SHAPE Polygon)
-  (shape ?SHAPE Polygonal))
 
 (instance Spherical ShapeAttribute)
+(documentation Spherical English "The attribute of being spherical: circular in three dimensions.")
 (contraryAttribute Spherical Flat)
 (subAttribute Spherical Round)
+
 (=>
   (instance ?SHAPE Sphere)
   (shape ?SHAPE Spherical))
 
 (subclass SphericalObject Object)
+(documentation SphericalObject English "An object with the attribute of being spherical.")
+
 (=>
   (instance ?SPHERE SphericalObject)
   (shape ?SHAPE Spherical))
 
 (instance Cylindrical ShapeAttribute)
 (subAttribute Cylindrical Round)
+(documentation Cylindrical English "The attribute of being cylindrical: having a circular cross section of roughly the same size throughout its length.  A cylindrical object may be hollow or solid.")
 (contraryAttribute Cylindrical Flat)
 (contraryAttribute Cylindrical Spherical)
+
 (=>
   (instance ?SHAPE Cylinder)
   (shape ?SHAPE Cylindrical))
 
 (instance Polygonal ShapeAttribute)
+(documentation Polygonal English "The attribute of being flat with a boundary consisting of straight lines.")
 (contraryAttribute Polygonal Round)
+
 (=>
   (instance ?SHAPE Polygon)
   (shape ?SHAPE Polygonal))
 
 (instance Triangular ShapeAttribute)
+(documentation Triangular English "The attribute of being polygonal with a boundary consisting of three straight lines.")
 (subAttribute Triangular Polygonal)
+
 (=>
   (instance ?SHAPE Triangle)
   (shape ?SHAPE Triangular))
 
 (instance QuadrilateralShaped ShapeAttribute)
 (subAttribute QuadrilateralShaped Polygonal)
+(documentation QuadrilateralShaped English "The attribute of being polygonal with a boundary consisting of four straight lines.")
 (contraryAttribute QuadrilateralShaped Triangular)
+
 (=>
   (instance ?SHAPE Quadrilateral)
   (shape ?SHAPE QuadrilateralShaped ))
 
 (instance Rectangular ShapeAttribute)
 (subAttribute Rectangular QuadrilateralShaped)
+(documentation Rectangular English "The attribute of being polygonal with a boundary consisting of four mutually perpendicular straight lines.")
+
 (=>
   (instance ?SHAPE Rectangle)
-  (shape ?SHAPE Rectangular ))
+  (shape ?SHAPE Rectangular))
 
 (instance SquareShaped ShapeAttribute)
 (subAttribute SquareShaped Rectangular)
+(documentation SquareShaped English "The attribute of being polygonal with a boundary consisting of four mutually perpendicular straight lines of equal lengths.")
+
 (=>
   (instance ?SHAPE Square)
   (shape ?SHAPE SquareShaped))
@@ -170,44 +278,38 @@
 (subclass Keyboard Device)
 (documentation Keyboard EnglishLanguage "A &%Keyboard has a set of keys for typing on to transmit data corresponding to those keys or to cause physical marking of the selected keys on paper or some other surface.")
 
-
 (subclass ComputerIODevice ComputerOutputDevice)
 (subclass ComputerIODevice ComputerInputDevice)
 (documentation ComputerIODevice EnglishLanguage "A &%ComputerIODevice is both a &%ComputerInputDevice and a &%ComputerOutputDevice.")
 
-
 (subclass ComputerTerminal ComputerIODevice)
 ;; It is already defined as a ComputerOutputDevice.
-(documentation ComputerTerminal EnglishLanguage "An interactive combination &%ComputerInputDevice and &%ComputerOutputDevice.  The input device sends (normally) characters input by the user and the output device relays output to the user.  Early computer terminals output text to paper; terminals for sight disadvantaged people may provide audio or tactile output to the user, but most terminals around the turn of the 21st Century display text and/or images on a display device.  Traditional computer terminals have given way to personal computers with separate keyboards and screens.
+(documentation ComputerTerminal EnglishLanguage "An interactive combination &%ComputerInputDevice and &%ComputerOutputDevice that does not have an internal computer.  The input device sends (normally) characters input by the user and the output device relays output to the user.  Early computer terminals output text to paper; terminals for sight disadvantaged people may provide audio or tactile output to the user, but most terminals around the turn of the 21st Century display text and/or images on a display device.  Traditional computer terminals have given way to personal computers with separate keyboards and screens or to laptop and tablet computers which operate with an internal computer.
 
 A &%ComputerTerminal is contrasted with a &%Printer, which is an output only device which does not output directly in view of the user and which only makes hardcopies of computer output by altering the surface of the hard copy in a way that is for practical purposes, permanent.")
 
 (subclass ComputerDisplay ComputerOutputDevice)
 (subclass ComputerDisplay DataDisplayDevice)
-(documentation ComputerDisplay EnglishLanguage "A &%ComputerOutputDevice for displaying information on some sort of screen or other reusable visible output surface.  This is contrasted with a &%Printer, which places a substance on a surface that is for practical purposes, permanent.")
+(documentation ComputerDisplay EnglishLanguage "A &%ComputerOutputDevice for displaying information on some sort of screen or other reusable visible output surface.  This is contrasted with a &%Printer, which places a substance on a surface that is for practical purposes, permanent.  A display may be part of a computer, a computer terminal, or a separate device.  A single computer may be connected to multiple displays, either all remote, or one physically part of the computer and the other(s) remote.")
 (disjoint ComputerDisplay Printer)
 
 (instance displayedUpon BinaryPredicate)
 (domain displayedUpon 1 Image)
 (domain displayedUpon 2 ComputerDisplay)
-(documentation displayedUpon EnglishLanguage "(displayedUpon ?IMAGE ?DISPLAY) means that the image, ?IMAGE is displayed upon the &%ComputerDisplay, ?DISPLAY.")
-
+(documentation displayedUpon EnglishLanguage "(displayedUpon ?IMAGE ?DISPLAY) means that the image, ?IMAGE is displayed upon the &%ComputerDisplay, ?DISPLAY.  A computer connected to multiple &%ComputerDisplays can have the same images displayed upon more than one display, or have them restricted to a single display.")
 
 (subclass ComputerScreen ComputerDisplay)
 (documentation ComputerScreen EnglishLanguage "A &%ComputerDisplay for displaying information on some sort of screen.")
+
 (=>
   (instance ?SCREEN ComputerScreen)
   (shape ?SCREEN Rectangular))
 
 (subclass ComputerKeyboard_Generic ComputerInputDevice)
-(subclass ComputerKeyboard_Generic ComputerInputDevice)
-(documentation ComputerKeyboard EnglishLanguage "A &%ComputerInputDevice for accepting typed input.  This could be a keyboard with a typewriter layout, a cell phone keypad or any other similar device.")
-
-
+(documentation ComputerKeyboard EnglishLanguage "A &%ComputerInputDevice for accepting typed input.  This could be a keyboard with a typewriter layout, a cell phone keypad or any other similar device.  It could be a keyboard displayed upon a &%ComputerScreen or be a physical &%Keyboard.")
 
 (subclass ComputerInputButton ComputerInputDevice)
 (documentation ComputerInputButton EnglishLanguage "A physical &%ComputerInputDevice such that pushing the button down, pushing it down twice quickly, and/or holding it down causes a signal to be sent to a computer (if everything necessary is turned on and connected).  This could be a key on a keyboard, mouse, telephone, ATM, or other piece of equipment.")
-
 
 (subclass MouseButton ComputerInputButton)
 (documentation MouseButton EnglishLanguage "A &%ComputerInputButton on a &%ComputerMouse.")
@@ -224,14 +326,15 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (subclass LeftCIButton ComputerInputButton)
 (documentation LeftCIButton EnglishLanguage "A &%ComputerInputButton logically on the left side of a set of &%ComputerInputButtons.  Normally, the &%PhysicalLeftCIButton.  A computer system may be told to logically switch the right and left buttons (e.g., for a person who uses a mouse in the left hand -- in such a case, the &%LeftCIButton is the rightmost physical button.")
 (disjoint RightCIButton LeftCIButton)
+
 (=>
   (and
-    (instance ?RIGHT RightCIButton)
+    (instance ?RIGHT PhysicalRightCIButton)
     (component ?RIGHT ?DEV)
     (instance ?DEV ComputerInputDevice))
   (exists (?LEFT)
-    (andO
-      (instance ?LEFT LeftCIButton)
+    (and
+      (instance ?LEFT PhysicalLeftCIButton)
       (component ?LEFT ?DEV)
       (orientation ?RIGHT ?LEFT Left))))
 
@@ -239,6 +342,10 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (documentation RightCIButton EnglishLanguage "A &%ComputerInputButton in the middle of a row of three &%ComputerInputButtons.")
 (disjoint RightCIButton MiddleCIButton)
 (disjoint MiddleCIButton LeftCIButton)
+
+; If a device has a &%MiddleCIButton, then it has a &%RightCIButton oriented to its 
+; right and a &%LeftCIButton oriented to its left:
+
 (=>
   (and
     (instance ?MID MiddleCIButton)
@@ -260,15 +367,12 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (disjoint ComputerKeyboardKey MiddleCIButton)
 (disjoint ComputerKeyboardKey LeftCIButton)
 (disjoint ComputerKeyboardKey MouseButton)
-; every Computer Keyboard Key is part of a Computer Keyboard
-(=>
-  (instance ?KEY ComputerKeyboardKey)
-  (exists (?KEYBOARD)
-    (and
-      (instance ?KEYBOARD ComputerKeyboard-Generic)
-      (component ?KEY ?KEYBOARD))))
+
+; every Computer Keyboard Key is typically part of a Computer Keyboard
+(typicalPart ComputerKeyboardKey ComputerKeyboard-Generic)
 
 ; every Computer Keyboard Key is part of no more than one Computer Keyboard
+
 (=>
   (and
     (instance ?KEY ComputerKeyboardKey)
@@ -279,6 +383,7 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
   (equals ?KEYBOARD1 ?KEYBOARD2))
 
 ; every Computer Keyboard has a Computer Keyboard Key as a component
+
 (=>
   (instance ?KEYBOARD ComputerKeyboard-Generic)
   (exists (?KEY)
@@ -286,19 +391,66 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
       (instance ?KEY ComputerKeyboardKey)
       (component ?KEY ?KEYBOARD))))
 
-; every keyboard key is a component of some computer keyboard
-(=>
-   (instance ?KEY ComputerKeyboardKey)
-   (exists (?KEYBOARD)
-       (and
-         (instance ?KEYBOARD ComputerKeyboard-Generic)
-         (component ?KEY ?KEYBOARD))))
+(subclass CharacterKey ComputerKeyboardKey)
+(documentation CharacterKey EnglishLanguage "A &%CharacterKey is a type of &%ComputerKeyboardKey on a &%ComputerKeyboard that sends a single (printable or whitespace) character to a computer to which it is attached.")
 
+(subclass SpecialComputerKeyboardKey ComputerKeyboardKey)
+(documentation SpecialComputerKeyboardKey EnglishLanguage "A &%SpecialComputerKeyboardKey is a type of &%ComputerKeyboardKey on a &%ComputerKeyboard that does not send a single character to a computer to which it is attached.  This includes the Enter/Return key, backspace, delete, function, control, shift, and other non-character keys.")
+(disjoint SpecialComputerKeyboardKey CharacterKey)
 
+(subclass EnterKey SpecialComputerKeyboardKey)
+(documentation EnterKey EnglishLanguage "An &%EnterKey is a type of &%ComputerKeyboardKey on a &%ComputerKeyboard often labeled Enter or Return which sends a ^L (newline) and/or ^M (return) to a computer to which it is attached." )
 
-(subclass FunctionKey ComputerKeyboardKey)
-(documentation ComputerKeyboardKey EnglishLanguage "A &%FunctionKey is a type of &%ComputerKeyboardKey on a &%ComputerKeyboard that does not send a single character to a computer to which it is attached.")
+(subclass ArrowKey SpecialComputerKeyboardKey)
+(documentation ArrowKey EnglishLanguage "An &%ArrowKey is a type of &%ComputerKeyboardKey on a &%ComputerKeypad with a right, left, up, or down graphic.")
+(disjoint ArrowKey EnterKey)
 
+(subclass RightArrowKey ArrowKey)
+(documentation RightArrowKey EnglishLanguage "A &%RightArrowKey is a type of &%ArrowKey on a &%ComputerKeypad with a right pointing graphic.")
+
+(subclass LeftArrowKey ArrowKey)
+(documentation LeftArrowKey EnglishLanguage "A &%LeftArrowKey is a type of &%ArrowKey on a &%ComputerKeypad with a left pointing graphic.")
+(disjoint LeftArrowKey RightArrowKey)
+
+(subclass UpArrowKey ArrowKey)
+(documentation UpArrowKey EnglishLanguage "A &%UpArrowKey is a type of &%ArrowKey on a &%ComputerKeypad with a upward pointing graphic." )
+(disjoint UpArrowKey LeftArrowKey)
+(disjoint UpArrowKey RightArrowKey)
+
+(subclass DownArrowKey ArrowKey)
+(documentation DownArrowKey EnglishLanguage "A &%DownArrowKey is a type of &%ArrowKey on a &%ComputerKeypad with a downward pointing graphic.")
+(disjoint DownArrowKey RightArrowKey)
+(disjoint DownArrowKey LeftArrowKey)
+(disjoint UpArrowKey DownArrowKey)
+
+(subclass NumberedFunctionKey SpecialComputerKeyboardKey)
+(documentation NumberedFunctionKey EnglishLanguage "A &%NumberedFunctionKey is a type of &%ComputerKeyboardKey on a &%ComputerKeyboard that does not send a single character to a computer to which it is attached.  A &%ComputerKeyboard either has no &%NumberedFunctionKey or more than one &%NumberedFunctionKey.")
+(disjoint NumberedFunctionKey EnterKey)
+(disjoint NumberedFunctionKey ArrowKey)
+
+(subclass MultiKeypressKey SpecialComputerKeyboardKey)
+(documentation MultiKeypressKey EnglishLanguage "A &%MultiKeypressKey is a type of &%ComputerKeyboardKey (including &%ShiftKey, &%ControlKey, and &%AltKey) which is not intended to send a character from the keyboard when it is pressed, but to cause a different character (or set of characters) to be sent from a keyboard when another key is pressed while it is being held down.")
+(disjoint MultiKeypressKey NumberedFunctionKey)
+(disjoint MultiKeypressKey EnterKey)
+(disjoint MultiKeypressKey ArrowKey)
+
+(subclass FunctionKey MultiKeypressKey)
+(documentation FunctionKey EnglishLanguage "A &%FunctionKey is a type of &%ComputerKeyboardKey on a &%ComputerKeyboard may be labeled ``Fn''.  It acts similar to a &%ShiftKey, &%ControlKey, or &%AltKey to cause a different character (or set of characters) to be sent from a keyboard when another key is pressed.")
+
+(subclass ShiftKey MultiKeypressKey)
+(documentation ShiftKey EnglishLanguage "A &%ShiftKey is a type of &%ComputerKeyboardKey on a &%ComputerKeyboard often labeled ``Shift'' which affects the output of other keys if typed while it is being held down.")
+(disjoint ShiftKey FunctionKey)
+
+(subclass ControlKey MultiKeypressKey)
+(documentation ControlKey EnglishLanguage "A &%ControlKey is a type of &%ComputerKeyboardKey on a &%ComputerKeyboard often labeled ``Ctrl'' which affects the output of other keys if typed while it is being held down.")
+(disjoint ControlKey ShiftKey)
+(disjoint ControlKey FunctionKey)
+
+(subclass AltKey MultiKeypressKey)
+(documentation AltKey EnglishLanguage "An &%AltKey is a type of &%ComputerKeyboardKey on a &%ComputerKeyboard often labeled ``Shift'' which affects the output of other keys if typed while it is being held down.")
+(disjoint AltKey ControlKey)
+(disjoint AltKey ShiftKey)
+(disjoint AltKey FunctionKey)
 
 (subclass TouchpadKey ComputerInputButton)
 (documentation TouchpadKey EnglishLanguage "A &%ComputerInputButton on a &%ComputerTouchpad. A touchpad key may be a &%RightCIButton, &%LeftCIButton, or &%MiddleCIButton.")
@@ -306,16 +458,12 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 
 (subclass ComputerKeyboard ComputerKeyboard_Generic)
 (subclass ComputerKeyboard Keyboard)
-(documentation ComputerKeyboard EnglishLanguage "A &%ComputerInputDevice for accepting typed input with a typewriter layout.  A &%ComputerKeyboard may have additional keys and arrays of keys that are not on a typewriter keyboard.")
+(documentation ComputerKeyboard EnglishLanguage "A physical (as opposed to displayed) &%ComputerInputDevice for accepting typed input with a typewriter layout.  A &%ComputerKeyboard may have additional keys and arrays of keys that are not on a typewriter keyboard.")
+(hasPartTypes ComputerKeyboard ComputerKeyboardKey)
 
 (subclass ComputerKeypad ComputerKeyboard_Generic)
 (documentation ComputerKeypad EnglishLanguage "A &%ComputerKeyboard_Generic that does not have a typewriter layout.")
 (disjoint ComputerKeypad ComputerKeyboard_Generic)
-; Every Computer keyboard has at least one key
-; This is not stated at the CK-Generic level since a displayed keyboard 
-; used for interaction only has displayed keys, not physical keys as 
-; components.
-
 
 ; ===========
 
@@ -323,7 +471,7 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (documentation ComputerMouse EnglishLanguage "A &%ComputerInputDevice that fits in a person's hand for accepting point and click input on a 2D surface.  A computer mouse has one or more buttons and may have a &%ScrollWheel as well.  A mouse may be connected to a computer by a power and signalling cable or may have a wireless connection.")
 (disjoint ComputerMouse ComputerKeyboard)
 (hasPartTypes ComputerMouse MouseButton)
-(partTypes MouseButton ComputerMouse)
+(typicalPart MouseButton ComputerMouse)
 
 (subclass ScrollWheel ComputerInputDevice)
 (documentation ScrollWheel EnglishLanguage "A &%ComputerInputDevice that consists of a wheel that projects perpendicularly out of a surface.  A &%ComputerUser may rotate it in either direction with a finger.  &%ScrollWheels are often part of &%ComputerMouses.")
@@ -353,6 +501,7 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (classIntersection ComputerKeyboard TouchSensitiveComputerInputDevice
                    ComputerTouchscreenKeyboard)
 (documentation ComputerTouchscreenKeyboard EnglishLanguage "A portion of a &%ComputerTouchscreen which displays a keyboard and acts as a keyboard, accepting taps on the key images as if the keys were typed.")
+
 (=>
    (instance ?KEYBOARD ComputerTouchscreenKeyboard )
    (exists (?SCREEN)
@@ -360,15 +509,16 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
          (instance ?SCREEN ComputerTouchscreen )
          (displayedUpon ?KEYBOARD ?SCREEN))))
 
-
-
 (subclass ComputerTouchscreenKeypad ComputerTouchscreenKeyboard)
 (subclass ComputerTouchscreenKeypad ComputerKeypad)
 (classIntersection ComputerKeypad ComputerTouchscreen ComputerTouchscreenKeypad)
 (documentation ComputerTouchscreenKeypad EnglishLanguage "A portion of a &%ComputerTouchscreen which displays a keyboard and acts as a keyboard, accepting taps on the key images as if the keys were typed.")
 
+; ===
+
 (subclass SpeakerDevice Device)
 (documentation SpeakerDevice EnglishLanguage "A &%Device for projecting sound into a medium.")
+
 (=>
   (instance ?SPEAKER SpeakerDevice)
   (capability RadiatingSound instrument ?SPEAKER))
@@ -376,6 +526,7 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (subclass ElectricSpeakerDevice SpeakerDevice)
 (subclass ElectricSpeakerDevice ElectricDevice)
 (documentation ElectricSpeakerDevice EnglishLanguage "A combination &%SpeakerDevice and  &%ElectricDevice.")
+
 (=>
   (and
     (instance ?DEV SpeakerDevice)
@@ -385,12 +536,11 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (subclass Loudspeaker ElectricSpeakerDevice)
 (documentation Loudspeaker EnglishLanguage "A &%SpeakerDevice for projecting sound through the air.  A loudspeaker produces louder sound than earphones or a hearing aid.")
 
-
-
 (subclass Earphone ElectricSpeakerDevice)
 (subclass Earphone WearableItem)
 (documentation Earphone EnglishLanguage "A &%WearableItem worn on the head with an &%ElectricSpeaker device located near one or both ears.")
 (disjoint Earphone Loudspeaker)
+
 (=>
   (and
     (instance ?EARPHONE Earphone)
@@ -399,44 +549,42 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
     (part ?HEAD PERSON))
   (located ?EARPHONE ?HEAD))
 
-
 (subclass ComputerLoudspeaker ComputerOutputDevice)
 (subclass ComputerLoudspeaker Loudspeaker)
-(documentation ComputerLoudspeaker EnglishLanguage "A &%Loudspeaker which is also a &%ComputerOutputDevice.")
+(classIntersection Loudspeaker ComputerOutputDevice ComputerLoudspeaker)
+(documentation ComputerLoudspeaker EnglishLanguage "A &%Loudspeaker which is also a &%ComputerOutputDevice, whether or not it is currently connected to a computer.  This includes loudspeakers that are integral to a computer component as well as ones designed to be plugged into a standard computer I/O connection.")
+
 (=>
   (and
     (instance ?DEV Loudspeaker)
     (instance ?DEV ComputerOutputDevice))
   (instance ?DEV ComputerLoudspeaker))
 
+(subclass InternalComputerLoudspeaker ComputerLoudspeaker)
+(documentation InternalComputerLoudspeaker EnglishLanguage "A &%ComputerLoudspeaker which is internal to a computer, computer keyboard, or computer screen.")
+(partTypes InternalComputerLoudspeaker ComputerHardware)
+
 (subclass ComputerMicrophone ComputerInputDevice)
 (subclass ComputerMicrophone Microphone)
 (classIntersection ComputerInputDevice Microphone ComputerMicrophone)
-(documentation ComputerLoudspeaker EnglishLanguage "A &%Microphone which is also a &%ComputerInputDevice.")
+(documentation ComputerLoudspeaker EnglishLanguage "A &%Microphone which is also a &%ComputerInputDevice, whether or not it is currently connected to a computer.  This includes microphones that are integral to a computer component as well as ones designed to be plugged into a standard computer I/O connection.")
+
 (=>
   (and
     (instance ?DEV Microphone)
     (instance ?DEV ComputerOutputDevice))
   (instance ?DEV ComputerMicrophone))
 
-
 (subclass VideoCamera Camera)
 (subclass VideoCamera ElectricDevice)
 (documentation VideoCamera EnglishLanguage "A &%Camera for taking video images.")
-(=>
-  (instance ?VCAMERA VideoCamera)
-  (capability VideoRecording instrument ?VCAMERA))
-
 
 (subclass Modem ComputerIODevice)
 (documentation Modem EnglishLanguage "A type of ComputerIODevice and ComputerPeripheralDevice. Each Modem is a device designed to facilitate communication between computers by modulating analog signals to encode digital information, and demodulating analog signals to decode information back into digital format.")
-(=>
-  (instance ?MODEM Modem)
-  (capability VideoRecording instrument ?MODEM))
-
 
 (subclass CableModem Modem)
 (documentation CableModem EnglishLanguage "A type of Modem that provides bi-directional data communication via radio frequency channels on a fiberoptic cable. Cable modems are primarily used to deliver broadband Internet access in the form of cable Internet.")
+
 (=>
   (and
     (instance ?MODEM CableModem)
@@ -448,13 +596,13 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
       (instrument ?COMM ?CABLE)
       (connectedEngineeringComponents ?CABLE ?MODEM))))
 
-
 (subclass RadioModem Modem)
 (documentation RadioModem EnglishLanguage "A type of Modem that provides bi-directional data communication via radio connection with a network or computer.")
 (disjoint RadioModem CableModem)
 
 (subclass ComputerHardware EngineeringComponent)
-;; missing from QoSontology.kif
+;; assertion missing from QoSontology.kif
+
 (subclass Joystick ComputerInputDevice)
 (documentation Joystick EnglishLanguage "A type of &%ComputerInputDevice with a stick that can be activated to control a cursor in the X and Y directions.  A &%Joystick may or may not have an attached button for clicking.")
 
@@ -462,10 +610,8 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (documentation Trackball EnglishLanguage "A type of &%ComputerInputDevice with a ball that can be rolled to control a cursor in the X and Y directions.  A &%Trackball may or may not have an attached button for clicking.")
 (disjoint JoystickTrackball)
 
-
 (subclass GameIODevice ComputerIODevice)
 (documentation GameIODevice EnglishLanguage "A type of &%ComputerIODevice designed for playing video games.")
-
 
 (subclass GamePad GameIODevice)
 (documentation GamePad EnglishLanguage "A type of &%GameIODevice designed being held in two hands with the fingers, including thumbs being used to control multiple buttons and possibly other input devices such as &%Joysticks.")
@@ -477,14 +623,13 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (subclass GameIODeviceWithAccelerometer GameIODevice)
 (documentation GameIODeviceWithAccelerometer EnglishLanguage "A type of &%GameIODevice designed to be moved in three dimensions to detect sorts of motion used in sports and other physical activities.")
 (hasPartTypes GameIODeviceWithAccelerometer Accelerometer)
+
 (=>
   (and
     (instance ?DEVICE GameIODevice)
     (instance ?ACCELEROMETER Accelerometer)
     (component ?ACCELEROMETER ?DEVICE))
   (instance ?DEVICE GameIODeviceWithAccelerometer))
-
-
 
 (subclass InternalDigitalDataStorageDevice DigitalDataStorageDevice)
 (documentation InternalDigitalDataStorageDevice EnglishLanguage "A type of &%DigitalDataStorageDevice that is installed in a &%Computer and not readily removable.")
@@ -493,77 +638,73 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (documentation RemovableDigitalDataStorageDevice EnglishLanguage "A type of &%DigitalDataStorageDevice that can be temporarily installed in a computer and is readily removable.")
 (disjoint InternalDigitalDataStorageDevice RemovableDigitalDataStorageDevice)
 
-
 (subclass ComputerDisk DigitalDataStorageDevice)
 (documentation ComputerDisk EnglishLanguage "A type of &%DigitalDataStorageDevice that is disk-shaped and is read while being spun in a &%DiskDrive.")
+
 (=>
   (instance ?DISK ComputerDisk)
   (shape ?DISK DiskShaped))
 
-
 (subclass HardDisk ComputerDisk)
 (documentation HardDisk EnglishLanguage "A type of &%ComputerDisk that is hard, rather than floppy.  The 3 1/2'' floppy disk is considered a type of &%Floppy disk even though it is hard.  Hard disks can be internal to the computer, internal to an external drive, or removable.")
-
 
 (subclass InternalHardDisk HardDisk)
 (subclass InternalHardDisk InternalDigitalDataStorageDevice)
 (documentation InternalHardDisk EnglishLanguage "A type of &%HardDisk that is installed in a &%Computer (in its &%HardDiskDrive) and is not readily removable.")
+
 (=>
-  (isa ?DISK InternalHardDisk)
+  (instance ?DISK InternalHardDisk)
   (exists (?DRIVE)
     (and
-      (isa ?DRIVE InternalHardDiskDrive)
+      (instance ?DRIVE InternalHardDiskDrive)
       (component ?DISK ?DRIVE))))
-
-
-
 
 (subclass RemovableDisk ComputerDisk)
 (subclass RemovableDisk RemovableDigitalDataStorageDevice )
 (documentation RemovableDisk EnglishLanguage "A type of &%ComputerDisk that can be temporarily installed in a computer (in a &%DiskDrive) and is readily removable.")
+(disjoint RemovableDisk InternalHardDisk)
 
 (subclass CartridgeHardDisk HardDisk)
 (subclass CartridgeHardDisk RemovableDisk)
 (documentation CartridgeHardDisk EnglishLanguage "A type of &%HardDisk that can be temporarily installed in a computer (in its &%HardDiskDrive) and is readily removable.")
 
-
 (subclass FloppyDisk RemovableDisk)
 (documentation FloppyDisk EnglishLanguage "A type of &%ComputerDisk that can be temporarily installed in a &%DiskDrive and is readily removable.")
 (disjoint FloppyDisk HardDisk)
 
-(subclass CompactDisc RemovableDigitalDataStorageDevice )
+(subclass CompactDisc RemovableDigitalDataStorageDevice)
+;CompactDisc is defined in Media.kif .
+
 (subclass CDROM CompactDisc)
 (subclass CDROM ComputerDisc)
-(subclass CDROM ComputerIOnputDevice)
+(subclass CDROM ComputerInputDevice)
+(documentation CD-RW EnglishLanguage "A type of &%CompactDisc that can be read but not written on.")
+(disjoint CDROM ComputerOutputDevice)
 
+(subclass CD-WriteOnce CompactDisc)
+(subclass CD-WriteOnce ComputerDisk)
+(subclass CD-WriteOnce ComputerIODevice)
+(documentation CD-RW EnglishLanguage "A type of &%CompactDisc that can be written on once and read from multiple times.")
 
 (subclass CD-RW CompactDisc)
 (subclass CD-RW ComputerDisk)
 (subclass CD-RW ComputerIODevice)
 (documentation CD-RW EnglishLanguage "A type of &%CompactDisc that can be written on and read from multiple times.")
-(disjointWith CD-RW CDROM)
-
+(disjointWith CD-WriteOnce CDROM)
 
 (subclass BluRayDisc OpticalDisc)
 (documentation BluRayDisc EnglishLanguage "A type of &%CompactDisc that has significantly more storage than a &%DVD.")
 (disjointWith BluRayDisc CompactDisc)
 (disjointWith BluRayDisc DVD)
 
-
-
 (subclass DiskDrive ComputerComponent)
 (subclass DiskDrive DigitalDataStorageDevice )
 (documentation DiskDrive EnglishLanguage "A device that can read and (often) write &%ComputerDisks.")
-(=>
-  (instance ?VCAMERA DiskDrive)
-  (capability VideoRecording instrument ?VCAMERA))
 
 (instance diskTypeForDrive BinaryPredicate)
 (domainSubclass diskTypeForDrive 1 ComputerDisk)
 (domainSubclass diskTypeForDrive 2 DiskDrive)
 (documentation diskTypeForDrive EnglishLanguage "(diskTypeForDrive ?DISK_TYPE ?DRIVE_TYPE) means that disks of type ?DISK_TYPE are designed to be used by drives of type ?DRIVE_TYPE and such drives are designed to read (and possibly write) disks of type ?DISK_TYPE.")
-
-
 
 (subclass ExternalDiskDrive DiskDrive)
 (documentation ExternalHardDiskDrive EnglishLanguage "A type of &%DiskDrive that can be attached to a &%Computer by a cable.")
@@ -571,6 +712,7 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 
 (subclass ExternalHardDiskDrive HardDiskDrive)
 (subclass ExternalHardDiskDrive ExternalDiskDrive)
+(classIntersection HardDiskDrive ExternalDiskDrive ExternalHardDiskDrive)
 (documentation ExternalHardDiskDrive EnglishLanguage "A type of &%HardDiskDrive that can be attached to a &%Computer by a cable.")
 
 (subclass DiskDriveWithRemovableDisks DiskDrive)
@@ -579,21 +721,19 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (subclass CartridgeHardDiskDrive HardDiskDrive)
 (subclass CartridgeHardDiskDrive DiskDriveWithRemovableDisks)
 (documentation CartridgeHardDiskDrive EnglishLanguage "A type of &%HardDiskDrive that can have different &%CartridgeHardDisks at different times.  Insertion and removal of a disk are simple processes.")
-
+(diskTypeForDrive CartridgeHardDisk CartridgeHardDiskDrive)
 
 (subclass HardDiskDrive DiskDrive)
+; defined in QoSontology.kif
 ; (documentation HardDiskDrive EnglishLanguage "A device that can read and write &%ComputerHardDisks.")
 
 (subclass FloppyDiskDrive DiskDriveWithRemovableDisks)
 (documentation FloppyDiskDrive EnglishLanguage "A device that can read and write &%FloppyDisks.")
 (diskTypeForDrive FloppyDisk FloppyDiskDrive)
 
-
 (subclass OpticalDiscDrive DiskDrive)
 (documentation OpticalDiscDrive EnglishLanguage "A device that can read and (in some cases) write certain kinds of &%OpticalDisc.")
 (diskTypeForDrive OpticalDisk OpticalDiskDrive)
-
-
 
 (subclass CDDrive OpticalDiscDrive)
 (documentation CDDrive EnglishLanguage "A device that can read and (in some cases) write &%CompactDiscs.")
@@ -601,17 +741,16 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 
 (subclass DVDDrive OpticalDiscDrive)
 (documentation DVDDrive EnglishLanguage "A device that can read and (in some cases) write &%DVDs.")
+(diskTypeForDrive DVD DVDDrive)
 
 (subclass BluRayDrive OpticalDiscDrive)
 (documentation BluRayDrive EnglishLanguage "A device that can read and (in some cases) write &%BluRayDiscs.")
-(diskTypeForDrive BluRayDiscs BluRayDrive)
-
+(diskTypeForDrive BluRayDisc BluRayDrive)
 
 ; =============================
 
 (subclass SolidStateDataStorageDevice DigitalDataStorageDevice)
 (documentation SolidStateDataStorageDevice EnglishLanguage "A type of &%DigitalDataStorageDevice which can be read with no moving parts.")
-
 
 (subclass FlashDrive SolidStateDataStorageDevice)
 (subclass FlashDrive ComputerIODevice)
@@ -624,13 +763,13 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (documentation MemoryCard EnglishLanguage "A type of &%RemovableDigitalDataStorageDevice with no moving parts, that can be inserted into a camera, cell phone, computer, or similar device; written on that device; and switched to another device to be read.")
 (disjoint FlashDrive MemoryCard)
 
-
 (subclass Software Procedure)
 (documentation Software EnglishLanguage "A set of instructions in a computer programming language that can be executed by a computer, possibly after compilation into another programming language.  The term &%Software includes &%ComputerPrograms (free-standing software), object methods, subroutines and software packages.")
 (subclass ComputerProgram Software)
 
 (subclass SoftwarePackage Software)
 (documentation SoftwarePackage EnglishLanguage "A &%SoftwarePackage is a set of &%ComputerPrograms and &%DataFiles that operate together to enable various &%ComputerUser activities.")
+
 (=>
   (instance ?PACK SoftwarePackage)
   (exists (?PROGRAM)
@@ -645,12 +784,8 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
       (instance ?FILE ComputerFile)
       (parts ?FILE ?PACK))))
 
-
-
-
 (subclass UserInterface Software)
 (documentation UserInterface EnglishLanguage "A &%UserInterface is a piece or collection of &%Software that allows a user to interact with a computer system or program.")
-
 
 (subclass GraphicalUserInterface UserInterface)
 (documentation GraphicalUserInterface EnglishLanguage "A &%GraphicalUserInterface is a &%UserInterface that allows users to interact with electronic devices with images rather than text commands.")
@@ -662,62 +797,170 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (subclass ComputerMenu UIElement)
 (documentation ComputerMenu EnglishLanguage "A &%ComputerMenu is an image generated by a computer program of a set of choices tha a user has for interacting with that program in conjunction with a method for the user to input a selection to the program.")
 
-(subclass TextualComputerMenu ComputerMenu)
-(documentation TextualComputerMenu EnglishLanguage "A &%TextualComputerMenu is a &%ComputerMenu that textually describes a user's options and permits the user to select one of the options by typing the appropriate thing into the computer.")
-
-
-
-
-(subclass GUIElement Image)
-(subclass GUIElement UIElement)
-(documentation GUIElement EnglishLanguage "A &%GUIElement is an active image on a &%ComputerScreen that a user uses to interact with a &%GraphicalUserInterface.  The type of interaction depends upon the type of element and type of screen.")
-(disjoint TextualComputerMenu GUIElement)
-
-(subclass ComputerTouchscreenKeypad GUIElement)
-(subclass ComputerTouchscreenKeyboard GUIElement)
-
-(subclass ScrollBar GUIElement)
-(documentation ScrollBar EnglishLanguage "A &%ScrollBar is an image of a slider on an &%InterfaceWindow that a user may move to shift the image in the window up and down or right and left in cases in which the logical image is larger than the portion displayed in the window.  The image may be pure text or may be graphics.")
-(disjoint ComputerMenu ScrollBar)
-; A ScrollBar can be used to move an image in a window
-; A ScrollBar is typically moved by a mouse icon
-; A ScrollBar can be moved by a roller
-; A ScrollBar can be moved by arrow keys
-
-(subclass GraphicalComputerMenu ComputerMenu)
-(subclass GraphicalComputerMenu UIElement)
-(classIntersection ComputerMenu UIElement GraphicalComputerMenu)
-
-(documentation GraphicalComputerMenu EnglishLanguage "A &%GraphicalComputerMenu is a &%ComputerMenu that displays a user's options and permits the user to select one of the options in a graphical manner.")
-; A GraphicalComputerMenu is typically accessed by a mouse icon
-; A GraphicalComputerMenu can be accessed by arrow keys.
-
 (instance accessableFromMenu BinaryPredicate)
 (domain accessableFromMenu 1 Entity)   ; !!! Narrow this down
 (domain accessableFromMenu 2 ComputerMenu)
 (documentation accessableFromMenu EnglishLanguage "The property &%accessableFromMenu relates a file, computer process, or submenu to a &%ComputerMenu from which the object can be accessed.")
 
+(subclass TextualComputerMenu ComputerMenu)
+(documentation TextualComputerMenu EnglishLanguage "A &%TextualComputerMenu is a &%ComputerMenu that textually describes a user's options and permits the user to select one of the options by typing the appropriate thing into the computer.")
+
+; =====================================
+
+(subclass GUIElement Image)
+(subclass GUIElement UIElement)
+(documentation GUIElement EnglishLanguage "A &%GUIElement is an image on a &%ComputerScreen that a user uses to interact with a &%GraphicalUserInterface.  The type of interaction depends upon the type of element and type of screen.")
+(disjoint TextualComputerMenu GUIElement)
+
+(instance screenOfGUIE BinaryPrediate)
+(domain screenOfGUIE 1 GUIElement)
+(domain screenOfGUIE 2 InterfaceScreen)
+(documentation screenOfGUIE EnglishLanguage "(screenOfGUIE ?GUIE ?SCREEN) means that the GUIElement, ?GUIE, is displayed on, or at least logically assigned to be displayed on the &%InterfaceScreen, ?SCREEN.")
+
+(subclass GUIActiveArea GUIElement)
+(documentation GUIActiveArea EnglishLanguage "A &%GUIActiveArea is a (normally rectangular) &%GUIElement which a user can make active (change its state to GUI_ActiveState), select, and interact with.")
+
+(subclass ComputerTouchscreenKeypad GUIActiveArea)   ; defined above
+(subclass ComputerTouchscreenKeyboard GUIActiveArea) ; defined above
+
+(subclass GraphicalComputerMenu ComputerMenu)
+(subclass GraphicalComputerMenu GUIActiveArea)
+(classIntersection ComputerMenu UIElement GraphicalComputerMenu)
+(documentation GraphicalComputerMenu EnglishLanguage "A &%GraphicalComputerMenu is a &%ComputerMenu that displays a user's options and permits the user to select one or more of the options in a graphical manner and usually using a keyboard as well.")
+(disjoint GraphicalComputerMenu ComputerTouchscreenKeypad)
+(disjoint GraphicalComputerMenu ComputerTouchscreenKeyboard)
+
+; A GraphicalComputerMenu is typically accessed by a mouse icon
+; A GraphicalComputerMenu can be accessed by arrow keys.
+
+(subclass ListBox GraphicalComputerMenu)
+(documentation ListBox EnglishLanguage "A &%ListBox is a &%GraphicalComputerMenu which appears as a static list of visible values whether active or not.  The whole list may or may not be visible at one time.")
+
+(subclass DropDownList GraphicalComputerMenu)
+(documentation DropDownList EnglishLanguage "A &%DropDownList is a &%GraphicalComputerMenu which appears as a single choice when inactive, but expands to a list of visible values (see &%ListBox) when made active.  The whole list may or may not be visible at one time.")
+(disjoint ListBox DropDownList)
+
+(subclass ComboListTextBox GraphicalComputerMenu)
+(documentation ComboListTextBox EnglishLanguage "A &%ComboListTextBox is a &%GraphicalComputerMenu which appears as a &%ListBox or a &%DropDownList, but also has a single line &%TextInputBox into which a user can type a text value not in the menu.")
+; (havePartTypes ComboList TextInputBox) 
 
 (subclass GraphicalSubMenu GraphicalComputerMenu)
-(documentation GraphicalSubMenu EnglishLanguage "A &%GraphicalSubMenu is a &%GraphicalComputerMenu that appears when a user either makes a &%GraphicalMenuItem the active area or selects the menu item.")
+(documentation GraphicalSubMenu EnglishLanguage "A &%GraphicalSubMenu is a &%GraphicalComputerMenu that appears when a user either makes a &%GraphicalMenuItem the active area or selects an appropriate menu item.")
+
 (=> 
   (instance ?SUB GraphicalSubMenu)
   (exists (?MENU)
     (and
       (instance ?MENU GraphicalComputerMenu)
       (accessableFromMenu ?SUB ?MENU))))
+
 ; Note that this is not unique, since the same submenu conceptually be accessed 
 ; from multiple menus.
 
+(subclass GUIButton GUIActiveArea)
+(subclass GUIButton ComputerInputButton)
+(documentation GUIButton EnglishLanguage "A &%GUIButton is an image of a button on a &%GUIElement that a user may click on or ''hold down'' to indicate a &%UserSignifiedAction.  The button's graphical appearance changes once it is selected.  An icon of a &%ComputerKeyboardKey is not considered to be a &%GUIButton.  A &%GUIButton may have labeling text or symbol displayed on or adjacent it.  The active area for selecting a GUI button may be the area of the button itself or may include the area of text labeling the box.")
+(disjoint GUIButton ComputerKeyboardKey)
+(disjoint GUIButton ComputerTouchscreenKeypad)
+(disjoint GUIButton ComputerTouchscreenKeyboard)
 
-(subclass MouseIcon GUIElement)
-(documentation MouseIcon EnglishLanguage "A &%MouseIcon is a &%GUIElement designed for a user to move around a computer screen.")
-; A mouse icon may be controlled by a &%ComputerMouse, but may also be controlled by 
+(subclass GUIRadioButton GUIButton)
+(documentation GUIRadioButton EnglishLanguage "A &%GUIRadioButton is a &%GUIButton in a set of buttons that stays selected when a user clicks on it.  Any other button that was depressed is released when the GUI radio button is pushed.")
+
+
+(subclass ScrollBar GUIActiveArea)
+(documentation ScrollBar EnglishLanguage "A &%ScrollBar is an image of a slider on an &%InterfaceWindow with an indicator (&%ScrollBarBar) that a user may move to shift the image in the window up and down or right and left in cases in which the logical image is larger than the portion displayed in the window.  The image may be pure text or may be graphics.")
+(disjoint ComputerMenu ScrollBar)
+(disjoint ScrollBar GUIButton)
+; A ScrollBar can be used to move an image in a window
+; A ScrollBar is typically moved by a mouse icon
+; A ScrollBar can be moved by a roller
+; A ScrollBar can be moved by arrow keys
+
+(subclass HorizontalScrollBar ScrollBar)
+(documentation HorizontalScrollBar EnglishLanguage "A &%HorizontalScrollBar is a horizontal image of a slider on an &%InterfaceWindow with an indicator (&%ScrollBarBar) that a user may move to shift the image in the window to the right and left in cases in which the logical image is wider than the portion displayed in the window.  The image may be pure text or may be graphics.")
+
+(subclass VerticalScrollBar ScrollBar)
+(documentation VerticalScrollBar EnglishLanguage "A &%VerticalScrollBar is a vertical image of a slider on an &%InterfaceWindow with an indicator (&%ScrollBarBar) that a user may move to shift the image in the window up or down in cases in which the logical image is taller than the portion displayed in the window.  The image may be pure text or may be graphics.")
+(disjoint VerticalScrollBar HorizontalScrollBar)
+
+(subclass ScrollBarBar GUIActiveArea)
+(documentation ScrollBarBar EnglishLanguage "A &%ScrollBarBar is an image of an indicator on an &%ScrollBar that a user may move to shift the logical image in the window up and down or right and left in cases in which the logical image is larger than the portion displayed in the window.  The image may be pure text or may be graphics.")
+(properPartTypes ScrollBarBar ScrollBar)
+(disjoint ScrollBarBar ScrollBar)
+(disjoint ScrollBarBar ComputerMenu)
+(disjoint ScrollBarBar ComputerTouchscreenKeypad)
+(disjoint ScrollBarBar ComputerTouchscreenKeyboard)
+
+(subclass ScrollBarArrowButton GUIButton)
+(documentation ScrollBarArrowButton EnglishLanguage "A &%ScrollBarArrowButton is an image of an arrow on an &%ScrollBar that a user may click on or hold down to shift the logical image in the window up and down or right and left in cases in which the logical image is larger than the portion displayed in the window.  The logical image may be pure text or may be graphics.")
+(properPartTypes ScrollBarBar ScrollBar)
+(disjoint ScrollBarArrowButton ScrollBarBar)
+(disjoint ScrollBarArrowButton ComputerMenu)
+
+(subclass ScrollBarRightArrowButton ScrollBarArrowButton)
+(documentation ScrollBarRightArrowButton EnglishLanguage "A &%ScrollBarRightArrowButton is an image of an arrow on an &%ScrollBar that a user may click on or hold down to shift the image in the window to the right in cases in which the logical image is wider than the portion displayed in the window.  The image may be pure text or may be graphics.")
+(properPartTypes ScrollBarRightArrowButton HorizontalScrollBar)
+
+(subclass ScrollBarLeftArrowButton ScrollBarArrowButton)
+(documentation ScrollBarLeftArrowButton EnglishLanguage "A &%ScrollBarLeftArrowButton is an image of an arrow on an &%ScrollBar that a user may click on or hold down to shift the image in the window to the left in cases in which the logical image is wider than the portion displayed in the window.  The image may be pure text or may be graphics.")
+(properPartTypes ScrollBarRightArrowButton HorizontalScrollBar)
+(disjoint ScrollBarLeftArrowButton ScrollBarRightArrowButton)
+
+(subclass ScrollBarUpArrowButton ScrollBarArrowButton)
+(documentation ScrollBarUpArrowButton EnglishLanguage "A &%ScrollBarUpArrowButton is an image of an arrow on an &%ScrollBar that a user may click on or hold down to shift the image in the window upward in cases in which the logical image is taller than the portion displayed in the window.  The image may be pure text or may be graphics.")
+(properPartTypes ScrollBarUpArrowButton VerticalScrollBar)
+(disjoint ScrollBarUpArrowButton ScrollBarRightArrowButton)
+(disjoint ScrollBarUpArrowButton ScrollBarLeftArrowButton)
+
+(subclass ScrollBarDownArrowButton ScrollBarArrowButton)
+(documentation ScrollBarDownArrowButton EnglishLanguage "A &%ScrollBarDownArrowButton is an image of an arrow on an &%ScrollBar that a user may click on or hold down to shift the image in the window downward in cases in which the logical image is taller than the portion displayed in the window.  The image may be pure text or may be graphics.")
+(properPartTypes ScrollBarDownArrowButton VerticalScrollBar)
+(disjoint ScrollBarDownArrowButton ScrollBarUpArrowButton)
+(disjoint ScrollBarDownArrowButton ScrollBarRightArrowButton)
+(disjoint ScrollBarDownArrowButton ScrollBarLeftArrowButton)
+
+(subclass GUISlider GUIActiveArea)
+(documentation GUISlider EnglishLanguage "A &%GUISlider is an image of a slider on an &%InterfaceWindow with an indicator (&%GUISliderIndicator) that a user may move to shift a value up and down or within a list of values.")
+(disjoint ComputerMenu ScrollBar)
+(disjoint ScrollBarBar ComputerTouchscreenKeypad)
+(disjoint ScrollBarBar ComputerTouchscreenKeyboard)
+; A GUISlider can be used to change a data value
+; A GUISlider is typically moved by a mouse icon
+; A GUISlider can be moved by a roller
+; A GUISlider can be moved by arrow keys
+
+(subclass GUISliderIndicator GUIActiveArea)
+(documentation GUISliderIndicator EnglishLanguage "A &%GUISliderIndicator is an image of an indicator on an &%GUISlider that a user may move to shift the image in the window up and down or right and left in cases in which the logical image is larger than the portion displayed in the window.  The image may be pure text or may be graphics.")
+(properPartTypes GUISlider GUISliderIndicator)
+(disjoint GUISliderIndicator ComputerMenu)
+(disjoint GUISliderIndicator ScrollBar)
+(disjoint GUISliderIndicator ScrollBarBar)
+
+(subclass Cursor GUIElement)
+(documentation Cursor EnglishLanguage "A &%Cursor is a &%GUIElement designed for a user to move around a computer screen.  A cursor can have different visual forms and may change in appearance depending upon the current type of graphical interaction.  A &%TextCursor locates an active area for inserting or deleting text and is more limited in its movement than a &%MouseCursor.  Both a mouse cursor and a text cursor may be visible at the same time.")
+; A cursor may be controlled by a &%ComputerMouse, but may also be controlled by 
 ; software, a trackball, joystick, or keyboard arrow keys
+(subclass TextCursor Cursor)
+(documentation TextCursor EnglishLanguage "A &%TextCursor is a &%Cursor that locates an active area for inserting or deleting text and is more limited in its movement than a &%MouseCursor.  Both a mouse cursor and a text cursor may be visible at the same time.")
+
+(subclass MouseCursor Cursor)
+(documentation MouseCursor EnglishLanguage "A &%MouseCursor is a &%Cursor that locates a location on a computer screen ``pointed to'' by a computer mouse, trackball, joystick, or other device.  Both a mouse cursor and a text cursor may be visible at the same time.")
+(disjoint MouseCursor TextCursor)
+(disjoint MouseCursor GUIActiveArea)
+; Only one &%MouseCursor may be on a screen at a time
+
+(=> 
+  (and
+    (instance ?CURSOR1 MouseCursor)
+    (instance ?CURSOR2 MouseCursor)
+    (screenOfGUIE ?CURSOR1 ?SCREEN)
+    (screenOfGUIE ?CURSOR2 ?SCREEN))
+  (equals ?CURSOR1 ?CURSOR2))
 
 (subclass InterfaceWindow GUIElement)
 (documentation InterfaceWindow EnglishLanguage "An &%InterfaceWindow is a &%GUIElement that covers a (normally rectangular region of a computer screen.  Each window has an image which covers its whole area and a level of transparency.  A region of the screen may be covered by one or more &%InterfaceWindows in a specified order with the ``top'' window visible, and those sequentially underneigth visible only to the extent that the window(s) above them are partially or wholely transparent.  An interface window is ``active'' if the state of the GUI is such that user input is automatically set to it.")
-
+(disjoint Cursor InterfaceWindow)
 
 (subclass PopupWindow InterfaceWindow)
 (documentation PopupWindow EnglishLanguage "A &%PopupWindow is a &%InterfaceWindow that appears in addition to the window with which a user is interacting.  A popup window traditionally appears partially covering the previously active window, although some are place below the active window and are not visible until the active window no longer covers that area.  A popup window may be used to provide information (including advertising) to the user or may be an interaction window.")
@@ -726,39 +969,53 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (documentation HoverBox EnglishLanguage "A &%HoverBox is a &%PopupWindow that temporarily appears when the cursor is within a &%HoverBoxActiveArea.")
 ; A &%HoverBox appears when 
 
-(subclass GUIActiveArea GUIElement)
-(documentation GUIActiveArea EnglishLanguage "A &%GUIActiveArea is a (normally rectangular) &%GUIElement which a user can select and interact with.")
-
-
 (subclass HoverBoxActiveArea GUIActiveArea)
 (documentation HoverBoxActiveArea EnglishLanguage "A &%HoverBoxActiveArea is a &%GUIActiveArea which, when it becomes active, causes a &%HoverBox to appear on the active display.")
 ; RULE NEEDED
 
-
 (subclass TextBox GUIElement)
 (documentation TextBox EnglishLanguage "A &%TextBox is a (normally rectangular) &%GUIElement which displays and/or accepts input of text.")
+(disjoint TextBox ComputerMenu)
+(disjoint TextBox GUIButton)
 
 (subclass TextInputBox GUIActiveArea)
 (subclass TextInputBox TextBox)
 (documentation TextInputBox EnglishLanguage "A &%TextInputBox is a &%TextBox that accepts input of text.")
+(havePartTypes ComboList TextInputBox)
 ; Rule needed.  Note Paste (^V and via Right Click menu)
 
 (subclass TextOutputBox TextBox)
 (documentation TextOutputBox EnglishLanguage "A &%TextOutputBox is a &%TextBox that which displays text.")
 
-(subclass ComputerMenuItem UIElement)
-(documentation ComputerMenuItem EnglishLanguage "A &%ComputerMenuItem is a &%UIElement that presents one of the user's options and informs the running program if the user selects that option.")
-(=>
-   (instance ?MENU_ITEM ComputerMenuItem)
-   (exists (?COMP_MENU)
-       (and
-         (instance ?COMP_MENU ComputerMenu)
-         (agent ?ACTION ?COMP_USER))))
+(subclass GUICheckBox GUIActiveArea)
+(documentation TextInputBox EnglishLanguage "A &%GUICheckBox is a &%GUIActiveArea with associated text or icon that may have its state changed between selected and not selected by clicking or typing a keyboard key.  Some applications use checkboxes that allow an indeterminate state in addition to the two provided by a normal checkbox. This third state is depicted differently than the selected and unselected states, and indicates that its state is neither checked nor unchecked. This is most often used when the checkbox is tied to a collection of items in mixed states. The indeterminate state cannot usually be selected by the user, and switches to a checked (or in some applications unchecked) state when activated.  Like a &%GUIRadioButton a &%GUICheckBox stays selected after being clicked on and released, but unlike a radio buton, multiple check boxes in a set may be the selected state at the same time.")
+(disjoint GUICheckBox GUIRadioButton)
+
+(subclass ComputerMenuItem GUIActiveArea)
+(documentation ComputerMenuItem EnglishLanguage "A &%ComputerMenuItem is a &%UIElement that presents one of the user's options and informs the running program if the user selects that option.  A &%ComputerMenuItem may act as either a &%GUIRadioButton or a &%GUICheckBox.  In many instances a menu item acts as a radio button on a normal click and as a check box on a shift-click.")
+(partTypes ComputerMenuItem ComputerMenu)
+(hasPartTypes ComputerMenu ComputerMenuItem)
+
+(instance accessableFromMenuItem BinaryPredicate)
+(domain accessableFromMenu 1 Entity)   ; !!! Narrow this down
+(domain ComputerMenuItem 2 ComputerMenuItem )
+(documentation accessableFromMenu EnglishLanguage "The property &%ComputerMenuItem relates a file, computer process, or submenu to a &%ComputerMenuItem from which the object can be accessed.")
 
 (subclass GraphicalMenuItem ComputerMenuItem)
 (subclass GraphicalMenuItem GUIActiveArea)
 (classIntersection ComputerMenuItem GUIActiveArea GraphicalMenuItem)
 (documentation GraphicalMenuItem EnglishLanguage "A &%GraphicalMenuItem is a &%GUIActiveArea that is also a &%ComputerMenuItem. It presents one of the user's options and informs the running program if the user selects that option.")
+
+(partTypes GraphicalMenuItem GraphicalComputerMenu)
+(hasPartTypes GraphicalComputerMenu GraphicalMenuItem)
+; every &%GraphicalSubMenu must be accessible from some &%GraphicalMenuItem
+
+(=> 
+  (instance ?SUB GraphicalSubMenu)
+  (exists (?MENUITEM)
+    (and
+      (instance ?MENU GraphicalMenuItem)
+      (accessableFromMenuItem ?SUB ?MENUITEM))))
 
 (subclass GUI_Link HypertextLink)
 (subclass GUI_Link GUIActiveArea)
@@ -776,27 +1033,35 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (subclass UserDirectAction UserAction)
 (subclass UserDirectAction Icon)
 (documentation UserDirectAction EnglishLanguage "A &%UserDirectAction is a physical action taken by a &%ComputerUser in interacting with a &%ComputerProcess -- clicking a button, moving a mouse, touching a screen -- not the action signified by the physical action (scrolling, selecting a link, moving a cursor, ...).  The action signifies an instruction to the computer.  See &%UserSignifiedAction.")
-
+; A &%UserDirectAction acts on some ComputerInputDevice:
+(=>
+   (instance ?ACTION UserDirectAction)
+   (exists (?DEVICE)
+       (and
+         (patient ?ACTION ?DEVICE)
+         (instance ?DEVICE ComputerInputDevice))))
 
 (subclass UserSignifiedAction UserAction)
 (subclass UserSignifiedAction ComputerProcess)
 (documentation UserSignifiedAction EnglishLanguage "A &%UserSignifiedAction is an action signified by physical action taken by a &%ComputerUser in interacting with a &%ComputerProcess -- scrolling, selecting a link, moving a cursor, ... -- not physical action itself (clicking a button, moving a mouse, touching a screen, ...).  Often several different types &%UserDirectAction (q.v.) could signify the same &%UserSignifiedAction.")
 (disjoint UserDirectAction UserSignifiedAction)
+
 (=>
    (instance ?ACTION UserDirectAction)
    (exists (?SIG_ACTION)
        (and
-         (instance ?SIG_ACTION UserSignifiedAction)
-         (represents ?ACTION ?SIG_ACTION))))
+         (represents ?ACTION ?SIG_ACTION)
+         (instance ?SIG_ACTION UserSignifiedAction))))
 (=>
    (instance ?SIG_ACTION UserSignifiedAction)
    (exists (?DIR_ACTION)
        (and
-         (instance ?DIR_ACTION UserDirectAction)
-         (represents ?DIR_ACTION ?SIG_ACTION))))
+         (represents ?DIR_ACTION ?SIG_ACTION)
+         (instance ?DIR_ACTION UserDirectAction))))
 
 (subclass KeyboardAction UserDirectAction)
 (documentation KeyboardAction EnglishLanguage "A &%KeyboardAction is a &%UserDirectAction of hitting or holding down one or more keyboard keys.")
+
 (=>
    (instance ?ACT KeyboardAction)
    (exists (?KEY)
@@ -804,124 +1069,249 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
          (instance ?KEY ComputerKeyboardKey)
          (patient ?ACT ?KEY))))
 
-
 (subclass MultikeyAction KeyboardAction)
 (documentation MultikeyAction EnglishLanguage "A &%MultikeyAction is a &%UserDirectAction of hitting or holding down more than one keyboard key at the same time.  All but one of the multiple keys are normally the shift, control, alt, function, or similar keys.")
 
+(=>
+   (instance ?ACT MultikeyAction)
+   (exists (?KEY1 ?KEY2)
+       (and
+         (patient ?ACT ?KEY1)
+         (patient ?ACT ?KEY2)
+         (not (equal ?KEY1 ?KEY2))
+         (instance ?KEY1 ComputerKeyboardKey)
+         (instance ?KEY2 ComputerKeyboardKey))))
 
 (subclass KeyHoldDown KeyboardAction)
-(documentation KeyHoldDown EnglishLanguage "A &%KeyHoldDown is a &%UserDirectAction of holding down a keyboard key for a while -- normally while taking some other action.  The held-down key is normally the shift, control, alt, function, or similar key.")
+(documentation KeyHoldDown EnglishLanguage "A &%KeyHoldDown is a &%UserDirectAction of holding down a keyboard key for a while.  Holding down a &%CharacterKey causes the input of a string of such characters.  Holding down an &%ArrowKey can cause a graphic to continusously move.  Holding down a &%MultiKeypressKey is useful for modifying the normal result of taking some other action that is taken while the key is held down.  This action may be the typing of some other key or a &%Clicking action.")
 
 (subclass ShiftKeyHoldDown KeyHoldDown)
 (documentation ShiftKeyHoldDown EnglishLanguage "A &%ShiftKeyHoldDown is a &%UserDirectAction of pressing and holding down the Shift key on a keyboard.")
 
+(=>
+   (instance ?ACT ShiftKeyHoldDown)
+   (exists (?KEY)
+       (and
+         (instance ?KEY ShiftKey)
+         (patient ?ACT ?KEY))))
+
+(=>
+   (and
+      (instance ?ACT ShiftKeyHoldDown)
+      (patient ?ACT ?KEY)
+      (instance ?KEY ComputerKeyboardKey))
+   (instance ?KEY ShiftKey))
+
 (subclass ControlKeyHoldDown KeyHoldDown)
 (documentation ControlKeyHoldDown EnglishLanguage "A &%ControlKeyHoldDown is a &%UserDirectAction of pressing and holding down the Control key on a keyboard.")
 (disjoint ShiftKeyHoldDown ControlKeyHoldDown)
+(=>
+   (instance ?ACT ControlKeyHoldDown)
+   (exists (?KEY)
+       (and
+         (instance ?KEY ControlKey)
+         (patient ?ACT ?KEY))))
+
+(=>
+   (and
+      (instance ?ACT ControlKeyHoldDown)
+      (patient ?ACT ?KEY)
+      (instance ?KEY ComputerKeyboardKey))
+   (instance ?KEY ControlKey))
 
 (subclass AltKeyHoldDown KeyHoldDown)
 (documentation AltKeyHoldDown EnglishLanguage "A &%AltKeyHoldDown is a &%UserDirectAction of pressing and holding down the Alt key on a keyboard.")
 (disjoint AltKeyHoldDown ShiftKeyHoldDown)
 (disjoint AltKeyHoldDown ControlKeyHoldDown)
 
+(=>
+   (instance ?ACT AltKeyHoldDown)
+   (exists (?KEY)
+       (and
+         (instance ?KEY AltKey)
+         (patient ?ACT ?KEY))))
+
+(=>
+   (and
+      (instance ?ACT AltKeyHoldDown)
+      (patient ?ACT ?KEY)
+      (instance ?KEY ComputerKeyboardKey))
+   (instance ?KEY AltKey))
+
 (subclass FunctionKeyHoldDown KeyHoldDown)
-(documentation FunctionKeyHoldDown EnglishLanguage "A &%FunctionKeyHoldDown is a &%UserDirectAction of pressing and holding down the Function key on a keyboard.")
+(documentation FunctionKeyHoldDown EnglishLanguage "A &%FunctionKeyHoldDown is a &%UserDirectAction of pressing and holding down the &%FunctionKey on a keyboard.")
 (disjoint FunctionKeyHoldDown AltKeyHoldDown)
 (disjoint FunctionKeyHoldDown ShiftKeyHoldDown)
 (disjoint FunctionKeyHoldDown ControlKeyHoldDown)
 
+(=>
+   (instance ?ACT FunctionKeyHoldDown)
+   (exists (?KEY)
+       (and
+         (instance ?KEY FunctionKey)
+         (patient ?ACT ?KEY))))
+
+(=>
+   (and
+      (instance ?ACT FunctionKeyHoldDown)
+      (patient ?ACT ?KEY)
+      (instance ?KEY ComputerKeyboardKey))
+   (instance ?KEY FunctionKey))
 
 (subclass SingleKeyPress KeyboardAction)
 (documentation SingleKeyPress EnglishLanguage "A &%SingleKeyPress is a &%UserDirectAction of typing (breifly pressing down) a keyboard key.")
 (disjoint SingleKeyPress KeyHoldDown)
 
+(instance PressingKeyFn UnaryFunction)
+(domainSubclass PressingKeyFn 1 KeyboardKey)
+(rangeSubclass PressingKeyFn SingleKeyPress)
+(documentation PressingKeyFn EnglishLanguage "(PressingKeyFn ?KEY_TYPE) indicates the type of action of typing a &%KeyboardKey of the specified type.")
+
 (subclass CharacterKeyPress SingleKeyPress)
 (documentation CharacterKeyPress EnglishLanguage "A &%CharacterKeyPress is a &%SingleKeyPress of a keyboard key that signifies a single character (letters, numbers, punctuation, other symbols, space, and tab).  Use &%SpecialCharacterPress for enter, backspace, delete, escape, shift, control, function, function keys, home, page-up, etc. keys.")
+
+(=>
+   (instance ?ACT CharacterKeyPress)
+   (exists (?KEY)
+       (and
+         (instance ?KEY CharacterKey)
+         (patient ?ACT ?KEY))))
+
+(=>
+   (and
+      (instance ?ACT CharacterKeyPress)
+      (patient ?ACT ?KEY)
+      (instance ?KEY ComputerKeyboardKey))
+   (instance ?KEY CharacterKey))
 
 (subclass SpecialCharacterPress SingleKeyPress)
 (documentation SpecialCharacterPress EnglishLanguage "A &%CharacterKeyPress is a &%SingleKeyPress of the enter, backspace, delete, escape, shift, control, function, function keys, home, page-up, and similar keys. Use &%CharacterKeyPress for white space keys and a keyboard key that signifies a single character (letters, numbers, punctuation, other symbols).")
 (disjoint CharacterKeyPress SpecialCharacterPress)
 
+(=>
+   (instance ?ACT SpecialCharacterPress)
+   (exists (?KEY)
+       (and
+         (instance ?KEY SpecialComputerKeyboardKey)
+         (patient ?ACT ?KEY))))
+
+(=>
+   (and
+      (instance ?ACT SpecialCharacterPress)
+      (patient ?ACT ?KEY)
+      (instance ?KEY ComputerKeyboardKey))
+   (instance ?KEY SpecialComputerKeyboardKey))
+
 (subclass EnterKeyPress SpecialCharacterPress)
 (documentation EnterKeyPress EnglishLanguage "A &%EnterKeyPress is a &%UserDirectAction of hitting the Enter key on a keyboard.")
 
+(=>
+   (instance ?ACT EnterKeyPress)
+   (exists (?KEY)
+       (and
+         (instance ?KEY EnterKey)
+         (patient ?ACT ?KEY))))
 
+(=>
+   (and
+      (instance ?ACT EnterKeyPress)
+      (patient ?ACT ?KEY)
+      (instance ?KEY ComputerKeyboardKey))
+   (instance ?KEY EnterKey))
+
+; ===========
 
 (subclass Clicking UserDirectAction)
 (documentation Clicking EnglishLanguage "A &%Clicking is a &%UserDirectAction of clicking on a mouse button or its equivalent on some other input device.")
 
 (subclass DoubleClicking Clicking)
 (documentation DoubleClicking EnglishLanguage "&%DoubleClicking is a &%UserDirectAction of clicking twice relatively rapidly so as to signify a ``double click''.")
+
 (=>
    (instance ?ACT DoubleClicking)
    (exists (?CLICK1 ?CLICK2)
        (and
-         (instance ?CLICK1 Clicking)
-         (instance ?CLICK2 Clicking)
-         (not (equal ?CLICK1 ?CLICK2))
          (subProcess ?ACT ?CLICK1)
-         (subProcess ?ACT ?CLICK2))))
+         (instance ?CLICK1 Clicking)
+         (subProcess ?ACT ?CLICK2)
+         (not (equal ?CLICK1 ?CLICK2))
+         (instance ?CLICK2 Clicking))))
 
 (subclass RightClicking Clicking)
 (documentation RightClicking EnglishLanguage "&%RightClicking is a &%UserDirectAction of clicking with the right button on a two or three button mouse or similar device.  A computer system may be told to logically switch the right and left buttons (e.g., for a person who uses a mouse in the left hand -- in such a case, &%RightClicking is achieved by clicking the leftmost physical button.")
+
 (=>
    (instance ?ACT RightClicking)
    (exists (?R_BUTTON)
        (and
-         (instance ?R_BUTTON RightCIButton)
-         (patient ?ACT ?R_BUTTON))))
+         (patient ?ACT ?R_BUTTON)
+         (instance ?R_BUTTON RightCIButton))))
 
 (subclass LeftClicking Clicking)
 (documentation LeftClicking EnglishLanguage "&%LeftClicking is a &%UserDirectAction of clicking with the left button on a two or three button mouse or similar device.")
+
 (=>
    (instance ?ACT LeftClicking)
    (exists (?L_BUTTON)
        (and
-         (instance ?L_BUTTON LeftCIButton)
-         (patient ?ACT ?L_BUTTON))))
+         (patient ?ACT ?L_BUTTON)
+         (instance ?L_BUTTON LeftCIButton))))
 
 (subclass MiddleClicking Clicking)
 (documentation MiddleClicking EnglishLanguage "&%MiddleClicking is a &%UserDirectAction of clicking with the middle button on a three button mouse or similar device.")
+
 (=>
    (instance ?ACT MiddleClicking)
    (exists (?M_BUTTON)
        (and
-         (instance ?M_BUTTON MiddleCIButton)
-         (patient ?ACT ?M_BUTTON))))
+         (patient ?ACT ?M_BUTTON)
+         (instance ?M_BUTTON MiddleCIButton))))
+
+(subclass ShiftClicking Clicking)
+(documentation ShiftClicking EnglishLanguage "&%ShiftClicking is a &%UserDirectAction of &%Clicking during a &%ShiftKeyHoldDown.")
+
+(=>
+   (instance ?ACT ShiftClicking)
+   (exists (?SHIFT)
+       (and
+         (subprocess ?SHIFT ?ACT)
+         (instance ?SHIFT ShiftKeyHoldDown))))
 
 (subclass MouseButtonHoldDown Clicking)
 (documentation MouseButtonHoldDown EnglishLanguage "&%MouseButtonHoldDown is a &%UserDirectAction of clicking a mouse (or similar) button, but holding the button down while taking other action (such as moving the mouse or reading text that appeared when the button was depressed).")
+
 (=>
    (instance ?ACT MouseButtonHoldDown)
    (exists (?MOUSE)
        (and
-         (instance ?MOUSE ComputerMouse)
-         (patient ?ACT ?MOUSE))))
-
+         (patient ?ACT ?MOUSE)
+         (instance ?MOUSE ComputerMouse))))
 
 (subclass SlidingComputerInputDeviceAction UserDirectAction)
-(documentation SlidingComputerInputDeviceAction EnglishLanguage "&%SlidingComputerInputDeviceAction is a &%UserDirectAction of moving a &%ComputerInputDevice in such a way that the motion can be mapped as moving a point (e.g. a Cursor) around a &%ComputerScreen.")
+(subclass SlidingComputerInputDeviceAction PhysicalGuiding)
+(documentation SlidingComputerInputDeviceAction EnglishLanguage "&%SlidingComputerInputDeviceAction is a &%UserDirectAction of moving a &%ComputerInputDevice (or an object such as a finger on a &%ComputerInputDevice) in such a way that the motion can be mapped as moving a point (e.g. a &%MouseCursor) around a &%ComputerScreen.")
 
 (subclass MouseMoving SlidingComputerInputDeviceAction)
 (documentation MouseMoving EnglishLanguage "&%MouseMoving is a &%UserDirectAction of moving a &%ComputerMouse in such a way that the motion is registered by the controlling program.")
+
 (=>
    (instance ?ACT MouseMoving)
    (exists (?MOUSE)
        (and
-         (instance ?MOUSE ComputerMouse)
-         (patient ?ACT ?MOUSE))))
-
-
+         (patient ?ACT ?MOUSE)
+         (instance ?MOUSE ComputerMouse))))
 
 (subclass TouchSurfaceAction UserDirectAction)
 (subclass TouchSurfaceAction Touching)
 (documentation TouchSurfaceAction EnglishLanguage "A &%TouchSurfaceAction is a &%UserDirectAction of interacting with a &%TouchSensitiveComputerInputDevice.")
+
 (=>
    (instance ?ACT TouchSurfaceAction)
    (exists (?TOUCHSURF)
        (and
-         (instance ?TOUCHSURF TouchSensitiveComputerInputDevice)
-         (patient ?ACT ?TOUCHSURF))))
+         (patient ?ACT ?TOUCHSURF)
+         (instance ?TOUCHSURF TouchSensitiveComputerInputDevice))))
+
 (=>
   (and
     (instance ?ACT UserDirectAction)
@@ -933,27 +1323,25 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (classIntersection TouchSurfaceAction SlidingComputerInputDeviceAction
                    TouchSurfaceSlide)
 ; (subclass TouchSurfaceSlide SlidingComputerInputDeviceAction)
-(documentation TouchSurfaceSlide EnglishLanguage "A &%TouchSurfaceSlide is a &%SlidingComputerInputDeviceAction using a &%TouchSensitiveComputerInputDevice.")
-
-
+(documentation TouchSurfaceSlide EnglishLanguage "A &%TouchSurfaceSlide is a &%SlidingComputerInputDeviceAction guiding an object along the surface of a &%TouchSensitiveComputerInputDevice.")
 
 (subclass TouchSurfaceTap TouchSurfaceAction)
 (subclass TouchSurfaceTap Clicking)
 (subclass TouchSurfaceTap Impacting)
 (documentation TouchSurfaceTap EnglishLanguage "A &%TouchSurfaceTap is a method of &%Clicking using a &%TouchSensitiveComputerInputDevice by tapping the touch surface.")
 
-
 (subclass TouchSurfaceDoubleFingerSlide TouchSurfaceAction)
 (documentation TouchSurfaceDoubleFingerSlide EnglishLanguage "A &%TouchSurfaceDoubleFingerSlide is a &%TouchSurfaceAction of touching the surface with two fingers and moving them in different directions.")
+
 (=>
    (instance ?ACTION TouchSurfaceDoubleFingerSlide)
    (exists (?FINGER1 ?FINGER2)
        (and
-         (instance ?FINGER1 Finger)
-         (instance ?FINGER2 Finger)
-         (not (equal ?FINGER1 ?FINGER2))
          (instrument ?ACTION ?FINGER1)
-         (instrument ?ACTION ?FINGER2))))
+         (instance ?FINGER1 Finger)
+         (instrument ?ACTION ?FINGER2)
+         (not (equal ?FINGER1 ?FINGER2))
+         (instance ?FINGER2 Finger))))
 
 (subclass ScreenTouchAction TouchSurfaceAction)
 (documentation ScreenTouchAction EnglishLanguage "A &%ScreenTouchAction is a &%TouchSurfaceAction using a &%ComputerTouchScreen.")
@@ -961,8 +1349,16 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
    (instance ?ACT ScreenTouchAction)
    (exists (?TOUCHSCREEN)
        (and
-         (instance ?TOUCHSCREEN ComputerTouchScreen)
-         (patient ?ACTION ?TOUCHSCREEN))))
+         (patient ?ACTION ?TOUCHSCREEN)
+         (instance ?TOUCHSCREEN ComputerTouchScreen))))
+
+(=>
+  (and
+    (instance ?ACT ScreenTouchAction)
+    (patient ?ACT ?TOUCHSURF)
+    (instance ?TOUCHSURF TouchSensitiveComputerInputDevice))
+  (instance ?TOUCHSURF ComputerTouchScreen))
+
 (=>
   (and
     (instance ?ACT UserDirectAction)
@@ -972,12 +1368,14 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 
 (subclass TouchPadAction TouchSurfaceAction)
 (documentation TouchPadAction EnglishLanguage "A &%ScreenTouchAction is a &%TouchSurfaceAction using a &%ComputerTouchpad.")
+
 (=>
    (instance ?ACT TouchPadAction)
    (exists (?TOUCHPAD)
        (and
-         (instance ?TOUCHPAD ComputerTouchPad)
-         (patient ?ACTION ?TOUCHPAD))))
+         (patient ?ACTION ?TOUCHPAD)
+         (instance ?TOUCHPAD ComputerTouchPad))))
+
 (=>
   (and
     (instance ?ACT UserDirectAction)
@@ -985,15 +1383,18 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
     (instance ?TOUCHPAD ComputerTouchPad))
   (instance ?ACT TouchPadAction))
 
-
 (subclass JoystickMotion UserDirectAction)
 (documentation JoystickMotion EnglishLanguage "A &%UserDirectAction consisting of moving a &%Joystick.")
+(disjoint JoystickMotion TouchScreenAction)
+(disjoint JoystickMotion KeyboardAction)
+
 (=>
    (instance ?ACT JoystickMotion)
    (exists (?JOYSTICK)
        (and
-         (instance ?JOYSTICK Joystick)
-         (patient ?ACTION ?JOYSTICK))))
+         (patient ?ACTION ?JOYSTICK)
+         (instance ?JOYSTICK Joystick))))
+
 (=>
   (and
     (instance ?ACT UserDirectAction)
@@ -1001,92 +1402,200 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
     (instance ?JOYSTICK Joystick))
   (instance ?ACT JoystickMotion))
 
-
 (subclass AudioInput UserDirectAction)
 (documentation AudioInput EnglishLanguage "A &%UserDirectAction consisting of providing sound as input to a computer.  &%AudioInput may be recorded, transmitted to another device, or used for control.")
+(disjoint AudioInput TouchSurfaceAction)
+(disjoint AudioInput JoystickMotion)
+(disjoint AudioInput KeyboardAction)
 
 (subclass AudioInputControl AudioInput)
 (documentation AudioInputControl EnglishLanguage "A &%UserDirectAction consisting of using sound to control a computer.  &%AudioInput which is not used for control (whether being recorded or transmitted to another device) is not considered to be &%AudioInputControl")
 
-
 (subclass ScrollWheelRotating UserDirectAction)
+(subclass ScrollWheelRotating Rotating)
 (documentation ScrollWheelRotating EnglishLanguage "A &%UserDirectAction consisting of rolling a &%ScrollWheel.")
+(disjoint ScrollWheelRotating TouchSurfaceAction)
+(disjoint ScrollWheelRotating AudioInput)
+(disjoint ScrollWheelRotating JoystickMotion)
+(disjoint ScrollWheelRotating KeyboardAction)
+
+(=>
+   (instance ?ACT ScrollWheelRotating)
+   (exists (?WHEEL)
+       (and
+         (experiencer ?ACTION ?WHEEL)
+         (instance ?WHEEL ScrollWheel))))
 
 (subclass ScrollWheelRotatingAway ScrollWheelRotating)
 (documentation ScrollWheelRotatingAway EnglishLanguage "&%ScrollWheelRotating consisting of rolling a &%ScrollWheel away from the user (assuming the user is on the expected side of the scroll wheel).")
 
 (subclass ScrollWheelRotatingInward ScrollWheelRotating)
 (documentation ScrollWheelRotatingInward EnglishLanguage "&%ScrollWheelRotating consisting of rolling a &%ScrollWheel towards from the user (assuming the user is on the expected side of the scroll wheel).")
+(disjoint ScrollWheelRotatingAway ScrollWheelRotatingInward)
 
-(subclass Typing UserDirectAction)
-(documentation Typing EnglishLanguage "A &%UserDirectAction consisting of typing on a keyboard.  Each act of &%Typing has a number of subevents which are instances of #$SingleKeyPress.")
+(subclass Typing KeyboardAction)
+(documentation Typing EnglishLanguage "A &%UserDirectAction consisting of typing on a keyboard.  Each act of &%Typing has a number of subevents which are instances of &%SingleKeyPress.")
+(disjoint ScrollWheelRotating Typing)
+(disjoint Typing AudioInput)
+(disjoint Typing TouchSurfaceAction)
+(disjoint Typing JoystickMotion)
+
 (=>
    (instance ?TYPING Typing)
    (exists (?KEYPRESS)
       (and
-         (instance ?KEYPRESS SingleKeyPress)
-         (subProcess ?KEYPRESS ?TYPING))))
+         (subProcess ?KEYPRESS ?TYPING)
+         (instance ?KEYPRESS SingleKeyPress))))
 
 ; =======================
 
 (subclass UserSignifiedGraphicalAction UserSignifiedAction)
 (documentation UserSignifiedGraphicalAction EnglishLanguage "A &%UserSignifiedAction that is interpreted as signifying a change in a graphical feature (cursor movement, highlighting of an area, etc.).")
 
+(=>
+   (instance ?ACT UserSignifiedGraphicalAction)
+   (exists (?GUIE)
+       (and
+         (patient ?ACT ?GUIE)
+         (instance ?GUIE GUIActiveArea))))
+
+(instance udaCanSignify BinaryPredicate)
+(domain udaCanSignify 1 UserDirectAction)
+(domain udaCanSignify 2 UserSignifiedAction)
+(documentation udaCanSignify EnglishLanguage "(udaCanSignify ?DIRECT_ACTION_TYPE ?SIGNIFIED_ACTION_TYPE) means that an instance of the &%UserDirectAction ?DIRECT_ACTION can signify to a program an instance of the &%UserSignifiedAction ?SIGNIFIED_ACTION_TYPE.")
+
 (subclass MovingCursor UserSignifiedGraphicalAction)
+(subclass MovingCursor Translocation)
+(subclass MovingCursor Guiding)
 (documentation MovingCursor EnglishLanguage "The &%UserSignifiedGraphicalAction is accomplished by a &%ComputerUser taking a &%UserDirectAction that is interpreted as signifying that a cursor should be moved.  Depending upon program state this could be accomplished by &%UserDirectActions of &%MouseMoving, a &%TouchSurfaceSlide, &%JoystickMotion, &%ScrollWheelRotating, &%KeyboardAction, repeated %&Clicking, or &%AudioInput.")
+
+(=>
+   (instance ?ACT MovingCursor)
+   (exists (?GUIE)
+       (and
+         (patient ?ACT ?GUIE)
+         (instance ?GUIE Cursor))))
+
+(udaCanSignify SlidingComputerInputDeviceAction MovingCursor)
+(udaCanSignify ScrollWheelRotating MovingCursor)
+(udaCanSignify (PressingKeyFn ArrowKey) MovingCursor)
+(udaCanSignify Clicking MovingCursor)
 
 (subclass DraggingWithCursor MovingCursor)
 (documentation DraggingWithCursor EnglishLanguage "&%DraggingWithCursor consists of moving a cursor while some other screen component moves along with the cursor.")
+(udaCanSignify (IntersectionFn MouseButtonHoldDown SlidingComputerInputDeviceAction)
+               DraggingWithCursor)
+(udaCanSignify (IntersectionFn ShiftKeyHoldDown SlidingComputerInputDeviceAction)
+               DraggingWithCursor)
+; Any cursor acted on by a &%DraggingWithCursor action is a &%MouseCursor
+
+(=>
+   (and
+       (instance ?ACT DraggingWithCursor)
+       (patient ?ACT ?CURSOR)
+       (instance ?CURSOR Cursor))
+   (instance ?CURSOR MouseCursor))
+
+; In any DraggingWithCursor there is a non-cursor graphical element that is affected
+
+(=>
+   (instance ?ACT DraggingWithCursor)
+   (exists (?GUIE)
+       (and
+         (patient ?ACT ?GUIE)
+         (instance ?GUIE GUIActiveArea)
+         (not (instance ?GUIE Cursor)))))
 
 (subclass WindowScrolling ComputerProcess)
-(documentation WindowScrolling EnglishLanguage "&%WindowScrolling consists of a &%ComputerProcess moving the contents of a frame in a window (when the logical size of the contents is greater than that of the frame) without moving the window itself.")
-; Window Scrolling affects the currently active window
+(documentation WindowScrolling EnglishLanguage "&%WindowScrolling consists of a &%ComputerProcess moving as a block the contents of a frame in a window (when the logical size of the contents is greater than that of the frame) without moving the window itself.")
+; WindowScrolling always acts upon an InterfaceWindow:
+
 (=>
-  (instance ?SCROLL WindowScrolling)
-  (exists (?WINDOW)
-    (and
-      (patient ?SCROLL ?WINDOW)
-      (instance ?SCROLL InterfaceWindow)
-      (hasGUEState ?WINDOW GUEActiveState))))
+   (instance ?ACT WindowScrolling)
+   (exists (?GUIE)
+       (and
+         (patient ?ACT ?GUIE)
+         (instance ?GUIE InterfaceWindow))))
 
 (subclass WindowScrollingByUser WindowScrolling)
 (subclass WindowScrollingByUser UserSignifiedGraphicalAction)
 (documentation WindowScrolling EnglishLanguage "&%WindowScrollingByUser consists of moving the contents of a frame in a window (when the logical size of the contents is greater than that of the frame) without moving the window itself.")
+
 (<=> 
   (and
     (instance ?SCROLL WindowScrolling)
     (instance ?SCROLL UserSignifiedGraphicalAction))
   (instance ?SCROLL WindowScrollingByUser))
 
+; User Window Scrolling affects the currently active window
+
+(=>
+  (instance ?SCROLL WindowScrollingByUser)
+  (exists (?WINDOW)
+    (and
+      (patient ?SCROLL ?WINDOW)
+      (instance ?WINDOW InterfaceWindow)
+      (hasGUEState ?WINDOW GUEActiveState))))
+
+(udaCanSignify (IntersectionFn MouseButtonHoldDown SlidingComputerInputDeviceAction)
+               WindowScrollingByUser)
+(udaCanSignify ScrollWheelRotating WindowScrollingByUser)
+(udaCanSignify (PressingKeyFn ArrowKey) WindowScrollingByUser)
+
 (subclass VerticalWindowScrolling WindowScrolling)
 (documentation VerticalWindowScrolling EnglishLanguage "&%VerticalWindowScrolling consists of scrolling the image in a frame up or down.  Such a scrolling direction is commonly used for text.")
+(udaCanSignify (PressingKeyFn UpArrowKey) 
+               (IntersectionFn VerticalWindowScrolling WindowScrollingByUser))
+(udaCanSignify (PressingKeyFn DownArrowKey) 
+               (IntersectionFn VerticalWindowScrolling WindowScrollingByUser))
 
 (subclass HorizontalWindowScrolling WindowScrolling)
 (documentation HorizontalWindowScrolling EnglishLanguage "&%HorizontalWindowScrolling consists of scrolling the image in a frame from side to side.  Such a scrolling direction is commonly used in video games.")
+(udaCanSignify (PressingKeyFn RightArrowKey) 
+               (IntersectionFn HorizontalWindowScrolling WindowScrollingByUser))
+(udaCanSignify (PressingKeyFn LeftArrowKey) 
+               (IntersectionFn HorizontalWindowScrolling WindowScrollingByUser))
 
 (subclass TwoDWindowScrolling WindowScrolling)
 (documentation TwoDWindowScrolling EnglishLanguage "&%TwoDWindowScrolling consists of scrolling the image in a frame in any direction in 2D.  Such a scrolling method is commonly used for viewing portions of an image or graphic in more detail than would be possible if the complete graphic were displayed in the frame at one time.")
 
-
 (subclass SubmitAction UserSignifiedAction)
 (documentation SubmitAction EnglishLanguage "A &%SubmitAction is a &%UserSignifiedAction informing a &%ComputerProgram to make a user-selected action.")
+(udaCanSignify (PressingKeyFn EnterKey) SubmitAction)
+(udaCanSignify LeftClicking SubmitAction)
+(udaCanSignify DoubleClicking SubmitAction)
+(udaCanSignify TouchSurfaceTap SubmitAction)
+(udaCanSignify EnterKeyPress SubmitAction)
 
 (subclass DownloadingRequest SubmitAction)
 (documentation DownloadingRequest EnglishLanguage "A &%SubmitAction instructing a &%ComputerProgram to download a file from an already specified location.")
 
+(=>
+   (instance ?ACT DownloadingRequest)
+   (exists (?FILE)
+       (and
+         (patient ?ACT ?FILE)
+         (instance ?FILE ComputerFile))))
 
 (subclass UploadingRequest SubmitAction)
 (documentation UploadingRequest EnglishLanguage "A &%SubmitAction instructing a &%ComputerProgram to upload across a network a specified file existing on the local machine.")
+(disjoint UploadingRequest DownloadingRequest)
+
+(=>
+   (instance ?ACT UploadingRequest)
+   (exists (?FILE)
+       (and
+         (patient ?ACT ?FILE)
+         (instance ?FILE ComputerFile))))
 
 (subclass SubmitForm SubmitAction)
 (documentation SubmitForm EnglishLanguage "A &%SubmitAction instructing a &%ComputerProgram to upload a form which has been generated or filled in by a local program.")
 
-(subclass DownloadingFile SubmitAction)
-(documentation DownloadingFile EnglishLanguage "A &%SubmitAction instructing a &%ComputerProgram to download a file from an already specified location.")
-
-
 (subclass InputCharacterString UserSignifiedAction)
 (documentation InputCharacterString EnglishLanguage "A &%UserSignifiedAction providing a &%ComputerProgram with a character string input.  This is often the intent of &%Typing.")
+(udaCanSignify Typing InputCharacterString)
+
+; ======================================
 
 (subclass GUElementState VisualAttribute)
 (documentation GUElementState EnglishLanguage "A state possessed by instances of &%GUIElement.  The possible states include &%GUE_ActiveState, &%GUE_PassiveState, &%GUE_DisplayedState, &%GUE_CoveredState, &%GUE_UncoveredState, and &%GUE_PartiallyCoveredState.")
@@ -1098,19 +1607,23 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
 (documentation hasGUEState EnglishLanguage "(hasGUEState ?GUIE ?STATE) means that the &%GUIElement ?GUIE has the &%GUElementState, ?STATE.")
 
 (instance GUE_ActiveState GUElementState)
-(documentation GUE_ActiveState EnglishLanguage "The &%GUElementState of being ready to accept user  clicks and keyboard activity. At most one &%InterfaceWindow on a &%ComputerScreen is active at a time, and at most one &%GUIElement that is a direct part of that window is active at one time.")
+(documentation GUE_ActiveState EnglishLanguage "The &%GUElementState of being ready to accept user  clicks and keyboard activity. At most one &%InterfaceWindow on a &%ComputerScreen is active at a time, and at most one &%GUIElement that is a direct part of that window is active at one time.  A subelement of an active element may also be active.")
 
-; Only one &%InterfaceWindow is open at a time
+; Only one &%InterfaceWindow is active on a screen at a time
+
 (=> 
   (and
     (instance ?WINDOW1 InterfaceWindow)
     (instance ?WINDOW2 InterfaceWindow)
+    (screenOfGUIE ?WINDOW1 ?SCREEN)
+    (screenOfGUIE ?WINDOW2 ?SCREEN)
     (hasGUEState ?WINDOW1 GUE_ActiveState)
     (hasGUEState ?WINDOW1 GUE_ActiveState))
   (equals ?WINDOW1 ?WINDOW2))
 
 ; If a &%GUIElement is active, any &%GUIElement (including a &%InterfaceWindow) that 
 ; it is part of is active:
+
 (=>
   (and
     (instance ?GUIE1 GUIElement)
@@ -1119,26 +1632,32 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
     (instance ?GUIE2 GUIElement))
   (hasGUEState ?GUIE2 GUE_ActiveState))
 
-; If a &%GUIElement is active, it is part of the active &%InterfaceWindow:
+; If a &%GUIElement is active, it is part of the active &%InterfaceWindow
+; on that screen:
+
 (=>
   (and
     (instance ?WINDOW InterfaceWindow)
     (instance ?GUIE GUIElement)
+    (screenOfGUIE ?WINDOW ?SCREEN)
+    (screenOfGUIE ?GUIE ?SCREEN)
     (not (instance ?GUIE InterfaceWindow))
     (hasGUEState ?WINDOW GUE_ActiveState)
     (hasGUEState ?GUIE GUE_ActiveState))
   (properPart ?GUIE ?WINDOW))
 
-; if two different non-window &%GUIElements are active, one is a part of the other
+; if two different non-window &%GUIElements are active on the same screen,
+; one is a part of the other
 ; E.g., a menu & menuitem or submenu:
+
 (=>
   (and
-    (instance ?WINDOW InterfaceWindow)
     (instance ?GUIE1 GUIElement)
     (instance ?GUIE2 GUIElement)
     (not (instance ?GUIE1 InterfaceWindow))
     (not (instance ?GUIE2 InterfaceWindow))
-    (hasGUEState ?WINDOW GUE_ActiveState)
+    (screenOfGUIE ?GUIE1 ?SCREEN)
+    (screenOfGUIE ?GUIE2 ?SCREEN)
     (hasGUEState ?GUIE1 GUE_ActiveState)
     (hasGUEState ?GUIE2 GUE_ActiveState))
   (or
@@ -1146,92 +1665,165 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
     (properPart ?GUIE2 ?GUIE1)
     (equals ?GUIE1 ?GUIE2)))
   
+; A MouseCursor is never in the &%GUE_ActiveState:
+
+(not
+  (and
+    (instance ?CURSOR MouseCursor)
+    (hasGUEState ?CURSOR GUE_ActiveState)))
 
 (instance GUE_PassiveState GUElementState)
 (documentation GUE_PassiveState EnglishLanguage "The &%GUElementState of not being ready to accept user clicks or keyboard activity. Whenever an &%InterfaceWindow is passive at a time, any &%GUIElement that is part of that window is also passive.")
 (contraryAttribute GUE_ActiveState GUE_PassiveState)
-; any window other than the active one is passive:
+; any window other than the active one on a screen is passive:
+
 (=> 
   (and
     (instance ?WINDOW_A InterfaceWindow)
     (instance ?WINDOW_P InterfaceWindow)
+    (screenOfGUIE ?WINDOW_A ?SCREEN)
+    (screenOfGUIE ?WINDOW_P ?SCREEN)
     (hasGUEState ?WINDOW_A GUE_ActiveState)
     (not (equals ?WINDOW_A ?WINDOW_P)))
   (hasGUEState ?WINDOW_P GUE_PassiveState))
 
 ; any &%GUIElement that is part of a passive &%GUIElement (including an 
-; &%InterfaceWindow is also passive:
+; &%InterfaceWindow) is also passive:
+
 (=>
   (and
-    (instance ?GUIE1 GUIElement)
-    (instance ?GUIE2 GUIElement)
-    (properPart ?GUIE1 ?GUIE2)
-    (hasGUEState ?GUIE2 GUE_PassiveState))
-  (hasGUEState ?GUIE1 GUE_PassiveState))
-
-
+    (instance ?GUIE_SM GUIElement)
+    (instance ?GUIE_BIG GUIElement)
+    (properPart ?GUIE_SM ?GUIE_BIG)
+    (hasGUEState ?GUIE_BIG GUE_PassiveState))
+  (hasGUEState ?GUIE_SM GUE_PassiveState))
 
 (instance GUE_DisplayedState GUElementState)
 (documentation GUE_DisplayedState EnglishLanguage "A &%GUIElement has a &%GUE_DisplayedState if it at least partially appears on a &%ComputerScreen.")
+; A MouseCursor is always in the &%GUE_DisplayedState:
+
+(=>
+    (instance ?CURSOR MouseCursor)
+    (hasGUEState ?CURSOR GUE_DisplayedState))
  
 (instance GUE_NonVisibleState GUElementState)
 (subAttribute GUE_NonVisibleState GUE_PassiveState)
 (documentation GUE_NonVisibleState EnglishLanguage "A &%GUIElement has a &%GUE_NonVisibleState if it conceptually exists, but does not appear on a &%ComputerScreen.")
+; any &%GUIElement that is part of a non-visible &%GUIElement (including an 
+; &%InterfaceWindow) is also offscreen:
+
+(=>
+  (and
+    (instance ?GUIE_SM GUIElement)
+    (instance ?GUIE_BIG GUIElement)
+    (properPart ?GUIE_SM ?GUIE_BIG)
+    (hasGUEState ?GUIE_BIG GUE_NonVisibleState))
+  (hasGUEState ?GUIE_SM GUE_NonVisibleState))
+
+;  a non-visible window may not be active:
+
+(not
+   (and
+      (hasGUEState ?WINDOW GUE_NonVisibleState)
+      (hasGUEState ?WINDOW GUE_ActiveState)
+      (instance ?WINDOW InterfaceWindow)))
+
 (contraryAttributes GUE_NonVisibleState GUE_DisplayedState)
 
- 
 (instance GUE_OffscreenState GUElementState)
 (subAttribute GUE_OffscreenState GUE_NonVisibleState)
-(documentation GUE_OffscreenState EnglishLanguage "A &%GUIElement has a &%GUE_OffscreenState if all parts of it are outside the visible window.")
+(documentation GUE_OffscreenState EnglishLanguage "An &%InterfaceWindow has a &%GUE_OffscreenState if all parts of it are outside the logical area displaye on a &%ComputerScreen. A &%GUIElement has a &%GUE_OffscreenState if all parts of it are outside the &$InterfaceWindow which it is in or outside the logical area of the screen.  An offscreen &%InterfaceWindow may not be active, but an offscreen element of a window that is partially on the screen may be.")
+; any &%GUIElement that is part of an offscreen &%GUIElement (including an 
+; &%InterfaceWindow) is also offscreen:
+
+(=>
+  (and
+    (instance ?GUIE_SM GUIElement)
+    (instance ?GUIE_BIG GUIElement)
+    (properPart ?GUIE_SM ?GUIE_BIG)
+    (hasGUEState ?GUIE_BIG GUE_OffscreenState))
+  (hasGUEState ?GUIE_SM GUE_OffscreenState))
  
 (instance GUE_MinimizedState GUElementState)
 (subAttribute GUE_MinimizedState GUE_NonVisibleState)
 (documentation GUE_MinimizedState EnglishLanguage "A &%GUIElement has a &%GUE_MinimizedState if has been logically minimized, which means that although it might have an assigned position on the screen, it does not appear on the screen and is can not be made active until it is reopened.")
+(contraryAttributes GUE_MinimizedState GUE_ActiveState)
 
- 
 (instance MaximizedWindowState GUElementState)
 (documentation MaximizedWindowState EnglishLanguage "An &%InterfaceWindow has a &%MaximizedWindowState if it is sized to cover the whole screen and is not minimized.  A maximized window may still be completely covered.  Only windows can have such a state.")
-(contraryAttributes MaximizedWindowState GUE_MinimizedState)
-(contraryAttributes MaximizedWindowState GUE_OffscreenState)
+; Only an InterfaceWindow can have a MaximizedWindowState
+; can this be expressed as a constraint instead of an implication?:
+
 (=> 
   (hasGUEState ?GUIE MaximizedWindowState)
   (instance ?GUIE InterfaceWindow))
+
+(contraryAttributes MaximizedWindowState GUE_MinimizedState)
+(contraryAttributes MaximizedWindowState GUE_OffscreenState)
  
 (instance VerticallyMaximizedWindowState GUElementState)
 (documentation VerticallyMaximizedWindowState EnglishLanguage "An &%InterfaceWindow has a &%VerticallyMaximizedWindowState if it is sized to cover the whole screen in the vertical direction, has a fixed (and maximum for its program) width that is less than the screen width, and is not minimized.  A vertically maximized window may still be completely covered.  Only windows can have such a state.")
-(contraryAttributes GUE_VerticallyMaximizedWindowState MaximizedWindowState)
-(contraryAttributes GUE_VerticallyMaximizedWindowState GUE_MinimizedState)
-(contraryAttributes GUE_VerticallyMaximizedWindowState GUE_OffscreenState)
+; Only an InterfaceWindow can have a VerticallyMaximizedWindowState
+
 (=> 
   (hasGUEState ?GUIE VerticallyMaximizedWindowState)
   (instance ?GUIE InterfaceWindow))
 
- 
+(contraryAttributes GUE_VerticallyMaximizedWindowState MaximizedWindowState)
+(contraryAttributes GUE_VerticallyMaximizedWindowState GUE_MinimizedState)
+(contraryAttributes GUE_VerticallyMaximizedWindowState GUE_OffscreenState)
+
 (instance GUE_CoveredState GUElementState)
 (subAttribute GUE_CoveredState GUE_NonVisibleState)
 (documentation GUE_CoveredState EnglishLanguage "A &%GUIElement has a &%GUE_CoveredState if it does not appear on a &%ComputerScreen and every portion of it on the computer window space (including parts outside the visible window) for which it is defined has something opaque being displayed on a layer conceptually closer to the viewer.")
+; any &%GUIElement that is part of a covered &%GUIElement (including an 
+; &%InterfaceWindow) is also covered:
 
-;;;;;;;;;;;;;;;;
-;; If defining types of window by state:
-; (<=>
-;   (instance ?GUIE CoveredInterfaceWindow)
-;   (hasGUIEState ?GUIE GUE_CoveredState))
-;;;;;;;;;;;;;;;;
+(=>
+  (and
+    (instance ?GUIE_SM GUIElement)
+    (instance ?GUIE_BIG GUIElement)
+    (properPart ?GUIE_SM ?GUIE_BIG)
+    (hasGUEState ?GUIE_BIG GUE_CoveredState))
+  (hasGUEState ?GUIE_SM GUE_CoveredState))
 
-
- 
 (instance GUE_UncoveredState GUElementState)
 (documentation GUE_UncoveredState EnglishLanguage "A &%GUIElement has a &%GUE_UncoveredState if no portion of it on the computer window space (including parts outside the visible window) for which it is defined has something being displayed on a layer conceptually closer to the viewer.")
-;;;;;;;;;;;;;;;;
-;; If defining types of window by state:
-; (<=>
-;   (instance ?GUIE UncoveredInterfaceWindow)
-;   (hasGUIEState ?GUIE GUE_UncoveredState))
-;;;;;;;;;;;;;;;;
+; An uncovered window is either partially visible or offscreen:
+
+(=>
+  (hasGUIEState ?WIN1 GUE_UncoveredState)
+  (or
+    (hasGUIEState ?WIN1 GUE_DisplayedState)
+    (hasGUIEState ?WIN2 GUE_OffscreenState)))
+
+; If an uncovered window is maximized, it is the active window:
+
+(=>
+  (and
+    (hasGUIEState ?WINDOW GUE_UncoveredState)
+    (hasGUIEState ?WINDOW GUE_MaximizedState))
+  (hasGUIEState ?WINDOW GUE_ActiveState))
 
 (instance GUE_PartiallyCoveredState GUElementState)
 (documentation GUE_PartiallyCoveredState EnglishLanguage "A &%GUIElement has a &%GUE_PartiallyCoveredState if some portion of it on the computer window space (including parts outside the visible window) for which it is defined has something being displayed on a layer conceptually closer to the viewer while some other portion is not opaquely covered.")
 (contraryAttributes GUE_CoveredState GUE_UncoveredState GUE_PartiallyCoveredState)
+
+; If an uncovered window is maximized, every other window is
+; covered, partially covered, or offscreen:
+
+(=>
+  (and
+    (hasGUIEState ?WIN1 GUE_UncoveredState)
+    (hasGUIEState ?WIN1 GUE_MaximizedState)
+    (screenOfGUIE ?WIN1 ?SCREEN)
+    (instance ?WIN2 InterfaceWindow)
+    (screenOfGUIE ?WIN2 ?SCREEN)
+    (not (equal ?WIN1 ?WIN2)))
+  (or
+    (hasGUIEState ?WIN2 GUE_CoveredState)
+    (hasGUIEState ?WIN2 GUE_PartiallyCoveredState)
+    (hasGUIEState ?WIN2 GUE_OffscreenState)))
 
 (instance GUE_TranslucentlyCoveredState GUElementState)
 (genlAttribute GUE_TranslucentlyCoveredState GUE_PartiallyCoveredState)
@@ -1251,64 +1843,50 @@ A &%ComputerTerminal is contrasted with a &%Printer, which is an output only dev
     (hasGUEState ?GUE GUE_MinimizedState)
     (hasGUEState ?GUE GUE_DisplayedState)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Alternate method, probably not needed:
-; (subclass NonvisibleGUIElement GUIElement)
-; (documentation NonvisibleGUIElement EnglishLanguage "A &%NonvisibleGUIElement is a &% GUIElement that conceptually exists but is covered, logically off-screen, or minimized.")
-; 
-; (subclass OffscreenGUIElement NonvisibleGUIElement)
-; (documentation OffscreenGUIElement EnglishLanguage "An &%OffscreenGUIElement is a &%NonvisibleGUIElement that is conceptually positioned at a location that the window is not displaying.")
-; 
-; (subclass CoveredGUIElement NonvisibleGUIElement)
-; (documentation CoveredGUIElement EnglishLanguage "A &%CoveredGUIElement is a &%NonvisibleGUIElement which is not visible because some other &%GUIElement(s) is/are displayed in the same location but in a layer conceptually ``closer to'' the viewer.")
-; 
-; (subclass UncoveredInterfaceWindow InterfaceWindow)
-; (documentation UncoveredInterfaceWindow EnglishLanguage "An &%UncoveredInterfaceWindow is a visible &%InterfaceWindow which does not have any other &%InterfaceWindow blocking the view of any portion of it.")
-; 
-; (subclass PartiallyCoveredInterfaceWindow InterfaceWindow)
-; (documentation PartiallyCoveredInterfaceWindow EnglishLanguage "A &%CoveredInterfaceWindow is a partially visible &%InterfaceWindow which has some other &%InterfaceWindow blocking the view of some portion of it.")
-; 
-; (subclass NonvisibleInterfaceWindow InterfaceWindow)
-; (subclass NonvisibleInterfaceWindow NonvisibleGUIElement)
-; (documentation NonvisibleInterfaceWindow EnglishLanguage "A &%NonvisibleInterfaceWindow is an &%InterfaceWindow which is not visible on a &%ComputerScreen.")
-; 
-; (subclass CoveredInterfaceWindow NonvisibleInterfaceWindow)
-; (subclass CoveredInterfaceWindow CoveredGUIElement)
-; (documentation CoveredInterfaceWindow EnglishLanguage "A &%CoveredInterfaceWindow is an &%InterfaceWindow which is not visible because some other &%InterfaceWindow(s) block the view of every portion of it.")
-; 
-; (subclass OffscreenInterfaceWindow NonvisibleInterfaceWindow)
-; (subclass OffscreenInterfaceWindow OffscreenGUIElement)
-; (documentation CoveredInterfaceWindow EnglishLanguage "A &%CoveredInterfaceWindow is an &%InterfaceWindow which is not visible because some other &%InterfaceWindow(s) block the view of every portion of it.")
-; 
-; (subclass MinimizedInterfaceWindow NonvisibleInterfaceWindow)
-; (documentation MinimizedInterfaceWindow EnglishLanguage "A &%MinimizedInterfaceWindow is an &%InterfaceWindow which is not visible because it is temporarily turned off.  An active window can be minimized, changing it into a non-visible &%MinimizedInterfaceWindow.  A minimized window can be unminimized to make it visible again (unless it is covered after it has been unminimized.")
-;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+;=========================================================================
 
 (subclass SelectingActiveArea UserSignifiedAction)
-(documentation SelectingActiveArea EnglishLanguage "A &%UserSignifiedAction informing a &%ComputerProgram that the current &%GUIActiveArea is selected.")
+(documentation SelectingActiveArea EnglishLanguage "A &%UserSignifiedAction informing a &%ComputerProgram that the current &%GUIElement with the state &%GUE_ActiveState is selected.  This causes the program controlling the element to take the action that selecting the element is mapped to.  After the action has been initiated, unless the action causes a different element to become active or changes the state of the element, the element reverts to &%GUE_ActiveState.
+
+Selecting an &%ActiveArea_Submitting causes a &%SubmitAction (of the type associated with the active area) to take place.  What is actually submitted may depend upon the state of associated active areas.  However, if the active area is a &%HypertextLink, &%MenuItem, or dedicated &%GUIButton the submission may not be state dependent.
+
+An off-screen element on an active window can be selected by keyboard action: tabbing to it to make it active and typing the Enter/Return key.")
+(udaCanSignify Clicking SelectingActiveArea)
+(udaCanSignify DoubleClicking SelectingActiveArea)
+(udaCanSignify ShiftClicking SelectingActiveArea)
+(udaCanSignify KeyboardAction SelectingActiveArea)
 
 (instance GUE_SelectedState GUElementState)
 (documentation GUE_SelectedState EnglishLanguage "A &%GUIElement has a &%GUE_SelectedState if a &%SelectingActiveArea action is performed with it as the &%patient.  This causes the program controlling the element to take the action that selecting the element is mapped to.  After the action has been initiated, unless the action causes a different element to become active or changes the state of the element, the element reverts to &%GUE_ActiveState.
 
 The state of a GUI element normally changes to selected if the element had been in the &%GUE_ActiveState and it was clicked, double-clicked, the enter key was hit, or some similar graphical action was taken to select it.")
 (contraryAttributes GUE_CoveredState GUE_SelectedState)
+; Selecting and active area operates on a currently active GUI element
+
 (=>
   (instance ?SELECT SelectingActiveArea)
   (exists (?ELEMENT)
     (and
       (instance ?ELEMENT GUIActiveArea)
+      (holdsDuring 
+        (BeginFn ?SELECT)
+        (hasGUEState GUE_ActiveState))
       (patient ?SELECT ?ELEMENT))))
 
+; A GUIElement that is selected, does not have the &%GUE_SelectedState 
+; before the selection occurs:
+
 (=>
   (and
     (instance ?SELECT SelectingActiveArea)
     (patient ?SELECT ?ELEMENT)
     (instance ?ELEMENT GUIActiveArea))
   (holdsDuring 
-    (EndFn ?SELECT)
-      (hasGUEState ?ELEMENT GUE_SelectedState)))
+    (BeginFn ?SELECT)
+    (not (hasGUEState ?ELEMENT GUE_SelectedState))))
+
+; A GUIElement that is selected, achieves the &%GUE_SelectedState 
+; when the selection occurs:
 
 (=>
   (and
@@ -1317,34 +1895,66 @@ The state of a GUI element normally changes to selected if the element had been 
     (instance ?ELEMENT GUIActiveArea))
   (holdsDuring 
     (EndFn ?SELECT)
-      (hasGUEState ?ELEMENT GUE_SelectedState)))
+    (hasGUEState ?ELEMENT GUE_SelectedState)))
 
-(=>
+; A Cursor is never in the &%GUE_SelectedState:
+
+(not
   (and
-    (instance ?SELECT SelectingActiveArea)
-    (patient ?SELECT ?ELEMENT)
-    (instance ?ELEMENT GUIActiveArea))
-  (holdsDuring 
-    (EndFn ?SELECT)
-      (hasGUEState ?ELEMENT GUE_SelectedState)))
+    (instance ?CURSOR Cursor)
+    (hasGUEState ?CURSOR GUE_SelectedState)))
     
+(subclass RequestingHyperlink SelectingActiveArea)
+(documentation RequestingHyperlink EnglishLanguage "A &%UserSignifiedAction instructing a &%ComputerProgram to follow the currently active &%HypertextLink.")
 
-(subclass FollowingHyperlink SelectingActiveArea)
-(documentation FollowingHyperlink EnglishLanguage "A &%UserSignifiedAction instructing a &%ComputerProgram to follow the currently active &%HypertextLink.")
+(=>
+  (and
+    (instance ?SELECT SelectingActiveArea)
+    (patient ?SELECT ?ELEMENT)
+    (instance ?ELEMENT HypertextLink))
+  (instance ?SELECT RequestingHyperlink))
 
 (subclass SelectingComputerMenuOption SelectingActiveArea)
 (documentation SelectingComputerMenuItem EnglishLanguage "A &%UserSignifiedAction instructing a &%ComputerProgram to take whatever action is intended when the selected menu selection is chosen.")
 
-(subclass SelectingComputerSubmenu SelectingActiveArea)
-(documentation SelectingComputerSubmenu EnglishLanguage "A &%UserSignifiedAction instructing a &%ComputerProgram to allow user interaction with a chosen submenu.")
+(=>
+  (and
+    (instance ?SELECT SelectingActiveArea)
+    (patient ?SELECT ?ELEMENT)
+    (instance ?ELEMENT ComputerMenuItem))
+  (instance ?SELECT SelectingComputerMenuOption))
 
-(subclass Scrolling UserSignifiedGraphicalAction)
-(documentation Scrolling EnglishLanguage "A &%UserSignifiedGraphicalAction causing a program to scroll a display field within a window.")
-
+(=>
+  (and
+    (instance ?SELECT SelectingComputerMenuOption)
+    (patient ?SELECT ?ELEMENT)
+    (instance ?ELEMENT ComputerMenuItem)
+    (menuItemIndicates ?ELEMENT ?COMPUTER_PROCESS_TYPE))
+  (initiatesCompterProcessType ?SELECT ?COMPUTER_PROCESS_TYPE))
 
 (subclass ActivatingUIElement UserSignifiedAction)
-(documentation Scrolling EnglishLanguage "A &%UserSignifiedAction causing a program to make a &%UIElement the ``active'' element.  Making an element active means that user can interact with it -- follow a link, select a menu option, drag the element on the screen, ``push'' a button, etc.  The system may display the %&UIElement in a different manner signifying that it is selected.")
-; !!! Needs rule
+(documentation ActivatingUIElement EnglishLanguage "A &%UserSignifiedAction causing a program to make a &%UIElement the ``active'' element.  Making an element active means that user can interact with it -- follow a link, select a menu option, drag the element on the screen, ``push'' a button, etc.  The system may display the %&UIElement in a different manner signifying that it is selected.")
+
+(=>
+  (and
+    (instance ?ACT ActivatingUIElement)
+    (patient ?ACT ?GUIE)
+    (instance ?GUIE GUIElement))
+  (and
+    (holdsIn (EndFn ?SELECT) 
+      (hasGUEState ?GUIE GUE_ActiveState))
+    (holdsIn (StartFn ?SELECT) 
+      (not (hasGUEState ?GUIE GUE_ActiveState)))))
+
+(subclass SelectingComputerSubmenu ActivatingUIElement)
+(documentation SelectingComputerSubmenu EnglishLanguage "A &%UserSignifiedAction instructing a &%ComputerProgram to allow user interaction with a chosen submenu.")
+
+(=>
+  (and
+    (instance ?SELECT SelectingComputerSubmenu)
+    (patient ?SELECT ?SUBMENU)
+    (instance ?SUBMENU GUIElement))
+  (instance ?SUBMENU ComputerMenu))
 
 (subclass JumpingToActivateUIElement ActivatingUIElement)
 (subclass JumpingToActivateUIElement UserSignifiedGraphicalAction)
@@ -1353,27 +1963,60 @@ The state of a GUI element normally changes to selected if the element had been 
 (subclass JumpingForwardToActivateUIElement JumpingToActivateUIElement)
 (documentation JumpingForwardToActivateUIElement EnglishLanguage "A &%JumpingToActiveUIElement causing the cursor to ``jump'' from its current position to whatever is considered the ``next'' &%UIElement, making it ``Active''.")
 ; !!! Needs rule
+(udaCanSignify (PressingKeyFn TabKey) SelectingActiveArea)
+(udaCanSignify (PressingKeyFn RightArrowKey) SelectingActiveArea)
+(udaCanSignify (PressingKeyFn DownArrowKey) SelectingActiveArea)
 
 (subclass JumpingBackwardToActivateUIElement JumpingToActivateUIElement)
 (documentation JumpingBackwardToActivateUIElement EnglishLanguage "A &%JumpingToActiveUIElement causing the cursor to ``jump'' from its current position to whatever is considered the ``previous'' &%UIElement, making it ``Active''.")
 ; !!! Needs rule
+(udaCanSignify (ClassUnionFn (PressingKeyFn TabKey) ShiftKeyHoldDown)
+               SelectingActiveArea)
+(udaCanSignify (PressingKeyFn LeftArrowKey) SelectingActiveArea)
+(udaCanSignify (PressingKeyFn UpArrowKey) SelectingActiveArea)
 
 (subclass Highlighting UserSignifiedGraphicalAction)
 (documentation Highlighting EnglishLanguage "A &%UserSignifiedAction causing a program to highlight a piece of text, link, image, or other component visible on the screen.")
 ; !!! Needs rule
 
-
-
 (subclass ResizingScreenObject UserSignifiedGraphicalAction)
 (documentation ResizingScreenObject EnglishLanguage "A &%UserSignifiedAction causing a program to change the size of a display on the &%ComputerScreen.")
+(udaCanSignify TouchSurfaceDoubleFingerSlide ResizingScreenObject)
 ; !!! Needs rule
 
 (subclass BringingGEToFront UserSignifiedGraphicalAction)
 (documentation BringingGEToFront EnglishLanguage "A &%UserSignifiedAction causing an &%GUIElement to be logically brought to the front -- of its window if it is an element in a window, and of a &%ComputerScreen if it is an &%InterfaceWindow.")
-; !!! Needs rule
+; If an window is brought to the front, it loses any state that is contrary to 
+; &%GUE_UncoveredState
+
+(=>
+  (and
+    (instance ?ACT BringingGEToFront)
+    (patient ?ACT ?WINDOW)
+    (instance ?WINDOW InterfaceWindow)
+    (holdsIn
+      (BeginFn ?ACT)
+      (hasGUIEState ?WINDOW ?STATE))
+    (contraryAttribute ?STATE GUE_UncoveredState))
+  (holdsIn
+    (EndFn ?ACT)
+    (not (hasGUIEState ?WINDOW ?STATE))))
+
+; If an window is brought to the front, it gains the state, &%GUE_UncoveredState
+
+(=>
+  (and
+    (instance ?ACT BringingGEToFront)
+    (patient ?ACT ?WINDOW)
+    (instance ?WINDOW InterfaceWindow))
+  (holdsIn
+    (EndFn ?ACT)
+    (hasGUIEState ?WINDOW GUE_UncoveredState)))
+; ? Needs another rule?
 
 (subclass OpeningGraphicalWindow UserSignifiedGraphicalAction)
 (documentation OpeningGraphicalWindow EnglishLanguage "A &%UserSignifiedAction causing the display of an &%InterfaceWindow on a &%ComputerScreen.")
+
 (=> 
   (and
     (instance ?OPEN OpeningGraphicalWindow)
@@ -1384,6 +2027,7 @@ The state of a GUI element normally changes to selected if the element had been 
 (subclass OpeningNewGraphicalWindow Creation)
 (documentation OpeningNewGraphicalWindow EnglishLanguage "A &%UserSignifiedAction causing the display of a new &%InterfaceWindow on a &%ComputerScreen.")
 ; OpeningNewGraphicalWindow creates a window that didn't previously exist:
+
 (=> 
   (instance ?OPEN OpeningNewGraphicalWindow)
   (exists (?WINDOW)
@@ -1397,6 +2041,7 @@ The state of a GUI element normally changes to selected if the element had been 
 (documentation ReopeningGraphicalWindow EnglishLanguage "A &%UserSignifiedAction causing the redisplay of a minimized &%InterfaceWindow on a &%ComputerScreen.  Reopening a window normally makes it the active window and brings it to the front.")
 (disjoint ReopeningGraphicalWindow OpeningNewGraphicalWindow)
 ; ReopeningGraphicalWindow opens a window that was previouly minimized:
+
 (=>
   (and
     (instance ?OPEN ReopeningGraphicalWindow)
@@ -1410,8 +2055,19 @@ The state of a GUI element normally changes to selected if the element had been 
 
 (subclass UncoveringGraphicalWindow OpeningGraphicalWindow)
 (documentation UncoveringGraphicalWindow EnglishLanguage "A &%UserSignifiedAction causing a &%CoveredInterfaceWindow to become visible again by (re)moving any &%GraphicalUIElement that has been covering it.")
-(disjoint ReopeningGraphicalWindow OpeningNewGraphicalWindow)
+(disjoint UncoveringGraphicalWindow OpeningNewGraphicalWindow)
+(disjoint UncoveringGraphicalWindow ReopeningGraphicalWindow)
+; UncoveringGraphicalWindow affects an &%InterfaceWindow:
+
+(=>
+  (instance ?UNCOVER UncoveringGraphicalWindow)
+  (and
+    (exists (?WINDOW)
+      (patient ?UNCOVER ?WINDOW)
+      (instance ?WINDOW InterfaceWindow))))
+
 ; UncoveringGraphicalWindow changes the state of a window from covered to uncovered:
+
 (=>
   (and
     (instance ?UNCOVER UncoveringGraphicalWindow)
@@ -1419,13 +2075,23 @@ The state of a GUI element normally changes to selected if the element had been 
     (instance ?WINDOW InterfaceWindow))
   (guiElementUncovered ?UNCOVER ?GUIE))
 
+(=>
+  (and
+    (instance ?UNCOVER UncoveringGraphicalWindow)
+    (patient ?UNCOVER ?WINDOW)
+    (instance ?WINDOW InterfaceWindow)
+    (properPart ?CURSOR ?WINDOW)
+    (instance ?CURSOR Cursor))
+  (guiElementUncovered ?UNCOVER ?GUIE))
+
 (subclass ClosingGraphicalWindow UserSignifiedGraphicalAction)
 (subclass ClosingGraphicalWindow Destruction)
 (documentation ClosingGraphicalWindow EnglishLanguage "A &%UserSignifiedAction causing an &%InterfaceWindow on a &%ComputerScreen to stop being displayed.")
-; On closing a graphical window an &%Interface window ceases to exist
+; On closing a graphical window an &%Interface window ceases to exist:
+
 (=> 
   (and
-    (isa ?CLOSE ClosingGraphicalWindow)
+    (instance ?CLOSE ClosingGraphicalWindow)
     (patient ?CLOSE ?WINDOW))
   (and
     (instance ?WINDOW InterfaceWindow)
@@ -1434,9 +2100,10 @@ The state of a GUI element normally changes to selected if the element had been 
 
 (subclass MinimizingGraphicalWindow UserSignifiedGraphicalAction)
 (documentation MinimizingGraphicalWindow EnglishLanguage "A &%UserSignifiedAction causing an &%InterfaceWindow on a &%ComputerScreen to stop being displayed but to still conceptually exist.")
+
 (=>
   (and
-    (instance ?OPEN MinimizingGraphicalWindow )
+    (instance ?OPEN MinimizingGraphicalWindow)
     (patient ?OPEN ?WINDOW)
     (instance ?WINDOW InterfaceWindow))
   (and
@@ -1447,6 +2114,7 @@ The state of a GUI element normally changes to selected if the element had been 
 
 (subclass MaximizingGraphicalWindow UserSignifiedGraphicalAction)
 (documentation MaximizingGraphicalWindow EnglishLanguage "A &%UserSignifiedAction causing an &%InterfaceWindow to be expanded to cover the complete area of a &%ComputerScreen -- or possibly the complete vertical range of the screen if the window has a maximum width less than the screen-width.  If the window being maximized is logically in front of any other window (which would normally be the case), this would also be a case of &%CoveringGraphicalWindow.")
+
 (=>
   (and
     (instance ?OPEN MaximizingGraphicalWindow)
@@ -1460,6 +2128,7 @@ The state of a GUI element normally changes to selected if the element had been 
 
 (subclass UnmaximizingGraphicalWindow UserSignifiedGraphicalAction)
 (documentation UnmaximizingGraphicalWindow EnglishLanguage "A &%UserSignifiedAction causing an &%InterfaceWindow to be reduced from covering the complete area of a &%ComputerScreen to the size and location it had before being maximized.  If it was created as maximized, unmaximizing it will shrink it to a default size and location.")
+
 (=>
   (and
     (instance ?UNMAX UnmaximizingGraphicalWindow)
@@ -1475,6 +2144,7 @@ The state of a GUI element normally changes to selected if the element had been 
 (documentation CoveringGraphicalWindow EnglishLanguage "A &%UserSignifiedAction causing a &%GUIElement to be covered completely on a &%ComputerScreen by at least one other &%GUIElement.")
 ; An instance of &%CoveringGUIElement involves an element (doing the covering) and 
 ; a different element (doing the uncovering)
+
 (=>
   (instance ?COVERING CoveringGUIElement)
   (exists (?GUIE1 ?GUIE2)
@@ -1514,6 +2184,7 @@ The state of a GUI element normally changes to selected if the element had been 
 (domain guiElementCoveredBy 2 GUIElement)
 (documentation guiElementCoveredBy EnglishLanguage "(guiElementCoveredBy ?GUIE1 ?GUIE2) means that the &%GUIElement ?GUIE1 is completely covered by the &%GUIElement ?GUIE2.")
 ; A GUI Element that is covered by another has the GUE State, &%GUE_CoveredState:
+
 (=>
   (guiElementCoveredBy ?GUIE_BOTTOM ?GUIE_TOP)
   (hasGUEState ?GUIE_BOTTOM GUE_CoveredState))
@@ -1527,6 +2198,7 @@ The state of a GUI element normally changes to selected if the element had been 
 (documentation guiElementPartiallyCovered EnglishLanguage "(guiElementPartiallyCovered ?COVERING ?GUIE) means that the &%GUIElement ?GUIE has become partially covered by the action ?COVERING.  It is still logically positioned at the same place on the screen.")
 ; Any &%PartiallyCoveringGraphicalWindow action causes some &%GUIElement to become
 ; uncovered:
+
 (=>
   (instance ?UNCOVERING PartiallyCoveringGraphicalWindow)
   (exists (?GUIE)
@@ -1536,6 +2208,7 @@ The state of a GUI element normally changes to selected if the element had been 
 
 ; The result of a &%GUIElement being partially covered is that the affected element
 ; ends up in the partialy covered state:
+
 (=>
   (guiElementPartiallyCovered ?ACT ?GUIE)
   (holdsDuring (EndFn (WhenFn ?ACT))
@@ -1543,11 +2216,12 @@ The state of a GUI element normally changes to selected if the element had been 
 
 ; A &%GUIElement being partially covered was partially or totally uncovered before the 
 ; partial covering took place:
+
 (=>
-  (guiElementUncovered ?ACT ?GUIE)
+  (guiElementPartiallyCovered ?ACT ?GUIE)
   (or
     (holdsDuring (BeginFn (WhenFn ?ACT))
-                 (hasGUIEState ?GUIE GUE_CoveredState))
+                 (hasGUIEState ?GUIE GUE_UncoveredState))
     (holdsDuring (BeginFn (WhenFn ?ACT))
                  (hasGUIEState ?GUIE GUE_PartiallyCoveredState))))
 
@@ -1556,6 +2230,7 @@ The state of a GUI element normally changes to selected if the element had been 
 (domain guiElementPartiallyCoveredBy 1 GUIElement)
 (domain guiElementPartiallyCoveredBy 2 GUIElement)
 (documentation guiElementPartiallyCoveredBy EnglishLanguage "(guiElementPartiallyCoveredBy ?GUIE1 ?GUIE2) means that the &%GUIElement ?GUIE1 is partially covered by the &%GUIElement ?GUIE2.")
+
 (=>
   (and
     (instance ?COVERING CoveringGUIElement)
@@ -1586,6 +2261,7 @@ The state of a GUI element normally changes to selected if the element had been 
 (domain guiElementUncovered 2 GUIElement)
 (documentation guiElementUncovered EnglishLanguage "(guiElementUncovered ?UNCOVERING ?GUIE) means that the &%GUIElement ?GUIE has become completely uncovered by the action ?UNCOVERING.  Its logical positioned on the screen does is not changed.")
 ; Any &%UncoveringGUIElement action causes some &%GUIElement to become uncovered:
+
 (=>
   (instance ?UNCOVERING UncoveringGUIElement)
   (exists (?GUIE)
@@ -1595,6 +2271,7 @@ The state of a GUI element normally changes to selected if the element had been 
 
 ; The result of a &%GUIElement being uncovered is that the affected element ends up 
 ; in the uncovered state:
+
 (=>
   (guiElementUncovered ?ACT ?GUIE)
   (holdsDuring (EndFn (WhenFn ?ACT))
@@ -1602,6 +2279,7 @@ The state of a GUI element normally changes to selected if the element had been 
 
 ; A &%GUIElement that is uncovered was partially or totally covered before the 
 ; uncovering took place:
+
 (=>
   (guiElementUncovered ?ACT ?GUIE)
   (or
@@ -1610,7 +2288,6 @@ The state of a GUI element normally changes to selected if the element had been 
     (holdsDuring (BeginFn (WhenFn ?ACT))
                  (hasGUIEState ?GUIE GUE_PartiallyCoveredState))))
 
-
 ; ========================================
 
 (subclass NetworkCommunication DataTransfer)
@@ -1618,14 +2295,26 @@ The state of a GUI element normally changes to selected if the element had been 
 
 (subclass AccessingWebPage NetworkCommunication)
 (documentation AccessingWebPage EnglishLanguage "&%AccessWebPage consists accessing a &%WebPage across a &%ComputerNetwork.")
-; !!! Needs rule
+
+(=>
+  (instance ?ACT DownloadingOverNetwork)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE WebPage))))
 
 (subclass FTPing NetworkCommunication)
 (documentation FTPing EnglishLanguage "&%FTPing consists accessing &%CompuerFiles on a remote computer across a &%ComputerNetwork using the File Transfer Protocol (FTP).")
 
-(subclass DownloadingingOverNetwork NetworkCommunication)
-(documentation DownloadingingOverNetwork EnglishLanguage "&%DownloadingingOverNetwork is those instances of &%NetworkCommunication in which a &%ComputerFile is downloaded from a network onto the user's local computer.  The &%ComputerFile may be generated on the fly or pre-exist on the system from which it is being downloaded.")
-; !!! Needs rule
+(subclass DownloadingOverNetwork NetworkCommunication)
+(documentation DownloadingOverNetwork EnglishLanguage "&%DownloadingOverNetwork is those instances of &%NetworkCommunication in which a &%ComputerFile is downloaded from a network onto the user's local computer.  The &%ComputerFile may be generated on the fly or pre-exist on the system from which it is being downloaded.")
+
+(=>
+  (instance ?ACT DownloadingOverNetwork)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE ComputerFile))))
 
 (subclass DownloadingingUpdate DownloadingOverNetwork )
 (documentation DownloadingingUpdate EnglishLanguage "&%DownloadingingUpdate is those instances of &%NetworkCommunication in which an update for &%ComputerFile is downloaded from a network onto the user's local computer.  The &%ComputerFile may be generated on the fly or pre-exist on the system from which it is being downloaded.")
@@ -1633,7 +2322,13 @@ The state of a GUI element normally changes to selected if the element had been 
 
 (subclass DownloadingSoftware DownloadingOverNetwork )
 (documentation DownloadingSoftware EnglishLanguage "&%DownloadingSoftware is those instances of &%NetworkCommunication in which a &%SoftwarePackage is downloaded from a network onto the user's local computer.")
-; !!! Needs rule
+
+(=>
+  (instance ?ACT DownloadingSoftware)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE SoftwareFile))))
 
 (subclass DownloadingUserFile DownloadingOverNetwork )
 (documentation DownloadingUserFile EnglishLanguage "&%DownloadingUserFile is those instances of &%NetworkCommunication in which a user &%ComputerFile is downloaded to be stored on a user's local computer from another &%ComputerSystem on a network.")
@@ -1641,60 +2336,114 @@ The state of a GUI element normally changes to selected if the element had been 
 
 (subclass DownloadingImage DownloadingUserFile)
 (documentation DownloadingImage EnglishLanguage "&%DownloadingImage is those instances of &%NetworkCommunication in which a &%ImageFile is downloaded to a user's local computer from another &%ComputerSystem on a network.")
-; !!! Needs rule
+
+(=>
+  (instance ?ACT DownloadingImage)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE ImageFile))))
 
 (subclass DownloadingVideo DownloadingUserFile)
 (documentation DownloadingVideo EnglishLanguage "&%DownloadingVideo is those instances of &%NetworkCommunication in which an &%AudioVisualFile is downloaded to a user's local computer from another &%ComputerSystem on a network.")
-; !!! Needs rule
+
+(=>
+  (instance ?ACT DownloadingVideo)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE AudioVisualFile))))
 
 (subclass DownloadingAudio DownloadingUserFile)
 (documentation DownloadingAudio EnglishLanguage "&%DownloadingAudio is those instances of &%NetworkCommunication in which an &%AudioFile is downloaded to a user's local computer from another &%ComputerSystem on a network.")
-; !!! Needs rule
+
+(=>
+  (instance ?ACT DownloadingVideo)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE AudioFile))))
 
 (subclass DownloadingNonAudioVideoImageUserFile DownloadingUserFile)
-(documentation DownloadingNonAudioVideoImageUserFile EnglishLanguage "&%DownloadingNonAudioVideoImageUserFile is those instances of &%NetworkCommunication in which an &%ComputerFile that isn't an &%AudioFile, &%VideoFile, or &%ImageFile is downloaded to a user's local computer from another &%ComputerSystem on a network.")
-; !!! Needs rule
+(documentation DownloadingNonAudioVideoImageUserFile EnglishLanguage "&%DownloadingNonAudioVideoImageUserFile is those instances of &%NetworkCommunication in which an &%ComputerFile that isn't an &%AudioFile, &%MultimediaFile, or &%ImageFile is downloaded to a user's local computer from another &%ComputerSystem on a network.")
+
+(=>
+  (and
+    (instance ?ACT DownloadingVideo)
+    (patient ?ACT ?FILE)
+    (instance ?FILE ComputerFile))
+  (and
+    (not
+      (instance ?FILE ImageFile))
+    (not
+      (instance ?FILE AudioFile))
+    (not
+      (instance ?FILE MultimediaFile))))
 
 (subclass UploadingOverNetwork NetworkCommunication)
 (documentation UploadingOverNetwork EnglishLanguage "&%UploadingOverNetwork is those instances of &%NetworkCommunication in which a &%ComputerFile is uploaded from a user's local computer onto another &%ComputerSystem on a network.")
-; !!! Needs rule
+
+(=>
+  (instance ?ACT UploadingOverNetwork)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE ComputerFile))))
 
 (subclass UploadingImage UploadingOverNetwork)
 (documentation UploadingImage EnglishLanguage "&%UploadingImage is those instances of &%NetworkCommunication in which a &%ImageFile is uploaded from a user's local computer onto another &%ComputerSystem on a network.")
-; !!! Needs rule
+
+(=>
+  (instance ?ACT UploadingImage)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE ImageFile))))
 
 (subclass UploadingVideo UploadingOverNetwork)
 (documentation UploadingVideo EnglishLanguage "&%UploadingImage is those instances of &%NetworkCommunication in which an &%AudioVisualFile is uploaded from a user's local computer onto another &%ComputerSystem on a network.")
-; !!! Needs rule
+
+(=>
+  (instance ?ACT UploadingVideo)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE AudioVisualFile))))
 
 (subclass UploadingAudioFile UploadingOverNetwork)
 (documentation UploadingAudioFile EnglishLanguage "&%UploadingAudioFile is those instances of &%NetworkCommunication in which a non-video &%AudioFile is uploaded from a user's local computer onto another &%ComputerSystem on a network.")
-; !!! Needs rule
 
-(subclass Blog Website)
+(=>
+  (instance ?ACT UploadingAudioFile)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE AudioFile))))
+
+(subclass Blog WebSite)
 (documentation Blog EnglishLanguage "A &%Blog is a &%WebSite which one or more people can update with &%BlogPosts and &%BlogComments.")
 
-
-(subclass Wiki Website)
+(subclass Wiki WebSite)
 (documentation Wiki EnglishLanguage "A &%Wiki is a &%WebSite whose users can add, modify, or delete its content via a &%WebBrowser.")
-
-
-
 
 (subclass PostingOnBlog UploadingOverNetwork)
 (subclass PostingOnBlog WrittenCommunication)
 (documentation PostingOnBlog EnglishLanguage "&%PostingOnBlog is those instances of &%NetworkCommunication in which a &%ComputerUser updates a %&Blog.")
 
+(=>
+  (instance ?ACT PostingOnBlog)
+  (exists (?FILE)
+    (and
+      (patient ?ACT ?FILE)
+      (instance ?FILE Blog))))
 
 (subclass DoNetworkMessaging NetworkCommunication)
 (documentation DoNetworkMessaging EnglishLanguage "&%DoNetworkMessaging is those instances of &%NetworkCommunication in which messages are sent back and forth among users .")
-
 
 (subclass Tweeting DoNetworkMessaging)
 (subclass Tweeting WrittenCommunication)
 (documentation Tweeting EnglishLanguage "&%Tweeting is those instances of &%DoNetworkMessaging in which messages of 140 characters or less are sent among users via Twitter (TM).")
 ; !!! Needs rule
-
 
 (subclass AudioMessaging DoNetworkMessaging)
 (documentation Tweeting EnglishLanguage "&%AudioMessaging is those instances of &%DoNetworkMessaging in which audio messages are sent among users.")
@@ -1709,10 +2458,20 @@ The state of a GUI element normally changes to selected if the element had been 
 (subclass WebChatting WrittenCommunication)
 (documentation WebChatting EnglishLanguage "&%WebChatting is those instances of &%DoNetworkMessaging in which text messages are sent across the &%WorldWideWeb among users connected to discussion forums often called channels.")
 
+; &%Emailing is defined in Media.kif with one rule
 (subclass Emailing DoNetworkMessaging)
-(documentation Emailing EnglishLanguage "&%Emailing is the process of sending and receiving emails.  Emailing is a subclass of &%DoNetworkMessaging since the messages are sent over a local or global (or other) network.  The sender normally sends text, but may also send URLs and computer files of any kind with or without accompanying text.")
+(documentation Emailing EnglishLanguage "&%Emailing is the process of sending and receiving emails.  Emailing is a subclass of &%DoNetworkMessaging since the messages are sent over a local, global, or other network.  The sender normally sends text, but may also send URLs and computer files of any kind with or without accompanying text.")
+
+(subclass ReceivingEmail Emailing)
+(documentation ReceivingEmail EnglishLanguage "&%ReceivingEmail is the process of receiving emails that have been sent to an email address.")
+; !!! Needs rule
 
 (subclass SendingEmail Emailing)
-(documentation SendingEmail EnglishLanguage "&%SendingEmail is the process of sending emails.  Emailing is a subclass of &%DoNetworkMessaging since the messages are sent over a local or global (or other) network.  The sender normally sends text, but may also send URLs and computer files of any kind with or without accompanying text.")
+(documentation SendingEmail EnglishLanguage "&%SendingEmail is the process of sending emails.  The sender normally sends text to one or more email addresses, but may also send URLs and computer files of any kind with or without accompanying text.")
+(disjoint SendingEmail ReceivingEmail)
+; !!! Needs rule
 
+(subclass ForwardingEmail SendingEmail)
+(documentation ForwardingEmail EnglishLanguage "&%ForwardingEmail is the process of sending received emails on to other email addresses.  The forwarder may add commentary, but normally includes most, if not all, of the body of the received email.  The forwarded email may be distinguished in some way from the forwarder's comments.  Some of the information from the received email's header may also be included.  The subject line of the forwarded email may have an indicator that it is forwarded (a leading `Fw:' or 'Fwd' is common in English).")
+; !!! Needs rule
 
