@@ -41,7 +41,8 @@
 
 (subclass SearchEngine ComputerProgram)
 
-(documentation SearchEnging EnglishLanguage "a computer program that retrieves documents or files or data from a database or from a computer network (especially from the internet)")
+(documentation SearchEnging EnglishLanguage "a computer program that retrieves documents or files or
+ data from a database or from a computer network (especially from the internet)")
 
 (termFormat EnglishLanguage SearchEngine "search engine")
 
@@ -122,9 +123,9 @@
 ;; EbayQualifyingPurchasesFn
 ;; -------------------------------------------------------------------
 
-(documentation EbayQualifyingPurchasesFn EnglishLanguage "(EbayQualifyingPurchasesFn ?HUMAN 
- ?EXPERIMENT ?INTERVAL) returns the &%collection of all instances of &%Buying in ?INTERVAL by a
- &%Human who is a on the &%EbayWebsite, and where during the &%AccessingWebPage the ?HUMAN
+(documentation EbayQualifyingPurchasesFn EnglishLanguage "(EbayQualifyingPurchasesFn 
+ ?EXPERIMENT ?INTERVAL) returns the &%collection of all instances of &%Buying in ?INTERVAL
+ &%Humans on the &%EbayWebsite, and where during the &%AccessingWebPage the ?HUMAN
  experienced a &%process which is either the &%experiementalVariableProccess or 
  &%experiementalControlProccess in ?EXPERIMENT before the &%Buying.")
 
@@ -142,7 +143,7 @@
   (and
     (instance ?EXPERIMENT Experimenting)
     (instance ?INTERVAL TimeInterval))
-  (equals 
+  (equal 
     (EbayQualifyingPurchases ?EXPERIMENT ?INTERVAL)
     (KappFn ?BUYING
       (and
@@ -150,7 +151,7 @@
         (instance ?BUYING Buying)
         (instance ?ACCESSING AccessingWebPage)
         (instance ?EVENT Proccess)
-        (member ?EVENT (QualifyingEventsFn ?EXPERIMENT)
+        (member ?EVENT (QualifyingEventsFn ?EXPERIMENT))
         (agent ?BUYING ?VISITOR)
         (agent ?ACCESSING ?VISITOR)
         (during (WhenFn ?BUYING) (WhenFn ?ACCESSING))
@@ -158,7 +159,7 @@
         (before (BeginFn ?EVENT) (BeginFn ?BUYING))
         (during (WhenFn ?ACCESSING) ?INTERVAL)
         (destination ?ACCESSING ?PAGE)
-        (ebayTreatedPage ?PAGE ?EXPERIMENT))))))
+        (ebayTreatedPage ?PAGE ?EXPERIMENT)))))
 
 ;; EbaySales
 ;; -------------------------------------------------------------------
@@ -201,7 +202,20 @@
 
 (termFormat EnglishLanguage experimentalVariableProcess "experimental variable (process)")
 
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (experimentalVariableProcess ?EXPERIMENT ?VARIABLE))
+  (not
+    (experimentalControlProcess ?EXPERIMENT ?VARIABLE)))
 
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (experimentalControlProcess ?EXPERIMENT ?CONTROL))
+  (not
+    (experimentalVariableProcess ?EXPERIMENT ?CONTROL)))
 
 ;; experimentalControlProccess
 ;; -------------------------------------------------------------------
@@ -220,6 +234,87 @@
 (subrelation experimentalControlProccess patient)
 
 (termFormat EnglishLanguage experimentalControlProcess "experimental control (process)")
+
+
+;; EbaySeller
+;; -------------------------------------------------------------------
+
+(subclass EbaySeller Human)
+
+(=>
+  (instance ?SELLER EbaySeller)
+  (exists (?ITEM ?ADVERTISING)
+    (and
+      (instance ?ITEM Object)
+      (posesses ?SELLER ?ITEM)
+      (instance ?ADVERTISING Advertising)
+      (refers ?ADVERTISING ?ITEM)
+      (part ?ADVERTISING EbayWebsite))))
+
+
+;; Auction
+;; -------------------------------------------------------------------
+
+(subclass Auction Selling)
+
+(=>
+  (instance ?AUCTION Auction)
+  (exists (?ITEM)
+    (and
+      (instance ?ITEM Object)
+      (patient ?AUCTION ?ITEM))))
+
+(=>
+  (and
+    (instance ?AUCTION Auction)
+    (instance ?ITEM Object)
+    (patient ?AUCTION ?ITEM))
+  (exists (?BIDDER ?OFFER)
+    (and
+      (instance ?BIDDER Agent)
+      (instance ?OFFER CurrencyMeasure)
+      (bidPrice ?ITEM ?OFFER ?BIDDER))))
+
+
+(=>
+  (and
+    (instance ?AUCTION Auction)
+    (instance ?BIDDER1 Agent)
+    (instance ?BIDDER2 Agent)
+    (instance ?ITEM Object)
+    (patient ?AUCTION ?ITEM)
+    (bidPrice ?ITEM ?OFFER1 ?BIDDER1)
+    (bidPrice ?ITEM ?OFFER2 ?BIDDER2)
+    (greaterThan ?OFFER1 ?OFFER2))
+  (destination ?AUCTION ?BIDDER1))
+
+
+;; Needs mapping to wordnet 202244773
+
+
+;; WebBrowser
+;; -------------------------------------------------------------------
+
+(subclass WebBrowser ComputerProgram)
+
+(=>
+  (instance ?BROWSER WebBrowser)
+  (hasPurpose ?BROWSER
+    (exists (?ACCESSING)
+      (and
+        (instance ?ACCESSING AccessingWebPage)
+        (instrument ?ACCESSING ?BROWSER)))))
+
+
+;; JW: Needs Mapping to wordnet 106571301
+
+;; EbayCategories
+;; -------------------------------------------------------------------
+
+(subclass EbayCategories Class)
+
+;; Need some way to relate this to category mappings
+
 
 ;; ===========================================
 ;; TPS Glossary
@@ -247,6 +342,7 @@
       (agent ?ACCESSING ?VISITOR)
       (destination ?ACCESSING ?WEBPAGE))))
     
+;; JW: combine with webVisitor caserole?
 
 ;; EbayGUID (GUID)
 ;; -------------------------------------------------------------------
@@ -297,15 +393,16 @@
 
 (subclass EbayGMBFn BinaryFn)
 
-(domain EbayGMBFn 1 Human)
+(domain EbayGMBFn 1 Collection)
 
 (domain EbayGMBFn 2 TimeInterval)
 
 
 (range EbayGMBFn CurrencyMeasure)
 
-(documentation EbayGMBFn EnglishLanguage "The total value of goods (in Local Currency or US dollars)
- bought by a buyer, based on The buyer country.")
+(documentation EbayGMBFn EnglishLanguage "OLD: The total value of goods (in Local Currency or US
+ dollars) bought by a buyer, based on The buyer country. NEW: The total value of goods in a
+ collection of &%BUYINGS over a certian &%TimeInterval")
 
 (termFormat EnglishLanguage EbayGMBFn "eBay GMB")
 
@@ -313,19 +410,22 @@
 
 (=>
   (and
-    (instance ?PURCHASES EbayPurchases)
+    (instance ?PURCHASES Collection)
     (instance ?INTERVAL TimeInterval)
-    (instance ?USER Human)
-    (possesses ?USER ?PURCHASES))
+    (forall (?BUYING)
+      (=>
+        (member ?BUYING ?PURCHASES)
+        (instance ?BUYING Buying))))
   (and
     (monetaryValue (KappaFn ?AMOUNT
-        (and
-          (member ?PURCHASE ?PURCHASES)
-          (during (WhenFn ?PURCHASE) ?INTERVAL)
-          (transactionAmount ?PURCHASE ?AMOUNT)))
-        ?TOTAL_PURCHASE_AMOUNT)
+      (and
+        (instance ?PURCHASE Buying)
+        (member ?PURCHASE ?PURCHASES)
+        (during (WhenFn ?PURCHASE) ?INTERVAL)
+        (transactionAmount ?PURCHASE ?AMOUNT)))
+      ?TOTAL_PURCHASE_AMOUNT)
     (equal 
-      (EbayGMBFn ?USER ?INTERVAL) (?TOTAL_PURCHASE_AMOUNT))))
+      (EbayGMBFn ?PURCHASES ?INTERVAL) ?TOTAL_PURCHASE_AMOUNT)))
 
 ;; does this work? i.e. adds up all puchase amounts?
 
@@ -356,13 +456,16 @@
     (possesses ?USER ?SALES)
     (monetaryValue (KappaFn ?AMOUNT
       (and
+        (instance ?SALE Selling)
         (member ?SALE ?SALES)
         (during (WhenFn ?SALE) ?INTERVAL)
         (transactionAmount ?SALE ?AMOUNT)))
       ?TOTAL_SALES_AMOUNT))
   (equal 
-    (EbayGMBFn ?USER ?INTERVAL) (?TOTAL_SALES_AMOUNT)))
+    (EbayGMBFn ?USER ?INTERVAL) ?TOTAL_SALES_AMOUNT))
 
+
+;; JW: Needs Updating to new GMBFn Definition
 
 ;; EbayLTU (LTU)
 ;; -------------------------------------------------------------------
@@ -384,8 +487,74 @@
       (result ?EXPERIMENTING ?RESULT)
       (containsInformation ?LTU ?RESULT))))
 
-;; EbayLift (lift)
+;; GMBLiftFn (lift)
 ;; -------------------------------------------------------------------
+
+(instance GMBLiftFn BinaryFunction)
+
+(domain GMBLiftFn 1 Experimenting)
+
+(domain GMBLiftFn 2 TimeInterval)
+
+(range GMBLiftFn CurrencyMeasure)
+
+(termFormat EnglishLanguage GMBLiftFn "Lift")
+
+(synonymousExternalConcept "Lift" GMBLiftFn EbayAcronyms)
+
+(documentation GMBLiftFn EnglishLanguage "(GMBLiftFn ?EXPERIMENT ?INTERVAL) means the difference
+ between the GMB of the treatment group and control group of ?EXPERIMENT, divided by the GMB of the 
+ control group")
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (instance ?INTERVAL TimeInterval)
+    (instance ?TREATMENT_PURCHASES Collection)
+    (instance ?CONTROL_PURCHASES Collection)
+    (forall (?BUYING ?VISITOR ?ACCESSING ?EVENT)
+      (=>
+        (and
+          (instance ?VISITOR EbayVisitor)
+          (instance ?BUYING Buying)
+          (instance ?ACCESSING AccessingWebPage)
+          (instance ?EVENT Proccess)
+          (experimentalVariableProcess ?EXPERIMENT ?EVENT)
+          (agent ?BUYING ?VISITOR)
+          (agent ?ACCESSING ?VISITOR)
+          (during (WhenFn ?BUYING) (WhenFn ?ACCESSING))
+          (during (WhenFn ?EVENT) (WhenFn ?ACCESSING))
+          (before (BeginFn ?EVENT) (BeginFn ?BUYING))
+          (during (WhenFn ?ACCESSING) ?INTERVAL)
+          (destination ?ACCESSING ?PAGE)
+          (ebayTreatedPage ?PAGE ?EXPERIMENT))
+        (member ?BUYING ?TREATMENT_PURCHASES)))
+    (forall (?BUYING ?VISITOR ?ACCESSING ?EVENT)
+      (=>
+        (and
+          (instance ?VISITOR EbayVisitor)
+          (instance ?BUYING Buying)
+          (instance ?ACCESSING AccessingWebPage)
+          (instance ?EVENT Proccess)
+          (experimentalControlProcess ?EXPERIMENT ?EVENT)
+          (agent ?BUYING ?VISITOR)
+          (agent ?ACCESSING ?VISITOR)
+          (during (WhenFn ?BUYING) (WhenFn ?ACCESSING))
+          (during (WhenFn ?EVENT) (WhenFn ?ACCESSING))
+          (before (BeginFn ?EVENT) (BeginFn ?BUYING))
+          (during (WhenFn ?ACCESSING) ?INTERVAL)
+          (destination ?ACCESSING ?PAGE)
+          (ebayTreatedPage ?PAGE ?EXPERIMENT))
+        (member ?BUYING ?CONTROL_PURCHASES))))
+  (equal
+    (GMBLiftFn ?EXPERIMENT ?INTERVAL)
+    (DivisionFn 
+      (SubtractionFn (GMBFn ?TREATMENT_PURCHASES) (GMBFn ?CONTROL_PURCHASES))
+      (GMBFn ?CONTROL_PURCHASES))))
+
+
+;; JW: This is really ugly. Should break treatment and control purchases into functions of experiment.
+
 
 ;; EbayPPWFn (PPW)
 ;; -------------------------------------------------------------------
@@ -446,6 +615,7 @@
     (instance ?WEEK Week)
     (instance ?VISITORS_IN_WEEK Collection)
     (instance ?GMBS_IN_WEEK Collection)
+    (instance ?TOTAL_GMB CurrencyMeasure)
     (forall (?VISITOR ?PURCHASE ?WEBPAGE ?ACCESSING)
       (=>
         (and
@@ -463,9 +633,10 @@
   (equal 
     (EbayGPWFn ?WEEK)
     (DivisionFn
-      (?TOTAL_GMB)
+      ?TOTAL_GMB
       (CardinalityFn ?VISITORS_IN_WEEK))))
 
+;; JW: needs fixing to correspond to new GMB Definition
 
 ;; EbayQualifyingEventsFn (Qualifying Factor/Event)
 ;; -------------------------------------------------------------------
@@ -641,16 +812,30 @@ Sold)")
 
 (=>
   (instance ?QUERY Query)
+  (exists (?QUESTION ?SEARCHENGINE)
+    (and
+      (instance ?QUESTION Questioning)
+      (result ?QUESTION ?QUERY)
+      (patient ?QUESTION ?SEARCHENGINE)
+      (instance ?SEARCHENGINE SearchEngine))))
+
+
+(=>
   (and
-    (instance ?QUESTION Questioning)
-    (result ?QUESTION ?QUERY)
-    (patient ?QUESTION ?SEARCHENGINE)
-    (instance ?SEARCHENGINE SearchEngine)))
+    (instance ?QUERY Query)
+    (represents ?QUERY ?PURSUING))
+  (and
+    (instance ?PURSUING Pursuing)
+    (exists (?AGENT ?OBJ)
+      (and
+        (instance ?OBJ Object)
+        (instance ?AGENT Agent)
+        (patient ?PURSUING ?OBJ)))))
 
 ;; EbayPandA (P&A)
 ;; -------------------------------------------------------------------
 
-(subclass EbayPandA Class)
+(subclass EbayPandA EbayCategories)
 
 (documentation EbayPandA EnglishLanguage "Parts and Accessories category")
 
@@ -733,7 +918,7 @@ results, ad, etc.")
   (exists (?PAGE)
     (and
       (instance ?PAGE WebPage)
-      (part ?MODULE ?PAGE))))
+      (component ?MODULE ?PAGE))))
 
 ;; EbayTPS (TPS)
 ;; -------------------------------------------------------------------
@@ -803,4 +988,1261 @@ registered country and seller registered country are not the same")
       (not
         (equal ?BUYER_LOCATION ?SELLER_LOCATION)))))
 
+;; EbayWhitelist (Whitelist)
+;; -------------------------------------------------------------------
+
+(subclass EbayWhitelist Collection)
+
+(documentation EbayWhitelist EnglishLanguage "Whitelist is a term used to describe a list or
+ register of entities that, for one reason or another, are being provided a particular privilege, 
+ service, mobility, access or recognition.")
+
+(termFormat EnglishLanguage EbayWhitelist "whitelist")
+
+(synonymousExternalConcept "whitelist" EbayWhitelist EbayAcronyms)
+
+(=>
+  (member ?MEMBER EbayWhitelist)
+  (exists (?PRIVLEDGE)
+    (attribute ?MEMBER ?PRIVELEDGE)))
+
+;; EbayCSA (P&A)
+;; -------------------------------------------------------------------
+
+(subclass EbayCSA Class)
+
+(documentation EbayCSA EnglishLanguage "Clothes, Shoes, Accessories category")
+
+(termFormat EnglishLanguage EbayCSA "CSA")
+
+(synonymousExternalConcept "CSA" EbayCSA EbayAcronyms)
+
+(=>
+  (instance ?ITEM EbayCSA)
+  (subclass ?ITEM WearableItem))
+
+
+;; EbayASQ (ASQ)
+;; -------------------------------------------------------------------
+
+(subclass EbayASQ Questioning)
+
+(documentation EbayASQ EnglishLanguage "Ask Seller a question")
+
+(termFormat EnglishLanguage EbayASQ "ASQ")
+
+(synonymousExternalConcept "ASQ" EbayASQ EbayAcronyms)
+
+(=>
+  (instance ?ASQ EbayASQ)
+  (exists (?VISITOR)
+    (and
+      (agent ?ASQ ?VISTOR)
+      (instance ?VISITOR EbayVisitor))))
+
+(=>
+  (instance ?ASQ EbayASQ)
+  (exists (?SELLER)
+    (and
+      (destination ?ASQ ?SELLER)
+      (instance ?SELLER EbaySeller))))
+
+
+;; BuyItNow (BIN)
+;; -------------------------------------------------------------------
+
+(subclass BuyItNow Buying)
+
+(synonymousExternalConcept "BIN" BuyItNow EbayAcronyms)
+
+(termFormat EnglishLanguage BuyItNow "BIN")
+
+(documentation BuyItNow EnglishLanguage "Buy it now")
+
+(=>
+  (instance ?BuyItNow BuyItNow)
+  (exists (?ITEM ?CURRENCYMEASURE)
+    (and
+      (instance ?ITEM Object)
+      (capability Auction patient ?ITEM)
+      (capability 
+        (KappaFn ?SELLING
+          (and
+            (instance ?SELLING Selling)
+            (not
+              (instance ?SELLING Auction)))
+        patient ?ITEM)))))
+
+
+;; FixedPrice (FP)
+;; -------------------------------------------------------------------
+
+(instance FixedPrice Attribute)
+
+(termFormat EnglishLanguage FixedPrice "fixed price")
+
+(synonymousExternalConcept "FP" FixedPrice EbayAcronyms)
+
+(documentation FixedPrice EnglishLanguage "")
+
+
+(=>
+  (attribute ?ITEM FixedPrice)
+  (exists (?AVERTISEMENT)
+    (and
+      (instance ?ADVERTISEMENT Advertising)
+      (refers ?ADEVERTISEMENT ?ITEM)
+      (part ?ADEVERTISEMENT EbayWebsite)
+      (not
+        (capability Auction patient ?ITEM)))))
+
+
+;; ForSaleByOwner (FSBO)
+;; -------------------------------------------------------------------
+
+(instance ForSaleByOwner Attribute)
+
+(termFormat EnglishLanguage ForSaleByOwner "FSBO")
+
+(synonymousExternalConcept "FSBO" ForSaleByOwner EbayAcronyms)
+
+(documentation ForSaleByOwner EnglishLanguage "For sale by owner.")
+
+
+(=>
+  (attribute ?ITEM ForSaleByOwner)
+  (exists (?SELLER ?ADVERTISEMENT)
+    (and
+      (instance ?SELLER ?AGENT)
+      (possess ?SELLER ?ITEM)
+      (instance ?ADVERTISEMENT Advertising)
+      (refers ?ADVERTISEMENT ?ITEM)
+      (part ?ADVERSTISEMENT EbayWebsite)
+      (capability 
+        (KappaFn ?SELLING
+          (and
+            (instance ?SELLING Selling)
+            (agent ?SELLING ?SELLER)))
+        patient ?ITEM))))
+
+;; TTFxFn 
+;; -------------------------------------------------------------------
+
+(instance TTFxFn BinaryFunction)
+
+(documentation TTFxFn EnglishLanguage "Time to first x")
+
+(termFormat EnglishLanguage TTFxFn "TTFx")
+
+(synonymousExternalConcept "TTFx" TTFxFn EbayAcronyms)
+
+(domain TTFxFn 1 Class)
+
+(domain TTFxFn 2 AccessingWebPage)
+
+(range TTFxFn TimeInterval)
+
+(=>
+  (and
+    (instance ?PROCESS ?PROCESS_CLASS)
+    (subclass ?PROCESS_CLASS Process)
+    (instance ?ACCESSING AccessingWebPage)
+    (instance ?AGENT Agent)
+    (agent ?PROCESS ?AGENT)
+    (agent ?ACCESSING ?AGENT)
+    (subprocess ?PROCESS ?ACCESSING)
+    (instance ?TIMETOFIRST TimeInterval)
+    (not
+      (exists (?PROCESS2)
+        (and
+          (instance ?PROCESS2 ?PROCESS_CLASS)
+          (agent ?PROCESS2 ?AGENT)
+          (subprocess ?PROCESS2 ?ACCESSING)
+          (before (BeginFn (WhenFn ?PROCESS2)) (BeginFn (WhenFn ?PROCESS))))))
+    (equal
+      (BeginFn (WhenFn ?ACCESSING)) (BeginFn (WhenFn ?TIMETOFIRST)))
+    (equal
+      (BeginFn (WhenFn ?PROCESS)) (EndFn (WhenFn ?TIMETOFIRST))))
+  (equal
+    (TTFxFn ?PROCESS_CLASS ?ACCESSING) ?TIMETOFIRST))
+    
+
+;; ItemViewsFn 
+;; -------------------------------------------------------------------
+
+(instance ItemViewsFn BinaryFn)
+
+(domain ItemViewFn 1 WebPage)
+
+(domain ItemViewFn 2 TimeInterval)
+
+(range ItemViewFn Collection)
+
+(termFormat EnglishLanguage ItemViewFn "VI")
+
+(synonymousExternalConcept "VI" ItemViewFn EbayAcronyms)
+
+(documentation ItemViewFn EnglishLanguage "Item Views")
+
+(=>
+  (and
+    (instance ?ADVERTISING Advertising)
+    (instance ?TIMEINTERVAL TimeInterval)
+    (instance ?WEBPAGE WebPage)
+    (component ?ADVERTISING ?WEBPAGE)
+    (component ?WEBPAGE EbayWebSite))
+  (equal
+    (ItemViewsFn ?ADVERTISING)
+    (KappaFn ?ACCESSING
+      (and
+        (instance ?ACCESSING AccessingWebPage)
+        (patient ?ACCESSING ?WEBPAGE)
+        (during (WhenFn ?ACCESSING) ?TIMEINTERVAL)))))
+
+(=>
+  (and
+    (instance ?ACCESSING AccessingWebPage)
+    (instance ?ITEM Object)
+    (instance ?ADVERTISING Advertising)
+    (instance ?TIMEINTERVAL TimeInterval)
+    (component ?ADVERTISING ?WEBPAGE)
+    (instance ?WEBPAGE WebPage)
+    (component ?WEBPAGE EbayWebSite)
+    (patient ?ACCESSING ?WEBPAGE)
+    (during (WhenFn ?ACCESSING) ?TIMEINTERVAL))
+  (member ?ACCESSING (ItemsViewFn ?WEBPAGE ?TIMEINTERVAL)))
+
+
+;; ProductDescriptionPage (PDP)
+;; -------------------------------------------------------------------
+
+(subclass ProductDescriptionPage WebPage)
+
+(documentation ProductDescriptionPage EnglishLanguage "Description page for a &%Class of products.")
+
+(termFormat EnglishLanguage ProductDescriptionPage "PDP")
+
+(synonymousExternalConcept "PDP" ProductDescriptionPage EbayAcronyms)
+
+(=>
+  (instance ?DESCRIPTIONPAGE ProductDescriptionPage)
+  (exists (?PRODUCT ?ADVERTISEMENT)
+    (and
+      (instance ?PRODUCT Class)
+      (instance ?ADVERTISEMENT Advertising)
+      (refers ?ADVERTISMENT ?PRODUCT)
+      (part ?ADVERTISEMENT ?DESCRIPTIONPAGE))))
+
+(=>
+  (instance ?DESCRIPTIONPAGE ProductDescriptionPage)
+  (component ?DESCRIPTIONPAGE EbayWebsite))
+
+(=>
+  (instance ?DESCRIPTIONPAGE ProductDescriptionPage)
+  (exists (?PRODUCT ?DESCRIPTION ?STATING ?DESCRIPTIONCONTENT)
+    (and
+      (instance ?PRODUCT Class)
+      (instance ?STATING Stating)
+      (patient ?STATING ?DESCRIPTION)
+      (refers ?DESCRIPTION ?PRODUCT)
+      (result ?DESCRIPTION ?DESCRIPTIONCONTENT)
+      (part ?DESCRIPTIONCONTENT ?DESCRIPTIONPAGE))))
+
+
+;; Enterprise Data Warehouse (EDW)
+;; -------------------------------------------------------------------
+
+(subclass DataWarehouse Database)
+
+(documentation DataWarehouse EnglishLanguage "A &%Database that contains information about a
+ particular topic of interest to aid in decision making. DEFINITION: A data warehouse is a 
+ subject-oriented, integrated, time-variant and non-volatile collection of data in support of
+ management's decision making process.")
+
+(termFormat EnglishLanguage DataWarehouse "data warehouse")
+
+(synonymousExternalConcept "EDW" DataWarehouse EbayAcronyms)
+
+(=>
+  (instance ?WAREHOUSE DataWarehouse)
+  (hasPurpose ?WAREHOUSE
+    (exists (?SUBJECT)
+      (and
+        (instance ?SUBJECT Proposition)
+        (forall (?DATA)
+          (and
+            (refers ?DATA ?SUBJECT)
+            (component ?DATA ?WAREHOUSE)))))))
+
+(=>
+  (instance ?WAREHOUSE DataWarehouse)
+  (hasPurpose ?WAREHOUSE
+    (exists (?AGENT)
+      (and
+        (instance ?AGENT Agent)
+        (forall (?DATA)
+            (and
+              (inScopeOfInterest ?DATA ?AGENT)
+              (component ?DATA ?WAREHOUSE)))))))
+
+
+;; EbayTopRatedSeller (eTRS)
+;; -------------------------------------------------------------------
+
+(instance EbayTopRatedSeller SubjectiveAssessmentAttribute)
+
+(termFormat EnglishLanguage EbayTopRatedSeller "top rated seller")
+
+(synonymousExternalConcept "eTRS" EbayTopRatedSeller EbayAcronyms)
+
+(=>
+  (attribute ?SELLER EbayTopRatedSeller)
+  (instance ?SELLER EbaySeller))
+
+(=>
+  (attribute ?SELLER EbayTopRatedSeller)
+  (exists (?COMPARING)
+    (and
+      (instance ?COMPARING Comparing)
+      (patient ?COMPARING ?SELLER))))
+
+;; ExperimentationPlatform (EP)
+;; -------------------------------------------------------------------
+
+(subclass ExperimentationPlatform ComputerProgram)
+
+(termFormat EnglishLanguage ExperimentationPlatform "experimentation platform")
+
+(synonymousExternalConcept "EP" ExperimentationPlatform EbayAcronyms)
+
+(=>
+  (instance ?EP ExperimentationPlatform)
+  (hasPurpose ?EP
+    (exists (?EXPERIMENT)
+      (and
+        (instance ?EXPERIMENT Experimenting)
+        (instrument ?EXPERIMENT ?EP)))))
+
+
+;; PPSfeed
+;; -------------------------------------------------------------------
+
+(subclass PPSfeed DigitalData)
+
+(synonymousExternalConcept "PPS feed" PPSfeed EbayAcronyms)
+
+(termFormat EnglishLanguage PPSfeed "PPS feed")
+
+(documentation PPSfeed EnglishLanguage "Data feed to enable calculation of the PPS metric")
+
+(=>
+  (instance ?FEED PPSfeed)
+  (hasPurpose ?FEED
+    (exists (?EXPERIMENT ?PROCESS)
+      (and
+        (instance ?PROCESS ContentBearingProcess)
+        (instance ?EXPERIMENT Experimenting)
+        (refers ?PROCESS (QualifyingEventsFn ?EXPERIMENT))
+        (instrument ?PROCESS ?FEED)))))
+
+;; JW: Is a feed really digital data, or is it the process itself?
+
+;; RTM (Real Time Messaging Platform)
+;; -------------------------------------------------------------------
+
+(subclass RTM Software)
+
+(termFormat EnglishLanguage RTM "real time messaging platform")
+
+(synonymousExternalConcept "RTM" RTM EbayAcronyms)
+
+(documentation RTM EnglishLanguage "component of program that serves a part of page")
+
+(=>
+  (instance ?RTM RTM)
+  (part ?RTM ComputerProgram))
+
+(=>
+  (instance ?MODULE WebPageModule)
+  (exists (?TRANSFER ?ORIGIN ?RTM)
+    (and
+      (instance ?TRANSFER DataTransfer)
+      (instance ?RTM RTM)
+      (instance ?ORIGIN ?RTM)
+      (origin ?TRANSFER ?RTM)
+      (patient ?TRANSFER ?MODULE))))
+
+
+;; EbayBusinessUnit (BU)
+;; -------------------------------------------------------------------
+
+(subclass EbayBusinessUnit Organization)
+
+(termFormat EnglishLanguage EbayBusinessUnit "business unit")
+
+(synonymousExternalConcept "BU" EbayBusinessUnit EbayAcronyms)
+
+(=>
+  (instance ?BU EbayBusinessUnit)
+  (subOrganization ?BU EbayCorporation))
+
+(=>
+  (instance ?BU EbayBusinessUnit)
+  (hasPurpose ?BU
+    (exists (?PROCESS)
+      (and
+        (instance ?PROCESS Process)
+        (agent ?PROCESS ?BU)
+        (benefits ?PROCESS EbayCorporation)))))
+
+(=>
+  (instance ?BU EbayBusinessUnit)
+  (exists (?INTEREST)
+    (and
+      (instance ?INTEREST ENTITY)
+      (inScopeOfInterest ?BU ?INTEREST))))
+
+;; SiteSpeedFn (SS)
+;; -------------------------------------------------------------------
+
+(instance SiteSpeedFn UnaryFn)
+
+(domain SiteSpeedFn 1 Accessing)
+
+(range SiteSpeedFn TimeInterval)
+
+(synonymousExternalConcept "SS" SiteSpeedFn EbayAcronyms)
+
+(termFormat EnglishLanguage SiteSpeedFn "site speed")
+
+(=>
+  (and
+    (instance ?ACCESSING AccessingWebPage)
+    (instance ?PAGE WebPage)
+    (instance ?TRANSFER DataTransfer)
+    (instance ?SERVER Server)
+    (instance ?REQUESTING Requesting)
+    (instance ?BROWSER WebBrowser)
+    (instance ?INTERVAL TimeInterval)
+    (agent ?REQUESTING ?BROWSER)
+    (destination ?REQUESTING ?SERVER)
+    (patient ?REQUESTING ?PAGE)
+    (origin ?TRANSFER ?SERVER)
+    (destination ?TRANSFER ?BROWSER)
+    (patient ?TRANSFER ?PAGE)
+    (equal
+      (EndFn (WhenFn ?REQUESTING)) 
+      (BeginFn ?INTERVAL))
+    (equal
+      (EndFn (WhenFn ?TRANSFER)) 
+      (EndFn ?INTERVAL)))
+  (equal
+    (SiteSpeedFn ?ACCESSING) ?INTERVAL))
+
+;; DomCatFn  (Dominant Category)
+;; -------------------------------------------------------------------
+
+(instance DomCatFn UnaryFn)
+
+(domain DomCatFn 1 Query)
+
+(range DomCatFn 2 EbayCategories)
+
+(documentation DomCatFn EnglishLanguage "Dominant Category of the search query entered by a user.
+ Category inference is demand based and a threshold must be met to classify a category as the
+ dominant category")
+
+(termFormat EnglishLanguage DomCatFn "dominant category")
+
+(synonymousExternalConcept "Domcat" DomCatFn EbayAcronyms)
+
+(=>
+  (and
+    (instance ?QUERY EbayQuery)
+    (instance ?PURSUING Pursuing)
+    (instance ?SEARCHENGINE SearchEngine)
+    (instance ?QUESTION Questioning)
+    (instance ?DOMCAT Class)
+    (represents ?QUERY ?PURSUING)
+    (patient ?PURSUING ?OBJ)
+    (result ?QUESTION ?QUERY)
+    (patient ?QUESTION ?SEARCHENGINE)
+    (subclass ?DOMCAT EbayCategories)
+    (believes ?SEARCHENGINE
+      (instance ?OBJ ?DOMCAT)))
+  (equal
+    (DomCatFn ?QUERY) ?DOMCAT))
+
+;; Does the search engine really "believe" this? Need new relation
+
+;; ConstrainedCatFn (Constrained category)
+;; -------------------------------------------------------------------
+
+
+(instance ConstrainedCatFn UnaryFn)
+
+(domain ConstrainedCatFn 1 Query)
+
+(range ConstrainedCatFn 2 EbayCategories)
+
+(termFormat EnglishLanguage ConstrainedCatFn "constrained category")
+
+(synonymousExternalConcept "Constrained Category" ConstrainedCatFn EbayAcronyms)
+
+(documentation ConstrainedCatFn EnglishLanguage "Category filter used by the user for a search
+ query. The search results are filtered based on the category selected")
+
+(=>
+  (and
+    (instance ?QUERY EbayQuery)
+    (instance ?PURSUING Pursuing)
+    (agent ?PURSUING ?AGENT)
+    (represents ?QUERY ?PURSUING)
+    (patient ?PURSUING ?OBJ)
+    (instance ?SEARCHENGINE SearchEngine)
+    (instance ?QUESTION Questioning)
+    (result ?QUESTION ?QUERY)
+    (patient ?QUESTION ?SEARCHENGINE)
+    (instance ?CONSTRAINEDCAT Class)
+    (subclass ?CONSTRAINEDCAT EbayCategories)
+    (instance ?PROCESS ContentBearingProcess)
+    (agent ?PROCESS ?AGENT)
+    (patient ?PROCESS ?CONTENT)
+    (represents ?CONTENT 
+      (instance ?OBJ ?CONSTRAINEDCAT)))
+  (equal
+    (ConstrainedCatFn ?QUERY) ?CONSTRAINEDCAT))
+
+;; PandASearch (P&A Search)
+;; -------------------------------------------------------------------
+
+(subclass PandASearch EbayQuery)
+
+(termFormat EnglishLanguage PandASearch "P&A Search")
+
+(documentation PandASearch EnglishLanguage "A search query where the user has either constrained the
+ results by P&A category or where the inferred dominant category is P&A")
+
+(synonymousExternalConcept "P&A Search" PandASearch EbayAcronyms)
+    
+(=>
+  (instance ?QUERY PandASearch)
+  (or
+    (equal
+      (DomCatFn ?QUERY)
+      EbayPandA)
+    (equal
+      (ConstrainedCatFn ?QUERY)
+      EbayPandA)))
+
+;; PandATest
+;; -------------------------------------------------------------------
+
+(subclass PandATest Experimenting)
+
+(documentation PandATest EnglishLanguage "An experiment conducted on P&A searches or items")
+
+(termFormat EnglishLanguage PandATest "P&A Test")
+
+(synonymousExternalConcept "P&A Test" PandATest EbayAcronyms)
+    
+(=>
+  (and
+    (instance ?EXPERIMENT PandATest)
+    (patient ?EXPERIMENT ?PATIENT))
+  (or
+    (instance ?PATIENT PandASearch)
+    (instance ?PATIENT PandAItem)))
+
+
+;; SRPResults 
+;; -------------------------------------------------------------------
+
+(subclass SRPResults List)
+
+(termFormat EnglishLanguage SRPResults "search results")
+
+(=>
+  (instance ?RESULTS SRPResults)
+  (exists (?BM)
+    (and
+      (instance ?BM EbayBM)
+      (result ?BM ?RESULTS))))
+
+(=>
+  (and
+    (inList ?ITEM ?RESULTS)
+    (instance ?RESULTS SRPResults))
+  (exists (?QUERY ?SEARCHENGINE? ?PURSUING ?OBJ)
+    (and
+      (instance ?QUERY EbayQuery)
+      (instance ?SEARCHENGINE SearchEngine)
+      (instance ?QUERY EbayQuery)
+      (instance ?PURSUING Pursuing)
+      (represents ?QUERY ?PURSUING)
+      (patient ?PURSUING ?OBJ)
+      (instance ?QUESTION Questioning)
+      (result ?QUESTION ?QUERY)
+      (patient ?QUESTION ?SEARCHENGINE)
+      (believes ?SEARCHENGINE
+        (represents ?ITEM ?OBJ)))))
+
+(=>
+  (and
+    (inList ?ITEM ?RESULTS)
+    (instance ?RESULTS SRPResults))
+  (exists (?SRP)
+    (and
+      (instance ?SRP SearchResultsPage)
+      (component ?RESULTS ?SRP))))
+
+;; EbayBM
+;; -------------------------------------------------------------------
+
+(subclass EbayBM Proccess)
+
+(documentation EbayBM EnglishLanguage "Best Match sort. Represents that sort algorithm used on the
+ search results page")
+
+(termFormat EnglishLanguage EbayBM "best match sort")
+
+(synonymousExternalConcept "BM" EbayBM EbayAcronyms)
+
+(=>
+  (instance ?BM EbayBM)
+  (exists (?SEARCHENGINE)
+    (and
+      (instance ?SEARCHENGINE SearchEngine)
+      (agent ?BM ?SEARCHENGINE))))
+
+(=>
+  (instance ?BM EbayBM)
+  (exists (?QUERY)
+    (and
+      (instance ?QUERY EbayQuery)
+      (patient ?BM ?QUERY))))
+
+(=>
+  (instance ?BM EbayBM)
+  (exists (?RESULT)
+    (and
+      (instance ?RESULT SRPResults)
+      (result ?BM ?RESULT))))
+
+;; CrossFunctionalTeam
+;; -------------------------------------------------------------------
+
+(subclass CrossFunctionalTeam Organization)
+
+(documentation CrossFunctionalTeam EnglishLanguage "a group of people with different functional
+ expertise working toward a common goal.")
+
+(termFormat EnglishLanguage CrossFunctionalTeam "cross-functional team")
+
+
+(=>
+  (instance ?TEAM CrossFunctionalTeam)
+  (exists (?INTEREST)
+    (and
+      (instance ?INTEREST ?ENTITY)
+      (forall (?MEMBER)
+        (=>
+          (and
+            (instance ?MEMBER Human)
+            (member ?MEMBER ?TEAM))
+          (inScopeOfInterest ?MEMBER ?INTEREST))))))
+
+(=>
+  (instance ?TEAM CrossFunctionalTeam)
+  (exists (?SKILL ?MEMBER1 ?MEMBER2)
+    (and
+      (instance ?SKILL Process)
+      (instance ?MEMBER1 Human)
+      (instance ?MEMBER2 Human)
+      (member ?MEMBER1 ?TEAM)
+      (member ?MEMBER2 ?TEAM)
+      (hasSkill ?SKILL ?MEMBER1)
+      (not
+        (hasSkill ?SKILL ?MEMBER2))
+      (inScopeOfInterest ?TEAM ?SKILL))))
+
+
+;; EbayGXT
+;; -------------------------------------------------------------------
+
+(subclass EbayGXT CrossFunctionalTeam)
+
+(termFormat EnglishLanguage EbayGXT "global cross-functional team")
+
+(documentation EbayGXT EnglishLanguage "Global cross-functional team
+")
+
+(synonymousExternalConcept "GXT" EbayGXT EbayAcronyms)
+
+(=>
+  (instance ?GXT EbayGXT )
+  (subOrganization ?GXT EbayCorporation))
+
+(=>
+  (instance ?GXT EbayGXT)
+  (exists (?MEMBER1 ?MEMBER1_LOC ?MEMBER2 ?MEMBER2_LOC)
+    (and
+      (instance ?MEMBER1 Human)
+      (instance ?MEMBER2 Human)
+      (instance ?MEMBER1_LOC GeoPoliticalArea)
+      (instance ?MEMBER2_LOC GeoPoliticalArea)
+      (member ?MEMBER1 ?TEAM)
+      (member ?MEMBER2 ?TEAM)
+      (located ?MEMBER1 ?MEMBER1_LOC)
+      (located ?MEMBER2 ?MEMBER2_LOC)
+      (not
+        (equal ?MEMBER1_LOC ?MEMBER2_LOC)))))
+
+
+;; QPViewsFn (QP)
+;; -------------------------------------------------------------------
+
+(instance QPViewsFn UnaryFn)
+
+(domain QPViewsFn 1 Human)
+
+(range QPViewsFn Class)
+
+(synonymousExternalConcept "QP" QPViewsFn EbayAcronyms)
+
+(documentation QPViewsFn EnglishLanguage "Experimentation tag that enumerates whether the page view
+ represents a Qualified Page view or not")
+
+(termFormat EnglishLanguage QPViewsFn "qualifed page views")
+    
+
+(=>
+  (instance ?VISITOR EbayVisitor)
+  (equal
+    (KappaFn ?PAGE
+      (and
+        (instance ?PAGE WebPage)
+        (instance ?ACCESSING AccessingWebPage)
+        (agent ?ACCESSING ?VISITOR)
+        (patient ?ACCESSING ?PAGE)
+        (exists (?EXPERIMENT)
+          (and
+            (instance ?EXPERIMENT Experimenting)
+            (treatedPage ?PAGE ?EXPERIMENT)))))
+    (QPViewsFn ?VISITOR)))
+
+
+;; QualifiedExperiments (QE)
+;; -------------------------------------------------------------------
+
+(instance QualifiedExperimentsFn UnaryFn)
+
+(domain QualifiedExperimentsFn 1 Human)
+
+(range QualifiedExperimentsFn Class)
+
+(synonymousExternalConcept "QE" QualifiedExperimentsFn EbayAcronyms)
+
+(documentation QualifiedExperimentsFn EnglishLanguage "Experimentation tag that enumerates the list
+ of Qualified Experiments for the user")
+
+(termFormat EnglishLanguage QualifedExperimentsFn "qualifed experiments")
+    
+
+(=>
+  (instance ?VISITOR EbayVisitor)
+  (equal
+    (KappaFn ?EXPERIMENTING
+      (and
+        (instance ?EXPERIMENTING Experimenting)
+        (capability ?EXPERIMENTING patient ?Visitor)))
+    (QualifiedExperimentsFn ?VISITOR)))
+
+
+;; QualifiedTreatmentsFn (QT)
+;; -------------------------------------------------------------------
+
+(instance QualifiedTreatmentsFn UnaryFn)
+
+(domain QualifiedTreatmentsFn 1 Human)
+
+(range QualifiedTreatmentsFn Class)
+
+(synonymousExternalConcept "QT" QualifiedTreatmentsFn EbayAcronyms)
+
+(documentation QualifiedTreatmentsFn EnglishLanguage "Experimentation tag that enumerates the list
+ of qualified treatments for the user")
+
+(termFormat EnglishLanguage QualifedTreatmentsFn "qualifed treatments")
+
+(=>
+  (instance ?VISITOR EbayVisitor)
+  (equal
+    (KappaFn ?EVENT
+      (and
+        (instance ?EXPERIMENTING Experimenting)
+        (instance ?EVENT Process)
+        (member ?EVENT (QualifyingEventsFn ?EXPERIMENT)
+        (capability ?EVENT experiencer ?Visitor))))
+    (QualifiedTreatmentsFn ?VISITOR)))
+
+;; StoreItem
+;; -------------------------------------------------------------------
+
+(instance StoreItem Attribute)
+
+(termFormat EnglishLanguage StoreItem "store inventory format")
+
+(synonymousExternalConcept "SIF" StoreItem EbayAcronyms)
+
+(documentation StoreItem EnglishLanguage "Items listed by eBay Sellers having stores on eBay")
+    
+
+(=>
+  (attribute ?ITEM StoreItem)
+  (exists (?STORE ?ADVERTISING)
+    (and
+      (instance ?STORE EbayStore)
+      (instance ?ADVERTISING Advertising)
+      (refers ?ADEVERTISING ?ITEM)
+      (component ?ADVERTISING ?STORE))))
+
+;; EbayStore
+;; -------------------------------------------------------------------
+
+(subclass EbayStore Object)
+
+(=>
+  (instance ?STORE EbayStore)
+  (component ?STORE EbayWebsite))
+
+(=>
+  (instance ?STORE EbayStore)
+  (hasPurpose ?STORE
+    (exists (?SELLING)
+      (and
+        (instance ?SELLING Selling)
+        (eventLocated ?SELLING ?STORE)))))
+
+;; JW: Can an event be "located" this way or is the store an instrument?
+
+(=>
+  (instance ?STORE EbayStore)
+  (exists (?OWNER)
+    (and
+      (instance ?OWNER Human)
+      (possesses ?OWER ?STORE))))
+
+(=>
+  (and
+    (instance ?STORE EbayStore)
+    (instance ?OWNER Human)
+    (possesses ?OWER ?STORE)
+    (eventLocated ?SELLING ?STORE)
+    (instance ?SELLING Selling))
+  (agent ?SELLING ?OWNER))
+
+;; responsible
+;; -------------------------------------------------------------------
+
+(instance responsible CaseRole)
+
+(domain responsible 1 Experimenting)
+
+(domain responsible 2 Human)
+
+;; JW: Need more details about this role
+
+;; approver
+;; -------------------------------------------------------------------
+
+(instance approver CaseRole)
+
+(domain approver 1 Experimenting)
+
+(domain approver 2 Human)
+
+;; JW: Need more details about this role
+
+;; supporter
+;; -------------------------------------------------------------------
+
+(instance supporter CaseRole)
+
+(domain supporter 1 Experimenting)
+
+(domain supporter 2 Human)
+
+;; JW: Need more details about this role
+
+;; consultant
+;; -------------------------------------------------------------------
+
+(instance consultant CaseRole)
+
+(domain consultant 1 Experimenting)
+
+(domain consultant 2 Human)
+
+;; JW: Need more details about this role
+
+;; informed
+;; -------------------------------------------------------------------
+
+(instance informed CaseRole)
+
+(domain informed 1 Experimenting)
+
+(domain informed 2 Human)
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (instance ?INFORMED Human)
+    (informed ?EXPERIMENT ?INFORMED))
+  (exists (?INFORMATION)
+    (and
+      (instance ?INFORMATION Proposition)
+      (refers ?PROPOSITION ?EXPERIMENT)
+      (knows ?INFORMED ?INFORMATION))))
+
+;; JW: Need more details about this role
+
+;; EbayRASCIFn (RASCI)
+;; -------------------------------------------------------------------
+
+(instance EbayRASCIFn UnaryFunction)
+
+(documentation EbayRASCIFn EnglishLanguage "Returns Responsible, Approver, Supporter, Consultant,
+ Informed of an &%Experimenting")
+
+(domain EbayRASCIFn 1 Experimenting)
+
+(termFormat EnglishLanguage EbayRASCIFn "RASCI")
+
+(synonymousExternalConcept "RASCI" EbayRASCIFn EbayAcronyms)
+
+(=>
+  (instance ?EXPERIMENT)
+  (equal
+    (KappaFn ?PERSON
+      (or
+        (responsible ?EXPERIMENT ?PERSON)
+        (approver ?EXPERIMENT ?PERSON)
+        (supporter ?EXPERIMENT ?PERSON)
+        (consultant ?EXPERIMENT ?PERSON)
+        (informed ?EXPERIMENT ?PERSON)))
+    (EbayRASCIFn ?EXPERIMENT)))
+
+;; othogonalTests
+;; -------------------------------------------------------------------
+
+(instance orthogonalTests SymmetricRelation)
+
+(domain orthogonalTests 1 Collection)
+
+(domain orthogonalTests 2 Collection)
+
+(termFormat EnglishLanguage orthogonalTests "managed orthogonal")
+
+(synonymousExternalConcept "MO" orthogonalTests EbayAcronyms)
+
+(documentation orthogonalTests EnglishLanguage "Testing Spectrum where variants can be setup
+ orthogonally")
+
+(=>
+  (and
+    (orthogonalTests ?TESTCOL1 ?TESTCOL2)
+    (member ?MEMBER ?TESTCOL1))
+  (instance ?MEMBER Experimenting))
+
+(=>
+  (and
+    (orthogonalTests ?TESTCOL1 ?TESTCOL2)
+    (member ?MEMBER ?TESTCOL2))
+  (instance ?MEMBER Experimenting))
+
+(=>
+  (and
+    (orthogonalTests ?TESTCOL1 ?TESTCOL2)
+    (instance ?SUBJECT Human)
+    (instance ?EXPERIMENT1 Experimenting)
+    (member ?EXPERIMENT1 ?TESTCOL1)
+    (patient ?EXPERIMENT1 ?SUBJECT))
+  (exists (?EXPERIMENT2)
+    (and
+      (instance ?EXPERIMENT2 Experimenting)
+      (member ?EXPERIMENT2 ?TESTCOL2)
+      (patient ?EXPERIMENT2 ?SUBJECT))))
+
+
+;; MOVariant (MO Variant)
+;; -------------------------------------------------------------------
+
+(subclass MOVariant Experimenting)
+
+(termFormat EnglishLanguage MOVariant "managed orthogonal variant")
+
+(synonymousExternalConcept "MO Variant" MOVariant EbayAcronyms)
+
+(documentation MOVariant EnglishLanguage "an experimental treatment (variant) within the Managed
+ Orthogonal test spectrum")
+
+(=>
+  (instance ?EXPERIMENT MOVariant)
+  (exists (?TESTCOL1 ?TESTCOL2)
+    (and
+      (instance ?TESTCOL1 Collection)
+      (instance ?TESTCOL2 Collection)
+      (member ?EXPERIMENT ?TESTCOL)
+      (orthogonalTests ?TESTCOL1 ?TESTCOL2))))
+
+
+;; ViewItemPage (NextGen View Item)
+;; -------------------------------------------------------------------
+
+(subclass ViewItemPage WebPage)
+
+(documentation ViewItemPage EnglishLanguage "WebPage describing and advertising a specific
+ listing.")
+
+(termFormat EnglishLanguage ViewItemPage "next generation view item")
+
+(synonymousExternalConcept "NGVI" ViewItemPage EbayAcronyms)
+
+(=>
+  (instance ?PAGE ViewItemPage)
+  (component ?PAGE EbayWebSite))
+
+(=>
+  (instance ?PAGE ViewItemPage)
+  (exists (?ITEM ?ADVERTISING)
+    (and
+      (instance ?ITEM Object)
+      (instance ?ADVERTISING Advertising)
+      (component ?ADVERTISING Page)
+      (refers ?ADVERTISING ?ITEM))))
+
+(=>
+  (instance ?PAGE ViewItemPage)
+  (exists (?ITEM ?DESCRIPTION ?STATING ?DESCRIPTIONCONTENT)
+    (and
+      (instance ?ITEM Class)
+      (instance ?STATING Stating)
+      (patient ?STATING ?DESCRIPTION)
+      (refers ?DESCRIPTION ?ITEM)
+      (result ?DESCRIPTION ?DESCRIPTIONCONTENT)
+      (part ?DESCRIPTIONCONTENT ?PAGE))))
+
+
+;; EbayWatchItem
+;; -------------------------------------------------------------------
+
+(subclass EbayWatchItem Process)
+
+(termFormat EnglishLanguage EbayWatchItem "watch")
+
+(documentation EbayWatchItem EnglishLanguage "The process of a visitor coomunicating that they want
+ to watch an item")
+    
+
+
+(=>
+  (instance ?WATCH EbayWatchItem)
+  (exists (?AGENT)
+    (and
+      (instance ?AGENT Human)
+      (agent ?WATCH ?AGENT)
+      (attribute ?AGENT RegisteredUser))))
+
+
+(=>
+  (and
+    (instance ?WATCH EbayWatchItem)
+    (instance ?AGENT Human)
+    (agent ?WATCH Agent))
+  (exists (?ITEM)
+    (and
+      (instance ?ITEM Object)
+      (inScopeOfInterest ?AGENT ?ITEM)
+      (patient ?WATCH ?ITEM))))
+
+
+;; BBOWAFn (BBOWA)
+;; -------------------------------------------------------------------
+
+(domain BBOWAFn 1 EbayVisitor)
+
+(range BBOWAFn Collection)
+
+(termFormat EnglishLanguage BBOWAFn "BBOWA")
+
+(synonymousExternalConcept "BBOWA" BBOWAFn EbayAcronyms)
+
+(documentation BBOWAfn EnglishLanguage "Acronym for Bids, BINs, Orders, Watches, ASQ's. Represents
+ user intent to purchase an item")
+    
+
+(=>
+  (instance ?AGENT EbayVisitor)
+  (equal
+    (KappaFn (?PROCESSES)
+      (and
+        (agent ?PROCESS ?AGENT)
+        (or
+          (instance ?PROCESS EbayWatchItem)
+          (instance ?PROCESS EbayASQ)
+          (and
+            (instance ?PROCESS Buying)
+            (instrument ?PROCESS EbayWebsite))
+          (and
+            (instance ?PROCESS Requesting)
+            (instrument ?PROCESS EbayWebsite)))))
+    (BBOWAFn ?AGENT)))
+
+
+;; MIPs (Merch Initiated purchases)
+;; -------------------------------------------------------------------
+
+(instance MIPs Collection)
+
+(termFormat EnglishLanguage MIPs "MIPs")
+
+(synonymousExternalConcept "MIPs" MIPs EbayAcronyms)
+
+(documentation MIPs EnglishLanguage "Merch Initiated purchases. any link or picture or specific
+ item of a product item, deal, coupon, discount, etc that is not specifically an item that is a
+ search result in the search list")
+
+(=>
+  (member ?PURCHASE MIPs)
+  (instance ?PURCHASE Buying))
+
+(=>
+  (and
+    (member ?PURCHASE MIPs)
+    (instance ?PURCHASE Buying))
+  (exists (?ITEM)
+    (instance ?ITEM Object)))
+
+(=>
+  (and
+    (member ?PURCHASE MIPs)
+    (instance ?PURCHASE Buying))
+  (instrument ?PURCHASE EbayWebsite))
+
+(=>
+  (and
+    (member ?PURCHASE MIPs)
+    (instance ?PURCHASE Buying)
+    (patient ?PURCHASE ?ITEM)
+    (instance ?AGENT EbayVisitor)
+    (agent ?PURCHASE ?AGENT))
+  (not
+    (exists (?ACCESSING ?SRP ?RESULTS)
+      (and
+        (instance ?ACCESSING AccessingWebPage )
+        (instance ?RESULTS SRPResults)
+        (instance ?SRP SearchResultsPage)
+        (component ?RESULTS ?SRP)
+        (agent ?ACCESSING ?AGENT)
+        (patient ?ACCESSING ?SRP)
+        (inList ?ITEM ?RESULTS)))))
+
+
+;; SRPEngagementFn
+;; -------------------------------------------------------------------
+
+(instance SRPEngagementFn UnaryFunction)
+
+(domain 1 SRP)
+
+(range RealNumber)
+
+(termFormat EnglishLanguage SRPEngagementFn "SRP Engagement")
+
+(synonymousExternalConcept "SRP Engagement" SRPEngagementFn EbayAcronyms)
+
+(documentation SRPEngagementFn EnglishLanguage "The rate of those SRP numbers which have a VI
+ (View Item) or PDP (Product Description Page) click-through over Total SRP numbers, and multiple
+ clicks on VI and PDP following the same SRP will not be counted again.")
+
+(=>
+  (and
+    (instance ?PAGE SRP)
+    (instance ?RESULTS SRPResults)
+    (component ?RESULTS ?PAGE))
+  (equal
+    (DivisionFn
+      (CardinalityFn (KappaFn ?CLICK
+        (and
+          (instance ?CLICK RequestingHyperlink)
+          (patient ?CLICK ?ELEMENT)
+          (instance ?ELEMENT HypertextLink)
+          (component ?ELEMENT ?PAGE)
+          (or
+            (instance ?LINKEDPAGE ProductDescriptionPage)
+            (instance ?LINKEDPAGE ViewItemPage)))))
+      (ListLengthFn ?RESULTS))
+    (SRPEngagementFn ?PAGE)))
+
+
+;; MECE
+;; -------------------------------------------------------------------
+
+(instance MECE Attribute)
+
+(termFormat EnglishLanguage MECE "MECE")
+
+(synonymousExternalConcept "MECE" MECE EbayAcronyms)
+
+(documentation MECE EnglishLanguage "Mutually Exclusive Completely Exhaustive")
+
+(=>
+  (and
+    (instance ?COLLECTION Collection)
+    (attribute ?COLLECTION MECE)
+    (instance ?MEMBER Entity)
+    (member ?MEMBER ?COLLECTION))
+  (and
+    (exists (?SUBCOL1)
+      (and
+        (instance ?SUBCOL1 Collection)
+        (subCollection ?SUBCOL1 ?COLLECTION)
+        (member ?MEMBER ?SUBCOL1)))
+    (not
+      (exists (?SUBCOL2)
+        (and
+          (instance ?SUBCOL2 Collection)
+          (subCollection ?SUBCOL2 ?COLLECTION)
+          (member ?MEMBER ?SUBCOL2)
+          (not
+            (equal ?SUBCOL1 ?SUBCOL2)))))))
+
+
+;; TGIFn
+;; -------------------------------------------------------------------
+
+(instance TGIFn UnaryFunction)
+
+(documentation TGIFn EnglishLanguage "Total GUID Inclusive. Methodology to qualify users with a
+ session (i.e. visiting the site) and their site activity")
+
+(termFormat EnglishLanguage TGIFn "TGI")
+
+(domain TGIFn 1 EbayVisitor)
+
+(range TGIFn Collection)
+
+(synonymousExternalConcept "TGI" TGIFn EbayAcronyms)
+
+(=>
+  (instance ?VISTITOR)
+  (equal
+    (KappaFn ?EVENT
+      (and
+        (instance ?EVENT Process)
+        (agent ?EVENT ?VISITOR)
+        (instrument ?EVENT EbayWebsite)))
+    (TGIFn ?VISITOR)))
     
