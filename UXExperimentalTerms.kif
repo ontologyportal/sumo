@@ -1,0 +1,3056 @@
+;; ===================================================================
+;; Definitions for User Experience Experimental Terms.
+;; ===================================================================
+;;
+;; This file contains preliminary mappings of the terms used in UX experiments, and is a work in 
+;; progress. 
+;;
+;; Work so far has been done primarily by Jay Weiler, with significant assistance and input from 
+;; Adam Pease.
+;;
+;; Please direct any suggestions and bugfixes to Jay Weiler at: jweiler [at] gmail [dot] com
+;;
+;; This file is released under the GNU Public License <http://www.gnu.org/copyleft/gpl.html>.  
+;; Users of this code also consent, by  use of this material, to credit Articulate Software in any 
+;; writings, briefings, publications, presentations, or other representations of any code or other 
+;; product which incorporates, builds on, or uses this material. 
+;;
+;; We ask that people using or referencing this work cite our primary paper:
+;;
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In Proceedings of the 2nd 
+;; International Conference on Formal Ontology in Information Systems (FOIS-2001), Chris Welty and 
+;; Barry Smith, eds, Ogunquit, Maine, October 17-19, 2001. 
+;; 
+;; See also http://www.ontologyportal.org
+;;
+;;
+;;
+;; BEGIN FILE:
+
+
+
+
+
+;; SearchEngine
+;; -------------------------------------------------------------------
+
+(subclass SearchEngine ComputerProgram)
+
+(documentation SearchEngine EnglishLanguage "a computer program that retrieves documents or files or
+ data from a database or from a computer network (especially from the internet)")
+
+(termFormat EnglishLanguage SearchEngine "search engine")
+
+
+
+;; NOTES:
+;; This is essentially a placeholder definition, but should work for currently forseen purposes.
+;; A &%SearchQuery is the result of a &%Questioning, where the &%SearchEngine is the destination of
+;; that Questioning.
+;; JW: Needs Mapping to wordnet 106578654
+
+
+;; userDatabase
+;; -------------------------------------------------------------------
+
+(instance userDatabase BinaryPredicate)
+
+(domain userDatabase 1 Database)
+
+(domain userDatabase 2 Website)
+
+(documentation userDatabase EnglishLanguage "The user database")
+
+(termFormat EnglishLanguage userdatabase "user database")
+
+(=>
+  (userDatabase ?DATABASE ?WEBSITE)
+  (exists (?PART)
+    (and
+      (instance ?USERS Collection)
+      (part ?PART ?DATABASE)
+      (represents ?PART ?USERS)
+      (forall (?MEMBER)
+        (=>
+          (member ?MEMBER ?USERS)
+          (exists (?USER ?PAGE ?ACCESSING ?ID)
+            (and
+              (instance ?USER Human)
+              (instance ?PAGE WebPage)
+              (instance ?ACCESSING AccessingWebPage)
+              (instance ?MEMBER DigitalData)
+              (instance ?ID Identifier)
+              (component ?PAGE ?WEBSITE)
+              (patient ?ACCESSING ?PAGE)
+              (agent ?ACCESSING ?USER)
+              (represents ?MEMBER ?ID)
+              (represents ?ID ?USER))))))))
+    
+;; JW:
+;; Should it be added that if the user is logged in, they get a UID, otherwise they a GUID is used?
+
+
+;; registeredUser
+;; -------------------------------------------------------------------
+
+(instance registeredUser BinaryPredicate)
+
+(domain registeredUser 1 Human)
+
+(domain registeredUser 2 Website)
+
+(documentation RegisteredUser EnglishLanguage "A user registered in a website's userDatabase")
+
+(termFormat EnglishLanguage RegisteredUser "registered user")
+
+(=>
+  (registeredUser ?USER ?SITE)
+  (exists (?DATABASE ?PART ?USERS)
+    (and
+      (userDatabase ?DATABASE ?WEBSITE)
+      (instance ?USERS Collection)
+      (part ?PART ?DATABASE)
+      (represents ?PART ?USERS)
+      (forall (?MEMBER)
+        (=>
+          (member ?MEMBER ?USERS)
+          (exists (?USER ?PAGE ?ACCESSING)
+            (and
+              (instance ?USER Human)
+              (instance ?PAGE WebPage)
+              (instance ?ACCESSING AccessingWebPage)
+              (component ?PAGE ?WEBSITE)
+              (patient ?ACCESSING ?PAGE)
+              (agent ?ACCESSING ?USER)
+              (represents ?MEMBER ?USER))))))))
+
+
+;; JW:
+;; Should it be defined when and how a user becomes a registered user?
+
+
+;; broker
+;; -------------------------------------------------------------------
+
+(instance broker CaseRole)
+
+(termFormat EnglishLanguage broker "broker")
+
+(domain broker 1 FinancialTransaction)
+
+(domain broker 2 CognitiveAgent)
+
+(documentation broker EnglishLanguage "This &%CaseRole relates an instance of a
+ &%FinancialTransaction to the &%Broker of the sale.")
+
+(=>
+  (broker ?SALE ?AGENT)
+  (instance ?AGENT Broker))
+
+;; JW:
+;; Broker exists but is undefined in SUMO
+;; Need richer model of &%FinanacialTransaction to define completely.
+
+
+;; webPurchases
+;; -------------------------------------------------------------------
+
+(instance webPurchases TernaryPredicate)
+
+(domain webPurchases 1 Collection)
+
+(domain webPurchases 2 Human)
+
+(domain webPurchases 3 Website)
+
+(documentation webPurchases EnglishLanguage "(webPurchases ?COLLECTION ?HUMAN) relates a
+ collection of all instances of &%Buying by a &%Human on the &%WebSite.")
+
+(termFormat EnglishLanguage webPurchases "web purchases")
+
+(=>
+  (webPurchases ?PURCHASES ?BUYER ?SITE)
+  (forall (?BUYING)
+    (=>
+      (and
+        (instance ?BUYING Buying)
+        (agent ?BUYING ?BUYER)
+        (instrument ?BUYING ?SITE))
+      (member ?BUYING ?PURCHASES))))
+
+(=>
+  (and
+    (webPurchases ?PURCHASES ?BUYER ?SITE)
+    (member ?BUYING ?PURCHASES))
+  (and
+    (instance ?BUYING Buying)
+    (agent ?BUYING ?BUYER)
+    (instrument ?BUYING ?SITE)))
+
+;; JW:
+;; eCommerce Website still needs better caserole than "instrument"
+
+
+;; QualifyingPurchasesFn
+;; -------------------------------------------------------------------
+
+(documentation QualifyingPurchasesFn EnglishLanguage "(QualifyingPurchasesFn 
+ ?EXPERIMENT) returns the &%collection of all instances of &%Buying by
+ &%Humans where during the &%AccessingWebPage the ?HUMAN
+ experienced a &%process which is either an &%experiementalVariableProccess or 
+ &%experiementalControlProccess in ?EXPERIMENT before the &%Buying.")
+
+(instance QualifyingPurchasesFn UnaryFunction)
+
+(domain QualifyingPurchasesFn 1 Experimenting)
+
+(range QualifyingPurchasesFn Collection)
+
+(termFormat EnglishLanguage QualifyingPurchasesFn "qualifying purchases")
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (exists (?QUALIFYING_PURCHASES)
+      (and 
+        (instance ?QUALIFYING_PURCHASES Collection)
+        (forall (?BUYING ?VISITOR ?ACCESSING ?EVENT ?BUYING ?PAGE)
+          (=>
+            (and
+              (instance ?VISITOR Human)
+              (instance ?BUYING Buying)
+              (instance ?ACCESSING AccessingWebPage)
+              (instance ?EVENT Proccess)
+              (member ?EVENT (QualifyingEventsFn ?EXPERIMENT))
+              (agent ?BUYING ?VISITOR)
+              (agent ?ACCESSING ?VISITOR)
+              (during (WhenFn ?BUYING) (WhenFn ?ACCESSING))
+              (during (WhenFn ?EVENT) (WhenFn ?ACCESSING))
+              (before (BeginFn ?EVENT) (BeginFn ?BUYING))
+              (patient ?ACCESSING ?PAGE)
+              (treatedPage ?PAGE ?EXPERIMENT))
+            (member ?BUYING ?QUALIFYING_PURCHASES))))))
+  (equal 
+    (QualifyingPurchasesFn ?EXPERIMENT)
+    (?QUALIFYING_PURCHASES)))
+
+
+;; JW:
+;; How can this defintion be less ugly?
+;; How long between the qualifying event and the purchases before it stops being a qualifying
+;; purchases? If the length of a "session" how do we define session?
+    
+
+;; webSales
+;; -------------------------------------------------------------------
+
+(instance webSales TernaryPredicate)
+
+(domain webSales 1 Collection)
+
+(domain webSales 2 Human)
+
+(domain webSales 3 Website)
+
+(documentation webSales EnglishLanguage "(webSales ?COLLECTION ?HUMAN ?SITE) relates a &%collection of 
+ all instances of &%Selling by a &%Human on the ?SITE.")
+
+(termFormat EnglishLanguage webSales "web sales")
+    
+(=>
+  (webSales ?SALES ?SELLER ?SITE)
+  (forall (?SELLING)
+    (=>
+      (and
+        (instance ?SELLING Selling)
+        (agent ?SELLING ?SELLER)
+        (instrument ?SELLING ?SITE))
+      (member ?SELLING ?SALES))))
+
+(=>
+  (and
+    (webSales ?SALES ?SELLER)
+    (member ?MEMBER ?SALES))
+  (and
+    (instance ?SELLING Selling)
+    (agent ?SELLING ?SELLER)
+    (instrument ?SELLING ?SITE)))
+
+
+;; JW:
+;; Website still needs better caserole than "instrument"
+
+;; experiementalVariableProccess
+;; -------------------------------------------------------------------
+
+(documentation experiementalVariableProccess EnglishLanguage "(experiementalVariableProccess 
+ ?EXPERIMENT ?PROC) means that an &%Agent being the &%experiencer of the &%Process ?PROC is the
+ experimental independent variable in the instance of experimenting ?EXPERIMENT, i.e. ?PROC is what
+ is different from the &%experimentalControlProcess &%experienced by the control group in the
+ experiment")
+
+(domain experiementalVariableProccess 1 Experimenting)
+
+(domain experiementalVariableProccess 2 Process) 
+
+(instance experiementalVariableProccess BinaryPredicate) 
+
+(termFormat EnglishLanguage experimentalVariableProcess "experimental variable (process)")
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (experimentalVariableProcess ?EXPERIMENT ?VARIABLE))
+  (subProcess ?VARIABLE ?EXPERIMENT))
+
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (experimentalVariableProcess ?EXPERIMENT ?VARIABLE))
+  (not
+    (experimentalControlProcess ?EXPERIMENT ?VARIABLE)))
+
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (experimentalControlProcess ?EXPERIMENT ?CONTROL))
+  (not
+    (experimentalVariableProcess ?EXPERIMENT ?CONTROL)))
+
+
+;; JW:
+;; Is an experimentalVariableProcess really a subprocess of the experimenting?
+
+;; experimentalControlProccess
+;; -------------------------------------------------------------------
+
+(documentation experimentalControlProccess EnglishLanguage "(experimentalControlProccess ?EXPERIMENT
+ ?PROC) means that the &%experiencing of the &%Process ?PROC is the control in the instance of 
+ experimenting ?EXPERIMENT, i.e. ?PROC is what is different from an &%experimentalVariableProcess 
+ &%experienced by the experiemental group in the experiment")
+
+(domain experimentalControlProccess 1 Experimenting)
+
+(domain experimentalControlProccess 2 Process) 
+
+(instance experimentalControlProccess BinaryPredicate) 
+
+(termFormat EnglishLanguage experimentalControlProcess "experimental control (process)")
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (experimentalControlProcess ?EXPERIMENT ?CONTROL))
+  (subProcess ?CONTROL ?EXPERIMENT))
+
+
+;; experimentalSubject
+;; -------------------------------------------------------------------
+
+(instance experimentalSubject CaseRole)
+
+(domain experimentalSubject 1 Experimenting)
+
+(domain experimentalSubject 2 Human)
+
+(termFormat EnglishLanguage experimentalSubject "experimental subject")
+
+(documentation experimentalSubject EnglishLanguage "The &%CaseRole (experimentalSubject ?EXPERIMENT
+ ?SUBJECT) means that ?SUBJECT is a &%Human who is the &%experiencer of either and
+ &%experimentalControlProcess or an &%experimentalVariableProcess.")
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (instance ?SUBJECT Human)
+    (experimentalSubject ?EXPERIMENT ?SUBJECT))
+  (exists (?PROCESS)
+    (and
+      (instance ?PROCESS Process)
+      (experiencer ?PROCESS ?SUBJECT)
+      (or
+        (experimentalControlProcess ?EXPERIMENT ?PROCESS)
+        (experimentalVariableProcess ?EXPERIMENT ?PROCESS)))))
+
+
+;; a result of an experiment
+;; -------------------------------------------------------------------
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (result ?EXPERIMENT ?RESULT))
+  (instance ?RESULT TruthValue))
+
+(=>
+  (instance ?EXPERIMENT Experimenting)
+  (exists (?FORMULA ?RESULT)
+    (and
+      (instance ?RESULT TruthValue)
+      (result ?EXPERIMENT ?RESULT)
+      (instance ?FORMULA Formula)
+      (patient ?EXPERIMENT ?FORMULA)
+      (truth ?FORMULA ?RESULT))))
+
+;; treatmentGroup
+;; -------------------------------------------------------------------
+
+(instance treatmentGroup BinaryPredicate)
+
+(domain treatmentGroup 1 Collection)
+
+(domain treatmentGroup 2 Experimenting)
+
+(termFormat EnglishLanguage treatmentGroup "treatment group")
+
+(documentation treatmentGroup EnglishLanguage "(treatmentGroup ?COLLECTION ?EXPERIMENT) means that
+?COLLECTION is the group of all agents who have experienced an &%experimentalVariableProcess of
+?EXERIMENT, where ?EXPERIMENT is an instance of &%Experimenting.")
+    
+
+(=>
+  (and
+    (instance ?VARIABLE Process)
+    (instance ?EXPERIMENT Experimenting)
+    (instance ?AGENT Agent)
+    (experiencer ?AGENT Agent)
+    (experimentalVariableProcess ?EXPERIMENT ?VARIABLE))
+  (exists (?TREATMENT_GROUP)
+    (and
+      (instance ?TREATMENT_GROUP Collection)
+      (member ?AGENT ?TREATMENT_GROUP)
+      (treatmentGroup ?TREATMENT_GROUP ?EXPERIMENT))))
+
+
+;; JW:
+;; Should it be easier to distinguish between multiple different treatment groups in multivariate
+;; experiments?
+;; Tie into ExperimentalTreatment
+
+
+;; experimentalTreatmentCollection
+;; -------------------------------------------------------------------
+
+(instance experimentalTreatmentCollection BinaryPredicate)
+
+(domain experimentalTreatmentCollection 1 Collection)
+
+(domain experimentalTreatmentCollection 2 Experimenting)
+
+(termFormat EnglishLanguage experimentalTreatmentCollection "experimental treatment")
+
+(=>
+  (and
+    (experimentalTreatmentCollection ?COLLECTION ?EXPERIMENTING)
+    (member ?PROCESS ?COLLECTION))
+  (experimentalVariableProcess ?EXPERIMENT ?PROCESS))
+
+
+;; controlGroup
+;; -------------------------------------------------------------------
+
+(instance controlGroup BinaryPredicate)
+
+(domain controlGroup 1 Collection)
+
+(domain controlGroup 2 Experimenting)
+
+(termFormat EnglishLanguage controlGroup "control group")
+
+(documentation controlGroup EnglishLanguage "(controlGroup ?COLLECTION ?EXPERIMENT) means that
+?COLLECTION is the group of all agents who have experienced an &%experimentalControlProcess of
+?EXERIMENT, where ?EXPERIMENT is an instance of &%Experimenting.")
+    
+
+(=>
+  (and
+    (instance ?VARIABLE Process)
+    (instance ?EXPERIMENT Experimenting)
+    (instance ?AGENT Agent)
+    (experiencer ?AGENT Agent)
+    (experimentalVariableProcess ?EXPERIMENT ?VARIABLE))
+  (exists (?CONTROL_GROUP)
+    (and
+      (instance ?CONTROL_GROUP Collection)
+      (member ?AGENT ?CONTROL_GROUP)
+      (controlGroup ?CONTROL_GROUP ?EXPERIMENT))))
+
+
+;; JW:
+;; Should it be easier to distinguish between multiple different control groups in multivariate
+;; experiments?
+
+
+;; webSeller
+;; -------------------------------------------------------------------
+
+(instance webSeller BinaryPredicate)
+
+(domain webSeller 1 Human)
+
+(domain webSeller 2 Website)
+
+(termFormat EnglishLanguage webSeller "web seller")
+
+(documentation webSeller EnglishLanguage "(webSeller ?SELLER ?SITE) means that item is advertised on
+ the &%WebSite ?SITE and ?SELLER &%desires there to be &%selling of that item where ?SELLER is the
+ agent.")
+    
+(=>
+  (webSeller ?SELLER ?SITE)
+  (exists (?ITEM ?ADVERTISING ?PAGE)
+    (and
+      (instance ?ITEM Object)
+      (instance ?ADVERTISING Advertising)
+      (instance ?PAGE WebPage)
+      (component ?PAGE ?SITE)
+      (refers ?ADVERTISING ?ITEM)
+      (part ?ADVERTISING ?PAGE)
+      (desires ?SELLER 
+        (exists (?SELLING)
+          (and
+            (instance ?SELLING Selling)
+            (agent ?SELLING ?SELLER)))))))
+  
+;; JW:
+;; Is the advertising "part" of the page? Or is there &%DigitalData which is part of the page that
+;; represents the advertising?
+
+
+;; Auction
+;; -------------------------------------------------------------------
+
+(subclass Auction Selling)
+
+(documentation Auction EnglishLanguage "A type of &%Selling where the &%destination of the &%patient
+ of the Auction (i.e. the item being sold) is the &%Agent who placed the highest &%bidPrice.")
+
+(termFormat EnglishLanguage Auction "auction")
+
+(=>
+  (instance ?AUCTION Auction)
+  (exists (?ITEM)
+    (and
+      (instance ?ITEM Object)
+      (patient ?AUCTION ?ITEM))))
+
+(=>
+  (and
+    (instance ?AUCTION Auction)
+    (instance ?ITEM Object)
+    (patient ?AUCTION ?ITEM))
+  (exists (?BIDDER ?OFFER)
+    (and
+      (instance ?BIDDER Agent)
+      (instance ?OFFER CurrencyMeasure)
+      (bidPrice ?ITEM ?OFFER ?BIDDER))))
+
+(=>
+  (and
+    (instance ?AUCTION Auction)
+    (instance ?BIDDER1 Agent)
+    (instance ?BIDDER2 Agent)
+    (instance ?ITEM Object)
+    (patient ?AUCTION ?ITEM)
+    (bidPrice ?ITEM ?OFFER1 ?BIDDER1)
+    (bidPrice ?ITEM ?OFFER2 ?BIDDER2)
+    (greaterThan ?OFFER1 ?OFFER2))
+  (destination ?AUCTION ?BIDDER1))
+
+;; JW: 
+;; Needs mapping to wordnet 202244773
+;; What about Auction where an item is not actually sold? Should this really be a subclass of 
+;; selling?
+
+
+;; WebBrowser
+;; -------------------------------------------------------------------
+
+(subclass WebBrowser ComputerProgram)
+
+(termFormat EnglishLanguage WebBrowser "web browser")
+
+(documentation WebBrowser EnglishLanguage "A &%ComputerProgram which is the instrument of 
+ &%AccessingWebPage.")
+
+(=>
+  (instance ?BROWSER WebBrowser)
+  (hasPurpose ?BROWSER
+    (exists (?ACCESSING)
+      (and
+        (instance ?ACCESSING AccessingWebPage)
+        (instrument ?ACCESSING ?BROWSER)))))
+
+;; JW: 
+;; Needs Mapping to wordnet 106571301
+;; Should this actually be the instrument of *rendering* a webPage? If so how to define rendering?
+
+
+;; browserID
+;; -------------------------------------------------------------------
+
+(instance browserID TernaryPredicate)
+
+(documentation browserID EnglishLanguage "Machine identifier based on browser
+ cookies. (browserID ?STRING ?BROWSER ?SITE) means that ?STRING is the &%Identifier of the &%Agent
+ of &%AccessingWebPage of a &%Webpage which is a &%component of ?SITE, where ?BROWSER was the
+ instrument of the accessing. i.e. ?STRING represents the users who use the browser to access the
+ site while the string is stored in the browser.")
+
+(termFormat EnglishLanguage browserID "browser identifier string")
+
+(domain browserID 1 Identifier)
+
+(domain browserID 2 WebBrowser)
+
+(domain browserID 3 Website)
+
+(=>
+  (browserID ?STRING ?BROWSER ?SITE)
+  (exists (?BROWSER ?WEBPAGE ?ACCESSING ?AGENT)
+    (and
+      (instance ?WEBPAGE WebPage)
+      (component ?WEBPAGE ?SITE)
+      (instance ?ACCESSING AccessingWebPage)
+      (instance ?AGENT Agent)
+      (agent ?ACCESSING ?AGENT)
+      (instrument ?ACCESSING ?BROWSER)
+      (destination ?ACCESSING ?WEBPAGE)
+      (represents ?STRING ?AGENT))))
+
+;; JW:
+;; Can have browserID associated to userIDString if logged in
+
+
+;; userIDString
+;; -------------------------------------------------------------------
+
+(subclass userIDString Identifier)
+
+(domain userIDString 1 Identifier)
+
+(domain userIDString 2 Human)
+
+(domain userIDString 3 Website)
+
+(documentation userIDString EnglishLanguage "User identifier, established when the user registers on
+ ?SITE. ")
+
+(termFormat EnglishLanguage userIDString "user identifier string")
+
+(=>
+  (userIDString ?STRING ?USER ?SITE)
+  (and
+    (registeredUser ?USER ?SITE)
+    (represents ?STRING ?USER)))
+
+;; JW:
+;; Is it important to define a registration process when the userIDString is assigned?
+
+
+;; liveExperimentUpdate
+;; -------------------------------------------------------------------
+
+(instance liveExperimentUpdate BinaryPredicate)
+
+(domain liveExperimentUpdate 1 ContentBearingPhysical)
+
+(domain liveExperimentUpdate 2 Experimenting)
+
+(documentation liveExperimentUpdate EnglishLanguage "Update of experiment in progress.")
+
+(termFormat EnglishLanguage liveExperimentUpdate "live experiment update")
+
+;; JW:
+;; Needs definition - convey "results so far."
+
+
+;; finalExperimentReport
+;; -------------------------------------------------------------------
+
+(instance finalExperimentReport BinaryPredicate)
+
+(domain finalExperimentReport 1 ContentBearingPhysical)
+
+(domain finalExperimentReport 2 Experimenting)
+
+(documentation finalExperimentReport EnglishLanguage "The final results of an experiment. 
+ (finalExperimentReport ?CBP ?EXPERIMENT) means that ?CBP is a &%ContentBearingPhysical which
+ &%containsInformation about the &%result of ?EXPERIMENT.")
+
+(termFormat EnglishLanguage finalExperimentReport "")
+
+(=>
+  (finalExperimentReport ?CBP ?EXPERIMENT)
+  (exists (?RESULT)
+    (and
+      (result ?EXPERIMENT ?RESULT)
+      (containsInformation ?EXPERIMENT_REPORT ?RESULT))))
+
+;; JW:
+;; Contains not just results, clarifying significance etc. as well.
+;; Represent that experiment is completed.
+
+;; LiftFn
+;; -------------------------------------------------------------------
+
+(instance LiftFn BinaryFunction)
+
+(domain LiftFn 1 Quantity)
+
+(domain LiftFn 2 Quantity)
+
+(range LiftFn RealNumber)
+
+(termFormat EnglishLanguage LiftFn "lift")
+
+(documentation LiftFn EnglishLanguage "(LiftFn ?QUANTITY1 ?QUANTITY2) returns the lift of the
+ quantities. i.e. (?QUANTITY1 - ?QUANTITY2)/(?QUANTITY2). In an experiment ?QUANTITY2 is the 
+ &%Quantity that represents the control group.")
+
+(=>
+  (and
+    (instance ?QUANTITY1 Quantity)
+    (instance ?QUANTITY2 Quantity))
+  (equal 
+    (LiftFn ?QUANTITY1 ?QUANTITY2)
+    (divisionFn
+      (SubtractionFn ?QUANTITY1 ?QUANTITY2)
+      ?QUANTITY2)))
+
+
+;; QualifyingEventsFn
+;; -------------------------------------------------------------------
+
+(documentation QualifyingEventsFn EnglishLanguage "(QualifyingEventsFn ?EXPERIMENT) returns the 
+ &%Collection of all &%Processes that are &%experimentalControlProccesses or 
+ &%experimentalVariableProcesses of ?EXPERIMENT.")
+    
+(subclass QualifyingEventsFn UnaryFunction)
+
+(domain QualifyingEventsFn 1 Experimenting)
+
+(range QualifyingEventsFn Collection)
+
+(termFormat EnglishLanguage QualifyingEventsFn "Qualifying Factor or Event")
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (instance ?QUALIFYING_EVENTS Collection)
+    (forall (?EVENT)
+      (<=>
+        (and
+          (instance ?EVENT Process)
+          (or
+            (experimentalControlProccess ?EXPERIMENT ?EVENT )
+            (experiementalVariableProccess ?EXPERIMENT ?EVENT)))
+        (member ?EVENT ?QUALIFYING_EVENTS))))
+  (equal
+    (QualifyingEventsFn ?EXPERIMENT)
+    (?QUALIFYING_EVENTS)))
+
+;; treatedPage
+;; -------------------------------------------------------------------
+
+(domain treatedPage 1 WebPage)
+
+(domain treatedPage 2 Experimenting)
+
+(termFormat EnglishLanguage treatedPage "treated page")
+
+(instance treatedPage BinaryPredicate)
+
+(documentation treatedPage EnglishLanguage "Pages on the site where the qualified event/factor 
+surface.")
+
+(=>
+  (treatedPage ?WEBPAGE ?EXPERIMENT)
+  (exists (?EVENT)
+    (and
+      (member ?EVENT (QualifyingEventsFn ?EXPERIMENT))
+      (=>
+        (exists (?VISITOR ?ACCESSING)
+          (and
+            (instance ?VISITOR Human)
+            (instance ?ACCESSING AccessingWebPage)
+            (agent ?ACCESSING ?VISITOR)
+            (destination ?ACCESSING ?WEBPAGE)))
+        (experiencer ?VISITOR ?EVENT)))))
+
+
+;; treatedUser
+;; -------------------------------------------------------------------
+
+(domain treatedUser 1 Human)
+
+(domain treatedUser 2 Experimenting)
+
+(documentation treatedUser EnglishLanguage "A GUID/UID qualified for the experiment. (treatedUser
+ ?VISITOR ?EXPERIMENT) means that ?VISITOR experienced a Qualifying Event of ?EXPERIMENT.")
+
+(instance treatedUser BinaryPredicate)
+
+(=>
+  (treatedUser ?VISITOR ?EXPERIMENT)
+  (exists (?VISITOR ?EVENT)
+    (and
+      (member ?EVENT (QualifyingEventsFn ?EXPERIMENT))
+      (experiencer ?VISITOR ?EVENT))))
+
+
+;; TreatedUsersFn
+;; -------------------------------------------------------------------
+
+(domain TreatedUsersFn 1 Experimenting)
+
+(range TreatedUsersFn Collection)
+
+(documentation TreatedUsersFn EnglishLanguage "(TreatedUsersFn ?EXPERIMENT) returns a 
+ &%Collection of all &%Humans who where &%treatedUsers in ?EXPERIMENT.")
+
+(instance TreatedUsersFn BinaryFunction)
+
+(=>
+  (instance ?EXPERIMENT Experiment)
+  (exists (?TREATED_USERS)
+    (and
+      (instance ?TREATED_USERS Collection)
+      (forall (?USER)
+        (=>
+          (and
+            (instance ?USER Human)
+            (treatedUser ?USER ?EXPERIMENT))
+          (member ?USER ?TREATED_USERS)))
+      (equal
+        (TreatedUsersFn ?EXPERIMENT) ?TREATED_USERS))))
+
+
+;; SearchQuery
+;; -------------------------------------------------------------------
+
+(subclass SearchQuery SymbolicString)
+
+(documentation SearchQuery EnglishLanguage "A search SearchQuery is a SearchQuery that a user enters
+ into web search engine to satisfy his or her information needs")
+
+(termFormat EnglishLanguage SearchQuery "Search query")
+
+(=>
+  (instance ?QUERY SearchQuery)
+  (exists (?QUESTION ?SEARCHENGINE)
+    (and
+      (instance ?QUESTION Questioning)
+      (result ?QUESTION ?QUERY)
+      (destination ?QUESTION ?SEARCHENGINE)
+      (instance ?SEARCHENGINE SearchEngine))))
+
+(=>
+  (and    
+    (instance ?QUERY SearchQuery)
+    (instance ?PURSUING Pursuing)
+    (represents ?QUERY ?PURSUING))
+  (exists (?AGENT ?OBJ)
+    (and
+      (instance ?AGENT Agent)
+      (patient ?PURSUING ?OBJ)
+      (agent ?PURSUING ?AGENT))))
+
+
+;; SearchResultsPage
+;; -------------------------------------------------------------------
+
+(subclass SearchResultsPage WebPage)
+
+(documentation SearchResultsPage EnglishLanguage "search results page, the list of results returned 
+by a search engine in response to a user SearchQuery")
+
+(termFormat EnglishLanguage SearchResultsPage "SRP")
+
+(=>
+  (instance ?PAGE SearchResultsPage)
+  (exists (?SearchQuery)
+    (and
+      (instance ?SearchQuery SearchQuery)
+      (result ?QUESTION ?SearchQuery)
+      (instance ?QUESTION Questioning)
+      (agent ?ANSWER ?SEARCHENGINE)
+      (instance ?ANSWER Answering)
+      (instance ?SEARCHENGINE SearchEngine)
+      (result ?ANSWER ?PAGE))))
+
+
+;; WebPageModule
+;; -------------------------------------------------------------------
+
+(subclass WebPageModule UIElement)
+
+(documentation WebPageModule EnglishLanguage "this is a component served on a web page eg. Search 
+results, ad, etc.")
+
+(termFormat EnglishLanguage WebPageModule "Module")
+
+(=>
+  (instance ?MODULE WebPageModule)
+  (exists (?PAGE)
+    (and
+      (instance ?PAGE WebPage)
+      (component ?MODULE ?PAGE))))
+
+
+;; TPS
+;; -------------------------------------------------------------------
+
+(subclass TPS Document)
+
+(documentation TPS EnglishLanguage "Test Proposal Specification.")
+
+(termFormat EnglishLanguage TPS "TPS")
+
+(documentation TPS EnglishLanguage "A &%Document that &%containsInformation about a &%Plan for a 
+ &%subProcess of an instance of &%Experimenting.")
+
+(=>
+  (instance ?TPS TPS)
+  (exists (?PLAN ?EXPERIMENT ?PROC)
+    (and
+      (instance ?PLAN Plan)
+      (instance ?EXPERIMENT Experiment)
+      (represents ?PLAN ?PROC)
+      (subprocess ?EXPERIMENT ?PROC)
+      (containsInformation ?TPS ?PLAN))))
+
+
+;; CBT
+;; -------------------------------------------------------------------
+
+(subclass CBT Attibute)
+
+(documentation CBT EnglishLanguage "Cross Border Trading. An item is CBT item where buyer 
+registered country and seller registered country are not the same")
+
+(termFormat EnglishLanguage CBT "CBT Item")
+
+(=>
+  (attribute ?OBJ CBT)
+  (instance ?OBJ Object))
+
+(=>
+  (and
+    (attribute ?OBJ CBT)
+    (instance ?OBJ Object))
+  (exists (?SELLING ?SELLER ?BUYER)
+    (and
+      (instance ?SELLING Selling)
+      (patient ?SELLING ?OBJ)
+      (instance ?BUYER Human)
+      (instance ?SELLER Human)
+      (destination ?SELLING ?BUYER)
+      (agent ?SELLING ?SELLER))))
+
+(=>
+  (and
+    (attribute ?OBJ CBT)
+    (instance ?OBJ Object)
+    (instance ?SELLING Selling)
+    (patient ?SELLING ?OBJ)
+    (destination ?SELLING ?BUYER)
+    (agent ?SELLING ?SELLER))
+  (exists (?BUYER_LOCATION ?SELLER_LOCATION)
+    (and
+      (instance ?BUYER_LOCATION GeoPoliticalArea)
+      (instance ?SELLER_LOCATION GeoPoliticalArea)
+      (located ?SELLER ?SELLER_LOCATION)
+      (located ?BUYER ?BUYER_LOCATION)
+      (not
+        (equal ?BUYER_LOCATION ?SELLER_LOCATION)))))
+
+
+;; FixedPrice
+;; -------------------------------------------------------------------
+
+(instance FixedPrice Attribute)
+
+(termFormat EnglishLanguage FixedPrice "fixed price")
+
+(documentation FixedPrice EnglishLanguage "a fixed price item is an item which is for sale (and
+ there exists an avertising for it) and is not an auction item.")
+
+(=>
+  (attribute ?ITEM FixedPrice)
+  (exists (?AVERTISEMENT)
+    (and
+      (instance ?ADVERTISEMENT Advertising)
+      (refers ?ADEVERTISEMENT ?ITEM)
+      (not
+        (capability Auction patient ?ITEM)))))
+
+;; JW:
+;; Offers can also sometimes be made on fixed price items, so this doesn't quite work.
+
+
+;; ForSaleByOwner (FSBO)
+;; -------------------------------------------------------------------
+
+(instance ForSaleByOwner Attribute)
+
+(termFormat EnglishLanguage ForSaleByOwner "FSBO")
+
+(documentation ForSaleByOwner EnglishLanguage "For sale by owner.")
+
+(=>
+  (attribute ?ITEM ForSaleByOwner)
+  (exists (?SELLER ?ADVERTISEMENT)
+    (and
+      (instance ?SELLER ?AGENT)
+      (possess ?SELLER ?ITEM)
+      (instance ?ADVERTISEMENT Advertising)
+      (refers ?ADVERTISEMENT ?ITEM)
+      (capability 
+        (KappaFn ?SELLING
+          (and
+            (instance ?SELLING Selling)
+            (agent ?SELLING ?SELLER)))
+        patient ?ITEM))))
+
+
+;; Enterprise Data Warehouse
+;; -------------------------------------------------------------------
+
+(subclass DataWarehouse Database)
+
+(documentation DataWarehouse EnglishLanguage "A &%Database that contains information about a
+ particular topic of interest to aid in decision making. DEFINITION: A data warehouse is a 
+ subject-oriented, integrated, time-variant and non-volatile collection of data in support of
+ management's decision making process.")
+
+(termFormat EnglishLanguage DataWarehouse "data warehouse")
+
+(=>
+  (instance ?WAREHOUSE DataWarehouse)
+  (hasPurpose ?WAREHOUSE
+    (exists (?SUBJECT)
+      (and
+        (instance ?SUBJECT Proposition)
+        (forall (?DATA)
+          (and
+            (refers ?DATA ?SUBJECT)
+            (component ?DATA ?WAREHOUSE)))))))
+
+(=>
+  (instance ?WAREHOUSE DataWarehouse)
+  (hasPurpose ?WAREHOUSE
+    (exists (?AGENT)
+      (and
+        (instance ?AGENT Agent)
+        (forall (?DATA)
+            (and
+              (inScopeOfInterest ?DATA ?AGENT)
+              (component ?DATA ?WAREHOUSE)))))))
+
+
+;; ExperimentationPlatform
+;; -------------------------------------------------------------------
+
+(subclass ExperimentationPlatform ComputerProgram)
+
+(termFormat EnglishLanguage ExperimentationPlatform "experimentation platform")
+
+(documentation ExperimentationPlatform EnglishLanguage "The &%ComputerProgram which is an 
+ &%instrument of the experiment.")
+
+(=>
+  (instance ?EP ExperimentationPlatform)
+  (hasPurpose ?EP
+    (exists (?EXPERIMENT)
+      (and
+        (instance ?EXPERIMENT Experimenting)
+        (instrument ?EXPERIMENT ?EP)))))
+
+
+;; PageModuleServer
+;; -------------------------------------------------------------------
+
+(subclass PageModuleServer Software)
+
+(termFormat EnglishLanguage PageModuleServer "page module server")
+
+(documentation PageModuleServer EnglishLanguage "component of program that serves a part of page")
+
+(=>
+  (instance ?MODULE_SERVER PageModuleServer)
+  (part ?MODULE_SERVER ComputerProgram))
+
+(=>
+  (instance ?MODULE WebPageModule)
+  (exists (?TRANSFER ?ORIGIN ?MODULE_SERVER)
+    (and
+      (instance ?TRANSFER DataTransfer)
+      (instance ?MODULE_SERVER PageModuleServer)
+      (instance ?ORIGIN ?MODULE_SERVER)
+      (origin ?TRANSFER ?MODULE_SERVER)
+      (patient ?TRANSFER ?MODULE))))
+
+
+;; businessUnit
+;; -------------------------------------------------------------------
+
+(instance businessUnit BinaryPredicate)
+
+(domain businessUnit 1 Organization)
+(domain businessUnit 2 Business)
+
+(termFormat EnglishLanguage businessUnit "business unit")
+
+(=>
+  (businessUnit ?BU ?ORG)
+  (subOrganization ?BU ?ORG))
+
+(=>
+  (businessUnit ?BU ?ORG)
+  (hasPurpose ?BU
+    (exists (?PROCESS)
+      (and
+        (instance ?PROCESS Process)
+        (agent ?PROCESS ?BU)
+        (benefits ?PROCESS ?ORG)))))
+
+(=>
+  (businessUnit ?BU ?ORG)
+  (exists (?INTEREST)
+    (and
+      (instance ?INTEREST Entity)
+      (inScopeOfInterest ?BU ?INTEREST))))
+
+
+;; SRPResults 
+;; -------------------------------------------------------------------
+
+(subclass SRPResults List)
+
+(termFormat EnglishLanguage SRPResults "search results")
+
+(=>
+  (instance ?RESULTS SRPResults)
+  (exists (?BM)
+    (and
+      (instance ?BM BestMatchAlgorithm)
+      (result ?BM ?RESULTS))))
+
+(=>
+  (and
+    (inList ?ITEM ?RESULTS)
+    (instance ?RESULTS SRPResults))
+  (exists (?SearchQuery ?SEARCHENGINE? ?PURSUING ?OBJ)
+    (and
+      (instance ?SearchQuery SearchQuery)
+      (instance ?SEARCHENGINE SearchEngine)
+      (instance ?SearchQuery SearchQuery)
+      (instance ?PURSUING Pursuing)
+      (represents ?SearchQuery ?PURSUING)
+      (patient ?PURSUING ?OBJ)
+      (instance ?QUESTION Questioning)
+      (result ?QUESTION ?SearchQuery)
+      (patient ?QUESTION ?SEARCHENGINE)
+      (believes ?SEARCHENGINE
+        (represents ?ITEM ?OBJ)))))
+
+(=>
+  (and
+    (inList ?ITEM ?RESULTS)
+    (instance ?RESULTS SRPResults))
+  (exists (?SRP)
+    (and
+      (instance ?SRP SearchResultsPage)
+      (component ?RESULTS ?SRP))))
+
+;; BestMatchAlgorithm
+;; -------------------------------------------------------------------
+
+(subclass BestMatchAlgorithm Proccess)
+
+(documentation BestMatchAlgorithm EnglishLanguage "Best Match sort. Represents that sort algorithm
+ used on the search results page")
+
+(termFormat EnglishLanguage BestMatchAlgorithm "best match sort")
+
+(=>
+  (instance ?BM BestMatchAlgorithm)
+  (exists (?SEARCHENGINE)
+    (and
+      (instance ?SEARCHENGINE SearchEngine)
+      (agent ?BM ?SEARCHENGINE))))
+
+(=>
+  (instance ?BM BestMatchAlgorithm)
+  (exists (?SearchQuery)
+    (and
+      (instance ?SearchQuery SearchQuery)
+      (patient ?BM ?SearchQuery))))
+
+(=>
+  (instance ?BM BestMatchAlgorithm)
+  (exists (?RESULT)
+    (and
+      (instance ?RESULT SRPResults)
+      (result ?BM ?RESULT))))
+
+;; JW:
+;; Is this a process, a procedure, or a ComputerProgram?
+
+;; CrossFunctionalTeam
+;; -------------------------------------------------------------------
+
+(subclass CrossFunctionalTeam Organization)
+
+(documentation CrossFunctionalTeam EnglishLanguage "a group of people with different functional
+ expertise working toward a common goal.")
+
+(termFormat EnglishLanguage CrossFunctionalTeam "cross-functional team")
+
+(=>
+  (instance ?TEAM CrossFunctionalTeam)
+  (exists (?INTEREST)
+    (and
+      (instance ?INTEREST ?ENTITY)
+      (forall (?MEMBER)
+        (=>
+          (and
+            (instance ?MEMBER Human)
+            (member ?MEMBER ?TEAM))
+          (inScopeOfInterest ?MEMBER ?INTEREST))))))
+
+(=>
+  (instance ?TEAM CrossFunctionalTeam)
+  (exists (?SKILL ?MEMBER1 ?MEMBER2)
+    (and
+      (instance ?SKILL Process)
+      (instance ?MEMBER1 Human)
+      (instance ?MEMBER2 Human)
+      (member ?MEMBER1 ?TEAM)
+      (member ?MEMBER2 ?TEAM)
+      (hasSkill ?SKILL ?MEMBER1)
+      (not
+        (hasSkill ?SKILL ?MEMBER2))
+      (inScopeOfInterest ?TEAM ?SKILL))))
+
+
+;; GlobalCrossFunctionalTeam
+;; -------------------------------------------------------------------
+
+(subclass GlobalCrossFunctionalTeam CrossFunctionalTeam)
+
+(termFormat EnglishLanguage GlobalCrossFunctionalTeam "global cross-functional team")
+
+(documentation GlobalCrossFunctionalTeam EnglishLanguage "Global cross-functional team")
+
+(=>
+  (instance ?GXT GlobalCrossFunctionalTeam)
+  (exists (?MEMBER1 ?MEMBER1_LOC ?MEMBER2 ?MEMBER2_LOC)
+    (and
+      (instance ?MEMBER1 Human)
+      (instance ?MEMBER2 Human)
+      (instance ?MEMBER1_LOC GeoPoliticalArea)
+      (instance ?MEMBER2_LOC GeoPoliticalArea)
+      (member ?MEMBER1 ?TEAM)
+      (member ?MEMBER2 ?TEAM)
+      (located ?MEMBER1 ?MEMBER1_LOC)
+      (located ?MEMBER2 ?MEMBER2_LOC)
+      (not
+        (equal ?MEMBER1_LOC ?MEMBER2_LOC)))))
+
+
+;; QPViewsFn
+;; -------------------------------------------------------------------
+
+(instance QPViewsFn UnaryFn)
+
+(domain QPViewsFn 1 Human)
+
+(range QPViewsFn Collection)
+
+(termFormat EnglishLanguage QPViewsFn "qualifed page views")
+    
+(=>
+  (and
+    (instance ?VISITOR Human)
+    (instance ?QPVIEWS Collection) 
+    (forall (?PAGE ?ACCESSING)
+      (<=>
+        (and
+          (instance ?PAGE WebPage)
+          (instance ?ACCESSING AccessingWebPage)
+          (agent ?ACCESSING ?VISITOR)
+          (patient ?ACCESSING ?PAGE)
+          (exists (?EXPERIMENT)
+            (and
+              (instance ?EXPERIMENT Experimenting)
+              (treatedPage ?PAGE ?EXPERIMENT))))
+        (member ?ACCESSING ?QPVIEWS))))
+  (equal
+    (?QPVIEWS)
+    (QPViewsFn ?VISITOR)))
+
+;; JW: 
+;; Tie in to Below
+
+;; qualifedPageView
+;; -------------------------------------------------------------------
+
+(instance qualifiedPageView BinaryPredicate)
+
+(domain qualifedPageView 1 Experimenting)
+
+(domain qualifiedPageView 2 AccessingWebPage)
+
+(documentation qualifiedPageView EnglishLanguage "(qualifedPageView ?EXPERIMENT ?ACCESSING)
+ represents that the patient of &%AccessingWebPage ?ACCESSING is a &%treatedPage in ?EXPERIMENT")
+
+(=>
+  (qualifiedPageView ?EXPERIMENT ?ACCESSING)
+  (exists (?PAGE)
+    (and
+      (instance ?PAGE WebPage)
+      (patient ?ACCESSING ?PAGE)
+      (treatedPage ?EXPERIMENT ?PAGE))))
+
+
+;; QualifiedExperiments
+;; -------------------------------------------------------------------
+
+(instance QualifiedExperimentsFn UnaryFn)
+
+(domain QualifiedExperimentsFn 1 Human)
+
+(range QualifiedExperimentsFn Collection)
+
+(documentation QualifiedExperimentsFn EnglishLanguage "Experimentation tag that enumerates the list
+ of Qualified Experiments for the user")
+
+(termFormat EnglishLanguage QualifedExperimentsFn "qualifed experiments")
+    
+
+(=>
+  (instance ?VISITOR Human)
+  (equal
+    (KappaFn ?EXPERIMENTING
+      (and
+        (instance ?EXPERIMENTING Experimenting)
+        (capability ?EXPERIMENTING experimentalSubject ?Visitor)))
+    (QualifiedExperimentsFn ?VISITOR)))
+
+;; JW: Tie in to below
+
+
+;; qualifiedExperiment
+;; -------------------------------------------------------------------
+
+(instance qualifiedExperiment BinaryPredicate )
+
+(domain qualifedExperiment 1 Experimenting)
+
+(domain qualifedExperiment 2 Human)
+
+(documentation qualifedExperiment EnglishLanguage "(qualifedExperiment ?EXPERIMENT ?HUMAN means that
+ ?HUMAN has the capabilty of being the experimentalSubject of ?EXPERIMENT")
+
+
+ (=>
+  (qualifiedExperiment ?EXPERIMENT ?VISITOR)
+  (capability ?EXPERIMENT experimentalSubject ?VISITOR))
+
+
+;; QualifiedTreatmentsFn
+;; -------------------------------------------------------------------
+
+(instance QualifiedTreatmentsFn UnaryFn)
+
+(domain QualifiedTreatmentsFn 1 Human)
+
+(range QualifiedTreatmentsFn Collection)
+
+(documentation QualifiedTreatmentsFn EnglishLanguage "Experimentation tag that enumerates the list
+ of qualified treatments for the user")
+
+(termFormat EnglishLanguage QualifedTreatmentsFn "qualifed treatments")
+
+(=>
+  (instance ?VISITOR Human)
+  (equal
+    (KappaFn ?EVENT
+      (and
+        (instance ?EXPERIMENTING Experimenting)
+        (instance ?EVENT Process)
+        (member ?EVENT (QualifyingEventsFn ?EXPERIMENT)
+        (capability ?EVENT experiencer ?VISITOR))))
+    (QualifiedTreatmentsFn ?VISITOR)))
+
+;; JW: 
+;; Tie in to below
+
+;; qualifiedTreatment
+;; -------------------------------------------------------------------
+
+(instance qualifiedTreatment BinaryPredicate)
+
+(domain qualifiedTreatment 1 ExperimentalTreatment)
+
+(domain qualifiedTreatment 2 Human)
+
+(termFormat EnglishLanguage qualifedTreatment "qualified treatment")
+
+(documentation qualifedTreatment EnglishLanguage "(qualifiedTreatment ?TREATMENT ?HUMAN) means that
+ ?HUMAN has &%capability to be put into &%ExperimentalTreatment track ?TREATMENT")
+
+(=>
+  (qualifiedTreatment ?TREATMENT ?VISITOR)
+  (exists (?PROCESS)
+    (and
+      (instance ?PROCESS Process)
+      (member ?PROCESS ?TREATMENT)
+      (capability ?PROCESS experiencer ?VISITOR))))
+    
+
+;; webStoreAdvertisment
+;; -------------------------------------------------------------------
+
+(instance webStoreAdvertisment BinaryPredicate)
+
+(domain webStoreAdvertisment 1 Advertising)
+
+(domain webStoreAdvertisment 2 WebStore)
+
+(termFormat EnglishLanguage webStoreAdvertisment "web store advertisement")
+
+(documentation webStoreAdvertisment EnglishLanguage "(webstoreAdvertisement ?ADVERT ?STORE) means
+ that ?ADVERT is an an instance of &%Advertising which is a component of a &%WebPage which a member
+ of the &%WebStore ?STORE.")
+    
+(=>
+  (webStoreAdvertisement ?ADVERT ?STORE)
+  (exists (?ITEM ?PAGE)
+    (and
+      (refers ?ADEVERT ?ITEM)
+      (component ?ADVERT ?PAGE)
+      (instance ?PAGE WebPage)
+      (member ?PAGE ?STORE))))
+
+
+;; WebStore
+;; -------------------------------------------------------------------
+
+(subclass WebStore Collection)
+
+(termFormat EnglishLanguage WebStore "web store")
+
+(documentation WebStore EnglishLanguage "A &%Collection of &%WebPages that is a component of a
+  &%Website, that &%hasPurpose of being where &%Selling occurs.")
+
+(=>
+  (instance ?STORE WebStore)
+  (exists (?SITE)
+    (and
+      (instance ?SITE WebSite)
+      (component ?STORE ?SITE))))
+
+(=>
+  (instance ?STORE WebStore)
+  (hasPurpose ?STORE
+    (exists (?SELLING)
+      (and
+        (instance ?SELLING Selling)
+        (eventLocated ?SELLING ?STORE)))))
+
+(=>
+  (and
+    (instance ?STORE WebStore)
+    (member ?PAGE ?STORE))
+  (instance ?STORE WebPage))
+
+;; JW: 
+;; Can an event be "located" this way or is the store an instrument?
+
+(=>
+  (instance ?STORE WebStore)
+  (exists (?OWNER)
+    (and
+      (instance ?OWNER Human)
+      (possesses ?OWER ?STORE))))
+
+(=>
+  (and
+    (instance ?STORE WebStore)
+    (instance ?OWNER Human)
+    (possesses ?OWER ?STORE)
+    (eventLocated ?SELLING ?STORE)
+    (instance ?SELLING Selling))
+  (agent ?SELLING ?OWNER))
+
+
+;; responsible
+;; -------------------------------------------------------------------
+
+(instance responsible CaseRole)
+
+(domain responsible 1 Experimenting)
+
+(domain responsible 2 Human)
+
+;; JW: 
+;; Need more details about this role
+
+
+;; approver
+;; -------------------------------------------------------------------
+
+(instance approver CaseRole)
+
+(domain approver 1 Experimenting)
+
+(domain approver 2 Human)
+
+;; JW: 
+;; Need more details about this role
+
+
+;; supporter
+;; -------------------------------------------------------------------
+
+(instance supporter CaseRole)
+
+(domain supporter 1 Experimenting)
+
+(domain supporter 2 Human)
+
+;; JW:
+;; Need more details about this role
+
+
+;; consultant
+;; -------------------------------------------------------------------
+
+(instance consultant CaseRole)
+
+(domain consultant 1 Experimenting)
+
+(domain consultant 2 Human)
+
+;; JW:
+;; Need more details about this role
+
+;; informed
+;; -------------------------------------------------------------------
+
+(instance informed CaseRole)
+
+(domain informed 1 Experimenting)
+
+(domain informed 2 Human)
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (instance ?INFORMED Human)
+    (informed ?EXPERIMENT ?INFORMED))
+  (exists (?INFORMATION)
+    (and
+      (instance ?INFORMATION Proposition)
+      (refers ?PROPOSITION ?EXPERIMENT)
+      (knows ?INFORMED ?INFORMATION))))
+
+;; JW:
+;; Need more details about this role
+
+
+;; othogonalTests
+;; -------------------------------------------------------------------
+
+(instance orthogonalTests SymmetricRelation)
+
+(domain orthogonalTests 1 Collection)
+
+(domain orthogonalTests 2 Collection)
+
+(termFormat EnglishLanguage orthogonalTests "managed orthogonal")
+
+(documentation orthogonalTests EnglishLanguage "Testing Spectrum where variants can be setup
+ orthogonally")
+
+(=>
+  (and
+    (orthogonalTests ?TESTCOL1 ?TESTCOL2)
+    (member ?MEMBER ?TESTCOL1))
+  (instance ?MEMBER Experimenting))
+
+(=>
+  (and
+    (orthogonalTests ?TESTCOL1 ?TESTCOL2)
+    (member ?MEMBER ?TESTCOL2))
+  (instance ?MEMBER Experimenting))
+
+(=>
+  (and
+    (orthogonalTests ?TESTCOL1 ?TESTCOL2)
+    (instance ?SUBJECT Human)
+    (instance ?EXPERIMENT1 Experimenting)
+    (member ?EXPERIMENT1 ?TESTCOL1)
+    (patient ?EXPERIMENT1 ?SUBJECT))
+  (exists (?EXPERIMENT2)
+    (and
+      (instance ?EXPERIMENT2 Experimenting)
+      (member ?EXPERIMENT2 ?TESTCOL2)
+      (patient ?EXPERIMENT2 ?SUBJECT))))
+
+
+;; MOVariant (MO Variant)
+;; -------------------------------------------------------------------
+
+(subclass MOVariant Experimenting)
+
+(termFormat EnglishLanguage MOVariant "managed orthogonal variant")
+
+(documentation MOVariant EnglishLanguage "an experimental treatment (variant) within the Managed
+ Orthogonal test spectrum")
+
+(=>
+  (instance ?EXPERIMENT MOVariant)
+  (exists (?TESTCOL1 ?TESTCOL2)
+    (and
+      (instance ?TESTCOL1 Collection)
+      (instance ?TESTCOL2 Collection)
+      (member ?EXPERIMENT ?TESTCOL)
+      (orthogonalTests ?TESTCOL1 ?TESTCOL2))))
+
+
+;; ViewItemPage
+;; -------------------------------------------------------------------
+
+(subclass ViewItemPage WebPage)
+
+(documentation ViewItemPage EnglishLanguage "WebPage describing and advertising a specific
+ listing.")
+
+(termFormat EnglishLanguage ViewItemPage "next generation view item")
+
+(=>
+  (instance ?PAGE ViewItemPage)
+  (exists (?ITEM ?ADVERTISING)
+    (and
+      (instance ?ITEM Object)
+      (instance ?ADVERTISING Advertising)
+      (component ?ADVERTISING ?PAGE)
+      (refers ?ADVERTISING ?ITEM))))
+
+(=>
+  (instance ?PAGE ViewItemPage)
+  (exists (?ITEM ?DESCRIPTION ?STATING ?DESCRIPTIONCONTENT)
+    (and
+      (instance ?ITEM Object)
+      (instance ?STATING Stating)
+      (patient ?STATING ?DESCRIPTION)
+      (refers ?DESCRIPTION ?ITEM)
+      (result ?DESCRIPTION ?DESCRIPTIONCONTENT)
+      (part ?DESCRIPTIONCONTENT ?PAGE))))
+
+
+;; MIPs
+;; -------------------------------------------------------------------
+
+(instance MIPs Collection)
+
+(termFormat EnglishLanguage MIPs "MIPs")
+
+(documentation MIPs EnglishLanguage "Merch Initiated purchases. any link or picture or specific
+ item of a product item, deal, coupon, discount, etc that is not specifically an item that is a
+ search result in the search list")
+
+(=>
+  (member ?PURCHASE MIPs)
+  (instance ?PURCHASE Buying))
+
+(=>
+  (and
+    (member ?PURCHASE MIPs)
+    (instance ?PURCHASE Buying))
+  (exists (?ITEM)
+    (instance ?ITEM Object)))
+
+(=>
+  (and
+    (member ?PURCHASE MIPs)
+    (instance ?PURCHASE Buying)
+    (instance ?SITE WebSite)
+    (instrument ?PURCHASE ?SITE))
+  (exists (?ADVERT ?PAGE)
+    (and
+      (instance ?PAGE WebPage)
+      (instance ?ADVERT Advertising)
+      (component ?ADVERT ?PAGE)
+      (component ?PAGE ?SITE))))
+
+(=>
+  (and
+    (member ?PURCHASE MIPs)
+    (instance ?PURCHASE Buying)
+    (patient ?PURCHASE ?ITEM)
+    (instance ?AGENT Human)
+    (agent ?PURCHASE ?AGENT))
+  (not
+    (exists (?ACCESSING ?SRP ?RESULTS)
+      (and
+        (instance ?ACCESSING AccessingWebPage )
+        (instance ?RESULTS SRPResults)
+        (instance ?SRP SearchResultsPage)
+        (component ?RESULTS ?SRP)
+        (agent ?ACCESSING ?AGENT)
+        (patient ?ACCESSING ?SRP)
+        (inList ?ITEM ?RESULTS)))))
+
+
+;; MECE
+;; -------------------------------------------------------------------
+
+(instance MECE Attribute)
+
+(termFormat EnglishLanguage MECE "MECE")
+
+(documentation MECE EnglishLanguage "Mutually Exclusive Completely Exhaustive")
+
+(=>
+  (and
+    (instance ?COLLECTION Collection)
+    (attribute ?COLLECTION MECE)
+    (instance ?MEMBER Entity)
+    (member ?MEMBER ?COLLECTION))
+  (and
+    (exists (?SUBCOL1)
+      (and
+        (instance ?SUBCOL1 Collection)
+        (subCollection ?SUBCOL1 ?COLLECTION)
+        (member ?MEMBER ?SUBCOL1)))
+    (not
+      (exists (?SUBCOL2)
+        (and
+          (instance ?SUBCOL2 Collection)
+          (subCollection ?SUBCOL2 ?COLLECTION)
+          (member ?MEMBER ?SUBCOL2)
+          (not
+            (equal ?SUBCOL1 ?SUBCOL2)))))))
+
+;; e.g treated population vs. untreated population.
+
+;; TGIFn
+;; -------------------------------------------------------------------
+
+(instance TGIFn UnaryFunction)
+
+(documentation TGIFn EnglishLanguage "Total GUID Inclusive. Methodology to qualify users with a
+ session (i.e. visiting the site) and their site activity")
+
+(termFormat EnglishLanguage TGIFn "TGI")
+
+(domain TGIFn 1 Human)
+
+(range TGIFn Collection)
+
+(=>
+  (and
+    (instance ?VISTITOR)
+    (instance ?SITE WebSite))
+  (equal
+    (KappaFn ?EVENT
+      (and
+        (instance ?EVENT Process)
+        (agent ?EVENT ?VISITOR)
+        (instrument ?EVENT ?SITE)))
+    (TGIFn ?VISITOR)))
+
+;; JW:
+;; Needs Revision
+    
+;; ABTest
+;; -------------------------------------------------------------------
+
+(subclass ABTest Experimenting)
+
+(documentation ABTest EnglishLanguage "An instance of &%experimenting with at least one
+ &%experimentalControlProcess and at least one &%experimentalVariableProcess being tested.")
+
+(termFormat EnglishLanguage ABTest "A/B test")
+
+(=>
+  (instance ?TEST ABTest)
+  (exists (?PROCESS)
+    (and
+      (instance ?PROCESS Process)
+      (experimentalControlProcess ?TEST ?PROCESS))))
+
+(=>
+  (instance ?TEST ABTest)
+  (exists (?PROCESS)
+    (and
+      (instance ?PROCESS Process)
+      (experimentalVariableProcess ?TEST ?PROCESS))))
+
+
+;; RepresentativeSample
+;; -------------------------------------------------------------------
+
+(instance RepresentativeSample Attribute)
+
+(termFormat EnglishLanguage RepresentativeSample "representative sample")
+
+(documentation RepresentativeSample EnglishLanguage "An &%Attribute that is a &%property of a 
+ collection that is the statistical sample in an experiment. If a collection representing the sample
+ has the property, then every other attribute that is a property of the collection and is also
+ &%inScopeOfInterest of the &%CognitiveAgent performing the experiment is also a property of the 
+ collection representing the population.")
+
+ (=>
+  (and
+    (instance ?SAMPLE_COLL Collection)
+    (instance ?POP_COLL Collection)
+    (instance ?EXPERIMENT Experimenting)
+    (instance ?AGENT CognitiveAgent)
+    (agent ?EXPERIMENT ?AGENT)
+    (statisticalPopulation ?SAMPLE_COLL ?POP_COLL ?EXPERIMENT))
+  (forall (?ATTRIBUTE)
+    (=>
+      (and
+        (instance ?ATTRIBUTE Attribute)
+        (property ?SAMPLE_COLL ?ATTRIBUTE)
+        (inScopeOfInterest ?AGENT ?ATTRIBUTE)
+        (not
+          (equal ?ATTRIBUTE RepresentativeSample)))
+      (property ?POP_COLL ?ATTRIBUTE))))
+
+
+;; statisticalPopulation
+;; -------------------------------------------------------------------
+
+(statisticalPopulation ?SAMPLE_COLL ?POP_COLL ?EXPERIMENT)
+
+(instance statisticalPopulation TernaryPredicate)
+
+(domain statisticalPopulation 1 Collection)
+
+(domain statisticalPopulation 2 Collection)
+
+(domain statisticalPopulation 3 Experimenting)
+
+(documentation statisticalPopulation EnglishLanguage "A statistical population is a set of entities
+ concerning which statistical inferences are to be drawn. (statisticalPopulation ?SAMPLE_COLL
+ ?POP_COLL ?EXPERIMENT) means that the &%Collection ?SAMPLE_COLL is meant to be a representitive
+ sample of the population &%Collection ?POP_COLL in the intance of &%Experimenting ?EXPERIMENT.")
+
+(=>
+  (and
+    (instance ?SAMPLE_COLL Collection)
+    (instance ?POP_COLL Collection)
+    (instance ?EXPERIMENT Experimenting)
+    (statisticalPopulation ?SAMPLE_COLL ?POP_COLL ?EXPERIMENT))
+  (subCollection ?SAMPLE_COLL ?POP_COLL))
+
+
+;; MultivariateTest
+;; -------------------------------------------------------------------
+
+(subclass MultivariateTest Collection)
+
+(documentation MultivariateTest EnglishLanguage "A multivariate is test where multiple componenets
+ are tested simultaneously. Here it is represented as a &%Collection of discrete instances of 
+ &%Experimenting, where the experimentalVariableProcesses in the tests are not equal, but there 
+ exists a &%Process of which they are both &%subProcesses.")
+
+(termFormat EnglishLanguage MultivariateTest "multivariate test")
+
+(=>
+  (and
+    (instance ?TEST MultivariateTest)
+    (member ?EXPERIMENT ?TEST))
+  (instance ?EXPERIMENT Experimenting))
+
+(=>
+  (and
+    (instance ?TEST MultivariateTest)
+    (instance ?EXPERIMENT1 Experimenting)
+    (instance ?EXPERIMENT2 Experimenting)
+    (instance ?VARIABLE1 Process)
+    (instance ?VARIABLE2 Process)
+    (experimentalVariableProcess ?EXPERIMENT1 ?VARIABLE1)
+    (experimentalVariableProcess ?EXPERIMENT2 ?VARIABLE2))
+  (exists (?PROCESS)
+    (and
+      (instance ?PROCESS Process)
+      (subProcess ?VARIABLE1 ?PROCESS)
+      (subProcess ?VARIABLE2 ?PROCESS)
+      (not
+        (equal ?VARIABLE1 ?VARIABLE2)))))
+
+
+;; viewedListing
+;; -------------------------------------------------------------------
+
+(instance viewedListing BinaryPredicate)
+
+(documentation viewedListing EnglishLanguage "(viewedListing ?AGENT ?LISTING) means that there is an
+  an instance of &%AccessingWebPage where ?AGENT is the &%agent of the accessing and a &%component
+  of the page is the &%Listing, which is an instance of &%Advertising.")
+
+(termFormat EnglishLanguage viewedListing "viewed listing")
+
+(=>
+  (viewedListing ?AGENT ?LISTING)
+  (and
+    (instance ?AGENT Agent)
+    (instance ?LISTING Advertising)
+    (exists (?PAGE ?ACCESSING)
+      (and
+        (instance ?PAGE WebPage)
+        (instance ?ACCESSING AccessingWebPage)
+        (component ?LISTING ?PAGE)
+        (agent ?ACCESSING ?AGENT)
+        (destination ?ACESSING ?PAGE)))))
+
+
+;; TransactionCollection
+;; -------------------------------------------------------------------
+
+(subclass TransactionCollection Collection)
+
+(documentation TransactionCollection EnglishLanguage "A &%Collection of &%Buyings by the same buyer
+ at the same time, via the same &%instrument.")
+
+(termFormat EnglishLanguage TransactionCollection "collection of transactions")
+
+(=>
+  (and
+    (instance ?PURCHASE TransactionCollection)
+    (member ?MEMBER ?PURCHASE))
+  (instance ?MEMBER Buying))
+
+(=>
+  (and
+    (instance ?PURCHASE TransactionCollection)
+    (member ?BUYING1 ?PURCHASE)
+    (member ?BUYING2 ?PURCHASE))
+  (exists (?AGENT ?INSTUMENT)
+    (and
+      (instance ?AGENT Agent)
+      (instance ?INSTRUMENT Object)
+      (agent ?BUYING1 ?AGENT)
+      (agent ?BUYING2 ?AGENT)
+      (instrument ?BUYING1 ?INsTRUMENT)
+      (instrument ?BUYING2 ?INSTRUMENT)
+      (equal
+        (WhenFn ?BUYING1)
+        (WhenFn ?BUYING2)))))
+
+
+;; Checkout
+;; -------------------------------------------------------------------
+
+(subclass Checkout Process)
+
+(documentation Checkout EnglishLanguage "The final subprocess of a &%Buying")
+
+(termFormat EnglishLanguage Checkout "checkout")
+
+(=>
+  (instance ?CHECKOUT Checkout)
+  (exists (?BUYING)
+    (and
+      (instance ?BUYING Buying)
+      (subProcess ?CHECKOUT ?BUYING)
+      (not
+        (exists (?PROCESS)
+          (and
+            (subProcess ?PROCESS ?BUYING)
+            (earlier (WhenFn ?CHECKOUT) (WhenFn (?PROCESS)))))))))
+
+
+;; unpaidItem 
+;; -------------------------------------------------------------------
+
+(instance unpaidItem BinaryPredicate)
+
+(domain unpaidItem 1 Object)
+
+(domain unpaidItem 2 Agent)
+
+(termFormat EnglishLanguage unpaidItem "unpaid item")
+
+(documentation unpaidItem EnglishLanguage "(unpaidItem ?ITEM ?AGENT) means that ?AGENT &%Promised to
+buy ?ITEM, but did not.")
+    
+(=> 
+  (unpaidItem ?ITEM ?AGENT)
+  (and
+    (modalAttribute 
+      (exists (?BUYING)
+        (and
+          (instance ?BUYING Buying)
+          (patient ?BUYING ?ITEM)
+          (agent ?BUYING ?AGENT))) Promise)
+    (not
+      (exists (?BUYING)
+        (and
+          (instance ?BUYING Buying)
+          (patient ?BUYING ?ITEM)
+          (agent ?BUYING ?AGENT))))))
+
+
+;; underageUser
+;; -------------------------------------------------------------------
+
+
+(instance underageUser BinaryPredicate)
+
+(domain underageUser 1 Human)
+
+(domain underageUser 2 WebSite)
+
+(documentation underageUser EnglishLanguage "(underageUser ?HUMAN ?SITE) means that ?HUMAN is a 
+  &%webVisitor of ?SITE but is under 18 years old.")
+
+(=>
+  (underageUser ?HUMAN ?SITE)
+  (webVisitor ?HUMAN ?SITE))
+
+(=>
+  (underageUser ?HUMAN ?SITE)
+  (age ?HUMAN (MeasureFn 18 YearDuration)))
+
+
+;; webVisitor
+;; -------------------------------------------------------------------
+
+(instance webVisitor BinaryPredicate)
+
+(domain webVisitor 1 Human)
+
+(domain webVisitor 2 Website)
+
+(termFormat EnglishLanguage webVisitor "web visitor")
+
+(documentation webVisitor EnglishLanguage "(webvisitor ?HUMAN ?SITE) means that there exists an
+ &%AccessingWebPage where ?HUMAN is the agent, and the page accessed is a component of ?SITE.")
+    
+(=>
+  (webVisitor ?VISITOR ?SITE)
+  (exists (?ID ?BROWSER)
+    (and
+      (instance ?ID Identifier)
+      (instance ?BROWSER WebBrowser)
+      (browserID ?ID ?BROWSER ?SITE)
+      (represents ?ID ?VISITOR))))
+
+(=>
+  (webVisitor ?VISITOR ?SITE)
+  (exists (?ACCESSING ?PAGE)
+    (and
+      (instance ?ACCESSING AccessingWebPage)
+      (instance ?PAGE WebPage)
+      (patient ?ACCESSING ?PAGE)
+      (component ?PAGE ?SITE)
+      (agent ?ACCESSING ?VISITOR))))
+
+
+;; SellersItemsFn
+;; -------------------------------------------------------------------
+
+(instance SellersItemsFn BinaryFunction)
+
+(domain SellersItemsFn 1 Agent)
+
+(domain SellersItemsFn 2 WebSite)
+
+(range SellersItemsFn Collection)
+
+(termFormat EnglishLanguage SellersItemsFn "sellers items")
+
+(documentation SellersItemsFn EnglishLanguage "(SellersItemsFn ?Agent ?SITE) returns all the items
+ for for sale by ?Agent on the &%WebSite ?SITE.")
+
+(=>
+  (and
+    (instance ?AGENT Agent)
+    (instance ?SITE WebSite))
+  (equal
+    (SellersItemsFn ?AGENT ?SITE)
+    (KappaFn ?ITEM
+      (and
+        (instance ?ITEM Object)
+        (possesses ?ITEM ?AGENT)
+        (exists (?ADVERT ?PAGE)
+          (and
+            (instance ?ADVERT Advertising)
+            (instance ?PAGE WebPage)
+            (component ?ADVERT ?PAGE)
+            (component ?PAGE ?SITE)))))))
+
+;; SEO
+;; -------------------------------------------------------------------
+
+(instance SEO Process)
+
+(termFormat EnglishLanguage SEO "search engine optimization")
+
+(documentation SEO EnglishLanguage "A &%Process which makes a &%WebPage more likely to be listed
+  higher in a &%SRPResults &%List.")
+
+(=>
+  (and
+    (instance ?SEO SEO)
+    (patient ?SEO ?PAGE))
+  (instance ?PAGE WebPage))
+
+(=>
+  (and
+    (instance ?SEO SEO)
+    (patient ?SEO ?PAGE))
+  (hasPurpose ?SEO
+    (exists (?SRPRESULT_BEFORE ?SRPRESULT_AFTER ?BM1 ?BM2)
+      (and
+        (instance ?SRPRESULT_BEFORE SRPResults)
+        (instance ?SRPRESULT_AFTER SRPResult)
+        (ListOrderFn ?SRPRESULT_BEFORE ?BEFORE)
+        (ListOrderFn ?SRPRESULT_AFTER ?AFTER)
+        (instance ?BM1 BestMatchAlgorithm)
+        (instance ?BM2 BestMatchAlgorithm)
+        (earlier (WhenFn ?BM1) (WhenFn ?BM2))
+        (earlier (WhenFn ?SEO) (WhenFn ?BM2))
+        (earlier (WhenFn ?BM1) (WhenFn ?SEO))
+        (greaterThan ?BEFORE ?AFTER)))))
+    
+
+;; SearchTerm
+;; -------------------------------------------------------------------
+
+(subclass SearchTerm Word)
+
+(termFormat EnglishLanguage SearchTerm "search term")
+
+(documentation SearchTerm EnglishLanguage "A &%Word that is represented by a part of &%SearchQuery")
+    
+(=>
+  (instance ?TERM SearchTerm)
+  (exists (?QUERY ?PART)
+    (and
+      (instance ?QUERY SearchQuery)
+      (part ?PART ?QUERY)
+      (represents ?PART ?TERM))))
+
+;; reservePrice
+;; -------------------------------------------------------------------
+
+(instance reservePrice BinaryPredicate)
+
+(termFormat EnglishLanguage reservePrice "reserve Price")
+
+(domain reservePrice 1 Auction)
+
+(domain reservePrice 2 CurrenceyMeasure)
+
+(documentation reservePrice EnglishLanguage "(reservePrice ?AUCTION ?AMOUNT) means that if an 
+ &%Auction was one (i.e. has a desitination) then the buyer bid higher than ?AMOUNT.")
+
+
+(=>
+  (and
+    (reservePrice ?AUCTION ?AMOUNT)
+    (destination ?AUCTION ?BUYER))
+  (exists (?OFFER)
+    (and
+      (bidPrice ?ITEM ?OFFER ?BUYER)
+      (greaterThan ?OFFER ?AMOUNT))))
+
+;; prohibitedItem
+;; -------------------------------------------------------------------
+
+(instance prohibitedItem BinaryPredicate)
+
+(termFormat EnglishLanguage prohibitedItem "prohibited item")
+
+(domain prohibitedItem 1 Object)
+
+(domain prohibitedItem 2 WebSite)
+
+(documentation prohibitedItem EnglishLanguage "(prohibitedItem ?Object ?SITE means that ?ITEM is 
+ not allowed to be sold on &%WebSite ?SITE.")
+    
+(=>
+  (prohibitedItem ?ITEM ?SITE)
+  (modalAttribute
+    (exists (?SELLING)
+      (and
+        (instance ?SELLING Selling)
+        (instrument ?SELLING ?SITE)))
+    Prohibition))
+
+
+;; NewSellersFn
+;; -------------------------------------------------------------------
+
+(instance NewSellersFn BinaryFunction)
+
+(domain NewSellersFn 1 TimeInterval)
+
+(domain NewSellersFn 2 WebSite)
+
+(range NewSellersFn Collection)
+
+(termFormat EnglishLanguage NewSellersFn "new sellers")
+
+(documentation NewSellersFn EnglishLanguage "(NewSellersFn ?INTERVAL ?SITE) Returns a collection of 
+ &%Agents who were agents of a &%Selling where ?SITE was the &%intrument.")
+
+ (=>
+  (and
+    (instance ?INTERVAL TimeInterval)
+    (instance ?SITE WebSite))
+  (exists (?NEWSELLERS)
+    (and
+      (instance ?NEWSELLERS Collection)
+      (forall (?AGENT ?SELLING)
+        (=>
+          (and
+            (instance ?AGENT Agent)
+            (instance ?SELLING Selling)
+            (agent ?SELLING ?AGENT)
+            (instrument ?SELLING ?SITE)
+            (during ?SELLING ?INTERVAL))
+          (member ?AGENT ?NEWSELLERS)))
+      (equal
+        (NewSellersFn ?INTERVAL ?SITE)
+        (?NEWSELLERS)))))
+    
+
+;; NewBuyersFn
+;; -------------------------------------------------------------------
+
+(instance NewBuyersFn BinaryFunction)
+
+(domain NewBuyersFn 1 TimeInterval)
+
+(domain NewBuyersFn 2 WebSite)
+
+(range NewBuyersFn Collection)
+
+(termFormat EnglishLanguage NewBuyersFn "new buyers")
+
+(documentation NewBuyersFn EnglishLanguage "(NewBuyersFn ?INTERVAL ?SITE) Returns a collection of 
+ &%Agents who were agents of a &%Buying where ?SITE was the &%intrument.")
+
+ (=>
+  (and
+    (instance ?INTERVAL TimeInterval)
+    (instance ?SITE WebSite))
+  (exists (?NEWBUYERS)
+    (and
+      (instance ?NEWBUYERS Collection)
+      (forall (?AGENT ?BUYING)
+        (=>
+          (and
+            (instance ?AGENT Agent)
+            (instance ?BUYING Buying)
+            (agent ?BUYING ?AGENT)
+            (instrument ?BUYING ?SITE)
+            (during ?BUYING ?INTERVAL))
+          (member ?AGENT ?NEWBUYERS)))
+      (equal
+        (NewBuyersFn ?INTERVAL ?SITE)
+        (?NEWBUYERS)))))
+
+
+;; NewRegistrationsFn
+;; -------------------------------------------------------------------
+
+(instance NewRegistrationsFn BinaryFunction)
+
+(domain NewRegistrationsFn 1 TimeInterval)
+
+(domain NewRegistrationsFn 2 WebSite)
+
+(range NewRegistrationsFn Collection)
+
+(termFormat EnglishLanguage NewRegistrationsFn "new registrations")
+
+(documentation NewRegistrationsFn EnglishLanguage "(NewRegistrationsFn ?INTERVAL ?SITE) Returns a 
+ collection of &%Agents who were not registerUsers of ?SITE before ?INTERVAL, but were 
+ registeredUsers for some &%Interval &%during ?INTERVAL")
+
+ (=>
+  (and
+    (instance ?INTERVAL TimeInterval)
+    (instance ?SITE WebSite))
+  (exists (?NEWREGISTRATIONS)
+    (and
+      (instance ?NEWREGISTRATIONS Collection)
+      (forall (?USER)
+        (=>
+          (and
+            (instance ?USER Human)
+            (not
+              (exists (?INTERVAL_BEFORE)
+                (and
+                  (instance ?INTERVAL_BEFORE TimeInterval)
+                  (earlier ?INTERVAL_BEFORE ?INTERVAL)
+                  (holdsDuring ?INTERVAL_BEFORE
+                    (registeredUser ?USER ?SITE)))))
+            (exists (?INTERVAL_DURING)
+              (and
+                (instance ?INSTERVAL_DURING TimeInterval)
+                (during ?INTERVAL_DURING ?INTERVAL)
+                (holdsDuring ?INTERVAL
+                  (registeredUser ?USER ?SITE)))))
+        (member ?USER ?NEWREGISTRATIONS)))
+      (equal
+        ?NEWREGISTRATIONS
+        (NewRegistratationsFn ?INTERVAL ?SITE)))))
+
+
+
+;; listed 
+;; -------------------------------------------------------------------
+
+(instance listed BinaryPredicate)
+
+(domain listed 1 Object)
+
+(domain listed 2 WebSite)
+
+(termFormat EnglishLanguage listed "listed on")
+
+(documentation listed EnglishLanguage "(listed ?OBJ ?SITE) means that there exists an instance of
+ &%Avertising where ?OBJ is the patient of the Avertising and the advertising is a &%component of 
+ a &%WebPage which is a component of ?SITE.")
+
+(=>
+  (listed ?OBJ ?SITE)
+  (exists (?ADVERT ?PAGE)
+    (and
+      (instance ?ADVERT Advertising)
+      (instance ?PAGE WebPage)
+      (component ?PAGE ?SITE)
+      (component ?ADVERT ?PAGE)
+      (patient ?ADVERT ?OBJ))))
+
+;; Repayment
+;; -------------------------------------------------------------------
+
+(subclass Repayment Payment)
+
+(termFormat EnglishLanguage Repayment "repayment")
+
+(documentation Repayment EnglishLanguage "A Repayment is a subclass of &%Payment where
+ the origin of a previous payment is the destination of the repayment, and vice versa. The 
+ transactionAmount is the same as that previous payment.")
+
+(=>
+  (instance ?REPAYMENT Repayment)
+  (exists (?PAYMENT ?PAYMENT_AMOUNT ?REPAYMENT_AMOUNT)
+    (and
+      (instance ?PAYMENT ?PAYMENT)
+      (not
+        (equal ?PAYMENT ?REPAYMENT))
+      (transactionAmount ?PAYMENT ?PAYMENT_AMOUNT)
+      (transactionAmount ?REPAYMENT ?REPAYMENT_AMOUNT)
+      (equal ?PAYMENT_AMOUNT ?REPAYMENT_AMOUNT))))
+
+(=>
+  (and
+    (instance ?REPAYMENT Repayment)
+    (instance ?REPAYMENT_DESTINATION Object)
+    (destintation ?REPAYMENT ?REPAYMENT_DESTINATION)
+    (instance ?REPAYMENT_ORIGIN Object)
+    (origin ?REPAYMENT ?REPAYMENT_ORIGIN))
+  (exists (?PAYMENT ?PAYMENT_ORIGIN ?PAYMENT_DESTINATION)
+    (and
+      (instance ?PAYMENT Payment)
+      (instance ?PAYMENT_ORIGIN Object)
+      (instance ?PAYMENT_DESTINATION Object)
+      (not
+        (equal ?PAYMENT ?REPAYMENT))
+      (destination ?PAYMENT ?PAYMENT_DESTINATION)
+      (orgin ?PAYMENT ?PAYMENT_ORIGIN)
+      (equal ?PAYMENT_ORIGIN ?REPAYMENT_DESTINATION)
+      (equal ?PAYMENT_DESTINATION ?REPAYMENT_ORIGIN))))
+
+;; instances of object here since, because of the nuances of financialTransaction, these could be
+;; either people or accounts.
+
+
+;; -------------------------------------------------------------------
+;; Metrics:
+;; -------------------------------------------------------------------
+
+;; Average Buying Price (ABP)
+;; -------------------------------------------------------------------
+
+(instance ABPFn UnaryFunction)
+
+(documentation ABPFn EnglishLanguage "Total GMB divided by the total number of items sold (not the
+ transactions) in a given time interval.")
+
+(domain ABPFn 1 Collection)
+
+(range ABPFn 1 CurrencyMeasure)
+
+(termFormat EnglishLanguage ABPFn "average buying price")
+
+(=>
+  (and
+    (ABPFn ?BUYINGS)
+    (member ?BUYING ?BUYINGS))
+  (instance ?BUYING Buying))
+
+(=>
+  (and
+    (instance ?BUYINGS Collection)
+    (instance ?GMB CurrencyMeasure)
+    (instance ?TOTAL RealNumber)
+    (equal
+      ?GMB
+      (GMBFn ?BUYINGS))
+    (equal
+      ?TOTAL
+      (CardinalityFn 
+        (KappaFn ?ITEM
+          (and
+            (instance ?ITEM Object)
+            (exists (?BUYING)
+              (and
+                (member ?BUYING ?BUYINGS)
+                (patient ?ITEM ?BUYING))))))))
+    (equal
+      (ABPFn ?BUYINGS)
+      (DivisionFn ?GMB ?TOTAL)))
+
+
+
+;; Average Selling Price (ASP)
+;; -------------------------------------------------------------------
+
+(instance ASPFn UnaryFunction)
+
+(documentation ASPFn EnglishLanguage "Total GMV divided by the total number of items sold (not the
+ transactions) in a given time interval.")
+
+(domain ASPFn 1 Collection)
+
+(range ASPFn 1 CurrencyMeasure)
+
+(termFormat EnglishLanguage ASPFn "average buying price")
+
+(=>
+  (and
+    (ASPFn ?SELLINGS)
+    (member ?SELLING ?SELLINGS))
+  (instance ?SELLING Selling))
+
+(=>
+  (and
+    (instance ?SELLINGS Collection)
+    (instance ?GMV CurrencyMeasure)
+    (instance ?TOTAL RealNumber)
+    (equal
+      ?GMV
+      (GMVFn ?SELLINGS))
+    (equal
+      ?TOTAL
+      (CardinalityFn 
+        (KappaFn ?ITEM
+          (and
+            (instance ?ITEM Object)
+            (exists (?SELLING)
+              (and
+                (member ?SELLING ?SELLINGS)
+                (patient ?ITEM ?BUYING))))))))
+    (equal
+      (ASPFn ?SELLINGS)
+      (DivisionFn ?GMV ?TOTAL)))
+
+
+;; clickThroughRateFn
+;; -------------------------------------------------------------------
+
+(instance ClickThroughRateFn BinaryFunction)
+
+(documentation ClickThroughRateFn EnglishLanguage "(clickThroughRateFn ?VISITS ?HYPERLINK) returns 
+ the &%RealNumber that represents the number of times users click ?HYPERLINK divided by the number
+ of &%AccessingWebPages in ?VISITS")
+    
+(termFormat EnglishLanguage ClickTrhoughRateFn "click-through rate")
+
+(domain ClickThroughRateFn 1 Collection)
+
+(domain ClickThroughRateFn 2 HypertextLink)
+
+(range ClickThroughRateFn RealNumber)
+
+(=>
+  (and
+    (instance ?VISITS Collection)
+    (instance ?HYPERLINK HypertextLink)
+    (forall (?ACCESSING)
+      (and
+        (member ?ACCESSING ?PAGE)
+        (and
+          (instance ?ACCESSING AccessingWebPage)
+          (component ?PAGE ?HYPERLINK)))))
+  (exists (?CLICKS)
+    (and
+      (instance ?CLICKS Collection)
+      (forall (?CLICK)
+        (=>
+          (and
+            (instance ?CLICK RequestingHyperlink)
+            (patient ?CLICK ?HYPERLINK))
+          (member ?CLICK ?CLICKS)))
+      (equal
+        (clickThroughRateFn ?VISITS ?HYPERLINK)
+        (DivisionFn
+          (CardinalityFn ?CLICKS)
+          (CardinalityFn ?VISITS))))))
+
+
+;; Best Offer
+;; -------------------------------------------------------------------
+
+(subclass BestOffering OfferingToPurchase)
+
+(documentation BestOffering EnglishLanguage "A case of &%OfferingToPurchase where there does not
+ exist another instance of &%OfferingToPurchase the same &%Object at a higher price.")
+
+(termFormat EnglishLanguage BestOffering "best offer")
+
+(=>
+  (instance ?BEST_OFFER BestOffering)
+  (and
+    (patient ?BEST_OFFER
+      (exists (?BUYING)
+          (and
+            (instance ?BUYING Buying)
+            (agent ?BUYING ?AGENT)
+            (patient ?BUYING ?OBJECT)
+            (transactionAmount ?BUYING ?MONEY1))))
+    (not
+      (exists (?OFFER2)
+          (patient ?OFFER2
+            (exists (?BUYING2 ?AGENT2 ?MONEY2)
+              (and
+                (instance ?BUYING2 Buying)
+                (agent ?BUYING2 ?AGENT2)
+                (patient ?BUYING2 ?OBJECT)
+                (transactionAmount ?BUYING2 ?MONEY2)
+                (greaterThan ?MONEY2 ?MONEY1))))))))
+
+
+;; ViewItemRequest
+;; -------------------------------------------------------------------
+
+(subclass ViewItemRequest UserSignifiedAction )
+
+(documentation ViewItemRequest EnglishLanguage "A &%UserSignifiedAction with the &%subProcesses of
+ &%RequestingHyperLink and &%AccessingWebPage, where the &%RequestingHyperlink causes the the
+ &%AccessingWebPage, and the &%WebPage being accessed has an instance of &%Advertising as a 
+ &%component. If ?AGENT views ?LISTING as part of a ViewItemRequest, then (viewedListing ?AGENT 
+ ?LISTING) holds.")
+
+(termFormat EnglishLanguage ViewItemRequest "view item request")
+
+(=>
+  (instance ?REQUEST VieweItemRequest)
+  (exists (?CLICK ?PAGE ?LISTING ?ACCESSING ?PAGE)
+    (and
+      (instance ?CLICK RequestingHyperlink)
+      (instance ?PAGE WebPage)
+      (instance ?LISTING Advertising)
+      (instance ?ACCESSING AccessingWebPage)
+      (causes ?CLICK ?ACCESSING)
+      (destination ?ACCESSING ?PAGE)
+      (component ?LISTING ?PAGE)
+      (subProcess ?ACCESSING ?REQUEST)
+      (subProcess ?CLICK ?REQUEST))))
+
+(=>
+  (and
+    (instance ?REQUEST ViewItemRequest)
+    (instance ?ACCESSING Instance)
+    (instance ?PAGE WebPage)
+    (instance ?AGENT Agent)
+    (instance ?LISTING Advertising)
+    (component ?PAGE ?LISTING)
+    (destination ?ACESSING ?PAGE)
+    (agent ?ACCESSING ?AGENT))
+  (viewedListing ?AGENT ?LISTING))
+
+;; BadBuyerExperience
+;; -------------------------------------------------------------------
+
+(subclass BadBuyerExperience CausingUnhappiness)
+
+(documentation BadBuyerExperience EnglishLanguage "A subclass of &%CausingUnhappiness that is a
+ subprocess of &%Buying, where the buyer is the patient of the process.")
+    
+(termFormat EnglishLanguage BadBuyerExperience "bad buyer experience")
+
+(=>
+  (and
+    (instance ?BBE BadBuyerExperience)
+    (patient ?BBE ?BUYER))
+  (exists (?BUYING)
+    (and
+      (instance ?BUYING Buying)
+      (agent ?BUYING ?BUYER)
+      (subProcess ?BBE ?BUYING))))
+
+;; JW:
+;; Can a buyer be the &%agent of the buying, but a patient of the subProcess?
+
+
+;; SCRFn (Sales Conversion Rate)
+;; -------------------------------------------------------------------
+
+(documentation SalesConversionRateFn EnglishLanguage "Term Definition: This tracks the conversion of
+ visits into purchases.  It is the number of of purchases made during an interval / the number of 
+ visits made during the interval.  This accounts for single visits resulting in multiple purchases 
+ by the buyer.")
+    
+(instance SCRFn BinaryFunction)
+
+(domain SCRFn 1 Collection)
+
+(domain SCRFn 2 TimeInterval)
+
+(termFormat EnglishLanguage SCRFn "sales conversion rate")
+
+(=>
+  (and
+    (instance ?VISITS Collection)
+    (instance ?PURCHASES Collection)
+    (subCollection ?PURCHASES ?VISITS)
+    (forall (?MEMBER)
+      (=>
+        (member ?MEMBER ?VISITS)
+        (instance ?MEMBER AccessingWebPage)))
+    (forall (?BUYING ?VISITOR ?ACCESSING ?BUYING ?PAGE)
+      (=>
+        (and
+          (instance ?VISITOR Human)
+          (instance ?BUYING Buying)
+          (instance ?ACCESSING AccessingWebPage)
+          (instance ?PAGE WebPage)
+          (member ?ACCESSING ?VISITS)
+          (destination ?ACCESSING ?PAGE)
+          (agent ?BUYING ?VISITOR)
+          (agent ?ACCESSING ?VISITOR)
+          (during (WhenFn ?BUYING) (WhenFn ?ACCESSING))
+          (instrument ?BUYING ?PAGE))
+        (member ?BUYING ?QUALIFYING_PURCHASES))))
+    (equal
+      (SCRFn ?VISITS ?INTERVAL)
+      (DivisionFn
+        (CardinalityFn 
+          (KappaFn ?PURCHASE_IN_INTERVAL
+            (and
+              (member ?PURCHASE_IN_INTERVAL ?PURCHASES)
+              (during (WhenFn ?PURCHASE_IN_INTERVAL) ?INTERVAL))))
+        (CardinalityFn 
+          (KappaFn ?VISIT_IN_INTERVAL
+            (and
+              (member ?VISIT_IN_INTERVAL ?VISITS)
+              (during (WhenFn ?PURCHASE_IN_INTERVAL) ?INTERVAL)))))))
+
+
+;; SRPEngagementFn
+;; -------------------------------------------------------------------
+
+(instance SRPEngagementFn UnaryFunction)
+
+(domain SRPEngagementFn 1 SRP)
+
+(range SRPEngagementFn RealNumber)
+
+(termFormat EnglishLanguage SRPEngagementFn "SRP Engagement")
+
+(documentation SRPEngagementFn EnglishLanguage "The rate of those SRP numbers which have a VI
+ (View Item) or PDP (Product Description Page) click-through over Total SRP numbers, and multiple
+ clicks on VI and PDP following the same SRP will not be counted again.")
+
+(=>
+  (and
+    (instance ?PAGE SRP)
+    (instance ?RESULTS SRPResults)
+    (component ?RESULTS ?PAGE))
+  (equal
+    (DivisionFn
+      (CardinalityFn (KappaFn ?CLICK
+        (and
+          (instance ?CLICK RequestingHyperlink)
+          (patient ?CLICK ?ELEMENT)
+          (instance ?ELEMENT HypertextLink)
+          (component ?ELEMENT ?PAGE)
+          (or
+            (instance ?LINKEDPAGE ProductDescriptionPage)
+            (instance ?LINKEDPAGE ViewItemPage)))))
+      (ListLengthFn ?RESULTS))
+    (SRPEngagementFn ?PAGE)))
+
+
+;; SiteSpeedFn
+;; -------------------------------------------------------------------
+
+(instance SiteSpeedFn UnaryFunction)
+
+(domain SiteSpeedFn 1 Accessing)
+
+(range SiteSpeedFn TimeInterval)
+
+(termFormat EnglishLanguage SiteSpeedFn "site speed")
+
+(=>
+  (and
+    (instance ?ACCESSING AccessingWebPage)
+    (instance ?PAGE WebPage)
+    (instance ?TRANSFER DataTransfer)
+    (instance ?SERVER Server)
+    (instance ?REQUESTING Requesting)
+    (instance ?BROWSER WebBrowser)
+    (instance ?INTERVAL TimeInterval)
+    (agent ?REQUESTING ?BROWSER)
+    (destination ?REQUESTING ?SERVER)
+    (patient ?REQUESTING ?PAGE)
+    (origin ?TRANSFER ?SERVER)
+    (destination ?TRANSFER ?BROWSER)
+    (patient ?TRANSFER ?PAGE)
+    (equal
+      (EndFn (WhenFn ?REQUESTING)) 
+      (BeginFn ?INTERVAL))
+    (equal
+      (EndFn (WhenFn ?TRANSFER)) 
+      (EndFn ?INTERVAL)))
+  (equal
+    (SiteSpeedFn ?ACCESSING) ?INTERVAL))
+
+
+;; TTFxFn 
+;; -------------------------------------------------------------------
+
+(instance TTFxFn BinaryFunction)
+
+(documentation TTFxFn EnglishLanguage "Time to first x")
+
+(termFormat EnglishLanguage TTFxFn "TTFx")
+
+(domain TTFxFn 1 Class)
+
+(domain TTFxFn 2 AccessingWebPage)
+
+(range TTFxFn TimeInterval)
+
+(=>
+  (and
+    (instance ?PROCESS ?PROCESS_CLASS)
+    (subclass ?PROCESS_CLASS Process)
+    (instance ?ACCESSING AccessingWebPage)
+    (instance ?AGENT Agent)
+    (agent ?PROCESS ?AGENT)
+    (agent ?ACCESSING ?AGENT)
+    (subprocess ?PROCESS ?ACCESSING)
+    (instance ?TIMETOFIRST TimeInterval)
+    (not
+      (exists (?PROCESS2)
+        (and
+          (instance ?PROCESS2 ?PROCESS_CLASS)
+          (agent ?PROCESS2 ?AGENT)
+          (subprocess ?PROCESS2 ?ACCESSING)
+          (before (BeginFn (WhenFn ?PROCESS2)) (BeginFn (WhenFn ?PROCESS))))))
+    (equal
+      (BeginFn (WhenFn ?ACCESSING)) (BeginFn (WhenFn ?TIMETOFIRST)))
+    (equal
+      (BeginFn (WhenFn ?PROCESS)) (EndFn (WhenFn ?TIMETOFIRST))))
+  (equal
+    (TTFxFn ?PROCESS_CLASS ?ACCESSING) ?TIMETOFIRST))
+    
+
+;; ItemViewsFn 
+;; -------------------------------------------------------------------
+
+(instance ItemViewsFn BinaryFn)
+
+(domain ItemViewFn 1 WebPage)
+
+(domain ItemViewFn 2 TimeInterval)
+
+(range ItemViewFn Collection)
+
+(termFormat EnglishLanguage ItemViewFn "page views over interval")
+
+(documentation ItemViewFn EnglishLanguage "Item views over a &%TimeInterval")
+
+(=>
+  (and
+    (instance ?ADVERTISING Advertising)
+    (instance ?TIMEINTERVAL TimeInterval)
+    (instance ?WEBPAGE WebPage)
+    (component ?ADVERTISING ?WEBPAGE))
+  (equal
+    (ItemViewsFn ?PAGE)
+    (KappaFn ?ACCESSING
+      (and
+        (instance ?ACCESSING AccessingWebPage)
+        (patient ?ACCESSING ?WEBPAGE)
+        (during (WhenFn ?ACCESSING) ?TIMEINTERVAL)))))
+
+(=>
+  (and
+    (instance ?ACCESSING AccessingWebPage)
+    (instance ?ITEM Object)
+    (instance ?ADVERTISING Advertising)
+    (instance ?TIMEINTERVAL TimeInterval)
+    (component ?ADVERTISING ?WEBPAGE)
+    (instance ?WEBPAGE WebPage)
+    (patient ?ACCESSING ?WEBPAGE)
+    (during (WhenFn ?ACCESSING) ?TIMEINTERVAL))
+  (member ?ACCESSING (ItemsViewFn ?WEBPAGE ?TIMEINTERVAL ?SITE)))
+
+
+;; PPSFn
+;; -------------------------------------------------------------------
+
+(domain PPSFn 1 Experimenting)
+
+(domain PPSFn 2 TimeInterval)
+
+(range PPSFn RealNumber)
+
+(documentation PPSFn EnglishLanguage "Session initiated purchases per visitor per &%TimeInterval.
+ Accounts for purchases immediately following a qualifying event")
+
+(termFormat EnglishLanguage PPSFn "PPS")
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (instance ?INTERVAL TimeInterval))
+  (equal
+    (DivisionFn
+      (CardinalityFn 
+        (KappaFn ?PURCHASE
+          (and
+            (instance ?PURCHASE Buying)
+            (member ?PURCHASE (QualifyingPurchasesFn ?EXPERIMENT))
+            (during (WhenFn ?PURCHASE) ?INTERVAL))))
+      (CardinalityFn 
+        (KappaFn ?USER
+          (and
+            (member ?USER (TreatedUsersFn ?EXPERIMENT))
+            (instance ?ACCESSING AccessingWebPage)
+            (during (WhenFn ?ACCESSING) ?INTERVAL)
+            (agent ?ACCESSING ?USER)))))
+    (PPSFn ?EXPERIMENT ?INTERVAL)))
+
+;; JW: 
+;; Needs to be able to be limited to a test variant
+
+
+;; GPSFn
+;; -------------------------------------------------------------------
+
+(domain GPSFn 1 Experimenting)
+
+(domain GPSFn 2 TimeInterval)
+
+(documentation GPSFn EnglishLanguage "GMB value for PPS purchases (item Price * Quantitiy 
+Sold)")
+
+(termFormat EnglishLanguage GPSFn "GPS")
+
+(=>
+  (and
+    (instance ?EXPERIMENT Experimenting)
+    (instance ?INTERVAL TimeInterval))
+  (equal 
+    (DivisionFn
+      (monetaryValue (KappaFn ?AMOUNT
+        (exists (?SALE)
+          (and
+            (member ?SALE (QualifyingPurchasesFn ?EXPERIMENT))
+            (during (WhenFn ?SALE) ?INTERVAL)
+            (transactionAmount ?SALE ?AMOUNT)))))
+      (CardinalityFn (KappaFn ?USER
+        (exists (?SALE)
+          (and
+            (member ?SALE (QualifyingPurchasesFn ?EXPERIMENT))
+            (during (WhenFn ?SALE) ?INTERVAL)
+            (agent ?SALE ?USER))))))
+    (GPSFn ?EXPERIMENT ?INTERVAL)))
+
+
+;; PPIFn
+;; -------------------------------------------------------------------
+
+(instance PPIFn BinaryFunction)
+
+(domain PPIFn 1 TimeInterval)
+
+(domain PPIFn 2 Collection)
+
+(range PPIFn RealNumber)
+
+(documentation PPIFn EnglishLanguage "Purchases per visitor per TimeInterval. NEW: (PPIFn ?INTERVAL
+ ?PAGES) returns the &%RealNumber that represents the number of instances of &%Buying in which a
+ ?PAGE in the collection ?PAGES is the instrument of &%Buying, divided by the number of visitors to
+ pages in that collection, during a given ?INTERVAL")
+
+(termFormat EnglishLanguage PPIFn "Purchases Per Interval")
+
+(=>
+  (and
+    (instance ?INTERVAL TimeInterval)
+    (instance ?PURCHASES Collection)
+    (instance ?VISITORS Collection)
+    (instance ?PAGES Collection)
+    (forall (?PAGE)
+      (=>
+        (member ?PAGE ?PAGES)
+        (instance ?PAGE WebPage)))
+    (forall (?VISITOR ?ACCESSING)
+      (<=>
+        (and
+          (instance ?VISITOR Human)
+          (member ?PAGE ?PAGES)
+          (instance ?ACCESSING AccessingWebPage)
+          (agent ?ACCESSING ?VISITOR)
+          (destination ?ACCESSING ?PAGE)
+          (during (WhenFn ?ACCESSING) ?INTERVAL))
+        (member ?VISITOR ?VISITORS)))
+    (forall (?PURCHASE ?BUYING)
+      (<=>
+        (and
+          (instance ?BUYING Buying)
+          (member ?PAGE ?PAGES)
+          (instrument ?BUYING ?PAGE)
+          (during (WhenFn ?BUYING) ?INTERVAL))
+        (member ?PURCHASE ?PURCHASES))))
+  (equal 
+    (PPIFn ?INTERVAL ?PAGES)
+    (DivisionFn
+      (CardinalityFn ?PURCHASES)
+      (CardinalityFn ?VISITORS))))
+
+
+;; GPIFn
+;; -------------------------------------------------------------------
+
+(domain GPIFn 1 TimeInterval)
+
+(domain GPIFn 2 Collection)
+
+(range GPIFn CurrencyMeasure)
+
+(documentation GPIFn EnglishLanguage "GMB per visitor per TimeInterval.")
+
+(termFormat EnglishLanguage GPIFn "GMB per interval")
+
+(=>
+  (and
+    (instance ?INTERVAL TimeInterval)
+    (instance ?VISITORS Collection)
+    (instance ?PURCHASES Collection)
+    (instance ?PAGES Collection)
+    (instance ?TOTAL_GMB CurrencyMeasure)
+    (forall (?VISITOR ?ACCESSING)
+      (<=>
+        (and
+          (instance ?VISITOR Human)
+          (member ?PAGE ?PAGES)
+          (instance ?ACCESSING AccessingWebPage)
+          (agent ?ACCESSING ?VISITOR)
+          (destination ?ACCESSING ?PAGE)
+          (during (WhenFn ?ACCESSING) ?INTERVAL))
+        (member ?VISITOR ?VISITORS)))
+    (forall (?PURCHASE ?BUYING)
+      (<=>
+        (and
+          (instance ?BUYING Buying)
+          (member ?PAGE ?PAGES)
+          (instrument ?BUYING ?PAGE)
+          (during (WhenFn ?BUYING) ?INTERVAL))
+        (member ?PURCHASE ?PURCHASES))))
+  (equal 
+    (GPIFn ?INTERVAL ?PAGES)
+    (DivisionFn
+      (GMBFn ?PURCHASES)
+      (CardinalityFn ?VISITORS))))
+
+;; GMBFn
+;; -------------------------------------------------------------------
+
+(instance GMBFn UnaryFunction)
+
+(domain GMBFn 1 Collection)
+
+(range GMBFn CurrencyMeasure)
+
+(documentation GMBFn EnglishLanguage "The sum of all purchase prices in a collection of &%Buyings.")
+
+(termFormat EnglishLanguage GMBFn "gross merchandise bought")
+
+(=>
+  (and
+    (instance ?PURCHASES Collection)
+    (forall (?BUYING)
+      (=>
+        (member ?BUYING ?PURCHASES)
+        (instance ?BUYING Buying))))
+  (and
+    (monetaryValue (KappaFn ?AMOUNT
+      (and
+        (instance ?PURCHASE Buying)
+        (member ?PURCHASE ?PURCHASES)
+        (transactionAmount ?PURCHASE ?AMOUNT)))
+      ?TOTAL_PURCHASE_AMOUNT)
+    (equal 
+      (GMBFn ?PURCHASES) ?TOTAL_PURCHASE_AMOUNT)))
+
+
+;; JW:
+;; Currently reflects transactionAmount - need purchasePrice specifically, as this can differ from
+;; the price received by the seller.
+;; Should the Definition of GMB be just an item by item level?
+
+;; GMVFn
+;; -------------------------------------------------------------------
+
+(instance GMVFn UnaryFunction)
+
+(domain GMVFn 1 Collection)
+
+(range GMVFn CurrencyMeasure)
+
+(documentation GMVFn EnglishLanguage "The total value of &%profits in a
+ collection of &%Sellings.")
+
+(termFormat EnglishLanguage GMVFn "GMV")
+
+(=>
+  (and
+    (instance ?SALES Collection)
+    (forall (?SELLING)
+      (=>
+        (member ?SELLING ?SALES)
+        (instance ?SELLING Selling))))
+  (and
+    (monetaryValue (KappaFn ?AMOUNT
+      (and
+        (instance ?SALE Selling)
+        (member ?SALE ?SALES)
+        (profit ?SALE ?AMOUNT)))
+      ?TOTAL_SALE_AMOUNT)
+    (equal 
+      (GMVFn ?SALES) ?TOTAL_SALE_AMOUNT)))
