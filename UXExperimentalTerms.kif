@@ -1166,6 +1166,9 @@ registered country and seller registered country are not the same")
       (instance ?SRP SearchResultsPage)
       (component ?RESULTS ?SRP))))
 
+;; Should change this to the page or listing, as opposed to the item itself
+
+
 ;; BestMatchAlgorithm
 ;; -------------------------------------------------------------------
 
@@ -1260,6 +1263,27 @@ registered country and seller registered country are not the same")
       (located ?MEMBER2 ?MEMBER2_LOC)
       (not
         (equal ?MEMBER1_LOC ?MEMBER2_LOC)))))
+
+
+;; crossFunctionalTeamFocus
+;; -------------------------------------------------------------------
+
+(instance crossFunctionalTeamFocus BinaryPredicate)
+
+(termFormat EnglishLanguage crossFunctionalTeamFocus "BinaryPredicate")
+
+(documentation crossFunctionalTeamFocus EnglishLanguage "(crossFunctionalTeamFocus ?FOCUS ?TEAM) 
+ means that ?FOCUS is &%inScopeOfInterest of each &%member of &%CrossFunctionalTeam ?TEAM.")
+
+(domain crossFunctionalTeamFocus 1 Entity)
+
+(domain crossFunctionalTeamFocus 2 CrossFunctionalTeam)
+
+(=>
+  (and
+    (crossFunctionalTeamFocus ?FOCUS ?TEAM)
+    (member ?MEMBER ?TEAM))
+  (inScopeOfInterest ?MEMBER ?FOCUS))
 
 
 ;; QPViewsFn
@@ -1487,6 +1511,54 @@ registered country and seller registered country are not the same")
     (eventLocated ?SELLING ?STORE)
     (instance ?SELLING Selling))
   (agent ?SELLING ?OWNER))
+
+
+;; WebListing
+;; -------------------------------------------------------------------
+
+(subclass WebListing Advertising)
+
+(termFormat EnglishLanguage WebListing "web listing")
+
+(documentation WebListing "An instance of &%Avertising which is hostedOn a WebSite")
+
+(=>
+  (instance ?LISTING WebListing)
+  (exists (?SITE)
+    (and
+      (instance ?SITE WebSite)
+      (hostedOn ?LISTING ?SITE))))
+
+(=>
+  (and
+    (instance ?LISTING WebListing)
+    (instance ?SITE WebSite)
+    (hostedOn ?LISTING ?SITE)
+    (creator ?LISTING ?AGENT))
+  (webVisitor ?AGENT ?SITE))
+
+
+;; hostedOn
+;; -------------------------------------------------------------------
+
+(instance hostedOn BinaryPredicate)
+
+(domain hostedOn 1 WebListing)
+
+(domain hostedOn 2 WebSite)
+
+(termFormat EnglishLanguage hostedOn "hosted on")
+
+(documentation hostedOn EnglishLanguage "(hostedOn ?LISTING ?SITE) means that the &%WebListing 
+ ?LISTING is hosted on the &%WebSite ?SITE.")
+
+(=>
+  (hostedOn ?LISTING ?SITE)
+  (exists (?PAGE)
+    (and
+      (instance ?PAGE WebPage)
+      (component ?LISTING ?PAGE)
+      (somponent ?PAGE ?SITE))))
 
 
 ;; responsible
@@ -1968,7 +2040,7 @@ registered country and seller registered country are not the same")
         (exists (?PROCESS)
           (and
             (subProcess ?PROCESS ?BUYING)
-            (earlier (WhenFn ?CHECKOUT) (WhenFn (?PROCESS)))))))))
+            (earlier (WhenFn ?CHECKOUT) (WhenFn ?PROCESS))))))))
 
 
 ;; unpaidItem 
@@ -2214,18 +2286,19 @@ buy ?ITEM, but did not.")
   (exists (?NEWSELLERS)
     (and
       (instance ?NEWSELLERS Collection)
-      (forall (?AGENT ?SELLING)
+      (forall (?AGENT)
         (=>
-          (and
-            (instance ?AGENT Agent)
-            (instance ?SELLING Selling)
-            (agent ?SELLING ?AGENT)
-            (instrument ?SELLING ?SITE)
-            (during ?SELLING ?INTERVAL))
-          (member ?AGENT ?NEWSELLERS)))
+          (member ?AGENT ?NEWSELLERS)
+          (exists (?SELLING)
+            (and
+              (instance ?AGENT Agent)
+              (instance ?SELLING Selling)
+              (agent ?SELLING ?AGENT)
+              (instrument ?SELLING ?SITE)
+              (during ?SELLING ?INTERVAL)))))
       (equal
         (NewSellersFn ?INTERVAL ?SITE)
-        (?NEWSELLERS)))))
+        ?NEWSELLERS))))
     
 
 ;; NewBuyersFn
@@ -2251,18 +2324,19 @@ buy ?ITEM, but did not.")
   (exists (?NEWBUYERS)
     (and
       (instance ?NEWBUYERS Collection)
-      (forall (?AGENT ?BUYING)
+      (forall (?AGENT)
         (=>
-          (and
-            (instance ?AGENT Agent)
-            (instance ?BUYING Buying)
-            (agent ?BUYING ?AGENT)
-            (instrument ?BUYING ?SITE)
-            (during ?BUYING ?INTERVAL))
-          (member ?AGENT ?NEWBUYERS)))
+          (member ?AGENT ?NEWBUYERS)
+          (exists (?BUYING)
+            (and
+              (instance ?AGENT Agent)
+              (instance ?BUYING Buying)
+              (agent ?BUYING ?AGENT)
+              (instrument ?BUYING ?SITE)
+              (during ?BUYING ?INTERVAL)))))
       (equal
         (NewBuyersFn ?INTERVAL ?SITE)
-        (?NEWBUYERS)))))
+        ?NEWBUYERS))))
 
 
 ;; NewRegistrationsFn
@@ -2382,6 +2456,129 @@ buy ?ITEM, but did not.")
 ;; instances of object here since, because of the nuances of financialTransaction, these could be
 ;; either people or accounts.
 
+
+;; visitorParameter
+;; -------------------------------------------------------------------
+
+(instance visitorParameter BinaryPredicate)
+
+(termFormat EnglishLanguage VisitorParameter "visitor profile parameter")
+
+(domain visitorParameter 1 Human)
+
+(domain visitorParameter 2 Formula)
+
+(domain visitorParameter 3 WebSite)
+
+(documentation VisitorParameter EnglishLanguage "Links a &%webVisitor to facts about that visitor 
+ which are in the user's profile.")
+
+(=>
+  (visitorParameter ?HUMAN ?FORUMLA ?SITE)
+  (webVisitor ?HUMAN ?SITE))
+
+(=>
+  (visitorParameter ?HUMAN ?FORMULA ?SITE)
+  (exists (?AGENT)
+    (and
+      (instance ?AGENT CognitiveAgent)
+      (possesses ?AGENT ?SITE)
+      (knows ?AGENT ?FORMULA))))
+
+(=>
+  (visitorParameter ?HUMAN ?FORMULA ?SITE)
+  (exists (?PROFILE)
+    (and
+      (instance ?PROFILE VisitorProfile)
+      (member ?FORMULA ?PROFILE))))
+
+
+;; VisitorProfile
+;; -------------------------------------------------------------------
+
+(subclass VisitorProfile Collection)
+
+(termFormat EnglishLanguage VisitorProfile "visitor profile")
+
+(documentation VisitorProfile EnglishLanguage "A &%Collection of &%Formulas which are known by someone who possesses a website.")
+
+(=>
+  (instance ?PROFILE VisitorProfile)
+  (exists (?AGENT ?SITE)
+    (and
+      (instance ?AGENT CognitiveAgent)
+      (instance ?SITE WebSite)
+      (possesses ?AGENT ?SITE)
+      (forall (?FORMULA)
+        (=>
+          (member ?FORUMLA ?PROFILE)
+          (knows ?AGENT ?FORMULA))))))
+
+
+;; siteSpectrum
+;; -------------------------------------------------------------------
+
+(instance siteSpectrum BinaryPredicate)
+
+(termFormat EnglishLanguage siteSpectrum "user spectrum")
+
+(documentation siteSpectrum EnglishLanguage "(siteSpectrum ?COLL ?SITE) means that the &%Collection 
+ ?COLL respresents the entire user population of ?SITE. In other words, if ?USER is a &%member of 
+ ?COLL then ?USER has the &%Capability of being the &%agent of an &%AccessingWebPage where a ?PAGE 
+ which is a &%component of ?SITE is the &%destination.")
+
+(domain siteSpectrum 1 Collection)
+
+(domain siteSpectrum 2 Site)
+
+(=>
+  (and
+    (siteSpectrum ?COLL ?SITE)
+    (member ?USER ?COLL))
+  (capability 
+    (KappaFn ?ACCESSING
+      (and
+        (instance ?ACCESSING AccessingWebPage)
+        (exists (?PAGE)
+          (and
+            (instance ?PAGE WebPage)
+            (component ?PAGE Site)
+            (destintation ?ACCESSING ?PAGE)))))
+    agent ?USER))
+    
+
+;; viewedItemList
+;; -------------------------------------------------------------------
+
+(instance viewedItemList BinaryPredicate)
+
+(domain viewedItemList 1 Agent)
+
+(domain viewedItemList 2 List)
+
+(termFormat EnglishLanguage viewedItemList "list of viewed items")
+
+(documentation viewedItemList EnglishLanguage "(viewedItemList ?USER ?LIST) relates a &%ist composed
+ of &%AccessingWebPages in the order visited by ?USER, where each of the &%WebPages which are the 
+ &%destinations of those accessings is contains a &%WebListing")
+
+ (=>
+  (and
+    (viewedItemList ?USER ?LIST)
+    (inList ?ACCESSING ?LIST))
+  (and
+    (instance ?ACCESSING AccessingWebPage)
+    (agent ?ACESSING ?USER)
+    (exists (?DEST)
+      (and
+        (instance ?DEST WebPage)
+        (destination ?ACCESSING WebPage)))))
+
+
+
+
+
+;; Should this just be by session?
 
 ;; -------------------------------------------------------------------
 ;; Metrics:
@@ -3054,3 +3251,42 @@ Sold)")
       ?TOTAL_SALE_AMOUNT)
     (equal 
       (GMVFn ?SALES) ?TOTAL_SALE_AMOUNT)))
+
+
+;; BBERateFn
+;; -------------------------------------------------------------------
+
+(instance BBERateFn UnaryFunction)
+
+(domain BBERateFn 1 Collection)
+
+(range BBERateFn RealNumber)
+
+(documentation BBERateFn EnglishLanguage "% of transactions where the buyer reported a BBE via
+ feedback or dispute systems.")
+
+(termFormat EnglishLanguage BBERateFn "bad buyer experience rate")
+
+(=>
+  (and
+    (instance ?PURCHASES Collection)
+    (forall (?BUYING)
+      (=>
+        (member ?BUYING ?PURCHASES)
+        (instance ?BUYING Buying))))
+  (exists (?BBE_PURCHASES)
+    (and
+      (instance ?BBE_PURCHASES Collection)
+      (forall (?BB_BUYING)
+        (=>
+          (member ?BBE_BUYING ?BBE_PURCHASES)
+          (and
+            (member ?BBE_BUYING ?PURCHASES)
+            (exists (?BBE)
+              (and
+                (instance ?BBE BadBuyerExperience)
+                (subProcess ?BBE ?BBE_BUYING))))))
+      (equal 
+        (BBERateFn ?PURCHASES) 
+        (DivisionFn (CardinalityFn ?PURCHASES) (CardinalityFn ?PURCHASES))))))
+
