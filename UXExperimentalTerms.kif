@@ -124,9 +124,43 @@
               (agent ?ACCESSING ?USER)
               (represents ?MEMBER ?USER))))))))
 
+(=>
+  (registeredUser ?USER ?SITE)
+  (exists (?ACCT)
+    (and
+      (instance ?ACCT UserAccount)
+      (hasAccount ?USER ?ACCT)
+      (accountAtSite ?ACCT ?SITE))))
+
 
 ;; JW:
 ;; Should it be defined when and how a user becomes a registered user?
+
+
+;; accountAtSite
+;; -------------------------------------------------------------------
+
+(instance accountAtSite BinaryPredicate)
+
+(termFormat EnglishLanguage accountAtSite "account at site")
+
+(domain accountAtSite 1 UserAccount)
+
+(domain accountAtSite 2 Website)
+
+(documentation accountAtSite EnglishLanguage "(accountAtSite ?ACCT ?SITE) means that the 
+  &%UserAccount ?ACCT is associate with the &%WebSite ?SITE.")
+    
+
+(=>
+  (accountAtSite ?ACCT ?SITE)
+  (exists (?DATABASE ?SITE_OWNER)
+    (and
+      (instance ?DATABASE Database)
+      (instance ?SITE_OWNER Agent)
+      (possesses ?SITE ?SITE_OWNER)
+      (possesses ?DATABASE ?SITE_OWNER)
+      (part ?ACCT ?DATABASE))))
 
 
 ;; broker
@@ -905,7 +939,7 @@ results, ad, etc.")
 
 (subclass TPS Document)
 
-(documentation TPS EnglishLanguage "Test Proposal Specification.")
+(documentation TPS EnglishLanguage "test proposal specification.")
 
 (termFormat EnglishLanguage TPS "TPS")
 
@@ -918,9 +952,34 @@ results, ad, etc.")
     (and
       (instance ?PLAN Plan)
       (instance ?EXPERIMENT Experiment)
+      (instance ?PROC Process)
       (represents ?PLAN ?PROC)
       (subprocess ?EXPERIMENT ?PROC)
       (containsInformation ?TPS ?PLAN))))
+
+
+;; BRD
+;; -------------------------------------------------------------------
+
+(subclass BRD Document)
+
+(documentation BRD EnglishLanguage "business requirement document")
+
+(termFormat EnglishLanguage BRD "BRD")
+
+(documentation BRD EnglishLanguage "A &%Document that &%containsInformation about a &%Plan for a 
+ &%subProcess of an instance of &%Experimenting.")
+
+(=>
+  (instance ?BRD BRD)
+  (exists (?PLAN ?BU ?PROC)
+    (and
+      (instance ?PLAN Plan)
+      (instance ?BU BusinessUnit)
+      (instance ?PROC Process)
+      (represents ?PLAN ?PROC)
+      (desires ?BU ?PROC)
+      (containsInformation ?BRD ?PLAN))))
 
 
 ;; CBT
@@ -1485,7 +1544,7 @@ registered country and seller registered country are not the same")
     (exists (?SELLING)
       (and
         (instance ?SELLING Selling)
-        (eventLocated ?SELLING ?STORE)))))
+        (intrument ?SELLING ?STORE)))))
 
 (=>
   (and
@@ -2574,11 +2633,230 @@ buy ?ITEM, but did not.")
         (instance ?DEST WebPage)
         (destination ?ACCESSING WebPage)))))
 
-
-
-
-
 ;; Should this just be by session?
+
+
+;; AddToCart
+;; -------------------------------------------------------------------
+
+(subclass AddToCart Process)
+
+(termFormat EnglishLanguage AddToCart "add to cart")
+
+(documentation AddToCart EnglishLanguage "A &%proccess that signifies that the &%agent &%desires to 
+  buy the item which is the &%patient.")
+    
+(=>
+  (and
+    (instance ?ATC AddToCart)
+    (instance ?USER Agent)
+    (instance ?OBJ Object)
+    (agent ?ATC ?USER)
+    (patient ?ATC ?OBJ))
+  (desires ?AGENT
+    (exists (?BUYING)
+      (and
+        (instance ?BUYING Buying)
+        (patient ?BUYING ?OBJ)
+        (agent ?BUYING ?USER)))))
+
+(=>
+  (and
+    (instance ?ATC AddToCart)
+    (instance ?OBJ Object)
+    (patient ?ATC ?OBJ)
+    (agent ?ATC ?USER))
+  (exists (?COLL ?SITE ?AFTER)
+    (and
+      (instance ?COLL Collection)
+      (instance ?SITE Website)
+      (instance ?INTERVAL TimeInterval)
+      (webcart ?USER ?COLL ?SITE)
+      (equal
+        (BeginFn ?INTERVAL)
+        (EndFn ?ATC))
+      (holdsDuring ?AFTER
+        (member ?OBJ ?COLL)))))
+
+
+;; webCart
+;; -------------------------------------------------------------------
+
+(instance webcart TernaryPredicate)
+
+(termFormat EnglishLanguage webcart "web cart")
+
+(domain webcart 1 Agent)
+
+(domain webcart 2 Collection)
+
+(domain webcart 3 WebSite)
+
+(=>
+  (and
+    (webcart ?USER ?COLL ?SITE)
+    (instance ?OBJ Object)
+    (member ?OBJ ?COLL))
+  (desires ?USER
+    (exists (?BUYING)
+      (and
+        (instance ?BUYING Buying)
+        (patient ?BUYING ?OBJ)
+        (agent ?BUYING ?USER)))))
+
+
+;; BusinessAccount
+;; -------------------------------------------------------------------
+
+(instance BusinessAccount AccountAttribute)
+
+(termFormat EnglishLanguage BusinessAccount "business account")
+
+(documentation BusinessAccount EnglishLanguage "This attribute represents that the account is 
+  considered to be a business account.")
+
+
+;; ConsumerAccount
+;; -------------------------------------------------------------------
+
+(instance ConsumerAccount AccountAttribute)
+
+(termFormat EnglishLanguage ConsumerAccount "consumer account")
+
+(documentation ConsumerAccount EnglishLanguage "This attribute represents that the account is 
+  considered to be a consumer account.")
+
+
+;; AccountAttribute
+;; -------------------------------------------------------------------
+
+(subclass AccountAttribute Attribute)
+
+(documentation AccountAttribute EnglishLanguage "A &%Class of &%Attributes pertaining to 
+  &%UserAccounts.")
+
+(termFormat EnglishLanguage AccountAttribute "account attribute")
+
+(=>
+  (and
+    (attribute ?ACCT ?ATTR)
+    (instance ?ATTR AccountAttribute))
+  (instance ?ACCT UserAccount))
+
+
+;; TransactionAttribute
+;; -------------------------------------------------------------------
+
+(subclass TransactionAtrribute Attribute)
+
+(termFormat EnglishLanguage TransactionAttribute "transaction attribute")
+
+(documentation TransactionAttribute EnglishLanguage "A class of &%Attributes pertaining to 
+  &%FinancialTransactions.")
+
+(=>
+  (and
+    (attribute ?TRANS ?ATTR)
+    (instance ?ATTR AccountAttribute))
+  (instance ?TRANS FinancialTransaction))
+    
+
+;; BusinessToBusiness
+;; -------------------------------------------------------------------
+
+(instance BusinessToBusiness TransactionAttribute)
+
+(termFormat EnglishLanguage BusinessToBusiness "business to business transaction")
+
+(documentation BusinessToBusiness EnglishLanguage "A &%FinancialTransaction where both the &%agent
+  and the &%destination &%hasAccount &%BusinessAcounts")
+
+(=>
+  (and
+    (instance ?TRANS FinancialTransaction)
+    (attribute ?TRANS BusinessToBusiness))
+  (exists (?ACCT1 ?ACCT2 ?USER1 ?USER2 ?SITE)
+    (and
+      (instance ?ACCT1 UserAccount)
+      (instance ?ACCT2 UserAccount)
+      (instance ?USER1 Agent)
+      (instance ?USER2 Agent)
+      (instance ?SITE WebSite)
+      (agent ?TRANS ?USER1)
+      (destination ?TRANS ?USER2)
+      (instrument ?TRANS ?SITE)
+      (hasAccount ?USER1 ?ACCT1)
+      (hasAccount ?USER2 ?ACCT2)
+      (accountAtSite ?ACCT1 ?SITE)
+      (accountAtSite ?ACCT2 ?SITE)
+      (attribute ?ACCOUNT1 BusinessAccount)
+      (attribute ?ACCOUNT2 BusinessAccount))))
+
+
+
+;; BusinessToConsumer
+;; -------------------------------------------------------------------
+
+(instance BusinessToConsumer TransactionAttribute)
+
+(termFormat EnglishLanguage BusinessToConsumer "business to consumer transaction")
+
+(documentation BusinessToBusiness EnglishLanguage "A &%FinancialTransaction where the &%agent has a
+  &%BusinessAccount and the &%destination has a &%ConsumerAccount")
+
+(=>
+  (and
+    (instance ?TRANS FinancialTransaction)
+    (attribute ?TRANS BusinessToConsumer))
+  (exists (?ACCT1 ?ACCT2 ?USER1 ?USER2 ?SITE)
+    (and
+      (instance ?ACCT1 UserAccount)
+      (instance ?ACCT2 UserAccount)
+      (instance ?USER1 Agent)
+      (instance ?USER2 Agent)
+      (instance ?SITE WebSite)
+      (agent ?TRANS ?USER1)
+      (destination ?TRANS ?USER2)
+      (instrument ?TRANS ?SITE)
+      (hasAccount ?USER1 ?ACCT1)
+      (hasAccount ?USER2 ?ACCT2)
+      (accountAtSite ?ACCT1 ?SITE)
+      (accountAtSite ?ACCT2 ?SITE)
+      (attribute ?ACCOUNT1 BusinessAccount)
+      (attribute ?ACCOUNT2 ConsumerAccount))))
+
+;; ConsumerToConsumer
+;; -------------------------------------------------------------------
+
+(instance ConsumerToConsumer TransactionAttribute)
+
+(termFormat EnglishLanguage ConsumerToConsumer "consumer to consumer transaction")
+
+(documentation BusinessToBusiness EnglishLanguage "A &%FinancialTransaction where both the &%agent
+  and the &%destination &%hasAccount &%ConsumerAccounts")
+
+(=>
+  (and
+    (instance ?TRANS FinancialTransaction)
+    (attribute ?TRANS ConsumerToConsumer))
+  (exists (?ACCT1 ?ACCT2 ?USER1 ?USER2 ?SITE)
+    (and
+      (instance ?ACCT1 UserAccount)
+      (instance ?ACCT2 UserAccount)
+      (instance ?USER1 Agent)
+      (instance ?USER2 Agent)
+      (instance ?SITE WebSite)
+      (agent ?TRANS ?USER1)
+      (destination ?TRANS ?USER2)
+      (instrument ?TRANS ?SITE)
+      (hasAccount ?USER1 ?ACCT1)
+      (hasAccount ?USER2 ?ACCT2)
+      (accountAtSite ?ACCT1 ?SITE)
+      (accountAtSite ?ACCT2 ?SITE)
+      (attribute ?ACCOUNT1 ConsumerAccount)
+      (attribute ?ACCOUNT2 ConsumerAccount))))
+
+
 
 ;; -------------------------------------------------------------------
 ;; Metrics:
@@ -3214,6 +3492,44 @@ Sold)")
       ?TOTAL_PURCHASE_AMOUNT)
     (equal 
       (GMBFn ?PURCHASES) ?TOTAL_PURCHASE_AMOUNT)))
+
+
+;; JW:
+;; Currently reflects transactionAmount - need purchasePrice specifically, as this can differ from
+;; the price received by the seller.
+;; Should the Definition of GMB be just an item by item level?
+
+
+;; AuctionGMBFn
+;; -------------------------------------------------------------------
+
+(instance AuctionGMBFn UnaryFunction)
+
+(domain AuctionGMBFn 1 Collection)
+
+(range AuctionGMBFn CurrencyMeasure)
+
+(documentation AuctionGMBFn EnglishLanguage "The sum of all purchase prices in a collection of 
+ &%Auctions.")
+
+(termFormat EnglishLanguage AuctionGMBFn "gross merchandise bought in auctions")
+
+(=>
+  (and
+    (instance ?AUCTIONS Collection)
+    (forall (?AUC)
+      (=>
+        (member ?AUC ?AUCTIONS)
+        (instance ?AUC Auction))))
+  (and
+    (monetaryValue (KappaFn ?AMOUNT
+      (and
+        (instance ?AUCTION Auction)
+        (member ?AUCTION ?AUCTIONS)
+        (transactionAmount ?AUCTION ?AMOUNT)))
+      ?TOTAL_PURCHASE_AMOUNT)
+    (equal 
+      (AuctionGMBFn ?AUCTIONSS) ?TOTAL_PURCHASE_AMOUNT)))
 
 
 ;; JW:
