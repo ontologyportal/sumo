@@ -3493,6 +3493,28 @@ with oil-based paints.")
          (instance ?PICTURE PaintedPicture)
          (result ?PAINT ?PICTURE))))
 
+(subclass PaintingDevice Device)
+(documentation PaintingDevice EnglishLanguage "A &%Device used as an &%instrument for &%Painting. Paintbrushes, rollers or sprayers can belong into this class.")
+
+(=>
+  (instance ?PD PaintingDevice)
+  (exists (?PAINT)
+    (and
+      (instance ?PAINT Painting)
+      (capability ?PAINT instrument ?PD))))
+(=>
+  (instance ?PD PaintingDevice)
+  (hasPurpose ?PD
+    (exists (?STUFF ?COVER ?SURF ?OBJ)
+      (and
+        (instance ?STUFF Substance)
+        (instance ?COVER Covering)
+        (instance ?OBJ Object)
+        (surface ?SURF ?OBJ)
+        (agent ?COVER ?PD)
+        (instrument ?COVER ?STUFF)
+        (patient ?COVER ?SURF)))))
+
 (documentation potentialOfHydrogen EnglishLanguage "(potentialOfHydrogen ?SOLUTION ?NUMBER) 
 means that the Solution ?SOLUTION has a pH value of ?NUMBER.  The ph varies 
 between 0 and 14, and it is a measure of the acidity or alkalinity of ?SOLUTION.  
@@ -4402,6 +4424,40 @@ upper deck and lower deck of small boats with a cabin.")
 two things together by means of a movable part which can be tightened 
 or loosened.")
 
+(subclass Washer Device)
+(documentation Washer EnglishLanguage "A thin plate (typically disk-shaped) with a &%Hole (typically in the middle) that is normally used to distribute the load of a threaded &%AttachingDevice, but can have also other functions")
+(=>
+  (instance ?W Washer)
+  (hasPurpose ?W
+    (exists (?O1 ?O2 ?PROC)
+      (and
+        (instance ?O1 CorpuscularObject)
+        (instance ?O2 AttachingDevice)
+        (meetsSpatially ?O1 ?W)
+        (contains ?W ?O2)))))
+        
+(=>
+  (and
+    (instance ?W Washer)
+    (instance ?O1 CorpuscularObject)
+    (instance ?O2 AttachingDevice)
+    (meetsSpatially ?O1 ?W)
+    (contains ?W ?O2))
+  (exists (?PURPOSE)
+    (hasPurpose ?W ?PURPOSE)))
+
+(=>
+  (instance ?W Washer)
+  (attribute ?W RingTorus))
+  
+(subclass Holder Device)
+(documentation Holder EnglishLanguage "A large class of &%Devices whose purpose is to hold 
+something else, i.e. be the &%instrument of a &%Keeping.")
+
+(=>
+   (instance ?DEVICE Holder)
+   (capability Keeping instrument ?DEVICE))
+   
 (subclass Holder Device)
 (documentation Holder EnglishLanguage "A large class of &%Devices whose purpose is to hold 
 something else, i.e. be the &%instrument of a &%Keeping.")
@@ -4484,13 +4540,30 @@ least partially filled by the thing contained.")
    (hasPurpose ?CONTAINER (exists (?OBJ) (contains ?CONTAINER ?OBJ))))
 
 (subclass Bag Container)
-(documentation Bag EnglishLanguage "Any &%Container which is made of &%Fabric.")
+(documentation Bag EnglishLanguage "A &%Pliable &%Container with the purpose of &%Transfer of &%Object.")
+;; MS: Changing the rules so that it becomes a more general term, removing the restriction on material of the container.
+;;(documentation Bag EnglishLanguage "Any &%Container which is made of &%Fabric.")
+;;(=>
+;;  (instance ?BAG Bag)
+;;  (exists (?PART)
+;;    (and
+;;      (part ?PART ?BAG)
+;;      (instance ?PART Fabric))))
+      
 (=>
   (instance ?BAG Bag)
-  (exists (?PART)
-    (and
-      (part ?PART ?BAG)
-      (instance ?PART Fabric))))
+  (attribute ?BAG Pliable))
+
+(=>
+  (instance ?BAG Bag)
+  (hasPurpose ?BAG
+    (exists (?T ?OBJ)
+      (and
+        (instance ?T Transfer)
+        (instance ?OBJ Object)
+        (contains ?BAG ?OBJ)
+        (instrument ?T ?BAG)
+        (patient ?T ?OBJ)))))
 
 (subclass Box Container)
 (documentation Box EnglishLanguage "Any six-sided &%Container whose sides are 
@@ -5304,6 +5377,20 @@ be seen.")
       (EndFn (WhenFn ?REMOVE)) 
       (not (wears ?AGENT ?CLOTHING)))))
 
+;;MS: Moved from Hotel.kif because how general this term is.
+(subclass Cleaning Maintaining)      
+(documentation Cleaning EnglishLanguage "&%Cleaning refers to the &%Process of removing
+dirt and arranging things")
+
+(=>
+  (instance ?X Cleaning)
+  (exists (?OBJ)
+    (and
+      (patient ?X ?OBJ)
+      (holdsDuring
+        (EndFn (WhenFn ?X))
+        (attribute ?OBJ Clean)))))
+
 (subclass Sweeping Removing)
 (documentation Sweeping EnglishLanguage "Removing small particles from the floor by means of 
 a &%Broom.")
@@ -5315,6 +5402,7 @@ a &%Broom.")
   (instance ?B Broom))
 
 (subclass Washing Removing)
+(subclass Washing Cleaning)
 (documentation Washing EnglishLanguage "&%Removing small particles from something by means of 
 a &%Detergent and &%Water.")
 
@@ -5326,6 +5414,17 @@ a &%Detergent and &%Water.")
       (instrument ?P ?D)
       (instance ?W Water)
       (instrument ?P ?W))))
+
+(subclass CleaningDevice Device)
+(documentation CleaningDevice EnglishLanguage "Any &%Device whose purpose is &%Cleaning something.")
+
+(=>
+    (instance ?D CleaningDevice)
+    (hasPurpose ?D
+        (exists (?C)
+            (and
+                (instance ?C Cleaning)
+                (instrument ?C ?D)))))
 
 (subclass Tying Attaching) 
 (documentation Tying EnglishLanguage "The &%Process of tying two things, or two strands of 
@@ -5361,6 +5460,32 @@ piece of &%Fabric to another part by means of needle and thread.")
       (instance ?A MetallicAlloy)
       (connects ?A ?OBJ1 ?OBJ2))))
 
+(subclass SolderingIron ElectricDevice)
+(documentation SolderingIron EnglishLanguage "An &%ElectricDevice
+for melting &%Solder and thereby &%Attaching metallic objects
+to one another.")
+
+(=>
+  (instance ?S Soldering)
+  (exists (?SI)
+    (and
+      (instance ?SI SolderingIron)
+      (instrument ?S ?SI))))
+
+(=>
+  (instance ?SI SolderingIron)
+  (exists (?X ?M)
+    (and
+      (part ?X ?SI)
+      (instance ?M Metal)
+      (material ?M ?X))))
+(=>
+  (instance ?S Soldering)
+  (exists (?M)
+    (and
+      (instance ?M Melting)
+      (subProcess ?M ?S))))
+      
 ;;; Start of Pathologies and Diseases
 
 ;; NS: TO DO: In general, it would be better to treat all
@@ -7985,6 +8110,7 @@ etc.")
         (instance ?H Hand)))))
 
 (subclass Glue Mixture)
+(subclass Glue AttachingDevice)
 (documentation Glue EnglishLanguage "Any &%Mixture whose purpose is to be used as the &%instrument 
 of &%Attaching one thing to another.")
 
@@ -8331,6 +8457,13 @@ Rubber is essentially a polymer of isoprene. ")
     (and
       (instance ?T BotanicalTree)
       (part ?R ?T))))
+
+(subclass Plastic Hydrocarbon)
+(documentation Plastic EnglishLanguage "Any of a large set of hydrocarbon materials, in 
+the form of polymers, which are usually derived from &%Petroleum products.  
+Plastics have a tremendous variety of material properties including a wide 
+range of values for opacity, density, ductility etc. and are pervasive in 
+modern &%Manufacture (-ing).")
 
 (subclass Cellulose PlantSubstance)
 (subclass Cellulose Carbohydrate)
@@ -21613,6 +21746,26 @@ of &%Devices that allow water to be released when a &%Fire is detected")
       (instance ?WM WaterMotion)
       (origin ?WM ?X)
       (causes ?DISCOVER ?WM))))
+
+(subclass FireExtinguisher Device)
+(documentation FireExtinguisher EnglishLanguage "A &%Device used to &%StopFn small &%Fire which is possible for &%Human to carry")
+(=>
+  (instance ?FE FireExtinguisher)
+  (hasPurpose ?FE
+    (exists (?PROC)
+      (and
+        (instance ?PROC 
+          (StopFn Fire))
+        (instrument ?PROC ?FE)))))
+
+(=>
+  (instance ?FE FireExtinguisher)
+  (exists (?PERSON ?CARRY)
+    (and
+      (instance ?PERSON Human)
+      (instance ?CARRY Carrying)
+      (patient ?CARRY ?FE)
+      (capability ?CARRY instrument ?PERSON))))
       
 (subclass IceMachine Machine)
 (documentation IceMachine EnglishLanguage "&%IceMachine is a type of &%Machine that
