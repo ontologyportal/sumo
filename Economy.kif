@@ -1783,7 +1783,7 @@ the &%Process ?PROCESS produces some result(s) of the type ?TYPE.")
 ;(industryProductType Millwork WoodProduct)
 
 ;; Machinery Industry (naics.kif): &%MachineryManufacturing
-(industryProductType MachineryManufacturing Machinery)
+(industryProductType MachineryManufacturing Machine)
 
 ;; TERM
 (instance MetallurgyIndustry IndustryAttribute)
@@ -1794,7 +1794,7 @@ the &%Process ?PROCESS produces some result(s) of the type ?TYPE.")
   (attribute ?ORG MetallurgyIndustry))
 
 ;; Metal Machine Tool Industry (naics.kif): &%MetalworkingMachineryManufacturing
-(industryProductType MetalworkingMachineryManufacturing MachineTool)
+;;(industryProductType MetalworkingMachineryManufacturing MachineTool)
 
 (instance MiningIndustry IndustryAttribute)
 (subAttribute MiningExceptOilAndGas MiningIndustry)
@@ -3764,6 +3764,11 @@ during the calendar &%Year indicated by ?YEAR.")
 
 ;;----------------------------------------------------------------------------
 
+
+;;EconomicRole - a class made for better organisation of the instances.
+(subclass EconomicRole RelationalAttribute)
+(documentation EconomicRole EnglishLanguage "A &%Class of &%RelationalAttributes that specify the &%EconomicRole of a &%Object or &%Process in the economy.")
+
 ;; A.  Agricultural Products
 ; 10/07/2011: Products are manufactured by their logical definition in Merge.kif 12976-12981, so we have  an issue with AgriculturalProducts.
 ;  Adam says we comment it out and introduce instead AgriculturalArtifact subclass of Artifact, in Society.kif
@@ -4601,18 +4606,53 @@ have different boiling points.  (from Wikipedia)")
 ;or assembled in factories or other manufacturing processes, 
 ;in contrast to &%AgriculturalProducts.")
 
-(subclass CapitalGood Product)
+;;MS: The problematic definition of Product could be solved by changing it from a class to an attribute. For instance I have changed the term CapitalGood from a class to an Attribute, it is more about the manner how something is used and most if not all of the lowlevel subclass are not neccessary used as CapitalGood. The same goes for Product, which could be IMHO maybe even made a relation.
 
-(documentation CapitalGood EnglishLanguage "&%CapitalGoods are those that are used 
+;;(subclass CapitalGood Product)
+;;(documentation CapitalGood EnglishLanguage "&%CapitalGoods are those that are used 
 in the production of other &%Products.  For example, raw materials 
 from which end products are manufactured, or machines and other 
 structures used in the production process.")
 
-(subclass IndustrialRawMaterial CapitalGood)
+(instance MeanOfProduction EconomicRole)
+(documentation MeanOfProduction EnglishLanguage "Means of production refers to physical, non-human inputs used in production—the factories, machines, and tools used to produce wealth — along with both infrastructural capital and natural capital. This includes the classical factors of production minus financial capital and minus human capital. They include two broad categories of objects: instruments of labour (tools, factories, infrastructure, etc.) and subjects of labour (natural resources and raw materials). (Wikipedia)")
+(=>
+  (attribute ?X MeanOfProduction)
+  (hasPurpose ?X
+    (or
+      (exists (?MAKE ?PRODUCT)
+        (and
+          (instance ?MAKE Making)
+          (involvedInEvent ?MAKE ?X)
+          (not
+            (result ?MAKE ?X))
+          (instance ?PRODUCT Artifact)
+          (result ?MAKE ?PRODUCT)
+          (hasPurpose ?PRODUCT
+            (exists (?SELL)
+              (and
+                (instance ?SELL Selling)
+                (patient ?SELL ?PRODUCT))))))
+      (exists (?SERVICE)
+        (and
+          (instance ?SERVICE CommercialService)
+          (involvedInEvent ?SERVICE ?X))))))
 
-(subclass IndustrialSupply CapitalGood)
+;;(subclass IndustrialRawMaterial CapitalGood)
+
+(subAttribute IndustrialRawMaterial MeanOfProduction)
+(=>
+  (attribute ?X IndustrialRawMaterial)
+  (hasPurpose ?X
+    (exists (?M)
+      (and
+        (instance ?M Manufacture)
+        (resource ?M ?X)))))
+        
+;(subclass IndustrialSupply CapitalGood)
 ;(subclass IndustrialSupply Product)
 
+(subAttribute IndustrialSupply MeanOfProduction)
 (documentation IndustrialSupply EnglishLanguage "&%IndustrialSupply is the class of 
 products that are used in industry but which are not raw materials 
 for products being manufactured.  &%IndustrialSupply includes maintenance, 
@@ -4624,15 +4664,25 @@ other industrial items.")
 (relatedInternalConcept IndustrialMachineryAndEquipmentWholesalers IndustrialSupply) 
 (relatedInternalConcept MachineryEquipmentAndSuppliesWholesalers IndustrialSupply)
 
-(subclass Machinery IndustrialSupply)
-(subclass Machinery Device)
-(subclass Machine Machinery)
+(subAttribute Machinery IndustrialSupply)
+;;(subclass Machinery IndustrialSupply)
+;;(subclass Machinery Device)
+;;(subclass Machine Machinery)
 
 (documentation Machinery EnglishLanguage "&%Machinery is the class of products 
 that includes &%Machines, tools, and machine parts used in industrial 
 or other commercial processes.")
 
-(subclass MachineTool Machinery)
+
+(=>
+  (attribute ?X Machinery)
+  (hasPurpose ?X
+    (exists (?M)
+      (and
+        (instance ?M Manufacture)
+        (instrument ?M ?X)))))
+
+;;(subclass MachineTool Machinery)
 
 ;(subclass ChemicalProduct ManufacturedProduct)
 (subclass ChemicalProduct CompoundSubstance)
@@ -4805,6 +4855,52 @@ compost, or they can be entirely synthetic, e.g. ammonium nitrate.")
 (subclass PhosphoricAcid CompoundSubstance)
 (relatedInternalConcept PhosphoricAcid Phosphorus)
 
+(subclass Lathe Machine)
+(documentation Lathe EnglishLanguage "A &%Machine desighned to shape (or change the surface of) a &%Object made of different materials by means of &%Rotating the &%Object against a &%Device making the change.")
+(=>
+  (instance ?L Lathe)
+  (hasPurpose ?L
+    (exists (?PROC ?OBJ)
+      (and
+        (instrument ?PROC ?L)
+        (patient ?PROC ?OBJ)
+        (or
+          (instance ?PROC ShapeChange)
+          (instance ?PROC SurfaceChange))))))
+(=>
+  (and
+    (instance ?L Lathe)
+    (instance ?OBJ Object)
+    (instrument ?PROC ?L)
+    (patient ?PROC ?OBJ))
+  (exists (?R)
+    (and
+      (instance ?R Rotating)
+      (subProcess ?PROC ?R)
+      (patient ?R ?OBJ)
+      (agent ?R ?L))))
+      
+(subclass Planer Machine)
+(subclass Planer CuttingDevice)
+(documentation Planer EnglishLanguage "A &%Machine designed to produce a &%Flat surface on a wooden board.")
+;;Maybe it would be worth reviewing the definition of Flat and LevelShape.
+(=>
+  (instance ?PLANER Planer)
+  (hasPurpose ?PLANER
+    (exists (?CUT ?OBJ1 ?OBJ2)
+      (and
+        (instance ?CUT Cutting)
+        (instrument ?CUT ?PLANER)
+        (resource ?CUT ?OBJ1)
+        (instance ?OBJ1 Object)
+        (material ?OBJ1 Wood)
+        (result ?CUT ?OBJ2)
+        (instance ?OBJ2 Object)
+        (material ?OBJ2 Wood)
+        (attribute ?OBJ2 Flat)
+        (height ?OBJ1 ?H1)
+        (height ?OBJ2 ?H2)
+        (greaterThan ?H1 ?H2)))))
 ;;----------------------------------------------------------------------
 
 ;;  D.  Manufactured Goods (2): Consumer Goods
@@ -4893,6 +4989,17 @@ gems, and other non-cloth materials.")
 ;(subclass PharmaceuticalProduct ManufacturedProduct)
 ;(relatedInternalConcept PharmaceuticalProduct ChemicalProduct)
 ;(industryProductType PharmaceuticalPreparationManufacturing PharmaceuticalProduct)
+
+(subclass Veneer Artifact)
+(documentation Veneer EnglishLanguage "A thin layer covering an &%Object (like &%Furniture) or a &%Wall for decorative or productive purposes.")
+(=>
+  (instance ?V Veneer)
+  (attribute ?V Flat))
+(=>
+  (instance ?V Veneer)
+  (hasPurpose ?V
+    (exists (?OBJ)
+      (covers ?V ?OBJ))))
 
 ;;---------------------------------------------------------------------
 ;;
