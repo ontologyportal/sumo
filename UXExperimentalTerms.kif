@@ -303,6 +303,36 @@
       (agent ?PROC ?OWNER))))
 
 
+;; FinalValueFee
+;; -------------------------------------------------------------------
+
+(subclass FinalValueFee ChargingAFee)
+
+(termFormat EnglishLanguage FinalValueFee "final fee")
+
+(documentation FinalValueFee EnglishLanguage "A type of &%ChargingAFee where the &%agent of the 
+ &%FinalValueFee is the &%Agent who &%possesses a %&WebSite where a &%WebListing is &%hostedOn. A 
+ &%Selling of the &%patient of the listing where the &%WebSite is the &%eCommerceSite of the selling
+ &%causes the &%FinalValueFee.")
+
+(=>
+  (instance ?CHARGE FinalValueFee)
+  (exists (?ADVERT ?SELLING ?OWNER ?ITEM ?SITE)
+    (and
+      (instance ?ADVERT WebListing)
+      (instance ?SELLING Selling)
+      (instance ?OWNER Agent)
+      (instance ?ITEM Physical)
+      (instance ?ADVERT WebListing)
+      (patient ?ADVERT ?ITEM)
+      (patient ?SELLING ?ITEM)
+      (causes ?SELLING ?CHARGE)
+      (agent ?CHARGE ?OWNER)
+      (hostedOn ?ADVERT ?SITE)
+      (possesses ?OWNER ?SITE)
+      (eCommerceSite ?SELLING ?OWNER))))
+
+
 ;; ListOnSite
 ;; -------------------------------------------------------------------
 
@@ -1062,6 +1092,26 @@ buy ?ITEM, but did not.")
   (registeredUser ?USER ?SITE))
 
 
+;; confirmedRegisteredUser
+;; -------------------------------------------------------------------
+
+(instance confirmedRegistedUser BinaryPredicate)
+
+(domain confirmedRegisteredUser 1 Agent)
+
+(domain confirmedRegisteredUser 2 Website)
+
+(termFormat EnglishLanguage confirmedRegisteredUser "confirmed registed user")
+
+(documentation confirmedRegisteredUser EnglishLanguage "(confirmedRegisteredUser ?AGENT ?SITE) means
+ that the &%Agent ?Agent is a &%registeredUser of &%WebSite ?SITE, and has confirmed that 
+ registration by responding to a registration email.")
+
+(=>
+  (confirmedRegisteredUser ?USEr ?SITE)
+  (registeredUser ?USER ?SITE))
+
+
 ;; webSales
 ;; -------------------------------------------------------------------
 
@@ -1182,9 +1232,10 @@ buy ?ITEM, but did not.")
 
 (termFormat EnglishLanguage SellersOtherItemsFn "sellers other items")
 
-(documentation SellersOtherItemsFn EnglishLanguage "(SellersOtherItemsFn ?AGENT ?SITE ?LISTING ?TIMEPOINT)
- returns a &%Collection of all &%WebListings except ?LISTING &%hostedOn ?SITE where ?AGENT is the
- &%listingSeller and where ?TIMEPOINT is a &%Temporal part of &%WhenFn of those &%WebListings.")
+(documentation SellersOtherItemsFn EnglishLanguage "(SellersOtherItemsFn ?AGENT ?SITE ?LISTING 
+ ?TIMEPOINT) returns a &%Collection of all &%WebListings except ?LISTING &%hostedOn ?SITE where 
+ ?AGENT is the &%listingSeller and where ?TIMEPOINT is a &%Temporal part of &%WhenFn of those 
+ &%WebListings.")
 
 (=>
   (and
@@ -1426,6 +1477,27 @@ to the user. These formulas are part of the user's &%VistorProfile.")
           (patient ?BUYING ?OBJ)
           (agent ?BUYING ?USER))))
     Likely))
+
+
+;; customerValue
+;; -------------------------------------------------------------------
+
+(instance customerValue TernaryRelation)
+
+(termFormat EnglishLanguage customerValue "customer value")
+
+(domain customerValue 1 Human)
+
+(domain customerValue 2 Business)
+
+(domain customerValue 3 CurrencyMeasure)
+
+(documentation customerValue EnglishLanguage "(customerValue ?HUM ?BUS ?AMOUNT) means that the 
+ &%CurrencyMeasure ?AMOUNT is a representation of how much the &%Human ?HUM (who is presumably a 
+ current or potential customer) is worth to the &%Business ?BUS.")
+
+;; JW: Blank for now, as this is pretty subjective to each busines. Would be nice to relate it in 
+;; some way to &%monetaryValue, but that is a universal assessment of value.
 
 
 ;; -------------------------------------------------------------------
@@ -2368,6 +2440,41 @@ description of the &%patient of the listing.")
               (inScopeOfInterest ?DATA ?AGENT)
               (component ?DATA ?WAREHOUSE)))))))
 
+;; siteCatalog
+;; -------------------------------------------------------------------
+
+(instance siteCatalog BinaryPredicate)
+
+(domain siteCatalog 1 Database)
+
+(domain siteCatalog 2 WebSite)
+
+(documentation siteCatalog EnglishLanguage "(siteCatalog ?DATABASE ?WEBSITE) relates a &%Database 
+ and a &%WebSite, and signifies that ?DATABASE has a &%part which &%represents a &%Collection of 
+ &%Physicals which have the capability of being the &%patient of a &%Buying where ?WEBSITE is the 
+ &%eCommerceSite of the &%Buying.")
+
+(termFormat EnglishLanguage siteCatalog "site catalog")
+
+(=>
+  (siteCatalog ?DATABASE ?WEBSITE)
+  (exists (?PART)
+    (and
+      (instance ?PRODUCTS Collection)
+      (part ?PART ?DATABASE)
+      (represents ?PART ?PRODUCTS)
+      (forall (?MEMBER)
+        (=>
+          (member ?MEMBER ?PRODUCTS)
+          (and
+            (instance ?MEMBER Physical)
+            (capability 
+              (KappaFn ?BUYING
+                (and
+                  (instance ?BUYING Buying)
+                  (eCommerceSite ?BUYING ?WEBSITE)))
+              patient ?MEMBER)))))))
+
 
 ;; -------------------------------------------------------------------
 ;; SEARCH
@@ -2546,6 +2653,34 @@ description of the &%patient of the listing.")
       (agent ?SEARCHATTEMPT ?AGENT))))
 
 
+;; searchQueryRewrite
+;; -------------------------------------------------------------------
+
+(instance searchQueryRewrite BinaryPredicate)
+
+(documentation searchQueryRewrite EnglishLanguage "(SearchQueryRewrite ?QUERY1 ?QUERY2) means that 
+  the &%SearchQuery ?QUERY2 occured before the &SearchQuery ?QUERY1, and they both represent the
+  same &%SearchAttempt.")
+
+(termFormat EnglishLanguage searchQueryRewrite "search query rewrite")
+
+(domain searchQueryRewrite 1 SearchQuery)
+
+(domain searchQueryRewrite 2 SearchQuery)
+
+(=>
+  (searchQueryRewrite ?QUERY1 ?QUERY2)
+  (exists (?SEARCHATTEMPT)
+      (and    
+        (instance ?SEARCHATTEMPT SearchAttempt)
+        (represents ?QUERY1 ?SEARCHATTEMPT)
+        (represents ?QUERY2 ?SEARCHATTEMPT))))
+
+(=>
+  (searchQueryRewrite ?QUERY1 ?QUERY2)
+  (earlier (WhenFn ?QUERY2) (WhenFn ?QUERY1)))
+
+
 ;; SRPResults
 ;; -------------------------------------------------------------------
 
@@ -2659,6 +2794,12 @@ description of the &%patient of the listing.")
       (instance ?INTEREST Entity)
       (inScopeOfInterest ?BU ?INTEREST))))
 
+(=>
+  (and
+    (businessUnit ?ORG ?BUSINESS)
+    (member ?MEMBER ?ORG))
+  (instance ?MEMBER Human))
+
 
 ;; BusinessRequirementDocument
 ;; -------------------------------------------------------------------
@@ -2682,7 +2823,7 @@ description of the &%patient of the listing.")
       (containsInformation ?BRD ?PLAN))))
 
 
-;; CrossFunction
+;; CrossFunctionalTeam
 ;; -------------------------------------------------------------------
 
 (subclass CrossFunctionalTeam Organization)
@@ -2840,9 +2981,110 @@ description of the &%patient of the listing.")
       (containsInformation ?TPS ?PLAN))))
 
 
+;; DatabaseAdministrator
+;; -------------------------------------------------------------------
+
+(instance DatabaseAdministrator Position)
+
+(termFormat EnglishLanguage DatabaseAdministrator "database administrator")
+
+(documentation DatabaseAdministrator EnglishLanguage "A person responsible for the installation, 
+ configuration, upgrade, administration, monitoring and maintenance of databases in an 
+ organization.")
+
+
+;; CustomerSupport
+;; -------------------------------------------------------------------
+
+(subclass CustomerSupport Organization)
+
+(termFormat EnglishLanguage CustomerSupport "customer support")
+
+(documentation CustomerSupport EnglishLanguage "An &%Organization which is a &%businessUnit of a 
+ company, that &%hasPurpose of having its &%members be &%customerRepresentatives.")
+    
+(=>
+  (instance ?CS CustomerSupport)
+  (exists (?ORG)
+    (and
+      (instance ?ORG Organization)
+      (businessUnit ?CS ?ORG))))
+
+(=>
+  (instance ?CS CustomerSupport)
+  (hasPurpose ?CS
+    (exists (?MEMBER ?CUSTOMER ?ORG)
+      (and
+        (instance ?MEMBER CognitiveAgent)
+        (instance ?CUSTOMER CognitiveAgent)
+        (instance ?ORG Organization)
+        (businessUnit ?CS ?ORG)
+        (member ?MEMBER ?CS)
+        (customerRepresentative ?MEMBER ?CUSTOMER ?ORG)))))
+
+
 ;; -------------------------------------------------------------------
 ;; Metrics
 ;; -------------------------------------------------------------------
+
+
+;; conversionEvent
+;; -------------------------------------------------------------------
+
+(instance conversionEvent BinaryPredicate )
+
+(termFormat EnglishLanguage conversionEvent "conversionEvent")
+
+(documentation conversionEvent EnglishLanguage "(conversionEvent ?EXP ?PROC) specifies that a 
+ &%Process ?PROC is considered a conversionEvent, i.e. a success event, in the context of 
+ &%Experimenting ?EXP")
+
+(domain conversionEvent 1 Experimenting)
+
+(domain conversionEvent 2 Process)
+
+
+;; ConversionRateFn
+;; -------------------------------------------------------------------
+
+(instance ConversionRateFn UnaryFunction)
+
+(termFormat EnglishLanguage ConversionRateFn "conversion rate")
+
+(documentation ConversionRateFn EnglishLanguage "(ConversionRateFn ?COLL) returns the Quantity 
+ representing the &%CardinalityFn of the &%Collection of &%WebListings ?COLL wich are are successful
+ (i.e. there was a &%Buying of the item which is the &%patient of the listing) divided by the 
+ &%CardinalityFn of the whole collection.")
+
+(domain ConversionRateFn 1 Collection)
+
+(range ConversionRateFn Quantity)
+
+(=>
+  (and
+    (instance ?COLL Collection)
+    (forall (?MEMBER)
+      (=>
+        (member ?MEMBER ?COLL)
+        (instance ?MEMBER WebListing))))
+  (equal
+    (DivisionFn 
+      (CardinalityFn
+        (KappaFn (?LISTING)
+          (and
+            (instance ?LISTING WebListing)
+            (instance ?SITE WebSite)
+            (instance ?ITEM Physical)
+            (member ?LISTING ?COLL)
+            (patient ?LISTING ?ITEM)
+            (hostedOn ?LISTING ?SITE)
+            (exists (?BUYING)
+              (and
+                (instance ?BUYING Buying)
+                (patient ?BUYING ?ITEM)
+                (eCommerceSite ?BUYING ?SITE))))))
+      (CardinalityFn ?COLL))
+    (BidCountFn ?COLL)))
 
 
 ;; BoughtItemsFn
@@ -3457,6 +3699,149 @@ description of the &%patient of the listing.")
         ?NEWSELLERS))))
 
 
+;; firstTimeBuyers
+;; -------------------------------------------------------------------
+
+(instance firstTimeBuyers TernaryPredicate)
+
+(domain firstTimeBuyers 1 TimeInterval)
+
+(domain firstTimeBuyers 2 WebSite)
+
+(domain firstTimeBuyers 3 Collection)
+
+(termFormat EnglishLanguage firstTimeBuyers "first time buyers")
+
+(documentation firstTimeBuyers EnglishLanguage "(firstTimeBuyers ?INT ?SITE ?COLL) means that ?COLL
+ is the &%Collection of &%Agents who are &%agents of &%Buyings where the &%Website ?SITE is the
+ &%eCommerceSite ?SITE &%during the &%TimeInterval ?INT, where no &%Buyings exist with the same
+ conditions prior to ?INT.")
+
+(=>
+  (and
+    (firstTimeBuyers ?INT ?SITE ?COLL)
+    (member ?MEMBER ?COLL))
+  (instance ?MEMBER Agent))
+
+(=>
+  (and
+    (firstTimeBuyers ?INT ?SITE ?COLL)
+    (member ?MEMBER ?COLL))
+  (exists (?BUYING)
+    (and
+      (instance ?BUYING Buying)
+      (agent ?BUYING ?MEMBER)
+      (eCommerceSite ?BUYING ?SITE)
+      (during (WhenFn ?BUYING) ?INTE))))
+
+(=>
+  (and
+    (firstTimeBuyers ?INT ?SITE ?COLL)
+    (member ?MEMBER ?COLL))
+  (not
+    (exists (?BUYING)
+      (and
+        (instance ?BUYING Buying)
+        (agent ?BUYING ?MEMBER)
+        (eCommerceSite ?BUYING ?SITE)
+        (earlier (WhenFn ?BUYING) ?INT)))))
+
+
+;; firstTimeSellers
+;; -------------------------------------------------------------------
+
+(instance firstTimeSellers TernaryPredicate)
+
+(domain firstTimeSellers 1 TimeInterval)
+
+(domain firstTimeSellers 2 WebSite)
+
+(domain firstTimeSellers 3 Collection)
+
+(termFormat EnglishLanguage firstTimeSellers "first time buyers")
+
+(documentation firstTimeSellers EnglishLanguage "(firstTimeSellers ?INT ?SITE ?COLL) means that 
+ ?COLL is the &%Collection of &%Agents who are &%agents of &%Sellings where the &%Website ?SITE is 
+ the &%eCommerceSite ?SITE &%during the &%TimeInterval ?INT, where no &%Selling exist with the same
+ conditions prior to ?INT.")
+
+(=>
+  (and
+    (firstTimeSellers ?INT ?SITE ?COLL)
+    (member ?MEMBER ?COLL))
+  (instance ?MEMBER Agent))
+
+(=>
+  (and
+    (firstTimeSellers ?INT ?SITE ?COLL)
+    (member ?MEMBER ?COLL))
+  (exists (?SELLING)
+    (and
+      (instance ?SELLING Selling)
+      (agent ?SELLING ?MEMBER)
+      (eCommerceSite ?SELLING ?SITE)
+      (during (WhenFn ?SELLING) ?INTE))))
+
+(=>
+  (and
+    (firstTimeSellers ?INT ?SITE ?COLL)
+    (member ?MEMBER ?COLL))
+  (not
+    (exists (?SELLING)
+      (and
+        (instance ?SELLING Selling)
+        (agent ?SELLING ?MEMBER)
+        (eCommerceSite ?SELLING ?SITE)
+        (earlier (WhenFn ?SELLING) ?INT)))))
+
+
+;; newRegisteredUsers
+;; -------------------------------------------------------------------
+
+(instance newRegisteredUsers TernaryPredicate)
+
+(domain newRegisteredUsers 1 TimeInterval)
+
+(domain newRegisteredUsers 2 WebSite)
+
+(domain newRegisteredUsers 3 Collection)
+
+(termFormat EnglishLanguage newRegisteredUsers "new registered users")
+
+(documentation newRegisteredUsers EnglishLanguage "(newRegisteredUsers ?INT ?SITE ?COLL) means that 
+ ?COLL is the &%Collection of &%Agents who are &%registeredUsers of the &%WebSite ?SITE during some
+ &%TimeInterval &%during the &%TimeInterval ?INT, but were not during an &%earlier &%TimeInterval.")
+
+(=>
+  (and
+    (newRegisteredUsers ?INT ?SITE ?COLL)
+    (member ?MEMBER ?COLL))
+  (instance ?MEMBER Agent))
+
+(=>
+  (and
+    (newRegisteredUsers ?INT ?SITE ?COLL)
+    (member ?MEMBER ?COLL))
+  (exists (?DURING)
+    (and
+      (instance ?DURING TimeInterval)
+      (during ?DURING ?INT1)
+      (holdsDuring ?DURING
+        (registeredUser ?MEMBER ?SITE)))))
+
+(=>
+  (and
+    (newRegisteredUsers ?INT1 ?SITE ?COLL)
+    (member ?MEMBER ?COLL))
+  (not
+    (exists (?INT2)
+      (and
+        (instance ?INT2 TimeInterval)
+        (earlier ?INT2 ?INT1)
+        (holdsDuring ?INT2
+          (registeredUser ?MEMBER ?SITE))))))
+
+
 ;; SCRFn
 ;; -------------------------------------------------------------------
     
@@ -3591,7 +3976,7 @@ description of the &%patient of the listing.")
 
 
 ;; -------------------------------------------------------------------
-;; EXPERIMENT
+;; EXPERIMENTING
 ;; -------------------------------------------------------------------
 
 ;; Additions to the definition of &%Experimenting (&%result of experimenting)
@@ -3740,6 +4125,22 @@ description of the &%patient of the listing.")
         (experimentalVariableProcess ?EXPERIMENT ?PROCESS)))))
 
 
+;; experimenter
+;; -------------------------------------------------------------------
+
+(instance experimenter CaseRole)
+
+(domain experimenter 1 Experimenting)
+
+(domain experimenter 2 CognitiveAgent)
+
+(termFormat EnglishLanguage experimenter "experimental subject")
+
+(documentation experimenter EnglishLanguage "The &%CaseRole (experimenter ?EXPERIMENT
+ ?HUMAN) means that ?HUMAN is one of the &%CognitiveAgents either conducting or analyzing the
+ &%Experimenting ?EXPERIMENT.")
+
+
 ;; treatmentGroup
 ;; -------------------------------------------------------------------
 
@@ -3780,7 +4181,7 @@ description of the &%patient of the listing.")
 
 (domain treatedUser 2 Experimenting)
 
-(documentation treatedUser EnglishLanguage "A GUID/UID qualified for the experiment. (treatedUser
+(documentation treatedUser EnglishLanguage  "(treatedUser
  ?VISITOR ?EXPERIMENT) means that ?VISITOR experienced a Qualifying Event of ?EXPERIMENT.")
 
 (instance treatedUser BinaryPredicate)
@@ -3791,6 +4192,10 @@ description of the &%patient of the listing.")
     (and
       (member ?EVENT (QualifyingEventsFn ?EXPERIMENT))
       (experiencer ?VISITOR ?EVENT))))
+
+(=>
+  (treatedUser ?VISITOR ?EXPERIMENT)
+  (experimentalSubject ?VISTOR ?EXPERIMENT))
 
 
 ;; experimentID
@@ -3842,8 +4247,8 @@ description of the &%patient of the listing.")
 
 (domain qualifiedExperiment 2 Human)
 
-(documentation qualifiedExperiment EnglishLanguage "(qualifiedExperiment ?EXPERIMENT ?HUMAN means that
- ?HUMAN has the capabilty of being the experimentalSubject of ?EXPERIMENT")
+(documentation qualifiedExperiment EnglishLanguage "(qualifiedExperiment ?EXPERIMENT ?HUMAN means 
+ that ?HUMAN has the capabilty of being the experimentalSubject of ?EXPERIMENT")
 
  (=>
   (qualifiedExperiment ?EXPERIMENT ?VISITOR)
@@ -3924,6 +4329,29 @@ description of the &%patient of the listing.")
         (experiencer ?VISITOR ?EVENT)))))
 
 
+;; treatedPageDefinition
+;; -------------------------------------------------------------------
+(domain treatedPageDefinition 1 Experimenting)
+
+(domain treatedPageDefinition 2 Formula)
+
+(termFormat EnglishLanguage treatedPageDefinition "treated page definition")
+
+(instance treatedPageDefinition BinaryPredicate)
+
+(documentation treatedPageDefinition EnglishLanguage "(treatedPageDefinition ?EXPERIMENT ?FORMULA)
+ means that if the the &%Formula ?FORMULA &%refers to a &%WebPage, that &%WebPage is a &%treatedPage
+ in the context of the &%Experimenting ?EXPERIMENT.")
+
+(=>
+  (and
+    (treatedPageDefinition ?EXPERIMENT ?FORMULA)
+    (instance ?PAGE WebPage)
+    (refers ?FORMULA ?PAGE))
+  (treatedPage ?PAGE ?EXPERIMENT))
+
+
+
 ;; QPViewsFn
 ;; -------------------------------------------------------------------
 
@@ -3973,21 +4401,21 @@ description of the &%patient of the listing.")
  &%experimentalVariableProcesses of ?EXPERIMENT.")
 
 (=>
-  (and
-    (instance ?EXPERIMENT Experimenting)
-    (instance ?QUALIFYING_EVENTS Collection)
-    (forall (?EVENT)
-      (<=>
-        (and
-          (instance ?EVENT Process)
-          (or
-            (experimentalControlProccess ?EXPERIMENT ?EVENT )
-            (experiementalVariableProccess ?EXPERIMENT ?EVENT)))
-        (member ?EVENT ?QUALIFYING_EVENTS))))
-  (equal
-    (QualifyingEventsFn ?EXPERIMENT)
-    (?QUALIFYING_EVENTS)))
-
+  (instance ?EXPERIMENT Experimenting)
+  (exists (?QUALIFYING_EVENTS)
+    (and
+      (instance ?QUALIFYING_EVENTS Collection)
+      (forall (?EVENT)
+        (=>
+          (and
+            (instance ?EVENT Process)
+            (or
+              (experimentalControlProccess ?EXPERIMENT ?EVENT )
+              (experiementalVariableProccess ?EXPERIMENT ?EVENT)))
+          (member ?EVENT ?QUALIFYING_EVENTS)))
+      (equal
+        (QualifyingEventsFn ?EXPERIMENT)
+        (?QUALIFYING_EVENTS)))))
 
 
 ;; QualifiedTreatmentsFn
@@ -4029,6 +4457,7 @@ description of the &%patient of the listing.")
     (equal
       (QualifiedTreatmentsFn ?VISITOR)
       ?COLL))
+
 
 ;; TreatedUsersFn
 ;; -------------------------------------------------------------------
@@ -4085,6 +4514,75 @@ description of the &%patient of the listing.")
     (EndFn (WhenFn ?EXP))))
 
 
+;; exclusiveEvent
+;; -------------------------------------------------------------------
+
+(instance exclusiveEvent BinaryPredicate)
+
+(termFormat EnglishLanguage exclusiveEvent "exclusive")
+
+(domain exclusiveEvent 1 Experiementing)
+
+(domain exclusiveEvent 2 Process)
+
+(documentation exclusiveEvent EnglishLanguage "(exclusiveEvent ?EXP ?PROC) specifies that &%Process
+ ?PROC is a &%SuccessEvent of &%Experimenting ?EXP and that it occurs after an
+ &%ExperimentalVariableProcess where a &%treatedUser of ?EXP is an &%experiencer of ?PROC
+ and that &%experimentalVariableProcess. Further, some &%experimenter &%believes it &%Likely that 
+ the &%experimentalVariableProcess was in some part responsible for &%causing ?PROC.")
+
+(=>
+  (exclusiveEvent ?EXP ?PROC)
+  (successEvent ?EXP ?PROC))
+
+(=>
+  (exclusiveEvent ?EXP ?PROC)
+  (exists (?EVP ?AGENT)
+    (and
+      (instance ?EVP Process)
+      (instance ?AGENT Agent)
+      (treatedUser ?AGENT ?EXP)
+      (experimentalVariableProcess ?EXP ?EVP)
+      (experiencer ?PROC ?AGENT)
+      (experiencer ?EVP ?AGENT)
+      (earlier (WhenFn ?EVP) (WhenFn ?PROC)))))
+
+(=>
+  (and
+    (instance ?EVP Process)
+    (instance ?AGENT Agent)
+    (instance ?EXP Experimenting)
+    (treatedUser ?AGENT ?EXP)
+    (experimentalVariableProcess ?EXP ?EVP)
+    (experiencer ?PROC ?AGENT)
+    (experiencer ?EVP ?AGENT)
+    (exclusiveEvent ?EXP ?PROC))
+  (exists (?EXPERIMENTER)
+    (and
+      (instance ?EXPERIMENTER Agent)
+      (experimenter ?EXP ?EXPERIMENTER)
+      (believes ?EXPERIMENTER
+        (modalAttribute
+          (causes ?EVP ?PROC)
+        Likely)))))
+
+
+;; successEvent
+;; -------------------------------------------------------------------
+
+(instance successEvent BinaryPredicate)
+
+(termFormat EnglishLanguage successEvent "exclusive")
+
+(domain successEvent 1 Experiementing)
+
+(domain successEvent 2 Process)
+
+(documentation successEvent EnglishLanguage "(successEvent ?EXP ?PROC) specifies that &%Process
+ ?PROC is a &%SuccessEvent of &%Experimenting - i.e. that it is used as the dependent variable being
+ tracked.")
+
+
 ;; -------------------------------------------------------------------
 ;; EXPERIMENT TYPES AND ATTRIBUTES
 ;; -------------------------------------------------------------------
@@ -4096,8 +4594,8 @@ description of the &%patient of the listing.")
 
 (termFormat EnglishLanguage ExperimentAttribute "experiment attribute")
 
-(documentation ExperimentAttribute EnglishLanguage "The class of &%Attributes which relate to instances of 
- &%Experimenting.")
+(documentation ExperimentAttribute EnglishLanguage "The class of &%Attributes which relate to 
+ instances of &%Experimenting.")
 
 (=>
   (and
@@ -4130,27 +4628,6 @@ description of the &%patient of the listing.")
     (and
       (instance ?PROCESS Process)
       (experimentalVariableProcess ?TEST ?PROCESS))))
-
-
-;; MOVariant
-;; -------------------------------------------------------------------
-
-(instance MOVariant Experimenting)
-
-(termFormat EnglishLanguage MOVariant "managed orthogonal variant")
-
-(documentation MOVariant EnglishLanguage "An &%ExperimentAttribute signifying that the 
- &%Experimenting is member of a &%Collection which is orthogonal to another collection of 
- experimentings.")
-
-(=>
-  (attribute ?EXPERIMENT MOVariant)
-  (exists (?TESTCOL1 ?TESTCOL2)
-    (and
-      (instance ?TESTCOL1 Collection)
-      (instance ?TESTCOL2 Collection)
-      (member ?EXPERIMENT ?TESTCOL)
-      (orthogonalTests ?TESTCOL1 ?TESTCOL2))))
 
 
 ;; orthogonalTests
@@ -4311,3 +4788,58 @@ description of the &%patient of the listing.")
 (termFormat EnglishLanguage FireFoxBrowser "Firefox")
 
 (documentation FireFoxBrowser EnglishLanguage "The Mozilla Firefox &%WebBrowser.")
+
+
+;; MECE
+;; -------------------------------------------------------------------
+
+(instance meceCollection BinaryPredicate)
+
+(domain meceCollection 1 Collection)
+
+(domain meceCollection 2 Collection)
+
+(termFormat EnglishLanguage meceCollection "mutually exclusive completely exhaustive")
+
+(documentation meceCollection EnglishLanguage "(meceCollection ?COLL1 ?COLL2) means that every 
+ &%member of ?COLL1 is in a &%Collection which is a member of &%Coll2, but not a member of two 
+ different &%Collections which are &%members of ?COLL2.")
+    
+
+(=>
+  (and
+    (meceCollection ?COLL1 ?COLL2)
+    (member ?MEMBER ?COLL2)
+    (instance ?MEMBER SelfConnectedObject))
+  (instance ?MEMBER Collection))
+
+(=>
+  (and
+    (meceCollection ?COLL1 ?COLL2)
+    (member ?MEMBER ?COLL1)
+    (instance ?MEMBER SelfConnectedObject))
+  (exists (?COLL3)
+    (and
+      (instance ?COLL3 Collection)
+      (member ?MEMBER ?COLL3)
+      (member ?COLL3 ?COLL2))))
+
+(=>
+  (and
+    (meceCollection ?COLL1 ?COLL2)
+    (instance ?COLL3 Collection)
+    (instance ?COLL4 Collection)
+    (instance ?MEMBER SelfConnectedObject)
+    (member ?MEMBER ?COLL1)
+    (member ?COLL3 ?COLL2)
+    (member ?COLL4 ?COLL2)
+    (not
+      (equal ?COLL3 ?COLL4)))
+  (not
+    (and
+      (member ?MEMBER ?COLL3)
+      (member ?MEMBER ?COLL4))))
+
+
+
+
