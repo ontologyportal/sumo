@@ -26049,4 +26049,160 @@ a computer in it, but where the user is not able to program it
 or install new programs, does not constitute a smart phone.")
 
 
+(instance suffers CaseRole)
+(instance suffers BinaryRelation)
+(domain suffers 1 Process)
+(domain suffers 2 Agent)
+(documentation suffers EnglishLanguage "The opposite of &%benefits.  The &%Agent
+does not want the action to occur.")
+
+(=>
+  (suffers ?A ?B)
+  (not 
+    (benefits ?A ?B)))
+ 
+(=>
+  (benefits ?A ?B)
+  (not
+    (suffers ?A ?B)))
+
+(=>
+    (and
+        (equal ?PROCESS-START
+            (BeginFn
+                (WhenFn ?PROCESS)))
+        (equal ?AGENT-END
+            (EndFn
+                (WhenFn ?AGENT)))
+        (suffers ?PROCESS ?AGENT))
+    (before ?PROCESS-START ?AGENT-END))
+
+(=>
+  (benefits ?A ?B)
+  (wants ?B ?A))
+
+(=>
+  (suffers ?A ?B)
+  (not
+    (wants ?B ?A)))
+
+;; We already have Answering in SUMO
+
+(subclass Apologizing Stating)
+(documentation Apologizing EnglishLanguage "The speaker states that some action
+he or she took previously was wrong in some way, that it caused harm to the
+hearer.")
+
+(=>
+  (and
+    (instance ?A Apologizing)
+    (agent ?A ?AG)
+    (destination ?A ?P))
+  (exists (?ACT)
+    (and
+      (suffers ?ACT ?P)
+      (agent ?ACT ?AG)
+      (holdsDuring 
+        (WhenFn ?A)
+          (not
+            (wants ?AG ?ACT))))))
+
+(subclass Confirming Stating)
+(documentation Confirming EnglishLanguage "An utterance in which the speaker is
+part of a &%ReachingAgreement and in which the &%Proposition under consideration
+has already been &%Stated.")
+
+(=>
+  (and
+    (instance ?C Confirming)
+    (agent ?C ?A)
+    (containsInformation ?C ?P))
+  (exists (?S ?RA ?A2)
+    (and
+      (instance ?S Stating)
+      (earlier ?S ?C)
+      (instance ?RA ReachingAgreement)
+      (agent ?S ?A2)
+      (containsInformation ?RA ?P)
+      (containsInformation ?S ?P)
+      (partyToAgreement ?RA ?A)
+      (partyToAgreement ?RA ?A2))))
+
+(subclass Elaborating Stating)
+(documentation Elaborating EnglishLanguage "A &%Communication in
+which the &%agent performs a &%Restating but also adds additional
+content relevant to that &%Restating.")
+
+(=>
+  (instance ?E Elaborating)
+  (exists (?S)
+    (and
+      (instance ?S Stating)
+      (earlier ?S ?E)
+      (containsInformation ?E ?EP)
+      (containsInformation ?S ?SP)
+      (subsumesContentInstance ?EP ?SP))))
+      
+(subclass Restating LinguisticCommunication)
+(documentation Restating EnglishLanguage "A &%Communication act in
+which the speaker reiterates the same &%Proposition as a previous
+speech act.  Note that this is not a &%Stating, since the speaker
+may simply be saying what someone else said, and not actually
+committing to the truth of what that person said.")
+
+(=>
+  (instance ?E Elaborating)
+  (exists (?S)
+    (and
+      (instance ?S Stating)
+      (earlier ?S ?E)
+      (containsInformation ?E ?EP)
+      (containsInformation ?S ?SP)
+      (equivalentContentInstance ?EP ?SP))))
+
+(subclass Correcting Stating)
+(documentation Correcting EnglishLanguage "A &%Correcting is a part
+of a &%Disagreeing in which the speaker explicitly &%refers to a prior
+statement.")
+
+(=>
+  (instance ?C Correcting)
+  (exists (?D ?S ?SP ?CP)
+    (and
+      (instance ?D Disagreeing)
+      (subProcess ?C ?D)
+      (instance ?S Stating)
+      (containsInformation ?S ?SP)
+      (containsInformation ?C ?CP)
+      (refers ?CP ?SP)
+      (not
+        (consistent ?CS ?SP)))))
+
+;; reject seems the same as SUMO's existing Disagreeing
+
+;; Objecting appears the same as the existing ExpressingDisapproval
+
+;; We already have Questioning in SUMO
+
+(subclass Prompting Requesting)
+(documentation Prompting EnglishLanguage "A &%Prompting is an
+implied sort of &%Requesting, in which the speaker begins an
+utterance, asking the hearer to complete it.")
+
+(=>
+  (instance ?P Prompting)
+  (exists (?H ?A)
+    (and
+      (destination ?P ?H)
+      (agent ?P ?A)
+      (desires ?A
+         (exists (?LC)
+           (and
+             (instance ?LC LinguisticCommunication)
+             (agent ?LC ?H)
+             (earlier ?P ?LC)
+             (subsumesContentInstance ?LC ?P)))))))
+
+
+
       
