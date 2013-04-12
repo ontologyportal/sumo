@@ -706,6 +706,87 @@ intended to be used for storing data (information) in some digital
 (discrete bit) encoding scheme designed for interpretation by
 computers.")
 
+;;WriteOnceDataStorage
+;;dependency on QoSontology.kif
+(subclass WriteOnceDataStorage DigitalDataStorageDevice)
+(documentation WriteOnceDataStorage EnglishLanguage "A &%DigitalDataStorageDevice on which the &%DigitalData once written can not be deleted or altered, e.g. CD-R, DVD-R.")
+(=>
+  (instance ?X WriteOnceDataStorage)
+  (and
+    (modalAttribute
+      (exists (?WRITE1 ?DATA1)
+        (and
+          (instance ?WRITE1 Writing)
+          (patient ?WRITE1 ?X)
+          (patient ?WRITE1 ?DATA1)
+          (holdsDuring
+            (ImmediateFutureFn
+              (WhenFn ?WRITE1))
+            (stored ?DATA1 ?X)))) Possibility)
+    (not
+      (modalAttribute
+        (exists (?WRITE2 ?DATA2)
+          (and
+            (stored ?DATA2 ?X)
+            (or
+              (instance ?WRITE2 ContentDevelopment)
+              (instance ?WRITE2 DeletingData))
+            (not
+              (equal ?WRITE1 ?WRITE2))
+            (patient ?WRITE2 ?DATA2))) Possibility))))
+            
+;;RewritableDataStorage
+(subclass RewritableDataStorage DigitalDataStorageDevice)
+(documentation RewritableDataStorage EnglishLanguage "A &%DigitalDataStorageDevice on which the &%stored &%DigitalData can be altered or deleted, e.g. CD-RW.")
+(=>
+  (instance ?X RewritableDataStorage)
+  (and
+    (modalAttribute
+      (exists (?WRITE1 ?DATA1)
+        (and
+          (instance ?WRITE1 Writing)
+          (patient ?WRITE1 ?X)
+          (patient ?WRITE1 ?DATA1)
+          (holdsDuring
+            (ImmediateFutureFn
+              (WhenFn ?WRITE1))
+            (stored ?DATA1 ?X)))) Possibility)
+    (modalAttribute
+      (exists (?WRITE2 ?DATA2)
+        (and
+          (stored ?DATA2 ?X)
+          (or
+            (instance ?WRITE2 ContentDevelopment)
+            (instance ?WRITE2 DeletingData))
+          (not
+            (equal ?WRITE1 ?WRITE2))
+          (patient ?WRITE2 ?DATA2))) Possibility)))
+          
+;;ReadOnlyMemoryDataStorage
+(subclass ReadOnlyMemoryDataStorage DigitalDataStorageDevice)
+(documentation ReadOnlyMemoryDataStorage EnglishLanguage "A &%DigitalDataStorageDevice on which it is not possible to write or alter any &%DigitalData except during its fabrication.")
+(=>
+  (and
+    (instance ?X ReadOnlyMemoryDataStorage)
+    (instance ?FABRICATION Manufacture)
+    (result ?FABRICATION ?X))
+  (not
+    (modalAttribute
+      (exists (?WRITE1 ?DATA1)
+        (and
+          (or
+            (instance ?WRITE2 ContentDevelopment)
+            (instance ?WRITE2 DeletingData))
+          (earlier
+            (WhenFn ?FABRICATION)
+            (WhenFn ?WRITE1))
+          (patient ?WRITE1 ?X)
+          (patient ?WRITE1 ?DATA1)
+          (holdsDuring
+            (ImmediateFutureFn
+              (WhenFn ?WRITE1))
+            (stored ?DATA1 ?X)))) Possibility)))
+            
 ;; AP - add rule to specify the encoding scheme, relate to BinaryNumber
 
 ;; NS: In Merge.kif, the following statements are problematic:
@@ -1052,7 +1133,7 @@ with a slide (not overhead) projector.")
 ;; and to the devices with which instances of Transparency
 ;; typically are used.
 
-(subclass OpticalDisc AudioVisualDataStorageDevice)
+(subclass OpticalDisc DigitalDataStorageDevice)
 (documentation OpticalDisc EnglishLanguage "This &%Class comprises
 several &%subclasses of disc-shaped data storage devices.  Unless
 otherwise indicated, &%instances of all of these classes are generally
@@ -1082,11 +1163,51 @@ laser is used to write and read bits of data.")
 
 (=>
   (and
-    (instance ?OBJ CompactDisc)
-    (or
-      (top ?FACE ?OBJ)
-      (bottom ?FACE ?OBJ)))
-  (diameter ?FACE (MeasureFn 120 Millimeter)))
+    (instance ?X CompactDisc)
+    (instance ?READ Decoding)
+    (patient ?READ ?X))
+  (exists (?LASER)
+    (and
+      (instance ?LASER RadiatingLight)
+      (instrument ?READ ?LASER)
+      (wavelength ?LASER
+        (MeasureFn 780 Nanometer)))))
+
+
+(subclass CD-ROM CompactDisc)
+(subclass CD-ROM ReadOnlyMemoryDataStorage)
+(documentation CD-ROM EnglishLanguage "An &%instance of
+&%CD-ROM is a &%CompactDisc in the CompactDisc-ReadOnlyMemory
+(CD-ROM) format, which allows no modification of data after
+it has been written.")
+
+
+(subclass CD-R CompactDisc)
+(subclass CD-R WriteOnceDataStorage)
+(documentation CD-R EnglishLanguage "A type of &%CompactDisc that can be written on once and read from multiple times.")
+(disjoint CD-R CD-ROM)
+
+(subclass CD-RW CompactDisc)
+(subclass CD-RW RewritableDataStorage)
+(documentation CD-RW EnglishLanguage "A type of &%CompactDisc that can be written on and read from multiple times.")
+
+
+(subclass BluRayDisc OpticalDisc)
+(documentation BluRayDisc EnglishLanguage "A type of &%CompactDisc that has significantly more storage than a &%DVD.")
+(disjoint BluRayDisc CompactDisc)
+(disjoint BluRayDisc DVD)
+
+(=>
+  (and
+    (instance ?X BluRayDisc)
+    (instance ?READ Decoding)
+    (patient ?READ ?X))
+  (exists (?LASER)
+    (and
+      (instance ?LASER RadiatingLight)
+      (instrument ?READ ?LASER)
+      (wavelength ?LASER
+        (MeasureFn 405 Nanometer)))))
 
 (subclass AudioCDSystem MediaSystem)
 (documentation AudioCDSystem EnglishLanguage "&%AudioCDSystem is a type of &%MediaSystem that
@@ -1109,27 +1230,30 @@ plays &%AudioRecording")
         (instrument ?RS ?PLAYER)
         (patient ?RS ?DISC)))))
   
-  
-(documentation CDROM EnglishLanguage "An &%instance of
-&%CDROM is a &%CompactDisc in the CompactDisc-ReadOnlyMemory
-(CD-ROM) format, which allows no modification of data after
-it has been written.")
-(subclass CDROM CompactDisc)
-
-(documentation Minidisc EnglishLanguage "An &%instance of
-&%Minidisc is a disc-shaped &%DigitalDataStorageDevice
-smaller than a standard-size &%CompactDisc, but employing
-the same technology.")
-(subclass Minidisc DigitalDataStorageDevice)
-(subclass Minidisc OpticalDisc)
-
+(instance StandardSizeDisc SizeAttribute)
+(documentation StandardSizeDisc EnglishLanguage "A standard sized &%OpticalDisc, which diameter is 120 Millimeter.")
 (=>
-  (and
-    (instance ?OBJ Minidisc)
-    (or
-      (top ?FACE ?OBJ)
-      (bottom ?FACE ?OBJ)))
-  (diameter ?FACE (MeasureFn 80 Millimeter)))
+  (attribute ?X StandardSizeDisc)
+  (instance ?X OpticalDisc))
+(=>
+    (and
+        (instance ?X OpticalDisc)
+        (attribute ?X StandardSizeDisc))
+    (width ?X
+       (MeasureFn 120 Millimeter)))  
+
+
+(documentation MiniSizeDisc EnglishLanguage "A standrdized of &%OpticalDiscs, which diameter is 80 mm")
+(instance MiniSizeDisc SizeAttribute)
+(=>
+  (attribute ?X MiniSizeDisc)
+  (instance ?X OpticalDisc))
+(=>
+    (and
+        (instance ?X OpticalDisc)
+        (attribute ?X MiniSizeDisc))
+    (width ?X
+        (MeasureFn 80 Millimeter)))
 
 (documentation DVD EnglishLanguage "An &%instance of &%DVD
 (Digital Versatile Disk) is a disc-shaped
@@ -1140,11 +1264,15 @@ with a larger storage capacity.")
 
 (=>
   (and
-    (instance ?OBJ DVD)
-    (or
-      (top ?FACE ?OBJ)
-      (bottom ?FACE ?OBJ)))
-  (diameter ?FACE (MeasureFn 120 Millimeter)))
+    (instance ?X DVD)
+    (instance ?READ Decoding)
+    (patient ?READ ?X))
+  (exists (?LASER)
+    (and
+      (instance ?LASER RadiatingLight)
+      (instrument ?READ ?LASER)
+      (wavelength ?LASER
+        (MeasureFn 650 Nanometer)))))
 
 (subclass DVDSystem MediaSystem)
 (documentation DVDSystem EnglishLanguage "&%DVDSystem is a type of &%MediaSystem
