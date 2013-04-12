@@ -3770,7 +3770,7 @@ be paired with two &%VehicleWheels to rotate and move a &%RoadVehicle.")
       (instance ?A Axle)
       (component ?A ?V)
       (connected ?W ?A))))
-
+;;MSv:changed definition of paper based on use to one based on production
 (documentation Paper EnglishLanguage "Paper is a flat sheet
 of fibers, usually produced by spreading a wet solution of
 wood particles on a flat surface and drying through heat and
@@ -3785,12 +3785,23 @@ to sheetrock however, is paper.")
 (subclass Paper Artifact)
 
 (=>
-  (instance ?PAPER Paper)
-  (hasPurpose ?PAPER 
-    (exists (?TEXT) 
-      (and
-        (instance ?TEXT Text)
-        (part ?TEXT ?PAPER)))))
+  (instance ?X Paper)
+  (exists (?MAKE ?CELL ?PRESS)
+    (and
+      (instance ?MAKE Making)
+      (instance ?CELL Cellulose)
+      (instance ?PRESS Compressing)
+      (resource ?MAKE ?CELL)
+      (result ?MAKE ?X)
+      (subProcess ?MAKE ?PRESS)
+      (patient ?PRESS ?CELL))))
+;;(=>
+;;  (instance ?PAPER Paper)
+;;  (hasPurpose ?PAPER 
+;;    (exists (?TEXT) 
+;;      (and
+;;        (instance ?TEXT Text)
+;;        (part ?TEXT ?PAPER)))))
 
 (subclass CurrencyBill Currency)
 (partition Currency CurrencyBill CurrencyCoin)
@@ -4711,9 +4722,9 @@ intersecting it.")
 (documentation TwoDimensionalObject EnglishLanguage "A real-world physical object
 with a very flat aspect.  This includes drawings on paper, cave
 paintings and other surface alterations.")
-(=>
-  (instance ?T TwoDimensionalObject)
-  (attribute ?T TwoDimensionalFigure))
+;;(=>
+;;  (instance ?T TwoDimensionalObject)
+;;  (attribute ?T TwoDimensionalFigure))
 
 (instance sliceOfFigure BinaryPredicate)
 (documentation sliceOfFigure EnglishLanguage "(sliceOfFigure ?SLICE ?FIGURE) indicates
@@ -8428,11 +8439,17 @@ the class of all classes of &%Organism whose instances can interbreed.")
 
 (subclass Wood Tissue)
 (subclass Wood PlantSubstance)
-(documentation Wood EnglishLanguage "&%Tissue that comprises the inner trunk of &%Trees.  
+(documentation Wood EnglishLanguage "&%Tissue that comprises the inner trunk of &%BotanicalTrees.  
 It is often used in constructing &%Buildings and other &%Artifacts.
 Wood is the principal substance making up a tree, and is distinguished from the
 bark, roots, flowers, seeds, fruit and leaves.") 
-
+(=>
+  (instance ?X Wood)
+  (exists (?CELL)
+    (and
+      (instance ?CELL Cellulose)
+      (part ?CELL ?X))))
+      
 (relatedInternalConcept Wood WoodArtifact)
 (subclass WoodArtifact Artifact)
 (documentation WoodArtifact EnglishLanguage "&%Wood that has been cut (and perhaps treated) for 
@@ -8467,6 +8484,16 @@ the form of polymers, which are usually derived from &%Petroleum products.
 Plastics have a tremendous variety of material properties including a wide 
 range of values for opacity, density, ductility etc. and are pervasive in 
 modern &%Manufacture (-ing).")
+
+(subclass Polypropylene Plastic)
+(documentation Polypropylene EnglishLanguage "Polypropylene (PP), also known as polypropene, is a thermoplastic polymer used in a wide variety of applications including packaging and labeling, textiles (e.g., ropes, thermal underwear and carpets), stationery, plastic parts and reusable containers of various types, laboratory equipment, loudspeakers, automotive components, and polymer banknotes. An addition polymer made from the monomer propylene, it is rugged and unusually resistant to many chemical solvents, bases and acids.(Wikipedia)")
+
+(subclass Polystyrene Plastic)
+(documentation Polystyrene EnglishLanguage "Polystyrene (PS) is a synthetic aromatic polymer made from the monomer styrene, a liquid petrochemical. Polystyrene can be rigid or foamed. General purpose polystyrene is clear, hard and brittle. It is a very inexpensive resin per unit weight. It is a rather poor barrier to oxygen and water vapor and has relatively low melting point. Polystyrene is one of the most widely used plastics, the scale of its production being several billion kilograms per year. Polystyrene can be naturally transparent, but can be colored with colorants. Uses include protective packaging (such as packing peanuts and CD and DVD cases), containers (such as "clamshells"), lids, bottles, trays, tumblers, and disposable cutlery.
+
+As a thermoplastic polymer, polystyrene is in a solid (glassy) state at room temperature but flows if heated above about 100 °C, its glass transition temperature. It becomes rigid again when cooled. This temperature behavior is exploited for extrusion, and also for molding and vacuum forming, since it can be cast into molds with fine detail.
+
+It is very slow to biodegrade and therefore a focus of controversy, since it is often abundant as a form of litter in the outdoor environment, particularly along shores and waterways especially in its foam form. (Wikipedia)")
 
 (subclass Cellulose PlantSubstance)
 (subclass Cellulose Carbohydrate)
@@ -8614,7 +8641,10 @@ photosynthesis.")
 the stem of a &%Plant.")
 
 (subclass BotanicalTree FloweringPlant)
-
+(=>
+  (instance ?X BotanicalTree)
+  (material Wood ?X))
+  
 (documentation BotanicalTree EnglishLanguage "&%BotanicalTree is an imprecise term 
 for a perennial woody plant that is larger than a bush or shrub, 
 generally understood to describe a large growth having one main trunk 
@@ -11254,7 +11284,18 @@ some axioms to use this instead of other, vaguer ways of describing it." "KJN")
     (modalAttribute
       (exists (?P)
         (patient ?P ?O)) Possibility)))      
-      
+
+(instance ?BLANK RelationalAttribute)
+(documentation ?BLANK EnglishLanguage "A &%RelationalAttribute meaning that there is no &%ContentBearingObject located on the &%Object with this attribute")
+
+(=>
+  (and
+    (instance ?DSTORE DataStorageDevice)
+    (attribute ?DSTORE Blank))
+  (not
+    (exists (?DATA)
+      (stored ?DATA ?DSTORE))))
+
 (subclass Recording ContentBearingObject)
 (documentation Recording EnglishLanguage "&%Recording refers to a &%ContentBearingObject
 that represents some &%Process that happened in real life")
@@ -14918,6 +14959,40 @@ drills.")
                 (equal ?DIR1 ?DIR2)
                 (oppositeDirection ?DIR1 ?DIR2)))))))))
 
+(subclass PaperShredder CuttingDevice)
+(documentation PaperShredder EnglishLanguage "A &%CuttingDevice used to cut &%Paper into small pieces so that the contained information can not be decoded again.")
+
+(=>
+  (instance ?X PaperShredder)
+  (hasPurpose ?X
+    (exists (?CUT ?PAPER)
+      (and
+        (instance ?CUT Cutting)
+        (instrument ?CUT ?X)
+        (instance ?PAPER Paper)
+        (patient ?CUT ?PAPER)))))
+        
+(=>
+  (and
+    (instance ?X PaperShredder)
+    (instance ?CUT Cutting)
+    (instrument ?CUT ?X))
+  (hasPurpose ?CUT
+    (=>
+      (and
+        (instance ?CBO VisualContentBearingObject)
+        (containsInformation ?CBO ?INFO)
+        (instance ?PAPER Paper)
+        (located ?CBO ?PAPER))
+      (decreasesLikelihood
+        (patient ?CUT ?PAPER)
+        (exists (?READ)
+          (and
+            (instance ?READ Interpreting)
+            (patient ?READ ?INFO)
+            (earlier
+              (WhenFn ?CUT)
+              (WhenFn ?READ))))))))
 (subclass Memorizing Learning)
 (documentation Memorizing EnglishLanguage "The process of committing a &%Text to memory.")
 
@@ -15695,6 +15770,16 @@ a lieutenant colonel and below a brigadier general.")
     (MeasureFn ?NUMBER YardLength)
     (MeasureFn (MultiplicationFn 3 ?NUMBER) FootLength)))
 
+(documentation Nanometer EnglishLanguage "Submultiple of Meter. Symbol: nm. It is a unit of length in the metric system, equal to one billionth of a metre.")
+(instance Nanometer UnitOfLength)
+(=>
+  (equal ?NUMBER
+    (MultiplicationFn 1 ?NUMBER))
+  (equal
+    (MeasureFn ?NUMBER Nanometer)
+    (MeasureFn
+      (MultiplicationFn ?NUMBER 0.000000001) Meter)))
+      
 (subclass NightTime TimeInterval)
 (documentation NightTime EnglishLanguage "The class of &%TimeIntervals that begin at &%Sunset
 and end at &%Sunrise.")
@@ -22719,7 +22804,50 @@ use it")
         (instrument ?PHONING ?TDD)
         (agent ?PHONING ?AGENT)
         (attribute ?AGENT Deaf)))))
-      
+        
+(subclass Photocopier ElectricDevice)
+(documentation Photocopier EnglishLanguage "An &%ElectricDevice designed for &%Making a two dimensional representation of an &%Object or a copy of a &%TwoDimensionalObject. Note that it is not necessarily used for &%Copying because it doesn't preserve all the &%Attributes of the original.")
+(=>
+  (instance ?X Photocopier)
+  (hasPurpose ?X
+    (=>
+      (and
+        (instance ?OBJ1 TwoDimensionalObject)
+        (instance ?OBJ1 VisualContentBearingObject)
+        (containsInformation ?OBJ1 ?INFO)
+        (instance ?COPY Photocopying)
+        (instrument ?COPY ?X)
+        (patient ?COPY ?OBJ1))
+      (exists (?OBJ2 ?SHEET)
+        (and
+          (result ?COPY ?OBJ2)
+          (instance ?OBJ2 TwoDimensionalObject)
+          (instance ?OBJ2 VisualContentBearingObject)
+          (instance ?SHEET PrintedSheet)
+          (located ?OBJ2 ?SHEET)
+          (containsInformation ?OBJ2 ?INFO))))))
+          
+(=>
+  (instance ?X Photocopier)
+  (hasPurpose ?X
+    (exists (?COPY)
+      (and
+        (instance ?COPY Photocopying)
+        (instrument ?COPY ?X)))))
+        
+(subclass Photocopying Making)
+(documentation Photocopying EnglishLanguage "The &%Process of &%Making a two dimensional representation of an &%Object. Note the difference between &%Photocopying and &%Copying, the result of &%Copying is na exact copy.")
+(=>
+  (instance ?COPY Photocopying)
+  (exists (?OBJ1 ?OBJ2)
+      (and
+        (instance ?OBJ1 Object)
+        (instance ?OBJ2 VisualContentBearingObject)
+        (patient ?COPY ?OBJ1)
+        (result ?COPY ?OBJ2)
+        (represents ?OBJ2 ?OBJ1))))
+        
+
 (subclass Sail Artifact)
 (documentation Sail EnglishLanguage "&%Sail refers to an &%Artifact made of some type
 of &%Fabric which by means of which wind is used to propel a sailing vessel")
