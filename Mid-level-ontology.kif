@@ -1746,7 +1746,25 @@ is used to prevent injuries from &%Weapons.")
 
 (=>
   (instance ?S Shield)
-  (hasPurpose ?S (prevents ?S Injuring)))
+  (hasPurpose ?S
+    (exists (?P ?H)
+      (and
+        (instance ?P Protecting)
+        (instrument ?P ?S)
+        (instance ?H Human)
+        (patient ?P ?H)
+        (prevents ?P 
+          (KappaFn ?I
+            (and
+              (instance ?I Injuring)
+              (exists (?W)
+                (and
+                  (instance ?W Weapon)
+                  (instrument ?I ?W)))
+              (=>
+                (patient ?I ?H)
+                (not
+                  (patient ?P ?H))))))))))
 
 (=>
   (instance ?S Shield)
@@ -2898,13 +2916,54 @@ access to a &%Container or &%StationaryArtifact.")
 (documentation Key EnglishLanguage "A &%Device which opens and closes a &%Lock.")
 
 (=>
-   (instance ?KEY Key)
-   (exists (?LOCK)
-      (and
-         (instance ?LOCK Lock)
-         (capability Opening instrument ?LOCK)
-         (capability Closing instrument ?LOCK))))
+    (instance ?X Key)
+    (hasPurpose ?X
+        (exists (?LOCK)
+            (and
+                (instance ?LOCK Lock)
+                (capability 
+                    (KappaFn ?CLOSE
+                        (and
+                            (instance ?CLOSE Closing)
+                            (patient ?CLOSE ?LOCK)
+                            (holdsDuring
+                                (ImmediateFutureFn ?CLOSE)
+                                (attribute ?LOCK Locked)))) instrument ?X)
+                (capability 
+                    (KappaFn ?OPEN
+                        (and
+                            (instance ?OPEN Closing)
+                            (patient ?OPEN ?LOCK)
+                            (holdsDuring
+                                (ImmediateFutureFn ?OPEN)
+                                (not
+                                    (attribute ?LOCK Locked))))) instrument ?X)))))
 
+(instance Locked RelationalAttribute)
+(documentation Locked EnglishLanguage "An &%Attribute of &%Objects. A &%Locked &%Object is in some way restricted in movement, there is some movement, that the the &%Object can not performed, when it's locked.")
+(=>
+  (attribute ?X Locked)
+  (exists (?LOCK ?CLOSE ?MOVE)
+    (and
+      (instance ?LOCK Lock)
+      (connected ?LOCK ?X)
+      (instance ?CLOSE Closing)
+      (patient ?CLOSE ?LOCK)
+      (instance ?MOVE Motion)
+      (earlier
+        (WhenFn ?CLOSE)
+        (WhenFn (attribute ?X Locked)))
+      (holdsDuring
+        (WhenFn (attribute ?X Locked))
+        (not
+          (modalAttribute
+            (patient ?MOVE ?X) Possibility))))))
+            
+(=>
+    (attribute ?X Locked)
+    (instance ?X Object))
+    
+    
 (subclass SafeContainer Container)
 (subclass SafeContainer SecurityDevice)
 (documentation SafeContainer EnglishLanguage "A &%Container with a &%Lock which is intended 
@@ -3447,7 +3506,7 @@ well as painting one's kitchen, for example.")
    (and
       (instance ?PAINT Painting)
       (patient ?PAINT ?SURFACE)
-      (instrument ?PAINT ?STUFF))
+      (resource ?PAINT ?STUFF))
    (exists (?OBJ)
       (and
          (surface ?SURFACE ?OBJ)
@@ -5502,11 +5561,10 @@ to one another.")
 
 (=>
   (instance ?SI SolderingIron)
-  (exists (?X ?M)
+  (exists (?X)
     (and
       (part ?X ?SI)
-      (instance ?M Metal)
-      (material ?M ?X))))
+      (material Metal ?X))))
 (=>
   (instance ?S Soldering)
   (exists (?M)
@@ -8503,7 +8561,7 @@ modern &%Manufacture (-ing).")
 (documentation Polypropylene EnglishLanguage "Polypropylene (PP), also known as polypropene, is a thermoplastic polymer used in a wide variety of applications including packaging and labeling, textiles (e.g., ropes, thermal underwear and carpets), stationery, plastic parts and reusable containers of various types, laboratory equipment, loudspeakers, automotive components, and polymer banknotes. An addition polymer made from the monomer propylene, it is rugged and unusually resistant to many chemical solvents, bases and acids.(Wikipedia)")
 
 (subclass Polystyrene Plastic)
-(documentation Polystyrene EnglishLanguage "Polystyrene (PS) is a synthetic aromatic polymer made from the monomer styrene, a liquid petrochemical. Polystyrene can be rigid or foamed. General purpose polystyrene is clear, hard and brittle. It is a very inexpensive resin per unit weight. It is a rather poor barrier to oxygen and water vapor and has relatively low melting point. Polystyrene is one of the most widely used plastics, the scale of its production being several billion kilograms per year. Polystyrene can be naturally transparent, but can be colored with colorants. Uses include protective packaging (such as packing peanuts and CD and DVD cases), containers (such as "clamshells"), lids, bottles, trays, tumblers, and disposable cutlery.
+(documentation Polystyrene EnglishLanguage "Polystyrene (PS) is a synthetic aromatic polymer made from the monomer styrene, a liquid petrochemical. Polystyrene can be rigid or foamed. General purpose polystyrene is clear, hard and brittle. It is a very inexpensive resin per unit weight. It is a rather poor barrier to oxygen and water vapor and has relatively low melting point. Polystyrene is one of the most widely used plastics, the scale of its production being several billion kilograms per year. Polystyrene can be naturally transparent, but can be colored with colorants. Uses include protective packaging (such as packing peanuts and CD and DVD cases), containers (such as 'clamshells'), lids, bottles, trays, tumblers, and disposable cutlery.
 
 As a thermoplastic polymer, polystyrene is in a solid (glassy) state at room temperature but flows if heated above about 100 °C, its glass transition temperature. It becomes rigid again when cooled. This temperature behavior is exploited for extrusion, and also for molding and vacuum forming, since it can be cast into molds with fine detail.
 
@@ -11292,8 +11350,8 @@ some axioms to use this instead of other, vaguer ways of describing it." "KJN")
       (exists (?P)
         (patient ?P ?O)) Possibility)))      
 
-(instance ?BLANK RelationalAttribute)
-(documentation ?BLANK EnglishLanguage "A &%RelationalAttribute meaning that there is no &%ContentBearingObject located on the &%Object with this attribute")
+(instance Blank RelationalAttribute)
+(documentation Blank EnglishLanguage "A &%RelationalAttribute meaning that there is no &%ContentBearingObject located on the &%Object with this attribute")
 
 (=>
   (and
@@ -15090,6 +15148,31 @@ the permission of the owner of the property.")
       (located ?H ?P) 
       Illegal)))
 
+(subclass Protecting Maintaining)
+(documentation Protecting EnglishLanguage "An &%IntentionalProcess which purpose is to decrease likelihood of &%Damaging or &%CriminalAction done to the &%patient of the &%Process.")
+(=>
+  (instance ?X Protecting)
+  (hasPurpose ?X
+    (exists (?OBJ)
+      (and
+        (instance ?OBJ Object)
+        (patient ?X Object)
+        (subclass ?HARM
+          (KappaFn ?H
+            (and
+              (or
+                (instance ?H CriminalAction)
+                (instance ?H Damaging))
+              (=>
+                (holdsDuring ?T
+                  (patient ?H ?OBJ))
+                (not
+                  (holdsDuring ?T 
+                    (patient ?X ?OBJ)))))))
+        (or
+          (prevents ?X ?HARM)
+          (hinders ?X ?HARM))))))
+          
 (subclass Murder Killing)
 (subclass Murder CriminalAction)
 (documentation Murder EnglishLanguage "Impermissible &%Killing of a &%Human.")
@@ -21604,11 +21687,10 @@ has a flat metal base used to smooth cloth")
 
 (=>
   (instance ?IRON FabricIron)
-  (exists (?BASE ?METAL)
+  (exists (?BASE)
     (and
       (bottom ?BASE ?IRON)
-      (material ?METAL ?BASE)
-      (instance ?METAL Metal)
+      (material Metal ?BASE)
       (attribute ?BASE Flat))))
 
 (subclass IroningBoard Device)
@@ -26027,7 +26109,7 @@ the seller is a &%Machine")
 
 (=>
   (instance ?V Vending)
-  (exists (?VM ?A)
+  (exists (?VM)
     (and
       (instance ?VM VendingMachine)
       (origin ?V ?VM))))
@@ -26040,7 +26122,7 @@ releases some object, often food or drink, to the customer.")
 (=>
   (instance ?VM VendingMachine)
   (hasPurpose ?VM 
-    (exists (?FT ?H ?O)
+    (exists (?H ?O)
       (and
         (instance ?V Vending)
         (instance ?H Human)
