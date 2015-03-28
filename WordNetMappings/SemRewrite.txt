@@ -343,7 +343,11 @@ nsubj(is*, ?S), npadvmod(old*, ?U2),   advmod(is*,old*),   sumo(?C,old*),   unit
 ;{isCELTclass(?X,Time)} ==> (isCELTclass(?X,Time)).
 ;{isCELTclass(?X,Object)} ==> (isCELTclass(?X,Time)).
 
-prep(interested*,in*), sumo(inScopeOfInterest,interested*), nsubj(?R,?S), cop(interested*,is*)  ==> 
+prep(interested*,in*), sumo(?C,interested*), nsubj(?R,?S), cop(interested*,is*)  ==> 
+    {(inScopeOfInterest ?S ?O)}.
+prep(interested*,in*), sumo(?C,interested*), nsubj(?R,?S), cop(interested*,was*)  ==> 
+    {(inScopeOfInterest ?S ?O)}.
+prep(interested*,in*), sumo(?C,interested*), nsubj(?R,?S), cop(interested*,were*)  ==> 
     {(inScopeOfInterest ?S ?O)}.
 
 prep_at(?X,?Y), +sumo(?C,?Y), isCELTclass(?C,Object) ==> (located(?X,?Y)).
@@ -558,10 +562,6 @@ nsubj(?R,?S), cop(owner*,is*), prep_of(?R,?O)  ==> {(possesses ?S ?O)}.
 
 ;; catalog of dependency elements --------------
 
-; adjectival complement
-acomp(?P,?Y), +dobj(?P,?O) ==> (attribute(?O,?Y)).
-amod(?X,?Y), sumo(?C,?Y) ==> (attribute(?X,?C)).
-
 ; adverbial clause modifier
 ; HOL advcl(?X,?Y) ==>
 
@@ -570,7 +570,15 @@ amod(?X,?Y), sumo(?C,?Y) ==> (attribute(?X,?C)).
 ;; question words ------------------------------
 
 ; Where does John go?
-advmod(?V, Where*), +nsubj(go-4, John-3), sumo(?C,does*) ==> (destination(?V,?WH)).
+advmod(go*, Where*), nsubj(go*, ?S), aux(go*,does*) ==> (destination(?V,?WH)).
+advmod(go*, Where*), nsubj(go*, ?S), aux(go*,do*) ==> (destination(?V,?WH)).
+advmod(go*, Where*), nsubj(go*, ?S), aux(go*,did*) ==> (destination(?V,?WH)).
+
+advmod(?V, Where*), nsubj(?V, ?S), aux(?V,does*), sumo(?C,does*), sumo(Human,?S), sumo(Living,?V) ==> (inhabits(?S,?WH)).
+advmod(?V, Where*), nsubj(?V, ?S), aux(?V,do*), sumo(?C,do*), sumo(Human,?S), sumo(Living,?V) ==> (inhabits(?S,?WH)).
+advmod(?V, Where*), nsubj(?V, ?S), aux(?V,did*), sumo(?C,did*), sumo(Human,?S), sumo(Living,?V) ==> (inhabits(?S,?WH)).
+
+nsubj(?V,?S), prep_in(?V,?L), sumo(Living,?V), sumo(Human,?S) ==> (inhabits(?S,?L)).
 
 ; What did John do?
 dobj(?V,What*), aux(?V,?did*), sumo(?X,?did*), nsubj(?V,?A) ==> (agent(?V,?A), instance(?V,?WH)).
@@ -593,21 +601,10 @@ nsubj(?V,Who*) ==> {(instance ?I Human) (agent ?V ?I) (names ?I ?WH)}.
 advmod(?V,?Y), nsubj(?V,?P), +sumo(Indoors,?Y) ==> {(located ?P ?INDOORS) (instance ?INDOORS Indoors) (exists (?BUILDING) (and (instance ?BUILDING Building) (orientation ?INDOORS ?BUILDING Inside)))}.
 
 advmod(?V,?Y), nsubj(?V,?P), +sumo(Outdoors,?Y) ==> {(located ?P ?OUTDOORS) (instance ?OUTDOORS Outdoors) (not (exists (?BUILDING) (and (instance ?BUILDING Building) (orientation ?OUTDOORS ?BUILDING Inside))))}.
-advmod(?X,?Y) ==> (attribute(?X,?Y)).
 
 cop(?X,?Y), nsubj(?X,?P), +sumo(Indoors,?X) ==> {((located ?P ?INDOORS) (instance ?INDOORS Indoors) (exists (?BUILDING) (and (instance ?BUILDING Building) (orientation ?INDOORS ?BUILDING Inside)))}.
 
 cop(?X,?Y), nsubj(?X,?P), +sumo(Outdoors,?X) ==> {(located ?P ?OUTDOORS) (instance ?OUTDOORS Outdoors) (not (exists (?BUILDING) (and (instance ?BUILDING Building) (orientation ?OUTDOORS ?BUILDING Inside))))}.
-
-advmod(?X,?Y) ==> (attribute(?X,?Y)).
-; agent - complement of a passive verb
-; agent(?X,?Y) ==> (agent(?X,?Y)).
-
-; adjectival modifier
-amod(?X,?Y) ==> (attribute(?X,?Y)).
-
-; appositional modifier
-appos(?X,?Y) ==> (equals(?X,?Y)).
 
 ;; helper verbs ----------------------------
 
@@ -671,11 +668,25 @@ aux(?V,must*) ==> (possible(?V,?DUMMY)).
 ; HOL
 
 ; copula
-attribute(?X,?Y), isInstance(?X,Human), isInstance(?Y,Nation) ==> (citizen(?X,?Y)).
-attribute(?X,?Y), sumo(Human,?X), isInstance(?Y,Nation) ==> (citizen(?X,?Y)).
-cop(?A,was-15), det(?A,?DET), nsubj(?A,?S), sumo(?I,?A), isInstance(?I,Attribute) ==> (attribute(?I,?S)).
+
+nsubj(?C2,?X), amod(?C2,?C), cop(?C2,is*), det(?C2,?D), sumo(?Y,?C), sumo(Human,?X), isInstanceOf(?Y,Nation) ==> 
+    (citizen(?X,?Y)).
+nsubj(?C2,?X), amod(?C2,?C), cop(?C2,was*), det(?C2,?D), sumo(?Y,?C), sumo(Human,?X), isInstanceOf(?Y,Nation) ==> 
+    (citizen(?X,?Y)).
+nsubj(?C,?X), cop(?C,is*), det(?C,?D), sumo(?Y,?C), sumo(Human,?X), isInstanceOf(?Y,Nation) ==> 
+    (citizen(?X,?Y)).
+nsubj(?C,?X), cop(?C,was*), det(?C,?D), sumo(?Y,?C), sumo(Human,?X), isInstanceOf(?Y,Nation) ==> 
+    (citizen(?X,?Y)).
+
+
+
+cop(?A,was*), det(?A,?DET), nsubj(?A,?S), +sumo(?I,?A), isInstanceOf(?I,Attribute) ==> (attribute(?I,?S)).
+cop(?A,is*), det(?A,?DET), nsubj(?A,?S), +sumo(?I,?A), isInstanceOf(?I,Attribute) ==> (attribute(?I,?S)).
 nsubj(?X,?A), cop(?X,?Y), +sumo(?C,?X), isInstanceOf(?C,Attribute) ==> (attribute(?X,?Y)).
 nsubj(?X,?A), cop(?X,?Y), +sumo(?C,?X) ==> (instance(?X,?C)).
+
+attribute(?X,?Y), isInstanceOf(?X,Human), isInstanceOf(?Y,Nation) ==> (citizen(?X,?Y)).
+attribute(?X,?Y), sumo(Human,?X), isInstanceOf(?Y,Nation) ==> (citizen(?X,?Y)).
 
 nsubjpass(?X,?Y) ==> (patient(?X,?Y)).
 
@@ -685,7 +696,7 @@ nsubjpass(?X,?Y) ==> (patient(?X,?Y)).
 ; det(?X,All*)
 
 ; discourse element
-; ??
+; ??Amelia Mary Earhart (July 24, 1897 – July 2, 1937) was an American aviator, one of the first women to fly a plane long distances.
 
 dobj(?E,?Y) ==> (patient(?E,?Y)).
 
@@ -783,6 +794,19 @@ vmod(?S,?V), sumo(?C,?S), isSubclass(?C,Human) ==> (agent(?V,?S)).
 
 ; xsubj controlling subject
 
+advmod(?X,?Y) ==> (attribute(?X,?Y)).
+; agent - complement of a passive verb
+; agent(?X,?Y) ==> (agent(?X,?Y)).
+
+; adjectival modifier
+amod(?X,?Y) ==> (attribute(?X,?Y)).
+
+; appositional modifier
+appos(?X,?Y) ==> (equals(?X,?Y)).
+
+; adjectival complement
+acomp(?P,?Y), +dobj(?P,?O) ==> (attribute(?O,?Y)).
+amod(?X,?Y), sumo(?C,?Y) ==> (attribute(?X,?C)).
 
 ;; WSD: most polysemous
 
@@ -837,6 +861,7 @@ destination(?X,?Y) ==> {(destination ?X ?Y)}.
 dislikes(?X,?Y) ==> {(dislikes ?X ?Y)}.
 duration(?X,?Y) ==> {(duration ?X ?Y)}.
 greaterThan(?X,?Y) ==> {(greaterThan ?X ?Y)}.
+inhabits(?X,?Y) ==> {(inhabits ?X ?Y)}.
 instance(?X,?Y) ==> {(instance ?X ?Y)}.
 located(?X,?Y) ==> {(located ?X ?Y)}.
 membersType(?X,?Y) ==> {(membersType ?X ?Y)}.
