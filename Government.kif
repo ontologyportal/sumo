@@ -184,8 +184,7 @@ characteristic(s) of the type ?FORM.")
   (governmentType ?AREA ?TYPE))
 
 ; TERMS (ATTRIBUTES) - List of government types:
-(instance Monarchy FormOfGovernment)
-(instance HereditaryMonarchy FormOfGovernment)
+; Monarchy
 (instance Chiefdom FormOfGovernment)
 (instance ConstitutionalMonarchy FormOfGovernment)
 (instance Coprincipality FormOfGovernment)
@@ -224,20 +223,38 @@ characteristic(s) of the type ?FORM.")
 (instance CompactOfFreeAssociationWithNewZealand FormOfGovernment)
 (instance UnitaryRule FormOfGovernment)
 
-(documentation Monarchy EnglishLanguage "&%Monarchy is the attribute of a government 
-that is ruled by a monarch, which is usually a hereditary role.")
+(instance Monarchy FormOfGovernment)
+(documentation Monarchy EnglishLanguage "&%Monarchy is the &%Attribute of a government 
+that is ruled nominally or actually by one ruler, whose &%Position is hereditary.")
+(comment Monarchy "Note that there are few (mainly historical) exceptions where the rule was divided among more people or in cases of elective monarchies. For now these exceptions are not covered by the definition to avoid the usual but circular definition that &%Monarchy is ruled by a &%Monarch and &%Monarch is a ruler of a &%Monarchy.(06-14-2015)" "msvarny")
+
+;(=>
+;  (and
+;    (governmentType ?PLACE ?TYPE)
+;    (subAttribute ?TYPE Monarchy))
+;  (exists (?PERSON ?ROLE)
+;    (and
+;      (instance ?PERSON Human)
+;      (chiefOfState ?PLACE ?ROLE ?PERSON)
+;      (subAttribute ?ROLE Monarch))))
 
 (=>
   (and
-    (governmentType ?PLACE ?TYPE)
-    (subAttribute ?TYPE Monarchy))
-  (exists (?PERSON ?ROLE)
-    (and
-      (instance ?PERSON Human)
-      (chiefOfState ?PLACE ?ROLE ?PERSON)
-      (subAttribute ?ROLE Monarch))))
+    (governmentType ?PLACE Monarchy)
+    (instance ?MONARCH Human)
+    (instance ?SUCCESSOR Human)
+    (holdsDuring ?T1
+      (chiefOfState ?PLACE ?ROLE ?MONARCH))
+    (holdsDuring ?T2
+      (chiefOfState ?PLACE ?ROLE ?SUCCESSOR))
+    (earlier ?T1 ?T2))
+  (confersNorm
+    (relative ?MONARCH ?SUCCESSOR)
+    (chiefOfState ?PLACE ?ROLE ?SUCCESSOR) Legal))
+  
 
-(subAttribute HereditaryMonarchy Monarchy)
+;(instance HereditaryMonarchy FormOfGovernment)
+;(subAttribute HereditaryMonarchy Monarchy)
 (subAttribute Chiefdom Monarchy)
 (subAttribute ConstitutionalMonarchy Monarchy)
 (subAttribute AbsoluteMonarchy Monarchy)
@@ -1329,9 +1346,79 @@ as a whole.")
 (instance Chairman Position)
 (instance ViceChairman Position)
 (instance MilitaryCommander Position)
+
 (instance Monarch Position)
-(subAttribute Queen Monarch)
+(documentation Monarch EnglishLanguage "The &%Position of the &%chiefOfState in a &%Monarchy.")
+
+(=>
+  (attribute ?PERSON Monarch)
+  (exists (?PLACE)
+    (and
+      (instance ?PLACE GeopoliticalArea)
+      (governmentType ?PLACE Monarchy)
+      (chiefOfState ?PLACE Monarch ?PERSON))))
+
+(subclass Coronation Ceremony)
+(subclass Coronation Appointing)
+(documentation Coronation EnglishLanguage "A &%Ceremony marking the formal investiture of a &%Monarch and/or their consort with regal power,  usually involving the placement of a &%Crown upon their &%Head.")
+
+(=>
+  (instance ?C Coronation)
+  (exists (?PERSON ?PLACE)
+    (and
+      (instance ?PERSON Human)
+      (patient ?C ?PERSON)
+      (instance ?PLACE GeopoliticalArea)
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?C))
+        (not
+          (chiefOfState ?PLACE Monarch ?PERSON)))
+      (holdsDuring
+        (ImmediateFutureFn
+          (WhenFn ?C))
+        (chiefOfState ?PLACE Monarch ?PERSON)))))
+
+(instance King Position)
 (subAttribute King Monarch)
+(subAttribute King Male)
+(documentation King EnglishLanguage "An &%Attribute indicating that a person is &%Male and the &%chiefOfState of a &%Monarchy.")
+
+(instance Queen SocialRole)
+(documentation Queen EnglishLanguage "An &%Attribute indicating that a person is a ruling &%Female &%Monarch (&%QueenRegnant) or the &%spouse of a &%Monarch (&%QueenConsort).")
+
+(<=>
+  (attribute ?Q Queen)
+  (or
+    (attribute ?Q QueenRegnant)
+    (attribute ?Q QueenConsort)))
+
+(instance QueenRegnant Position)
+(subAttribute QueenRegnant Monarch)
+(subAttribute QueenRegnant Female)
+(documentation QueenRegnant EnglishLanguage "An &%Attribute indicating that a person is a ruling &%Female &%Monarch as opposed to &%QueenConsort who is only the &%spouse of a &%Monarch.")
+
+(instance QueenConsort SocialRole)
+(subAttribute QueenConsort Female)
+(documentation QueenConsort EnglishLanguage "An &%Attribute indicating that a person is &%Female and the &%spouse of a &%King.")
+
+(=>
+  (attribute ?Q QueenConsort)
+  (exist (?KING ?PLACE)
+    (and
+      (chiefOfState ?PLACE King ?KING)
+      (spouse ?KING ?Q))))
+
+(instance PrinceConsort SocialRole)
+(subAttribute PrinceConsort Male)
+(documentation PrinceConsort EnglishLanguage "An &%Attribute indicating that a person is &%Male and the &%spouse of a &%QueenRegnant.")
+
+(=>
+  (attribute ?P PrinceConsort)
+  (exist (?QUEEN ?PLACE)
+    (and
+      (chiefOfState ?PLACE QueenRegnant ?QUEEN)
+      (spouse ?QUEEN ?P))))
 
 (instance leaderPosition BinaryPredicate)
 (instance leaderPosition AsymmetricRelation)
@@ -1398,7 +1485,7 @@ who holds the &%Position ?ROLE in the organization.")
 
 ;; KJN: Transferred from Mid-level-ontology.kif to remove dependencies, but updating
 ;; it to use the president that is defined here
-;;(instance PresidentOfTheUnitedStates Position)
+(instance PresidentOfTheUnitedStates Position)
 (subAttribute PresidentOfTheUnitedStates President)
 (documentation PresidentOfTheUnitedStates EnglishLanguage "The position of being head of the 
 &%UnitedStates.")
