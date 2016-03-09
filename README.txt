@@ -1,6 +1,4 @@
-![Logo](http://www.adampease.org/OP/images/sumo1k.gif)
-
-/* This code is copyrighted by Articulate Software (c) 2004.
+/* This code is copyrighted by Articulate Software (c) 2004-2016.
 It is released underthe GNU Public License <http://www.gnu.org/copyleft/gpl.html>.
 Users ofthis code also consent, by use of this code, to credit Teknowledge in any
 writings, briefings,publications, presentations, or other representations of any
