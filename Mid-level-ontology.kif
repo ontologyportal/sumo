@@ -17406,28 +17406,31 @@ that make up the external covering of &%Birds.")
       (instance ?B Bird)
       (part ?F ?B))))
 
+(instance productOfAnimal BinaryPredicate)
+(documentation productOfAnimal EnglishLanguage "(&%productOfAnimal
+?OBJCLASS ?ANIMALCLASS) means that every instance of ?OBJCLASS
+was once part of some instance of ?ANIMALCLASS.")
+(domainSubclass productOfAnimal 1 OrganicObject)
+(domainSubclass productOfAnimal 2 Animal)
+
+(subrelation meatOfAnimal productOfAnimal)
 (instance meatOfAnimal BinaryPredicate)
 
-;; NS: edit.
 (documentation meatOfAnimal EnglishLanguage "(&%meatOfAnimal
 ?MEATCLASS ?ANIMALCLASS) means that every instance of ?MEATCLASS
 was once part of some instance of ?ANIMALCLASS.")
 (domainSubclass meatOfAnimal 1 Meat)
 (domainSubclass meatOfAnimal 2 Animal)
 
-;; NS: delete.
-;; (=>
-;;   (meatOfAnimal ?MEAT ?ANIMAL)
-;;   (exists (?TIME ?A)
-;;     (and
-;;       (instance ?A ?ANIMAL)
-;;       (instance ?M ?MEAT)
-;;       (during ?TIME (WhenFn ?A))
-;;       (part ?MEAT ?A))))
+(=>
+  (productOfAnimal ?MEATOBJ ?ANIMAL)
+  (exists (?TIME ?A)
+    (and
+      (instance ?A ?ANIMAL)
+      (instance ?M ?MEATOBJ)
+      (during ?TIME (WhenFn ?A))
+      (part ?M ?A))))
 
-;; NS: add.  Here we're using &%part in a "substance" sense.
-;; Note that &%material takes a subclass of &%Substance as its
-;; first argument, and so is not useful here.
 (=>
   (and
     (meatOfAnimal ?MEAT ?ANIMAL)
@@ -27138,30 +27141,23 @@ numbers are equal or nearly so.")
       (DivisionFn ?N2 ?N1))
     Unlikely))
 
-
-      
 (subclass Invoice FinancialText)
-(documentation Invoice EnglishLanguage "A &%FinancialText which refers to the &%Selling of physical goods and &%confersRight to a &%Buyer to purchase goods according to agreed upon terms. An &%Invoice can occur before or after &%Buyer's receipt of goods, but only before before a &%Seller's receipt of payment.")
-
+(documentation Invoice EnglishLanguage "A &%FinancialText which refers to the &%Selling of physical goods and &%confersRight to a buyer to purchase goods according to agreed upon terms. An &%Invoice can occur before or after buyer's receipt of goods, but only before before a seller's receipt of payment.")
 
 (=>
   (instance ?INVOICE Invoice)
-  (exists (?NUMBER ?BUYER ?SELLER)
+  (exists (?NUMBER ?BUYER ?SELLER ?ENT)
     (and
       (uniqueIdentifier ?NUMBER ?INVOICE)
-      (instance ?BUYER Buyer)
-      (instance ?SELLER Seller)
+      (buys ?BUYER ?SELLER ?ENT)
       (confersRight
         (exists (?SELLING)
           (and
             (before
               (BeginFn
-                (WhenFn ?INVOICE)
-              )
+                (WhenFn ?INVOICE))
               (BeginFn
-                (WhenFn ?SELLING)
-              )
-            )
+                (WhenFn ?SELLING)))
             (instance ?SELLING Selling)
             (instance ?PRODUCT Product)
             (objectTransferred ?SELLING ?PRODUCT)
@@ -27171,15 +27167,14 @@ numbers are equal or nearly so.")
       ?SELLER ?BUYER))))
 
 (subclass PurchaseOrder FinancialText)
-(documentation PurchaseOrder EnglishLanguage "A &%FinancialText which refers to the &%Selling of physical goods and &%confersObligation to a &%Buyer to purchase goods according to agreed upon terms. A &%PurchaseOrder always occurs before &%Buying.")
+(documentation PurchaseOrder EnglishLanguage "A &%FinancialText which refers to the &%Selling of physical goods and &%confersObligation to a buyer to purchase goods according to agreed upon terms. A &%PurchaseOrder always occurs before &%Buying.")
 
 (=>
   (instance ?PO PurchaseOrder)
   (exists (?NUMBER ?BUYER ?SELLER)
     (and
       (uniqueIdentifier ?NUMBER ?PO)
-      (instance ?BUYER Buyer)
-      (instance ?SELLER Seller)
+      (buys ?BUYER ?SELLER ?ENT)
       (confersObligation
         (exists (?BUYING)
           (and
@@ -27226,15 +27221,68 @@ numbers are equal or nearly so.")
       (instance ?NUMBER SymbolicString)
       (uniqueIdWithRespectTo ?INVOICE ?SELLER ?NUMBER))))
 
-(documentation PurchaseOrderNumber EnglishLanguage "A &%SymbolicString for a &%Purchase which is unique to a &%Buyer.")
+;; These are convenience methods to refer to buying and renting activities
+(instance buys TernaryPredicate)
+(documentation buys EnglishLanguage "(&%buys ?CUST ?AGENT ?ENT) means that
+&%Agent ?CUST performs &%Buying of &%Entity ?ENT from &%Agent ?AGENT")
+(termFormat EnglishLanguage buys "buys")
+
+(domain buys 1 CognitiveAgent)
+(domain buys 2 CognitiveAgent)
+(domain buys 3 Entity)
+
+(=>
+  (and
+    (buys ?CUST ?AGENT ?ITEM)
+    (instance ?ITEM Physical))
+  (exists (?TRANS)
+    (and
+      (instance ?TRANS Buying)
+      (patient ?TRANS ?ITEM)
+      (agent ?TRANS ?CUST)
+      (origin ?TRANS ?AGENT))))
+      
+(=>
+  (and
+    (buys ?CUST ?AGENT ?ITEM)
+    (instance ?ITEM Proposition))
+  (exists (?TRANS ?PROC)
+    (and
+      (realization ?PROC ?ITEM)
+      (instance ?TRANS Buying)
+      (patient ?TRANS ?PROC)
+      (origin ?TRANS ?AGENT))))
+      
+(instance rents QuaternaryPredicate)
+(documentation rents EnglishLanguage "(&%rents ?CUST ?AGENT ?OBJ ?TI) means that
+for &%TimeInterval ?TI, &%CognitiveAgent ?CUST is &%Renting &%Object ?OBJ from 
+&%CognitiveAgent ?AGENT")
+(termFormat EnglishLanguage rents "rents")
+
+(domain rents 1 CognitiveAgent)
+(domain rents 2 CognitiveAgent)
+(domain rents 3 Object)
+(domain rents 4 TimeInterval)
+
+(=>
+  (rents ?CUST ?AGENT ?OBJ ?TI)
+  (holdsDuring ?TI
+    (exists (?RENT)
+      (and
+        (instance ?RENT Renting)
+        (patient ?RENT ?OBJ)
+        (agent ?RENT ?CUST)
+        (possesses ?AGENT ?OBJ)))))
+
+(documentation PurchaseOrderNumber EnglishLanguage "A &%SymbolicString for a &%Purchase which is unique to a buyer.")
 (subclass PurchaseOrderNumber SymbolicString)
 
 (=> 
   (instance ?AN PurchaseOrderNumber)
-  (exists (?PO ?BUYER ?NUMBER)
+  (exists (?PO ?BUYER ?NUMBER ?SELLER ?ENT)
     (and
       (instance ?PO PurchaseOrder)
-      (instance ?BUYER Buyer)
+      (buys ?BUYER ?SELLER ?ENT)
       (instance ?NUMBER SymbolicString)
       (uniqueIdWithRespectTo ?PO ?BUYER ?NUMBER))))
       
