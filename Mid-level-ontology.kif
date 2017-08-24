@@ -2169,8 +2169,8 @@ that produce mechanical power from heat and steam pressure.")
 (documentation Turbine EnglishLanguage "An &%Engine which converts the kinetic energy of a moving 
 &%Liquid (typically &%Water) into mechanical energy.")
 
-(subclass Windmill Engine)
-(documentation Windmill EnglishLanguage "Windmill is the subclass of &%Engines that 
+(subclass Windmill Generator)
+(documentation Windmill EnglishLanguage "Windmill is the subclass of &%Generator that 
 produce mechanical power from &%Wind energy.")
 
 (subclass InternalCombustionEngine Engine)
@@ -2398,13 +2398,39 @@ used for starting fires.")
   (instance ?M MatchDevice)
   (capability (StartFn Combustion) instrument ?M))
 
-(subclass VendingDevice Device)
-(documentation VendingDevice EnglishLanguage "A &%Device which is capable of &%Selling a &%Product 
-to a customer automatically when the customer inserts the appropriate amount of 
-Currency.")
+(subclass Vending FinancialTransaction)
+(documentation Vending EnglishLanguage "A &%FinancialTransaction in which
+the seller is a &%Machine")
 
 (=>
-  (instance ?VD VendingDevice)
+  (instance ?V Vending)
+  (exists (?VM)
+    (and
+      (instance ?VM VendingMachine)
+      (origin ?V ?VM))))
+      
+(subclass VendingMachine Machine)
+(documentation VendingMachine EnglishLanguage "A &%Machine that is the
+instrument of a &%FinancialTransaction that accepts payment and
+releases some object, often food or drink, to the customer.")
+
+(=>
+  (instance ?VM VendingMachine)
+  (hasPurpose ?VM 
+    (exists (?H ?O)
+      (and
+        (instance ?V Vending)
+        (instance ?H Human)
+        (instance ?O Object)
+        (objectTransferred ?V ?O)
+        (instrument ?V ?VM)
+        (origin ?V ?VM)
+        (not 
+          (instance ?O Currency))
+        (destination ?V ?H)))))
+  
+(=>
+  (instance ?VD VendingMachine)
   (hasPurpose ?VD 
     (exists (?T ?C ?P)
       (and
@@ -2414,6 +2440,17 @@ Currency.")
         (instance ?C Currency)
         (patient ?T ?P)
         (instance ?P Product)))))
+
+(=>
+  (and
+    (instance ?V Vending)
+    (objectTransferred ?V ?O)
+    (not 
+      (instance ?O Currency)))
+  (modalAttribute
+    (or
+      (instance ?O (FoodForFn Human))
+      (instance ?O Beverage)) Likely))
 
 (subclass WritingDevice Device)
 (documentation WritingDevice EnglishLanguage "A &%Device whose purpose is to be an instrument 
@@ -4652,10 +4689,16 @@ upper deck and lower deck of small boats with a cabin.")
 two things together by means of a movable part which can be tightened 
 or loosened.")
 
-(subclass Washer Device)
-(documentation Washer EnglishLanguage "A thin plate (typically disk-shaped) with a &%Hole (typically in the middle) that is normally used to distribute the load of a threaded &%AttachingDevice, but can have also other functions")
+(subclass WasherForBolt Device)
+(termFormat EnglishLanguage WasherForBolt "washer")
+
+(documentation WasherForBolt EnglishLanguage "A thin plate made of a durable
+material in the shape of a &%Circle with a &%Hole in it, designed to isolate an
+object fixed by a &%Bolt from the head of the bolt or from contact with a
+&%MechanicalNut.")
+
 (=>
-    (instance ?W Washer)
+    (instance ?W WasherForBolt)
     (hasPurpose ?W
         (exists (?O1 ?O2)
             (and
@@ -4663,21 +4706,26 @@ or loosened.")
                 (instance ?O2 AttachingDevice)
                 (meetsSpatially ?O1 ?W)
                 (contains ?W ?O2))))) 
-        
-(=>
-  (and
-    (instance ?W Washer)
-    (instance ?O1 CorpuscularObject)
-    (instance ?O2 AttachingDevice)
-    (meetsSpatially ?O1 ?W)
-    (contains ?W ?O2))
-  (exists (?PURPOSE)
-    (hasPurpose ?W ?PURPOSE)))
 
 (=>
-  (instance ?W Washer)
+  (instance ?W WasherForBolt)
   (attribute ?W RingTorus))
   
+(=>
+  (instance ?W WasherForBolt)
+  (hasPurpose ?W
+    (exists (?B)
+      (and
+        (instance ?B Bolt)
+        (contains ?W ?B)))))
+
+(=>
+  (instance ?W WasherForBolt)
+  (exists (?H)
+    (and
+      (instance ?H Hole)
+      (equal ?W (HoleHostFn ?H)))))
+
 (subclass Holder Device)
 (documentation Holder EnglishLanguage "A large class of &%Devices whose purpose is to hold 
 something else, i.e. be the &%instrument of a &%Keeping.")
@@ -12295,7 +12343,8 @@ fire is conducted &%Outside of a &%Building or &%Room.")
 
 (instance Paved Attribute)
 (instance Unpaved Attribute)
-            
+(contraryAttribute Paved Unpaved)            
+
 (subclass Stairway StationaryArtifact)
 (documentation Stairway EnglishLanguage "A &%StationaryArtifact which allows one to climb, step 
 by step, from one level to another.")
@@ -19646,22 +19695,25 @@ and eat.  Some restaurants may also offer entertainment.")
       (instance ?EV EducationalProcess)
       (patient ?EV ?X))))
       
-(subclass Subway Hole)
-(documentation Subway EnglishLanguage "A subway is a hollow
-area of the earth, typically under large cities, designed
-for running trains that move people. It is distinguished
-from other kinds of tunnels in that trains run through them,
-primarily for the purpose of carrying people rather than
-ore, for example.")
+(subclass SubwaySystem RailTransportationSystem)
+(documentation SubwaySystem EnglishLanguage "Any &%RailTransportationSystem that runs 
+exclusively through &%Tunnels.")
+
 (=>
-  (instance ?X Subway)
+  (and
+    (instance ?S SubwaySystem)
+    (routeInSystem ?P ?S))
+  (instance ?P Tunnel))
+
+(=>
+  (instance ?X SubwaySystem)
   (exists (?SURF)
     (and
       (surface ?SURF GeographicArea)
       (orientation ?X ?SURF Below))))
       
 (=>
-  (instance ?X Subway)
+  (instance ?X SubwaySystem)
   (hasPurpose ?X
     (exists (?EV ?P)
       (and
@@ -22247,6 +22299,22 @@ to make something &%Smooth")
         (EndFn (WhenFn ?SMOOTH))
         (attribute ?PART Smooth)))))
         
+(subclass Roughening SurfaceChange)
+(documentation Roughening EnglishLanguage "&%Roughening is a type of &%SurfaceChange
+to make something &%Rough.")
+(termFormat EnglishLanguage Roughening "roughening")
+
+(=>
+  (and
+    (instance ?P Roughening)
+    (patient ?P ?OBJ))
+  (exists (?PART)
+    (and
+      (superficialPart ?PART ?OBJ)
+      (holdsDuring
+        (EndFn (WhenFn ?P))
+        (attribute ?PART Rough)))))
+
 (subclass Ironing Smoothing)
 (documentation Ironing EnglishLanguage "&%Ironing refers to a &%Smoothing process where
 a heated &%Device is used to smooth something")
@@ -26695,48 +26763,6 @@ transferred is a letter or package.")
         (ImmediateFutureFn ?P)
         (located ?OBJ ?D)))))
 
-(subclass Vending FinancialTransaction)
-(documentation Vending EnglishLanguage "A &%FinancialTransaction in which
-the seller is a &%Machine")
-
-(=>
-  (instance ?V Vending)
-  (exists (?VM)
-    (and
-      (instance ?VM VendingMachine)
-      (origin ?V ?VM))))
-      
-(subclass VendingMachine Machine)
-(documentation VendingMachine EnglishLanguage "A &%Machine that is the
-instrument of a &%FinancialTransaction that accepts payment and
-releases some object, often food or drink, to the customer.")
-
-(=>
-  (instance ?VM VendingMachine)
-  (hasPurpose ?VM 
-    (exists (?H ?O)
-      (and
-        (instance ?V Vending)
-        (instance ?H Human)
-        (instance ?O Object)
-        (objectTransferred ?V ?O)
-        (instrument ?V ?VM)
-        (origin ?V ?VM)
-        (not 
-          (instance ?O Currency))
-        (destination ?V ?H)))))
-  
-(=>
-  (and
-    (instance ?V Vending)
-    (objectTransferred ?V ?O)
-    (not 
-      (instance ?O Currency)))
-  (modalAttribute
-    (or
-      (instance ?O (FoodForFn Human))
-      (instance ?O Beverage)) Likely))
-
 (instance CoinOperated RelationalAttribute)
 (documentation CoinOperated EnglishLanguage "An &%Attribute stating
 that a &%Machine is operated by its intended &%customer only by
@@ -27371,6 +27397,21 @@ no &%Humans exist.")
         (instance ?H Human)
         (inhabits ?H ?U)))))
 
+(instance Inhabited RelationalAttribute)
+(contraryAttribute Inhabited Uninhabited)
+
+(documentation Inhabited EnglishLanguage "&%Attribute of a &%Region in which
+&%Humans exist.")
+
+(=>
+  (and
+    (attribute ?I Inhabited)
+    (instance ?I Region))
+  (exists (?H)
+    (and
+      (instance ?H Human)
+      (inhabits ?H ?I))))
+
 (instance Barefoot RelationalAttribute)
 (documentation Barefoot EnglishLanguage "A state where someone doesn't &%wears &%Shoes.")
 (<=>
@@ -27817,7 +27858,7 @@ They originated in the Andes, and earlier studies based on biochemistry and
 hybridization suggest they are domesticated descendants of a closely related
 species of cavy such as Cavia aperea, C. fulgida, or C. tschudii and, therefore,
 do not exist naturally in the wild. Recent studies applying molecular
-markers,[3][4] in addition to studying the skull and skeletal morphology of
+markers, in addition to studying the skull and skeletal morphology of
 current and mummified animals, revealed that the ancestor is most likely
 Cavia tschudii. [Wikipedia]")
 
@@ -27829,7 +27870,7 @@ Cavia tschudii. [Wikipedia]")
 
 (documentation Hamster EnglishLanguage "Hamsters are rodents belonging to the
 subfamily Cricetinae. The subfamily contains about 25 species, classified in six
-or seven genera.[1] They have become established as popular small house pets,[2]
+or seven genera. They have become established as popular small house pets,
 and, partly because they are easy to breed in captivity, hamsters are often used
 as laboratory animals. [Wikipedia]")
 (defaultMaximumLength Hamster (MeasureFn 10 Centimeter))
