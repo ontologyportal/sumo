@@ -2169,8 +2169,8 @@ that produce mechanical power from heat and steam pressure.")
 (documentation Turbine EnglishLanguage "An &%Engine which converts the kinetic energy of a moving 
 &%Liquid (typically &%Water) into mechanical energy.")
 
-(subclass Windmill Engine)
-(documentation Windmill EnglishLanguage "Windmill is the subclass of &%Engines that 
+(subclass Windmill Generator)
+(documentation Windmill EnglishLanguage "Windmill is the subclass of &%Generator that 
 produce mechanical power from &%Wind energy.")
 
 (subclass InternalCombustionEngine Engine)
@@ -2398,13 +2398,39 @@ used for starting fires.")
   (instance ?M MatchDevice)
   (capability (StartFn Combustion) instrument ?M))
 
-(subclass VendingDevice Device)
-(documentation VendingDevice EnglishLanguage "A &%Device which is capable of &%Selling a &%Product 
-to a customer automatically when the customer inserts the appropriate amount of 
-Currency.")
+(subclass Vending FinancialTransaction)
+(documentation Vending EnglishLanguage "A &%FinancialTransaction in which
+the seller is a &%Machine")
 
 (=>
-  (instance ?VD VendingDevice)
+  (instance ?V Vending)
+  (exists (?VM)
+    (and
+      (instance ?VM VendingMachine)
+      (origin ?V ?VM))))
+      
+(subclass VendingMachine Machine)
+(documentation VendingMachine EnglishLanguage "A &%Machine that is the
+instrument of a &%FinancialTransaction that accepts payment and
+releases some object, often food or drink, to the customer.")
+
+(=>
+  (instance ?VM VendingMachine)
+  (hasPurpose ?VM 
+    (exists (?H ?O)
+      (and
+        (instance ?V Vending)
+        (instance ?H Human)
+        (instance ?O Object)
+        (objectTransferred ?V ?O)
+        (instrument ?V ?VM)
+        (origin ?V ?VM)
+        (not 
+          (instance ?O Currency))
+        (destination ?V ?H)))))
+  
+(=>
+  (instance ?VD VendingMachine)
   (hasPurpose ?VD 
     (exists (?T ?C ?P)
       (and
@@ -2414,6 +2440,17 @@ Currency.")
         (instance ?C Currency)
         (patient ?T ?P)
         (instance ?P Product)))))
+
+(=>
+  (and
+    (instance ?V Vending)
+    (objectTransferred ?V ?O)
+    (not 
+      (instance ?O Currency)))
+  (modalAttribute
+    (or
+      (instance ?O (FoodForFn Human))
+      (instance ?O Beverage)) Likely))
 
 (subclass WritingDevice Device)
 (documentation WritingDevice EnglishLanguage "A &%Device whose purpose is to be an instrument 
@@ -2695,7 +2732,7 @@ various &%DirectionalAttributes with respect to the device.")
 (subclass Refrigerator MajorAppliance)
 (subclass Freezer MajorAppliance)
 (subclass Stove MajorAppliance)
-(subclass CookingOven MajorAppliance)
+(subclass Oven MajorAppliance)
 (subclass HotWaterHeater MajorAppliance)
 (subclass ClothesWashingMachine MajorAppliance)
 (subclass ClothesDryer MajorAppliance)
@@ -4652,10 +4689,16 @@ upper deck and lower deck of small boats with a cabin.")
 two things together by means of a movable part which can be tightened 
 or loosened.")
 
-(subclass Washer Device)
-(documentation Washer EnglishLanguage "A thin plate (typically disk-shaped) with a &%Hole (typically in the middle) that is normally used to distribute the load of a threaded &%AttachingDevice, but can have also other functions")
+(subclass WasherForBolt Device)
+(termFormat EnglishLanguage WasherForBolt "washer")
+
+(documentation WasherForBolt EnglishLanguage "A thin plate made of a durable
+material in the shape of a &%Circle with a &%Hole in it, designed to isolate an
+object fixed by a &%Bolt from the head of the bolt or from contact with a
+&%MechanicalNut.")
+
 (=>
-    (instance ?W Washer)
+    (instance ?W WasherForBolt)
     (hasPurpose ?W
         (exists (?O1 ?O2)
             (and
@@ -4663,21 +4706,26 @@ or loosened.")
                 (instance ?O2 AttachingDevice)
                 (meetsSpatially ?O1 ?W)
                 (contains ?W ?O2))))) 
-        
-(=>
-  (and
-    (instance ?W Washer)
-    (instance ?O1 CorpuscularObject)
-    (instance ?O2 AttachingDevice)
-    (meetsSpatially ?O1 ?W)
-    (contains ?W ?O2))
-  (exists (?PURPOSE)
-    (hasPurpose ?W ?PURPOSE)))
 
 (=>
-  (instance ?W Washer)
+  (instance ?W WasherForBolt)
   (attribute ?W RingTorus))
   
+(=>
+  (instance ?W WasherForBolt)
+  (hasPurpose ?W
+    (exists (?B)
+      (and
+        (instance ?B Bolt)
+        (contains ?W ?B)))))
+
+(=>
+  (instance ?W WasherForBolt)
+  (exists (?H)
+    (and
+      (instance ?H Hole)
+      (equal ?W (HoleHostFn ?H)))))
+
 (subclass Holder Device)
 (documentation Holder EnglishLanguage "A large class of &%Devices whose purpose is to hold 
 something else, i.e. be the &%instrument of a &%Keeping.")
@@ -7560,12 +7608,6 @@ may or may not be carried out in a &%ReligiousBuilding.")
 ;;the &%UnitedStates.  The &%RepublicanPartyUS represents traditional, 
 ;;conservative values.")
 
-(subclass ReferenceText FactualText)
-(documentation ReferenceText EnglishLanguage "A &%Text which is not intended to be read 
-from beginning to end, but which is meant to be consulted to answer specific 
-factual questions, e.g. about the meaning of a word, the location of a 
-country, etc.")
-
 (subclass IndependentState GeopoliticalArea)
 (subclass IndependentState Nation)
 
@@ -8002,9 +8044,21 @@ of &%Texts which have been classified for efficient retrieval.")
   (exists (?B ?T)
     (and
       (possesses ?L ?B)
-      (instance ?B Building)
+      (instance ?B LibraryBuilding)
       (instance ?T Text)
       (located ?T ?B))))
+
+(subclass LibraryBuilding Building)
+(documentation LibraryBuilding EnglishLanguage "The location of a &%Library &%Organization.
+It is intended to house books that are shared.")
+
+(=>
+  (instance ?L LibraryBuilding)
+  (hasPurpose ?L
+    (exists (?B)
+      (and
+        (instance ?B Book)
+        (located ?L ?B)))))
 
 (subclass PublicLibrary Library)
 (subclass PublicLibrary GovernmentOrganization)
@@ -12289,7 +12343,8 @@ fire is conducted &%Outside of a &%Building or &%Room.")
 
 (instance Paved Attribute)
 (instance Unpaved Attribute)
-            
+(contraryAttribute Paved Unpaved)            
+
 (subclass Stairway StationaryArtifact)
 (documentation Stairway EnglishLanguage "A &%StationaryArtifact which allows one to climb, step 
 by step, from one level to another.")
@@ -13391,8 +13446,8 @@ the plaintiff is dismissed by the court, e.g. for lack of merit.")
 	    (located ?P ?C)) 
 	  Law))))) 
 
-(subclass LegalAquittal LegalDecision)
-(documentation LegalAquittal EnglishLanguage "Any &%LegalDecision where the defendant is found 
+(subclass LegalAcquittal LegalDecision)
+(documentation LegalAcquittal EnglishLanguage "Any &%LegalDecision where the defendant is found 
 not to be guilty of the crime for which the corresponding trial was held.")
 
 (subclass Sentencing LegalDecision)
@@ -16252,6 +16307,7 @@ and end at &%Sunrise.")
 (subclass DayTime TimeInterval)
 (documentation DayTime EnglishLanguage "The class of &%TimeIntervals that begin at &%Sunrise 
 and end at &%Sunset.")
+(disjoint DayTime NightTime)
 
 (=>
    (instance ?DAY DayTime)
@@ -16297,6 +16353,7 @@ and end at noon.")
 (subclass PostMeridiem TimeInterval)
 (documentation PostMeridiem EnglishLanguage "The class of &%TimeIntervals that begin at noon and 
 end at midnight.")
+(disjoint AnteMeridiem PostMeridiem)
 (=>
    (instance ?PM PostMeridiem)
    (exists (?D ?HOUR1 ?HOUR2)
@@ -16309,6 +16366,9 @@ end at midnight.")
 (subclass Afternoon DayTime)
 (documentation Afternoon EnglishLanguage "The class of &%TimeIntervals that begin at noon and 
 end at &%Sunset.")
+(disjoint Morning Afternoon)
+(disjoint AfterNoon Evening)
+(disjoint Morning Evening)
 
 (=>
    (instance ?AFTERNOON Afternoon)
@@ -17049,6 +17109,19 @@ and extends one's feet in the air.")
 (documentation Kneeling EnglishLanguage "The &%BodyPosition of resting one's weight on one's 
 &%Knees.")
 
+(subclass KneelingDown BodyMotion)
+(documentation KneelingDown EnglishLanguage "The act of assuming the
+&%BodyPosition of resting one's weight on one's &%Knees.")
+
+(=>
+  (and
+    (instance ?KB KneelingDown)
+    (agent ?KB ?A))
+  (holdsDuring 
+    (EndFn
+      (WhenFn ?KB))
+    (attribute ?A Kneeling)))
+
 (instance Splitting BodyPosition)
 (documentation Splitting EnglishLanguage "The &%BodyPosition of extending one's &%Legs at 
 right angles to one's &%Torso.")
@@ -17382,28 +17455,31 @@ that make up the external covering of &%Birds.")
       (instance ?B Bird)
       (part ?F ?B))))
 
+(instance productOfAnimal BinaryPredicate)
+(documentation productOfAnimal EnglishLanguage "(&%productOfAnimal
+?OBJCLASS ?ANIMALCLASS) means that every instance of ?OBJCLASS
+was once part of some instance of ?ANIMALCLASS.")
+(domainSubclass productOfAnimal 1 OrganicObject)
+(domainSubclass productOfAnimal 2 Animal)
+
+(subrelation meatOfAnimal productOfAnimal)
 (instance meatOfAnimal BinaryPredicate)
 
-;; NS: edit.
 (documentation meatOfAnimal EnglishLanguage "(&%meatOfAnimal
 ?MEATCLASS ?ANIMALCLASS) means that every instance of ?MEATCLASS
 was once part of some instance of ?ANIMALCLASS.")
 (domainSubclass meatOfAnimal 1 Meat)
 (domainSubclass meatOfAnimal 2 Animal)
 
-;; NS: delete.
-;; (=>
-;;   (meatOfAnimal ?MEAT ?ANIMAL)
-;;   (exists (?TIME ?A)
-;;     (and
-;;       (instance ?A ?ANIMAL)
-;;       (instance ?M ?MEAT)
-;;       (during ?TIME (WhenFn ?A))
-;;       (part ?MEAT ?A))))
+(=>
+  (productOfAnimal ?MEATOBJ ?ANIMAL)
+  (exists (?TIME ?A)
+    (and
+      (instance ?A ?ANIMAL)
+      (instance ?M ?MEATOBJ)
+      (during ?TIME (WhenFn ?A))
+      (part ?M ?A))))
 
-;; NS: add.  Here we're using &%part in a "substance" sense.
-;; Note that &%material takes a subclass of &%Substance as its
-;; first argument, and so is not useful here.
 (=>
   (and
     (meatOfAnimal ?MEAT ?ANIMAL)
@@ -17564,39 +17640,19 @@ in &%Restaurant that brings food from the kitchen to the customer's table")
         (patient ?C ?FOOD)
         (instance ?FOOD (FoodForFn Human))))))
 
-;; NS: edit.
 (instance Maid ServicePosition)
 
-;; NS: deleted for now, since ServicePosition is a subclass
-;; of SkilledOccupation, and so is disjoint from
-;; UnskilledOccupation.
-;; (instance Maid UnskilledOccupation)
-
-;; NS: delete.
-;; (documentation Maid EnglishLanguage "Any &%ServicePosition where various needs of a person 
-;; or family are served over a long period of time.  Note that these &%Positions 
-;; are, by definition, filled only by &%Women.")
-
-;; NS: delete.
-;; (documentation Maid EnglishLanguage "A &%Position which involves &%Serving a person 
-;; or family.  Note that this &%Position is filled only by a &%Woman.")
-
-;; NS: add.
 (documentation Maid EnglishLanguage "This &%Attribute
 describes a &%Woman who works in a &%ServicePosition that
 entails performing various domestic tasks (cleaning,
 cooking, child care) for an individual or family over an
 extended period of time, typically months or years.")
 
-;; NS: TO DO: Review and edit all instances of
-;; SkilledOccupation, UnskilledOccupation.
-
-;; NS: edit.
 (=>
    (holdsDuring ?T1 (attribute ?MAID Maid))
    (exists (?SERVE)
       (and
-         (during ?SERVE ?T1)
+         (during (WhenFn ?SERVE) ?T1)
          (instance ?SERVE Serving)
          (agent ?SERVE ?MAID))))
 
@@ -17610,19 +17666,14 @@ or some of the &%Rooms within a &%Building.")
     (attribute ?P ?J))
   (occupation ?P (OccupationFn Washing)))
 
-;; NS: delete.
-;; (instance TheaterProfession SkilledOccupation)
-
 (subclass TheaterProfession EntertainmentProfession)
 
-;; NS: edit.
 (documentation TheaterProfession EnglishLanguage "Instances
 of this &%Class describe the &%Positions of people whose
 work involves putting on plays (theatrical performanes).")
 
-;; NS: edit.
 (instance FilmDirector FilmMakingProfession)
-;; NS: edit.
+
 (documentation FilmDirector EnglishLanguage "A &%Position that
 describes a person who directs &%MotionPictures as a
 profession.")
@@ -17648,9 +17699,8 @@ i.e. acting in films, directing films, producing films, etc.")
     (attribute ?H ?P))
   (occupation ?H (OccupationFn FilmMaking)))
 
-;; NS: edit.
 (instance FilmProducer FilmMakingProfession)
-;; NS: edit.
+
 (documentation FilmProducer EnglishLanguage "A &%Position that
 describes a person who produces &%MotionPictures as a profession,
 i.e., who arranges the financing for a &%MotionPicture and
@@ -17676,9 +17726,8 @@ supervises its production.")
 (documentation Coach EnglishLanguage "Any occupation that involves training an athlete or a 
 sports team.")
 
-;; NS: edit.
 (instance GameReferee SkilledOccupation)
-;; NS: edit.
+
 (documentation GameReferee EnglishLanguage "This &%Attribute
 describes a person who adjudicates &%Maneuvers in a &%Game, i.e.,
 who decides whether or not the &%Maneuvers are permitted by the
@@ -17840,6 +17889,9 @@ part-time, and which involves assisting a &%Cleric.")
         (occupiesPosition ?C Cleric ?ORG)
         (subordinateInOrganization ?ORG ?PERSON ?C)))))
 
+(subclass PoliceFacility Building)              
+(documentation PoliceFacility EnglishLanguage "A building designed to house &%PolicePersons.")
+
 (instance PoliceOfficer SkilledOccupation)
 (instance PoliceOfficer GovernmentPosition)
 (documentation PoliceOfficer EnglishLanguage "The profession of being a police officer, i.e. 
@@ -17896,7 +17948,7 @@ i.e. a detective who can be hired for a fee to investigate something.")
 ;; NS: edit.
 (documentation Lawyer EnglishLanguage "This &%Attribute
 describes a person whose &%Profession is the practice of law,
-whether as a &%Judge or as a legal advocate.")
+whether as a &%JudgeAtLaw or as a legal advocate.")
 (=>
   (attribute ?P Lawyer)
   (hasExpertise ?P FieldOfLaw))
@@ -17919,12 +17971,22 @@ a &%Nation or &%StateOrProvince.")
 (documentation PublicProsecutor EnglishLanguage "An &%Attorney who prosecutes criminal cases for 
 a &%GovernmentOrganization.")
 
-(subAttribute Judge Attorney)
-(instance Judge GovernmentPosition)
-(documentation Judge EnglishLanguage "An &%Attorney who has the power of deciding legal cases.")
+(documentation JudgeAtLaw EnglishLanguage "&%JudgeAtLaw is the &%Position of a person who 
+is a public official with the authority to decide legal matters in a 
+governmental &%JudicialOrganization.")
 
 (=>
-  (occupiesPosition ?P Judge ?O)
+  (attribute ?PERSON JudgeAtLaw)
+  (exists (?ORG)
+    (and
+      (instance ?ORG JudicialOrganization)
+      (instance ?ORG GovernmentOrganization)
+      (employs ?ORG ?PERSON))))
+
+(instance JudgeAtLaw GovernmentPosition)
+
+(=>
+  (occupiesPosition ?P JudgeAtLaw ?O)
   (modalAttribute 
     (exists (?D) 
       (and 
@@ -17932,7 +17994,7 @@ a &%GovernmentOrganization.")
         (agent ?D ?P))) Permission)) 
 
 (=>
-  (occupiesPosition ?P Judge ?O)
+  (occupiesPosition ?P JudgeAtLaw ?O)
   (instance ?O JudicialOrganization))
 
 (subAttribute Professor Teacher)
@@ -19252,8 +19314,67 @@ although not necessarily, paved and intended for cars.")
         (instrument ?EV ?VEH)))))
       
 (contraryAttribute Civilian MilitaryPerson)
-(subclass OccupationalRole Position)
-(documentation OccupationalRole EnglishLanguage "A &%Role of a &%Human in a &%OrganizationalProcess.")
+
+(subclass OccupationalRole RelationalAttribute)
+(documentation OccupationalRole EnglishLanguage "&%RelationalAttribute ascribing to a &%CognitiveAgent 
+a &%relation towards some activity or a set of activities he or she performs during a &%TimeInterval 
+as his or her main activity. Be it for a longer period of time as a means of earning a living, 
+a leisure activity or an activity the person is engaged in for a short period of time.")
+
+(comment OccupationalRole "This term is being defined in this more general way so that it 
+corresponds to the way words describing occupations work in natural langueage. For example a 
+&%Driver might be a &%Professional or just basically any person &%Driving since for the 
+&%TimeInterval he or she is &%Driving it is his or her main activity and in the &%GroupOfPeople 
+on board of the &%Car the &%Driver has a different role then the passengers. 
+Whether a person is a professional driver would be by a more specific &%OccupationalRole like 
+&%ProfessionalDriver that would be a &%subAttribute also of the &%RelationalAttribute &%Professional." "MSV")
+
+(=>
+    (and
+        (instance ?O OccupationalRole)
+        (property ?X ?O))
+    (instance ?X CognitiveAgent))
+
+(=>
+    (instance ?O OccupationalRole)
+    (exists (?PCLASS)
+        (typicalAction ?PCLASS 
+                (AttrFn CognitiveAgent ?O))))
+    
+(=>
+    (and
+        (instance ?O OccupationalRole)
+        (typicalAction ?PCLASS 
+            (AttrFn CognitiveAgent ?O)))
+    (exists (?X ?T ?P ?PT)
+        (and
+            (instance ?X CognitiveAgent)
+            (holdsDuring ?T
+                (attribute ?X ?O))
+            (instance ?P ?PCLASS)
+            (agent ?X ?P)
+            (time ?P ?PT)
+            (temporalPart ?PT ?T))))
+            
+(subclass OccupationalDomain OccupationalRole)
+(documentation OccupationalDomain EnglishLanguage "A &%Class of &%OccupationalRoles defined as having at 
+least one &%Process &%Class being a &%typicalAction and also the purpose of the occupation.")
+
+
+(=>
+    (and
+        (instance ?OCCD OccupationalDomain)
+        (instance ?X 
+            (AttrFn CognitiveAgent ?OCCD)))
+    (exists (?PCLASS)
+        (and
+            (typicalAction ?PCLASS 
+                (AttrFn CognitiveAgent ?OCCD))
+            (hasPurpose ?X
+                (exists (?P)
+                    (and
+                        (instance ?P ?PCLASS)
+                        (agent ?X ?P)))))))
 
 ;; NS: edit.
 (instance Civilian SocialRole)
@@ -19524,14 +19645,6 @@ geographic area.")
         (instance ?EV ReligiousProcess)
         (eventLocated ?EV ?X)))))
         
-(subclass PoliceFacility Building)              
-(documentation PoliceFacility EnglishLanguage "A building designed to house &%PolicePersons.")
-
-(instance PolicePerson OccupationalRole)
-(subAttribute PolicePerson GovernmentPerson)
-(documentation PolicePerson EnglishLanguage "A member of a government whose occupation
-has the primary purpose of preventing crime and arresting criminals.")
-
 (subAttribute PoliticalFigure Celebrity)
 (documentation PoliticalFigure EnglishLanguage "A well known person who participates
 in a PoliticalProcess.  This must either be the person's principal
@@ -19614,22 +19727,25 @@ and eat.  Some restaurants may also offer entertainment.")
       (instance ?EV EducationalProcess)
       (patient ?EV ?X))))
       
-(subclass Subway Hole)
-(documentation Subway EnglishLanguage "A subway is a hollow
-area of the earth, typically under large cities, designed
-for running trains that move people. It is distinguished
-from other kinds of tunnels in that trains run through them,
-primarily for the purpose of carrying people rather than
-ore, for example.")
+(subclass SubwaySystem RailTransportationSystem)
+(documentation SubwaySystem EnglishLanguage "Any &%RailTransportationSystem that runs 
+exclusively through &%Tunnels.")
+
 (=>
-  (instance ?X Subway)
+  (and
+    (instance ?S SubwaySystem)
+    (routeInSystem ?P ?S))
+  (instance ?P Tunnel))
+
+(=>
+  (instance ?X SubwaySystem)
   (exists (?SURF)
     (and
       (surface ?SURF GeographicArea)
       (orientation ?X ?SURF Below))))
       
 (=>
-  (instance ?X Subway)
+  (instance ?X SubwaySystem)
   (hasPurpose ?X
     (exists (?EV ?P)
       (and
@@ -19856,6 +19972,43 @@ an ontology typically includes multiple taxonomies.")
       (instance ?TAX Taxonomy)
       (abstractPart ?TAX ?ONT))))
 
+;;typicalAction
+(instance typicalAction CaseRole)
+(domainSubclass typicalAction 1 Process)
+(domainSubclass typicalAction 2 Agent)
+(relatedInternalConcept typicalAction agent)
+(relatedInternalConcept typicalAction typicallyContainsTemporalPart)
+
+(documentation typicalAction EnglishLanguage "(&%typicalAction ?PROCESS ?CLASS) means that instances of the class ?AGENT are typically an active determinant of instances of the &%Process class ?PROCESS.")
+
+(=>
+    (typicalAction ?PROCESS ?AGENT)
+    (exists (?P ?A)
+        (and
+            (instance ?P ?PROCESS)
+            (instance ?A ?AGENT)
+            (agent ?P ?A))))
+            
+(=>
+    (and
+        (typicalAction ?PROCESS ?AGENT)
+        (instance ?A ?AGENT)
+        (equal ?PPROB
+            (ProbabilityFn
+                (exists (?X)
+                    (and
+                        (instance ?X ?PROCESS)
+                        (agent ?X ?A)))))
+        (equal ?NOTPPROB
+            (ProbabilityFn
+                (not
+                    (exists (?Y)
+                        (and
+                            (instance ?Y ?PROCESS)
+                            (agent ?Y ?A)))))))
+    (greaterThan ?PPROB ?NOTPPROB))
+
+      
 ;; transported
 (instance transported BinaryPredicate)
 (instance transported AsymmetricRelation)
@@ -22158,19 +22311,20 @@ a &%FaxMachine at which ?&%Agent can be contacted.")
       (faxNumber ?NUMBER ?AGENT)))
   (instance ?DEVICE FaxMachine))      
 
-(subclass FabricIron Device)
-(documentation FabricIron EnglishLanguage "&%FabricIron is a type of &%Device that
-has a flat metal base used to smooth cloth")
 (termFormat EnglishLanguage FabricIron "iron")
 
-;; KJN: Changing definition in order to remove dependency (arising from MetalProduct).      
-;;(=>
-;;  (instance ?IRON FabricIron)
-;;  (exists (?BASE)
-;;    (and
-;;      (bottom ?BASE ?IRON)
-;;      (instance ?BASE MetalProduct)
-;;      (attribute ?BASE Flat))))
+(subclass FabricIron ElectricDevice) 
+(subclass FabricIron HeatingDevice)
+(subclass FabricIron HomeAppliance)
+(documentation FabricIron EnglishLanguage "An iron is a small appliance used in %&Ironing to remove wrinkles from %&Fabric.") 
+
+(=>
+  (instance ?I FabricIron)
+  (hasPurpose ?I
+    (exists (?IRON)
+      (and
+        (instance ?IRON Ironing)
+        (instrument ?IRON ?I)))))
 
 (=>
   (instance ?IRON FabricIron)
@@ -22214,6 +22368,22 @@ to make something &%Smooth")
         (EndFn (WhenFn ?SMOOTH))
         (attribute ?PART Smooth)))))
         
+(subclass Roughening SurfaceChange)
+(documentation Roughening EnglishLanguage "&%Roughening is a type of &%SurfaceChange
+to make something &%Rough.")
+(termFormat EnglishLanguage Roughening "roughening")
+
+(=>
+  (and
+    (instance ?P Roughening)
+    (patient ?P ?OBJ))
+  (exists (?PART)
+    (and
+      (superficialPart ?PART ?OBJ)
+      (holdsDuring
+        (EndFn (WhenFn ?P))
+        (attribute ?PART Rough)))))
+
 (subclass Ironing Smoothing)
 (documentation Ironing EnglishLanguage "&%Ironing refers to a &%Smoothing process where
 a heated &%Device is used to smooth something")
@@ -26662,48 +26832,6 @@ transferred is a letter or package.")
         (ImmediateFutureFn ?P)
         (located ?OBJ ?D)))))
 
-(subclass Vending FinancialTransaction)
-(documentation Vending EnglishLanguage "A &%FinancialTransaction in which
-the seller is a &%Machine")
-
-(=>
-  (instance ?V Vending)
-  (exists (?VM)
-    (and
-      (instance ?VM VendingMachine)
-      (origin ?V ?VM))))
-      
-(subclass VendingMachine Machine)
-(documentation VendingMachine EnglishLanguage "A &%Machine that is the
-instrument of a &%FinancialTransaction that accepts payment and
-releases some object, often food or drink, to the customer.")
-
-(=>
-  (instance ?VM VendingMachine)
-  (hasPurpose ?VM 
-    (exists (?H ?O)
-      (and
-        (instance ?V Vending)
-        (instance ?H Human)
-        (instance ?O Object)
-        (objectTransferred ?V ?O)
-        (instrument ?V ?VM)
-        (origin ?V ?VM)
-        (not 
-          (instance ?O Currency))
-        (destination ?V ?H)))))
-  
-(=>
-  (and
-    (instance ?V Vending)
-    (objectTransferred ?V ?O)
-    (not 
-      (instance ?O Currency)))
-  (modalAttribute
-    (or
-      (instance ?O (FoodForFn Human))
-      (instance ?O Beverage)) Likely))
-
 (instance CoinOperated RelationalAttribute)
 (documentation CoinOperated EnglishLanguage "An &%Attribute stating
 that a &%Machine is operated by its intended &%customer only by
@@ -27108,30 +27236,23 @@ numbers are equal or nearly so.")
       (DivisionFn ?N2 ?N1))
     Unlikely))
 
-
-      
 (subclass Invoice FinancialText)
-(documentation Invoice EnglishLanguage "A &%FinancialText which refers to the &%Selling of physical goods and &%confersRight to a &%Buyer to purchase goods according to agreed upon terms. An &%Invoice can occur before or after &%Buyer's receipt of goods, but only before before a &%Seller's receipt of payment.")
-
+(documentation Invoice EnglishLanguage "A &%FinancialText which refers to the &%Selling of physical goods and &%confersRight to a buyer to purchase goods according to agreed upon terms. An &%Invoice can occur before or after buyer's receipt of goods, but only before before a seller's receipt of payment.")
 
 (=>
   (instance ?INVOICE Invoice)
-  (exists (?NUMBER ?BUYER ?SELLER)
+  (exists (?NUMBER ?BUYER ?SELLER ?ENT)
     (and
       (uniqueIdentifier ?NUMBER ?INVOICE)
-      (instance ?BUYER Buyer)
-      (instance ?SELLER Seller)
+      (buys ?BUYER ?SELLER ?ENT)
       (confersRight
         (exists (?SELLING)
           (and
             (before
               (BeginFn
-                (WhenFn ?INVOICE)
-              )
+                (WhenFn ?INVOICE))
               (BeginFn
-                (WhenFn ?SELLING)
-              )
-            )
+                (WhenFn ?SELLING)))
             (instance ?SELLING Selling)
             (instance ?PRODUCT Product)
             (objectTransferred ?SELLING ?PRODUCT)
@@ -27141,15 +27262,14 @@ numbers are equal or nearly so.")
       ?SELLER ?BUYER))))
 
 (subclass PurchaseOrder FinancialText)
-(documentation PurchaseOrder EnglishLanguage "A &%FinancialText which refers to the &%Selling of physical goods and &%confersObligation to a &%Buyer to purchase goods according to agreed upon terms. A &%PurchaseOrder always occurs before &%Buying.")
+(documentation PurchaseOrder EnglishLanguage "A &%FinancialText which refers to the &%Selling of physical goods and &%confersObligation to a buyer to purchase goods according to agreed upon terms. A &%PurchaseOrder always occurs before &%Buying.")
 
 (=>
   (instance ?PO PurchaseOrder)
   (exists (?NUMBER ?BUYER ?SELLER)
     (and
       (uniqueIdentifier ?NUMBER ?PO)
-      (instance ?BUYER Buyer)
-      (instance ?SELLER Seller)
+      (buys ?BUYER ?SELLER ?ENT)
       (confersObligation
         (exists (?BUYING)
           (and
@@ -27196,15 +27316,68 @@ numbers are equal or nearly so.")
       (instance ?NUMBER SymbolicString)
       (uniqueIdWithRespectTo ?INVOICE ?SELLER ?NUMBER))))
 
-(documentation PurchaseOrderNumber EnglishLanguage "A &%SymbolicString for a &%Purchase which is unique to a &%Buyer.")
+;; These are convenience methods to refer to buying and renting activities
+(instance buys TernaryPredicate)
+(documentation buys EnglishLanguage "(&%buys ?CUST ?AGENT ?ENT) means that
+&%Agent ?CUST performs &%Buying of &%Entity ?ENT from &%Agent ?AGENT")
+(termFormat EnglishLanguage buys "buys")
+
+(domain buys 1 CognitiveAgent)
+(domain buys 2 CognitiveAgent)
+(domain buys 3 Entity)
+
+(=>
+  (and
+    (buys ?CUST ?AGENT ?ITEM)
+    (instance ?ITEM Physical))
+  (exists (?TRANS)
+    (and
+      (instance ?TRANS Buying)
+      (patient ?TRANS ?ITEM)
+      (agent ?TRANS ?CUST)
+      (origin ?TRANS ?AGENT))))
+      
+(=>
+  (and
+    (buys ?CUST ?AGENT ?ITEM)
+    (instance ?ITEM Proposition))
+  (exists (?TRANS ?PROC)
+    (and
+      (realization ?PROC ?ITEM)
+      (instance ?TRANS Buying)
+      (patient ?TRANS ?PROC)
+      (origin ?TRANS ?AGENT))))
+      
+(instance rents QuaternaryPredicate)
+(documentation rents EnglishLanguage "(&%rents ?CUST ?AGENT ?OBJ ?TI) means that
+for &%TimeInterval ?TI, &%CognitiveAgent ?CUST is &%Renting &%Object ?OBJ from 
+&%CognitiveAgent ?AGENT")
+(termFormat EnglishLanguage rents "rents")
+
+(domain rents 1 CognitiveAgent)
+(domain rents 2 CognitiveAgent)
+(domain rents 3 Object)
+(domain rents 4 TimeInterval)
+
+(=>
+  (rents ?CUST ?AGENT ?OBJ ?TI)
+  (holdsDuring ?TI
+    (exists (?RENT)
+      (and
+        (instance ?RENT Renting)
+        (patient ?RENT ?OBJ)
+        (agent ?RENT ?CUST)
+        (possesses ?AGENT ?OBJ)))))
+
+(documentation PurchaseOrderNumber EnglishLanguage "A &%SymbolicString for a &%Purchase which is unique to a buyer.")
 (subclass PurchaseOrderNumber SymbolicString)
 
 (=> 
   (instance ?AN PurchaseOrderNumber)
-  (exists (?PO ?BUYER ?NUMBER)
+  (exists (?PO ?BUYER ?NUMBER ?SELLER ?ENT)
     (and
       (instance ?PO PurchaseOrder)
-      (instance ?BUYER Buyer)
+      (buys ?BUYER ?SELLER ?ENT)
       (instance ?NUMBER SymbolicString)
       (uniqueIdWithRespectTo ?PO ?BUYER ?NUMBER))))
       
@@ -27292,6 +27465,21 @@ no &%Humans exist.")
       (and
         (instance ?H Human)
         (inhabits ?H ?U)))))
+
+(instance Inhabited RelationalAttribute)
+(contraryAttribute Inhabited Uninhabited)
+
+(documentation Inhabited EnglishLanguage "&%Attribute of a &%Region in which
+&%Humans exist.")
+
+(=>
+  (and
+    (attribute ?I Inhabited)
+    (instance ?I Region))
+  (exists (?H)
+    (and
+      (instance ?H Human)
+      (inhabits ?H ?I))))
 
 (instance Barefoot RelationalAttribute)
 (documentation Barefoot EnglishLanguage "A state where someone doesn't &%wears &%Shoes.")
@@ -27517,6 +27705,7 @@ cat after the tiger. [Wikipedia]")
 (habitatOfOrganism Lion Africa)
 (habitatOfOrganism Lion India)
 (property Lion VulnerableSpecies)
+(termFormat EnglishLanguage Lion "lion")
 
 (instance habitatOfOrganism BinaryPredicate)
 (domainSubclass habitatOfOrganism 1 Organism)
@@ -27556,6 +27745,7 @@ places on Earth, has caused significant conflicts with humans. [Wikipedia]")
 (subclass Tiger Feline)
 (property Tiger EndangeredSpecies) 
 (habitatOfOrganism Tiger Asia)
+(termFormat EnglishLanguage Tiger "tiger")
 
 (documentation Rhinoceros EnglishLanguage "A rhinoceros, often abbreviated to
 rhino, is one of any five extant species of odd-toed ungulates in the family
@@ -27577,6 +27767,7 @@ food. [Wikipedia]")
 (habitatOfOrganism Rhinoceros Asia)
 (habitatOfOrganism Rhinoceros Africa)
 (defaultMaximumMeasure Rhinoceros (MeasureFn 2200 PoundMass))
+(termFormat EnglishLanguage Rhinoceros "rhinoceros")
 
 (documentation Parrot EnglishLanguage "Parrots, also known as psittacines
 are birds of the roughly 393 species in 92 genera that make up the order
@@ -27596,6 +27787,7 @@ parrots is in South America and Australasia. [Wikipedia]")
 (habitatOfOrganism Parrot SouthAmerica)
 (habitatOfOrganism Parrot Australia)
 (property Parrot LeastConcernSpecies)
+(termFormat EnglishLanguage Parrot "parrot")
 
 (documentation Lemur EnglishLanguage "Lemurs are a clade of strepsirrhine
 primates endemic to the island of Madagascar. The word lemur derives from the
@@ -27612,6 +27804,7 @@ apes, but evolved independently. [Wikipedia]")
 (subclass Lemur Primate)
 (habitatOfOrganism Lemur Madagascar)
 (property Lemur CriticallyEndangeredSpecies)
+(termFormat EnglishLanguage Lemur "lemur")
 
 (documentation Panda EnglishLanguage "The giant panda (Ailuropoda melanoleuca,
 literally 'black and white cat-foot'; Chinese: 大熊猫; pinyin: dà xióng māo,
@@ -27629,6 +27822,7 @@ along with specially prepared food. [Wikipedia]")
 (habitatOfOrganism Panda China)
 (property Panda VulnerableSpecies)
 (subclass Panda Herbivore)
+(termFormat EnglishLanguage Panda "panda")
 
 (documentation Octopus EnglishLanguage "The octopus is a cephalopod mollusc of
 the order Octopoda. It has two eyes and four pairs of arms and, like other
@@ -27642,6 +27836,7 @@ behaviorally diverse of all invertebrates. [Wikipedia]")
 (property Octopus LeastConcernSpecies)
 (subclass Octopus Mollusk)
 (meatOfAnimal OctopusMeat Octopus)
+(termFormat EnglishLanguage Octopus "octopus")
 
 (documentation Reindeer EnglishLanguage "The reindeer (Rangifer tarandus), also
 known as caribou in North America, is a species of deer with circumpolar
@@ -27662,9 +27857,10 @@ deliver gifts to children on Christmas Eve. [Wikipedia]")
 (defaultMeasure Reindeer (MeasureFn 300 PoundMass))
 (property Reindeer VulnerableSpecies)
 (subclass Reindeer Deer)
-(habitatOfOrganism Panda Europe)
-(habitatOfOrganism Panda Asia)
-(habitatOfOrganism Panda NorthAmerica)
+(habitatOfOrganism Reindeer Europe)
+(habitatOfOrganism Reindeer Asia)
+(habitatOfOrganism Reindeer NorthAmerica)
+(termFormat EnglishLanguage Reindeer "reindeer")
 
 (documentation Crocodile EnglishLanguage "Crocodiles (subfamily Crocodylinae) or
 true crocodiles are large aquatic reptiles that live throughout the tropics in
@@ -27685,6 +27881,7 @@ and fossil Crocodylomorpha. [Wikipedia]")
 (habitatOfOrganism Crocodile Africa)
 (habitatOfOrganism Crocodile Australia)
 (habitatOfOrganism Crocodile SouthAmerica)
+(termFormat EnglishLanguage Crocodile "crocodile")
 
 (documentation Cheetah EnglishLanguage "The cheetah (Acinonyx jubatus)
 is a large felid of the subfamily Felinae that occurs mainly in eastern and
@@ -27704,6 +27901,7 @@ coat is uniformly covered with nearly 2,000 solid black spots. [Wikipedia]")
 (subclass Cheetah Feline)
 (habitatOfOrganism Cheetah Asia)
 (habitatOfOrganism Cheetah Africa)
+(termFormat EnglishLanguage Cheetah "cheetah")
 
 (documentation Ferret EnglishLanguage "The ferret (Mustela putorius furo) is the
 domesticated form of the European polecat, a mammal belonging to the same genus
@@ -27719,6 +27917,7 @@ black-footed ferret. Distinct from the nearly extinct wild American ferret. [Wik
 (property Ferret LeastConcernSpecies)
 (subclass Ferret Mammal)
 (subclass Ferret DomesticAnimal)
+(termFormat EnglishLanguage Ferret "ferret")
 
 (documentation GuineaPig EnglishLanguage "The guinea pig (Cavia porcellus), cavy
 or domestic guinea pig, or cuy for livestock breeds, is a species of rodent
@@ -27728,13 +27927,33 @@ They originated in the Andes, and earlier studies based on biochemistry and
 hybridization suggest they are domesticated descendants of a closely related
 species of cavy such as Cavia aperea, C. fulgida, or C. tschudii and, therefore,
 do not exist naturally in the wild. Recent studies applying molecular
-markers,[3][4] in addition to studying the skull and skeletal morphology of
+markers, in addition to studying the skull and skeletal morphology of
 current and mummified animals, revealed that the ancestor is most likely
 Cavia tschudii. [Wikipedia]")
 
 (defaultMeasure GuineaPig (MeasureFn 2 PoundMass))
 (property GuineaPig LeastConcernSpecies)
-(subclass GuineaPig Mammal)
+(subclass GuineaPig Rodent)
 (subclass GuineaPig DomesticAnimal)
+(termFormat EnglishLanguage GuineaPig "guinea pig")
 
+(documentation Hamster EnglishLanguage "Hamsters are rodents belonging to the
+subfamily Cricetinae. The subfamily contains about 25 species, classified in six
+or seven genera. They have become established as popular small house pets,
+and, partly because they are easy to breed in captivity, hamsters are often used
+as laboratory animals. [Wikipedia]")
+(defaultMaximumLength Hamster (MeasureFn 10 Centimeter))
+(defaultMinimumLength Hamster (MeasureFn 5 Centimeter))
+(property Hamster LeastConcernSpecies)
+(subclass Hamster Rodent)
+(subclass Hamster DomesticAnimal)
+(termFormat EnglishLanguage Hamster "hamster")
+
+(documentation MammalCub EnglishLanguage "A &%NonFullyFormed &%Mammal.")
+(subclass MammalCub Mammal)
+(termFormat EnglishLanguage MammalCub "cub")
+
+(=>
+  (instance ?M MammalCub)
+  (attribute ?M NonFullyformed))
 
