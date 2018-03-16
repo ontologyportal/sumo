@@ -2843,6 +2843,59 @@ especially used for wheeled vehicles and people who cannot climb stairs.")
         (instance ?E RecreationOrExercise)
         (instrument ?E ?D)))))
 
+(subclass Toy Device)
+(documentation Toy EnglishLanguage "Any &%Device that &%hasPurpose of being used for
+play - that is &%RecreationOrExercise but not an &%AerobicExerciseDevice or &%AnaerobicExerciseDevice.")
+(termFormat EnglishLanguage Toy "toy")
+
+(disjoint Toy AerobicExerciseDevice)
+(disjoint Toy AnaerobicExerciseDevice)
+
+(subclass Doll Toy)
+(documentation Doll EnglishLanguage "A &%Toy that &%represents some &%Agent, typically
+a &%Human or &%Animal (which could also be fictional).")
+(termFormat EnglishLanguage Doll "doll")
+
+(=>
+  (instance ?D Doll)
+  (exists (?A)
+    (and
+      (instance ?A Agent)
+      (represents ?D ?A))))
+
+(subclass AnimalDoll Doll)
+(documentation AnimalDoll EnglishLanguage "A &%Doll that &%represents an &%Animal.")
+(termFormat EnglishLanguage AnimalDoll "toy animal")
+
+(=>
+  (instance ?AD AnimalDoll)
+  (exists (?A)
+    (and
+      (instance ?A Animal)
+      (represents ?AD ?A))))
+
+(subclass HumanDoll Doll)
+(documentation HumanDoll EnglishLanguage "A &%Doll that &%represents an &%Human.")
+(termFormat EnglishLanguage HumanDoll "human doll")
+
+(=>
+  (instance ?AD HumanDoll)
+  (exists (?H)
+    (and
+      (instance ?H Human)
+      (represents ?AD ?H))))
+
+(subclass ToyHouse Toy)
+(documentation ToyHouse EnglishLanguage "A &%Toy that &%represents a &%House.")
+(termFormat EnglishLanguage ToyHouse "toy house")
+
+(=>
+  (instance ?TH ToyHouse)
+  (exists (?H)
+    (and
+      (instance ?H House)
+      (represents ?TH ?H))))
+
 (subclass WalkingCane Device)
 (documentation WalkingCane EnglishLanguage "A &%Device which has the form of a staff with 
 a handle and which enables some people to walk with greater assurance.")
@@ -4752,7 +4805,24 @@ something else, i.e. be the &%instrument of a &%Keeping.")
              (agent ?RIDE ?HORSE)
              (instance ?HORSE Horse)))) instrument ?SADDLE))
 
-(subclass HorseRiding Carrying)
+(documentation AnimalGuiding EnglishLanguage "A &%Carrying where the
+&%instrument of the &%Carrying is an &%Animal and that
+&%objectTransferred in the &%Carrying is the &%Agent of the &%Guiding.")
+
+(subclass AnimalGuiding Guiding)
+
+(=>
+   (instance ?AG AnimalGuiding)
+   (exists (?A ?C)
+     (and
+       (instance ?A Animal)
+       (agent ?AG ?H)
+       (instance ?C Carrying)
+       (agent ?C ?A)
+       (objectTransferred ?C ?H)
+       (instrument ?AG ?A))))
+
+(subclass HorseRiding AnimalGuiding)
 (documentation HorseRiding EnglishLanguage "Any instance of &%Carrying where the &%Animal is 
 a &%Horse.")
 
@@ -4764,12 +4834,8 @@ a &%Horse.")
       (instrument ?R ?H))))
 
 (instance carries BinaryPredicate)
-;; KJN: Editing this to be more general not only to Animal but to any Agent
-;;(domain carries 1 Animal)
 (domain carries 1 Agent)
 (domain carries 2 Object)
-;;(documentation carries EnglishLanguage "(carries ?ANIMAL ?OBJECT) means that 
-;;an &%Animal ?ANIMAL transers an &%OBJECT ?OBJECT from one point to another")
 
 (documentation carries EnglishLanguage "(carries ?AGENT ?OBJECT) means that 
 an &%Agent ?AGENT transers an &%OBJECT ?OBJECT from one point to another")
@@ -4780,8 +4846,52 @@ an &%Agent ?AGENT transers an &%OBJECT ?OBJECT from one point to another")
     (and
       (instrument ?CARRYING ?AGENT)
       (patient ?CARRYING ?OBJECT))))
-      
-      
+
+(subclass Crawling BodyMotion)
+(subclass Crawling Translocation)
+(termFormat EnglishLanguage Crawling "crawling")
+(documentation Crawling EnglishLanguage "A form of locomotion where a &%Bipedal
+animal changes location in part by use of the arms or hands on the ground. This
+covers a baby crawling on all fours, or a soldier dragging his lower body along
+pulled from the elbows in order to stay low and less visible.  It does not
+however cover a dog walking on its front and rear legs because it's a normally
+quadripedal animal.")
+
+(=>
+  (and
+    (instance ?C Crawling)
+    (agent ?C ?A))
+  (exists (?ARM)
+    (and
+      (instance ?ARM Arm)
+      (part ?ARM ?A)
+      (instrument ?C ?ARM))))
+
+(=>
+  (and
+    (instance ?C Crawling)
+    (agent ?C ?A))
+  (instance ?A Biped))
+
+(subclass Biped Animal)
+(documentation Biped EnglishLanguage "An &%Animal that walks on two &%Legs (at least
+when &%FullyFormed and not exhibiting some &%DiseaseOrSyndrome).")
+
+(=>
+  (and
+    (instance ?A Biped)
+    (instance ?W Ambulating)
+    (agent ?W ?A))
+  (modalAttribute
+    (exists (?L1 L2)
+      (and
+        (instance ?L1 Leg)
+        (instance ?L2 Leg)
+        (part ?L1 ?A)
+        (part ?L2 ?A)
+        (instrument ?W ?L1)
+        (instrument ?W ?L2)))))
+
 (subclass Tray Holder)
 (documentation Tray EnglishLanguage "A &%Holder that is designed for &%Food, dishes, and 
 flatware.")
@@ -4860,6 +4970,20 @@ i.e. to be in instrument in an act of &%Confining.")
       (and
         (instance ?C Confining)
         (instrument ?C ?T)))))
+
+(subclass LivestockPen TrapOrCage)
+(documentation LivestockPen EnglishLanguage "A &%TrapOrCage designed for &%Confining &%Livestock.")
+(termFormat EnglishLanguage LivestockPen "pen")
+
+(=>
+  (instance ?T LivestockPen)
+  (hasPurpose ?T 
+    (exists (?C ?L)
+      (and
+        (instance ?L Livestock)
+        (instance ?C Confining)
+        (instrument ?C ?T)
+        (patient ?C ?L)))))
 
 (subclass Envelope Container)
 (documentation Envelope EnglishLanguage "A sealable &%Container for one or more pieces of 
@@ -16617,23 +16741,13 @@ unexpected and of significance occurs.")
          (temporalPart ?PART (PastFn ?TIME))
          (holdsDuring ?PART (expects ?AGENT ?PROP))
          (holdsDuring ?TIME (truth ?PROP False)))))
-
-(instance structure BinaryPredicate)
-(instance structure IrreflexiveRelation)
-(instance structure AsymmetricRelation)
-(subrelation structure attribute)
-(domain structure 1 Object)
-(domain structure 2 StructureAttribute)
-                  
-;; KJN: Delete. Redundant as attribute already is an instance of these 3         
+                          
 (instance color BinaryPredicate)
-;;(instance color IrreflexiveRelation)
-;;(instance color AsymmetricRelation)
+
 (subrelation color attribute)
 (domain color 1 Object)
 (domain color 2 ColorAttribute)
 
-;; NS: Narrowing attribute -> color.
 (=>
   (and
     (instance ?ATTR ColorAttribute)
@@ -18451,23 +18565,23 @@ studied the &%FieldOfStudy ?FIELD and is regarded as an expert.")
 engages in activities of the class ?WORK as a means of earning a living.")
 
 (=>
-   (hasOccupation ?PERSON ?WORK)
-   (exists (?INST)
-      (and
-         (instance ?INST ?WORK)
-         (instance ?INST Working)
-         (agent ?INST ?PERSON))))
+  (hasOccupation ?PERSON ?WORK)
+  (exists (?INST)
+    (and
+      (instance ?INST ?WORK)
+      (instance ?INST Working)
+      (agent ?INST ?PERSON))))
 
 (subclass Bleeding AutonomicProcess)
 (documentation Bleeding EnglishLanguage "The release of &%Blood from an &%Animal in response 
 to an &%Injuring of some sort.")
 
 (=>
-   (instance ?BLEED Bleeding)
-   (exists (?INJURY)
-      (and
-         (instance ?INJURY Injuring)
-         (causes ?INJURY ?BLEED))))
+  (instance ?BLEED Bleeding)
+  (exists (?INJURY)
+    (and
+      (instance ?INJURY Injuring)
+      (causes ?INJURY ?BLEED))))
 
 (=>
    (and
@@ -18476,15 +18590,59 @@ to an &%Injuring of some sort.")
    (instance ?ANIMAL Animal))
 
 (=>
-   (and
-      (instance ?BLEED Bleeding)
-      (experiencer ?BLEED ?ANIMAL))
-   (exists (?BLOOD)
-      (and
-         (instance ?BLOOD Blood)
-         (holdsDuring (BeginFn (WhenFn ?BLEED)) (part ?BLOOD ?ANIMAL))
-         (holdsDuring (EndFn (WhenFn ?BLEED)) (not (part ?BLOOD ?ANIMAL))))))
+  (and
+    (instance ?BLEED Bleeding)
+    (experiencer ?BLEED ?ANIMAL))
+  (exists (?BLOOD)
+    (and
+      (instance ?BLOOD Blood)
+      (holdsDuring (BeginFn (WhenFn ?BLEED)) (part ?BLOOD ?ANIMAL))
+      (holdsDuring (EndFn (WhenFn ?BLEED)) (not (part ?BLOOD ?ANIMAL))))))
    
+(subclass Vomiting OrganismProcess)
+(termFormat EnglishLanguage Vomiting "vomiting")
+(documentation Vomiting EnglishLanguage "The process by which an &%Organism expells the
+contents of its &%Stomach.  Although usually involuntary, a &%Human can induce vomiting
+in itself, so this cannot be a purely &%AutonomicProcess.")
+
+(=>
+  (and
+    (instance ?V Vomiting)
+    (experiencer ?V ?A))
+  (exists (?S ?O)
+    (and
+      (instance ?S Stomach)
+      (part ?S ?A)
+      (holdsDuring 
+        (StartFn (WhenFn ?V))
+        (located ?O ?S))
+      (holdsDuring
+        (EndFn (WhenFn ?V))
+        (not
+          (located ?O ?A))))))
+
+(subclass Vomit Mixture)
+(termFormat EnglishLanguage Vomit "vomit")
+(documentation Vomit EnglishLanguage "&%Food that was expelled from the &%Stomach of 
+an &%Animal.")
+(=>
+  (and
+    (instance ?V Vomiting)
+    (instance ?O Vomit)
+    (patient ?V ?O)
+    (experiencer ?V ?A))
+  (exists (?S)
+    (and
+      (instance ?S Stomach)
+      (part ?S ?A)
+      (holdsDuring 
+        (StartFn (WhenFn ?V))
+        (located ?O ?S))
+      (holdsDuring
+        (EndFn (WhenFn ?V))
+        (not
+          (located ?O ?A))))))
+
 (subclass Blushing AutonomicProcess)
 (documentation Blushing EnglishLanguage "The process of turning red in response to a 
 stimulus which has a deep emotional effect.")
@@ -20938,7 +21096,6 @@ enforcement organization.")
       (instance ?F Gasoline)
       (resource ?R ?F))))
 
-
 (subclass DieselEngine InternalCombustionEngine)
 (documentation DieselEngine EnglishLanguage "&%DieselEngine is the subclass of 
 &%InternalCombustionEngines that use &%DieselFuel as their resource.")
@@ -21074,6 +21231,40 @@ corresponding to &%part.")
       (instance ?PART ?C2)
       (holdsDuring (BeginFn (WhenFn ?WHOLE))
       (part ?PART ?WHOLE)))))
+
+(instance havePartTypes BinaryPredicate)
+(instance havePartTypes SpatialRelation)
+(domainSubclass havePartTypes 1 Object)
+(domainSubclass havePartTypes 2 Object)
+(relatedInternalConcept havePartTypes part)
+(documentation havePartTypes EnglishLanguage "(havePartTypes ?PART_TYPE ?WHOLE_TYPE) means that every instance of ?WHOLE_TYPE has as &%parts an instance of ?PART_TYPE.")
+
+(=>
+  (and
+    (havePartTypes ?PART_TYPE ?WHOLE_TYPE)
+    (instance ?WHOLE ?WHOLE_TYPE))
+  (exists (?PART)
+    (and
+      (instance ?PART ?PART_TYPE)
+      (part ?PART ?WHOLE))))
+
+(instance partTypes BinaryPredicate)
+(domainSubclass partTypes 1 Object)
+(domainSubclass partTypes 2 Object)
+(subrelation partTypes typicalPart)
+(relatedInternalConcept partTypes part)
+(documentation partTypes EnglishLanguage "(partTypes ?PART_TYPE ?WHOLE_TYPE) means that every instance of ?PART_TYPE is &%parts of an instance of ?WHOLE_TYPE.")
+; (partTypes ?PART_TYPE ?WHOLE_TYPE) means that every instance of ?PART_TYPE
+; is &%parts of an instance of ?WHOLE_TYPE.
+
+(=>
+  (and
+    (partTypes ?PART_TYPE ?WHOLE_TYPE)
+    (instance ?PART ?PART_TYPE))
+  (exists (?WHOLE)
+    (and
+      (instance ?WHOLE ?WHOLE_TYPE)
+      (part ?PART ?WHOLE))))
 
 (subclass CausingHappiness Process)
 (documentation CausingHappiness EnglishLanguage "Any &%Process whose result is that the 
@@ -22885,7 +23076,7 @@ information can be encoded using erasable pens.  This baord is normally colored 
   
 (=>
   (instance ?OBJ Whiteboard)
-  (structure ?OBJ Flat))
+  (shape ?OBJ Flat))
   
 (=>
   (instance ?OBJ Whiteboard)
@@ -28096,3 +28287,19 @@ as laboratory animals. [Wikipedia]")
   (instance ?M MammalCub)
   (attribute ?M NonFullyformed))
 
+(subclass NationalPerson GroupOfPeople)
+
+(instance DemonymFn UnaryFunction)
+(domain DemonymFn 1 GeographicArea)
+(rangeSubclass DemonymFn NationalPerson)
+(documentation DemonymFn EnglishLanguage "A &%GroupOfPeople defined by
+their &%birthplace or where they &%Residence they &%inhabit is &%located.")
+
+(=>
+   (instance ?P (DemonymFn ?N))
+   (or
+     (exists (?R)
+       (and
+         (located ?R ?N)
+         (inhabits ?P ?R)))
+     (birthplace ?P ?N)))
