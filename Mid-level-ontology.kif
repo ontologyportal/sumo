@@ -876,13 +876,15 @@ means that the &%NounPhrase ?OBJECT is the object of the &%Sentence
 ?SENTENCE.")
 (domain sententialObject 1 NounPhrase)
 (domain sententialObject 2 Sentence)
-
+(instance sententialObject BinaryPredicate)
 (subrelation sententialObject grammaticalRelation)
+
 (documentation sententialSubject EnglishLanguage "(sententialSubject ?SUBJECT ?SENTENCE) 
 means that the &%NounPhrase ?SUBJECT is the subject of the &%Sentence 
 ?SENTENCE.")
 (domain sententialSubject 1 NounPhrase)
 (domain sententialSubject 2 Sentence)
+(instance sententialSubject BinaryPredicate)
 (subrelation sententialSubject grammaticalRelation)
 
 (documentation speaksLanguage EnglishLanguage "(speaksLanguage ?AGENT ?LANGUAGE) means that the 
@@ -2841,6 +2843,59 @@ especially used for wheeled vehicles and people who cannot climb stairs.")
         (instance ?E RecreationOrExercise)
         (instrument ?E ?D)))))
 
+(subclass Toy Device)
+(documentation Toy EnglishLanguage "Any &%Device that &%hasPurpose of being used for
+play - that is &%RecreationOrExercise but not an &%AerobicExerciseDevice or &%AnaerobicExerciseDevice.")
+(termFormat EnglishLanguage Toy "toy")
+
+(disjoint Toy AerobicExerciseDevice)
+(disjoint Toy AnaerobicExerciseDevice)
+
+(subclass Doll Toy)
+(documentation Doll EnglishLanguage "A &%Toy that &%represents some &%Agent, typically
+a &%Human or &%Animal (which could also be fictional).")
+(termFormat EnglishLanguage Doll "doll")
+
+(=>
+  (instance ?D Doll)
+  (exists (?A)
+    (and
+      (instance ?A Agent)
+      (represents ?D ?A))))
+
+(subclass AnimalDoll Doll)
+(documentation AnimalDoll EnglishLanguage "A &%Doll that &%represents an &%Animal.")
+(termFormat EnglishLanguage AnimalDoll "toy animal")
+
+(=>
+  (instance ?AD AnimalDoll)
+  (exists (?A)
+    (and
+      (instance ?A Animal)
+      (represents ?AD ?A))))
+
+(subclass HumanDoll Doll)
+(documentation HumanDoll EnglishLanguage "A &%Doll that &%represents an &%Human.")
+(termFormat EnglishLanguage HumanDoll "human doll")
+
+(=>
+  (instance ?AD HumanDoll)
+  (exists (?H)
+    (and
+      (instance ?H Human)
+      (represents ?AD ?H))))
+
+(subclass ToyHouse Toy)
+(documentation ToyHouse EnglishLanguage "A &%Toy that &%represents a &%House.")
+(termFormat EnglishLanguage ToyHouse "toy house")
+
+(=>
+  (instance ?TH ToyHouse)
+  (exists (?H)
+    (and
+      (instance ?H House)
+      (represents ?TH ?H))))
+
 (subclass WalkingCane Device)
 (documentation WalkingCane EnglishLanguage "A &%Device which has the form of a staff with 
 a handle and which enables some people to walk with greater assurance.")
@@ -4750,7 +4805,24 @@ something else, i.e. be the &%instrument of a &%Keeping.")
              (agent ?RIDE ?HORSE)
              (instance ?HORSE Horse)))) instrument ?SADDLE))
 
-(subclass HorseRiding Carrying)
+(documentation AnimalGuiding EnglishLanguage "A &%Carrying where the
+&%instrument of the &%Carrying is an &%Animal and that
+&%objectTransferred in the &%Carrying is the &%Agent of the &%Guiding.")
+
+(subclass AnimalGuiding Guiding)
+
+(=>
+   (instance ?AG AnimalGuiding)
+   (exists (?A ?C)
+     (and
+       (instance ?A Animal)
+       (agent ?AG ?H)
+       (instance ?C Carrying)
+       (agent ?C ?A)
+       (objectTransferred ?C ?H)
+       (instrument ?AG ?A))))
+
+(subclass HorseRiding AnimalGuiding)
 (documentation HorseRiding EnglishLanguage "Any instance of &%Carrying where the &%Animal is 
 a &%Horse.")
 
@@ -4762,12 +4834,8 @@ a &%Horse.")
       (instrument ?R ?H))))
 
 (instance carries BinaryPredicate)
-;; KJN: Editing this to be more general not only to Animal but to any Agent
-;;(domain carries 1 Animal)
 (domain carries 1 Agent)
 (domain carries 2 Object)
-;;(documentation carries EnglishLanguage "(carries ?ANIMAL ?OBJECT) means that 
-;;an &%Animal ?ANIMAL transers an &%OBJECT ?OBJECT from one point to another")
 
 (documentation carries EnglishLanguage "(carries ?AGENT ?OBJECT) means that 
 an &%Agent ?AGENT transers an &%OBJECT ?OBJECT from one point to another")
@@ -4778,8 +4846,53 @@ an &%Agent ?AGENT transers an &%OBJECT ?OBJECT from one point to another")
     (and
       (instrument ?CARRYING ?AGENT)
       (patient ?CARRYING ?OBJECT))))
-      
-      
+
+(subclass Crawling BodyMotion)
+(subclass Crawling Translocation)
+(termFormat EnglishLanguage Crawling "crawling")
+(documentation Crawling EnglishLanguage "A form of locomotion where a &%Bipedal
+animal changes location in part by use of the arms or hands on the ground. This
+covers a baby crawling on all fours, or a soldier dragging his lower body along
+pulled from the elbows in order to stay low and less visible.  It does not
+however cover a dog walking on its front and rear legs because it's a normally
+quadripedal animal.")
+
+(=>
+  (and
+    (instance ?C Crawling)
+    (agent ?C ?A))
+  (exists (?ARM)
+    (and
+      (instance ?ARM Arm)
+      (part ?ARM ?A)
+      (instrument ?C ?ARM))))
+
+(=>
+  (and
+    (instance ?C Crawling)
+    (agent ?C ?A))
+  (instance ?A Biped))
+
+(subclass Biped Animal)
+(documentation Biped EnglishLanguage "An &%Animal that walks on two &%Legs (at least
+when &%FullyFormed and not exhibiting some &%DiseaseOrSyndrome).")
+
+(=>
+  (and
+    (instance ?A Biped)
+    (instance ?W Ambulating)
+    (agent ?W ?A))
+  (modalAttribute
+    (exists (?L1 L2)
+      (and
+        (instance ?L1 Leg)
+        (instance ?L2 Leg)
+        (part ?L1 ?A)
+        (part ?L2 ?A)
+        (instrument ?W ?L1)
+        (instrument ?W ?L2)))
+    Likely))
+
 (subclass Tray Holder)
 (documentation Tray EnglishLanguage "A &%Holder that is designed for &%Food, dishes, and 
 flatware.")
@@ -4858,6 +4971,20 @@ i.e. to be in instrument in an act of &%Confining.")
       (and
         (instance ?C Confining)
         (instrument ?C ?T)))))
+
+(subclass LivestockPen TrapOrCage)
+(documentation LivestockPen EnglishLanguage "A &%TrapOrCage designed for &%Confining &%Livestock.")
+(termFormat EnglishLanguage LivestockPen "pen")
+
+(=>
+  (instance ?T LivestockPen)
+  (hasPurpose ?T 
+    (exists (?C ?L)
+      (and
+        (instance ?L Livestock)
+        (instance ?C Confining)
+        (instrument ?C ?T)
+        (patient ?C ?L)))))
 
 (subclass Envelope Container)
 (documentation Envelope EnglishLanguage "A sealable &%Container for one or more pieces of 
@@ -5147,6 +5274,7 @@ of the &%Circle ?CIRCLE.")
 the &%Circle that they bound.")
 
 (subrelation sideOfFigure geometricPart)
+(instance sideOfFigure BinaryPredicate)
 (domain sideOfFigure 1 OneDimensionalFigure)
 (domain sideOfFigure 2 GeometricFigure)
 (documentation sideOfFigure EnglishLanguage "(&%sideOfFigure ?SIDE ?FIGURE) means that the 
@@ -6898,6 +7026,7 @@ can observe the &%PerformanceStage.")
    (capability ?SEE agent ?PERSON))
 
 (subrelation enjoys inScopeOfInterest)
+(instance enjoys CaseRole)
 (domain enjoys 1 CognitiveAgent)
 (domainSubclass enjoys 2 IntentionalProcess)
 (documentation enjoys EnglishLanguage "(&%enjoys ?AGENT ?PROCESS) means that the 
@@ -6907,13 +7036,13 @@ actions.")
 
 (=>
    (enjoys ?AGENT ?PROCESS)
-   (desires ?AGENT (exists (?INSTANCE)
-                      (and
-                         (instance ?INSTANCE ?PROCESS)
-                         (or
-                            (agent ?INSTANCE ?AGENT)
-                            (experiencer ?INSTANCE ?AGENT))))))
-
+   (desires ?AGENT
+     (exists (?INSTANCE)
+       (and
+         (instance ?INSTANCE ?PROCESS)
+         (or
+           (agent ?INSTANCE ?AGENT)
+           (experiencer ?INSTANCE ?AGENT))))))
 
 ;; NS: The propositional attitude stuff below appears to have been
 ;; written without an understanding of temporal issues, or of the
@@ -6955,6 +7084,7 @@ actions.")
     (earlier ?T1 ?T2)))
 
 (subrelation fears expects)
+(instance fears BinaryPredicate)
 (documentation fears EnglishLanguage "(&%fears ?AGENT ?FORMULA) means
 that ?AGENT fears that the proposition ?FORMULA will be true,
 i.e. he/she believes that it will come to pass in the future and that
@@ -6962,9 +7092,11 @@ it will be undesirable for ?AGENT.")
 
 (=>
    (fears ?AGENT ?FORMULA)
-   (not (desires ?AGENT ?FORMULA)))
+   (not
+     (desires ?AGENT ?FORMULA)))
 
 (subrelation hopes expects)
+(instance hopes BinaryPredicate)
 (documentation hopes EnglishLanguage "(&%hopes ?AGENT ?FORMULA) means that ?AGENT hopes that 
 the proposition ?FORMULA will be true, i.e. he/she believes that it will 
 come to pass in the future and that it will be desirable for ?AGENT.")
@@ -7013,6 +7145,7 @@ thwart one of his/her goals.  Note that there is no implication that what
 is disapproved of by an agent is not already true.")
 
 (subrelation lacks needs)
+(instance lacks BinaryPredicate)
 (documentation lacks EnglishLanguage "(&%lacks ?AGENT ?OBJECT) means that ?AGENT &%needs 
 ?OBJECT and it is not currently the case that ?AGENT &%possesses ?OBJECT.")
 
@@ -7123,6 +7256,7 @@ participants.  Note that this covers a variety of things, including auto
 racing, running competitions, etc.")
 
 (subrelation groupMember member)
+(instance groupMember BinaryPredicate)
 (domain groupMember 1 Human)
 (domain groupMember 2 GroupOfPeople)
 (documentation groupMember EnglishLanguage "A &%subrelation of &%member, &%groupMember 
@@ -7142,6 +7276,7 @@ is used to relate a &%Human to a &%GroupOfPeople of which he/she is a
 means that the &%Organization ?ORG is headquartered in ?AREA.")
 (domain headquartersOfOrganization 1 Organization)
 (domain headquartersOfOrganization 2 GeopoliticalArea)
+(instance headquartersOfOrganization BinaryPredicate)
 (subrelation headquartersOfOrganization located)
 
 (subclass CommunicationOrganization Organization)
@@ -9600,6 +9735,8 @@ elephants and walruses.")
 (subclass AnimalShell BodyPart)
 (documentation AnimalShell EnglishLanguage "A hard shell of calcium that serves as a 
 supporting structure for some &%Invertebrates.")
+(initialPart AnimalShell Animal)
+
 (=>
   (and
     (instance ?A Animal)
@@ -9740,6 +9877,7 @@ of &%Vertebrates.")
 (subclass Exoskeleton BodyPart)
 (documentation Exoskeleton EnglishLanguage "The system of &%Bones that are on the &%Outside of an organism and 
 make up the supporting structure of many &%Invertebrates.")
+(initialPart Exoskeleton Animal)
 
 (=>
    (and
@@ -9802,13 +9940,15 @@ lungs and stomach.")
 (subclass Hair AnimalAnatomicalStructure)
 (documentation Hair EnglishLanguage "A filament that covers part of the body of many 
 &%Mammals.")
+(initialPart Hair Animal)
 
 (=>
-   (instance ?HAIR Hair)
-   (exists ( ?MAMMAL ?TIME)
-      (and
-         (instance ?MAMMAL Mammal)
-         (holdsDuring ?TIME (part ?HAIR ?MAMMAL)))))
+  (instance ?HAIR Hair)
+  (exists (?MAMMAL ?TIME)
+    (and
+      (instance ?MAMMAL Mammal)
+      (holdsDuring ?TIME
+        (part ?HAIR ?MAMMAL)))))
 
 (subclass FacialHair Hair)
 (documentation FacialHair EnglishLanguage "&%Hair that grows on the &%Face.  This 
@@ -10620,6 +10760,7 @@ because it covers gestures of greeting, e.g. &%Waving and &%Nodding in certain
 circumstances.")
 
 (subrelation half part)
+(instance half BinaryPredicate)
 (documentation half EnglishLanguage "(&%half ?HALF ?WHOLE) means that ?HALF is one half 
 of ?WHOLE.")
 
@@ -10633,6 +10774,7 @@ of ?WHOLE.")
 
 (documentation third EnglishLanguage "(third ?THIRD ?WHOLE) means that ?THIRD is one 
 third of ?WHOLE.")
+(instance third BinaryPredicate)
 (subrelation third part)
 
 (=>
@@ -10650,6 +10792,7 @@ third of ?WHOLE.")
 
 (documentation quarter EnglishLanguage "(quarter ?QUART ?WHOLE) means that ?QUART is a 
 quarter of ?WHOLE.")
+(instance quarter BinaryPredicate)
 (subrelation quarter part)
 
 (<=>
@@ -10660,6 +10803,7 @@ quarter of ?WHOLE.")
       (half ?Q ?H))))
 
 (subrelation most part)
+(instance most BinaryPredicate)
 (documentation most EnglishLanguage "(&%most ?MOST ?WHOLE) means that ?MOST is a &%part 
 of ?WHOLE that is greater than &%half of ?WHOLE.")
 
@@ -11533,6 +11677,7 @@ intended to be used in some machine to reproduce that sound.")
       (instance ?SOUND RadiatingSound))))
 
 (subrelation record represents)
+(instance record BinaryPredicate)
 (documentation record EnglishLanguage "(&%record ?OBJ ?PHYS), a more specific relationship
 than &%represents, means that some &%Physical ?PHYS is captured and interpreted into a 
 &%ContentBearingObject that is stored in some &%DataStorageDevice")
@@ -12042,6 +12187,7 @@ contents for the &%Book.")
          (subsumesContentInstance ?BOOK ?CHAPTER))))
 
 (subrelation titles names)
+(instance titles BinaryPredicate)
 (domain titles 1 SymbolicString)
 (domainSubclass titles 2 ContentBearingPhysical)
 (documentation titles EnglishLanguage "A &%BinaryPredicate used to
@@ -12054,6 +12200,7 @@ and not just to a single copy of the book.")
 (documentation formerName EnglishLanguage "(formerName ?NAME ?THING) means that the 
 string ?NAME is a name formerly used for ?THING.")
 (subrelation formerName names)
+(instance formerName BinaryPredicate)
 
 (instance familyName BinaryPredicate)
 (instance familyName AsymmetricRelation)
@@ -12401,7 +12548,8 @@ connected by a series of rungs which can be used to ascend or descend.")
       (capability MotionUpward instrument ?LADDER)
       (capability MotionDownward instrument ?LADDER)))
 
-(instance Transparent InternalAttribute)
+(instance Transparent VisualAttribute)
+(termFormat EnglishLanguage Transparent "transparent")
 (documentation Transparent EnglishLanguage "A Transparent material is one through which
 it is possible to have &%Seeing.")
 (=>
@@ -12413,6 +12561,36 @@ it is possible to have &%Seeing.")
         (agent ?S ?A)
         (destination ?S ?D)
         (between ?O ?A ?D)))
+    Possibility))
+
+(instance Translucent VisualAttribute)
+(termFormat EnglishLanguage Translucent "translucent")
+(documentation Translucent EnglishLanguage "A Translucent material admits light is one through which
+it is possible to transmit light but not through which is likely to be &%Seeing.")
+(=>
+  (attribute ?O Translucent)
+  (modalAttribute
+    (not
+      (exists (?S)
+        (and
+          (instance ?S Seeing)
+          (agent ?S ?A)
+          (destination ?S ?D)
+          (between ?O ?A ?D))))
+    Likely))
+
+(=>
+  (attribute ?O Translucent)
+  (modalAttribute
+    (exists (?EMIT)
+      (and
+        (instance ?EMIT RadiatingLight)
+        (source ?EMIT ?S)
+        (destination ?EMIT ?OBJ)
+        (between ?S ?O ?OBJ)
+        (holdsDuring 
+          (WhenFn ?EMIT)
+          (attribute ?OBJ Illuminated))))
     Possibility))
 
 (subclass Curtain WindowCovering)
@@ -13948,6 +14126,7 @@ for the night.")
         (home ?S ?DS)))))
 
 (subrelation student member)
+(instance student BinaryPredicate)
 (domain student 1 Human)
 (domain student 2 EducationalOrganization)
 (documentation student EnglishLanguage "(&%student ?AGENT ?ORG) means that ?AGENT is enrolled 
@@ -13978,6 +14157,7 @@ in the &%EducationalOrganization ?ORG.")
         (attribute ?PERSON Student)))))
 
 (subrelation teacher member)
+(instance teacher BinaryPredicate)
 (domain teacher 1 Human)
 (domain teacher 2 EducationalOrganization)
 (documentation teacher EnglishLanguage "(&%teacher ?AGENT ?ORG) means that ?AGENT is a 
@@ -14519,6 +14699,7 @@ up residence.")
 &%SelfConnectedObject ?OBJ is inside the &%Vehicle ?VEHICLE.")
 (domain onboard 1 SelfConnectedObject)
 (domain onboard 2 Vehicle)
+(instance onboard BinaryPredicate)
 (subrelation onboard located)
 
 (=>
@@ -16592,23 +16773,13 @@ unexpected and of significance occurs.")
          (temporalPart ?PART (PastFn ?TIME))
          (holdsDuring ?PART (expects ?AGENT ?PROP))
          (holdsDuring ?TIME (truth ?PROP False)))))
-
-(instance structure BinaryPredicate)
-(instance structure IrreflexiveRelation)
-(instance structure AsymmetricRelation)
-(subrelation structure attribute)
-(domain structure 1 Object)
-(domain structure 2 StructureAttribute)
-                  
-;; KJN: Delete. Redundant as attribute already is an instance of these 3         
+                          
 (instance color BinaryPredicate)
-;;(instance color IrreflexiveRelation)
-;;(instance color AsymmetricRelation)
+
 (subrelation color attribute)
 (domain color 1 Object)
 (domain color 2 ColorAttribute)
 
-;; NS: Narrowing attribute -> color.
 (=>
   (and
     (instance ?ATTR ColorAttribute)
@@ -17060,7 +17231,7 @@ when they want to drink.")
   (desires ?A 
     (exists (?D)
       (and
-        (instance ?E Drinking)
+        (instance ?D Drinking)
         (agent ?D ?A)))))
 
 (instance Pregnant BiologicalAttribute)
@@ -17307,6 +17478,39 @@ by selective breeding.")
 (documentation DomesticDog EnglishLanguage "Canines which have evolved from the common 
 wolf by selective breeding.")
 
+(subclass Puppy DomesticDog)
+(documentation Puppy EnglishLanguage "A &%NonFullyFormed &%DomesticDog.")
+(=>
+  (instance ?P Puppy)
+  (attribute ?P NonFullyFormed))
+
+(subclass Poodle DomesticDog)
+(documentation Poodle EnglishLanguage "The poodle is a group of formal dog
+breeds, the Standard Poodle, Miniature Poodle and Toy Poodle. The origins of the
+poodles are still discussed with a dispute over whether the poodle descends from
+the old French Barbet breed or from Germany as a type of water dog. Ranked
+second most intelligent dog breed just behind the Border Collie, the poodle
+is skillful in many dog sports and activities, including agility, obedience,
+tracking to herding, circus performers or assistance dogs. [courtesy Wikipedia]")
+
+(subclass Sheepdog DomesticDog)
+(documentation Sheepdog EnglishLanguage "A sheep dog or sheepdog is generally a
+dog or breed of dogs historically used in connection with the raising of sheep.
+These may include livestock guardian or pastoral dogs used to guard sheep and
+other livestock in farms for farmers, and herding dogs used to herd sheep and
+other livestock. [courtesy Wikipedia]")
+
+(subclass Dachshund DomesticDog)
+(documentation Dachshund EnglishLanguage "The dachshund is a short-legged,
+long-bodied, hound-type dog breed. The standard size dachshund was developed to
+scent, chase, and flush out badgers and other burrow-dwelling animals, while the
+miniature dachshund was bred to hunt smaller prey such as rabbits. In the United
+States, they have also been used to track wounded deer and hunt prairie dogs.
+Dachshunds also participate in conformation shows, field trials and many other
+events organized through pure-bred dog organizations such as the American Kennel
+Club (AKC). According to the AKC, the dachshund remains one of the top 10 dog
+breeds in the United States. [courtesy Wikipedia]")
+
 (subclass Fox Canine)
 (documentation Fox EnglishLanguage "&%Canines with a bushy tail and pointed ears and nose.  
 &%Foxes tend to be much smaller than most &%DomesticDogs.")
@@ -17444,6 +17648,76 @@ forward-facing eyes.")
 (documentation Vulture EnglishLanguage "A diurnal bird of prey with a bald head that 
 feeds on carrion.")
 
+(subclass Alligator Reptile)
+(documentation Alligator EnglishLanguage "An alligator is a crocodilian in the genus Alligator
+of the family Alligatoridae. The two living species are the American alligator (A.
+mississippiensis) and the Chinese alligator (A. sinensis). In addition, several extinct species
+of alligator are known from fossil remains. Alligators first appeared during the Paleocene
+epoch about 66 million years ago. [courtesy Wikipedia]")
+
+(defaultMeasure Alligator (MeasureFn 790 PoundMass))
+(habitatOfOrganism Alligator UnitedStates)
+(habitatOfOrganism Alligator China)
+
+(subclass Badger Carnivore)
+(documentation Badger EnglishLanguage "Badgers are short-legged omnivores in the family
+Mustelidae, which also includes the otters, polecats, weasels, and wolverines. They belong to
+the caniform suborder of carnivoran mammals. The 11 species of badgers are grouped in three
+subfamilies: Melinae (Eurasian badgers), Mellivorinae (the honey badger or ratel), and Taxideinae
+(the American badger). The Asiatic stink badgers of the genus Mydaus were formerly included within
+Melinae (and thus Mustelidae), but recent genetic evidence[1] indicates these are actually members
+of the skunk family, placing them in the taxonomic family Mephitidae. [courtesy Wikipedia]")
+
+(defaultMeasure Badger (MeasureFn 20 PoundMass))
+(habitatOfOrganism Badger NorthAmerica)
+(habitatOfOrganism Badger Europe)
+(habitatOfOrganism Badger Asia)
+(habitatOfOrganism Badger Africa)
+
+(subclass Bear Carnivore)
+(documentation Badger EnglishLanguage "Bears are carnivoran mammals of the family Ursidae. They are
+classified as caniforms, or doglike carnivorans. Although only eight species of bears are extant,
+they are widespread, appearing in a wide variety of habitats throughout the Northern Hemisphere and
+partially in the Southern Hemisphere. Bears are found on the continents of North America, South
+America, Europe, and Asia. Common characteristics of modern bears include large bodies with stocky
+legs, long snouts, small rounded ears, shaggy hair, plantigrade paws with five nonretractile claws,
+and short tails. [courtesy Wikipedia]")
+
+(defaultMeasure Bear (MeasureFn 500 PoundMass))
+(habitatOfOrganism Bear NorthAmerica)
+(habitatOfOrganism Bear Europe)
+(habitatOfOrganism Bear Asia)
+(habitatOfOrganism Bear SouthAmerica)
+
+(subclass Kangaroo Marsupial)
+(documentation Kangaroo EnglishLanguage "The kangaroo is a marsupial from the family Macropodidae
+(macropods, meaning 'large foot'). In common use the term is used to describe the largest species
+from this family, especially those of the genus Macropus: the red kangaroo, antilopine kangaroo,
+eastern grey kangaroo, and western grey kangaroo. Kangaroos are endemic to Australia. The
+Australian government estimates that 34.3 million kangaroos lived within the commercial harvest
+areas of Australia in 2011, up from 25.1 million one year earlier. [courtesy Wikipedia]")
+
+(defaultMeasure Kangaroo (MeasureFn 18 PoundMass))
+(habitatOfOrganism Kangaroo Australia)
+
+(subclass Llama Mammal)
+(documentation Llama EnglishLanguage "The llama (Lama glama) is a domesticated South American
+camelid, widely used as a meat and pack animal by Andean cultures since the Pre-Columbian
+era. [courtesy Wikipedia]")
+
+(defaultMeasure Llama (MeasureFn 18 PoundMass))
+(habitatOfOrganism Llama SouthAmerica)
+(habitatOfOrganism Llama NorthAmerica)
+
+(subclass Skunk Mammal)
+(documentation Skunk EnglishLanguage "The llama (Lama glama) is a domesticated South American
+camelid, widely used as a meat and pack animal by Andean cultures since the Pre-Columbian
+era. [courtesy Wikipedia]")
+
+(defaultMeasure Skunk (MeasureFn 5 PoundMass))
+(habitatOfOrganism Skunk SouthAmerica)
+(habitatOfOrganism Skunk NorthAmerica)
+
 (subclass Feather AnimalAnatomicalStructure)
 (subclass Feather BodyPart)
 (documentation Feather EnglishLanguage "Each instance of this class is one of the structures 
@@ -17517,6 +17791,12 @@ but that is larger than a &%Mouse.")
 
 (subclass Rabbit Rodent)
 (documentation Rabbit EnglishLanguage "A burrowing &%Rodent with a short tail and long ears.")
+
+(subclass Bunny Rabbit)
+(documentation Bunny EnglishLanguage "A &%NonFullyFormed &%Rabbit.")
+(=>
+  (instance ?K Bunny)
+  (attribute ?K NonFullyFormed))
 
 (subclass Squirrel Rodent)
 (documentation Squirrel EnglishLanguage "A tree-dwelling &%Rodent with a bushy tail.")
@@ -17640,39 +17920,19 @@ in &%Restaurant that brings food from the kitchen to the customer's table")
         (patient ?C ?FOOD)
         (instance ?FOOD (FoodForFn Human))))))
 
-;; NS: edit.
 (instance Maid ServicePosition)
 
-;; NS: deleted for now, since ServicePosition is a subclass
-;; of SkilledOccupation, and so is disjoint from
-;; UnskilledOccupation.
-;; (instance Maid UnskilledOccupation)
-
-;; NS: delete.
-;; (documentation Maid EnglishLanguage "Any &%ServicePosition where various needs of a person 
-;; or family are served over a long period of time.  Note that these &%Positions 
-;; are, by definition, filled only by &%Women.")
-
-;; NS: delete.
-;; (documentation Maid EnglishLanguage "A &%Position which involves &%Serving a person 
-;; or family.  Note that this &%Position is filled only by a &%Woman.")
-
-;; NS: add.
 (documentation Maid EnglishLanguage "This &%Attribute
 describes a &%Woman who works in a &%ServicePosition that
 entails performing various domestic tasks (cleaning,
 cooking, child care) for an individual or family over an
 extended period of time, typically months or years.")
 
-;; NS: TO DO: Review and edit all instances of
-;; SkilledOccupation, UnskilledOccupation.
-
-;; NS: edit.
 (=>
    (holdsDuring ?T1 (attribute ?MAID Maid))
    (exists (?SERVE)
       (and
-         (during ?SERVE ?T1)
+         (during (WhenFn ?SERVE) ?T1)
          (instance ?SERVE Serving)
          (agent ?SERVE ?MAID))))
 
@@ -17686,19 +17946,14 @@ or some of the &%Rooms within a &%Building.")
     (attribute ?P ?J))
   (occupation ?P (OccupationFn Washing)))
 
-;; NS: delete.
-;; (instance TheaterProfession SkilledOccupation)
-
 (subclass TheaterProfession EntertainmentProfession)
 
-;; NS: edit.
 (documentation TheaterProfession EnglishLanguage "Instances
 of this &%Class describe the &%Positions of people whose
 work involves putting on plays (theatrical performanes).")
 
-;; NS: edit.
 (instance FilmDirector FilmMakingProfession)
-;; NS: edit.
+
 (documentation FilmDirector EnglishLanguage "A &%Position that
 describes a person who directs &%MotionPictures as a
 profession.")
@@ -17724,9 +17979,8 @@ i.e. acting in films, directing films, producing films, etc.")
     (attribute ?H ?P))
   (occupation ?H (OccupationFn FilmMaking)))
 
-;; NS: edit.
 (instance FilmProducer FilmMakingProfession)
-;; NS: edit.
+
 (documentation FilmProducer EnglishLanguage "A &%Position that
 describes a person who produces &%MotionPictures as a profession,
 i.e., who arranges the financing for a &%MotionPicture and
@@ -17752,9 +18006,8 @@ supervises its production.")
 (documentation Coach EnglishLanguage "Any occupation that involves training an athlete or a 
 sports team.")
 
-;; NS: edit.
 (instance GameReferee SkilledOccupation)
-;; NS: edit.
+
 (documentation GameReferee EnglishLanguage "This &%Attribute
 describes a person who adjudicates &%Maneuvers in a &%Game, i.e.,
 who decides whether or not the &%Maneuvers are permitted by the
@@ -18344,23 +18597,23 @@ studied the &%FieldOfStudy ?FIELD and is regarded as an expert.")
 engages in activities of the class ?WORK as a means of earning a living.")
 
 (=>
-   (hasOccupation ?PERSON ?WORK)
-   (exists (?INST)
-      (and
-         (instance ?INST ?WORK)
-         (instance ?INST Working)
-         (agent ?INST ?PERSON))))
+  (hasOccupation ?PERSON ?WORK)
+  (exists (?INST)
+    (and
+      (instance ?INST ?WORK)
+      (instance ?INST Working)
+      (agent ?INST ?PERSON))))
 
 (subclass Bleeding AutonomicProcess)
 (documentation Bleeding EnglishLanguage "The release of &%Blood from an &%Animal in response 
 to an &%Injuring of some sort.")
 
 (=>
-   (instance ?BLEED Bleeding)
-   (exists (?INJURY)
-      (and
-         (instance ?INJURY Injuring)
-         (causes ?INJURY ?BLEED))))
+  (instance ?BLEED Bleeding)
+  (exists (?INJURY)
+    (and
+      (instance ?INJURY Injuring)
+      (causes ?INJURY ?BLEED))))
 
 (=>
    (and
@@ -18369,15 +18622,59 @@ to an &%Injuring of some sort.")
    (instance ?ANIMAL Animal))
 
 (=>
-   (and
-      (instance ?BLEED Bleeding)
-      (experiencer ?BLEED ?ANIMAL))
-   (exists (?BLOOD)
-      (and
-         (instance ?BLOOD Blood)
-         (holdsDuring (BeginFn (WhenFn ?BLEED)) (part ?BLOOD ?ANIMAL))
-         (holdsDuring (EndFn (WhenFn ?BLEED)) (not (part ?BLOOD ?ANIMAL))))))
+  (and
+    (instance ?BLEED Bleeding)
+    (experiencer ?BLEED ?ANIMAL))
+  (exists (?BLOOD)
+    (and
+      (instance ?BLOOD Blood)
+      (holdsDuring (BeginFn (WhenFn ?BLEED)) (part ?BLOOD ?ANIMAL))
+      (holdsDuring (EndFn (WhenFn ?BLEED)) (not (part ?BLOOD ?ANIMAL))))))
    
+(subclass Vomiting OrganismProcess)
+(termFormat EnglishLanguage Vomiting "vomiting")
+(documentation Vomiting EnglishLanguage "The process by which an &%Organism expells the
+contents of its &%Stomach.  Although usually involuntary, a &%Human can induce vomiting
+in itself, so this cannot be a purely &%AutonomicProcess.")
+
+(=>
+  (and
+    (instance ?V Vomiting)
+    (experiencer ?V ?A))
+  (exists (?S ?O)
+    (and
+      (instance ?S Stomach)
+      (part ?S ?A)
+      (holdsDuring 
+        (StartFn (WhenFn ?V))
+        (located ?O ?S))
+      (holdsDuring
+        (EndFn (WhenFn ?V))
+        (not
+          (located ?O ?A))))))
+
+(subclass Vomit Mixture)
+(termFormat EnglishLanguage Vomit "vomit")
+(documentation Vomit EnglishLanguage "&%Food that was expelled from the &%Stomach of 
+an &%Animal.")
+(=>
+  (and
+    (instance ?V Vomiting)
+    (instance ?O Vomit)
+    (patient ?V ?O)
+    (experiencer ?V ?A))
+  (exists (?S)
+    (and
+      (instance ?S Stomach)
+      (part ?S ?A)
+      (holdsDuring 
+        (StartFn (WhenFn ?V))
+        (located ?O ?S))
+      (holdsDuring
+        (EndFn (WhenFn ?V))
+        (not
+          (located ?O ?A))))))
+
 (subclass Blushing AutonomicProcess)
 (documentation Blushing EnglishLanguage "The process of turning red in response to a 
 stimulus which has a deep emotional effect.")
@@ -19342,7 +19639,7 @@ although not necessarily, paved and intended for cars.")
       
 (contraryAttribute Civilian MilitaryPerson)
 
-(subclass OccupationalRole RelationalAttribute)
+(subclass OccupationalRole SocialRole)
 (documentation OccupationalRole EnglishLanguage "&%RelationalAttribute ascribing to a &%CognitiveAgent 
 a &%relation towards some activity or a set of activities he or she performs during a &%TimeInterval 
 as his or her main activity. Be it for a longer period of time as a means of earning a living, 
@@ -20831,7 +21128,6 @@ enforcement organization.")
       (instance ?F Gasoline)
       (resource ?R ?F))))
 
-
 (subclass DieselEngine InternalCombustionEngine)
 (documentation DieselEngine EnglishLanguage "&%DieselEngine is the subclass of 
 &%InternalCombustionEngines that use &%DieselFuel as their resource.")
@@ -20968,6 +21264,40 @@ corresponding to &%part.")
       (holdsDuring (BeginFn (WhenFn ?WHOLE))
       (part ?PART ?WHOLE)))))
 
+(instance havePartTypes BinaryPredicate)
+(instance havePartTypes SpatialRelation)
+(domainSubclass havePartTypes 1 Object)
+(domainSubclass havePartTypes 2 Object)
+(relatedInternalConcept havePartTypes part)
+(documentation havePartTypes EnglishLanguage "(havePartTypes ?PART_TYPE ?WHOLE_TYPE) means that every instance of ?WHOLE_TYPE has as &%parts an instance of ?PART_TYPE.")
+
+(=>
+  (and
+    (havePartTypes ?PART_TYPE ?WHOLE_TYPE)
+    (instance ?WHOLE ?WHOLE_TYPE))
+  (exists (?PART)
+    (and
+      (instance ?PART ?PART_TYPE)
+      (part ?PART ?WHOLE))))
+
+(instance partTypes BinaryPredicate)
+(domainSubclass partTypes 1 Object)
+(domainSubclass partTypes 2 Object)
+(subrelation partTypes typicalPart)
+(relatedInternalConcept partTypes part)
+(documentation partTypes EnglishLanguage "(partTypes ?PART_TYPE ?WHOLE_TYPE) means that every instance of ?PART_TYPE is &%parts of an instance of ?WHOLE_TYPE.")
+; (partTypes ?PART_TYPE ?WHOLE_TYPE) means that every instance of ?PART_TYPE
+; is &%parts of an instance of ?WHOLE_TYPE.
+
+(=>
+  (and
+    (partTypes ?PART_TYPE ?WHOLE_TYPE)
+    (instance ?PART ?PART_TYPE))
+  (exists (?WHOLE)
+    (and
+      (instance ?WHOLE ?WHOLE_TYPE)
+      (part ?PART ?WHOLE))))
+
 (subclass CausingHappiness Process)
 (documentation CausingHappiness EnglishLanguage "Any &%Process whose result is that the 
 patient of the process is happy.")
@@ -21050,6 +21380,7 @@ house, a car, and other property.")
 (domain financialAsset 1 Agent)
 (domain financialAsset 2 Object)
 (subrelation financialAsset possesses)
+(instance financialAsset BinaryPredicate)
 
 (=>
   (financialAsset ?P ?A)
@@ -22777,7 +23108,7 @@ information can be encoded using erasable pens.  This baord is normally colored 
   
 (=>
   (instance ?OBJ Whiteboard)
-  (structure ?OBJ Flat))
+  (shape ?OBJ Flat))
   
 (=>
   (instance ?OBJ Whiteboard)
@@ -24323,6 +24654,7 @@ government services and telecommunications")
 (termFormat EnglishLanguage AmericansWithDisabilitiesAct "ADA")
 
 (subrelation conforms represents)
+(instance conforms BinaryPredicate)
 (documentation conforms EnglishLanguage "(&%conforms ?OBJ ?PROP) describes
 how ?OBJ follows the ideas outlined by ?PROP")
 (termFormat EnglishLanguage conforms "conforms")
@@ -27408,7 +27740,10 @@ for &%TimeInterval ?TI, &%CognitiveAgent ?CUST is &%Renting &%Object ?OBJ from
       (instance ?NUMBER SymbolicString)
       (uniqueIdWithRespectTo ?PO ?BUYER ?NUMBER))))
       
-(documentation BreakingRecord EnglishLanguage "A &%Process where the &%Agent takes a specific &%CaseRole in a &%Process of a specific &%Class which no other &%Agent of the same &%Class had undertaken in the same &%CaseRole in a specific &%TimeInterval preceeding the moment when the record was broken and in a specific &%Region. &%BreakingRecord &%refers to a &%Quantity which &%refers to the &%Process &%Class.")
+(documentation BreakingRecord EnglishLanguage "A &%Process where the &%Agent takes a specific &%CaseRole in a &%Process
+of a specific &%Class which no other &%Agent of the same &%Class had undertaken in the same &%CaseRole in a specific
+&%TimeInterval preceeding the moment when the record was broken and in a specific &%Region. &%BreakingRecord &%refers to
+a &%Quantity which &%refers to the &%Process &%Class.")
 (subclass BreakingRecord Process)
 
 (=>
@@ -27983,4 +28318,65 @@ as laboratory animals. [Wikipedia]")
 (=>
   (instance ?M MammalCub)
   (attribute ?M NonFullyformed))
+
+(subclass NationalPerson GroupOfPeople)
+
+(instance DemonymFn UnaryFunction)
+(domain DemonymFn 1 GeographicArea)
+(rangeSubclass DemonymFn NationalPerson)
+(documentation DemonymFn EnglishLanguage "A &%GroupOfPeople defined by
+their &%birthplace or where the &%Residence they &%inhabit is &%located.")
+(format EnglishLanguage DemonymFn "%1-ian")
+
+(=>
+   (instance ?P (DemonymFn ?N))
+   (or
+     (exists (?R)
+       (and
+         (located ?R ?N)
+         (inhabits ?P ?R)))
+     (birthplace ?P ?N)))
+
+(instance Fasting RelationalAttribute)
+(documentation Fasting EnglishLanguage "A state of not &%Eating.")
+(termFormat EnglishLanguage Fasting "fasting")
+
+(=>
+  (holdsDuring ?T (attribute ?H Fasting))
+  (not
+    (exists (?P)
+      (and
+        (instance ?P Eating)
+        (agent ?P ?H)
+        (termporallyOverlaps ?T (WhenFn ?P))))))
+
+(instance Dieting RelationalAttribute)
+(documentation Dieting EnglishLanguage "A state of reducing one's normal or desired intake of &%Food.")
+(termFormat EnglishLanguage Dieting "dieting")
+
+(=>
+  (and
+    (holdsDuring ?T1 
+      (attribute ?H Dieting))
+    (holdsDuring ?T2 
+      (not 
+        (attribute ?H Dieting)))
+    (instance ?M1 Meal)
+    (instance ?E1 Eating)
+    (agent ?E1 ?H)
+    (resource ?E1 ?M1)
+    (during (WhenFn ?E1) ?T1)
+    (measure ?M1 (MeasureFn ?C1 Calorie))
+    (instance ?M2 Meal)
+    (instance ?E2 Eating)
+    (agent ?E2 ?H)
+    (resource ?E2 ?M2)
+    (during (WhenFn ?E2) ?T2)
+    (measure ?M2 (MeasureFn ?C2 Calorie)))
+  (modalAttribute 
+    (greaterThan ?C2 ?C1)
+    Likely))
+      
+
+  
 
