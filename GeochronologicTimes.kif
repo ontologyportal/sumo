@@ -10,82 +10,52 @@
 ;; - Alexandre Tessarollo (Petrobras, FGV/EMAp)
 
 
-(subclass GeochronologicSuperEon TimeInterval)
+(partition GeochronologicTime GeochronologicAge GeochronologicEpoch GeochronologicSubPeriod
+  	   GeochronologicPeriod GeochronologicEra GeochronologicEon GeochronologicSuperEon)
+
+(subclass GeochronologicTime TimeInterval)
+
+(subclass GeochronologicSuperEon GeochronologicTime)
 (termFormat EnglishLanguage GeochronologicSuperEon "supereon")
 (termFormat PortugueseLanguage GeochronologicSuperEon "super éon")
 
-(subclass GeochronologicEon TimeInterval)
+(subclass GeochronologicEon GeochronologicTime)
 (termFormat EnglishLanguage GeochronologicEon "eon")
 (termFormat PortugueseLanguage GeochronologicEon "éon")
 
-(subclass GeochronologicEra TimeInterval)
+(subclass GeochronologicEra GeochronologicTime)
 (termFormat EnglishLanguage GeochronologicEra "era")
 (termFormat PortugueseLanguage GeochronologicEra "era")
 
-(subclass GeochronologicPeriod TimeInterval)
+(subclass GeochronologicPeriod GeochronologicTime)
 (termFormat EnglishLanguage GeochronologicPeriod "period")
 (termFormat PortugueseLanguage GeochronologicPeriod "período")
 
-(subclass GeochronologicSubPeriod TimeInterval)
+(subclass GeochronologicSubPeriod GeochronologicTime)
 (termFormat EnglishLanguage GeochronologicSubPeriod "sub period")
 
-(subclass GeochronologicEpoch TimeInterval)
+(subclass GeochronologicEpoch GeochronologicTime)
 (termFormat EnglishLanguage GeochronologicEpoch "epoch")
 (termFormat PortugueseLanguage GeochronologicEpoch "época")
 
-(subclass GeochronologicAge TimeInverval)
+(subclass GeochronologicAge GeochronologicTime)
 (termFormat EnglishLanguage GeochronologicAge "age")
 (termFormat PortugueseLanguage GeochronologicAge "idade")
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Setting grounds for temporal references Millions of years ago ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(subclass GeochronologicBase TimePoint)
+;; there are no two GeochronologicTime in the same rank overlapping
 
-(instance GeoPresent (BeginFn (YearFn 1950))
-
-(instance MillionYearsAgoFromPresent UnaryFunction)
-(domain MillionYearsAgoFromPresent 1 Number)
-(range MillionYearsAgoFromPresent 1 TimePoint)
-
-(equal 
- (MillionYearsAgoFromPresent ?X) 
- (BeginFn (YearFn (AdditionFn 1950 (MultiplicationFn ?X -1000000)))))
+(=> (and (instance ?X GeochronologicTime)
+       (instance ?Y GeochronologicTime)
+       (instance ?X ?Class)
+       (instance ?Y ?Class)
+       (not (equal ?X ?Y))
+       (subclass ?class GeochronologicTime)
+  (not (overlapsTemporally ?X ?Y)))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; there are no two GeochronologicXXX overlapping ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(=> (and (instance ?X GeochronologicEon)
-         (instance ?Y GeochronologicEon))
-    (not (overlapsTemporally ?X ?Y)))
-    
-(=> (and (instance ?X GeochronologicEra)
-         (instance ?Y GeochronologicEra))
-    (not (overlapsTemporally ?X ?Y)))
-
-(=> (and (instance ?X GeochronologicPeriod)
-         (instance ?Y GeochronologicPeriod))
-    (not (overlapsTemporally ?X ?Y)))
-
-(=> (and (instance ?X GeochronologicSubPeriod)
-         (instance ?Y GeochronologicSubPeriod))
-    (not (overlapsTemporally ?X ?Y)))
-
-(=> (and (instance ?X GeochronologicEpoch)
-         (instance ?Y GeochronologicEpoch))
-    (not (overlapsTemporally ?X ?Y)))
-    
-(=> (and (instance ?X GeochronologicAge)
-         (instance ?Y GeochronologicAge))
-    (not (overlapsTemporally ?X ?Y)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; The hierarchy is                                                          ;;
-;; SuperEon > Eon > Era > Period > SubPeriod (where one exists) > Epoch > Age;;
-;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; The hierarchy is: SuperEon > Eon > Era > Period > SubPeriod (where
+;; one exists) > Epoch > Age
 
 (=> (instance ?X GeochronologicAge) 
     (exists (?Y)
@@ -123,10 +93,49 @@
 	    (or (starts ?X ?Y)  
 		(during ?X ?Y)
 		(finishes ?X ?Y)))))
-		
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; END OF BASIC MODELLING, now each particular case      ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;; the boundaries
+
+(subclass GeochronologicBase TimePoint)
+
+(instance GeochronologicPresent (BeginFn (YearFn 1950))
+
+(instance MillionYearsAgoFromPresent UnaryFunction)
+(domain MillionYearsAgoFromPresent 1 Number)
+(range MillionYearsAgoFromPresent 1 TimePoint)
+
+(equal 
+ (MillionYearsAgoFn ?X) 
+ (BeginFn (YearFn (AdditionFn 1950 (MultiplicationFn ?X -1000000)))))
+
+(instance Ma+- TernaryPredicate)
+(domain Ma+- 1 GeochronologicBase)
+(domain Ma+- 2 Number)
+(domain Ma+- 2 Number)
+
+(=> (Ma+- ?Base ?X ?Y)
+    (exists (?Y)
+       (and (after ?Base (MillionYearsAgoFn (AdditionFn ?X ?Y)))) 
+	    (before ?Base (MillionYearsAgoFn (SubtractionFn ?X ?Y)))))
+
+(instance Ma~ BinaryPredicate)
+(domain Ma+- 1 GeochronologicBase)
+(domain Ma+- 2 Number)
+
+(=> (Ma~ ?Base ?X)
+    (exists (?Y)
+       (and (approximateValue ?X ?Y)
+	    (equal ?Base (MillionYearsAgoFn ?Y)))))
+
+
+(instance Ma BinaryPredicate)
+(domain Ma+- 1 GeochronologicBase)
+(domain Ma+- 2 Number)
+
+(=> (Ma ?B ?X)
+    (equal ?B (MillionYearsAgoFn ?X)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 175 cases from line 140 to line 1533			;;
@@ -138,10 +147,33 @@
 ;; sets the end of X as a numerical value		;;
 ;; provides X name in English				;;
 ;; provides X name in Portuguese			;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(instance Maastrichtian GeochronologicAge)
+(termFormat EnglishLanguage Maastrichtian "Maastrichtian")
+(termFormat PortugueseLanguage Maastrichtian "Maestrichtiano")
+(meetsTemporally Campanian Maastrichtian)
+(meetsTemporally Maastrichtian Danian)
+(equal (BeginFn Maastrichtian) BaseMaastrichtian)
+(equal (EndFn Maastrichtian) BaseDanian)
+
+(instance Danian GeochronologicAge)
+(termFormat EnglishLanguage Danian "Danian")
+(termFormat PortugueseLanguage Danian "Daniano")
+(equal (BeginFn Danian) BaseCenozoic)
+(equal (EndFn Danian) BaseSelandian)
+
+(instance BaseMaastrichtian GeochronologicBase)
+(Ma+- BaseMaastrichtian 72.1 0.2)
+
+(instance BaseCenozoic GeochronologicBase)
+(Ma BaseCenozoic 66.0)
+
+
+;; needs revision
 
 (instance BasePrecambrian GeochronologicBase)
-(equal BasePrecambrian (MillionYearsAgoFromPresent -4567))
+(Ma~ BasePrecambrian 4567)
 (instance Precambrian GeochronologicSuperEon)
 (equal (BeginFn Precambrian) BasePrecambrian)
 (equal (EndFn Precambrian) (MillionYearsAgoFromPresent -541.0))
@@ -911,21 +943,6 @@
 (termFormat EnglishLanguage Selandian "Selandian")
 (termFormat PortugueseLanguage Selandian "Selandiano")
 
-(instance BaseDanian GeochronologicBase)
-(equal BaseDanian (MillionYearsAgoFromPresent -66.0))
-(instance Danian GeochronologicAge)
-(equal (BeginFn Danian) BaseDanian)
-(equal (EndFn Danian) (MillionYearsAgoFromPresent -61.6))
-(termFormat EnglishLanguage Danian "Danian")
-(termFormat PortugueseLanguage Danian "Daniano")
-
-(instance BaseMaastrichtian GeochronologicBase)
-(equal BaseMaastrichtian (MillionYearsAgoFromPresent -72.1))
-(instance Maastrichtian GeochronologicAge)
-(equal (BeginFn Maastrichtian) BaseMaastrichtian)
-(equal (EndFn Maastrichtian) (MillionYearsAgoFromPresent -66.0))
-(termFormat EnglishLanguage Maastrichtian "Maastrichtian")
-(termFormat PortugueseLanguage Maastrichtian "Maestrichtiano")
 
 (instance BaseCampanian GeochronologicBase)
 (equal BaseCampanian (MillionYearsAgoFromPresent -83.6))
@@ -1616,8 +1633,7 @@
 (meetsTemporally Turonian Coniacian)
 (meetsTemporally Coniacian Santonian)
 (meetsTemporally Santonian Campanian)
-(meetsTemporally Campanian Maastrichtian)
-(meetsTemporally Maastrichtian Danian)
+
 (meetsTemporally Danian Selandian)
 (meetsTemporally Selandian Thanetian)
 (meetsTemporally Thanetian Ypresian)
@@ -1715,5 +1731,4 @@
 (meetsTemporally Archean Proterozoic)
 (meetsTemporally Proterozoic Phanerozoic)
 (meetsTemporally Phanerozoic )
-
 
