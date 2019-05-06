@@ -674,7 +674,7 @@ prep_near_to(?X,?Y), +sumo(?C,?Y), isChildOf(?C,Object) ==> {(orientation ?X ?Y 
 ; pref_over
 
 prep_over(?V,?D), +sumo(?T,?D), isInstanceOf(?T,Object), +sumo(?P,?V), isSubclass(?P,Process) ==> {(destination ?V ?T)}.
-prep_over(?V,?Y), +sumo(?C,?Y), isChildOf(?C,Object) ==> {(orientation ?LOC ?Y Above) (located ?V ?LOC)}.
+prep_over(?V,?Y), +sumo(?C,?Y), isChildOf(?C,Object) ==> {(and (orientation ?LOC ?Y Above) (located ?V ?LOC))}.
 
 ; prep_preliminary_to
 ; prep_preparatory_to
@@ -873,9 +873,9 @@ advmod(?V,when*), aux(?V,do*), +sumo(?C,?V), isSubclass(?C,Physical) ==> {(time 
 advmod(?V,when-1), aux(?V,do*), sumo(?C,?V), +nsubj(?V,?A), sumo(?C2,do*)  ==> {(and (agent ?V ?A) (instance ?V ?C) (equals ?WHEN (WhenFn ?V)))}.
 
 ; Who moves the cart?
-nsubj(?V,who-1) ==> {(instance ?I Human) (agent ?V ?I) (names ?I ?WH)}.
+nsubj(?V,who-1) ==> {(and (instance ?I Human) (agent ?V ?I) (names ?I ?WH))}.
 
-nsubj(who-1,?V), cop(who-1,be*), sumo(Human,?V), names(?I,?WH) ==> {(instance ?I Human) (names ?I ?WH) (or (?R ?I ?I2) (?R ?I2 ?I))}.
+nsubj(who-1,?V), cop(who-1,be*), sumo(Human,?V), names(?I,?WH) ==> {(and (instance ?I Human) (names ?I ?WH) (or (?R ?I ?I2) (?R ?I2 ?I)))}.
 +nsubj(who-1,?V), +cop(who-1,be*) ==> {(instance ?I Human) (names ?I ?WH)}.
 
 ; What did John do?
@@ -889,14 +889,41 @@ nsubj(what-1,?O), cop(what-1,be*), +sumo(?C,?O) ==> (instance(?O,?WH)).
 
 ;; -------------------------------------
 
-advmod(?V,?Y), nsubj(?V,?P), +sumo(Indoors,?Y) ==> {(located ?P ?INDOORS) (instance ?INDOORS Indoors) (exists (?BUILDING) (and (instance ?BUILDING Building) (orientation ?INDOORS ?BUILDING Inside)))}.
+advmod(?V,?Y), nsubj(?V,?P), +sumo(Indoors,?Y) ==>
+  {(and
+     (located ?P ?INDOORS)
+     (instance ?INDOORS Indoors)
+     (exists (?BUILDING)
+       (and
+         (instance ?BUILDING Building)
+         (orientation ?INDOORS ?BUILDING Inside))))}.
 
-advmod(?V,?Y), nsubj(?V,?P), +sumo(Outdoors,?Y) ==> {(located ?P ?OUTDOORS) (instance ?OUTDOORS Outdoors) (not (exists (?BUILDING) (and (instance ?BUILDING Building) (orientation ?OUTDOORS ?BUILDING Inside))))}.
+advmod(?V,?Y), nsubj(?V,?P), +sumo(Outdoors,?Y) ==>
+  {(and
+     (located ?P ?OUTDOORS)
+     (instance ?OUTDOORS Outdoors)
+     (exists (?BUILDING)
+       (and
+         (instance ?BUILDING Building)
+         (orientation ?OUTDOORS ?BUILDING Outside))))}.
 
-cop(?X,?Y), nsubj(?X,?P), +sumo(Indoors,?X) ==> {((located ?P ?INDOORS) (instance ?INDOORS Indoors) (exists (?BUILDING) (and (instance ?BUILDING Building) (orientation ?INDOORS ?BUILDING Inside)))}.
+cop(?X,?Y), nsubj(?X,?P), +sumo(Indoors,?X) ==>
+  {(and
+     (located ?P ?INDOORS)
+     (instance ?INDOORS Indoors)
+     (exists (?BUILDING)
+       (and
+         (instance ?BUILDING Building)
+         (orientation ?INDOORS ?BUILDING Inside))))}.
 
-cop(?X,?Y), nsubj(?X,?P), +sumo(Outdoors,?X) ==> {(located ?P ?OUTDOORS) (instance ?OUTDOORS Outdoors) (not (exists (?BUILDING) (and (instance ?BUILDING Building) (orientation ?OUTDOORS ?BUILDING Inside))))}.
-
+cop(?X,?Y), nsubj(?X,?P), +sumo(Outdoors,?X) ==>
+  {(and
+     (located ?P ?OUTDOORS)
+     (instance ?OUTDOORS Outdoors)
+     (exists (?BUILDING)
+       (and
+         (instance ?BUILDING Building)
+         (orientation ?OUTDOORS ?BUILDING Outside))))}.
 
 ;; helper verbs ----------------------------
 
@@ -912,18 +939,18 @@ cop(?X,?Y), nsubj(?X,?P), +sumo(Outdoors,?X) ==> {(located ?P ?OUTDOORS) (instan
 ; John has taken a walk
 ; nsubj(taken-3,John-1), aux(taken-3,has-2), root(ROOT-0,taken-3), det(walk-5,a-4), dobj(taken-3,walk-5), sumo(agent,taken-3), sumo(Human,John-1), sumo(Walking,walk-5)
 
-nsubj(taken*,?S), aux(taken*,has*), dobj(taken*,?V), sumo(?X,taken*), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), past(?V,?DUMMY), sumo(?C,?V)).
-nsubj(take*,?S), aux(take*,will*), dobj(take*,?V), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), future(?V,?DUMMY), sumo(?C,?V)).
+nsubj(taken*,?S), aux(taken*,has*), dobj(taken*,?V), sumo(?X,taken*), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), past(?V,DUMMY), sumo(?C,?V)).
+nsubj(take*,?S), aux(take*,will*), dobj(take*,?V), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), future(?V,DUMMY), sumo(?C,?V)).
 nsubj(take*,?S), dobj(take*,?V), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), sumo(?C,?V)).
 nsubj(takes*,?S), dobj(takes*,?V), sumo(?C,?V), isSubclass(?C,Process), sumo(?T,takes*) ==> (nsubj(?V,?S), sumo(?C,?V)).
-nsubj(took*,?S), dobj(took*,?V), sumo(?C,?V), isSubclass(?C,Process), sumo(?T,took*) ==> (nsubj(?V,?S), past(?V,?DUMMY), sumo(?C,?V)).
+nsubj(took*,?S), dobj(took*,?V), sumo(?C,?V), isSubclass(?C,Process), sumo(?T,took*) ==> (nsubj(?V,?S), past(?V,DUMMY), sumo(?C,?V)).
 
 ; For phrasal verb "make_up," e.g. "make up a story". Requires that the dobj be a subclass of Process, and uses that for the Suo-Kif process.
 nsubj(make_up*,?S), +dobj(make_up*,?V), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), sumo(?C,?V)).
 
-nsubj(make*,?S), aux(make*,have*), dobj(make*,?V), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), past(?V,?DUMMY), sumo(?C,?V)).
-nsubj(make*,?S), dobj(make*,?V), tense(PAST,make*), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), past(?V,?DUMMY), sumo(?C,?V)).
-nsubj(make*,?S), aux(make*,will*), dobj(make*,?V), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), future(?V,?DUMMY), sumo(?C,?V)).
+nsubj(make*,?S), aux(make*,have*), dobj(make*,?V), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), past(?V,DUMMY), sumo(?C,?V)).
+nsubj(make*,?S), dobj(make*,?V), tense(PAST,make*), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), past(?V,DUMMY), sumo(?C,?V)).
+nsubj(make*,?S), aux(make*,will*), dobj(make*,?V), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), future(?V,DUMMY), sumo(?C,?V)).
 nsubj(make*,?S), dobj(make*,?V), sumo(?C,?V), isSubclass(?C,Process) ==> (nsubj(?V,?S), sumo(?C,?V)).
 
 ;; ----------------------------------------------------------------------------------------------------------------- 
@@ -948,42 +975,42 @@ advmod(?X,where*), aux(?X,do*) ==> {(destination ?X ?WH)}.
 nsubj(?V,?S), aux(?V,can*), sumo(?C,?V), isSubclass(?C,Process) ==> {(capability ?C agent ?S)}.
 
 ; These can no longer be triggered, since we now get the lemma instead of the verb form.
-; aux(?V,did*), sumo(?C,did*), +sumo(?C2,?V), isSubclass(?C2,Process) ==> (past(?V,?DUMMY)).
+; aux(?V,did*), sumo(?C,did*), +sumo(?C2,?V), isSubclass(?C2,Process) ==> (past(?V,DUMMY)).
 ; aux(?V,does*), sumo(?C,does*), +sumo(?C2,?V), isSubclass(?C2,Process) ==> !.
-; aux(?V,has*) ==> (past(?V,?DUMMY)).
-; aux(?V,had*) ==> (past(?V,?DUMMY)).
+; aux(?V,has*) ==> (past(?V,DUMMY)).
+; aux(?V,had*) ==> (past(?V,DUMMY)).
 
-aux(?V,may*) ==> (possible(?V,?DUMMY)).
-aux(?V,might*) ==> (possible(?V,?DUMMY)).
-aux(?V,can*) ==> (possible(?V,?DUMMY)).
-aux(?V,could*) ==> (possible(?V,?DUMMY)).
-aux(?V,must*) ==> (necessary(?V,?DUMMY)).
-aux(?V,should*) ==> (possible(?V,?DUMMY)).
-aux(?V,should*) ==> (possible(?V,?DUMMY)).
-aux(?V,must*) ==> (possible(?V,?DUMMY)).
+aux(?V,may*) ==> (possible(?V,DUMMY)).
+aux(?V,might*) ==> (possible(?V,DUMMY)).
+aux(?V,can*) ==> (possible(?V,DUMMY)).
+aux(?V,could*) ==> (possible(?V,DUMMY)).
+aux(?V,must*) ==> (necessary(?V,DUMMY)).
+aux(?V,should*) ==> (possible(?V,DUMMY)).
+aux(?V,should*) ==> (possible(?V,DUMMY)).
+aux(?V,must*) ==> (possible(?V,DUMMY)).
 
 ; future perfect progressive
-aux(?V,will*), aux(?V,have-3), aux(?V,be*), tense(FUTURE,?V), aspect(PROGRESSIVEPERFECT,?V) ==> (future(?V,?DUMMY)).
+aux(?V,will*), aux(?V,have-3), aux(?V,be*), tense(FUTURE,?V), aspect(PROGRESSIVEPERFECT,?V) ==> (future(?V,DUMMY)).
 ; future perfect
-aux(?V,will*), aux(?V,have-3), tense(FUTURE,?V), aspect(PERFECT,?V) ==> (future(?V,?DUMMY)).
+aux(?V,will*), aux(?V,have-3), tense(FUTURE,?V), aspect(PERFECT,?V) ==> (future(?V,DUMMY)).
 ; future simple
-aux(?V,will*), tense(FUTURE,?V) ==> (future(?V,?DUMMY)).
+aux(?V,will*), tense(FUTURE,?V) ==> (future(?V,DUMMY)).
 
 ; present perfect progressive
-aux(?V,have*), aux(?V,be*), tense(PRESENT,?V), aspect(PROGRESSIVEPERFECT,?V) ==> (past(?V,?DUMMY)).
+aux(?V,have*), aux(?V,be*), tense(PRESENT,?V), aspect(PROGRESSIVEPERFECT,?V) ==> (past(?V,DUMMY)).
 ; present perfect
-aux(?V,have*), tense(PRESENT,?V), aspect(PERFECT,?V) ==> (past(?V,?DUMMY)).
+aux(?V,have*), tense(PRESENT,?V), aspect(PERFECT,?V) ==> (past(?V,DUMMY)).
 
 ; past perfect progressive
-aux(?V,have*), aux(?V,be*), tense(PAST,?V), aspect(PROGRESSIVEPERFECT,?V) ==> (past(?V,?DUMMY)).
+aux(?V,have*), aux(?V,be*), tense(PAST,?V), aspect(PROGRESSIVEPERFECT,?V) ==> (past(?V,DUMMY)).
 ; past perfect
-aux(?V,have*), tense(PAST,?V), aspect(PERFECT,?V) ==> (past(?V,?DUMMY)).
+aux(?V,have*), tense(PAST,?V), aspect(PERFECT,?V) ==> (past(?V,DUMMY)).
 
 ; simple past
-tense(PAST,?V) ==> (past(?V,?DUMMY)).
+tense(PAST,?V) ==> (past(?V,DUMMY)).
 
 ; passive auxiliary
-; auxpass(?X,?Y), -past(?X,?DUMMY) ==> (past(?X,?DUMMY)).
+; auxpass(?X,?Y), -past(?X,DUMMY) ==> (past(?X,DUMMY)).
 
 ; coordination
 
@@ -1270,7 +1297,7 @@ manner(?X,?Y) ==> {(manner ?X ?Y)}.
 membersType(?X,?Y) ==> {(membersType ?X ?Y)}.
 membersCount(?X,?Y) ==> {(membersCount ?X ?Y)}.
 names(?X,?Y) ==> {(names ?X ?Y)}.
-necessary(?X,?Y) ==> {(necessary ?X ?Y)}.
+necessary(?X,DUMMY) ==> {(necessary ?X DUMMY)}.
 
 ; Causes some tests to fail:   
 ; not(?X,?Y) ==> {(not ?X ?Y)}.
@@ -1278,7 +1305,7 @@ necessary(?X,?Y) ==> {(necessary ?X ?Y)}.
 ;orientation(?X,?Y,?Z) ==> {(orientation ?X ?Y ?Z)}.
 origin(?X,?Y) ==> {(origin ?X ?Y)}.
 patient(?X,?Y) ==> {(patient ?X ?Y)}.
-possible(?X,?Y) ==> {(possible ?X ?Y)}.
+possible(?X,DUMMY) ==> {(possible ?X DUMMY)}.
 properlyFills(?X,?Y) ==> {(properlyFills ?X ?Y)}.
 possesses(?X,?Y) ==> {(possesses ?X ?Y)}.
 refers(?X,?Y) ==> {(refers ?X ?Y)}.
