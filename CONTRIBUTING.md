@@ -4,7 +4,7 @@ By participating in this project, you agree to abide by the [code of conduct](#c
 
 ## Issues
 
-One of the easiest ways to contribute is to log an issue. The most important issue is where
+One of the easiest ways to contribute is to open an issue. The most important issue is where
 you may have found a logical contradiction with a theorem prover.  In that case, please provide
 
 * the proof of the issue
@@ -26,15 +26,18 @@ in a contradiction, or a typo in a documentation string.
 
 If you want to add content to SUMO, please note that it is a theory in an expressive
 logic and more than just a taxonomy or simple frame-slot assertions are expected.
-For more guidelines, please see what to do to write an addition - 
-http://www.adampease.org/OP/Process.html
+For more guidelines, please see what to do to write an addition:
+
+1. http://www.adampease.org/OP/Process.html
+2. http://www.adampease.org/OP/conform.html
+
 and things to avoid - http://www.adampease.org/OP/Pitfalls.html
 
 ## Pull Requests
 
-We love pull requests from everyone. 
+We love pull requests from everyone.
 
-git close https://github.com/ontologyportal/sumo
+https://git-scm.com/book/en/v2/GitHub-Contributing-to-a-Project
 
 Some things that will increase the chance that your pull request is accepted:
 
@@ -71,4 +74,5 @@ We expect everyone to follow these rules anywhere in our project.
 Finally, don't forget that it is human to make mistakes! We all do. Let’s work together to help each other, resolve issues, and learn from the mistakes that we will all inevitably make from time to time.
 
 ### Thanks
+
 Derived from [thoughbot's code of conduct](https://thoughtbot.com/open-source-code-of-conduct)
