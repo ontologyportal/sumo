@@ -1744,19 +1744,20 @@ place and time without some physical encoding or embodiment.")
 和地点。")
 
 ;; Something is Abstract just in case it has neither a spatial nor temporal
-;; location.
+;; location.  the disjointness declaration above handles the axioms below,
+;; which otherwise cause a type violation
 
-(=>
-   (instance ?ABS Abstract)
-   (not
-      (exists (?POINT)
-        (located ?ABS ?POINT))))
+; (=>
+;   (instance ?ABS Abstract)
+;   (not
+;      (exists (?POINT)
+;        (located ?ABS ?POINT))))
 
-(=>
-   (instance ?ABS Abstract)
-   (not
-      (exists (?POINT)
-        (time ?ABS ?POINT))))
+;(=>
+;   (instance ?ABS Abstract)
+;   (not
+;      (exists (?POINT)
+;        (time ?ABS ?POINT))))
 
 (subclass Quantity Abstract)
 (documentation Quantity EnglishLanguage "Any specification of how many or how much of
@@ -6206,8 +6207,8 @@ to the &%Class of &%GraphPaths between those two nodes.  Note that the two
       (graphPart ?PATH ?GRAPH)
       (not (instance ?GRAPH DirectedGraph)))
    (<=>
-      (equal (GraphPathFn ?NODE1 ?NODE2) ?PATH)
-      (equal (GraphPathFn ?NODE2 ?NODE1) ?PATH)))
+      (instance ?PATH (GraphPathFn ?NODE1 ?NODE2))
+      (instance ?PATH (GraphPathFn ?NODE2 ?NODE1))))
 
 (instance CutSetFn UnaryFunction)
 (domain CutSetFn 1 Graph)
@@ -8708,8 +8709,8 @@ individuals.")
 (domainSubclass MonthFn 2 Year)
 (rangeSubclass MonthFn Month)
 (documentation MonthFn EnglishLanguage "A &%BinaryFunction that maps a subclass of &%Month 
-and a subclass of &%Year to the class containing the &%Month corresponding to that 
-&%Year. For example (&%MonthFn &%August (&%YearFn 1912)) is the class containing the 
+and a subclass of &%Year to the class containing the &%Month corresponding to that
+&%Year. For example (&%MonthFn &%August (&%YearFn 1912)) is the class containing the
 eighth &%Month, i.e. August, of the &%Year 1912.  For another example, (&%MonthFn &%August
 &%Year) is equal to &%August, the class of all months of August.  Note that this function
 returns a &%Class as a value.  The reason for this is that the related functions, viz.
@@ -8847,45 +8848,51 @@ the 18th day of August 1912.")
 
 (=>
   (and
-    (equal ?T1 (BeginFn (YearFn ?N1)))
-    (equal ?T2 (BeginFn (YearFn ?N2)))
+    (instance ?Y1 (YearFn ?N1))
+    (instance ?Y2 (YearFn ?N2))
+    (equal ?T1 (BeginFn ?Y1))
+    (equal ?T2 (BeginFn ?Y2))
     (greaterThan ?N2 ?N1))
   (before ?T1 ?T2))
 
 (=>
   (and
-    (equal ?T1 (YearFn ?N1))
-    (equal ?T2 (YearFn ?N2))
+    (instance ?Y1 (YearFn ?N1))
+    (instance ?Y2 (YearFn ?N2))
     (greaterThan ?N2 ?N1))
-  (earlier ?T1 ?T2))
+  (earlier ?Y1 ?Y2))
 
 (=>
   (and
-    (equal ?T1 (BeginFn (MonthFn ?N1 (YearFn ?Y))))
-    (equal ?T2 (BeginFn (MonthFn ?N2 (YearFn ?Y))))
+    (instance ?M1 (MonthFn ?N1 (YearFn ?Y)))
+    (instance ?M2 (MonthFn ?N2 (YearFn ?Y)))
+    (equal ?T1 (BeginFn ?M1))
+    (equal ?T2 (BeginFn ?M2))
+    (successorClass ?N1 ?N2))
+  (before ?T1 ?T2))
+
+(=>
+  (and
+    (instance ?M1 (MonthFn ?N1 (YearFn ?Y)))
+    (instance ?M2 (MonthFn ?N2 (YearFn ?Y)))
+    (successorClass ?N1 ?N2))
+  (earlier ?M1 ?M2))
+
+(=>
+  (and
+    (instance ?D1 (DayFn ?N1 (MonthFn ?M (YearFn ?Y))))
+    (instance ?D2 (DayFn ?N2 (MonthFn ?M (YearFn ?Y))))
+    (equal ?T1 (BeginFn ?D1))
+    (equal ?T2 (BeginFn ?D2))
     (greaterThan ?N2 ?N1))
   (before ?T1 ?T2))
 
 (=>
   (and
-    (equal ?T1 (MonthFn ?N1 (YearFn ?Y)))
-    (equal ?T2 (MonthFn ?N2 (YearFn ?Y)))
+    (instance ?D1 (DayFn ?N1 (MonthFn ?M (YearFn ?Y))))
+    (instance ?D2 (DayFn ?N2 (MonthFn ?M (YearFn ?Y))))
     (greaterThan ?N2 ?N1))
-  (earlier ?T1 ?T2))
-
-(=>
-  (and
-    (equal ?T1 (BeginFn (DayFn ?N1 (MonthFn ?M (YearFn ?Y)))))
-    (equal ?T2 (BeginFn (DayFn ?N2 (MonthFn ?M (YearFn ?Y)))))
-    (greaterThan ?N2 ?N1))
-  (before ?T1 ?T2))
-
-(=>
-  (and
-    (equal ?T1 (DayFn ?N1 (MonthFn ?M (YearFn ?Y))))
-    (equal ?T2 (DayFn ?N2 (MonthFn ?M (YearFn ?Y))))
-    (greaterThan ?N2 ?N1))
-  (earlier ?T1 ?T2))
+  (earlier ?D1 ?D2))
 
 (subclass Year TimeInterval)
 (relatedInternalConcept Year YearFn)
@@ -8929,10 +8936,10 @@ the 18th day of August 1912.")
 (instance MorningFn TemporalRelation)
 (instance MorningFn UnaryFunction)
 (instance MorningFn PartialValuedRelation)
-(domainSubclass MorningFn 1 Day)
-(rangeSubclass MorningFn Morning)
+(domain MorningFn 1 Day)
+(range MorningFn Morning)
 (documentation MorningFn EnglishLanguage "A &%UnaryFunction that returns the
-class of &%Mornings of the given class of &%Day.")
+class of &%Mornings of the given &%Day.")
 
 (=>
   (equal ?E (MorningFn ?D))
@@ -8941,10 +8948,10 @@ class of &%Mornings of the given class of &%Day.")
 (instance AfternoonFn TemporalRelation)
 (instance AfternoonFn UnaryFunction)
 (instance AfternoonFn PartialValuedRelation)
-(domainSubclass AfternoonFn 1 Day)
-(rangeSubclass AfternoonFn Afternoon)
+(domain AfternoonFn 1 Day)
+(range AfternoonFn Afternoon)
 (documentation AfternoonFn EnglishLanguage "A &%UnaryFunction that returns the
-class of &%Afternoons of the given class of &%Day.")
+class of &%Afternoons of the given &%Day.")
 
 (=>
   (equal ?E (AfternoonFn ?D))
@@ -8983,10 +8990,10 @@ which is the end of &%Afternoon, and end at midnight.")
 (instance EveningFn TemporalRelation)
 (instance EveningFn UnaryFunction)
 (instance EveningFn PartialValuedRelation)
-(domainSubclass EveningFn 1 Day)
-(rangeSubclass EveningFn Evening)
+(domain EveningFn 1 Day)
+(range EveningFn Evening)
 (documentation EveningFn EnglishLanguage "A &%UnaryFunction that returns the
-class of &%Evenings of the given class of &%Day.")
+class of &%Evenings of the given &%Day.")
 
 (=>
   (equal ?E (EveningFn ?D))
@@ -9004,8 +9011,10 @@ corresponding to that &%PositiveRealNumber.  For example, (&%WeekFn 4 (&%YearFn 
 is the singular &%Class of all fourth &%Weeks of the &%Year 1999.")
 
 (=>
-  (equal ?W (WeekFn ?N ?Y))
-  (during ?W ?Y))
+  (and
+    (instance ?W (WeekFn ?N ?Y))
+    (instance ?YI ?Y))
+  (during ?W ?YI))
 
 (instance QuarterFn TemporalRelation)
 (instance QuarterFn BinaryFunction)
@@ -9019,8 +9028,10 @@ corresponding to that &%PositiveRealNumber.  For example, (&%QuarterFn 4 (&%Year
 is the singular &%Class of the last &%QuarterYear of the &%Year 1999.")
 
 (=>
-  (equal ?Q (QuarterFn ?N ?Y))
-  (during ?Q ?Y))
+  (and
+    (instance ?Q (QuarterFn ?N ?Y))
+    (instance ?YI ?Y))
+  (during ?Q ?YI))
 
 (subclass QuarterYear TimeInterval)
 (documentation QuarterYear EnglishLanguage "A period of three months.")
@@ -9045,6 +9056,34 @@ divisible by 400 (this latter case is known as a leap century).")
          (equal (RemainderFn ?NUMBER 4) 0)
          (not (equal (RemainderFn ?NUMBER 100) 0)))
       (equal (RemainderFn ?NUMBER 400) 0)))
+
+(instance successorClass BinaryPredicate)
+(instance successorClass TransitiveRelation)
+(domain successorClass 1 SetOrClass)
+(domain successorClass 2 SetOrClass)
+(documentation successorClass EnglishLanguage "The next class is a sequence
+of classes, such as days of the week. The first argument is 'prior' to the
+second argument.")
+(relatedInternalConcept successorClass successor)
+
+(successorClass January February)
+(successorClass February March)
+(successorClass March April)
+(successorClass April May)
+(successorClass May June)
+(successorClass June July)
+(successorClass July August)
+(successorClass August September)
+(successorClass September October)
+(successorClass October November)
+(successorClass November December)
+
+(successorClass Sunday Monday)
+(successorClass Monday Tuesday)
+(successorClass Tuesday Wednesday)
+(successorClass Wednesday Thursday)
+(successorClass Thursday Friday)
+(successorClass Friday Saturday)
 
 (subclass Month TimeInterval)
 (relatedInternalConcept Month MonthFn)
@@ -9113,8 +9152,8 @@ divisible by 400 (this latter case is known as a leap century).")
 
 (=>
    (and
-      (equal ?MONTH1 (MonthFn April ?YEAR))
-      (equal ?MONTH2 (MonthFn May ?YEAR)))
+      (instance ?MONTH1 (MonthFn April ?YEAR))
+      (instance ?MONTH2 (MonthFn May ?YEAR)))
    (meetsTemporally ?MONTH1 ?MONTH2))
 
 (subclass May Month)
@@ -16081,12 +16120,6 @@ where people have a &%home.")
 temporary, i.e. where no one makes his/her &%home.")
 (documentation TemporaryResidence ChineseLanguage "这一处纯粹临时的 &%Residence，即是没有人会把
 它当成是他/她的 &%home。")
-
-(=>
-  (instance ?RESIDENCE TemporaryResidence)
-  (not
-    (exists (?PERSON)
-      (home ?PERSON ?RESIDENCE))))
 
 (subclass ResidentialBuilding Building)
 (subclass ResidentialBuilding Residence)
