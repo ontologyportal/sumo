@@ -1567,7 +1567,7 @@ keyboard, microphone and camera input. (from Wikipedia)")
 
 (subclass FolderIcon Icon)
 (documentation FolderIcon EnglishLanguage "A symbol of a paper file folder that is
-used to represent a collection of &%ComputerDataFiles in a GUI.")
+used to represent a &%ComputerDirectory in a GUI.")
 (termFormat EnglishLanguage FolderIcon "folder")
 (=>
   (instance ?F FolderIcon)
@@ -1667,7 +1667,7 @@ and applications.")
     (and
       (refers ?CD ?F)
       (or
-        (instance ?F ComputerData)
+        (instance ?F DigitalData)
         (instance ?F ComputerProgram)))))
 
 (subclass HomeScreen ComputerDesktopImage)
@@ -1688,7 +1688,7 @@ medium and otherwise preparing for the start of normal activity.")
   (attribute ?X Booting)
   (exists (?CD)
     (and
-      (instance ?CD ComputerData)
+      (instance ?CD DigitalData)
       (instance ?OS OperatingSystem)
       (instance ?DT DataTransfer)
       (during ?DT ?X)
@@ -1801,3 +1801,221 @@ by vendor updates. (from Wikipedia)")
       (exists (?A)
         (agent ?J ?A)))))
 
+(subclass ComputerBackingUp DataTransfer)
+(subclass ComputerBackingUp Copying)
+(subclass ComputerBackingUp ComputerProcess)
+(documentation ComputerBackingUp EnglishLanguage "The &%Process of &%Copying &%DigitalData to
+prevent loss of that data resulting from some error or accident in the future.")
+(termFormat EnglishLanguage ComputerBackingUp "backup")
+
+(=>
+  (and
+    (instance ?C ComputerBackingUp)
+    (dataProcessed ?C ?DD)
+    (instance ?DD DigitalData)
+    (agent ?C ?A))
+  (desires ?A
+    (exists (?T)
+      (and
+        (earlier (WhenFn ?C) ?T)
+        (holdsDuring (?T)
+          (exists (?PROC)
+            (and
+              (instance ?PROC ComputerProcess)
+              (capability ?PROC dataProcessed ?DD))))))))
+
+(termFormat EnglishLanguage RestoringData "restore")
+
+(subclass Flickering RadiatingVisibleLight)
+(documentation Flickering EnglishLanguage "A &%Process in which the intensity of visible light
+changes somewhat rapidly i.e. at a tempo discernible by the &%Human &%Eye.")
+(termFormat EnglishLanguage Flickering "flickering")
+
+(=>
+  (and
+    (instance ?F Flickering)
+    (instrument ?F ?O))
+  (exists (?T1 ?T2)
+    (and
+      (during ?T1 (WhenFn ?F))
+      (holdsDuring ?T1
+        (measure ?F (MeasureFn Lumen ?N1)))
+      (during ?T2(WhenFn ?F))
+      (holdsDuring ?T2
+        (measure ?F (MeasureFn Lumen ?N2)))
+      (not (equal ?T1 ?T2))
+      (not (equal ?N1 ?N2)))))
+
+(instance connectedPeripheral BinaryPredicate)
+(domain connectedPeripheral 1 ComputerHardware)
+(domain connectedPeripheral 2 Computer)
+
+(documentation connectedPeripheral EnglishLanguage "A relationship between a &%ComputerOutputDevice
+and &%Computer that they are physically and logically connected.  They should be able to perform
+any communication and handshaking functions needed for normal operation.  For modern peripherals
+this includes being 'mounted' or recognized as being present by the computer, with a device ID
+in a table of available peripheral devices.")
+
+(=>
+  (and
+    (connectedPeripheral ?COD ?C)
+    (instance ?COD ComputerOutputDevice))
+  (capability ?COD destination DataTransfer))
+
+(=>
+  (and
+    (connectedPeripheral ?COD ?C)
+    (instance ?COD ComputerInputDevice))
+  (capability ?COD origin DataTransfer))
+
+(subclass DevicePowerSupply ElectricDevice)
+(subclass DevicePowerSupply DCPowerSource)
+
+(documentation DevicePowerSupply EnglishLanguage "An &%ElectricDevice designed to take standard
+alternating current home wall outlet power and converter to direct current at a lower voltage,
+to match the needs of a particular &%Device or class of devices such as a kitchen appliance or
+a &%Computer.")
+
+(=>
+  (instance ?DPS DevicePowerSupply)
+  (exists (?R)
+    (and
+      (instance ?R Rectifier)
+      (part ?R ?DPS))))
+
+(=>
+  (instance ?DPS DevicePowerSupply)
+  (exists (?T)
+    (and
+      (instance ?T Transformer)
+      (part ?T ?DPS))))
+
+(=>
+  (instance ?DPS DevicePowerSupply)
+  (hasPurpose ?DPS
+    (exists (?AC)
+      (and
+        (instance ?AC ACPowerSource)
+        (connectedEngineeringComponents ?DPS ?AC)))))
+
+(subclass SoftwareInstallation DataTransfer)
+(=>
+  (and
+    (instance ?I SoftwareInstallation)
+    (dataProcessed ?I ?P)
+    (instance ?P ComputerProgram)
+    (destination ?I ?C))
+  (hasPurpose ?I
+    (exists (?PROC)
+      (computerRunning ?PROC ?C))))
+
+(=>
+  (and
+    (instance ?U SoftwareUnInstallation)
+    (equal ?T2 (WhenFn ?U))
+    (dataProcessed ?U ?P)
+    (instance ?P ComputerProgram)
+    (located ?U ?C))
+  (exists (?I ?T1)
+    (and
+      (instance ?I SoftwareInstallation)
+      (equal ?T1 (WhenFn ?I))
+      (dataProcessed ?I ?P)
+      (instance ?P ComputerProgram)
+      (located ?I ?C)
+      (earlier ?T1 ?T2))))
+
+(instance maxDeviceOperatingTemp BinaryPredicate)
+(domain maxDeviceOperatingTemp 1 Device)
+(domain maxDeviceOperatingTemp 2 TemperatureMeasure)
+(documentation maxDeviceOperatingTemp EnglishLanguage "The maximum safe rated temperature at
+which a device may be operated.  Operating the device in an environment above the temperature
+is likely to result in a &%Damaging of the &%Device.")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (maxDeviceOperatingTemp ?D ?T1)
+      (located ?D ?A)
+      (attribute ?D DeviceOn)
+      (airTemperature ?A ?T2)
+      (greaterThan ?T2 ?T1)))
+  (modalAttribute
+    (holdsDuring (ImmediateFutureFn ?T)
+      (attribute ?D DeviceDamaged)) Likely))
+
+(contraryAttribute DeviceOn DeviceOff)
+(contraryAttribute DeviceOpen DeviceClosed)
+
+(instance maxDeviceStorageTemp BinaryPredicate)
+(domain maxDeviceStorageTemp 1 Device)
+(domain maxDeviceStorageTemp 2 TemperatureMeasure)
+(documentation maxDeviceStorageTemp EnglishLanguage "The maximum safe rated temperature at
+which a device may be stored.  Storing the device in an environment above the temperature
+is likely to result in a &%Damaging of the &%Device.")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (maxDeviceStorageTemp ?D ?T1)
+      (located ?D ?A)
+      (attribute ?D DeviceOff)
+      (airTemperature ?A ?T2)
+      (greaterThan ?T2 ?T1)))
+  (modalAttribute
+    (holdsDuring (ImmediateFutureFn ?T)
+      (attribute ?D DeviceDamaged)) Likely))
+
+
+(instance minDeviceOperatingTemp BinaryPredicate)
+(domain minDeviceOperatingTemp 1 Device)
+(domain minDeviceOperatingTemp 2 TemperatureMeasure)
+(documentation minDeviceOperatingTemp EnglishLanguage "The minimum safe rated temperature at
+which a device may be operated.  Operating the device in an environment below the temperature
+is likely to result in a &%Damaging of the &%Device.")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (minDeviceOperatingTemp ?D ?T1)
+      (located ?D ?A)
+      (attribute ?D DeviceOn)
+      (airTemperature ?A ?T2)
+      (lessThan ?T2 ?T1)))
+  (modalAttribute
+    (holdsDuring (ImmediateFutureFn ?T)
+      (attribute ?D DeviceDamaged)) Likely))
+
+(instance minDeviceStorageTemp BinaryPredicate)
+(domain minDeviceStorageTemp 1 Device)
+(domain minDeviceStorageTemp 2 TemperatureMeasure)
+(documentation minDeviceStorageTemp EnglishLanguage "The minimum safe rated temperature at
+which a device may be stored.  Storing the device in an environment below the temperature
+is likely to result in a &%Damaging of the &%Device.")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (minDeviceStorageTemp ?D ?T1)
+      (located ?D ?A)
+      (attribute ?D DeviceOff)
+      (airTemperature ?A ?T2)
+      (lessThan ?T2 ?T1)))
+  (modalAttribute
+    (holdsDuring (ImmediateFutureFn ?T)
+      (attribute ?D DeviceDamaged)) Likely))
+
+(instance ContrastRatioFn BinaryFunction)
+(domain ContrastRatioFn 1 PhysicalQuantity)
+(domain ContrastRatioFn 2 PhysicalQuantity)
+(range ContrastRatioFn RationalNumber)
+(documentation ContrastRatioFn EnglishLanguage "A ratio between two luminosities.")
+
+(instance contrastRatio BinaryPredicate)
+(domain contrastRatio 1 Object)
+(domain contrastRatio 2 RationalNumber)
+(documentation contrastRatio EnglishLanguage "The contrast ratio is a property of a
+display system, defined as the ratio of the luminance of the brightest color (white)
+to that of the darkest color (black) that the system is capable of producing. A high
+contrast ratio is a desired aspect of any display. It has similarities with dynamic
+range. (from Wikipedia)")
