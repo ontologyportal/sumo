@@ -2141,7 +2141,7 @@ render calendars and usually manage events and appointments.")
 (=>
   (instance ?C CalendaringProgram)
   (hasPurpose ?C
-    (exists (?T ?R ?P)
+    (exists (?T ?P)
       (and
         (instance ?T CalendarText)
         (programRunning ?P ?C)
@@ -3598,4 +3598,81 @@ required before its actual and intended use.")
       (holdsDuring (ImmediateFutureFn (WhenFn ?MD))
         (connectedPeripheral ?P ?C)))))
 
+(subclass SoftwareUpgrading SoftwareInstallation)
+(documentation SoftwareUpgrading EnglishLanguage "Replacing software with
+a later version of the same software")
+
+(termFormat EnglishLanguage SoftwareUpgrading "software upgrading")
+(termFormat EnglishLanguage SoftwareUpgrading "upgrading")
+(termFormat EnglishLanguage SoftwareUpgrading "upgrade")
+
+(instance softwareVersion BinaryRelation)
+(documentation softwareVersion EnglishLanguage "The software in the first
+argument is a 'version' of the software in the second argument. Note that while
+this typically means they will share a lot of code, that's not strictly necessary
+as one version could be a complete rewrite of the other as long as they broadly share
+the same purpose.")
+
+(domain softwareVersion 1 ComputerProgram)
+(domain softwareVersion 2 ComputerProgram)
+
+(format EnglishLanguage softwareVersion "%1 is a later &%software version of %2")
+(termFormat EnglishLanguage softwareVersion "software version")
+
+(=>
+  (softwareVersion ?P1 ?P2)
+  (greaterThan (WhenFn ?P1) (WhenFn ?P2)))
+
+(=>
+  (softwareVersion ?P1 ?P2)
+  (modalAttribute
+    (exists (?L)
+      (and
+        (containsInformation ?L ?P1)
+        (containsInformation ?L ?P2)))
+    Likely))
+
+(=>
+  (and
+    (instance ?SU SoftwareUpgrading)
+    (patient ?SU ?C)
+    (instance ?C Computer)
+    (objectTransferred ?SU ?P)
+    (instance ?P ComputerProgram))
+  (exists (?POLD ?DSD)
+    (and
+      (instance ?POLD ComputerProgram)
+      (instance ?DSD DataStorageDevice)
+      (connectedPeripheral ?DSD ?C)
+      (stored ?POLD ?DSD)
+      (softwareVersion ?P ?POLD))))
+
+(instance thirdPartyProduct TernaryPredicate)
+(documentation thirdPartyProduct EnglishLanguage "A relationship between a product, a manufacturer and
+a customer that states that the given product instance owned by the customer of the manufacturer was
+not produced by that manufacturer.")
+
+(domain thirdPartyProduct 1 Artifact)
+(domain thirdPartyProduct 2 Organization)
+(domain thirdPartyProduct 3 Agent)
+
+(termFormat EnglishLanguage thirdPartyProduct "third party product")
+(format EnglishLanguage thirdPartyProduct "%1 is a &%product owned by %3 but not manufactured by %2")
+
+(=>
+  (thirdPartyProduct ?ART ?ORG ?AG)
+  (not
+    (exists (?M)
+      (and
+        (instance ?M Making)
+        (agent ?M ?ORG)
+        (result ?M ?ART)))))
+
+(=>
+  (thirdPartyProduct ?ART ?ORG ?AG)
+  (possesses ?AG ?ART))
+
+(=>
+  (thirdPartyProduct ?ART ?ORG ?AG)
+  (customer ?ORG ?AG))
 
