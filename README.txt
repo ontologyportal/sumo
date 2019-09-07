@@ -1,10 +1,10 @@
-/* This code is copyrighted by Articulate Software (c) 2004-2016.
+/* This code is copyrighted by Articulate Software (c) 2004-2016. Infosys 2017-
 It is released under the GNU Public License <http://www.gnu.org/copyleft/gpl.html>.
-Users of this code also consent, by use of this code, to credit Teknowledge in any
+Users of this code also consent, by use of this code, to provide credit in any
 writings, briefings, publications, presentations, or other representations of any
 software which incorporates, builds on, or uses this code.*/
 
-
+The main site for SUMO is http://www.ontologyportal.org
 
 This directory contains knowledge base files written in KIF, and files in WordNet
 data file format (see <https://wordnet.princeton.edu/documentation/wndb5wn>).
