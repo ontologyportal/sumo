@@ -159,7 +159,7 @@ to pay a specified amount of money to a specific person upon demand.")
     (instance ?Processing ProcessingACheck)
     (patient ?Processing ?Check)
     (equal (WhenFn ?Drawing) ?DrawingTime)
-    (equal (WhenFn ?Procesing) ?ProcessingTime)
+    (equal (WhenFn ?Processing) ?ProcessingTime)
     (meetsTemporally ?DrawingTime ?Time)
     (meetsTemporally ?Time ?ProcessingTime)
     (duration ?Time ?Duration))
@@ -370,7 +370,7 @@ check from funds on deposit.")
   (exists (?Check)
     (and
       (instance ?Check Check)
-      (patient ?Procesing ?Check))))
+      (patient ?Processing ?Check))))
 
 (=>
   (instance ?Processing ProcessingACheck)
@@ -428,7 +428,6 @@ account at a financial institution.")
 (=>
   (and
     (instance ?Deposit Deposit)
-    (time ?Deposit ?TimeOfDeposit)
     (instance ?Account FinancialAccount)
     (destination ?Deposit (CurrencyFn ?Account))
     (transactionAmount ?Deposit ?Amount)
@@ -645,7 +644,7 @@ means that ?Amount is the mimimum amount required by the type of
 
 (=>
   (and
-    (instance ?Account ?FinancialAccount)
+    (instance ?Account FinancialAccount)
     (minimumBalance ?Account OpeningAnAccount ?Balance))
   (exists (?Payment)
     (and
@@ -782,7 +781,7 @@ prior to its due date.")
     (date ?Payment ?Date)
     (instance ?Account FinancialAccount)
     (destination ?Payment (CurrencyFn ?Account))
-    (amountDue ?Account ?AmountDue ?DueDate)
+    (amountDue ?Account ?Amount ?DueDate)
     (before (EndFn ?Date) (BeginFn ?DueDate)))
   (instance ?Payment Prepayment)) 
 
@@ -1375,7 +1374,6 @@ when refinancing or a major cash flow event is anticipated.")
     (totalBalance ?Loan ?Amount)
     (instance ?Call Call)
     (agent ?Call ?Lender)
-    (time ?Call ?Time)
     (patient ?Call ?Loan))
   (holdsObligation 
     (KappaFn ?Payment
@@ -2274,7 +2272,7 @@ maturity date.")
     (and
       (instance ?Payment Payment)
       (destination ?Payment ?BondHolder)
-      (origin ?Payment (CurrencyFn ?BondAccount))
+      (origin ?Payment (AccountFn ?Bond))
       (transactionAmount ?Payment ?Total)))) 
 
 (subclass RegisteredBond Bond)
@@ -2470,7 +2468,7 @@ of a stock at a fixed price (the strike price) on or before a fixed date.")
       (property ?Option ?Type)
       (agreementExpirationDate ?Option ?Date)
       (strikePrice ?Option ?Price)
-      (underlier ?Option ?Stocks)
+      (underlier ?Option ?Stock)
       (measure ?Stock (MeasureFn 100 ShareUnit)))))
 
 ;; KJN: Edit. Incorrect definition, should be subAttribute
@@ -3010,6 +3008,8 @@ class but different strike prices and/or expiration dates.")
       (instance ?Option2 Option)
       (instance ?Buy Buying)
       (instance ?Sell Selling)
+      (subProcess ?Buy ?Spread)
+      (subProcess ?Sell ?Spread)
       (patient ?Buy ?Option1)
       (patient ?Sell ?Option2)
       (time ?Buy ?Time)
@@ -3030,6 +3030,10 @@ The payoff diagram resembles the shape of a butterfly.")
       (instance ?Call2 CallOption)
       (instance ?Call3 CallOption)
       (instance ?Call4 CallOption)
+      (subProcess ?Call1 ?Spread)
+      (subProcess ?Call2 ?Spread)
+      (subProcess ?Call3 ?Spread)
+      (subProcess ?Call4 ?Spread)
       (strikePrice ?Call1 ?Price1)
       (strikePrice ?Call2 ?Price2)
       (strikePrice ?Call3 ?Price3)
@@ -3656,7 +3660,7 @@ that ?Amount is the balance which is available for withdrawal from the &%Financi
   (and
     (instance ?Transaction FinancialTransaction)
     (origin ?Transaction ?Account)
-    (transactionAmount ?Transaction ?Amount)
+    (transactionAmount ?Transaction ?Amount1)
     (date ?Transaction ?Day))
   (exists (?Amount2)
     (and
@@ -3676,7 +3680,7 @@ that ?Amount is the balance which is available for withdrawal from the &%Financi
   (and
     (instance ?Transaction FinancialTransaction)
     (origin ?Transaction (CurrencyFn ?Account))
-    (transactionAmount ?Transaction ?Amount)
+    (transactionAmount ?Transaction ?Amount1)
     (instance ?Cash Currency)
     (patient ?Transaction ?Cash)
     (date ?Transaction ?Day))
@@ -3883,7 +3887,7 @@ holds if ?Amount is the balance shown on the last statement.")
     (and
       (lastStatement ?Account ?Statement)
       (dateOfStatement ?Statement ?Date)
-      (currentAccountBalance ?Account ?Date ?Account))))
+      (currentAccountBalance ?Account ?Date ?Balance))))
 
 (instance statementAccount BinaryPredicate)
 (domain statementAccount 1 BankStatement)
@@ -3920,8 +3924,7 @@ if ?Amount is the interest amount as shown on the BankStatement ?Statement.")
     (statementInterest ?Statement ?Interest)
     (statementPeriod ?Statement ?Period)
     (statementAccount ?Statement ?Account))
-      (exists (?Amount)
-    (interestEarned ?Account ?Amount ?Period)))
+  (interestEarned ?Account ?Interest ?Period))
 
 (instance buyingPowerAmount TernaryPredicate)
 (subrelation buyingPowerAmount availableBalance)
