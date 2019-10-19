@@ -478,7 +478,7 @@ in the crankcase that draws fuel into the crankcase.")
   (and
     (instance ?TSI TwoStrokeIntake)
     (instance ?C Crankcase)
-    (eventPartlyLocated ?TSC ?C))
+    (eventPartlyLocated ?TSI ?C))
   (holdsDuring ?TSI
     (attribute ?C PartialVacuum)))
 
@@ -526,7 +526,7 @@ chamber.  The piston is most fully removed from the combustion chamber at this p
     (instance ?C EngineCylinder)
     (instance ?I InternalCombustionChamber)
     (equal ?C (HoleHostFn ?I))
-    (eventLocated ?F ?C))
+    (eventLocated ?T ?C))
   (exists (?E ?M)
     (and
       (instance ?M GasMotion)
@@ -568,16 +568,16 @@ Typically, it is implemented as a &%DrumBrake in most modern passenger vehicles.
   (and
     (instance ?P ParkingBrake)
     (instance ?V Vehicle)
+    (holdsDuring ?T1 
+      (attribute ?P DeviceOn))
     (part ?P ?V))
   (hasPurpose ?P
-    (holdsDuring ?E
-      (and 
-        (attribute ?P DeviceOn)
-        (not
-          (exists (?T)
-            (and 
-              (instance ?T Translocation)
-              (patient ?T ?V))))))))
+    (holdsDuring ?T1
+      (not
+        (exists (?T)
+		  (and 
+		    (instance ?T Translocation)
+		    (patient ?T ?V)))))))
 
 (subclass WearingFrictionSurface Device)
 (termFormat EnglishLanguage WearingFrictionSurface "wearing friction surface")
@@ -607,12 +607,12 @@ against a rotating &%BrakeDrum to cause vehicle braking.")
 (=>
   (instance ?B BrakePad)
   (hasPurpose ?B 
-    (exists (?F ?BS)
+    (exists (?F ?BR)
       (and
         (instance ?F Friction)
         (resource ?F ?B)
         (instance ?BR BrakeRotor)
-        (patient ?F ?BS)))))
+        (patient ?F ?BR)))))
 
 (=>
   (and
@@ -2071,10 +2071,10 @@ it into a &%Gas via a &%VaporCompressionCycle.")
 (=>
   (instance ?ACE AirConditioningEvaporator)
   (hasPurpose ?ACE
-    (exists (?C)
+    (exists (?E)
       (and
         (instance ?E Evaporating)
-        (instrument ?C ?ACE)))))
+        (instrument ?E ?ACE)))))
 
 (instance RevolutionsPerMinute UnitOfMeasure)
 (instance RevolutionsPerMinute CompositeUnitOfMeasure)
@@ -2207,9 +2207,9 @@ initiate &%Rotating of the &%Crankshaft and &%Flywheel to the point where
       (instance ?S Shaft)
       (instance ?C Crankshaft)
       (part ?S ?EM)
+      (subProcess ?R1 ?EC)
       (instance ?R1 Rotating)
       (patient ?R ?S)
-      (part ?C ?E)
       (instance ?R2 Rotating)
       (patient ?R2 ?C)
       (part ?C ?E)
@@ -2575,10 +2575,13 @@ depressed.")
     (instance ?P GasPedal)
     (instance ?P Pushing)
     (destination ?P ?GP)
+    (part ?E ?A)
     (part ?GP ?A)
     (instance ?C Crankshaft)
-    (part ?C ?A)
-    (measure ?C (RotationFn ?N2 ?M)))
+    (part ?C ?E)
+    (holdsDuring 
+      (WhenFn ?P)
+      (measure ?C (RotationFn ?N2 ?M)))
   (modalAttribute
     (greaterThan ?N2 ?N1)
     Likely))
@@ -3189,6 +3192,9 @@ making temporary electrical connections.")
       (instance ?C1 Clamp)
       (instance ?C2 Clamp)
       (instance ?W Wire)
+      (part ?C1 ?JC)
+      (part ?C2 ?JC)
+      (part ?W ?JC)
       (connectedEngineeringComponents ?C1 ?W)
       (connectedEngineeringComponents ?C2 ?W)
       (not (equal ?C1 ?C2)))))
@@ -3274,8 +3280,8 @@ sends this information to the &%EngineControlModule.")
     (exists (?T ?M ?A)
       (and
         (instance ?T Transfer)
-        (instance ?A ?Air)
-        (patient ?GM ?A)
+        (instance ?A Air)
+        (patient ?T ?A)
         (instance ?M Measuring)
         (patient ?M ?A)
         (instrument ?M ?MAS)))))
@@ -4024,7 +4030,7 @@ AutomobileExhaustSystem, which is after the &%AutomobileMuffler, just before &%E
       (exists (?O)
         (and
           (part ?O ?A)
-          (beforeOnPath ?T ?O ?T ?TR))))))
+          (beforeOnPath ?T ?O ?AES ?TR))))))
 
 (subclass BimetalTemperatureSensor MeasuringDevice)
 (termFormat EnglishLanguage BimetalTemperatureSensor "bi-metal temperature sensor")
@@ -4285,7 +4291,7 @@ a &%Vehicle's &%Wheels, and thus the vehicle itself, from moving.")
 (=>
   (instance ?WC WheelChock)
   (hasPurpose ?WC
-    (exists (?W)
+    (exists (?W ?T)
       (and
         (instance ?W Wheel)
         (holdsDuring ?T

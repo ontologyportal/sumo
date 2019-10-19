@@ -132,24 +132,21 @@ the amount ?AMT that ?AGENT charges during a &%Corkage when a customer brings in
     (customer ?CUST ?AGENT)
     (corkageFee ?AMT ?ITEM ?AGENT)
     (instance ?X ?ITEM)
-    (not (exists (?B)
-      (and
-        (instance ?B Buying)
-        (patient ?B ?X)
-        (destination ?B ?CUST)
-        (origin ?B ?AGENT))))
-    (holdsDuring (WhenFn (located ?CUST ?LOC))
-      (and
-        (instance ?P IntentionalProcess)
-        (or
-          (patient ?P ?X)
-          (resource ?P ?X)
-          (instrument ?P ?X))
-        (agent ?P ?CUST))))
+    (not 
+      (exists (?B)
+        (and
+          (instance ?B Buying)
+          (patient ?B ?X)
+          (destination ?B ?CUST)
+          (origin ?B ?AGENT))))
+    (instance ?D Drinking)
+    (agent ?D ?CUST)
+    (resource ?D ?X))
   (exists (?C)
     (and
       (instance ?C Corkage)
       (agent ?C ?CUST)
+      (refers ?C ?X)
       (destination ?C ?AGENT))))
 
 ;; Outdoor Dining 
@@ -179,11 +176,10 @@ served")
 (termFormat EnglishLanguage Menu "menu")
 
 (=>
-  (instance ?MENU Menu)
-  (forall (?X)
-    (=>
-      (catalogItem ?X ?MENU)
-      (subclass ?X (FoodForFn Human)))))
+  (and
+    (instance ?MENU Menu)
+    (catalogItem ?X ?MENU))
+  (subclass ?X (FoodForFn Human)))
 
 (subclass SetMenu Menu)
 (documentation SetMenu EnglishLanguage "a &%SetMenu is a type of &%Menu that contains
@@ -193,21 +189,23 @@ a specific set of prepared food which is all served and is given one price")
 (=>
   (and
     (instance ?MENU SetMenu)
-    (offers ?AGENT ?MENU))
-  (price ?MENU ?PRICE ?AGENT))
-            
-  
+    (offers ?AGENT ?MENU)
+    (catalogItem ?X ?MENU)
+    (catalogItem ?Y ?MENU)
+    (price ?X ?PRICE1 ?AGENT1)        
+    (price ?Y ?PRICE2 ?AGENT2))
+  (equal ?PRICE1 ?PRICE2))
+                  
 (subclass BeverageMenu Menu)
 (documentation BeverageMenu EnglishLanguage "a &%BeverageMenu is a &%Menu 
 of &%Beverages")
 (termFormat EnglishLanguage BeverageMenu "drinks menu")
 
 (=>
-  (instance ?MENU BeverageMenu)
-  (forall (?X)
-    (=>
-      (catalogItem ?X ?MENU)
-      (subclass ?MEMB Beverage))))
+  (and
+    (instance ?MENU BeverageMenu)
+    (catalogItem ?X ?MENU))
+  (subclass ?X Beverage))
 
 (subclass AlcoholMenu BeverageMenu)
 (documentation AlcoholMenu EnglishLanguage "an &%AlcoholMenu is a &%Menu 
@@ -215,23 +213,20 @@ of &%AlcoholicBeverage")
 (termFormat EnglishLanguage AlcoholMenu "cocktail menu")
 
 (=>
-  (instance ?MENU AlcoholMenu)
-  (forall(?X)
-    (=>
-      (catalogItem ?X ?MENU)
-      (subclass ?MEMB AlcoholicBeverage))))
-
+  (and
+    (instance ?MENU AlcoholMenu)
+    (catalogItem ?X ?MENU))
+  (subclass ?X AlcoholicBeverage))
 
 (subclass WineMenu AlcoholMenu)
 (documentation WineMenu EnglishLanguage "a &%WineMenu is a &%Menu of &%Wine")
 (termFormat EnglishLanguage WineMenu "wine list")
 
 (=>
-  (instance ?MENU WineMenu)
-  (forall(?X)
-    (=>
-      (catalogItem ?X ?MENU)
-      (subclass ?MEMB WineMenu))))
+  (and 
+    (instance ?MENU WineMenu)
+    (catalogItem ?X ?MENU))
+  (subclass ?X WineMenu))
  
 ;; Braille
 (instance Braille PerceptualAttribute)
@@ -241,8 +236,6 @@ describes &%ContentBearingObject that can be interpreted by a &%Blind &%Human")
 (=>
   (attribute ?X Braille)
   (instance ?X ContentBearingObject))
-
-
 
 (=>
   (and
@@ -335,19 +328,22 @@ that an ?AGENT provides some ?OBJ to fulfill some goal or need")
 (termFormat EnglishLanguage facility "facility")
 
 ;; if an AGENT provides some OBJECT, and there exists a customer who wants 
-;; to use that object, then AGENT allows the customer to use that OBJECT
+;; to use that object, then AGENT may allow the customer to use that OBJECT
 (=>
   (and
     (facility ?AGENT ?OBJ)
     (customer ?CUST ?AGENT)
     (instance ?X ?OBJ)
-    (exists (?PROC)
-      (and
-        (instance ?PROC IntentionalProcess)
-        (patient ?PROC ?X)
-        (agent ?PROC ?CUST))))
-  (confersRight
-    (uses ?CUST ?X) ?AGENT ?CUST))
+    (desires ?CUST
+      (exists (?PROC)
+        (and
+          (instance ?PROC IntentionalProcess)
+          (patient ?PROC ?X)
+          (agent ?PROC ?CUST)))))
+  (modalAttribute           
+    (confersRight
+      (uses ?CUST ?X) ?AGENT ?CUST)
+    Possibility))
       
 ;; NOTE: You can use RecurrentTimeIntervalFn(HourFn HourFn) to come up with
 ;; ?TIMEINT
@@ -697,7 +693,7 @@ which is the object of ?RESERVE is expected to end at ?TIME")
       (potentialCustomer ?GRP ?AGENT)
       (instance ?GRP GroupOfPeople)
       (member ?CUST ?GRP)
-      (memberCount ?GRP 2))))
+      (memberCount ?GRP ?NUM))))
                     
 (subclass DiningReservation Reservation)
 (documentation DiningReservation EnglishLanguage "a &%DiningReservation is 
