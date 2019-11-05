@@ -28,8 +28,7 @@ strong enough to prevent the gases from escaping.")
 
 (instance EarthsAtmosphere Atmosphere)
 (documentation EarthsAtmosphere EnglishLanguage "EarthsAtmosphere is the layer of gases, 
-a mixture of mainly oxygen and nitrogen, surrounding PlanetEarth.  See 
-also Air.")
+a mixture of mainly oxygen and nitrogen, surrounding PlanetEarth.  See also Air.")
 
 (=>
   (instance ?AIRSPACE AtmosphericRegion)
@@ -877,8 +876,86 @@ the total amount of precipitation was ?AMOUNT.")
 (subclass Pampero Windstorm)
 (subclass Squall WeatherProcess)
 (subclass SevereThunderstorm WeatherProcess)
+
 (subclass DustStorm WeatherProcess)
-(subclass Sandstorm WeatherProcess)
+(termFormat ChineseLanguage DustStorm "沙尘暴")
+(documentation DustStorm EnglishLanguage "&%DustStorms happen in &%AridClimateZones or
+&%SemiaridClimateZones. They occur when a strong &%Wind carries &%particulateMatter or
+&%Sand from its underlying &%Dry surface and deposit it to another &%Region.")
+
+(documentation DustStorm ChineseLanguage "&%DustStorm 出现在 &%AridClimateZone 或
+&%SemiaridClimateZone。它发生在当强 &%Wind 捲起 &%ParticulateMatter 或从它吹过 &%Dry 地面的
+ &%Sand ，并送到另外一个 &%Region。")
+
+(=>
+  (instance ?DUSTSTORM DustStorm)
+  (or
+    (exists (?DRY)
+      (and
+        (instance ?DRY AridClimateZone)
+        (eventLocated ?DUSTSTORM ?DRY)))
+    (exists (?SEMIDRY)
+      (and
+        (instance ?SEMIDRY SemiaridClimateZone)
+        (eventLocated ?DUSTSTORM ?SEMIDRY)))))
+        
+(=>
+  (and
+    (instance ?DUSTSTORM DustStorm)
+    (instance ?WIND Wind)
+    (subProcess ?DUSTSTORM ?WIND))
+  (exists (?WIND ?TRANSLOCATE ?PM ?SAND ?A1 ?A2 ?STRONG)
+    (and
+      (instance ?A1 LandArea)
+      (eventLocated ?WIND ?A1)
+      (surfaceWindSpeed ?A1 
+        (MeasureFn ?STRONG KnotUnitOfSpeed))
+      (greaterThan ?STRONG 30)      
+      (instance ?TRANSLOCATE Translocation)
+      (subProcess ?TRANSLOCATE ?DUSTSTORM)
+      (objectTransferred ?TRANSLOCATE ?PM)
+      (objectTransferred ?TRANSLOCATE ?SAND)
+      (instance ?PM ParticulateMatter)
+      (instance ?SAND Sand)
+      (instance ?A2 LandArea)
+      (destination ?TRANSLOCATE ?A2)
+      (not
+        (overlapsSpatially ?A1 ?A2)))))
+      
+(subclass Sandstorm DustStorm)
+
+(termFormat ChineseLanguage Sandstorm "沙暴")
+(documentation Sandstorm EnglishLanguage "&%Sandstorms are &%DustStorms in which the 
+particles are &%sand.")
+
+(documentation Sandstorm ChineseLanguage "&%Sandstorm 是含 &%sand 颗粒的 &%DustStorm。")
+
+(=>
+  (instance ?SS Sandstorm)
+  (exists (?SAND)
+    (and
+      (instance ?SAND Sand)
+      (objectTransferred ?SS ?SAND))))
+
+(subclass Haboob DustStorm)
+(termFormat Haboob EnglishLanguage "Haboob")
+(termFormat Haboob ChineseLanguage "Haboob")
+(documentation Haboob EnglishLanguage "&%Haboobs are intense &%DustStorms caused by 
+&%Thunderstorm.")
+(documentation Haboob ChineseLanguage "&%Haboobs 是由 &%Thunderstorm 造成的强力 &%DustStorms
+。")      
+
+(=>
+  (instance ?HABOOB Haboob)
+  (exists (?TS ?DM ?A)
+    (and
+      (instance ?TS Thunderstorm)
+      (instance ?DM MotionDownward)
+      (instance ?A Air)
+      (patient ?DM ?A)
+      (subProcess ?DM ?TS)
+      (causes ?DM ?HABOOB))))
+
 (subclass Zud WeatherProcess)
 (subclass HeavySurf WeatherProcess)
 (subclass HeavySurf WaterMotion)
@@ -897,7 +974,7 @@ the total amount of precipitation was ?AMOUNT.")
 (documentation Tsunami EnglishLanguage "&%Tsunami is the class of highly destructive 
 ocean waves caused by offshore seismic processes.")
 
-(subclass Hurricane TropicalCyclone)
+;; (subclass Hurricane TropicalCyclone) Hurricane = Typhoon = TropicalCyclone
 
 (subclass Drought WeatherProcess)
 
@@ -919,10 +996,30 @@ to crops, livestock, and human life.")
         (overlapsTemporally ?RAIN ?DRYSPELL)))))
 
 (subclass Desertification WeatherProcess)
+;	Jennie September 2019
+(documentation Desertification EnglishLanguage "&%Desertification is the 
+&%Process by which fertile land becomes desert.")
 
-(documentation Desertification EnglishLanguage "&%Desertification represents the 
-&%Process by which desert conditions are spread over an area.")
+(documentation Desertification ChineseLanguage "&%Desertification 是肥沃土地变成沙漠的
+&%Process。")
 
+(termFormat ChineseLanguage Desertification "荒漠化")
+
+(=>
+  (and
+    (instance ?DESERTIFICATION Desertification)
+    (eventLocated ?DESERTIFICATION ?AREA))
+  (exists (?A1 ?A2)
+    (and
+      (instance ?A1 ArableLand)
+      (instance ?A2 Desert)
+      (holdsDuring
+        (BeginFn (WhenFn ?DESERTIFICATION))
+        (OverlapsSpatially ?AREA ?A1))
+      (holdsDuring
+        (EndFn (WhenFn ?DESERTIFICATION))
+        (overlapsSpatially ?AREA ?A2)))))
+        
 (documentation Icing EnglishLanguage "&%Icing is the process by which &%Ice is deposited 
 on a %Solid object in polycrystalline form.")
 
@@ -1213,7 +1310,7 @@ the raindrops are less than or equal 0.5 &%Millimeter in &%approximateDiameter."
 
 (=>
   (instance ?DRIZZLE Drizzling) 
-  (exists (?RAIN ?CLTN ?R ?SIZE)
+  (exists (?CLTN ?R ?SIZE)
     (and
       (instance ?CLTN Collection)
       (instance ?R Water)
