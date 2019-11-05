@@ -75,7 +75,7 @@ is used against an &%Organism.")
             (instance ?DAMAGE Damaging) 
             (patient ?DAMAGE ?ORGANISM) 
             (causes ?ATTACK ?DAMAGE)
-            (instance ?Organism Organism)))))
+            (instance ?ORGANISM Organism)))))
 
 (subclass BiochemicalAgent BiologicallyActiveSubstance)
 (documentation BiochemicalAgent EnglishLanguage "A &%BiologicalAgent or a &%ChemicalAgent.")
@@ -219,13 +219,13 @@ of &%Bacterium.")
 (documentation Mycotoxin EnglishLanguage "A &%Toxin that is produced by a &%FungalAgent.")
 
 (=>
-   (instance ?SUBSTANCE Mycotoxin)
-   (exists (?FUNGUS ?PROCESS)
-      (and
-         (instance ?FUNGUS FungalAgent)
-         (instance ?PROCESS BiologicalProcess)
-         (instrument ?PROCESS ?ORGANISM)
-         (result ?PROCESS ?SUBSTANCE))))
+  (instance ?SUBSTANCE Mycotoxin)
+  (exists (?FUNGUS ?PROCESS)
+    (and
+      (instance ?FUNGUS FungalAgent)
+      (instance ?PROCESS BiologicalProcess)
+      (instrument ?PROCESS ?FUNGUS)
+      (result ?PROCESS ?SUBSTANCE))))
 
 (subclass ViralAgent ToxicOrganism)
 (subclass ViralAgent Virus)
@@ -700,16 +700,17 @@ scale of a single laboratory or a pilot program.  These weapons may or may not b
 with a conventional weapon, so that the former can be delivered to its target.")
 
 (=>
-   (instance ?DELIVER DeliveringWeaponOfMassDestruction)
-   (exists (?PUTTING ?WEAPON1 ?WEAPON2)
-      (and
-         (instance ?PUTTING Putting)
-         (instance ?WEAPON1 WeaponOfMassDestruction)
-         (instance ?WEAPON2 Weapon)
-         (not (instance ?WEAPON2 WeaponOfMassDestruction))
-         (patient ?PUTTING ?WEAPON1)
-         (destination ?PUTTING ?WEAPON2))))
-
+  (instance ?DELIVER DeliveringWeaponOfMassDestruction)
+  (exists (?PUTTING ?WEAPON1 ?WEAPON2)
+    (and
+      (instance ?PUTTING Putting)
+      (subProcess ?PUTTING ?DELIVER)
+      (instance ?WEAPON1 WeaponOfMassDestruction)
+      (instance ?WEAPON2 Weapon)
+      (not
+        (instance ?WEAPON2 WeaponOfMassDestruction))
+      (patient ?PUTTING ?WEAPON1)
+      (destination ?PUTTING ?WEAPON2))))
 
 (subclass ResearchingWeaponOfMassDestruction Investigating)
 (documentation ResearchingWeaponOfMassDestruction EnglishLanguage "Conducting research on the development 
@@ -795,10 +796,13 @@ This is the dose that would incapacitate 50% of the exposed human population.
 Note that ?QUANTITY is generally expressed in micrograms per kilogram (mcg/kg).")
 
 (=>
-   (effectiveDose ?AGENT (PerFn (MeasureFn ?NUMBER1 ?UNIT1) (MeasureFn ?NUMBER2 ?UNIT2)))
-   (and
-      (instance ?UNIT1 MassMeasure)
-      (instance ?UNIT2 MassMeasure))) 
+  (effectiveDose ?AGENT
+    (PerFn
+      (MeasureFn ?NUMBER1 ?UNIT1)
+      (MeasureFn ?NUMBER2 ?UNIT2)))
+  (and
+    (instance ?UNIT1 MassMeasure)
+    (instance ?UNIT2 MassMeasure)))
    
 (instance lethalDose BinaryPredicate)
 (domainSubclass lethalDose 1 BiochemicalAgent)
@@ -816,10 +820,13 @@ that would result in death for 50% of the exposed human population.  Note that
    (greaterThan ?NUMBER2 ?NUMBER1))
 
 (=>
-   (lethalDose ?AGENT (PerFn (MeasureFn ?NUMBER1 ?UNIT1) (MeasureFn ?NUMBER2 ?UNIT2)))
-   (and
-      (instance ?UNIT1 MassMeasure)
-      (instance ?UNIT2 MassMeasure)))
+  (lethalDose ?AGENT
+    (PerFn
+      (MeasureFn ?NUMBER1 ?UNIT1)
+      (MeasureFn ?NUMBER2 ?UNIT2)))
+  (and
+    (instance ?UNIT1 MassMeasure)
+    (instance ?UNIT2 MassMeasure)))
 
 (instance diseaseSymptom BinaryPredicate)
 (domain diseaseSymptom 1 DiseaseOrSyndrome)
@@ -842,21 +849,23 @@ suffer from ?SYMPTOM than one which does not.")
 that &%DiseaseOrSyndrome ?DISEASE has a Mortality rate of ?NUMBER.")
 
 (=>
-   (diseaseMortality ?DISEASE ?RATE)
-   (conditionalProbability
-      (attribute ?ORGANISM ?DISEASE)
-      (exists (?DEATH) (and (instance ?DEATH Death) (experiencer ?DEATH ?ORGANISM)))
-      ?RATE))
+  (diseaseMortality ?DISEASE ?RATE)
+  (conditionalProbability
+    (attribute ?ORGANISM ?DISEASE)
+    (exists (?DEATH)
+      (and
+        (instance ?DEATH Death)
+        (experiencer ?DEATH ?ORGANISM))) ?RATE))
 
 (=>
-   (diseaseMortality ?DISEASE ?RATE)
-   (and
-      (greaterThan ?RATE 0)
-      (lessThan ?RATE 1)))
+  (diseaseMortality ?DISEASE ?RATE)
+  (and
+    (greaterThan ?RATE 0)
+    (lessThan ?RATE 1)))
 
 (=>
-   (diseaseMortality ?DISEASE ?RATE)
-   (instance ?DISEASE LifeThreateningDisease))
+  (diseaseMortality ?DISEASE ?RATE)
+  (instance ?DISEASE LifeThreateningDisease))
 
 (instance biochemicalAgentAntidote TernaryPredicate)
 (domain biochemicalAgentAntidote 1 BiochemicalAgent)
@@ -868,14 +877,14 @@ treating someone who has been exposed to the &%BiochemicalAgent ?AGENT when the 
 administered via the &%Process ?PROCESS.")
 
 (decreasesLikelihood
-   (and
-      (biochemicalAgentSyndrome ?AGENT ?SYMPTOM)
-      (biochemicalAgentAntidote ?AGENT ?SUBSTANCE ?PROCESS)
-      (instance ?SAMPLE ?SUBSTANCE)
-      (instance ?THERAPY ?PROCESS)
-      (experiencer ?THERAPY ?ORGANISM)
-      (patient ?THERAPY ?SUBSTANCE))
-   (attribute ?ORGANISM ?SYMPTOM))
+  (and
+    (biochemicalAgentSyndrome ?AGENT ?SYMPTOM)
+    (biochemicalAgentAntidote ?AGENT ?SUBSTANCE ?PROCESS)
+    (instance ?SAMPLE ?SUBSTANCE)
+    (instance ?THERAPY ?PROCESS)
+    (experiencer ?THERAPY ?ORGANISM)
+    (patient ?THERAPY ?SAMPLE))
+  (attribute ?ORGANISM ?SYMPTOM))
 
 (instance diseaseTreatment TernaryPredicate)
 (domain diseaseTreatment 1 DiseaseOrSyndrome)
@@ -1166,21 +1175,23 @@ as the smallpox virus.")
 as Alastrim.")
 
 (=>
-   (instance ?ANTIBIOTIC Antibiotic)
-   (capability (KappaFn ?KILL (and 
-                                 (instance ?KILL Killing) 
-                                 (patient ?KILL ?BACTERIUM) 
-                                 (instance ?BACTERIUM Bacterium))) 
-                                          agent ?ANTIBIOTIC))
+  (instance ?ANTIBIOTIC Antibiotic)
+  (capability
+    (KappaFn ?KILL
+      (and
+        (instance ?KILL Killing)
+        (patient ?KILL ?BACTERIUM)
+        (instance ?BACTERIUM Bacterium))) agent ?ANTIBIOTIC))
 
 (=>
-   (diseaseTreatment ?DISEASE Antibiotic ?PROCESS)
-   (instance ?DISEASE BacterialDisease))
+  (diseaseTreatment ?DISEASE Antibiotic ?PROCESS)
+  (instance ?DISEASE BacterialDisease))
 
 (=>
-   (instance ?DISEASE ViralDisease)
-   (exists (?PROCESS)
-      (not (diseaseTreatment ?DISEASE Antibiotic ?PROCESS))))
+  (instance ?DISEASE ViralDisease)
+  (exists (?PROCESS)
+    (not
+      (diseaseTreatment ?DISEASE Antibiotic ?PROCESS))))
 
 (subclass OralAntibiotic Antibiotic)
 (documentation OralAntibiotic EnglishLanguage "An &%Antibiotic that is administered orally, 
@@ -1214,17 +1225,17 @@ of inhalational &%Anthrax in subjects who may have been exposed to aeresolized
 e.g. &%Bacitracin.")
 
 (=>
-   (diseaseTreatment ?DISEASE TopicalAntibiotic ?PROCESS)
-   (subclass ?PROCESS Covering))
+  (diseaseTreatment ?DISEASE TopicalAntibiotic ?PROCESS)
+  (subclass ?PROCESS Covering))
 
 (subclass Bacitracin TopicalAntibiotic)
 (documentation Bacitracin EnglishLanguage "A common topical antibiotic.")
 
 (=>
-   (diseaseTreatment ?DISEASE Bacitracin ?PROCESS)
-   (and
-      (instance ?DISEASE BacterialDisease)
-      (instance ?PROCESS Putting))) 
+  (diseaseTreatment ?DISEASE Bacitracin ?PROCESS)
+  (and
+    (instance ?DISEASE BacterialDisease)
+    (instance ?PROCESS Putting)))
 
 (subclass Atropine BiologicallyActiveSubstance)
 (documentation Atropine EnglishLanguage "An anticholinergic agent.")
