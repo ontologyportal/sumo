@@ -4016,11 +4016,14 @@ the password associated with a particular &%UserAccount.")
           (equal ?P2 ?P1))
         (password ?P2 ?UA)))))
 
+; ChangingUserName
+; ChangingAccountInfo
+
 (subclass CreatingAnAccount UserDirectAction)
-(documentation ChangingPassword EnglishLanguage "The &%Process of specifying
+(documentation CreatingAnAccount EnglishLanguage "The &%Process of specifying
 a user ID and password for a particular &%UserAccount.")
 
-(termFormat EnglishLanguage ChangingPassword "creating an account")
+(termFormat EnglishLanguage CreatingAnAccount "creating an account")
 
 (=>
   (and
@@ -4043,3 +4046,229 @@ a user ID and password for a particular &%UserAccount.")
 (domain accountUsed 2 UserAccount)
 (subrelation accountUsed patient)
 (documentation accountUsed EnglishLanguage "The &%UserAccount used in a particular &%Process.")
+(termFormat EnglishLanguage accountUsed "account used")
+(format EnglishLanguage accountUsed "the &%accountUsed in %1 is %2")
+
+(subclass NetworkMessaging Messaging)
+(documentation NetworkMessaging EnglishLanguage "Any &%Messaging where the
+mode of transmission is over a &%ComputerNetwork.")
+(termFormat EnglishLanguage NetworkMessaging "network messaging")
+
+(=>
+  (instance ?NM NetworkMessaging)
+  (exists (?CN)
+    (and
+      (instance ?CN ComputerNetwork)
+      (instrument ?NM ?CN))))
+      
+(subclass Spamming NetworkMessaging)
+(documentation Spamming EnglishLanguage "The &%Processing of sending unsolicited messages to a large
+number of recipients.  Some recipients may decide, for example, they want the mail and buy a product advertised in
+the mail so it need not be unwanted by all.  The mail need not sell a product, as it could be a
+political advertisement.")
+(termFormat EnglishLanguage Spamming "spamming")
+
+(=>
+  (and
+    (instance ?S Spamming)
+    (instance ?G GroupOfPeople)
+    (memberCount ?G ?N)
+    (destination ?S ?G))
+  (modalAttribute
+    (greaterThan ?N 100)
+    Likely))
+
+(=>
+  (and
+    (instance ?S Spamming)
+    (result ?S ?SPAM)
+    (instance ?S Spam)
+    (instance ?H Human)
+    (destination ?S ?H))
+  (not
+    (exists (?R)
+      (and
+        (instance ?R Requesting)
+        (patient ?R ?SPAM)))))
+
+(=>
+  (and
+    (instance ?S Spamming)
+    (result ?S ?SPAM)
+    (instance ?S Spam)
+    (instance ?H Human)
+    (destination ?S ?H))
+  (not
+    (modalAttribute
+      (wants ?H ?SPAM)
+      Likely)))
+
+(subclass Spam Text)
+(documentation Spam EnglishLanguage "An unsolicited message that is the result of &%Spamming.")
+(termFormat EnglishLanguage Spam "spam")
+
+(subclass Phishing Defrauding)
+(documentation Phishing EnglishLanguage "A &%Fraud in which the fraudster tries to obtain
+private information of some value by false pretenses.  A typical scam is a message masquerading
+as being from a company with which the victim already does business, saying that resetting
+the victim's password is required, when then directs the victim to the fraudster's website where
+the victim's password is captured.")
+
+(termFormat EnglishLanguage Phishing "phishing")
+
+(=>
+  (instance ?P Phishing)
+  (exists (?FS ?V ?M ?I)
+    (and
+      (instance ?M Communication)
+      (origin ?M ?FS)
+      (agent ?P ?FS)
+      (destination ?M ?V)
+      (instance ?I Formula)
+      (knows ?V ?I)
+      (not
+        (desires ?V
+          (knows ?FS ?I)))
+      (desires ?FS
+        (knows ?FS ?I)))))
+
+(subclass FindMyIPhone ComputerProgram)
+(subclass AppleFindMy FindMyIPhone)
+(termFormat EnglishLanguage AppleFindMy "Find My")
+(canRunOn AppleFindMy AppleIPhoneOS13)
+
+(documentation FindMyIPhone EnglishLanguage "Find My iPhone was an app and service provided by Apple Inc.
+that allowed remote location tracking of iOS devices, Mac computers, Apple Watch, and AirPods. It was
+replaced by the app Find My in iOS 13. [from Wikipedia]")
+
+(termFormat EnglishLanguage FindMyIPhone "Find My IPhone")
+(termFormat EnglishLanguage FindMyIPhone "FMIP")
+
+(=>
+  (instance ?FMIP FindMyIPhone)
+  (hasPurpose ?FMIP
+    (exists (?A ?IP ?P ?L)
+      (and
+        (instance ?IP AppleIPhone)
+        (instrument ?P ?FMIP)
+        (agent ?P ?A)
+        (patient ?P ?IP)
+        (holdsDuring
+          (ImmediatePastFn
+            (WhenFn ?P))
+          (not
+            (knows ?A
+              (located ?IP ?L))))
+        (holdsDuring
+          (ImmediateFutureFn
+            (WhenFn ?P))
+          (knows ?A
+            (located ?IP ?L)))))))
+
+(instance trustedDevice BinaryPredicate)
+(domain trustedDevice 1 UserAccount)
+(domain trustedDevice 2 Computer)
+(documentation trustedDevice EnglishLanguage "A particular &%Computer is listed on a &%UserAccount as being
+trusted.  This is a common security protocol that typically makes logging in to the device easier, while
+adding some extra procedure, such as two-factor authentication, for a device not registered with the account.")
+(termFormat EnglishLanguage trustedDevice "trusted device")
+(format EnglishLanguage trustedDevice "%2 is a &%trusted device for %1")
+
+(subclass TwoFactorLoggingIn LoggingIn)
+(documentation TwoFactorLoggingIn EnglishLanguage "A &%Process of &%LoggingIn to a 
+&%Computer that has an extra identity verification step beyond just entering a 
+&%userName and &%password.")
+(termFormat EnglishLanguage TwoFactorLoggingIn "two-factor login")
+
+(=>
+  (instance ?TF TwoFactorLoggingIn)
+  (exists (?DE ?DD)
+    (and
+      (subProcess ?DE ?TF)
+      (instance ?DE DataEntry)
+      (instance ?DD DigitalData)
+      (objectTransferred ?DE ?DD)
+      (not
+        (instance ?DD ComputerPassword))
+      (not
+        (instance ?DD UserName)))))
+        
+(documentation DataEntry EnglishLanguage "The &%Process of a &%ComputerUser
+performing &%ContentDevelopment that results in &%DigitalData on a 
+&%Computer.")
+(termFormat EnglishLanguage DataEntry "data entry")
+(subclass DataEntry UserDirectAction)
+(subclass DataEntry ContentDevelopment)
+
+(=>
+  (instance ?DE DataEntry)
+  (exists (?DD)
+    (and
+      (instance ?DD DigitalData)
+      (agent ?DD ?A)
+      (attribute ?A ComputerUser)
+      (result ?DE ?DD))))
+      
+(instance loggedInDuring TernaryPredicate)
+(domain loggedInDuring 1 Agent)
+(domain loggedInDuring 2 UserAccount)
+(domain loggedInDuring 3 TimeInterval)
+(documentation loggedInDuring EnglishLanguage "A &%ComputerUser is
+logged in to a &%UserAccount during a &%TimeInterval.")
+(termFormat EnglishLanguage loggedInDuring "logged-in during")
+(format EnglishLanguage loggedInDuring "%1 is logged-in to %2 during %3")
+
+(=>
+  (loggedInDuring ?A ?UA ?T)
+  (exists (?L)
+    (and
+      (instance ?L LoggingIn)
+      (agent ?L ?A)
+      (patient ?L ?UA)
+      (hasAccount ?A ?UA)
+      (earlier ?T (WhenFn ?L)))))
+    
+(=>
+  (loggedInDuring ?A ?UA ?T)
+  (modalAttribute
+    (holdsDuring ?T
+      (exists (?P)
+        (and
+          (instance ?P ComputerProcess)
+          (agent ?P ?A)
+          (deviceAccount ?UA ?C)
+          (instance ?C Computer)
+          (computerRunning ?P ?C)
+          (instrument ?P ?C)))) Possibility))
+               
+(subclass AccountSecurityType RelationalAttribute)
+(documentation AccountSecurityType EnglishLanguage "The type of security
+protocol used to log in to an account. This can refer to a modality
+like a fingerprint or iris scan requirement, or a broader description
+like two-factor authentication.")
+(termFormat EnglishLanguage AccountSecurityType "account security type")
+
+(instance TwoFactorAuthentication AccountSecurityType)
+(documentation TwoFactorAuthentication EnglishLanguage "A &%Attribute of
+account specifying that a &%TwoFactorLoggingIn action is required for
+access.")
+(termFormat EnglishLanguage TwoFactorAuthentication "two-factor authentication")
+
+(=>
+  (and
+    (attribute ?AC TwoFactorAuthentication)
+    (loggedInDuring ?A ?AC ?T))
+  (exists (?TF)
+    (and
+      (instance ?TF TwoFactorLoggingIn)
+      (agent ?TF ?A)
+      (accountUsed ?TF ?AC)
+      (earlier (WhenFn ?TF) ?T))))
+      
+(instance UserNamePasswordAuthentication AccountSecurityType)
+(documentation UserNamePasswordAuthentication EnglishLanguage "A &%Attribute of
+account specifying that &%LoggingIn requires only a user name
+and password, rather than two-factor authentication, biometrics or
+some other new method.")
+(termFormat EnglishLanguage UserNamePasswordAuthentication "user and password authentication")  
+(contraryAttribute UserNamePasswordAuthentication TwoFactorAuthentication)
