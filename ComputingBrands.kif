@@ -4017,8 +4017,48 @@ the password associated with a particular &%UserAccount.")
         (password ?P2 ?UA)))))
 
 ; ChangingUserName
+
+(subclass ChangingUserName UserDirectAction)
+(documentation ChangingUserName EnglishLanguage "The &%Process of changing
+the user name associated with a particular &%UserAccount.")
+(termFormat EnglishLanguage ChangingUserName "change user name")
+
+(=>
+  (and
+    (instance ?CP ChangingUserName)
+    (agent ?CP ?A)
+    (hasAccount ?A ?UA)    
+    (userName ?UA ?N1))
+  (holdsDuring 
+    (ImmediateFutureFn (WhenFn ?CP))
+    (exists (?N2)
+      (and
+        (instance ?N2 UserName)
+        (not
+          (equal ?N2 ?N1))
+        (userName ?UA ?N2)))))
+        
 ; ChangingAccountInfo
 
+(subclass ChangingAccountInfo UserDirectAction)
+(documentation ChangingAccountInfo EnglishLanguage "The &%Process of changing
+the information associated with a particular &%UserAccount.")
+(termFormat EnglishLanguage ChangingAccountInfo "change account information")
+
+(=>
+  (and
+    (instance ?CP ChangingAccountInfo)
+    (agent ?CP ?A)
+    (hasAccount ?A ?UA)    
+    (accountInformation ?UA ?N1))
+  (holdsDuring 
+    (ImmediateFutureFn (WhenFn ?CP))
+    (exists (?N2)
+      (and
+        (not
+          (equal ?N2 ?N1))
+        (accountInformation ?UA ?N2)))))
+        
 (subclass CreatingAnAccount UserDirectAction)
 (documentation CreatingAnAccount EnglishLanguage "The &%Process of specifying
 a user ID and password for a particular &%UserAccount.")
@@ -4037,6 +4077,7 @@ a user ID and password for a particular &%UserAccount.")
         (password ?P1 ?UA)
         (userName ?UA ?N)))))
 
+(subrelation accountPhoneNumber accountInformation)
 (instance accountPhoneNumber BinaryPredicate)
 (domain accountPhoneNumber 1 UserAccount)
 (domain accountPhoneNumber 2 TelecomNumber)
@@ -4342,6 +4383,88 @@ whereby one at one time &%knows something and then no longer does.")
           (knows ?A ?P)))
       (holdsDuring (ImmediatePastFn (WhenFn ?F))
         (knows ?A ?P)))))
+
+(documentation AccountDeactivated EnglishLanguage "A &%UserAccount is
+deactivated and so while its information continues to be stored, it cannot
+be accessed by a normal &%LoggingIn &%Process.")
+(termFormat EnglishLanguage AccountDeactivated "account deactivated")       
+(instance AccountDeactivated AccountAttribute)
+(instance AccountActive AccountAttribute)
+
+(documentation AccountActive EnglishLanguage "A &%UserAccount is
+active - its information continues to be stored, and it can
+be accessed by a normal &%LoggingIn &%Process.")
+(termFormat EnglishLanguage AccountActive "account active")     
+
+(contraryAttribute AccountDeactivated AccountActive)
+
+(subclass ActivatingADeactivatedAccount DataEntry)
+(documentation ActivatingADeactivatedAccount EnglishLanguage "A &%UserAccount is
+made active from a deactivated state.")
+(termFormat EnglishLanguage ActivatingADeactivatedAccount "activating a deactivated account")      
         
-          
+(=>
+  (and
+    (instance ?ACT ActivatingADeactivatedAccount)
+    (instance ?AC UserAccount)
+    (patient ?ACT ?AC))
+  (and
+    (holdsDuring (ImmediatePastFn (WhenFn ?ACT))
+      (attribute ?AC AccountDeactivated))
+    (holdsDuring (ImmediateFutureFn (WhenFn ?ACT))
+      (attribute ?AC AccountActive))))    
+    
+(subclass DeactivatingAnAccount DataEntry)
+(documentation DeactivatingAnAccount EnglishLanguage "A &%UserAccount is
+made inactive.")
+(termFormat EnglishLanguage DeactivatingAnAccount "de-activating an account")      
         
+(=>
+  (and
+    (instance ?DEACT DeactivatingAnAccount)
+    (instance ?AC UserAccount)
+    (patient ?DEACT ?AC))
+  (holdsDuring (ImmediateFutureFn (WhenFn ?DEACT))
+    (attribute ?AC AccountDeactivated))
+  (holdsDuring (ImmediatePastFn (WhenFn ?DEACT))
+    (attribute ?AC AccountActive))      
+
+(subclass Account Agreement)
+(subclass Account ContentBearingObject)
+(subclass FinancialAccount Account)
+(subclass UserAccount Account)
+
+(documentation Account EnglishLanguage "An agreement to provide something
+over a period of time in return for providing compensation, which may just
+be access to a user's transactions or personal information.")
+(termFormat EnglishLanguage Account "account")
+    
+(instance securityQA TernaryRelation)
+(domain securityQA 1 Question)
+(domain securityQA 2 Sentence)
+(domain securityQA 3 Account)
+(format EnglishLanguage securityQA "the answer to question %1 for account %3 is %2")
+(documentation securityQA EnglishLanguage "A &%Question that has an answer,
+created or selected by the user, that provides a degree of security for
+accessing a given &%Account.  Typically, security questions are either a 
+method for two-factor security, in addition to a user name and password,
+or a sort of alternate password that allows a user to unlock an account if
+a password has been forgotten.")
+
+(subclass DeletingAnAccount DeletingData)
+(documentation DeletingAnAccount EnglishLanguage "Removing all the
+data from an account so that it no longer exists.")
+(termFormat EnglishLanguage DeletingAnAccount "deleting an account")
+
+(=>
+  (and
+    (instance ?D DeletingAnAccount)
+    (instance ?AC Account)
+    (holdsDuring (ImmediatePastFn (WhenFn ?D))
+      (hasAccount ?A ?AC))
+    (patient ?D ?AC)
+    (agent ?D ?A))
+  (holdsDuring (ImmediateFutureFn (WhenFn ?D))
+    (not
+      (hasAccount ?A ?AC))))
+      
