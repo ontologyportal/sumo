@@ -823,6 +823,21 @@ used to carry &%PetroleumProducts.")
 ;;----------------------------------------------------------------------
 ;;	E. Ports and harbors
 
+(subclass PortCity City)
+(documentation PortCity EnglishLanguage "A &%City near a &%WaterArea.")
+(termFormat EnglishLanguage PortCity "port city")
+
+(=>
+	(instance ?PORT PortCity)
+	(exists (?SEA)
+		(and
+			(or
+				(instance ?SEA Sea)
+				(instance ?SEA Ocean))
+			(or 
+				(orientation ?PORT ?SEA Adjacent)
+				(orientation ?PORT ?SEA Near)))))
+				
 (subclass RiverPort PortCity)
 (documentation RiverPort EnglishLanguage "&%RiverPort is the subclass of &%PortCity 
 whose instances are port cities &%Adjacent to a navigable &%River.")
@@ -1465,7 +1480,7 @@ than 3,047 meters.")
 grass, dirt, sand, or gravel surfaces.  Contrast with &%PavedRunway.")
 (=>
   (instance ?UR UnpavedRunway)
-  (attributed ?UR Unpaved))
+  (attribute ?UR Unpaved))
 
 (disjoint PavedRunway UnpavedRunway)
 
@@ -1655,7 +1670,7 @@ seasonal waterway in the &%ArcticOcean adjacent to &%Russia and
 		(instance ?WATER River)
 		(trafficableForTrafficType ?WATER ?TYPE)
 		(subclass ?TYPE WaterVehicle))
-	(instance ?RIVER Waterway))
+	(instance ?WATER Waterway))
 
 (subclass Channel Waterway) 
 (subclass CanalLock Waterway)
@@ -1705,7 +1720,8 @@ on top speed, all that can be said formally is that higher speeds are unlikely."
         (measure ?V 
           (SpeedFn ?L2 ?T2))))
     (greaterThan 
-      (SpeedFn ?L1 ?T1)
+      (SpeedFn ?L1 ?T1) ?V)
+    (greaterThan ?V
       (SpeedFn ?L2 ?T2)))
   (greaterThan ?SLOWPROB ?FASTPROB))
 
@@ -1718,11 +1734,18 @@ on top speed, all that can be said formally is that higher speeds are unlikely."
 carry &%Humans.  Note that &%Vehicles that are not designed to
 carry people may still do so.  For example, a boxcar might still
 transport homeless people, but was not built to do so.")
+
 (=>
   (and
     (instance ?VEHICLE PassengerVehicle)
     (instance ?HUMAN Human))
-  (capability Transportation patient ?HUMAN))
+  (modalAttribute
+    (exists (?T)
+      (and
+        (instance ?T Transportation)
+        (patient ?T ?HUMAN)
+        (instrument ?T ?VEHICLE)))
+    Possibility))
 
 (subclass CargoVehicle Vehicle)
 (documentation CargoVehicle EnglishLanguage "A &%Vehicle that is designed to
@@ -1733,11 +1756,14 @@ reason, &%PassengerVehicle and &%CargoVehicle are not disjoint.")
 (=>
   (and
     (instance ?VEHICLE CargoVehicle)
-    (instance ?OB 
-      (KappaFn ?O
-        (not 
-          (instance ?O Human)))))
-  (capability Transportation patient ?OB))
+    (instance ?O Human))
+  (not
+    (modalAttribute
+      (exists (?T)
+        (and
+          (instance ?T Transportation)
+          (patient ?T ?HUMAN)
+          (instrument ?T ?VEHICLE))) Possibility)))
   
 ;; misc. motor or battery powered, e.g., forklift, tractor, lawnmower, 
 ;; snowmobile, various construction equipment such as bulldozer, backhoe.  
@@ -2019,6 +2045,8 @@ of &%RollingStock.")
   (instance ?TRAIN Train)
   (exists (?X ?Y)
     (and
+      (part ?X ?TRAIN)
+      (part ?Y ?TRAIN)
       (instance ?X RollingStock)
       (instance ?Y RollingStock)
       (not 
@@ -2060,14 +2088,14 @@ is the subclass of &%TransportationSystems whose routes are &%Roadways.")
 not composed of other &%RailVehicles.") 
 
 (=>
-  (instance ?TRAIN Train)
+  (instance ?TRAIN RollingStock)
   (not 
-    (exists (?X ?Y)
+    (exists (?X)
       (and
+        (part ?X ?TRAIN)
         (instance ?X RollingStock)
-        (instance ?Y RollingStock)
         (not 
-          (equal ?X ?Y))))))           
+          (equal ?X ?TRAIN))))))           
       
 (subclass MotorizedRailwayCar RollingStock)
 (subclass MotorizedRailwayCar PoweredVehicle)
@@ -2639,7 +2667,7 @@ has the ability to play the &%CaseRole ?ROLE in &%Processes of
     (instance ?OBJECT Object)
     (instance ?REGION GeographicArea)
     (?ROLE ?EVENT ?OBJECT))
-  (capableAtLocation ?TYPE ?ROLE ?OBJECT ?PLACE))
+  (capableAtLocation ?TYPE ?ROLE ?OBJECT ?REGION))
 
 ;;	   2. Transitway state
 
@@ -2759,9 +2787,6 @@ only one other &%Region.")
       (abstractCounterpart ?BN ?START)
       (abstractCounterpart ?EN ?END))))
 
-
-  
-  
 (subclass TransitSystem PhysicalSystem)
 (documentation TransitSystem EnglishLanguage "A &%TransitSystem is a system of 
 interconnected &%Transitways over which some type(s) of vehicles or 

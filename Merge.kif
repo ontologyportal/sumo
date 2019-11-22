@@ -1272,6 +1272,11 @@ which are not part of a &%Language and which have some sort of similarity
 with the &%Objects that they represent.  This &%Class would include symbolic
 roadway signs, representational art works, photographs, etc.")
 
+(subclass Recording ContentBearingObject)
+(documentation Recording EnglishLanguage "&%Recording refers to a &%ContentBearingObject
+that represents some &%Process that happened in real life")
+(termFormat EnglishLanguage Recording "recording")
+
 (subclass MotionPicture Recording)
 (subclass MotionPicture Text)
 (documentation MotionPicture EnglishLanguage "A &%ContentBearingObject which depicts
@@ -1387,6 +1392,39 @@ as the shape, position, and movement of the hands.")
 &%HumanLanguage which has as its medium the human voice. It can also
 be represented visually through writing, although not all
 &%SpokenHumanLanguages have a codified written form.")
+
+(instance language BinaryPredicate)
+(domain language 1 ContentBearingPhysical)
+(domain language 2 Language)
+
+(documentation language EnglishLanguage "A relation between a &%ContentBearingPhysical
+and a &%Language in that &%Entity.  Note that this could be a sign language
+process as well as a document.  Note also that a given &%Text might have more than
+one &%Language, so this is a &%Relation and not a &%Function.")
+
+(subclass WrittenHumanLanguage HumanLanguage)
+(documentation WrittenHumanLanguage EnglishLanguage "The form of a &%HumanLanguage
+used in &%Writing.  Not all &%HumanLanguages have a written form.  There may be
+forms of a language in written form that are radically different for the same
+spoken form, i.e. Pinyin and written Chinese.")
+
+(=>
+  (instance ?W Writing)
+  (exists (?S ?L)
+    (and
+      (instance ?S Text)
+      (instance ?L WrittenHumanLanguage)
+      (language ?S ?L))))
+      
+(instance ChineseTraditionalLanguage WrittenLanguage)
+(documentation ChineseTraditionalWriting EnglishLanguage "The formal Chinese
+script used in government and scholarly writings in China prior to the 1950's
+and still used in &%HongKong and &%Taiwan.")
+
+(instance ChineseSimplifiedWriting WrittenLanguage)
+(documentation ChineseSimplifiedWriting EnglishLanguage "A simplification of
+the Chinese character system largely standardized in 1964 and used in the 
+People's Republic of China.")
 
 (instance EnglishLanguage NaturalLanguage)
 (instance EnglishLanguage SpokenHumanLanguage)
@@ -6691,7 +6729,7 @@ days.")
 (instance MonthDuration UnitOfDuration)
 
 (documentation MonthDuration EnglishLanguage "Time unit.  A month's duration is at least
-28 days, and no more than 31 days.  Note that this unit is a range, ratherJapaneseLanguage
+28 days, and no more than 31 days.  Note that this unit is a range, rather than
 than an exact amount, unlike most other units.")
 
 (greaterThanOrEqualTo
@@ -8087,6 +8125,15 @@ the 18th day of August 1912.")
       (equal (SubtractionFn ?YEAR2 ?YEAR1) (MeasureFn 1 YearDuration)))
    (meetsTemporally ?YEAR1 ?YEAR2))
 
+(instance DecadeDuration UnitOfDuration)
+(documentation DecadeDuration EnglishLanguage "The &%TimeDuration of 10 years.")
+
+(=>
+   (equal ?NUMBER (MultiplicationFn 1 ?NUMBER))
+   (equal
+        (MeasureFn ?NUMBER DecadeDuration)
+        (MeasureFn (MultiplicationFn ?NUMBER 10) YearDuration)))
+
 (subclass Decade TimeInterval)
 (relatedInternalConcept Decade DecadeDuration)
 
@@ -8109,6 +8156,31 @@ the 18th day of August 1912.")
     (and
       (instance ?D Day)
       (equal ?M (EndFn ?D)))))
+
+(subclass Afternoon DayTime)
+(documentation Afternoon EnglishLanguage "The class of &%TimeIntervals that begin at noon and
+end at &%Sunset.")
+(disjoint Morning Afternoon)
+(disjoint Afternoon Evening)
+(disjoint Morning Evening)
+
+(=>
+   (instance ?AFTERNOON Afternoon)
+   (exists (?HOUR)
+      (and
+         (instance ?HOUR (HourFn 12 ?DAY))
+         (starts ?HOUR ?AFTERNOON))))
+
+(subclass Morning DayTime)
+(documentation Morning EnglishLanguage "The class of &%TimeIntervals that begin at &%Sunrise
+and end at noon.")
+
+(=>
+   (instance ?MORNING Morning)
+   (exists (?HOUR)
+      (and
+         (instance ?HOUR (HourFn 12 ?DAY))
+         (finishes ?HOUR ?MORNING))))
 
 (instance MorningFn TemporalRelation)
 (instance MorningFn UnaryFunction)
@@ -8145,6 +8217,59 @@ class of &%Mornings of the given &%Day.")
 
 (subclass Noon TimePoint)
 (documentation Noon EnglishLanguage "The Class of all &%TimePoints that are at noon.")
+
+(subclass DayTime TimeInterval)
+(documentation DayTime EnglishLanguage "The class of &%TimeIntervals that begin at &%Sunrise
+and end at &%Sunset.")
+(disjoint DayTime NightTime)
+
+(subclass Sunrise TimeInterval)
+(documentation Sunrise EnglishLanguage "The &%TimeInterval of each &%Day when the sun is rising
+and is partially overlapped by the horizon line.")
+
+(subclass Sunset TimeInterval)
+(documentation Sunset EnglishLanguage "The &%TimeInterval of each &%Day when the sun is setting
+and is partially overlapped by the horizon line.")
+
+(=>
+   (instance ?DAY DayTime)
+   (exists (?NIGHT1 ?NIGHT2)
+      (and
+         (instance ?NIGHT1 NightTime)
+         (instance ?NIGHT2 NightTime)
+         (meetsTemporally ?DAY ?NIGHT1)
+         (meetsTemporally ?NIGHT2 ?DAY))))
+
+(=>
+   (instance ?DAY DayTime)
+   (exists (?RISE ?SET)
+      (and
+         (instance ?RISE Sunrise)
+         (instance ?SET Sunset)
+         (starts ?RISE ?DAY)
+         (finishes ?SET ?DAY))))
+
+(subclass NightTime TimeInterval)
+(documentation NightTime EnglishLanguage "The class of &%TimeIntervals that begin at &%Sunset
+and end at &%Sunrise.")
+
+(=>
+   (instance ?NIGHT NightTime)
+   (exists (?DAY1 ?DAY2)
+      (and
+         (instance ?DAY1 DayTime)
+         (instance ?DAY2 DayTime)
+         (meetsTemporally ?NIGHT ?DAY1)
+         (meetsTemporally ?DAY2 ?NIGHT))))
+
+(=>
+   (instance ?NIGHT NightTime)
+   (exists (?RISE ?SET)
+      (and
+         (instance ?RISE Sunrise)
+         (instance ?SET Sunset)
+         (starts ?SET ?NIGHT)
+         (finishes ?RISE ?NIGHT))))
 
 (subclass Evening NightTime)
 
@@ -8249,7 +8374,7 @@ divisible by 400 (this latter case is known as a leap century).")
 of classes, such as days of the week. The first argument is 'prior' to the
 second argument.")
 
-(relatedInternalConcept successorClass successor)
+(relatedInternalConcept successorClass successorAttribute)
 
 (successorClass January February)
 (successorClass February March)
@@ -10182,17 +10307,12 @@ and the &%patient is a &%BodyPart.")
       (instance ?AGENT Organism)
       (agent ?MOTION ?AGENT))))
 
-;;MSv: Moved VocalCords and Vocalizing and Speaking to MILO, to resolve dependency
-
 ;; NS: delete.  &%LinguisticGeneration does not exist.
 ;; (documentation Speaking EnglishLanguage "Any &%LinguisticGeneration
 ;; which is also a &%Vocalizing, i.e. any &%LinguisticCommunication by a
 ;; &%Human which involves his/her vocal cords.")
 
 ;; NS: add.
-
-(documentation Speaking EnglishLanguage "Any &%LinguisticCommunication
-by a &%Human which involves his/her vocal cords.")
 
 ;; KJN: Deleting. Fixed Music ontology and replacing it with concepts from that.
 ;;(subclass Singing Speaking)
@@ -12497,6 +12617,11 @@ type of &%MakingMusic which is produced using some kind of &%MusicalInstrument")
     (and
       (instance ?I MusicalInstrument)
       (instrument ?M ?I))))
+
+(subclass Vocalizing RadiatingSound)
+(documentation Vocalizing EnglishLanguage "Any instance of &%RadiatingSound where
+the instrument is the vocal cord.  This covers grunts, screams, roars, as well as
+&%Speaking.")
 
 (subclass MakingVocalMusic MakingMusic)
 (subclass MakingVocalMusic Vocalizing)
@@ -14931,6 +15056,7 @@ several pairs of &%EngineeringComponents.")
       (connectsEngineeringComponents ?CONNECTION ?COMP1 ?COMP2)))
 
 (subrelation connectsEngineeringComponents connects)
+(instance connectsEngineeringComponents TernaryPredicate)
 (domain connectsEngineeringComponents 1 EngineeringConnection)
 (domain connectsEngineeringComponents 2 EngineeringComponent)
 (domain connectsEngineeringComponents 3 EngineeringComponent)
@@ -14941,11 +15067,6 @@ be connected to themselves and there cannot be an &%EngineeringConnection
 without a &%connectedEngineeringComponents &%Predicate, the second and third
 arguments of any &%connectsEngineeringComponents relationship will always be
 distinct for any given first argument.")
-(documentation connectsEngineeringComponents ChineseLanguage
-"&%connectsEngineeringComponents 是一种 &%TernaryPredicate，它把一个 &%EngineeringConnection
-和它连接的 &%EngineeringComponent 联系。因为 &%EngineeringComponent 不能和自身连接，而又容许出现
-没有 &%connectedEngineeringComponents &%Predicate 的 &%EngineeringConnection，所以任何
-&%connectsEngineeringComponents 关系的第二和第三个参数一定需有和第一个参数不同。")
 
 ;; This following part contains definitions and axioms relating to social
 ;; groups and the relations between them.
