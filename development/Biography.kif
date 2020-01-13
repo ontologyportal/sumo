@@ -78,24 +78,25 @@
         (equal ?PROP
           (exists (?PERSON1 ?PERSON2)
             (spouse ?PERSON1 ?PERSON2))))))
-;;-------------------------------------------------------------------------------------------------------------
-;; CEREMONIES
-(documentation  Coronation EnglishLanguage "A coronation is a &%Ceremony marking the formal investiture of a &%Monarch and/or their consort with regal power,  usually involving the placement of a &%Crown upon their &%Head.")
+;;-------------------------------------------------------------------------------------------------------------            
+;; CEREMONIES                      
+(documentation  Coronation EnglishLanguage "A coronation is a &%Ceremony marking the formal investiture of a
+&%Monarch and/or their consort with regal power,  usually involving the placement of a &%Crown upon their &%Head.")
 (subclass Crown Artifact)
 (documentation  Crown EnglishLanguage "a wreath or garland worn on the head to signify victory.")
 (subclass Coronation Ceremony)
 (subclass Coronation Appointing)
 (=>
   (instance ?C Coronation)
-  (exists (?H1 ?H2)
+  (exists (?H1 ?H2 ?O)
     (and
       (agent ?C ?H1)
       (patient ?C ?H2)
       (holdsDuring
             (ImmediateFutureFn
                 (WhenFn ?C))
-            (occupiesPosition ?H2 Monarch)))))
-
+            (occupiesPosition ?H2 Monarch ?O)))))
+    
 (subclass BarMitzvah Ceremony)
 (subclass BarMitzvah Declaring)
 (documentation  BarMitzvah EnglishLanguage "An initiation ceremony marking the 13th birthday of a Jewish boy.")
@@ -114,17 +115,17 @@
 (documentation  Ordination EnglishLanguage "the act of ordaining; the act of conferring (or receiving) holy orders.")
 (=>
   (instance ?ORD Ordination)
-  (exists (?H1 ?H2)
+  (exists (?H1 ?H2 ?O)
     (and
       (agent ?ORD ?H1)
       (patient ?ORD ?H2)
       (holdsDuring
             (ImmediateFutureFn
                 (WhenFn ?ORD))
-            (occupiesPosition ?H2 Cleric)))))
-
-;  Beatification (from Latin beatus, blessed) is a recognition accorded by the Catholic Church of a dead person's entrance into Heaven. A person who is beatified is given the title "Blessed".
-(subclass Beatification Declaring)
+            (occupiesPosition ?H2 Cleric ?O)))))
+            
+;  Beatification (from Latin beatus, blessed) is a recognition accorded by the Catholic Church of a dead person's entrance into Heaven. A person who is beatified is given the title "Blessed".          
+(subclass Beatification Declaring) 
 (documentation  Beatification EnglishLanguage "An act of the Pope who declares that a deceased person holy, the first step towards canonization.")
 (subclass Blessed ReligiousPosition)
 (documentation  Blessed EnglishLanguage "A person who is beatified is given the title of Blessed.")
@@ -138,8 +139,9 @@
       (holdsDuring
             (ImmediateFutureFn
                 (WhenFn ?ORD))
-            (occupiesPosition ?H2 Blessed)))))
-; Founding is also a Declaring, the declarator in this case is a Founder
+            (occupiesPosition ?H2 Blessed RomanCatholicChurch)))))
+
+; Founding is also a Declaring, the declarator in this case is a Founder  
 (instance Founder SocialRole)
 (documentation Founder EnglishLanguage "A person who founds or establishes some institution.")
 
@@ -148,6 +150,7 @@
   (and
     (instance ?FOUNDING Founding)
     (agent ?FOUNDING ?P)))
+
 ;;;----------------------------------------------------------------------------
 ;;; 1. What kind of biographies do we have in Wikipedia?
 ;;;----------------------------------------------------------------------------
@@ -1239,16 +1242,20 @@ facilitate the meeting of a church.")
 ;; in wikipedia residence is city, state, country e.g. for Bill Gates   Medina, Washington, U.S.
 
 ;; education attribute needs DegreeFn from LinkedInDegree.kif
-(instance hasDegreeFn BinaryPredicate)
-(domain hasDegreeFn 1 Human)
-(domain hasDegreeFn 2 AcademicDegree)
-(termFormat EnglishLanguage hasDegreeFn "has degree")
+(documentation hasDegree EnglishLanguage "A binary predicate that, when given a &%Human, will return an instance of an
+&%AcademicDegree earned by that person.   (hasDegree ?X ?D), ?X is the &%Human.")
+
+(instance hasDegree BinaryPredicate)
+(domain hasDegree 1 Human)
+(domain hasDegree 2 AcademicDegree)
+(termFormat EnglishLanguage hasDegree "has degree")
+
 ;; e.g. (hasDegreeFn StephenHawking (DegreeFn Physics OxfordUniversityUK))
 
 (=>
   (and
     (instance ?HUMAN Human)
-    (hasDegreeFn ?HUMAN ?DEGREE))
+    (hasDegree ?HUMAN ?DEGREE))
   (exists (?SCHOOL ?FIELDOFSTUDY ?AWARDINGDEGREE)
     (and
       (instance ?SCHOOL PostSecondarySchool)
@@ -1284,14 +1291,13 @@ facilitate the meeting of a church.")
 ; the following might be an unwarrented simplification as time intervals have no gaps
 ; and people aren't active in their occupations if they're sick or injured or just resting..
 
-(instance YearsActiveFn BinaryFunction)
-(domain YearsActiveFn 1 Human)
-(domain YearsActiveFn 2 Occupation)
-(range YearsActiveFn TimeInterval)
-(termFormat EnglishLanguage YearsActiveFn "years active")
-
 (documentation YearsActiveFn EnglishLanguage "A binary function that, when given a &%Human, and an &%Occupation will return an instance of an time interval
 &%TimeInterval during which that person is considered active in that occupation.")
+
+(instance YearsActiveFn UnaryFunction)
+(domain YearsActiveFn 1 Human)
+(range YearsActiveFn TimeInterval)
+(termFormat EnglishLanguage YearsActiveFn "years active")
 
 ; if a person has an skilled occupation then there is a time interval when the person has that occupation
 ; and this time is the time that the person is active on that occupation
@@ -1305,7 +1311,7 @@ facilitate the meeting of a church.")
       (holdsDuring ?TIME
         (attribute ?PERSON ?OCCUPATION)))
     (equal ?TIME (YearsActiveFn ?PERSON))))
-
+    
 ;----------------------------------------------------
 ; For Religion we can use the collection of ReligiousAttribute and add subcategories..
 ;(instance Bahai ReligiousAttribute)  People.kif 774-774

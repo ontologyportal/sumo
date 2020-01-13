@@ -448,7 +448,6 @@ common.")
       (instance ?REL1 Predicate)
       (instance ?REL2 Predicate)
       (disjointRelation ?REL1 ?REL2)
-      (not (equal ?REL1 ?REL2))
       (?REL1 @ROW2))
    (not (?REL2 @ROW2)))
 
@@ -890,11 +889,11 @@ of the &%Object ?WHOLE.  Note that, since &%part is a
 &%IrreflexiveRelation).")
 
 (<=>
-   (properPart ?OBJ1 ?OBJ2)
-   (and
-      (part ?OBJ1 ?OBJ2)
-      (not
-         (part ?OBJ2 ?OBJ1))))
+  (properPart ?OBJ1 ?OBJ2)
+  (and
+    (part ?OBJ1 ?OBJ2)
+    (not
+      (part ?OBJ2 ?OBJ1))))
 
 (subrelation piece part)
 (instance piece BinaryPredicate)
@@ -974,14 +973,14 @@ to another.  An example would be a body of water.")
    (and
       (subclass ?OBJECTTYPE Substance)
       (instance ?OBJECT ?OBJECTTYPE)
-      (part ?PART ?OBJECT))
+      (piece ?PART ?OBJECT))
    (instance ?PART ?OBJECTTYPE))
 
 (=>
    (and
       (instance ?OBJ Substance)
       (attribute ?OBJ ?ATTR)
-      (part ?PART ?OBJ))
+      (piece ?PART ?OBJ))
    (attribute ?PART ?ATTR))
 
 (subclass SyntheticSubstance Substance)
@@ -1060,7 +1059,7 @@ are smaller than &%Atoms and compose &%Atoms.")
    (exists (?ATOM)
       (and
          (instance ?ATOM Atom)
-         (part ?PARTICLE ?ATOM))))
+         (component ?PARTICLE ?ATOM))))
 
 (subclass AtomicNucleus SubatomicParticle)
 (documentation AtomicNucleus EnglishLanguage "The core of the &%Atom.  It is composed of
@@ -1114,13 +1113,13 @@ dissolved in water, milk, wood, and concrete.")
          (instance ?PURE1 PureSubstance)
          (instance ?PURE2 PureSubstance)
          (not (equal ?PURE1 ?PURE2))
-         (part ?PURE1 ?MIXTURE)
-         (part ?PURE2 ?MIXTURE))))
+         (piece ?PURE1 ?MIXTURE)
+         (piece ?PURE2 ?MIXTURE))))
 
 (=>
    (and
       (instance ?MIXTURE Mixture)
-      (part ?SUBSTANCE ?MIXTURE)
+      (piece ?SUBSTANCE ?MIXTURE)
       (not (instance ?SUBSTANCE Mixture)))
    (instance ?SUBSTANCE PureSubstance))
 
@@ -1295,6 +1294,8 @@ system can be either natural or artificial, i.e. something that emerges
 gradually as a cultural artifact or something that is intentionally created
 by a person or group of people.")
 
+(subclass WrittenLanguage Language)
+
 (subclass AnimalLanguage Language)
 
 (documentation AnimalLanguage EnglishLanguage "The &%subclass of &%Languages used by
@@ -1413,7 +1414,7 @@ spoken form, i.e. Pinyin and written Chinese.")
       (language ?S ?L))))
       
 (instance ChineseTraditionalLanguage WrittenLanguage)
-(documentation ChineseTraditionalWriting EnglishLanguage "The formal Chinese
+(documentation ChineseTraditionalLanguage EnglishLanguage "The formal Chinese
 script used in government and scholarly writings in China prior to the 1950's
 and still used in &%HongKong and &%Taiwan.")
 
@@ -1632,8 +1633,10 @@ means that ?ENTITY has the &%Attribute ?ATTR.")
 (instance attribute AsymmetricRelation)
 (instance attribute IrreflexiveRelation)
 (instance attribute TotalValuedRelation)
+(instance attribute BinaryPredicate)
 (subrelation attribute property)
 (domain attribute 1 Object)
+(domain attribute 2 Attribute)
 
 (documentation attribute EnglishLanguage "(&%attribute ?OBJECT ?PROPERTY) means that
 ?PROPERTY is a &%Attribute of ?OBJECT.  For example,
@@ -1642,8 +1645,10 @@ means that ?ENTITY has the &%Attribute ?ATTR.")
 (instance manner AsymmetricRelation)
 (instance manner IrreflexiveRelation)
 (instance manner TotalValuedRelation)
+(instance manner BinaryPredicate)
 (subrelation manner property)
 (domain manner 1 Process)
+(domain manner 2 Attribute)
 (disjointRelation manner attribute)
 
 (documentation manner EnglishLanguage "(&%manner ?PROCESS ?MANNER) means that the
@@ -3001,30 +3006,29 @@ value 3.")
 (range ListConcatenateFn List)
 
 (documentation ListConcatenateFn EnglishLanguage "A &%Function that returns the
-concatenation
-of the two &%Lists that are given as arguments.  For example, the value of
+concatenation of the two &%Lists that are given as arguments.  For example, the value of
 (&%ListConcatenateFn (&%ListFn &%Monday &%Tuesday) (&%ListFn &%Wednesday
 &%Thursday)) would be (&%ListFn &%Monday &%Tuesday &%Wednesday &%Thursday).")
 
-; removed to solve an obscure contradiction, but needs to be reexamined
-;
-;(<=>
-;   (and
-;     (equal ?LIST3 (ListConcatenateFn ?LIST1 ?LIST2))
-;     (not
-;       (equal ?LIST1 NullList))
-;     (not
-;       (equal ?LIST2 NullList)))
-;   (forall (?NUMBER1 ?NUMBER2)
-;      (=>
-;         (and
-;            (lessThanOrEqualTo ?NUMBER1 (ListLengthFn ?LIST1))
-;            (lessThanOrEqualTo ?NUMBER2 (ListLengthFn ?LIST2))
-;            (instance ?NUMBER1 PositiveInteger)
-;            (instance ?NUMBER2 PositiveInteger))
-;         (and
-;            (equal (ListOrderFn ?LIST3 ?NUMBER1) (ListOrderFn ?LIST1 ?NUMBER1))
-;            (equal (ListOrderFn ?LIST3 (AdditionFn (ListLengthFn ?LIST1) ?NUMBER2)) (ListOrderFn ?LIST2 ?NUMBER2))))))
+; previously removed to solve an obscure contradiction, but needs to be reexamined
+
+(<=>
+   (and
+     (equal ?LIST3 (ListConcatenateFn ?LIST1 ?LIST2))
+     (not
+       (equal ?LIST1 NullList))
+     (not
+       (equal ?LIST2 NullList)))
+   (forall (?NUMBER1 ?NUMBER2)
+      (=>
+         (and
+            (lessThanOrEqualTo ?NUMBER1 (ListLengthFn ?LIST1))
+            (lessThanOrEqualTo ?NUMBER2 (ListLengthFn ?LIST2))
+            (instance ?NUMBER1 PositiveInteger)
+            (instance ?NUMBER2 PositiveInteger))
+         (and
+            (equal (ListOrderFn ?LIST3 ?NUMBER1) (ListOrderFn ?LIST1 ?NUMBER1))
+            (equal (ListOrderFn ?LIST3 (AdditionFn (ListLengthFn ?LIST1) ?NUMBER2)) (ListOrderFn ?LIST2 ?NUMBER2))))))
 
 (instance inList BinaryPredicate)
 (instance inList IrreflexiveRelation)
@@ -3083,6 +3087,97 @@ natural numbers smaller than 10 [1 2 3 4 5 6 7 8 9]).")
 ;                  (equal (ListOrderFn ?LIST1 ?NUMBER1) ?ITEM)
 ;                  (equal (ListOrderFn ?LIST2 ?NUMBER2) ?ITEM)
 ;                  (equal ?NUMBER2 (AdditionFn ?NUMBER1 ?NUMBER3))))))))
+
+(instance SubListFn TernaryFunction)
+(domain SubListFn 1 Integer)
+(domain SubListFn 2 Integer)
+(domain SubListFn 3 List)
+(range SubListFn List)
+(documentation SubListFn EnglishLanguage "A &%Function that returns a portion of the &%List that
+runs from the first index to the second index - 1.  Note that lists subscripts begin at 1.")
+(termFormat EnglishLanguage SubListFn "sub-list function")
+(format EnglishLanguage SubListFn "the sub-list from %1 to %2 of %3")
+
+(=>
+  (and
+    (equal ?R
+      (SubListFn ?S ?E ?L))
+    (equal
+      (SubtractionFn ?E ?S)
+      0))
+  (equal ?R NullList))
+
+(=>
+  (and
+    (equal ?R
+      (SubListFn ?S ?E ?L))
+    (equal
+      (SubtractionFn ?E ?S)
+      1))
+  (equal ?R
+    (ListFn
+      (ListOrderFn ?L ?S))))
+
+(=>
+  (and
+    (equal ?R
+      (SubListFn ?S ?E ?L))
+    (greaterThan
+      (SubtractionFn ?E ?S)
+      1))
+  (equal ?R
+    (ListConcatenateFn
+      (ListFn
+        (ListOrderFn ?L ?S))
+      (SubListFn
+        (AdditionFn 1 ?S) ?E ?L))))
+
+(instance ListSumFn UnaryFunction)
+(domain ListSumFn 1 List)
+(range ListSumFn Number)
+(documentation ListSumFn EnglishLanguage "The sum of all the numbers in a &%List.")
+(format EnglishLanguage ListSumFn "the &%sum of %1")
+(termFormat EnglishLanguage ListSumFn "the &%sum of elements in %1")
+
+(=>
+  (and
+    (equal ?SUM (ListSumFn ?L))
+    (equal ?N (ListOrderFn ?L ?S)))
+  (instance ?N Number))
+
+(=>
+  (and
+    (equal ?A (ListSumFn ?L))
+    (equal 1 (ListLengthFn ?L)))
+  (equal ?A (ListOrderFn ?L 1)))
+
+(=>
+  (and
+    (equal ?A (ListSumFn ?L))
+    (greaterThan (ListLengthFn ?L) 1))
+  (equal ?A
+    (AdditionFn
+      (FirstFn ?L)
+      (ListSumFn
+        (SubListFn 2
+          (ListLengthFn ?L)
+          ?L)))))
+
+(instance AverageFn UnaryFunction)
+(domain AverageFn 1 List)
+(range AverageFn Number)
+(documentation AverageFn EnglishLanguage "The average of the &%Numbers in a &%List")
+(termFormat EnglishLanguage AverageFn "average function")
+(format EnglishLanguage AverageFn "the &%average of the numbers in %1")
+
+(=>
+  (and
+    (equal ?A (AverageFn ?L))
+    (greaterThan (ListLengthFn ?L) 0))
+  (equal ?A
+    (DivisionFn
+      (ListSumFn ?L)
+      (ListLengthFn ?L))))
 
 (instance initialList BinaryPredicate)
 (instance initialList PartialOrderingRelation)
@@ -4179,8 +4274,7 @@ predicate &%represents is used for referring items that have such content.")
 (instance uniqueIdentifier PartialValuedRelation)
 
 (documentation uniqueIdentifier EnglishLanguage "The class of &%names that uniquely
-identify
-an instance of &%Entity.  Some examples of &%uniqueIdentifiers are the keys
+identify an instance of &%Entity.  Some examples of &%uniqueIdentifiers are the keys
 of tables in database applications and the ISBN (International Standard Book
 Number).")
 
@@ -5124,7 +5218,6 @@ the &%SetOrClass containing just those instances which are instances of all
 instances of the original &%SetOrClass.")
 
 (instance CardinalityFn UnaryFunction)
-(instance CardinalityFn TotalValuedRelation)
 (domain CardinalityFn 1 (UnionFn SetOrClass Collection))
 (range CardinalityFn Integer)
 
@@ -7069,6 +7162,7 @@ asserting that a particular &%Object is measured by a particular
 (instance age BinaryPredicate)
 (instance age SingleValuedRelation)
 (subrelation age measure)
+(instance age BinaryPredicate)
 (domain age 2 TimeDuration)
 
 (documentation age EnglishLanguage "Simply relates an &%Object to a &%ConstantQuantity
@@ -7093,6 +7187,7 @@ separates two distinct objects.")
 
 (instance width BinaryPredicate)
 (instance width SingleValuedRelation)
+(instance width BinaryPredicate)
 (subrelation width linearExtent)
 
 (documentation width EnglishLanguage "&%BinaryPredicate that is used to state the measure
@@ -7109,6 +7204,7 @@ its &%top and its &%bottom.")
 (instance length BinaryPredicate)
 (instance length SingleValuedRelation)
 (subrelation length linearExtent)
+(instance length BinaryPredicate)
 
 (documentation length EnglishLanguage "&%BinaryPredicate that is used to state the measure
 of an &%Object along its longest span.")
@@ -7205,6 +7301,7 @@ separates two distinct objects.")
 
 (instance altitude TernaryPredicate)
 (instance altitude SingleValuedRelation)
+(instance altitude TernaryPredicate)
 (instance altitude PartialValuedRelation)
 (domain altitude 1 Physical)
 (domain altitude 2 Physical)
@@ -7236,6 +7333,7 @@ around the Earth.")
 (instance depth BinaryPredicate)
 (subrelation depth distance)
 (instance depth SingleValuedRelation)
+(instance depth BinaryPredicate)
 
 (documentation depth EnglishLanguage "A &%TernaryPredicate that is
 used to state the &%distance between the &%top of an &%Object and
@@ -8922,10 +9020,10 @@ reflexive and symmetric (but not transitive) relation.")
 
 (<=>
   (overlapsSpatially ?OBJ1 ?OBJ2)
-       (exists (?OBJ3)
-            (and
-                 (part ?OBJ3 ?OBJ1)
-                 (part ?OBJ3 ?OBJ2))))
+  (exists (?OBJ3)
+    (and
+      (part ?OBJ3 ?OBJ1)
+      (part ?OBJ3 ?OBJ2))))
 
 (=>
    (and
@@ -15308,6 +15406,7 @@ of ?CHILD.")
 (instance mother BinaryPredicate)
 (instance mother SingleValuedRelation)
 (instance mother PartialValuedRelation)
+(instance mother BinaryPredicate)
 
 (=>
   (mother ?A ?B)
@@ -15325,6 +15424,7 @@ of ?CHILD.")
 (instance father BinaryPredicate)
 (instance father SingleValuedRelation)
 (instance father PartialValuedRelation)
+(instance father BinaryPredicate)
 
 (=>
   (father ?A ?B)
@@ -17151,7 +17251,7 @@ of the relation and the third argument is the minimum value.")
 (documentation defaultValue EnglishLanguage "The likely value for a given
 numerical argument of a &%Relation. The second argument is the argument number
 of the relation and the third argument is the likely value.")
-(instance defaultValue TernaryRelation)
+(instance defaultValue TernaryPredicate)
 (domain defaultValue 1 Predicate)
 (domain defaultValue 2 Integer)
 (domain defaultValue 3 Quantity)
