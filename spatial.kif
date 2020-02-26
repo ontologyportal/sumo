@@ -49,6 +49,8 @@
 
 ; (4)
 
+(subclass Process Physical)
+(subclass Transfer Process)
 (subclass Carrying Transfer)
 
 (exists (?C ?V ?F)
@@ -108,3 +110,123 @@
 (instance South TransitivePositionalAttribute)
 (instance East TransitivePositionalAttribute)
 (instance West TransitivePositionalAttribute)
+
+
+; (8) Robert and Jane are at the mouth of a tunnel.  Robert travels through the tunnel.
+; Is Robert the same distance to Jane as the length of the tunnel?
+
+(instance holeMouth BinaryPredicate)
+(documentation holeMouth EnglishLanguage "The portion of a &%Hole that is open to
+the surroundings of the hole host.")
+
+(instance HoleHostFn UnaryFunction)
+
+(domain holeMouth 1 Region)
+(domain holeMouth 2 Hole)
+(=>
+  (and
+    (holeMouth ?M ?H)
+    (equal ?HOST (HoleHostFn ?H)))
+  (and
+    (meetsSpatially ?M ?HOST)
+    (meetsSpatially ?M ?H)))
+
+(=>
+  (and
+    (holeMouth ?M ?H)
+    (contains ?H ?O)
+    (part ?P ?O)
+    (not
+      (contains ?H ?P)))
+  (crosses ?M ?O))
+
+(documentation tunnelMouths EnglishLanguage "A relation declaring the two
+mouths of a given tunnel.  Every &%Tunnel must have two openings to the
+surroundings.")
+
+(instance tunnelMouths TernaryPredicate)
+(domain tunnelMouths 1 Region)
+(domain tunnelMouths 2 Region)
+(domain tunnelMouths 3 Tunnel)
+
+;(=>
+;  (instance ?T Tunnel)
+;  (exists (?M1 ?M2)
+;    (tunnelMouths ?M1 ?M2 ?T)))
+
+(<=>
+  (tunnelMouths ?M1 ?M2 ?T)
+  (and
+    (holeMouth ?M1 ?T)
+    (holeMouth ?M2 ?T)
+    (not
+      (equal ?M1 ?M2))
+    (not
+      (connected ?M1 ?M2))))
+
+(=>
+  (and
+    (instance ?T1 Tunnel)
+    (tunnelMouths ?M1 ?M2 ?T1)
+    (length ?T1 ?L))
+  (distance ?M1 ?M2 ?L))
+
+(=>
+  (and
+    (distance ?O1 ?O2 ?D)
+    (located ?P1 ?O1)
+    (located ?P2 ?O2))
+  (distance ?P1 ?P2 ?D))
+
+(=>
+  (distance ?M1 ?M2 ?D)
+  (distance ?M2 ?M1 ?D))
+
+(instance TransitFn UnaryFunction)
+(domain TransitFn 1 Transitway)
+(rangeSubclass TransitFn Translocation)
+
+(subclass Transitway Physical)
+(subclass Translocation Process)
+
+(subclass Tunnel Transitway)
+
+(instance Tunnel1 Tunnel)
+(length Tunnel1 L)
+(instance Robert Human)
+(instance Jane Human)
+(located Jane M1)
+(instance M1 Region)
+(instance M2 Region)
+(holeMouth M1 Tunnel1)
+(holeMouth M2 Tunnel1)
+(not
+  (equal M1 M2))
+(not
+  (connected M1 M2))
+
+(exists (?P)
+  (and
+    (instance ?P (TransitFn Tunnel1))
+    (origin ?P M1)
+    (destination ?P M2)
+    (agent ?P Robert)))
+
+(=>
+  (and
+    (instance ?T Translocation)
+    (agent ?T ?A)
+    (destination ?T ?P))
+  (located ?A ?P))
+  ; needs to be holdsDuring immediate future of ?T
+
+(subclass Tunnel Transitway)
+
+(=>
+  (and
+    (length ?T ?L)
+    (instance ?T Transitway)
+    (instance ?P (TransitFn ?T))
+    (origin ?P ?O)
+    (destination ?P ?D))
+  (distance ?O ?D ?L))
