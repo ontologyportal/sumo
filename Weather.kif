@@ -794,10 +794,6 @@ in which &%Water falls in a &%Solid state.")
 (documentation Hailing ChineseLanguage "&%Hailing 是一种 &%Precipitation 的 &%Process，当中 
 &%Water 以 &%Solid 状态落下。")
 
-(termFormat EnglishLanguage Hailing "hailing")
-
-(termFormat ChineseLanguage Hailing "下冰雹")
-
 (=>
   (instance ?PROCESS Hailing)
   (precipitationState ?PROCESS Solid))
@@ -878,9 +874,8 @@ the total amount of precipitation was ?AMOUNT.")
 (subclass SevereThunderstorm WeatherProcess)
 
 (subclass DustStorm WeatherProcess)
-(termFormat ChineseLanguage DustStorm "沙尘暴")
 (documentation DustStorm EnglishLanguage "&%DustStorms happen in &%AridClimateZones or
-&%SemiaridClimateZones. They occur when a strong &%Wind carries &%particulateMatter or
+&%SemiaridClimateZones. They occur when a strong &%Wind carries &%ParticulateMatter or
 &%Sand from its underlying &%Dry surface and deposit it to another &%Region.")
 
 (documentation DustStorm ChineseLanguage "&%DustStorm 出现在 &%AridClimateZone 或
@@ -923,8 +918,6 @@ the total amount of precipitation was ?AMOUNT.")
         (overlapsSpatially ?A1 ?A2)))))
       
 (subclass Sandstorm DustStorm)
-
-(termFormat ChineseLanguage Sandstorm "沙暴")
 (documentation Sandstorm EnglishLanguage "&%Sandstorms are &%DustStorms in which the 
 particles are &%sand.")
 
@@ -938,8 +931,6 @@ particles are &%sand.")
       (objectTransferred ?SS ?SAND))))
 
 (subclass Haboob DustStorm)
-(termFormat EnglishLanguage Haboob "Haboob")
-(termFormat ChineseLanguage Haboob "Haboob")
 (documentation Haboob EnglishLanguage "&%Haboobs are intense &%DustStorms caused by 
 &%Thunderstorm.")
 (documentation Haboob ChineseLanguage "&%Haboobs 是由 &%Thunderstorm 造成的强力 &%DustStorms
@@ -957,8 +948,231 @@ particles are &%sand.")
       (causes ?DM ?HABOOB))))
 
 (subclass Zud WeatherProcess)
+
+;;;;;;;;;;;
+; 7th November 2019 Jennie
+; start to have termFormat in DomainEnglishFormat.kif
+; correct Chinese translation of HeavySurf
+; 16th May 2020 Jennie
+; corrected termFormat of heavysurf, added
+; defined BreakingWave and SurfZone
+; need to equate SurfZone to BreakerZone, breaker to breakingwave
+; need to define Variance, Standard deviation in order to define Significant Wave Height
+;;;;;;;;;;;
+
+(documentation BreakingWave EnglishLanguage "A &%BreakingWave occurs when water in a
+ &%WaterWave moves at different speeds as it approaches a &%SurfZone. The water
+ at the top of the wave continues as speed at the bottom of the wave slows, 
+ causing the top to 'break' and fall forward from the wave. The water at 
+ the top of the wave ceases to be part of the &%WaterWave after the water falls.")
+(documentation BreakingWave ChineseLanguage "&%BreakingWave 是当 &%WaterWave 中的水
+以不同的速度靠近 &%SurfZone 。浪顶的水以相同的速度继续前进，以浪底的水却在减速，造成浪峰破碎、并从海浪
+分离向前坠下。海浪顶部的水下坠以后不再属于该 &%WaterWave 的一部分。")
+
+(subclass BreakingWave WaterWave)
+
+(=>
+  (instance ?BREAK BreakingWave)
+  (exists (?WAVE ?WATER1 ?WATER2 ?FALL)
+    (and
+      (instance ?WAVE WaterWave)
+      (subProcess ?BREAK ?WAVE)
+      (instance ?WATER1 BodyOfWater)
+      (instance ?WATER2 BodyOfWater)
+      (patient ?WAVE ?WATER2)
+      (patient ?BREAK ?WATER1)
+      (instance ?FALL Falling)
+      (objectTransferrred ?FALL ?WATER1)
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?FALL))
+        (part ?WATER1 ?WATER2))
+      (holdsDuring
+        (EndFn
+          (WhenFn ?FALL))
+        (not
+          (part ?WATER1 ?WATER2))))))
+             
+(documentation SurfZone EnglishLanguage "The &%WaterArea off the &%Shoreline where waves break.")
+(documentation SurfZone ChineseLanguage "这是海岸线对外，波浪破裂的水域。")
+
+(subclass SurfZone WaterArea)
+(=>
+  (instance ?SURF SurfZone)
+  (exists (?SL)
+    (and
+      (instance ?SL Shoreline)
+      (orientation ?SURF ?SL Adjacent))))
+(=>
+  (instance ?BREAK BreakingWave)
+  (exists (?SURF)
+    (and
+      (instance ?SURF SurfZone)
+    (eventLocated ?BREAK ?SURF))))
+
+(documentation waveHeight EnglishLanguage "&%waveHeight is a &%BinaryPredicate. 
+(waveHeight ?WW ?X) means that ?X is the &%LengthMeasure of the difference 
+between the &%altitude of the crest and its leading trough of the &%BodyOfWater of 
+where a ?WW (&%WaterWave) takes place.")
+(documentation waveHeight ChineseLanguage "&%waveHeight 是一个二元谓语 &%BinaryPredicate. 
+(waveHeight ?WW ?X) 的意思是 ?X 高度 (&%LengthMeasure)是水体（&%BodyOfWater）兴起 ?WW (&%WaterWave 波浪)的 
+波峰和前面波谷高度（&%altitude）的差别。")
+(domain waveHeight 1 WaterWave)
+(domain waveHeight 2 LengthMeasure)
+(instance waveHeight BinaryPredicate)
+(subclass waveHeight ConstantQuantity)
+
+(=>
+  (waveHeight ?WW ?X)
+  (exists (?WATER ?CREST ?TROUGH)
+    (and
+       (instance ?WATER BodyOfWater)
+       (eventLocated ?WW ?WATER)
+       (part ?CREST ?WATER)
+       (part ?TROUGH ?WATER)
+       (distance ?CREST ?TROUGH ?X)
+       (not
+         (exists (?A ?AH)
+           (and
+             (part ?A ?WATER)
+             (altitude ?A ?CREST (MeasureFn ?AH ?U))
+             (greaterThan ?AH (MeasureFn 0 ?U)))))
+       (not
+         (exists (?B ?BH)
+           (and
+             (part ?B ?WATER)
+             (altitude ?TROUGH ?B (MeasureFn ?BH ?U))
+             (greaterThan ?BH (MeasureFn 0 ?U))))))))
+
+(documentation VarianceAverageFn EnglishLanguage "A 'helper' function that supports the definition of &%VarianceFn.
+(VarianceAverageFn ?M ?L) means the sum of squared difference between each number and and the mean (?M) in the &%List ?L.")
+(documentation VarianceAverageFn ChineseLanguage "这是用于定义 &%VarianceFn 的“辅助”函数。(VarianceAverageFn ?M ?L) 的
+意思是序列(&%List) ？L内每一个数值和平均值 ?M 之差的平方的总和。")
+(domain VarianceAverageFn 1 Number)
+(domain VarianceAverageFn 2 List)
+(instance VarianceAverageFn BinaryFunction)
+
+(=>
+  (and
+    (equal ?VA
+      (VarianceAverageFn ?M ?L))
+    (greaterThan
+      (ListlengthFn ?L)1))
+  (equal ?VA
+     (AdditionFn 
+       (VarianceAverageFn ?M
+         (ListOrderFn ?L 1))
+       (VarianceAverageFn ?M
+         (SubListFn 2
+           (ListLengthFn ?L)?L)))))
+
+(documentation VarianceFn EnglishLanguage "It is a &%UnaryFunction to return the variance given a &%List of numbers.
+The numerical variance computates over values in an entire population.")
+(documentation VarianceFn ChineseLanguage "这是一个 &%UnaryFunction， 他算出一个序列(&%List) 的方差。数值方差计算总体数值。")
+(domain VarianceFn 1 List)
+(instance VarianceFn UnaryFunction)
+
+(=>
+  (and
+    (equal ?V
+      (VarianceFn ?L))
+    (equal ?M
+      (AverageFn ?L)))
+  (equal ?V
+    (DivisionFn
+      (VarianceAverageFn ?M ?L)
+      (ListLengthFn ?L ))))
+     
+(=>
+  (and
+    (equal ?VA
+      (VarianceAverageFn ?M ?L))
+    (equal 1
+      (ListLengthFn ?L)))
+  (equal ?VA
+    (MultiplicationFn
+      (SubtractionFn ?M
+        (ListOrderFn ?L 1))
+      (SubtractionFn ?M
+        (ListOrderFn ?L 1)))))
+
+(documentation StandardDeviationFn EnglishLangauge "It is a &%UnaryFunction to return the standard deviation of a &%List of numbers. Standard
+deviation measures the amount of variation or dispersion of the numbers in the list. It is the &%SquareRootFn of the variance of the list.")
+(documentation StandardDeviationFn ChineseLangauge "这是一个 &%UnaryFunction，它计算出一个 &%List 内的数值的标准偏差。标准偏差量度 &%List 内数值的
+偏差或弥散度，是该序列方差值的 &%SquareRootFn。")
+(domain StandardDeviationFn 1 List)
+(instance StandardDeviationFn UnaryFunction)
+
+(<=>
+  (equal ?SD
+    (StandardDeviationFn ?L))
+  (equal ?SD
+    (SquareRootFn 
+      (VarianceFn ?L))))
+
+(documentation significantWaveHeight EnglishLanguage " &%significantWaveHeight is a &%TernaryPredicate.
+(significantWaveHeight ?WA ?TIME ?SWH) ?SWH is a &%LengthMeasure used to describe the average wave height,
+ from trough to crest, of the highest third the waves for a ?WA (&%WaterArea) for a ?TIME (&%TimeInterval). 
+ It is defined as four times the standard deviation of the height of all waves.")
+(documentation significantWaveHeight ChineseLanguage "有效波高 (&%significantWaveHeight)是一个三元谓词(&%TernaryPredicate)。
+(significantWaveHeight ?WA ?TIME ?SWH) ?SWH 是形容在一段时间?TIME (&%TimeInterval)
+一个水域内?WA (&%WaterArea)，所有波浪中，从波峰到波谷平均波高最高的三分之一波浪波高的的长度单位 (&%LengthMeasure)。
+它定义为所有波高标准偏差的四倍。")
+
+(domain significantWaveHeight 1 WaterArea)
+(domain significantWaveHeight 2 TimePosition)
+(domain significantWaveHeight 3 LengthMeasure)
+(instance significantWaveHeight TernaryPredicate)
+(subrelation significantWaveHeight measure)
+
+(=>
+  (and
+    (Process ?WW WaterWave)
+    (waveHeight ?WW ?WH))
+  (exists (?LIST ?WA)
+    (and
+      (inList ?WH ?LIST)
+      (instance ?WA WaterArea)
+      (eventLocated ?WW ?WA)
+      (significantWaveHeight ?WA
+        (WhenFn ?WW) 
+        (MeasureFn ?SWH ?U))
+      (equal ?SWH
+        (MultiplicationFn 4
+          (StandardDeviationFn ?LIST))))))
+                
 (subclass HeavySurf WeatherProcess)
 (subclass HeavySurf WaterMotion)
+(documentation HeavySurf EnglishLanguage "&%HeavySurf is when the &%significantWaveHeight 
+of the &%WaterWaves over a &%SurfZone is greater than 13 &%FootLength or 4 &%Meter.")
+(documentation HeavySurf ChineseLanguage "&%HeavySurf 是当碎波带 (&%SurfZone) 出现海浪
+( &%WaterWave)有效波高 (&%significantWaveHeight) 高于 13 &%FootLength 或 4 &%Meter
+的情况。")
+(subclass HeavySurf WeatherProcess)
+(subclass HeavySurf WaterMotion)
+
+(=>
+  (instance ?HS HeavySurf)
+  (exists (?SZ ?SWH)
+    (and
+      (instance ?SZ SurfZone)
+      (eventLocated ?HS ?SZ)
+      (significantWaveHeight ?SZ
+        (WhenFn ?HS)
+        (MeasureFn ?SWH FootLength))
+      (greaterThanOrEqualTo ?SWH 13))))
+      
+(=>
+  (instance ?HS HeavySurf)
+  (holdsDuring 
+    (WhenFn ?HS)
+    (exists (?SZ)
+      (and
+        (instance ?SZ SurfZone)
+        (instance ?WW WaterWave)
+        (subProcess ?WW ?HS)
+        (eventLocated ?WW ?SZ)))))
+        
 (subclass CoastalFlooding Flooding)
 (subclass FlashFlooding Flooding)
 (subclass MaritimeHazard LandForm) 
@@ -1015,7 +1229,7 @@ to crops, livestock, and human life.")
       (instance ?A2 Desert)
       (holdsDuring
         (BeginFn (WhenFn ?DESERTIFICATION))
-        (overlapsSpatially ?AREA ?A1))
+        (OverlapsSpatially ?AREA ?A1))
       (holdsDuring
         (EndFn (WhenFn ?DESERTIFICATION))
         (overlapsSpatially ?AREA ?A2)))))
@@ -1195,10 +1409,12 @@ temperature and pressure")
 ; 2 visibilityInMeteorology (new)
 
 (documentation visibilityInMeteorology EnglishLanguage "&%visibilityInMeteorology is a
-&%TernaryPredicate. It is a &%lengthMeasure that describes the greatest &%Horizontal &%distance an &%agent can observe 1. a black object during &%DayTime; or 2. &%RadiatingVisibleLight of 1,000 &%Candelas during &%NightTime. Visibility during &%DayTime can also be called the meteorological optical range (MOR)")
+&%TernaryPredicate. It is a &%ConstantQuantity that describes the greatest &%Horizontal &%distance 
+an &%agent can observe 1. a black object during &%DayTime; or 2. &%RadiatingVisibleLight of 1,000 &%Candelas 
+during &%NightTime. Visibility during &%DayTime can also be called the meteorological optical range (MOR)")
 
 (documentation visibilityInMeteorology ChineseLanguage "&%visibilityInMeteorology 是一个 
-&%TernaryPredicate。它是一个 &%lengthMeasure，用来形容一个 &%agent 能看见最远 &%Horizontal 
+&%TernaryPredicate。它是一个 &%ConstantQuantity，用来形容一个 &%agent 能看见最远 &%Horizontal 
 &%distance：在 1. &%DayTime 是黑色物体；或是在 2. &%NightTime 是 1,000 &%Candelas 的 
 &%RadiatingVisibleLight。&%DayTime 的能见度可以用气象光学范围(MOR)来代表。" )
 
@@ -1210,7 +1426,7 @@ temperature and pressure")
 
 (instance visibilityInMeteorology TernaryPredicate)
 
-(subrelation visibilityInMeteorology measure)
+(subclass visibilityInMeteorology ConstantQuantity)
 
 (termFormat EnglishLanguage visibilityInMeteorology "visibility in meteorology")
 
