@@ -4428,13 +4428,15 @@ that is open ocean beyond five &%NauticalMiles of land, also known as
     (greaterThan ?DIST 
       (MeasureFn 5 NauticalMile))))
 
-(subclass Iceberg Water) 
-
+(subclass Iceberg Ice)
+(subclass Iceberg SelfConnectedObject)
 ;(subclass Iceberg (ExtensionFn Solid))
 
-(documentation Iceberg EnglishLanguage "An &%Iceberg is a large chunk of ice that has 
-broken off from a glacier and fallen into the sea.  The larger part of 
+(documentation Iceberg EnglishLanguage "An &%Iceberg is a large chunk of &%Ice that has 
+broken off from a &%Glacier and fallen into a &%BodyOfWater. The larger &%part of 
 an &%Iceberg floats underwater.")
+(documentation Iceberg ChineseLanguage "&%Iceberg 是一大块 &%Ice，它从&%Glacier
+脱落丢进 &%BodyOfWater。大部分 (&%part)的 &%Iceberg 悬浮在水中。")
 
 (=>
   (instance ?BERG Iceberg)
@@ -4443,7 +4445,20 @@ an &%Iceberg floats underwater.")
       (instance ?SHEET Glacier)
       (holdsDuring (ImmediatePastFn (WhenFn ?BERG)) (material ?BERG ?SHEET)))))
 
-;;----------------------------------
+(=>
+  (instance ?BERG Iceberg)
+  (exists (?PART ?WATER)
+    (and
+      (instance ?PART Ice)
+      (most ?PART ?BERG)
+      (instance ?WATER BodyOfWater)
+      (covers ?WATER ?PART))))      
+
+(=>
+  (and
+    (instance ?BERG Iceberg)
+    (instance ?SHIP WaterVehicle))
+  (maritimeHazard ?BERG ?SHIP))     
 
 (subclass Sea SaltWaterArea)
 (subclass Sea BodyOfWater)
@@ -5535,7 +5550,80 @@ including an &%Archipelago and the surrounding &%WaterArea.")
     (and
       (instance ?islands Archipelago)
       (located ?islands ?area))))
+      
+(documentation hazardous EnglishLanguage "&%hazardous is a &%BinaryRelation which
+associates a &%Physical (an &%Object or a &%Process) to the &%Damaging it may bring to
+another &%Object. (hazardous ?THING ?OBJECT) means that ?THING may cause damage to ?OBJECT.")
+(documentation hazardous ChineseLanguage "&%hazardous 是一种 &%BinaryRelation，它把
+一个 &%Physical (&%Object 或 &%Process) 和这个物理可能造成 &%Damaging 的另外一个
+&%Object 连系在一起。(hazardous ?THING ?OBJECT) 的月意思是 ?THING 可能为造成 ?OBJECT 损害。")
+(domain hazardous 1 Physical)
+(domain hazardous 2 Object)
+(instance hazardous BinaryRelation)
+(format EnglishLanguage hazardous "%1 is n% &%hazardous to %2")
+(termFormat EnglishLanguage hazardous "hazardous")
+(termFormat ChineseLanguage hazardous "危险")
 
+(=>
+  (hazardous ?A ?B)
+  (modalAttribute
+    (exists (?D)
+      (and
+        (instance ?D Damaging)
+        (patient ?D ?B)
+        (or
+          (involvedInEvent ?D ?A)
+          (causes ?A ?D)))) Possibility))
+          
+(documentation maritimeHazard EnglishLanguage "&%maritimeHazard is a &%subrelation 
+of the &%BinaryRelation &%Hazardous which posts threat to &%WaterTransportation.")
+(documentation maritimeHazard ChineseLanguage "&%maritimeHazard 是 &%Hazardous 的
+&%subrelation，是一种 &%BinaryRelation， 专门处理对 &%WaterTransportation 造成的危险情况。")
+(domain maritimeHazard 1 Physical)
+(domain maritimeHazard 2 Object)
+(subrelation maritimeHazard hazardous)
+(format EnglishLanguage maritimeHazard "%1 is n% &%hazardous to %2.")
+
+(=>
+  (maritimeHazard ?A ?B)
+  (exists (?SAIL ?WATER)
+    (and
+      (instance ?SAIL WaterTransportation)
+      (instrument ?SAIL ?B)
+      (eventLocated ?SAIL ?WATER)
+      (located ?A ?WATER)
+      (hazardous ?A ?B))))
+
+(documentation Shoal EnglishLanguage "A &%Shoal is a &%LandForm near a &%WaterArea
+with most of it is covered by a %BodyOfWater.")
+(documentation Shoal ChineseLanguage "&%Shoal 是一处 &%LandForm，它靠近 &%WaterArea，并且
+大部分的范围被 %BodyOfWater 淹没。")
+(subclass Shoal LandForm)
+
+(=>
+  (instance ?LAND Shoal)
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (meetsSpatially ?LAND ?WATER))))
+
+(=>
+  (instance ?LAND Shoal)
+  (exists (?PART ?WATER)
+    (and
+      (instance ?PART LandForm)
+      (most ?PART ?LAND)
+      (instance ?WATER BodyOfWater)
+      (covers ?WATER ?PART))))
+
+(=>
+  (and
+    (instance ?S Shoal)
+    (instance ?B WaterVehicle))
+  (maritimeHazard ?S ?B))     
+
+(subclass SeaIce Ice) ;; incl glaciers in sea, floes, bergs
+      
 (subclass Reef LandForm)
 
 (documentation Reef EnglishLanguage "A &%Reef is a ridge of rock, coral, or sand at or near 
@@ -5557,7 +5645,12 @@ the surface of a &%WaterArea.")
                      (instance ?Stuff Rock)
          (instance ?Stuff Coral))
                 (part ?Stuff ?Reef))))
-
+(=>
+  (and
+    (instance ?R Reef)
+    (instance ?B WaterVehicle))
+  (maritimeHazard ?R ?B))
+     
 (subclass Coral Invertebrate)
 
 (documentation Coral EnglishLanguage "Corals are gastrovascular marine cnidarians (phylum 
