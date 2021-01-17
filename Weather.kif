@@ -1681,46 +1681,107 @@ returns the highest running 3-second average wind speed recorded at ?PLACE in th
         (PhysicalQuantityToNumberFn ?SPEEDLIST))        
       (equal ?SPEED 
         (MeasureFn (MaxValueFn ?NLIST) ?UNIT)))))
+        
+(documentation SpeedScaleAttribute EnglishLanguage "&%SpeedScaleAttribute is a class of 
+&%Attributes for indicating the speed of a &%Motion")
+(termFormat SpeedScaleAttribute EnglishLanauge "speed scale attribute")
+(subclass SpeedScaleAttribute RelationalAttribute)
 
-;(documentation EFWindScale EnglishLanguage "&%EFWindScale is the &%Wind speeds
-;for the Enhanced Fujita Scale or EF Scale, which is used to assign a 
-;&%Tornado a 'rating' based on estimated wind speeds and related damage. 
-;The lightest tornados (EFO) have wind speeds ranging between 65 to 85 mph, 
-;and the severest &%Tornades (EF5) have wind speeds &%GreaterThan 200 mph.")
-;(termFormat EnglishLanguage EFWindScale "enhanced fuijita wind scale")
-;
-;(subclass EFWindScale RelationalAttribute)
-;
-;(=>
-;  (and
-;    (instance ?EF EFWindScale)
-;    (property ?ENTITY ?EF))
-;  (instance ?ENTITY Tornado))
-;
-;(documentation EF0 EnglishLanguage "An EF0 tornado has wind speeds between
-;65 and 85mph (105 and 137km/h).")
-;(termFormat EnglishLanguage EF0 "EF0")
-;(instance EF0 EFWindScale)
-;(successorAttribute EF0 EF1)
-;
-;(=>
-;  (and
-;    (instance ?T Tornado)
-;    (property ?T EF0))
-;  (exist (?AREA ?WIND ?DIST)
-;    (and
-;      (instance ?AREA GeographicArea)
-;      (eventLocated ?T ?AREA)
-;      (instance ?WIND Wind)
-;     (subProcess ?WIND ?T)
-;      (surfaceWindSpeed ?AREA
-;        (SpeedFn
-;          (MeasureFn ?DIST Mile)
-;          (MeasureFn 1 HourDuration)))
-;      (greaterThanOrEqualTo ?DIST 65)
-;      (lessThanOrEqualTo ?DIST 85))))
-;  
-  
+(=>
+  (and
+    (instance ?ATTR SpeedScaleAttribute)
+    (property ?X ?ATTR))
+  (instance ?X Motion))
+
+(documentation TornadoDamage EnglishLanguage "&%TornadoDamage is the class of &%Objects, 
+that are damaged by &%Tornados.")
+(termFormat EnglishLanguage TornadoDamage "tornado damage")
+(subclass TornadoDamage Object)
+
+(=>
+  (instance ?TD TornadoDamage)
+  (exists (?T ?D)
+    (and
+      (instance ?T Tornado)
+      (instance ?D Damaging)
+      (causes ?T ?D)
+      (patient ?D ?TD))))
+       
+(documentation EFScaleAttribute EnglishLanguage "&%EFScaleAttribute is short for the Enhanced 
+Fujita Scale. It is the &%Attribute for indicating the intensity of a &%Tornado according to a 
+set of 3-second gusts wind estimates based on damage it caused. The lightest tornados(EFO) 
+have wind gusts ranging between 65 to 85 mph,and the severest &%Tornades (EF5) 
+&%GreaterThan 200 mph.")
+(documentation EFScaleAttribute ChineseLanguage "&%EFScaleAttribute 是改良藤田级数的简称。这是根据一系列龙卷风所造成的损害，
+估计首灾区的3秒阵风风速来表示一个 &%Tornado (龙卷风)的强度。级数最低的龙卷风为 EFO，它的阵风风速估计在 65 
+到 85 mph 之间， 而最强级别的 &%Tornades 是 EF5，阵风大于 &%GreaterThan 200 mph。")
+(termFormat EnglishLanguage EFScaleAttribute "EF scale attribute")
+(termFormat ChineseLanguage EFScaleAttribute "改良藤田级数")
+(termFormat EnglishLanguage EFScaleAttribute "enhanced fuijita scale attribute")
+(subclass EFScaleAttribute SpeedScaleAttribute)
+
+(=>
+  (and
+    (instance ?EF EFScaleAttribute)
+    (property ?T ?EF))
+  (instance ?T Tornado))
+
+(=>
+  (and
+    (instance ?T Tornado)
+    (instance ?EF EFScaleAttribute)
+    (property ?T ?EF)
+    (eventLocated ?T ?AREA)
+    (equal ?GUST
+      (ThreeSecondGustSpeedFn ?AREA
+        (WhenFn ?T))))
+  (exists (?TD ?R ?A ?MIN ?MAX)
+    (and
+      (instance ?TD TornadoDamage)
+      (instance ?R Reasoning)
+      (instance ?MIN FunctionQuantity) 
+      (instance ?MAX FunctionQuantity)
+      (greaterThanOrEqualTo ?GUST ?MIN)
+      (lessThanOrEqualTo ?GUST ?MAX)              
+      (agent ?R ?A)
+      (believes ?A                           
+        (speedScaleAttributeMinMax ?EF ?MIN ?MAX)))))
+
+(documentation speedScaleAttributeMinMax EnglishLanguage " &%speedScaleAttributeMinMax is a 
+&%TernaryRelation which specifies the range of speeds for a speed scale attribute. 
+(speedScaleAttributeMinMax ?ATTR ?MIN ?MAX) where ?ATTR is an instance of SpeedScaleAttribute and
+?MIN is the minimum speed and ?MAX is the maximum speed. ")
+(termFormat speedScaleAttributeMinMax EnglishLanguage "speed scale attribute min max")
+(format speedScaleAttributeMinMax EnglishLanguage)
+(domain speedScaleAttributeMinMax 1 SpeedScaleAttribute)
+(domain speedScaleAttributeMinMax 2 FunctionQuantity)
+(domain speedScaleAttributeMinMax 3 FunctionQuantity)
+
+(=>
+  (speedScaleAttributeMinMax ?ATTR ?MIN ?MAX) 
+  (exists (?X ?SPEED)
+    (and
+      (instance ?X Motion)
+      (property ?X ?ATTR)
+      (instance ?SPEED FunctionQuanity)
+      (measure ?X ?SPEED)
+      (greaterThanOrEqualTo ?SPEED ?MIN)
+      (lessThanOrEqualTo ?SPEED ?MAX))))
+            
+(documentation EF0 EnglishLanguage "The estimated 3-second Gusts for tornado of &%EFScaleAttribute
+&%EF0 ranges between 65 and 85mph (105 and 137km/h).")
+(termFormat EnglishLanguage EF0 "EF0")
+(instance EF0 EFScaleAttribute)
+(successorAttribute EF0 EF1)
+(speedScaleAttributeMinMax EF0 (MeasureFn 65 MilesPerHour) (MeasureFn 85 MilesPerHour))
+
+(documentation EF1 EnglishLanguage "The estimated 3-second Gusts for tornado of &%EFScaleAttribute
+&%EF1 ranges between 86 and 110mph (138 and 177km/h).")
+(termFormat EnglishLanguage EF1 "EF1")
+(instance EF1 EFScaleAttribute)
+(successorAttribute EF1 EF2)
+(speedScaleAttributeMinMax EF1 (MeasureFn 86 MilesPerHour) (MeasureFn 110 MilesPerHour))
+              
 (subclass Tsunami WeatherProcess)
 
 (documentation Tsunami EnglishLanguage "&%Tsunami is the class of highly destructive 
