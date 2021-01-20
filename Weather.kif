@@ -303,21 +303,76 @@ capability of a vehicle.")
 of the object (&%BackFn).  A tailwind can positively affect the speed 
 capability of a vehicle.")
 
-(subclass BeaufortNumber RelationalAttribute)
-(documentation BeaufortNumber EnglishLanguage "&%BeaufortNumber is the
-&%Attribute for indicating wind force, according to
-classifications based on observable weather conditions and later
-related to wind speed ranges.")
+(documentation windDrivenMotion EnglishLanguage "&%windDrivenMotion is an instance of
+&%caseRole which is a &%subclass of &%BinaryPredicate. In (windDrivenMotion ?W ?WM), ?W
+is is the &%Wind that &%causes the &%Motion of an &%object located in a &%Region where
+the wind blows. ")
+(termFormat windDrivenMotion EnglishLanguage "wind driven motion")
+(format windDrivenMotion EnglishLanguage "%1 causes %2")
+(domain windDrivenMotion 1 Wind)
+(domain windDrivenMotion 2 Motion)
+(instance  windDrivenMotion CaseRole)
 
 (=>
   (and
-    (instance ?BN BeaufortNumber)
-    (attribute ?OBJECT ?BN))
-  (instance ?OBJECT Wind))
+    (windDrivenMotion ?W ?WM)
+    (instance ?X object)
+    (patient ?WM ?X)
+    (WhereFn ?X
+      (WhenFn ?W)))
+  (holdsDuring
+    (WhenFn ?MW)
+    (causes ?W ?WM)))
 
-(instance BeaufortNumberZero BeaufortNumber)
-(instance BeaufortNumberOne BeaufortNumber)
-(successorAttribute BeaufortNumberZero BeaufortNumberOne)
+(subclass BeaufortNumberAttribute SpeedScaleAttribute)
+(documentation BeaufortNumberAttribute EnglishLanguage "&%BeaufortNumberAttribute is the
+&%Attribute for indicating wind force, according to classifications based on observable weather 
+conditions such as movement of object presence at the location, and later
+related to wind speed ranges.")
+(termFormat BeaufortNumberAttribute EnglishLanguage "beaufort number attribute")
+
+(=>
+  (and
+    (instance ?BN BeaufortNumberAttribute)
+    (property ?X ?BN))
+  (instance ?X Wind))
+  
+(=>
+  (and
+    (instance ?W Wind)
+    (instance ?BN BeaufortNumberAttribute)
+    (property ?W ?BN)
+    (eventLocated ?W ?AREA)
+    (equal ?SPEED
+      (surfaceWindSpeed ?AREA ?SPEED)))
+  (exists (?R ?WM ?A ?MIN ?MAX)
+    (and
+      (instance ?R Reasoning)
+      (windDrivenMotion ?W ?WM)
+      (patient ?R ?WM)
+      (agent ?R ?A)
+      (instance ?MIN FunctionQuantity)
+      (instance ?MAX FunctionQuantity)
+      (greaterThanOrEqualTo ?SPEED ?MIN)
+      (lessThanOrEqualTo ?SPEED ?MAX)
+      (believes ?A
+        (speedScaleAttribute ?BN ?MIN ?MAX)))))
+
+(documentation BeaufortNumber0 Englishlanguage "The estated &%surfaceWindSpeed for 
+&%BeaufortNumber0 is less than 1 &%MilesPerHour (2 km/h.")
+(termFormat BeaufortNumber0 EnglishLanguage "beaufort number 0")
+(instance BeaufortNumber0 BeaufortNumberAttribute)
+
+(speedScaleAttribute BeaufortNumber0 (MeasureFn 0 MilesPerHour) (MeasureFn 1 MilesPerHour))
+
+(documentation BeaufortNumber1 Englishlanguage "The estated &%surfaceWindSpeed for 
+&%BeaufortNumber1 ranges between 1 and 3 &%MilesPerHour (2 and 5 km/h.")
+(termFormat BeaufortNumber1 EnglishLanguage "beaufort number 1")
+(instance BeaufortNumber1 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber0 BeaufortNumber1)
+
+(speedScaleAttribute BeaufortNumber1 (MeasureFn 1 MilesPerHour) (MeasureFn 3 MilesPerHour))
+
 (instance BeaufortNumberTwo BeaufortNumber)
 (successorAttribute BeaufortNumberOne BeaufortNumberTwo)
 (instance BeaufortNumberThree BeaufortNumber)
@@ -1746,6 +1801,7 @@ have wind gusts ranging between 65 to 85 mph,and the severest &%Tornades (EF5)
     (and
       (instance ?TD TornadoDamage)
       (instance ?R Reasoning)
+      (patient ?R ?TD)
       (instance ?MIN FunctionQuantity) 
       (instance ?MAX FunctionQuantity)
       (greaterThanOrEqualTo ?GUST ?MIN)
@@ -1851,6 +1907,7 @@ have wind gusts ranging between 65 to 85 mph,and the severest &%Tornades (EF5)
     (and
       (instance ?TD TornadoDamage)
       (instance ?R Reasoning)
+      (patient ?R ?TD)
       (agent ?R ?A)
       (believes ?A
         (greaterThan ?GUST
