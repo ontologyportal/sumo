@@ -62,20 +62,30 @@ a mixture of mainly oxygen and nitrogen, surrounding PlanetEarth.  See also Air.
 (subclass AirStream FlowRegion)  
 (subclass AirStream Air)
 
-(documentation AirStream EnglishLanguage 
-"&%AirStream is the class of &%FlowRegions that consist of air.")
+(documentation AirStream EnglishLanguage "&%AirStream is the class 
+of &%FlowRegions that consist of air.")
+(documentation AirStream ChineseLanguage "气流 &%AirStream 是一类由空气组成的流动区域 &%FlowRegion.")
 
+(=>
+  (and
+    (instance ?AS AirStream)
+    (located ?AIR ?AS))
+  (attribute ?AR Gas))
+  
 (subclass JetStream AirStream)
 
 (documentation JetStream EnglishLanguage "&%JetStream is the class of high-velocity 
-&%AirStreams that blow constantly in the upper atmosphere with constant 
+&%AirStreams that blow constantly in the upper atmosphere of some planets with constant 
 speed and direction, though their location shifts somewhat.  There are 
 four &%JetStreams in &%EarthsAtmosphere.")
 
 (subclass WindFlow AirStream)
 
 (documentation WindFlow EnglishLanguage "&%WindFlow is the class of variable &%AirStreams 
-that are in the &%EarthsAtmosphere.")
+that are in the &%EarthsAtmosphere. It is also known as air currents which are concentrated 
+areas of winds.")
+(termFormat EnglishLanguage WindFlow "wind flow")
+(termFormat ChineseLanguage WindFlow "大气气流")
 
 (=>
   (instance ?BLOW WindFlow)
@@ -140,6 +150,9 @@ of 500 feet.")
     (instance ?ZEPHYR WindFlow)
     (instance ?PLACE Object)
     (partlyLocated ?ZEPHYR ?PLACE)
+    (elevation ?ZEPHYR ?X)
+    (lessThanOrEqualTo ?X
+      (MeasureFn 500 FootLength))
     (measure ?ZEPHYR (SpeedFn ?DIST ?TIME)))
   (surfaceWindSpeed ?PLACE (SpeedFn ?DIST ?TIME)))
 
@@ -150,7 +163,7 @@ of 500 feet.")
     (partlyLocated ?ZEPHYR ?PLACE)
     (measure ?ZEPHYR (MeasureFn ?SPEED KnotUnitOfSpeed)))
   (surfaceWindSpeed ?PLACE (MeasureFn ?SPEED KnotUnitOfSpeed)))
-
+   
 (instance surfaceWindDirection BinaryPredicate)
 (domain surfaceWindDirection 1 Object)
 (domain surfaceWindDirection 2 DirectionalAttribute)
@@ -494,18 +507,34 @@ pattern, or irregularly.")
 (subclass HurricaneSeason WeatherSeason)
 (subclass ElNino WeatherSeason)
 
+(documentation WeatherSystem EnglishLanguage "&%WeatherSystems are the
+movement of &%WindFlows across the &%EarthsAtmosphere. These movements
+are known as &%LowPressureWeatherSystems and &%HighPressureWeatherSystem.")
+(documentation WeatherSystem ChineseLanguage "天气系统 &%WeatherSystem 
+是在地球大气层 &%EarthsAtmosphere 上流动的大气气流 &%WindFlow，这些运动又名为
+低气压天气系统 &%LowPressureWeatherSystems 和 高气压天气系统 
+&%HighPressureWeatherSystem。")
 (subclass WeatherSystem WeatherProcess)
 
-(documentation WeatherSystem EnglishLanguage "&%WeatherSystem is the class of 
-large-scale atmospheric processes that influence weather in a region 
-for 2-5 days.")
-
-(subclass LowPressureWeatherSystem WeatherSystem)
-
+(=>
+  (instance ?WS WeatherSystem)
+  (exists (?MOVE ?WF)
+    (and
+      (instance ?MOVE Translocation)
+      (instance ?WF WindFlow)
+      (patient ?MOVE ?WF)
+      (subProcess ?MOVE ?WS))))
+ 
 (documentation LowPressureWeatherSystem EnglishLanguage "&%LowPressureWeatherSystem is 
-the class of weather systems characterized by low or unstable 
-&%barometricPressures.  Low pressure systems typically introduce 
+the class of &%WeatherSystems characterized by &%barometricPressures of
+29.5 &%Inchmercury (998.98mbar) or less. Low pressure systems typically introduce 
 unsettled weather, frequently including storms.")
+;; the unsettled weather is covered in the axiom for Storm
+(documentation LowPressureWeatherSystem ChineseLanguage "&%LowPressureWeatherSystem
+低气压天气系统是一类天气系统 &%WeatherSystem，它的特点是大气气压 &%barometricPressures 处于
+29.5 寸水銀柱 &%Inchmercury (998.98mbar)或更低数值。低气压系统一般带来不稳定的天气， 如常伴随有风暴。")
+(subclass LowPressureWeatherSystem WeatherSystem)
+(partition LowPressureWeatherSystem HighPressureWeatherSystem)
 
 (=>
   (and
@@ -514,20 +543,41 @@ unsettled weather, frequently including storms.")
   (and
     (barometricPressure ?AREA (MeasureFn ?AMOUNT InchMercury))
     (lessThan ?AMOUNT 29.5)))
-
+    
 (subclass CyclonicStorm LowPressureWeatherSystem)
-(subclass CyclonicStorm Windstorm)
+(subclass CyclonicStorm Storm)
 
 (documentation CyclonicStorm EnglishLanguage "&%CyclonicStorm is the class of 
 &%LowPressureWeatherSystems that involve a low pressure area 
-surrounded by rapidly rotating winds, with the whole system 
-typically moving forward at 20-30 mph.") 
+surrounded by winds rotating rapidly inwards.")
+(documentation CyclonicStorm ChineseLanguage "&%CyclonicStorm 气旋风暴属于一类
+低气压气象系统 &%LowPressureWeatherSystem， 它涉及风向由快速向内旋转的
+一处低气压区。")
+
+(=>
+  (instance ?CS CyclonicStorm)
+  (exists (?R ?A)
+    (and
+      (instance ?R Rotating)
+      (instance ?A Air)
+      (instance ?TRAN Translocation)
+      (subProcess ?R ?T)
+      (subProcess ?TRAN ?R)
+      (patient ?TRAN ?A)
+      (direction ?TRAN Horizontal))))
 
 (subclass TropicalCyclone CyclonicStorm)
 
 (documentation TropicalCyclone EnglishLanguage "&%TropicalCyclone is the class of 
 &%CyclonicStorms that occur in the &%Tropics and typically have 
-rotational winds of hurricane force (74 mph or higher).")
+rotational winds of strong force (38 mph) or higher.The whole system 
+typically moving forward at 10-15 mph, but it can also stay quasistationary, or travel
+as fast as 40 mph.https://www.metoffice.gov.uk/research/weather/tropical-cyclones/facts")
+(documentation TropicalCyclone ChineseLanguage "&%TropicalCyclone 热带气旋是气旋风暴
+&%CyclonicStorm 的一类，它出现于热带 &%Tropics。 它的风朝气旋中心，向内旋转，风速一般达强风
+(38 mph)程度或更高的风速。整个系统通常以每小时10-15英里 （10-15 mph）向前移动，可是有时候也会
+保持停留不动，或是移动速度快达每小时40英里 （40 mph0)。
+https://www.metoffice.gov.uk/research/weather/tropical-cyclones/facts")
 
 (=>
   (instance ?STORM TropicalCyclone)
@@ -536,8 +586,13 @@ rotational winds of hurricane force (74 mph or higher).")
       (instance ?PLACE GeographicArea)
       (geographicSubregion ?PLACE Tropics)
       (eventLocated ?STORM ?PLACE))))
+      
+(subclass TropicalDepression TropicalCyclone)
 
-(subclass Hurricane WeatherProcess)  
+(subclass TropicalStorm TropicalCyclone)
+
+(subclass Hurricane TropicalCyclone)  
+
 (subclass Typhoon TropicalCyclone)
 
 (subclass HighPressureWeatherSystem WeatherSystem)
@@ -554,7 +609,7 @@ High pressure systems typically cause clear weather.")
     (barometricPressure ?AREA (MeasureFn ?AMOUNT InchMercury))
     (greaterThan ?AMOUNT 30.2)))
 
-(subclass StormSystem WeatherSystem)
+(subclass StormSystem WeatherProcess)
 
 (subclass WeatherFront WeatherProcess)
 
@@ -587,7 +642,7 @@ boundary areas between two air masses that are stationary, with neither
 mass presently replacing the other.")
 
 
-(subclass Thunderstorm WeatherProcess) 
+(subclass Thunderstorm Storm) 
 (subclass Waterspout WeatherProcess)  
 ;;---------------------------------
 
@@ -997,7 +1052,7 @@ the total amount of precipitation was ?AMOUNT.")
 ;;  I. Natural Disasters (covered in CIA World Fact Book)
 
 (subclass Wind WeatherProcess)
-(subclass Windstorm Wind) 
+(subclass Windstorm Storm) 
 (subclass StrongWind Wind)
 (subclass Sirocco Wind)
 (subclass HarmattanWind Wind)
@@ -1006,14 +1061,12 @@ the total amount of precipitation was ?AMOUNT.")
 (subclass Ghibli Wind)
 (subclass ChinookWind Wind)
 (subclass Pampero Windstorm)
-(subclass Squall WeatherProcess)
-(subclass SevereThunderstorm WeatherProcess)
+(subclass Squall Storm)
 
-(subclass DustStorm WeatherProcess)
+(subclass DustStorm Storm)
 (documentation DustStorm EnglishLanguage "&%DustStorms happen in &%AridClimateZones or
 &%SemiaridClimateZones. They occur when a strong &%Wind carries &%ParticulateMatter or
 &%Sand from its underlying &%Dry surface and deposit it to another &%Region.")
-
 (documentation DustStorm ChineseLanguage "&%DustStorm 出现在 &%AridClimateZone 或
 &%SemiaridClimateZone。它发生在当强 &%Wind 捲起 &%ParticulateMatter 或从它吹过 &%Dry 地面的
  &%Sand ，并送到另外一个 &%Region。")
@@ -1056,7 +1109,6 @@ the total amount of precipitation was ?AMOUNT.")
 (subclass SandStorm DustStorm)
 (documentation SandStorm EnglishLanguage "&%SandStorms are &%DustStorms in which the 
 particles are &%Sand.")
-
 (documentation Sandstorm ChineseLanguage "&%SandStorm 是含 &%Sand 颗粒的 &%DustStorm。")
 
 (=>
@@ -1375,20 +1427,8 @@ till the onset of the flood itself.")
 extends from the &%Cloud base of a cumulonimbus to the ground.")
 (documentation Tornado ChineseLanguage "&%Tornado 是一团从积雨云底部延伸到地面，
 快速旋转的空气 &%Air。")
-
-(subclass Tornado WeatherProcess)
-
-(=>
-  (instance ?T Tornado)
-  (exists (?R ?A)
-    (and
-      (instance ?R Rotating)
-      (instance ?A Air)
-      (instance ?TRAN Translocation)
-      (subProcess ?R ?T)
-      (subProcess ?TRAN ?R)
-      (patient ?TRAN ?A)
-      (direction ?TRAN Horizontal))))
+(subclass Tornado Storm)
+(subclass Tornado CyclonicStorm)
 
 (=>
   (and
@@ -1446,7 +1486,7 @@ measuring speed, expressed in the number of &%Miles travelled in a one &%HourDur
     (MeasureFn ?NUM MilesPerHour))
   (equal ?SPEED
     (SpeedFn
-      (MeasureFn ?NUM Miles)
+      (MeasureFn ?NUM Mile)
       (MeasureFn 1 HourDuration))))
  
 (documentation MeasuringList EnglishLanguage "&%MeasuringList is a sequence of
