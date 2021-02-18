@@ -62,20 +62,30 @@ a mixture of mainly oxygen and nitrogen, surrounding PlanetEarth.  See also Air.
 (subclass AirStream FlowRegion)  
 (subclass AirStream Air)
 
-(documentation AirStream EnglishLanguage 
-"&%AirStream is the class of &%FlowRegions that consist of air.")
+(documentation AirStream EnglishLanguage "&%AirStream is the class 
+of &%FlowRegions that consist of air.")
+(documentation AirStream ChineseLanguage "气流 &%AirStream 是一类由空气组成的流动区域 &%FlowRegion.")
 
+(=>
+  (and
+    (instance ?AS AirStream)
+    (located ?AIR ?AS))
+  (attribute ?AR Gas))
+  
 (subclass JetStream AirStream)
 
 (documentation JetStream EnglishLanguage "&%JetStream is the class of high-velocity 
-&%AirStreams that blow constantly in the upper atmosphere with constant 
+&%AirStreams that blow constantly in the upper atmosphere of some planets with constant 
 speed and direction, though their location shifts somewhat.  There are 
 four &%JetStreams in &%EarthsAtmosphere.")
 
 (subclass WindFlow AirStream)
 
 (documentation WindFlow EnglishLanguage "&%WindFlow is the class of variable &%AirStreams 
-that are in the &%EarthsAtmosphere.")
+that are in the &%EarthsAtmosphere. It is also known as air currents which are concentrated 
+areas of winds.")
+(termFormat EnglishLanguage WindFlow "wind flow")
+(termFormat ChineseLanguage WindFlow "大气气流")
 
 (=>
   (instance ?BLOW WindFlow)
@@ -140,6 +150,9 @@ of 500 feet.")
     (instance ?ZEPHYR WindFlow)
     (instance ?PLACE Object)
     (partlyLocated ?ZEPHYR ?PLACE)
+    (elevation ?ZEPHYR ?X)
+    (lessThanOrEqualTo ?X
+      (MeasureFn 500 FootLength))
     (measure ?ZEPHYR (SpeedFn ?DIST ?TIME)))
   (surfaceWindSpeed ?PLACE (SpeedFn ?DIST ?TIME)))
 
@@ -150,7 +163,7 @@ of 500 feet.")
     (partlyLocated ?ZEPHYR ?PLACE)
     (measure ?ZEPHYR (MeasureFn ?SPEED KnotUnitOfSpeed)))
   (surfaceWindSpeed ?PLACE (MeasureFn ?SPEED KnotUnitOfSpeed)))
-
+   
 (instance surfaceWindDirection BinaryPredicate)
 (domain surfaceWindDirection 1 Object)
 (domain surfaceWindDirection 2 DirectionalAttribute)
@@ -477,6 +490,8 @@ related to wind speed ranges.")
         (MeasureFn 73 MilesPerHour))
       (believes ?A   
         (surfaceWindSpeed ?AREA ?SPEED)))))
+        
+
 ;;----------------------------------------------------------------------
 
 ;;  G. Weather & Climate
@@ -492,18 +507,34 @@ pattern, or irregularly.")
 (subclass HurricaneSeason WeatherSeason)
 (subclass ElNino WeatherSeason)
 
+(documentation WeatherSystem EnglishLanguage "&%WeatherSystems are the
+movement of &%WindFlows across the &%EarthsAtmosphere. These movements
+are known as &%LowPressureWeatherSystems and &%HighPressureWeatherSystem.")
+(documentation WeatherSystem ChineseLanguage "天气系统 &%WeatherSystem 
+是在地球大气层 &%EarthsAtmosphere 上流动的大气气流 &%WindFlow，这些运动又名为
+低气压天气系统 &%LowPressureWeatherSystems 和 高气压天气系统 
+&%HighPressureWeatherSystem。")
 (subclass WeatherSystem WeatherProcess)
 
-(documentation WeatherSystem EnglishLanguage "&%WeatherSystem is the class of 
-large-scale atmospheric processes that influence weather in a region 
-for 2-5 days.")
-
-(subclass LowPressureWeatherSystem WeatherSystem)
-
+(=>
+  (instance ?WS WeatherSystem)
+  (exists (?MOVE ?WF)
+    (and
+      (instance ?MOVE Translocation)
+      (instance ?WF WindFlow)
+      (patient ?MOVE ?WF)
+      (subProcess ?MOVE ?WS))))
+ 
 (documentation LowPressureWeatherSystem EnglishLanguage "&%LowPressureWeatherSystem is 
-the class of weather systems characterized by low or unstable 
-&%barometricPressures.  Low pressure systems typically introduce 
+the class of &%WeatherSystems characterized by &%barometricPressures of
+29.5 &%Inchmercury (998.98mbar) or less. Low pressure systems typically introduce 
 unsettled weather, frequently including storms.")
+;; the unsettled weather is covered in the axiom for Storm
+(documentation LowPressureWeatherSystem ChineseLanguage "&%LowPressureWeatherSystem
+低气压天气系统是一类天气系统 &%WeatherSystem，它的特点是大气气压 &%barometricPressures 处于
+29.5 寸水銀柱 &%Inchmercury (998.98mbar)或更低数值。低气压系统一般带来不稳定的天气， 如常伴随有风暴。")
+(subclass LowPressureWeatherSystem WeatherSystem)
+(partition LowPressureWeatherSystem HighPressureWeatherSystem)
 
 (=>
   (and
@@ -512,20 +543,41 @@ unsettled weather, frequently including storms.")
   (and
     (barometricPressure ?AREA (MeasureFn ?AMOUNT InchMercury))
     (lessThan ?AMOUNT 29.5)))
-
+    
 (subclass CyclonicStorm LowPressureWeatherSystem)
-(subclass CyclonicStorm Windstorm)
+(subclass CyclonicStorm Storm)
 
 (documentation CyclonicStorm EnglishLanguage "&%CyclonicStorm is the class of 
 &%LowPressureWeatherSystems that involve a low pressure area 
-surrounded by rapidly rotating winds, with the whole system 
-typically moving forward at 20-30 mph.") 
+surrounded by winds rotating rapidly inwards.")
+(documentation CyclonicStorm ChineseLanguage "&%CyclonicStorm 气旋风暴属于一类
+低气压气象系统 &%LowPressureWeatherSystem， 它涉及风向由快速向内旋转的
+一处低气压区。")
+
+(=>
+  (instance ?CS CyclonicStorm)
+  (exists (?R ?A)
+    (and
+      (instance ?R Rotating)
+      (instance ?A Air)
+      (instance ?TRAN Translocation)
+      (subProcess ?R ?T)
+      (subProcess ?TRAN ?R)
+      (patient ?TRAN ?A)
+      (direction ?TRAN Horizontal))))
 
 (subclass TropicalCyclone CyclonicStorm)
 
 (documentation TropicalCyclone EnglishLanguage "&%TropicalCyclone is the class of 
 &%CyclonicStorms that occur in the &%Tropics and typically have 
-rotational winds of hurricane force (74 mph or higher).")
+rotational winds of strong force (38 mph) or higher.The whole system 
+typically moving forward at 10-15 mph, but it can also stay quasistationary, or travel
+as fast as 40 mph.https://www.metoffice.gov.uk/research/weather/tropical-cyclones/facts")
+(documentation TropicalCyclone ChineseLanguage "&%TropicalCyclone 热带气旋是气旋风暴
+&%CyclonicStorm 的一类，它出现于热带 &%Tropics。 它的风朝气旋中心，向内旋转，风速一般达强风
+(38 mph)程度或更高的风速。整个系统通常以每小时10-15英里 （10-15 mph）向前移动，可是有时候也会
+保持停留不动，或是移动速度快达每小时40英里 （40 mph0)。
+https://www.metoffice.gov.uk/research/weather/tropical-cyclones/facts")
 
 (=>
   (instance ?STORM TropicalCyclone)
@@ -534,8 +586,13 @@ rotational winds of hurricane force (74 mph or higher).")
       (instance ?PLACE GeographicArea)
       (geographicSubregion ?PLACE Tropics)
       (eventLocated ?STORM ?PLACE))))
+      
+(subclass TropicalDepression TropicalCyclone)
 
-(subclass Hurricane WeatherProcess)  
+(subclass TropicalStorm TropicalCyclone)
+
+(subclass Hurricane TropicalCyclone)  
+
 (subclass Typhoon TropicalCyclone)
 
 (subclass HighPressureWeatherSystem WeatherSystem)
@@ -552,7 +609,7 @@ High pressure systems typically cause clear weather.")
     (barometricPressure ?AREA (MeasureFn ?AMOUNT InchMercury))
     (greaterThan ?AMOUNT 30.2)))
 
-(subclass StormSystem WeatherSystem)
+(subclass StormSystem WeatherProcess)
 
 (subclass WeatherFront WeatherProcess)
 
@@ -585,7 +642,7 @@ boundary areas between two air masses that are stationary, with neither
 mass presently replacing the other.")
 
 
-(subclass Thunderstorm WeatherProcess) 
+(subclass Thunderstorm Storm) 
 (subclass Waterspout WeatherProcess)  
 ;;---------------------------------
 
@@ -995,7 +1052,7 @@ the total amount of precipitation was ?AMOUNT.")
 ;;  I. Natural Disasters (covered in CIA World Fact Book)
 
 (subclass Wind WeatherProcess)
-(subclass Windstorm Wind) 
+(subclass Windstorm Storm) 
 (subclass StrongWind Wind)
 (subclass Sirocco Wind)
 (subclass HarmattanWind Wind)
@@ -1004,14 +1061,12 @@ the total amount of precipitation was ?AMOUNT.")
 (subclass Ghibli Wind)
 (subclass ChinookWind Wind)
 (subclass Pampero Windstorm)
-(subclass Squall WeatherProcess)
-(subclass SevereThunderstorm WeatherProcess)
+(subclass Squall Storm)
 
-(subclass DustStorm WeatherProcess)
+(subclass DustStorm Storm)
 (documentation DustStorm EnglishLanguage "&%DustStorms happen in &%AridClimateZones or
 &%SemiaridClimateZones. They occur when a strong &%Wind carries &%ParticulateMatter or
 &%Sand from its underlying &%Dry surface and deposit it to another &%Region.")
-
 (documentation DustStorm ChineseLanguage "&%DustStorm 出现在 &%AridClimateZone 或
 &%SemiaridClimateZone。它发生在当强 &%Wind 捲起 &%ParticulateMatter 或从它吹过 &%Dry 地面的
  &%Sand ，并送到另外一个 &%Region。")
@@ -1054,7 +1109,6 @@ the total amount of precipitation was ?AMOUNT.")
 (subclass SandStorm DustStorm)
 (documentation SandStorm EnglishLanguage "&%SandStorms are &%DustStorms in which the 
 particles are &%Sand.")
-
 (documentation Sandstorm ChineseLanguage "&%SandStorm 是含 &%Sand 颗粒的 &%DustStorm。")
 
 (=>
@@ -1373,20 +1427,8 @@ till the onset of the flood itself.")
 extends from the &%Cloud base of a cumulonimbus to the ground.")
 (documentation Tornado ChineseLanguage "&%Tornado 是一团从积雨云底部延伸到地面，
 快速旋转的空气 &%Air。")
-
-(subclass Tornado WeatherProcess)
-
-(=>
-  (instance ?T Tornado)
-  (exists (?R ?A)
-    (and
-      (instance ?R Rotating)
-      (instance ?A Air)
-      (instance ?TRAN Translocation)
-      (subProcess ?R ?T)
-      (subProcess ?TRAN ?R)
-      (patient ?TRAN ?A)
-      (direction ?TRAN Horizontal))))
+(subclass Tornado Storm)
+(subclass Tornado CyclonicStorm)
 
 (=>
   (and
@@ -1444,7 +1486,7 @@ measuring speed, expressed in the number of &%Miles travelled in a one &%HourDur
     (MeasureFn ?NUM MilesPerHour))
   (equal ?SPEED
     (SpeedFn
-      (MeasureFn ?NUM Miles)
+      (MeasureFn ?NUM Mile)
       (MeasureFn 1 HourDuration))))
  
 (documentation MeasuringList EnglishLanguage "&%MeasuringList is a sequence of
@@ -2035,25 +2077,25 @@ of &%surfaceWindSpeed measurements, each taken at 5 &%Second intervals, over a 2
         (equal ?SPEED 
           (MeasureFn (AverageFn ?NLIST) ?UNIT))))))
 
-(documentation Mean1MinutesWindSpeedFn EnglishLanguage "(&%Mean1MinutesWindSpeedFn ?PLACE 
+(documentation Mean1MinuteWindSpeedFn EnglishLanguage "(&%Mean1MinuteWindSpeedFn ?PLACE 
 ?TIME) returns a &%FunctionQuantity which is the average value of a &%List of 12 instantaneous 
 of &%surfaceWindSpeed measurements, each taken at 5 &%Second intervals, over a 1 &%Minutes 
 &%TimeDuration for ?PLACE at ?TIME, standardised to reflect the winds at 10 metres 
 (33 feet) above the Earth's surface.")
-(format EnglishLanguage Mean1MinutesWindSpeedFn "&%Mean1MinutesWindSpeedFn for %2 in region %1")
-(documentation Mean1MinutesWindSpeedFn ChineseLanguage "(&%Mean1MinutesWindSpeedFn ?PLACE 
+(format EnglishLanguage Mean1MinuteWindSpeedFn "&%Mean1MinuteWindSpeedFn for %2 in region %1")
+(documentation Mean1MinutesWindSpeedFn ChineseLanguage "(&%Mean1MinuteWindSpeedFn ?PLACE 
 ?TIME) 得出一個 &%FunctionQuantity， 它是在?PLACE 地方，划一表示在地球表面10米(33 英尺)上高度位置，
 某时 ?TIME，（持续时间）&%TimeDuration 长1 &%Minutes 分钟、共12个每 5 &%Second 秒时间
 间隔量度的即时（地面风速）&%surfaceWindSpeed（串列）&List上的平均值。")
-(format ChineseLanguage Mean1MinutesWindSpeedFn "%1地区在%2时段的 &%Mean1MinutesWindSpeedFn")
-(domain Mean1MinutesWindSpeedFn 1 GeographicArea)
-(domain Mean1MinutesWindSpeedFn 2 TimeInterval)
-(range Mean1MinutesWindSpeedFn FunctionQuantity)
-(instance Mean1MinutesWindSpeedFn BinaryFunction)
+(format ChineseLanguage Mean1MinuteWindSpeedFn "%1地区在%2时段的 &%Mean1MinuteWindSpeedFn")
+(domain Mean1MinuteWindSpeedFn 1 GeographicArea)
+(domain Mean1MinuteWindSpeedFn 2 TimeInterval)
+(range MMean1MinuteWindSpeedFn FunctionQuantity)
+(instance Mean1MinuteWindSpeedFn BinaryFunction)
 
 (=>
   (equal ?SPEED
-    (Mean1MinutesWindSpeedFn ?PLACE ?TIME))
+    (Mean1MinuteWindSpeedFn ?PLACE ?TIME))
   (holdsDuring ?TIME
     (exists (?MLIST ?RLIST ?NLIST ?UNIT)
       (and
@@ -2069,7 +2111,115 @@ of &%surfaceWindSpeed measurements, each taken at 5 &%Second intervals, over a 1
           (PhysicalQuantityToNumberFn ?RLIST))
         (equal ?SPEED 
           (MeasureFn (AverageFn ?NLIST) ?UNIT))))))
-                               
+
+(documentation SSHWSAttribute EnglishLanguage "&%SSHWSAttribute is short for the 
+Saffir-Simpson hurricane wind scale. It is the &%Attribute for rating the intensity 
+of a &%Hurricane based on the highest wind speed averaged over a one-minute interval 
+10 m above the surface (&%Mean1MinuteWindSpeedFn).")
+(documentation SSHWSAttribute ChineseLanguage "&%SSHWSAttribute 是萨菲尔辛普森飓风风力等级
+的缩写。这是以距离地面10米高，最高的一分钟平均风速(&%Mean1MinuteWindSpeedFn)
+用来评估一个台风（&%Hurricane）强弱程度的属性 （&%Attribute）。")
+(termFormat SSHWSAttribute EnglishLanguage "SSHWS attribute")
+(termFormat SSHWSAttribute EnglishLanguage "Saffir Simpson Hurrican wind scale")
+(termFormat SSHWSAttribute ChineseLanguage "萨菲尔辛普森飓风风力等级")
+(subclass SSHWSAttribute SpeedScaleAttribute)
+
+(=>
+  (and
+    (instance ?SS SSHWSAttribute)
+    (property ?H ?SS))
+  (instance ?H Hurricane))
+
+(=>
+  (and
+    (instance ?H Hurricane)
+    (instance ?SS SSHWSAttribute)
+    (eventLocated ?H ?AREA)
+    (believes ?A
+      (property ?H ?SS))
+    (speedScaleAttributeMinMax ?SS ?MIN ?MAX))
+  (exists (?WIND)
+    (and
+      (greaterThanOrEqualTo ?WIND ?MIN)
+      (lessThanOrEqualTo ?WING ?MAX)
+      (believes ?A
+        (equal ?WIND
+          (Mean1MinuteWindSpeedFn ?AREA
+            (WhenFn ?H)))))))
+
+(documentation SSHWS1 EnglishLanguage "The estimated highest &%Mean1MinuteWindSpeedFn 
+(one-minute sustained winds) for a &%Hurricane of SSHWSAttribute SSHWS1 ranges between 
+74 and 95 mph (119-153 km/h).")
+(documentation SSHWS1 ChineseLanguage "萨菲尔辛普森飓风1 (SSHWS1)级别的台风(&%Hurricane)
+估计它的一分钟平均风速 (&%Mean1MinuteWindSpeedFn) 在 74 到 95 mph（119-153 km/h）。")
+(termFormat SSHWS1 EnglishLanguage "SSHWS1")
+(termFormat SSHWS1 ChineseLanguage "萨菲尔辛普森飓风1")
+(instance SSHWS1 SSHWSAttribute)
+(sucessorAttribute SSHWS1 SSHWS2)
+
+(speedScaleAttributeMinMax SSHWS1 (MeasureFn 74 MilesPerHour) (MeasureFn 95 MilesPerHour))
+
+(documentation SSHWS2 EnglishLanguage "The estimated highest &%Mean1MinuteWindSpeedFn 
+(one-minute sustained winds) for a &%Hurricane of SSHWSAttribute SSHWS2 ranges between 
+96 and 110 mph (154-177 km/h).")
+(documentation SSHWS2 ChineseLanguage "萨菲尔辛普森飓风2 (SSHWS2)级别的台风(&%Hurricane)
+估计它的一分钟平均风速 (&%Mean1MinuteWindSpeedFn) 在 96 到 110 mph（154-177 km/h）。")
+(termFormat SSHWS2 EnglishLanguage "SSHWS2")
+(termFormat SSHWS2 ChineseLanguage "萨菲尔辛普森飓风2")
+(instance SSHWS2 SSHWSAttribute)
+(sucessorAttribute SSHWS2 SSHWS3)
+
+(speedScaleAttributeMinMax SSHWS2 (MeasureFn 96 MilesPerHour) (MeasureFn 110 MilesPerHour))
+
+(documentation SSHWS3 EnglishLanguage "The estimated highest &%Mean1MinuteWindSpeedFn 
+(one-minute sustained winds) for a &%Hurricane of SSHWSAttribute SSHWS3 ranges between 
+111 and 129 mph (178-208 km/h).")
+(documentation SSHWS3 ChineseLanguage "萨菲尔辛普森飓风3 (SSHWS3)级别的台风(&%Hurricane)
+估计它的一分钟平均风速 (&%Mean1MinuteWindSpeedFn) 在 111 到 129 mph（178-208 km/h）。")
+(termFormat SSHWS3 EnglishLanguage "SSHWS3")
+(termFormat SSHWS3 ChineseLanguage "萨菲尔辛普森飓风3")
+(instance SSHWS3 SSHWSAttribute)
+(sucessorAttribute SSHWS3 SSHWS4)
+
+(speedScaleAttributeMinMax SSHWS3 (MeasureFn 111 MilesPerHour) (MeasureFn 129 MilesPerHour))
+
+(documentation SSHWS4 EnglishLanguage "The estimated highest &%Mean1MinuteWindSpeedFn 
+(one-minute sustained winds) for a &%Hurricane of SSHWSAttribute SSHWS4 ranges between 
+130 and 156 mph (209-251 km/h).")
+(documentation SSHWS4 ChineseLanguage "萨菲尔辛普森飓风4 (SSHWS4)级别的台风(&%Hurricane)
+估计它的一分钟平均风速 (&%Mean1MinuteWindSpeedFn) 在 130 到 156 mph（209-251 km/h）。")
+(termFormat SSHWS4 EnglishLanguage "SSHWS4")
+(termFormat SSHWS4 ChineseLanguage "萨菲尔辛普森飓风4")
+(instance SSHWS4 SSHWSAttribute)
+(sucessorAttribute SSHWS4 SSHWS5)
+
+(speedScaleAttributeMinMax SSHWS4 (MeasureFn 130 MilesPerHour) (MeasureFn 156 MilesPerHour))
+
+(documentation SSHWS5 EnglishLanguage "The estimated highest &%Mean1MinuteWindSpeedFn 
+(one-minute sustained winds) for a &%Hurricane of SSHWSAttribute SSHWS5 is greater than 
+157 mph (252 km/h).")
+(documentation SSHWS5 ChineseLanguage "萨菲尔辛普森飓风5 (SSHWS5)级别的台风(&%Hurricane)
+估计它的一分钟平均风速 (&%Mean1MinuteWindSpeedFn) 大于 157 mph(252 km/h）。")
+(termFormat SSHWS5 EnglishLanguage "SSHWS5")
+(termFormat SSHWS5 ChineseLanguage "萨菲尔辛普森飓风5")
+(instance SSHWS5 SSHWSAttribute)
+
+(=>
+  (and
+    (instance ?H Hurricane)
+    (instance ?SS SSHWS5)
+    (eventLocated ?H ?AREA)
+    (believes ?A
+      (property ?H ?SS)))
+  (exits (?WIND)
+    (and
+      (greaterThan ?WIND
+        (MeasureFn 157 MilesPerHour))
+      (believes ?A
+        (equal ?WIND
+          (Mean1MinuteWindSpeedFn ?AREA
+            (WhenFn ?H)))))))
+                                     
 (subclass Tsunami WeatherProcess)
 
 (documentation Tsunami EnglishLanguage "&%Tsunami is the class of highly destructive 
