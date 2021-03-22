@@ -543,10 +543,9 @@ unsettled weather, frequently including storms.")
   (and
     (barometricPressure ?AREA (MeasureFn ?AMOUNT InchMercury))
     (lessThan ?AMOUNT 29.5)))
-    
+
 (subclass CyclonicStorm LowPressureWeatherSystem)
 (subclass CyclonicStorm Storm)
-
 (documentation CyclonicStorm EnglishLanguage "&%CyclonicStorm is the class of 
 &%LowPressureWeatherSystems that involve a low pressure area 
 surrounded by winds rotating rapidly inwards.")
@@ -566,34 +565,144 @@ surrounded by winds rotating rapidly inwards.")
       (patient ?TRAN ?A)
       (direction ?TRAN Horizontal))))
 
-(subclass TropicalCyclone CyclonicStorm)
+(=>
+  (and
+     (instance ?CS CyclonicStorm)
+     (instance ?AS AirStream)
+     (eventLocated ?CS ?AS))
+  (attribute ?AS Cylinder))
 
-(documentation TropicalCyclone EnglishLanguage "&%TropicalCyclone is the class of 
-&%CyclonicStorms that occur in the &%Tropics and typically have 
-rotational winds of strong force (38 mph) or higher.The whole system 
-typically moving forward at 10-15 mph, but it can also stay quasistationary, or travel
-as fast as 40 mph.https://www.metoffice.gov.uk/research/weather/tropical-cyclones/facts")
-(documentation TropicalCyclone ChineseLanguage "&%TropicalCyclone 热带气旋是气旋风暴
-&%CyclonicStorm 的一类，它出现于热带 &%Tropics。 它的风朝气旋中心，向内旋转，风速一般达强风
-(38 mph)程度或更高的风速。整个系统通常以每小时10-15英里 （10-15 mph）向前移动，可是有时候也会
-保持停留不动，或是移动速度快达每小时40英里 （40 mph0)。
+; need to define a function to find the centroid of a region, then
+; define the EyeOfCyclone and radiusOfMaximumWind
+; Jennie 9th March 2021
+
+(subclass EyeOfCyclone AirStream)
+(documentation EnglishLanguage EyeOfCyclone "&%EyeOfCyclone is a calm area
+extending from the &Centroid of the &%FlowRegion of a well-developed matured
+&%TropicalCyclone. The &%approximateDiameter of a typical &%EyeOfCyclone ranges
+between 19 to 40 &%Miles.")
+;(documentation ChineseLanguage EyeOfCyclone "")
+(termFormat EnglishLanguage EyeOfCyclone "eye of cyclone" )
+(termFormat ChineseLanguage EyeOfCyclone "台风风眼")
+
+(instance radiusOfMaximumWind BinaryPredicate)
+(documentation EnglishLanguage radiusOfMaximumWind "&%radiusOfMaximumWind is &%BinaryPredicate 
+which states a &%FlowRegion to be within the the radius of maximum wind of a &%CyclonicStorm.
+In (radiusOfMaximumWind ?CS ?REGION) ?REGION is located withing the radius of maximum wind (RMW) 
+of a &%CyclonicStorm ?CS.")
+;(documentation ChineseLanguage radiusOfMaximumWind "")
+(termFormat EnglishLanguage radiusOfMaximumWind "radius of maximum wind")
+(termFormat ChineseLanguage radiusOfMaximumWind "最大风速半径")
+(domain radiusOfMaximumWind 1 CyclonicStorm)
+(domain radiusOfMaximumWind 2 FlowRegion)
+(format EnglishLanguage radiusOfMaximumWind "%2 is within the &%radiusOfMaximumWind of %1")
+(format ChineseLanguage radiusOfMaximumWind "%2 在%1 的最大风速半径内")
+
+(subclass TropicalCyclonicSystem CyclonicStorm) 
+(documentation TropicalCyclonicSystem EnglishLanguage "&%TropicalCyclonicSystem is the class of 
+&%CyclonicStorms that occur in the &%Tropics and typically have rotational winds of strong 
+force (> 25 mph) or higher.The whole system typically moving forward at 10-15 mph, 
+but it can also stay quasistationary, or travel as fast as 40 mph.
 https://www.metoffice.gov.uk/research/weather/tropical-cyclones/facts")
+(documentation TropicalCyclonicSystem ChineseLanguage "&%TropicalCyclonicSystem (热带气旋系统)
+是&%CyclonicStorm (气旋风暴)的一类，它出现于&%Tropics (热带)。它的风朝气旋中心，向内旋转，风速一般达强风
+(>25 mph)程度或更高的风速。整个系统通常以每小时10-15英里 （10-15 mph）向前移动，可是有时候也会
+保持停留不动，或是移动速度快达每小时40英里 （40 mph)。
+https://www.metoffice.gov.uk/research/weather/tropical-cyclones/facts")
+(termFormat EnglishLangauge TropicalCyclonicSystem "tropical cyclonic system")
+(termFormat ChineseLanguage TropicalCyclonicSystem "热带氣旋系统")
 
 (=>
-  (instance ?STORM TropicalCyclone)
+  (instance ?STORM TropicalCyclonicSystem)
   (exists (?PLACE)
     (and
       (instance ?PLACE GeographicArea)
       (geographicSubregion ?PLACE Tropics)
       (eventLocated ?STORM ?PLACE))))
       
-(subclass TropicalDepression TropicalCyclone)
+(subclass TropicalDepression TropicalCyclonicSystem)                 
+(documentation TropicalDepression EnglishLanguage "A &%TropicalDepression
+is the weakest form of &%TropicalCyclonicSystem. It has 1-minute sustained winds
+of upto 38 &%MilesPerHour according to the National Hurrican Center(NHC),Joint 
+Typhoon Warning Center (JTWC) and the Central Pacific Hurricane Center (CPHC).")
+(documentation TropicalDepression ChineseLanguage "热带低气压(&%TropicalDepression)
+是等级形态最弱的热带氣旋系统(&%TropicalCyclonicSystem), 根据美國的國家颶風中心(NHC)、
+夏威夷州的中太平洋颶風中心(CPHC)和聯合颱風警報中心的标准，它的一分钟平均风速可达
+每小时38英里（&%MilesPerHour ）。")
+(termFormat EnglishLangauge TropicalDepression "tropical depression")
+(termFormat ChineseLanguage TropicalDepression "热带低气压")
 
-(subclass TropicalStorm TropicalCyclone)
+(=>
+  (instance ?TD TropicalDepression)
+  (exists (?PLACE ?WIND)
+    (and
+      (eventLocated ?TD ?PLACE)
+      (equal ?WIND
+        (Mean1MintueWindSpeedFn ?PLACE
+          (WhenFn ?TD)))
+      (lessThanOrEqualTo ?WIND
+        (MeasureFn 38 MilesPerHour)))))
+        
+(subclass TropicalCyclone TropicalCyclonicSystem)    
+(documentation TropicalCyclone EnglishLanguage "&%TropicalCyclone is a generic term
+for &%TropicalCyclonicSystems with 1-minute sustained winds of 44 &%MilesPerHour 
+(mph)or higher.")
+(documentation TropicalCyclone ChineseLanguage "&%TropicalCyclone 热带气旋是
+热带氣旋系统的一个统称，它的一分钟平均风速一般达每小时44英里（&%MilesPerHour）或更高的风速。")
+(termFormat EnglishLangauge TropicalCyclone "tropical cyclone")
+(termFormat ChineseLanguage TropicalCyclone "热带气旋")
 
-(subclass Hurricane TropicalCyclone)  
+(=>
+  (instance ?TD TropicalCyclone)
+  (exists (?PLACE ?WIND)
+    (and
+      (eventLocated ?TD ?PLACE)
+      (equal ?WIND
+        (Mean1MintueWindSpeedFn ?PLACE
+          (WhenFn ?TD)))
+      (greaterThanOrEqualTo ?WIND
+        (MeasureFn 44 MilesPerHour)))))
 
-(subclass Typhoon TropicalCyclone)
+(subclass TropicalStorm TropicalCyclonicSystem)
+(documentation TropicalStorm EnglishLanguage "&%TropicalStorm is a &%TropicalCyclonicSystem
+with 1-minute sustained winds ranging between 39 and 72 &%MilesPerHour.")
+(documentation TropicalStorm ChineseLanguage "热带风暴(&%TropicalStorm)是一分钟平均风速
+在每小时39和74英里(&%MilesPerHour)之间的热带氣旋系统(&%TropicalCyclonicSystem)。")
+(termFormat EnglishLangauge TropicalStorm "tropical storm")
+(termFormat ChineseLanguage TropicalStorm "热带风暴")
+
+(=>
+  (instance ?TD TropicalStorm)
+  (exists (?PLACE ?WIND)
+    (and
+      (eventLocated ?TD ?PLACE)
+      (equal ?WIND
+        (Mean1MintueWindSpeedFn ?PLACE
+          (WhenFn ?TD)))
+      (greaterThanOrEqualTo ?WIND
+        (MeasureFn 39 MilesPerHour))
+      (lessThanOrEqualTo ?WIND
+        (MeasureFn 74 MilesPerHour)))))
+        
+(documentation Hurricane EnglishLanguage "&%Hurricanes are &%TropicalCyclones with 
+&%Mean1MinuteWindSpeedFn (1-minute sustained winds)equal to or over 74 &%MilesPerHour
+formed in NorthEast Pacific or North Atlantic oceans. They are classified into 5 categories
+based on the &%SSHWSAttribute (Saffir-Simpson hurricane wind scale).")
+(documentation Hurricane ChineseLanguage "颶風(&%Hurricane)是1分钟平均地面风速(&%Mean1MinuteWindSpeedFn) 
+达到或高于每小时74 英里(&%MilesPerHour)位于东北太平洋或北大西洋的热带气旋(&%TropicalCyclone)。按照
+萨菲尔辛普森飓风风力等级(&%SSHWSAttribute)可分为五个等级。")
+(subclass Hurricane TropicalCyclonicSystem) 
+(termFormat EnglishLangauge Hurricane "hurricane")
+(termFormat ChineseLanguage Hurricane "颶風")
+
+(documentation Typhoon EnglishLanguage "&%Typhoons are &%TropicalCyclones with 
+&%Mean10MinuteWindSpeedFn (10-minute sustained winds)equal to or over 64 &%MilesPerHour
+formed in NorthWest Pacific ocean.")
+(documentation Typhoon ChineseLanguage "颱風（&%Typhoon）是10分钟平均地面风速(&%Mean10MinuteWindSpeedFn) 
+达到或高于每小时64 英里(&%MilesPerHour)位于西北太平洋的热带气旋(&%TropicalCyclone)。")
+(subclass Typhoon TropicalCyclonicSystem)
+(termFormat EnglishLangauge Typhoon "typhoon")
+(termFormat ChineseLanguage Typhoon "颱風")
 
 (subclass HighPressureWeatherSystem WeatherSystem)
 
@@ -1086,7 +1195,6 @@ the total amount of precipitation was ?AMOUNT.")
 (=>
   (and
     (instance ?DUSTSTORM DustStorm)
-    (instance ?WIND Wind)
     (subProcess ?DUSTSTORM ?WIND))
   (exists (?WIND ?TRANSLOCATE ?PM ?SAND ?A1 ?A2 ?STRONG)
     (and
@@ -2141,7 +2249,7 @@ of a &%Hurricane based on the highest wind speed averaged over a one-minute inte
   (exists (?WIND)
     (and
       (greaterThanOrEqualTo ?WIND ?MIN)
-      (lessThanOrEqualTo ?WING ?MAX)
+      (lessThanOrEqualTo ?WIND ?MAX)
       (believes ?A
         (equal ?WIND
           (Mean1MinuteWindSpeedFn ?AREA
