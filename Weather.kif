@@ -600,12 +600,12 @@ of a &%CyclonicStorm ?CS.")
 
 (subclass TropicalCyclonicSystem CyclonicStorm) 
 (documentation TropicalCyclonicSystem EnglishLanguage "&%TropicalCyclonicSystem is the class of 
-&%CyclonicStorms that occur in the &%Tropics and typically have rotational winds of strong 
+&%CyclonicStorms that originates in the &%Tropics and typically have rotational winds of strong 
 force (> 25 mph) or higher.The whole system typically moving forward at 10-15 mph, 
 but it can also stay quasistationary, or travel as fast as 40 mph.
 https://www.metoffice.gov.uk/research/weather/tropical-cyclones/facts")
 (documentation TropicalCyclonicSystem ChineseLanguage "&%TropicalCyclonicSystem (热带气旋系统)
-是&%CyclonicStorm (气旋风暴)的一类，它出现于&%Tropics (热带)。它的风朝气旋中心，向内旋转，风速一般达强风
+是&%CyclonicStorm (气旋风暴)的一类，它在热带（&%Tropics）产生，风向朝气旋中心，向内旋转，风速一般达强风
 (>25 mph)程度或更高的风速。整个系统通常以每小时10-15英里 （10-15 mph）向前移动，可是有时候也会
 保持停留不动，或是移动速度快达每小时40英里 （40 mph)。
 https://www.metoffice.gov.uk/research/weather/tropical-cyclones/facts")
@@ -618,7 +618,7 @@ https://www.metoffice.gov.uk/research/weather/tropical-cyclones/facts")
     (and
       (instance ?PLACE GeographicArea)
       (geographicSubregion ?PLACE Tropics)
-      (eventLocated ?STORM ?PLACE))))
+      (origin ?STORM ?PLACE))))
       
 (subclass TropicalDepression TropicalCyclonicSystem)                 
 (documentation TropicalDepression EnglishLanguage "A &%TropicalDepression
@@ -636,9 +636,10 @@ Typhoon Warning Center (JTWC) and the Central Pacific Hurricane Center (CPHC).")
   (instance ?TD TropicalDepression)
   (exists (?PLACE ?WIND)
     (and
+      (instance ?PLACE GeographicArea)
       (eventLocated ?TD ?PLACE)
       (equal ?WIND
-        (Mean1MintueWindSpeedFn ?PLACE
+        (Mean1MinuteWindSpeedFn ?PLACE
           (WhenFn ?TD)))
       (lessThanOrEqualTo ?WIND
         (MeasureFn 38 MilesPerHour)))))
@@ -653,15 +654,52 @@ for &%TropicalCyclonicSystems with 1-minute sustained winds of 44 &%MilesPerHour
 (termFormat ChineseLanguage TropicalCyclone "热带气旋")
 
 (=>
-  (instance ?TD TropicalCyclone)
+  (instance ?TC TropicalCyclone)
   (exists (?PLACE ?WIND)
     (and
-      (eventLocated ?TD ?PLACE)
+      (instance ?PLACE GeographicArea)
+      (eventLocated ?TC ?PLACE)
       (equal ?WIND
-        (Mean1MintueWindSpeedFn ?PLACE
-          (WhenFn ?TD)))
+        (Mean1MinuteWindSpeedFn ?PLACE
+          (WhenFn ?TC)))
       (greaterThanOrEqualTo ?WIND
         (MeasureFn 44 MilesPerHour)))))
+
+(=>
+  (and
+    (instance ?TC TropicalCyclone)
+    (origin ?TC ?SEA)
+    (or
+      (instance ?SEA NorthAtlanticOcean)
+      (instance ?SEA PacificOcean)
+      (instance ?SEA IndianOcean)))
+  (not
+    (exists (?AREA ?DIR ?NUM ?LONG)
+      (and
+        (located ?AREA ?SEA)
+        (instance ?DIR DirectionalAttribute)
+        (objectGeographicCoordinates ?AREA
+          (LatitudeFn ?DIR
+            (MeasureFn ?NUM AngularDegree)) ?LONG)
+        (or
+          (equal ?DIR North)
+          (equal ?DIR South))
+        (lessThan ?NUM 5)))))
+
+(=>
+  (and
+    (instance ?TC TropicalCyclone)
+    (destination ?TC ?DEST)
+    (instance ?DEST GeographicArea))
+  (not
+    (exists (?L ?SL ?X)
+      (and
+        (instance ?L LandArea)
+        (instance ?SL ShoreLine)
+        (located ?DEST ?L)
+        (distance ?L ?SL 
+          (MeasureFn ?X Mile))
+        (greaterThan ?X 200)))))
 
 (subclass TropicalStorm TropicalCyclonicSystem)
 (documentation TropicalStorm EnglishLanguage "&%TropicalStorm is a &%TropicalCyclonicSystem
@@ -672,38 +710,86 @@ with 1-minute sustained winds ranging between 39 and 72 &%MilesPerHour.")
 (termFormat ChineseLanguage TropicalStorm "热带风暴")
 
 (=>
-  (instance ?TD TropicalStorm)
+  (instance ?TS TropicalStorm)
   (exists (?PLACE ?WIND)
     (and
-      (eventLocated ?TD ?PLACE)
+      (instance ?PLACE GeographicArea)
+      (eventLocated ?TS ?PLACE)
       (equal ?WIND
-        (Mean1MintueWindSpeedFn ?PLACE
-          (WhenFn ?TD)))
+        (Mean1MinuteWindSpeedFn ?PLACE
+          (WhenFn ?TS)))
       (greaterThanOrEqualTo ?WIND
         (MeasureFn 39 MilesPerHour))
       (lessThanOrEqualTo ?WIND
         (MeasureFn 74 MilesPerHour)))))
         
-(documentation Hurricane EnglishLanguage "&%Hurricanes are &%TropicalCyclones with 
-&%Mean1MinuteWindSpeedFn (1-minute sustained winds)equal to or over 74 &%MilesPerHour
-formed in NorthEast Pacific or North Atlantic oceans. They are classified into 5 categories
+(documentation Hurricane EnglishLanguage "&%Hurricanes are &%TropicalCyclones formed in 
+&%NortheasternPacificOcean or &%NorthAtlanticOcean with &%Mean1MinuteWindSpeedFn 
+(1-minute sustained winds)equal to or over 74 &%MilesPerHour.They are classified into 5 categories
 based on the &%SSHWSAttribute (Saffir-Simpson hurricane wind scale).")
-(documentation Hurricane ChineseLanguage "颶風(&%Hurricane)是1分钟平均地面风速(&%Mean1MinuteWindSpeedFn) 
-达到或高于每小时74 英里(&%MilesPerHour)位于东北太平洋或北大西洋的热带气旋(&%TropicalCyclone)。按照
-萨菲尔辛普森飓风风力等级(&%SSHWSAttribute)可分为五个等级。")
+(documentation Hurricane ChineseLanguage "颶風(&%Hurricane)是在东北太平洋(&%NortheasternPacificOcean)
+或北大西洋(&%NorthAtlanticOcean)形成、1分钟平均地面风速(&%Mean1MinuteWindSpeedFn) 达到或高于每小时74英里
+(&%MilesPerHour)的热带气旋(&%TropicalCyclone)。按照萨菲尔辛普森飓风风力等级(&%SSHWSAttribute)可分为五个等级。")
 (subclass Hurricane TropicalCyclonicSystem) 
 (termFormat EnglishLangauge Hurricane "hurricane")
 (termFormat ChineseLanguage Hurricane "颶風")
 
+(=>
+  (instance ?H Hurricane)
+  (exists (?TC ?PLACE ?WIND)
+    (and
+      (instance ?TC TropicalCyclone)
+      (instance ?PLACE GeographicArea)
+      (eventLocated ?TC ?PLACE)
+      (equal ?WIND
+        (Mean1MinuteWindSpeedFn ?PLACE
+          (WhenFn ?TC)))
+      (greaterThanOrEqualTo ?WIND
+        (MeasureFn 74 MilesPerHour)))))    
+
+(=>
+  (and
+    (instance ?H Hurricane)
+    (eventLocated ?H ?P)
+    (instance ?P GeographicArea)
+    (or
+      (located ?P ?SEA)
+      (meetsSpatially ?P ?SEA)))
+  (or
+    (equal ?SEA NortheasternPacificOcean)
+    (equal ?SEA NorthAtlanticOcean)))
+    
 (documentation Typhoon EnglishLanguage "&%Typhoons are &%TropicalCyclones with 
-&%Mean10MinuteWindSpeedFn (10-minute sustained winds)equal to or over 64 &%MilesPerHour
-formed in NorthWest Pacific ocean.")
-(documentation Typhoon ChineseLanguage "颱風（&%Typhoon）是10分钟平均地面风速(&%Mean10MinuteWindSpeedFn) 
-达到或高于每小时64 英里(&%MilesPerHour)位于西北太平洋的热带气旋(&%TropicalCyclone)。")
+&%Mean10MinutesWindSpeedFn (10-minute sustained winds) equal to or over 64 &%MilesPerHour
+formed in &%NorthwesternPacificOcean.")
+(documentation Typhoon ChineseLanguage "颱風（&%Typhoon）是10分钟平均地面风速(&%Mean10MinutesWindSpeedFn) 
+达到或高于每小时64 英里(&%MilesPerHour)在西北太平洋(&%NorthwesternPacificOcean)的热带气旋(&%TropicalCyclone)。")
 (subclass Typhoon TropicalCyclonicSystem)
 (termFormat EnglishLangauge Typhoon "typhoon")
 (termFormat ChineseLanguage Typhoon "颱風")
 
+(=>
+  (instance ?T Typhoon)
+   (exists (?TC ?PLACE ?WIND)
+     (and
+       (instance ?TC TropicalCyclone)
+       (instance ?PLACE GeographicArea)
+       (eventLocated ?TC ?PLACE)
+       (equal ?WIND
+         (Mean10MinutesWindSpeedFn ?PLACE
+           (WhenFn ?TC)))
+       (greaterThanOrEqualTo ?WIND
+         (MeasureFn 64 MilesPerHour)))))    
+
+(=>
+  (and
+    (instance ?T Typhoon)
+    (eventLocated ?T ?P)
+    (instance ?P GeographicArea))
+  (or
+    (located ?P NorthwesternPacificOcean)
+    (meetsSpatially ?P NorthwesternPacificOcean)))
+         
 (subclass HighPressureWeatherSystem WeatherSystem)
 
 (documentation HighPressureWeatherSystem EnglishLanguage "&%HighPressureWeatherSystem is 
@@ -1310,6 +1396,21 @@ downburst of a &%Thunderstorm.")
       (instance ?SURF SurfZone)
     (eventLocated ?BREAK ?SURF))))
 
+(documentation RedFlagSwimmingCondition EnglishLanguage "A &%RedFlagSwimmingCondition is an &attribute
+ of a &%SurfZone when its &%SignificantWaveHeight goes above 8 &%Footlength.")
+
+(instance RedFlagSwimmingCondition RelationalAttribute)
+
+(=>
+  (and
+    (instance ?SZ SurfZone)
+    (instance ?X LengthMeasure)
+    (significantWaveHeight ?SZ
+      (WhenFn ?SZ)
+      (MeasureFn ?X FootLength))
+    (greaterThan ?X 8))
+  (attribute ?SZ RedFlagSwimmingCondition))
+    
 (documentation waveHeight EnglishLanguage "&%waveHeight is a &%BinaryPredicate. 
 (waveHeight ?WW ?X) means that ?X is the &%LengthMeasure of the difference 
 between the &%altitude of the crest and its leading trough of the &%BodyOfWater of 
@@ -1481,7 +1582,22 @@ of the &%WaterWaves over a &%SurfZone is greater than 13 &%FootLength or 4 &%Met
         (instance ?WW WaterWave)
         (subProcess ?WW ?HS)
         (eventLocated ?WW ?SZ)))))
- 
+
+(=>
+  (and
+    (instance ?HS HeavySurf)
+    (instance ?PLACE WaterArea)
+    (eventLocated ?HS ?PLACE))
+  (exists (?SWIM ?A)
+    (and
+      (instance ?SWIM Swimming)
+      (instance ?A Human)
+      (agent ?SWIM ?A)
+      (evenLocated ?SWIM ?PLACE)
+      (holdsDuring
+        (WhenFn ?HS)
+        (hazardous ?HS ?A)))))
+        
 ; extra definitions for flooding which situated in Mid-level ontology.kif
 ; to say that "Flooding occurs when an area of land that is unlikely
 ; to be submerged in water is covered by water.
@@ -2007,6 +2123,7 @@ have wind gusts ranging between 65 to 85 mph,and the severest &%Tornades (EF5)
 (domain speedScaleAttributeMinMax 1 SpeedScaleAttribute)
 (domain speedScaleAttributeMinMax 2 FunctionQuantity)
 (domain speedScaleAttributeMinMax 3 FunctionQuantity)
+(instance speedScaleAttributeMinMax TernaryRelation)
 
 (=>
   (speedScaleAttributeMinMax ?ATTR ?MIN ?MAX) 
@@ -2411,10 +2528,12 @@ less than 1,000 &%Meter.")
   (and
     (instance ?FOG Fogging)
     (eventLocated ?FOG ?AREA)    
-    (instance ?AREA AtmosphericRegion)
+    (instance ?AREA GeographicArea)
+    (instance ?AIR AtmosphericRegion)
+    (orientation ?AIR ?AREA Above)
     (instance ?A Aerosal)
     (locatedAtTime ?A
-      (WhenFn ?FOG) ?AREA)   
+      (WhenFn ?FOG) ?AIR)   
     (visibilityInMeteorology ?AREA
       (WhenFn ?FOG)
       (MeasureFn ?VISIBILITY Meter)))
@@ -2438,10 +2557,11 @@ wikipedia]")
   (and
     (instance ?HAZE AtmosphericHazing)
     (eventLocated ?HAZE ?AREA)    
-    (instance ?AREA AtmosphericRegion)
-    (instance ?PARTICULATE ParticulateMatter)
+    (instance ?AREA GeographicArea)
+    (instance ?AIR AtmosphericRegion)
+    (orientation ?AIR ?AREA Above)
     (locatedAtTime ?PARTICULATE
-      (WhenFn ?HAZE) ?AREA)   
+      (WhenFn ?HAZE) ?AIR)   
     (visibilityInMeteorology ?AREA
       (WhenFn ?HAZE)
       (MeasureFn ?VISIBILITY Kilometer)))
@@ -2449,7 +2569,33 @@ wikipedia]")
       (greaterThan ?VISIBILITY 2)
       (lessThan ?VISIBILITY 5)))
 
-;Blizzard 30 Sept 2017 Jennie
+(documentation BadAirQuality EnglishLanguage "When there is &%AtmosphericHazing or
+&%DustStorm in a &%GeographicArea, the place is likely to suffer from
+&%BadAirQuality.")
+(documentation BadAirQuality ChineseLanguage "在阴霾 &%AtmosphericHazing和沙尘暴&%DustStorm 
+发生的地方 &%GeographicArea, 当地的空气多会是差的&%BadAirQuality。")
+
+(instance BadAirQuality RelationalAttribute)
+
+(=>
+  (and
+    (instance ?HAZE AtmosphericHazing)
+    (instance ?PLACE GeographicArea)
+    (eventLocated ?HAZE ?PLACE))
+  (holdsDuring
+    (WhenFn ?HAZE)
+    (modalAttribute
+      (attribute ?PLACE BadAirQuality) Likely)))
+
+(=>
+  (and
+    (instance ?DUST DustStorm)
+    (instance ?PLACE GeographicArea)
+    (eventLocated ?DUST ?PLACE))
+  (holdsDuring
+    (WhenFn ?DUST)
+      (modalAttribute
+        (attribute ?PLACE BadAirQuality) Likely)))
 
 (documentation Blizzard EnglishLanguage "A &%Blizzard is a &%Snowing with 
 &%surfaceWindSpeed of over 35 &%KnotUnitOfSpeed for a sustained &%duration of at least 3 
