@@ -654,16 +654,52 @@ for &%TropicalCyclonicSystems with 1-minute sustained winds of 44 &%MilesPerHour
 (termFormat ChineseLanguage TropicalCyclone "热带气旋")
 
 (=>
-  (instance ?TD TropicalCyclone)
+  (instance ?TC TropicalCyclone)
   (exists (?PLACE ?WIND)
     (and
       (instance ?PLACE GeographicArea)
-      (eventLocated ?TD ?PLACE)
+      (eventLocated ?TC ?PLACE)
       (equal ?WIND
         (Mean1MinuteWindSpeedFn ?PLACE
-          (WhenFn ?TD)))
+          (WhenFn ?TC)))
       (greaterThanOrEqualTo ?WIND
         (MeasureFn 44 MilesPerHour)))))
+
+(=>
+  (and
+    (instance ?TC TropicalCyclone)
+    (origin ?TC ?SEA)
+    (or
+      (instance ?SEA NorthAtlanticOcean)
+      (instance ?SEA PacificOcean)
+      (instance ?SEA IndianOcean)))
+  (not
+    (exists (?AREA ?DIR ?NUM ?LONG)
+      (and
+        (located ?AREA ?SEA)
+        (instance ?DIR DirectionalAttribute)
+        (objectGeographicCoordinates ?AREA
+          (LatitudeFn ?DIR
+            (MeasureFn ?NUM AngularDegree)) ?LONG)
+        (or
+          (equal ?DIR North)
+          (equal ?DIR South))
+        (lessThan ?NUM 5)))))
+
+(=>
+  (and
+    (instance ?TC TropicalCyclone)
+    (destination ?TC ?DEST)
+    (instance ?DEST GeographicArea))
+  (not
+    (exists (?L ?SL ?X)
+      (and
+        (instance ?L LandArea)
+        (instance ?SL ShoreLine)
+        (located ?DEST ?L)
+        (distance ?L ?SL 
+          (MeasureFn ?X Mile))
+        (greaterThan ?X 200)))))
 
 (subclass TropicalStorm TropicalCyclonicSystem)
 (documentation TropicalStorm EnglishLanguage "&%TropicalStorm is a &%TropicalCyclonicSystem
@@ -674,14 +710,14 @@ with 1-minute sustained winds ranging between 39 and 72 &%MilesPerHour.")
 (termFormat ChineseLanguage TropicalStorm "热带风暴")
 
 (=>
-  (instance ?TD TropicalStorm)
+  (instance ?TS TropicalStorm)
   (exists (?PLACE ?WIND)
     (and
       (instance ?PLACE GeographicArea)
-      (eventLocated ?TD ?PLACE)
+      (eventLocated ?TS ?PLACE)
       (equal ?WIND
         (Mean1MinuteWindSpeedFn ?PLACE
-          (WhenFn ?TD)))
+          (WhenFn ?TS)))
       (greaterThanOrEqualTo ?WIND
         (MeasureFn 39 MilesPerHour))
       (lessThanOrEqualTo ?WIND
@@ -710,15 +746,19 @@ based on the &%SSHWSAttribute (Saffir-Simpson hurricane wind scale).")
           (WhenFn ?TC)))
       (greaterThanOrEqualTo ?WIND
         (MeasureFn 74 MilesPerHour)))))    
+
 (=>
   (and
     (instance ?H Hurricane)
-    (instance ?PLACE GeographicArea)
-    (origin ?H ?PLACE))
+    (eventLocated ?H ?P)
+    (instance ?P GeographicArea)
+    (or
+      (located ?P ?SEA)
+      (meetsSpatially ?P ?SEA)))
   (or
-    (located ?PLACE NortheasternPacificOcean)
-    (located ?PLACE NorthAtlanticOcean)))
-
+    (equal ?SEA NortheasternPacificOcean)
+    (equal ?SEA NorthAtlanticOcean)))
+    
 (documentation Typhoon EnglishLanguage "&%Typhoons are &%TropicalCyclones with 
 &%Mean10MinutesWindSpeedFn (10-minute sustained winds) equal to or over 64 &%MilesPerHour
 formed in &%NorthwesternPacificOcean.")
@@ -744,10 +784,12 @@ formed in &%NorthwesternPacificOcean.")
 (=>
   (and
     (instance ?T Typhoon)
-    (instance ?PLACE GeographicArea)
-    (origin ?T ?PLACE))
-  (located ?PLACE NorthwesternPacificOcean))
-             
+    (eventLocated ?T ?P)
+    (instance ?P GeographicArea))
+  (or
+    (located ?P NorthwesternPacificOcean)
+    (meetsSpatially ?P NorthwesternPacificOcean)))
+         
 (subclass HighPressureWeatherSystem WeatherSystem)
 
 (documentation HighPressureWeatherSystem EnglishLanguage "&%HighPressureWeatherSystem is 
@@ -1354,6 +1396,21 @@ downburst of a &%Thunderstorm.")
       (instance ?SURF SurfZone)
     (eventLocated ?BREAK ?SURF))))
 
+(Documentation RedFlagSwimmingCondition EnglishLanguage "A &%RedFlag is &attribute to a &%SurfZone when its
+&%SignificantWaveHeight goes above 8 &%Footlength.")
+
+(instance RedFlagSwimmingCondition RelationalAttribute)
+
+(=>
+  (and
+    (instance ?SZ SurfZone)
+    (instance ?X LengthMeasure)
+    (significantWaveHeight ?SZ
+      (WhenFn ?SZ)
+      (MeasureFn ?X FootLength))
+    (greaterThan ?X 8))
+  (attribute ?SZ RedFlagSwimmingCondition))
+    
 (documentation waveHeight EnglishLanguage "&%waveHeight is a &%BinaryPredicate. 
 (waveHeight ?WW ?X) means that ?X is the &%LengthMeasure of the difference 
 between the &%altitude of the crest and its leading trough of the &%BodyOfWater of 
@@ -2527,8 +2584,8 @@ wikipedia]")
     (eventLocated ?HAZE ?PLACE))
   (holdsDuring
     (WhenFn ?HAZE)
-      (modalAttribute
-        (attribute ?PLACE BadAirQuality) Likely)))
+    (modalAttribute
+      (attribute ?PLACE BadAirQuality) Likely)))
 
 (=>
   (and
