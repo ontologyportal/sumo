@@ -722,7 +722,7 @@ that meet into a single transitway.")
   (traverses ?P3 ?POINT))
 
  ;; note that a Transitway need not be bi-directional
- 
+
 (=>
   (and
     (routeBetween ?P1 ?L1 ?L2)
@@ -747,18 +747,319 @@ that meet into a single transitway.")
       (distanceOnPath (MeasureFn ?D3 ?U) ?P3))))
 
 
-(22) John went from MP to MV in 1 hour. How long does it take not go from MP to MV? No idea. Need to know how he moved, then one can say that it can be done in 1 hour by that way of locomotion but it can also take more or less time.
-(23) The road goes from MV to MP.  PA is between MV and MP.  Does the road go through PA? Don’t know: it can go around the bay (237 going from MV to Oakland is a bit like that: the bay is between MV and Oakland but 237 doesn’t cross the bay).
-(24) The meeting went from 3 to 5 pm. Was the meeting going on at 4 pm. Yes, but it depends on your view of granularity: it could be that just at 4pm, there was a little break. How do you want to handle that?
+(22) John went from MP to MV in 1 hour. How long does it take not go from MP to MV?
+No idea. Need to know how he moved, then one can say that it can be done in 1 hour
+by that way of locomotion but it can also take more or less time.
+
+
+(23) The road goes from MV to MP.  PA is between MV and MP.  Does the road go through PA?
+Don’t know: it can go around the bay (237 going from MV to Oakland is a bit like that: the
+bay is between MV and Oakland but 237 doesn’t cross the bay).
+
+(exists (?T)
+  (and
+    (instance ?T Transitway)
+    (routeBetween ?T MountainViewCA MenloParkCA)))
+
+query:
+(exists (?T)
+  (and
+    (instance ?T Transitway)
+    (traverses ?T PaloAltoCA)))
+
+(24) The meeting went from 3 to 5 pm. Was the meeting going on at 4 pm.
+Yes, but it depends on your view of granularity: it could be that just at 4pm,
+there was a little break. How do you want to handle that?
+
+(instance typicalProcessElement BinaryPredicate)
+(documentation typicalProcessElement EnglishLanguage "A &%Relation between &%Classes stating that
+one &%Process is typically a &%subProcess of another.")
+(domainSubclass typicalProcessElement 1 Process)
+(domainSubclass typicalProcessElement 2 Process)
+
+(=>
+  (typicalProcessElement ?PART ?WHOLE)
+  (exists (?X ?Y)
+    (and
+      (instance ?X ?WHOLE)
+      (instance ?Y ?PART)
+      (part ?Y ?X))))
+
+
+(=>
+  (and
+    (typicalProcessElement ?PART ?WHOLE)
+    (instance ?X ?PART)
+    (equal ?PARTPROB
+      (ProbabilityFn
+        (exists (?Y)
+          (and
+            (instance ?Y ?WHOLE)
+            (subProcess ?X ?Y)))))
+    (equal ?NOTPARTPROB
+      (ProbabilityFn
+        (not
+          (exists (?Z)
+            (and
+              (instance ?Z ?WHOLE)
+              (subProcess ?X ?Z)))))))
+  (greaterThan ?PARTPROB ?NOTPARTPROB))
+
+(instance processElement BinaryPredicate)
+(documentation processElement EnglishLanguage "A &%Relation between &%Classes stating that
+one &%Process is necessarily a &%subProcess of another.")
+(domainSubclass processElement 1 Process)
+(domainSubclass processElement 2 Process)
+
+(=>
+  (and
+    (instance ?PI ?P)
+    (processElement ?PE ?P))
+  (exists (?PEI)
+    (and
+      (instance ?PEI ?PE)
+      (subProcess ?PEI ?PI))))
+
+(subclass HomogeneouProcess Process)
+(documentation HomogeneouProcess EnglishLanguage "A &%Process that can have temporal sub-parts that
+are of the same type, down to a certain level of granularity.  For example, &%Walking can
+have parts that are also instances of walking, unless it's such a short instance that it's just
+two steps.  But a &%HeterogeneousProcess has no temporal sub-parts of the same type.  For
+example, &%Attaching has no temporal sub-parts that are also attachings.")
+
+(=>
+  (and
+    (instance ?P HomogeneouProcess)
+    (not
+      (equals ?PC HomogeneouProcess))
+    (immediateInstance ?P ?PC))
+  (modalAttribute
+    (exists (?PSUB)
+      (and
+        (subProcess ?PSUB ?P)
+        (instance ?PSUB ?PC)))
+    Possibility)))
+
+(subclass HeterogeneouProcess Process)
+(documentation HeterogeneouProcess EnglishLanguage "A &%Process that do not have temporal sub-parts that
+are of the same type  For
+example, &%Attaching has no temporal sub-parts that are also attachings.")
+(disjoint HeterogeneouProcess HomogeneouProcess)
+
+(=>
+  (and
+    (instance ?P HeterogeneouProcess)
+    (not
+      (equals ?PC HomogeneouProcess))
+    (immediateInstance ?P ?PC))
+  (not
+    (exists (?PSUB)
+      (and
+        (subProcess ?PSUB ?P)
+        (instance ?PSUB ?PC)))))
+
+(subclass Meeting HomogeneouProcess)
+(processElement Communication Meeting)
+
 (25) John went from MV to ML. Did John go from MP to MV? Don’t know
-(26) The road goes from MV to MP.  Does the road go from MP to MV? yes but what do you want to say about one way roads:
+
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (origin ?T MountainViewCA)
+    (destination ?T MenloParkCA)))
+
+query:
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (origin ?T MenloParkCA)
+    (destination ?T MountainViewCA)))
+
+(26) The road goes from MV to MP.  Does the road go from MP to MV?
+yes but what do you want to say about one way roads:
+
+(exists (?R)
+  (and
+    (instance ?R BidirectionalTransitway)
+    (routeBetween ?R MountainViewCA MenloParkCA)))
+
+query:
+(routeBetween ?X MenloParkCA MountainViewCA)
+
 (27) The road goes from MV to MP.  Can you go from MP to MV that way? Don’t know.
-(28) From Monday to Friday the Bay Bridge will be unusable from Yerba Buena Island to Oakland. Will you be able to use the road to go from Yerba Buena to Oakland between Monday and Friday? No. Will you be able to use the road to go from Oakland to Yerba Buena between Monday and Friday? Maybe.
+
+(exists (?R)
+  (and
+    (instance ?R Road)
+    (traverses ?R MountainViewCA)
+    (traverses ?R MenloParkCA)))
+
+(instance ElCaminoReal BidirectionalTransitway)
+(subclass BidirectionalTransitway Transitway)
+(documentation BidirectionalTransitway EnglishLanguage "A &%Transitway that allows travel in both
+directions, either by having flexible laws or customs, or two segmented traffic streams in the
+same transityway that travel in opposite directions.  A single-track forest trail would be
+bidirectional, as would a single track rural road with bypass areas, as would a divided highway.")
+
+(=>
+  (and
+    (instance ?R BidirectionalTransitway)
+    (routeBetween ?R ?A ?B))
+  (routeBetween ?R ?B ?A))
+
+(28) From Monday to Friday the Bay Bridge will be unusable from Yerba Buena Island to Oakland.
+Will you be able to use the road to go from Yerba Buena to Oakland between Monday and Friday? No.
+Will you be able to use the road to go from Oakland to Yerba Buena between Monday and Friday? Maybe.
+
+(instance TransitwayClosed RelationalAttribute)
+(documentation TransitwayClosed EnglishLanguage "An &%Attribute stating that a &%Transitway is closed.
+or blocked in some way.  This covers legal or other normative statements that prohibit its use.")
+
+(=>
+  (holdsDuring ?TIME
+    (attribute ?T TransitwayClosed))
+  (exists (?P)
+    (holdsObligation ?P
+      (holdsDuring ?TIME
+        (not
+          (exists (?TP)
+            (and
+              (instance ?TP Translocation)
+              (located ?TP ?T)))))))
+
+;; note from Merge.kif
+(=>
+  (and
+    (holdsDuring ?TIME1 ?SITUATION)
+    (temporalPart ?TIME2 ?TIME1))
+  (holdsDuring ?TIME2 ?SITUATION))
+
+(instance BayBridgeSF Bridge)
+(routeBetween BayBridge YerbaBuenaIsland Oakland)
+(routeBetween BayBridge Oakland YerbaBuenaIsland)
+
+(and
+  (holdsDuring ?T
+     (attribute BayBridgeSF TransitwayClosed))
+  (exists (?WEEK ?M ?F)
+    (and
+      (instance ?WEEK Week)
+      (instance ?M Monday)
+      (instance ?F Friday)
+      (during ?M ?WEEK)
+      (during ?F ?WEEK)
+      (equal ?T
+        (TimeIntervalFn
+          (BeginFn ?M)
+          (EndFn ?F))))))
+
+;; note we don't have a working inference system for full HOL
+;; (needed for holdsDuring and holdsObligation)
+
 (29) Liz went from Stanford to MIT. Did she walk? very unlikely.
+
+(and
+  (greaterThan ?D (MeasureFn 3000 Mile))
+  (distance StanfordUniversity MIT ?D))
+
+(=>
+  (and
+    (distance ?O ?D (MeasureFn ?N1 ?U))
+    (instance ?T Translocation)
+    (path ?T ?P)
+    (distanceOnPath (MeasureFn ?N2 Mile) ?P)
+    (origin ?T ?O)
+    (destination ?T ?D))
+  (greaterThan ?N2 ?N1))
+
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (agent ?T Liz)
+    (origin ?T StanfordUniversity)
+    (destination ?T MIT)))
+
+(=>
+  (and
+    (instance ?T Translocation)
+    (path ?T ?P)
+    (distanceOnPath (MeasureFn ?N Mile) ?P)
+    (greaterThan ?N 1))
+  (modalAttribute
+    (instance ?T Walking)
+    Unlikely))
+
+query:
+(and
+  (instance ?T Walking)
+  (agent ?T Liz)
+  (origin ?T StanfordUniversity)
+  (destination ?T MIT))
+
+;; note we don't have a working inference system for full HOL
+
 (30) Liz went from Harvard to MIT. Did she walk? Possibly.
+
+(distance (MeasureFn 0.9 Mile) Harvard MIT)
+
+(and
+  (instance ?T Walking)
+  (agent ?T Liz)
+  (origin ?T Harvard)
+  (destination ?T MIT))
+
+;; note we don't have a working inference system for full HOL
+
 (31) The road climbs 5 meters between X and Y. Does the road descend 5 meters between Y and X? yes.
+
+(=>
+  (altitude ?P1 ?P2 ?D)
+  (altitude ?P2 ?P1 (SubtractionFn 0 ?D)))
+
+(routeBetween TheRoute X Y)
+(altitude X Y (MeasureFn 5 Meters))
+
+query:
+(altitude Y X (MeasureFn -5 Meters))
+
 (32) John climbed 5 meters between X and Y. Did John descend 5 meters between Y and X?  ???
+
+(exists (?M)
+  (and
+    (instance ?M MotionUpward)
+    (origin ?M X)
+    (destination ?M Y)
+    (altitude X Y (MeasureFn 5 Meter)))
+
+query:
+(exists (?M)
+  (and
+    (instance ?M MotionDownward)
+    (origin ?M Y)
+    (destination ?M X)
+    (altitude Y X (MeasureFn -5 Meter)))
+
 (33) The train goes from one end of the station to the other. Is it a long train? Depends on size of station.
+
+(exists (?T ?S)
+  (and
+    (instance ?T Train)
+    (instance ?S TrainStation)
+    (length ?T (MeasureFn ?N Meter))
+    (length ?S (MeasureFn ?N Meter))))
+
+(defaultMaximumLength Train (MeasureFn 500 FootLength))
+(defaultMaximumLength TrainStation (MeasureFn 1000 FootLength))
+
+;; we could ask whether the train is longer than what's typical
+query:
+(and
+  (instance ?T Train)
+  (length ?T ?N1)
+  (defaultMaximumLength Train ?N2)
+  (greaterThan ?N1 ?N2))
+  
 (34) The train goes from Paris to Istanbul. Is it a long train? we don’t know.
 (35) John entered the EU on January 20, 2007. Is the EU now bigger? What the hell are you talking about?
 (36) Bulgaria entered the EU on January 1, 2007. IS the EU now bigger? Yes provided no other member left.
