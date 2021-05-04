@@ -1,16 +1,16 @@
 ;; Spatial reasoning problems
 ;; starting with word problems, then later coding the formal query and solution in SUMO
 
-(1), (2), (13) are from https://www.cosy.informatik.uni-bremen.de/sites/default/files/ByrneJohnson-Laird89.pdf
+; (1), (2), (13) are from https://www.cosy.informatik.uni-bremen.de/sites/default/files/ByrneJohnson-Laird89.pdf
 
-(1) A is on the right of B
-    C is on the left of B
-    Hence, A is on the right of C
+; (1) A is on the right of B
+;    C is on the left of B
+;    Hence, A is on the right of C
 
 (orientation A B Right)
 (orientation C B Left)
 
-need to add to SUMO:
+; need to add to SUMO:
 
 (=>
   (and
@@ -18,7 +18,7 @@ need to add to SUMO:
     (orientation ?Y ?Z ?R))
   (orientation ?X ?Z ?R))
 
-proof will involve
+; proof will involve
 
 (<=>
     (orientation ?OBJ1 ?OBJ2 Right)
@@ -820,8 +820,8 @@ one &%Process is necessarily a &%subProcess of another.")
       (instance ?PEI ?PE)
       (subProcess ?PEI ?PI))))
 
-(subclass HomogeneouProcess Process)
-(documentation HomogeneouProcess EnglishLanguage "A &%Process that can have temporal sub-parts that
+(subclass HomogeneousProcess Process)
+(documentation HomogeneousProcess EnglishLanguage "A &%Process that can have temporal sub-parts that
 are of the same type, down to a certain level of granularity.  For example, &%Walking can
 have parts that are also instances of walking, unless it's such a short instance that it's just
 two steps.  But a &%HeterogeneousProcess has no temporal sub-parts of the same type.  For
@@ -829,9 +829,9 @@ example, &%Attaching has no temporal sub-parts that are also attachings.")
 
 (=>
   (and
-    (instance ?P HomogeneouProcess)
+    (instance ?P HomogeneousProcess)
     (not
-      (equals ?PC HomogeneouProcess))
+      (equals ?PC HomogeneousProcess))
     (immediateInstance ?P ?PC))
   (modalAttribute
     (exists (?PSUB)
@@ -840,17 +840,17 @@ example, &%Attaching has no temporal sub-parts that are also attachings.")
         (instance ?PSUB ?PC)))
     Possibility)))
 
-(subclass HeterogeneouProcess Process)
-(documentation HeterogeneouProcess EnglishLanguage "A &%Process that do not have temporal sub-parts that
+(subclass HeterogeneousProcess Process)
+(documentation HeterogeneousProcess EnglishLanguage "A &%Process that do not have temporal sub-parts that
 are of the same type  For
 example, &%Attaching has no temporal sub-parts that are also attachings.")
-(disjoint HeterogeneouProcess HomogeneouProcess)
+(disjoint HeterogeneousProcess HomogeneousProcess)
 
 (=>
   (and
-    (instance ?P HeterogeneouProcess)
+    (instance ?P HeterogeneousProcess)
     (not
-      (equals ?PC HomogeneouProcess))
+      (equals ?PC HomogeneousProcess))
     (immediateInstance ?P ?PC))
   (not
     (exists (?PSUB)
@@ -858,7 +858,7 @@ example, &%Attaching has no temporal sub-parts that are also attachings.")
         (subProcess ?PSUB ?P)
         (instance ?PSUB ?PC)))))
 
-(subclass Meeting HomogeneouProcess)
+(subclass Meeting HomogeneousProcess)
 (processElement Communication Meeting)
 
 (25) John went from MV to ML. Did John go from MP to MV? Don’t know
@@ -886,6 +886,75 @@ yes but what do you want to say about one way roads:
 
 query:
 (routeBetween ?X MenloParkCA MountainViewCA)
+
+1. (forall (?VAR1)
+  (ans0 ?VAR1)) [] introduced:answer_literal
+, 2. (routeBetween sK1 MountainViewCA MenloParkCA) [3] cnf_transformation
+, 3. (exists (?VAR1)
+  (and
+    (routeBetween ?VAR1 MountainViewCA MenloParkCA)
+    (instance ?VAR1 BidirectionalTransitway))) [] kb_SUMO_148
+, 4. (=>
+  (exists (?VAR1)
+    (and
+      (routeBetween ?VAR1 MountainViewCA MenloParkCA)
+      (instance ?VAR1 BidirectionalTransitway)))
+  (and
+    (routeBetween sK1 MountainViewCA MenloParkCA)
+    (instance sK1 BidirectionalTransitway))) [] introduced:choice_axiom
+, 5. (and
+  (routeBetween sK1 MountainViewCA MenloParkCA)
+  (instance sK1 BidirectionalTransitway)) [3, 4] skolemisation
+, 6. (instance sK1 BidirectionalTransitway) [5] cnf_transformation
+, 7. (forall (?VAR1 ?VAR2 ?VAR3)
+  (=>
+    (and
+      (routeBetween ?VAR2 ?VAR1 ?VAR3)
+      (instance ?VAR2 BidirectionalTransitway))
+    (routeBetween ?VAR2 ?VAR3 ?VAR1))) [] kb_SUMO_8
+, 8. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (routeBetween ?VAR2 ?VAR3 ?VAR1)
+    (not
+      (routeBetween ?VAR2 ?VAR1 ?VAR3))
+    (not
+      (instance ?VAR2 BidirectionalTransitway)))) [7] ennf_transformation
+, 9. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (routeBetween ?VAR2 ?VAR3 ?VAR1)
+      (not
+        (routeBetween ?VAR2 ?VAR1 ?VAR3)))
+    (not
+      (instance ?VAR2 BidirectionalTransitway)))) [8] flattening
+, 10. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (not
+        (routeBetween ?VAR3 ?VAR2 ?VAR1))
+      (routeBetween ?VAR3 ?VAR1 ?VAR2))
+    (not
+      (instance ?VAR3 BidirectionalTransitway)))) [9] cnf_transformation
+, 11. (routeBetween sK1 MenloParkCA MountainViewCA) [2, 6, 10] unit_resulting_resolution
+, 12. (not
+  (exists (?VAR1)
+    (routeBetween ?VAR1 MenloParkCA MountainViewCA))) [] negated_conjecture
+, 13. (not
+  (exists (?VAR1)
+    (and
+      (routeBetween ?VAR1 MenloParkCA MountainViewCA)
+      (ans0 ?VAR1)))) [12] answer_literal
+, 14. (forall (?VAR1)
+  (or
+    (not
+      (routeBetween ?VAR1 MenloParkCA MountainViewCA))
+    (not
+      (ans0 ?VAR1)))) [13] ennf_transformation
+, 15. (not
+  (ans0 sK1)) [11, 14] unit_resulting_resolution
+, 16. false [1, 15] unit_resulting_resolution
+]
+
 
 (27) The road goes from MV to MP.  Can you go from MP to MV that way? Don’t know.
 
@@ -1148,6 +1217,7 @@ query:
 
 (instance ThePainting PaintedPicture)
 
+; formalize this that the painting traverses the floors (as in a large painting in an atrium spanning floors
 (exists (?BUILDING ?LEVEL1 ?LEVEL2)
   (and
     (instance ?LEVEL1 BuildingLevel)
