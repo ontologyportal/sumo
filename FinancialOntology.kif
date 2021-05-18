@@ -489,9 +489,10 @@ networks and which do not require direct management.")
 (subclass Interest CurrencyMeasure)
 (documentation Interest EnglishLanguage "Money paid for the use of money.")
 
-(subclass InterestRate ConstantQuantity)
-(documentation InterestRate EnglishLanguage "The usual way of calculating Interest, as a 
-percentage of the sum borrowed.")
+; Jennie May 2021 - interest rate is a percentage, i.e. a number
+;(subclass InterestRate ConstantQuantity)
+;(documentation InterestRate EnglishLanguage "The usual way of calculating Interest, as a 
+;percentage of the sum borrowed.")
 
 (instance interestEarned TernaryPredicate)
 (domain interestEarned 1 FinancialAccount)
@@ -541,7 +542,7 @@ calculated annually, semi-annually, quartely, monthly, or daily.")
 
 (instance interestRatePerPeriod TernaryPredicate)
 (domain interestRatePerPeriod 1  FinancialAccount)
-(domain interestRatePerPeriod 2 InterestRate)
+(domain interestRatePerPeriod 2 Number)
 (domain interestRatePerPeriod 3 TimeInterval)
 (documentation interestRatePerPeriod EnglishLanguage
 "(interestRatePerPeriod ?ACCOUNT ?RATE ?TIME) means that ?RATE is the interest 
@@ -557,7 +558,7 @@ per the period TIME divided by principal amount, expressed as a percentage")
 
 (instance primeInterestRate BinaryPredicate)
 (domain primeInterestRate  1 Day)
-(domain primeInterestRate  2 InterestRate)
+(domain primeInterestRate  2 Number)
 (documentation primeInterestRate EnglishLanguage "The interest rate that commercial banks charge 
 their most creditworthy borrowers, such as large corporations.  The prime rate is 
 a lagging indicator.")  
@@ -572,13 +573,13 @@ a lagging indicator.")
 (instance currentInterestRate TernaryPredicate)
 (domain currentInterestRate 1 FinancialAccount)
 (domain currentInterestRate 2 Day)
-(domain currentInterestRate 3 InterestRate)
+(domain currentInterestRate 3 Number)
 (documentation currentInterestRate EnglishLanguage "(&%currentInterestRate ?Account ?Day ?Rate) 
 means that ?Rate is the interest rate of the Account on a specific day ?Day.")
 
 (instance fixedInterestRate BinaryPredicate)
 (domain fixedInterestRate 1 FinancialAccount)
-(domain fixedInterestRate 2 InterestRate)
+(domain fixedInterestRate 2 Number)
 (documentation fixedInterestRate EnglishLanguage "(&%fixedInterestRate ?Account ?Rate) holds if 
 ?Rate is the interest rate that does not change during the entire term of the 
 account.")
@@ -645,11 +646,14 @@ means that ?Amount is the mimimum amount required by the type of
 (=>
   (and
     (instance ?Account FinancialAccount)
-    (minimumBalance ?Account OpeningAnAccount ?Balance))
+    (minimumBalance ?Account OpeningAnAccount 
+      (MeasureFn ?Balance ?U))
+    (instance ?U UnitOfCurrency))
   (exists (?Payment)
     (and
       (destination ?Payment (CurrencyFn ?Account))
-      (transactionAmount ?Payment ?Amount)
+      (transactionAmount ?Payment 
+        (MeasureFn ?Amount ?U))
       (greaterThanOrEqualTo ?Amount ?Balance)
       (agreementEffectiveDate ?Account ?Date)
       (date ?Payment ?Date))))
@@ -657,8 +661,11 @@ means that ?Amount is the mimimum amount required by the type of
 (=>
   (and
     (instance ?Account FinancialAccount)
-    (minimumBalance ?Account UsingAnAccount ?Balance)
-    (currentAccountBalance ?Account ?Date ?Amount)
+    (minimumBalance ?Account UsingAnAccount 
+      (MeasureFn ?Balance ?U))
+    (instance ?U UnitOfCurrency)
+    (currentAccountBalance ?Account ?Date 
+      (MeasureFn ?Amount ?U))
     (lessThan ?Amount ?Balance))
   (exists (?Penalty)
     (and
@@ -711,12 +718,15 @@ charge account to avoid a penalty.")
 (=>
   (and
     (instance ?Account LiabilityAccount)
-    (minimumPayment ?Account ?MinPayment MonthDuration)
+    (minimumPayment ?Account 
+      (MeasureFn ?MinPayment ?U) MonthDuration)
+    (instance ?U UnitOfCurrency)
     (exists (?Payment ?Month)
       (and
         (instance ?Month Month)
         (destination ?Payment (CurrencyFn ?Account))
-        (paymentsPerPeriod ?Account ?Amount ?Month)
+        (paymentsPerPeriod ?Account 
+          (MeausureFn ?Amount ?U) ?Month)
         (lessThan ?Amount ?MinPayment))))
   (exists (?Penalty)
     (and
@@ -1138,12 +1148,15 @@ bonds or cash, and can be immediate or deferred until retirement.")
     (instance ?PSP ProfitSharingPlan)
     (accountHolder ?PSP ?H)
     (employs ?O ?H)
-    (profit ?A ?P)
+    (profit ?A 
+      (MeasureFn ?P ?U))
+    (instance ?U UnitOfCurrency)
     (agent ?A ?O))
     (exists (?C ?PAY)
       (and
         (instance ?PAY FinancialTransaction)
-        (transactionAmount ?PAY ?C)
+        (transactionAmount ?PAY 
+          (MeasureFn ?C ?U))
         (lessThan ?C ?P)
         (destination ?PAY ?PSP))))
   
@@ -1949,8 +1962,11 @@ to be paid.  If ?Order is a sell order, then ?Money specifies the minimum price 
     (attribute ?Broker Broker)
     (orderFor ?Order Buying ?Object)
     (measure ?Object ?Quantity)
-    (limitPrice ?Order ?LimitPrice)
-    (askPrice ?Object ?Price ?Time)
+    (limitPrice ?Order 
+      (MeasureFn ?LimitPrice ?U))
+    (instance ?U UnitOfCurrency)
+    (askPrice ?Object 
+      (MeasureFn ?Price ?U) ?Time)
     (lessThanOrEqualTo ?Price ?LimitPrice))
   (holdsObligation 
     (KappaFn ?Buy
@@ -1969,8 +1985,11 @@ to be paid.  If ?Order is a sell order, then ?Money specifies the minimum price 
     (attribute ?Broker Broker)
     (orderFor ?Order Selling ?Object)
     (measure ?Object ?Quantity)
-    (limitPrice ?Order ?LimitPrice)
-    (bidPrice ?Object ?Price ?Time)
+    (limitPrice ?Order 
+      (MeasureFn ?LimitPrice ?U))
+    (bidPrice ?Object 
+      (MeasureFn ?Price ?U) ?Time)
+    (instance ?U UnitOfCurrency)
     (greaterThanOrEqualTo ?Price ?LimitPrice))
   (holdsObligation 
     (KappaFn ?Sell 
@@ -2925,8 +2944,11 @@ stock price is below the strike price.")
     (and
       (instance ?Option CallOption)
       (underlier ?Option ?Stock)
-      (price ?Stock ?StockPrice ?Time)
-      (strikePrice ?Option ?StrikePrice)
+      (price ?Stock 
+        (MeasureFn ?StockPrice ?U) ?Time)
+      (instance ?U UnitOfCurrency)
+      (strikePrice ?Option 
+        (MeasureFn ?StrikePrice ?U))
       (lessThan ?StrikePrice ?StockPrice)))
   (inTheMoney ?Option ?Time))
 
@@ -2935,8 +2957,11 @@ stock price is below the strike price.")
     (and
       (instance ?Option PutOption)
       (underlier ?Option ?Stock)
-      (price ?Stock ?StockPrice ?Time)
-      (strikePrice ?Option ?StrikePrice)
+      (price ?Stock 
+        (MeasureFn ?StockPrice ?U) ?Time)
+      (instance ?U UnitOfCurrency)
+      (strikePrice ?Option 
+        (MeasureFn ?StrikePrice ?U))
       (lessThan ?StockPrice ?StrikePrice)))
   (inTheMoney ?Option ?Time))
 
@@ -2968,8 +2993,11 @@ if the stock price is above its strike price.")
     (and
       (instance ?Option CallOption)
       (underlier ?Option ?Stock)
-      (price ?Stock ?StockPrice ?Time)
-      (strikePrice ?Option ?StrikePrice)
+      (price ?Stock 
+        (MeasureFn ?StockPrice ?U) ?Time)
+      (instance ?U UnitOfCurrency)
+      (strikePrice ?Option 
+        (MeasureFn ?StrikePrice ?U))
       (lessThan ?StockPrice ?StrikePrice)))
   (outOfTheMoney ?Option ?Time))
 
@@ -2978,8 +3006,11 @@ if the stock price is above its strike price.")
     (and
       (instance ?Option PutOption)
       (underlier ?Option ?Stock)
-      (price ?Stock ?StockPrice ?Time)
-      (strikePrice ?Option ?StrikePrice)
+      (price ?Stock 
+        (MeasureFn ?StockPrice ?U) ?Time)
+      (instance ?U UnitOfCurrency)
+      (strikePrice ?Option 
+        (MeasureFn ?StrikePrice ?U))
       (lessThan ?StrikePrice ?StockPrice)))
   (outOfTheMoney ?Option ?Time))
 
@@ -3027,7 +3058,7 @@ The payoff diagram resembles the shape of a butterfly.")
 
 (=>
   (instance ?Spread ButterflySpread)
-  (exists (?Call1 ?Call2 ?Call3 ?Call4 ?Price1 ?Price2 ?Price3 ?Price4)
+  (exists (?Call1 ?Call2 ?Call3 ?Call4 ?Price1 ?Price2 ?Price3 ?Price4 ?U)
     (and
       (instance ?Call1 CallOption)
       (instance ?Call2 CallOption)
@@ -3037,10 +3068,15 @@ The payoff diagram resembles the shape of a butterfly.")
       (subProcess ?Call2 ?Spread)
       (subProcess ?Call3 ?Spread)
       (subProcess ?Call4 ?Spread)
-      (strikePrice ?Call1 ?Price1)
-      (strikePrice ?Call2 ?Price2)
-      (strikePrice ?Call3 ?Price3)
-      (strikePrice ?Call4 ?Price4)
+      (instance ?U UnitOfCurrency)
+      (strikePrice ?Call1 
+        (MeasureFn ?Price1 ?U))
+      (strikePrice ?Call2 
+        (MeasureFn ?Price2 ?U))
+      (strikePrice ?Call3 
+        (MeasureFn ?Price3 ?U))
+      (strikePrice ?Call4 
+        (MeasureFn ?Price4 ?U))
       (lessThan ?Price1 ?Price2)
       (lessThan ?Price1 ?Price3)
       (greaterThan ?Price4 ?Price2)
@@ -3118,14 +3154,17 @@ at a price higher than the preceding one for the same security.")
     (instance ?Uptick Uptick)
     (patient ?Uptick ?Stock)
     (equal (WhenFn ?Uptick) ?Time1)
-    (price ?Stock ?Price1 ?Time1))
+    (instance ?U UnitOfCurrency)
+    (price ?Stock 
+      (MeasureFn ?Price1 ?U) ?Time1))
   (exists (?Transaction ?Time2)
     (and
       (instance ?Transaction StockMarketTransaction)
       (patient ?Transaction ?Stock)
       (equal (WhenFn ?Transaction) ?Time2)
       (meetsTemporally ?Time2 ?Time1)
-      (price ?Stock ?Price2 ?Time2)
+      (price ?Stock 
+        (MeasureFn ?Price2 ?U) ?Time2)
       (lessThan ?Price2 ?Price1))))
 
 (subclass Downtick StockMarketTransaction)
@@ -3137,14 +3176,17 @@ at a price lower than the preceding one for the same security.")
     (instance ?Downtick Downtick)
     (patient ?Downtick ?Stock)
     (equal (WhenFn ?Downtick) ?Time1)
-    (price ?Stock ?Price1 ?Time1))
+    (instance ?U UnitOfCurrency)
+    (price ?Stock 
+      (MeasureFn ?Price1 ?U) ?Time1))
   (exists (?Transaction ?Time2)
     (and
       (instance ?Transaction StockMarketTransaction)
       (patient ?Transaction ?Stock)
       (equal (WhenFn ?Transaction) ?Time2)
       (meetsTemporally ?Time2 ?Time1)
-      (price ?Stock ?Price2 ?Time2)
+      (price ?Stock 
+        (MeasureFn ?Price2 ?U) ?Time2)
       (greaterThan ?Price2 ?Price1))))
 
 ;; Income, employment, compensations 
@@ -3663,11 +3705,14 @@ that ?Amount is the balance which is available for withdrawal from the &%Financi
   (and
     (instance ?Transaction FinancialTransaction)
     (origin ?Transaction ?Account)
-    (transactionAmount ?Transaction ?Amount1)
+    (transactionAmount ?Transaction 
+      (MeasureFn ?Amount1 ?U))
+    (instance ?U UnitOfCurrency)
     (date ?Transaction ?Day))
   (exists (?Amount2)
     (and
-      (availableBalance ?Account ?Day ?Amount2)
+      (availableBalance ?Account ?Day 
+        (MeasureFn ?Amount2 ?U))
       (greaterThanOrEqualTo ?Amount1 ?Amount2))))
 
 (subrelation availableCash availableBalance)
@@ -3683,13 +3728,16 @@ that ?Amount is the balance which is available for withdrawal from the &%Financi
   (and
     (instance ?Transaction FinancialTransaction)
     (origin ?Transaction (CurrencyFn ?Account))
-    (transactionAmount ?Transaction ?Amount1)
+    (transactionAmount ?Transaction 
+      (MeasureFn ?Amount1 ?U))
+    (instance ?U UnitOfCurrency)
     (instance ?Cash Currency)
     (patient ?Transaction ?Cash)
     (date ?Transaction ?Day))
   (exists (?Amount2)
     (and
-      (availableCash ?Account ?Day ?Amount2)
+      (availableCash ?Account ?Day 
+        (MeasureFn ?Amount2 ?U))
       (greaterThanOrEqualTo ?Amount1 ?Amount2))))
   
 (instance paymentsPerPeriod TernaryPredicate)
