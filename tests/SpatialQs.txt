@@ -1,16 +1,16 @@
 ;; Spatial reasoning problems
 ;; starting with word problems, then later coding the formal query and solution in SUMO
 
-(1), (2), (13) are from https://www.cosy.informatik.uni-bremen.de/sites/default/files/ByrneJohnson-Laird89.pdf
+; (1), (2), (13) are from https://www.cosy.informatik.uni-bremen.de/sites/default/files/ByrneJohnson-Laird89.pdf
 
-(1) A is on the right of B
-    C is on the left of B
-    Hence, A is on the right of C
+; (1) A is on the right of B
+;    C is on the left of B
+;    Hence, A is on the right of C
 
 (orientation A B Right)
 (orientation C B Left)
 
-need to add to SUMO:
+; need to add to SUMO:
 
 (=>
   (and
@@ -18,7 +18,7 @@ need to add to SUMO:
     (orientation ?Y ?Z ?R))
   (orientation ?X ?Z ?R))
 
-proof will involve
+; proof will involve
 
 (<=>
     (orientation ?OBJ1 ?OBJ2 Right)
@@ -676,3 +676,747 @@ pulls on his end, does the cart move?
 (19)  Shakespeare road runs east to west.  City hall is south of Shakespeare road.  Tosh road runs
 north to south and ends at Shakespeare road. Officer Perez is in Tosh St with City Hall to her right.
 What direction is she facing?  answer: east
+
+Thanks to Annie Zaenen (primarily verb "to go" problems)
+
+(20) The road goes from Mountain View to Menlo Park. Does the road end in Menlo Park? no:
+and then continues to Redwood City.
+
+(exists (?R)
+  (and
+    (instance ?R Road)
+    (traverses ?R MountainViewCA)
+    (traverses ?R MenloParkCA)))
+
+(exists (?R)
+  (and
+    (instance ?R Road)
+    (traverses ?R MountainViewCA)
+    (traverses ?R MenloParkCA)
+    (traverses ?R RedwoodCityCA)))
+
+(21) Mountain View to Menlo Park: x miles. Menlo Park to Redwood City: y miles.
+What is the distance from Mountain View to Menlo Park? ??? no idea.
+
+(exists (?P1 ?P2)
+  (and
+    (distanceOnPath ?D1 ?P1)
+    (routeBetween ?P1 MountainViewCA MenloParkCA)
+    (distanceOnPath ?D2 ?P2)
+    (routeBetween ?P2 MenloParkCA RedwoodCityCA)))
+
+(instance TransitwayCompositionFn BinaryFunction)
+(domain TransitwayCompositionFn 1 Transitway)
+(domain TransitwayCompositionFn 2 Transitway)
+(range TransitwayCompositionFn Transitway)
+(documentation TransitwayCompositionFn EnglishLanguage "The composition of two transitways
+that meet into a single transitway.")
+
+(=>
+  (and
+    (routeBetween ?P1 ?L1 ?L2)
+    (routeBetween ?P2 ?L2 ?L3)
+    (equals ?P3
+      (TransitwayCompositionFn ?P1 ?P2))
+    (traverses ?P1 ?POINT))
+  (traverses ?P3 ?POINT))
+
+ ;; note that a Transitway need not be bi-directional
+
+(=>
+  (and
+    (routeBetween ?P1 ?L1 ?L2)
+    (routeBetween ?P2 ?L2 ?L3)
+    (equals ?P3
+      (TransitwayCompositionFn ?P1 ?P2))
+    (traverses ?P2 ?POINT))
+  (traverses ?P3 ?POINT))
+
+(=>
+  (and
+    (distanceOnPath (MeasureFn ?D1 ?U) ?P1)
+    (routeBetween ?P1 ?L1 ?L2)
+    (distanceOnPath (MeasureFn ?D2 ?U) ?P2)
+    (routeBetween ?P2 ?L2 ?L3))
+  (exists (?P3)
+    (and
+      (equals ?P3
+        (TransitwayCompositionFn ?P1 ?P2))
+      (equal ?D3
+        (AdditionFn ?D1 ?D2))
+      (distanceOnPath (MeasureFn ?D3 ?U) ?P3))))
+
+
+(22) John went from MP to MV in 1 hour. How long does it take not go from MP to MV?
+No idea. Need to know how he moved, then one can say that it can be done in 1 hour
+by that way of locomotion but it can also take more or less time.
+
+
+(23) The road goes from MV to MP.  PA is between MV and MP.  Does the road go through PA?
+Don’t know: it can go around the bay (237 going from MV to Oakland is a bit like that: the
+bay is between MV and Oakland but 237 doesn’t cross the bay).
+
+(exists (?T)
+  (and
+    (instance ?T Transitway)
+    (routeBetween ?T MountainViewCA MenloParkCA)))
+
+query:
+(exists (?T)
+  (and
+    (instance ?T Transitway)
+    (traverses ?T PaloAltoCA)))
+
+(24) The meeting went from 3 to 5 pm. Was the meeting going on at 4 pm.
+Yes, but it depends on your view of granularity: it could be that just at 4pm,
+there was a little break. How do you want to handle that?
+
+(instance typicalProcessElement BinaryPredicate)
+(documentation typicalProcessElement EnglishLanguage "A &%Relation between &%Classes stating that
+one &%Process is typically a &%subProcess of another.")
+(domainSubclass typicalProcessElement 1 Process)
+(domainSubclass typicalProcessElement 2 Process)
+
+(=>
+  (typicalProcessElement ?PART ?WHOLE)
+  (exists (?X ?Y)
+    (and
+      (instance ?X ?WHOLE)
+      (instance ?Y ?PART)
+      (part ?Y ?X))))
+
+
+(=>
+  (and
+    (typicalProcessElement ?PART ?WHOLE)
+    (instance ?X ?PART)
+    (equal ?PARTPROB
+      (ProbabilityFn
+        (exists (?Y)
+          (and
+            (instance ?Y ?WHOLE)
+            (subProcess ?X ?Y)))))
+    (equal ?NOTPARTPROB
+      (ProbabilityFn
+        (not
+          (exists (?Z)
+            (and
+              (instance ?Z ?WHOLE)
+              (subProcess ?X ?Z)))))))
+  (greaterThan ?PARTPROB ?NOTPARTPROB))
+
+(instance processElement BinaryPredicate)
+(documentation processElement EnglishLanguage "A &%Relation between &%Classes stating that
+one &%Process is necessarily a &%subProcess of another.")
+(domainSubclass processElement 1 Process)
+(domainSubclass processElement 2 Process)
+
+(=>
+  (and
+    (instance ?PI ?P)
+    (processElement ?PE ?P))
+  (exists (?PEI)
+    (and
+      (instance ?PEI ?PE)
+      (subProcess ?PEI ?PI))))
+
+(subclass HomogeneousProcess Process)
+(documentation HomogeneousProcess EnglishLanguage "A &%Process that can have temporal sub-parts that
+are of the same type, down to a certain level of granularity.  For example, &%Walking can
+have parts that are also instances of walking, unless it's such a short instance that it's just
+two steps.  But a &%HeterogeneousProcess has no temporal sub-parts of the same type.  For
+example, &%Attaching has no temporal sub-parts that are also attachings.")
+
+(=>
+  (and
+    (instance ?P HomogeneousProcess)
+    (not
+      (equals ?PC HomogeneousProcess))
+    (immediateInstance ?P ?PC))
+  (modalAttribute
+    (exists (?PSUB)
+      (and
+        (subProcess ?PSUB ?P)
+        (instance ?PSUB ?PC)))
+    Possibility)))
+
+(subclass HeterogeneousProcess Process)
+(documentation HeterogeneousProcess EnglishLanguage "A &%Process that do not have temporal sub-parts that
+are of the same type  For
+example, &%Attaching has no temporal sub-parts that are also attachings.")
+(disjoint HeterogeneousProcess HomogeneousProcess)
+
+(=>
+  (and
+    (instance ?P HeterogeneousProcess)
+    (not
+      (equals ?PC HomogeneousProcess))
+    (immediateInstance ?P ?PC))
+  (not
+    (exists (?PSUB)
+      (and
+        (subProcess ?PSUB ?P)
+        (instance ?PSUB ?PC)))))
+
+(subclass Meeting HomogeneousProcess)
+(processElement Communication Meeting)
+
+(25) John went from MV to ML. Did John go from MP to MV? Don’t know
+
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (origin ?T MountainViewCA)
+    (destination ?T MenloParkCA)))
+
+query:
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (origin ?T MenloParkCA)
+    (destination ?T MountainViewCA)))
+
+(26) The road goes from MV to MP.  Does the road go from MP to MV?
+yes but what do you want to say about one way roads:
+
+(exists (?R)
+  (and
+    (instance ?R BidirectionalTransitway)
+    (routeBetween ?R MountainViewCA MenloParkCA)))
+
+query:
+(routeBetween ?X MenloParkCA MountainViewCA)
+
+1. (forall (?VAR1)
+  (ans0 ?VAR1)) [] introduced:answer_literal
+, 2. (routeBetween sK1 MountainViewCA MenloParkCA) [3] cnf_transformation
+, 3. (exists (?VAR1)
+  (and
+    (routeBetween ?VAR1 MountainViewCA MenloParkCA)
+    (instance ?VAR1 BidirectionalTransitway))) [] kb_SUMO_148
+, 4. (=>
+  (exists (?VAR1)
+    (and
+      (routeBetween ?VAR1 MountainViewCA MenloParkCA)
+      (instance ?VAR1 BidirectionalTransitway)))
+  (and
+    (routeBetween sK1 MountainViewCA MenloParkCA)
+    (instance sK1 BidirectionalTransitway))) [] introduced:choice_axiom
+, 5. (and
+  (routeBetween sK1 MountainViewCA MenloParkCA)
+  (instance sK1 BidirectionalTransitway)) [3, 4] skolemisation
+, 6. (instance sK1 BidirectionalTransitway) [5] cnf_transformation
+, 7. (forall (?VAR1 ?VAR2 ?VAR3)
+  (=>
+    (and
+      (routeBetween ?VAR2 ?VAR1 ?VAR3)
+      (instance ?VAR2 BidirectionalTransitway))
+    (routeBetween ?VAR2 ?VAR3 ?VAR1))) [] kb_SUMO_8
+, 8. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (routeBetween ?VAR2 ?VAR3 ?VAR1)
+    (not
+      (routeBetween ?VAR2 ?VAR1 ?VAR3))
+    (not
+      (instance ?VAR2 BidirectionalTransitway)))) [7] ennf_transformation
+, 9. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (routeBetween ?VAR2 ?VAR3 ?VAR1)
+      (not
+        (routeBetween ?VAR2 ?VAR1 ?VAR3)))
+    (not
+      (instance ?VAR2 BidirectionalTransitway)))) [8] flattening
+, 10. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (not
+        (routeBetween ?VAR3 ?VAR2 ?VAR1))
+      (routeBetween ?VAR3 ?VAR1 ?VAR2))
+    (not
+      (instance ?VAR3 BidirectionalTransitway)))) [9] cnf_transformation
+, 11. (routeBetween sK1 MenloParkCA MountainViewCA) [2, 6, 10] unit_resulting_resolution
+, 12. (not
+  (exists (?VAR1)
+    (routeBetween ?VAR1 MenloParkCA MountainViewCA))) [] negated_conjecture
+, 13. (not
+  (exists (?VAR1)
+    (and
+      (routeBetween ?VAR1 MenloParkCA MountainViewCA)
+      (ans0 ?VAR1)))) [12] answer_literal
+, 14. (forall (?VAR1)
+  (or
+    (not
+      (routeBetween ?VAR1 MenloParkCA MountainViewCA))
+    (not
+      (ans0 ?VAR1)))) [13] ennf_transformation
+, 15. (not
+  (ans0 sK1)) [11, 14] unit_resulting_resolution
+, 16. false [1, 15] unit_resulting_resolution
+]
+
+
+(27) The road goes from MV to MP.  Can you go from MP to MV that way? Don’t know.
+
+(exists (?R)
+  (and
+    (instance ?R Road)
+    (traverses ?R MountainViewCA)
+    (traverses ?R MenloParkCA)))
+
+(instance ElCaminoReal BidirectionalTransitway)
+(subclass BidirectionalTransitway Transitway)
+(documentation BidirectionalTransitway EnglishLanguage "A &%Transitway that allows travel in both
+directions, either by having flexible laws or customs, or two segmented traffic streams in the
+same transityway that travel in opposite directions.  A single-track forest trail would be
+bidirectional, as would a single track rural road with bypass areas, as would a divided highway.")
+
+(=>
+  (and
+    (instance ?R BidirectionalTransitway)
+    (routeBetween ?R ?A ?B))
+  (routeBetween ?R ?B ?A))
+
+(28) From Monday to Friday the Bay Bridge will be unusable from Yerba Buena Island to Oakland.
+Will you be able to use the road to go from Yerba Buena to Oakland between Monday and Friday? No.
+Will you be able to use the road to go from Oakland to Yerba Buena between Monday and Friday? Maybe.
+
+(instance TransitwayClosed RelationalAttribute)
+(documentation TransitwayClosed EnglishLanguage "An &%Attribute stating that a &%Transitway is closed.
+or blocked in some way.  This covers legal or other normative statements that prohibit its use.")
+
+(=>
+  (holdsDuring ?TIME
+    (attribute ?T TransitwayClosed))
+  (exists (?P)
+    (holdsObligation ?P
+      (holdsDuring ?TIME
+        (not
+          (exists (?TP)
+            (and
+              (instance ?TP Translocation)
+              (located ?TP ?T)))))))
+
+;; note from Merge.kif
+(=>
+  (and
+    (holdsDuring ?TIME1 ?SITUATION)
+    (temporalPart ?TIME2 ?TIME1))
+  (holdsDuring ?TIME2 ?SITUATION))
+
+(instance BayBridgeSF Bridge)
+(routeBetween BayBridge YerbaBuenaIsland Oakland)
+(routeBetween BayBridge Oakland YerbaBuenaIsland)
+
+(and
+  (holdsDuring ?T
+     (attribute BayBridgeSF TransitwayClosed))
+  (exists (?WEEK ?M ?F)
+    (and
+      (instance ?WEEK Week)
+      (instance ?M Monday)
+      (instance ?F Friday)
+      (during ?M ?WEEK)
+      (during ?F ?WEEK)
+      (equal ?T
+        (TimeIntervalFn
+          (BeginFn ?M)
+          (EndFn ?F))))))
+
+;; note we don't have a working inference system for full HOL
+;; (needed for holdsDuring and holdsObligation)
+
+(29) Liz went from Stanford to MIT. Did she walk? very unlikely.
+
+(and
+  (greaterThan ?D (MeasureFn 3000 Mile))
+  (distance StanfordUniversity MIT ?D))
+
+(=>
+  (and
+    (distance ?O ?D (MeasureFn ?N1 ?U))
+    (instance ?T Translocation)
+    (path ?T ?P)
+    (distanceOnPath (MeasureFn ?N2 Mile) ?P)
+    (origin ?T ?O)
+    (destination ?T ?D))
+  (greaterThan ?N2 ?N1))
+
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (agent ?T Liz)
+    (origin ?T StanfordUniversity)
+    (destination ?T MIT)))
+
+(=>
+  (and
+    (instance ?T Translocation)
+    (path ?T ?P)
+    (distanceOnPath (MeasureFn ?N Mile) ?P)
+    (greaterThan ?N 1))
+  (modalAttribute
+    (instance ?T Walking)
+    Unlikely))
+
+query:
+(and
+  (instance ?T Walking)
+  (agent ?T Liz)
+  (origin ?T StanfordUniversity)
+  (destination ?T MIT))
+
+;; note we don't have a working inference system for full HOL
+
+(30) Liz went from Harvard to MIT. Did she walk? Possibly.
+
+(distance (MeasureFn 0.9 Mile) Harvard MIT)
+
+(and
+  (instance ?T Walking)
+  (agent ?T Liz)
+  (origin ?T Harvard)
+  (destination ?T MIT))
+
+;; note we don't have a working inference system for full HOL
+
+(31) The road climbs 5 meters between X and Y. Does the road descend 5 meters between Y and X? yes.
+
+(=>
+  (altitude ?P1 ?P2 ?D)
+  (altitude ?P2 ?P1 (SubtractionFn 0 ?D)))
+
+(routeBetween TheRoute X Y)
+(altitude X Y (MeasureFn 5 Meters))
+
+;query:
+(altitude Y X (MeasureFn -5 Meters))
+
+(32) John climbed 5 meters between X and Y. Did John descend 5 meters between Y and X?  ???
+
+(exists (?M)
+  (and
+    (instance ?M MotionUpward)
+    (origin ?M X)
+    (destination ?M Y)
+    (altitude X Y (MeasureFn 5 Meter)))
+
+;query:
+(exists (?M)
+  (and
+    (instance ?M MotionDownward)
+    (origin ?M Y)
+    (destination ?M X)
+    (altitude Y X (MeasureFn -5 Meter)))
+
+(33) The train goes from one end of the station to the other. Is it a long train? Depends on size of station.
+
+(exists (?T ?S)
+  (and
+    (instance ?T Train)
+    (instance ?S TrainStation)
+    (length ?T (MeasureFn ?N Meter))
+    (length ?S (MeasureFn ?N Meter))))
+
+(defaultMaximumLength Train (MeasureFn 500 FootLength))
+(defaultMaximumLength TrainStation (MeasureFn 1000 FootLength))
+
+;; we could ask whether the train is longer than what's typical
+;query:
+(and
+  (instance ?T Train)
+  (length ?T ?N1)
+  (defaultMaximumLength Train ?N2)
+  (greaterThan ?N1 ?N2))
+
+(34) The train goes from Paris to Istanbul. Is it a long train? we don’t know.
+
+(exists (?TRANS)
+  (and
+    (instance ?TRANS Transportation)
+    (instrument ?TRANS TheTrain)
+    (instance TheTrain Train)
+    (origin ?TRANS Paris)
+    (destination ?TRANS IstanbulTurkey)))
+
+;query:
+(and
+  (instance TheTrain Train)
+  (length TheTrain ?N1)
+  (defaultMaximumLength Train ?N2)
+  (greaterThan ?N1 ?N2))
+
+(35) John entered the EU on January 20, 2007. Is the EU now bigger? What the hell are you talking about?
+
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (equal
+      (WhenFn ?T)
+      (DayFn 20 (MonthFn January (YearFn 2007))))
+    (destination ?T ?N)
+    (instance ?N Nation)
+    (member ?N EuropeanUnion)
+    (agent ?T John)))
+
+(instance EuropeanUnion GeopoliticalArea)
+
+;query: if interpreted as population
+(and
+  (holdsDuring
+    (ImmediatePastFn (DayFn 20 (MonthFn January (YearFn 2007))))
+    (equal ?P1 (PopulationFn EuropeanUnion)))
+  (holdsDuring
+    (ImmediateFutureFn (DayFn 20 (MonthFn January (YearFn 2007))))
+    (equal ?P2 (PopulationFn EuropeanUnion)))
+  (greaterThan ?P2 ?P1))
+
+; query if interpreted as area
+(and
+  (holdsDuring
+    (ImmediatePastFn (DayFn 20 (MonthFn January (YearFn 2007))))
+    (totalArea EuropeanUnion (MeasureFn ?P1 ?U)))
+  (holdsDuring
+    (ImmediateFutureFn (DayFn 20 (MonthFn January (YearFn 2007))))
+    (totalArea EuropeanUnion (MeasureFn ?P2 ?U)))
+  (greaterThan ?P2 ?P1))
+
+(36) Bulgaria entered the EU on January 1, 2007. IS the EU now bigger? Yes provided no other member left.
+
+(exists (?T)
+  (and
+    (instance ?T JoiningAnOrganization)
+    (time ?T
+      (DayFn 1 (MonthFn January (YearFn 2007))))
+    (patient ?T EuropeanUnion)
+    (agent ?T Bulgaria)))
+
+
+;query: if interpreted as population
+(and
+  (holdsDuring
+    (ImmediatePastFn (DayFn 1 (MonthFn January (YearFn 2007))))
+    (equal ?P1 (PopulationFn EuropeanUnion)))
+  (holdsDuring
+    (ImmediateFutureFn (DayFn 1 (MonthFn January (YearFn 2007))))
+    (equal ?P2 (PopulationFn EuropeanUnion)))
+  (greaterThan ?P2 ?P1))
+
+; query if interpreted as area
+(and
+  (holdsDuring
+    (ImmediatePastFn (DayFn 1 (MonthFn January (YearFn 2007))))
+    (totalArea EuropeanUnion (MeasureFn ?P1 ?U)))
+  (holdsDuring
+    (ImmediateFutureFn (DayFn 1 (MonthFn January (YearFn 2007))))
+    (totalArea EuropeanUnion (MeasureFn ?P2 ?U)))
+  (greaterThan ?P2 ?P1))
+
+
+(37) The painting went from the first to the second floor. Did the painting move? Most likely but not surely.
+
+(instance ThePainting PaintedPicture)
+
+; formalize this that the painting traverses the floors (as in a large painting in an atrium spanning floors
+(exists (?BUILDING ?LEVEL1 ?LEVEL2)
+  (and
+    (instance ?LEVEL1 BuildingLevel)
+    (instance ?LEVEL2 BuildingLevel)
+    (not
+      (equals ?LEVEL1 ?LEVEL2))
+          (floorCode ?LEVEL1 "1")
+          (floorCode ?LEVEL2 "2")
+    (instance ?BUILDING Building)
+    (part ?LEVEL1 ?BUILDING)
+    (part ?LEVEL2 ?BUILDING)
+    (penetrates ThePainting ?LEVEL1)
+    (penetrates ThePainting ?LEVEL2)))
+
+; formalize this that the painting travelled from one floor to the other
+; quoted things are ignored in TPTP translation so remove those literals
+(exists (?BUILDING ?LEVEL1 ?LEVEL2 ?T)
+  (and
+    (instance ?LEVEL1 BuildingLevel)
+    (instance ?LEVEL2 BuildingLevel)
+    (not
+      (equals ?LEVEL1 ?LEVEL2))
+    (instance ?BUILDING Building)
+    (part ?LEVEL1 ?BUILDING)
+    (part ?LEVEL2 ?BUILDING)
+    (instance ?T Translocation)
+    (objectTransferred ?T ThePainting)
+    (origin ?T ?LEVEL1)
+    (destination ?T ?LEVEL2)))
+
+; query
+(and
+  (instance ?T Translocation)
+  (objectTransferred ?T ThePainting))
+
+KB.main(): bindings: [sK10]
+KB.main(): proof: [1. (forall (?VAR1)
+  (ans0 ?VAR1)) [] introduced:answer_literal
+, 2. (not
+  (exists (?VAR1)
+    (and
+      (objectTransferred ?VAR1 ThePainting)
+      (instance ?VAR1 Translocation)))) [] negated_conjecture
+, 3. (not
+  (exists (?VAR1)
+    (and
+      (and
+        (objectTransferred ?VAR1 ThePainting)
+        (instance ?VAR1 Translocation))
+      (ans0 ?VAR1)))) [2] answer_literal
+, 4. (forall (?VAR1)
+  (or
+    (or
+      (not
+        (objectTransferred ?VAR1 ThePainting))
+      (not
+        (instance ?VAR1 Translocation)))
+    (not
+      (ans0 ?VAR1)))) [3] ennf_transformation
+, 5. (forall (?VAR1 ?VAR2 ?VAR3 ?VAR4)
+  (and
+    (and
+      (and
+        (and
+          (and
+            (orientation ?VAR2 ?VAR1 On)
+            (instance ?VAR4 Flower))
+          (objectTransferred ?VAR2 ?VAR3))
+        (agent ?VAR2 John))
+      (instance ?VAR2 Carrying))
+    (instance ?VAR1 Sunday))) [] kb_SUMO_53
+, 6. (forall (?VAR1 ?VAR2)
+  (objectTransferred ?VAR2 ?VAR1)) [5] cnf_transformation
+, 7. (forall (?VAR1)
+  (or
+    (not
+      (instance ?VAR1 Translocation))
+    (not
+      (ans0 ?VAR1)))) [4, 6] subsumption_resolution
+, 8. (exists (?VAR1 ?VAR2 ?VAR3 ?VAR4)
+  (and
+    (and
+      (and
+        (and
+          (and
+            (and
+              (and
+                (and
+                  (and
+                    (destination ?VAR4 ?VAR3)
+                    (origin ?VAR4 ?VAR2))
+                  (objectTransferred ?VAR4 ThePainting))
+                (instance ?VAR4 Translocation))
+              (part ?VAR3 ?VAR1))
+            (part ?VAR2 ?VAR1))
+          (instance ?VAR1 Building))
+        (not
+          (equals ?VAR2 ?VAR3)))
+      (instance ?VAR3 BuildingLevel))
+    (instance ?VAR2 BuildingLevel))) [] kb_SUMO_146
+, 9. (exists (?VAR1 ?VAR2 ?VAR3 ?VAR4)
+  (and
+    (and
+      (and
+        (and
+          (and
+            (and
+              (and
+                (and
+                  (destination ?VAR4 ?VAR3)
+                  (origin ?VAR4 ?VAR2))
+                (objectTransferred ?VAR4 ThePainting))
+              (instance ?VAR4 Translocation))
+            (part ?VAR3 ?VAR1))
+          (part ?VAR2 ?VAR1))
+        (instance ?VAR1 Building))
+      (instance ?VAR3 BuildingLevel))
+    (instance ?VAR2 BuildingLevel))) [8] pure_predicate_removal
+, 10. (exists (?VAR1 ?VAR2 ?VAR3 ?VAR4)
+  (and
+    (and
+      (and
+        (and
+          (and
+            (and
+              (destination ?VAR4 ?VAR3)
+              (origin ?VAR4 ?VAR2))
+            (objectTransferred ?VAR4 ThePainting))
+          (instance ?VAR4 Translocation))
+        (instance ?VAR1 Building))
+      (instance ?VAR3 BuildingLevel))
+    (instance ?VAR2 BuildingLevel))) [9] pure_predicate_removal
+, 11. (=>
+  (exists (?VAR1 ?VAR2 ?VAR3 ?VAR4)
+    (and
+      (and
+        (and
+          (and
+            (and
+              (and
+                (destination ?VAR4 ?VAR3)
+                (origin ?VAR4 ?VAR2))
+              (objectTransferred ?VAR4 ThePainting))
+            (instance ?VAR4 Translocation))
+          (instance ?VAR1 Building))
+        (instance ?VAR3 BuildingLevel))
+      (instance ?VAR2 BuildingLevel)))
+  (and
+    (and
+      (and
+        (and
+          (and
+            (and
+              (destination sK10 sK9)
+              (origin sK10 sK8))
+            (objectTransferred sK10 ThePainting))
+          (instance sK10 Translocation))
+        (instance sK7 Building))
+      (instance sK9 BuildingLevel))
+    (instance sK8 BuildingLevel))) [] introduced:choice_axiom
+, 12. (and
+  (and
+    (and
+      (and
+        (and
+          (and
+            (destination sK10 sK9)
+            (origin sK10 sK8))
+          (objectTransferred sK10 ThePainting))
+        (instance sK10 Translocation))
+      (instance sK7 Building))
+    (instance sK9 BuildingLevel))
+  (instance sK8 BuildingLevel)) [10, 11] skolemisation
+, 13. (instance sK10 Translocation) [12] cnf_transformation
+, 14. (not
+  (ans0 sK10)) [7, 13] resolution
+, 15. false [1, 14] unit_resulting_resolution
+]
+
+
+(38) The staircase went from the first to the second floor. Did the staircase move? most likely not.
+
+(instance TheStaircase Stairway)
+
+(exists (?BUILDING ?LEVEL1 ?LEVEL2)
+  (and
+    (instance ?LEVEL1 BuildingLevel)
+    (instance ?LEVEL2 BuildingLevel)
+    (not
+      (equals ?LEVEL1 ?LEVEL2))
+    (floorCode ?LEVEL1 "1")
+    (floorCode ?LEVEL2 "2")
+    (instance ?BUILDING Building)
+    (part ?LEVEL1 ?BUILDING)
+    (part ?LEVEL2 ?BUILDING)
+    (penetrates TheStaircase ?LEVEL1)
+    (penetrates TheStaircase ?LEVEL2)))
+
+; query
+(and
+  (instance ?T Translocation)
+  (objectTransferred ?T TheStaircase))
