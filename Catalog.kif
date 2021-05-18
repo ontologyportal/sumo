@@ -201,11 +201,17 @@ minimum ?MIN and maximum ?MAX")
 (domain priceRange 4 Agent)
 
 (=>
-  (priceRange ?ENT ?MIN ?MAX ?AGENT)
-  (exists (?PRICE ?PS)
+  (and
+    (priceRange ?ENT 
+      (MeasureFn ?MIN ?U)
+      (MeasureFn ?MAX ?U) ?AGENT)
+    (instance ?U UnitOfCurrency))   
+  (exists (?NUM ?PRICE ?PS)
     (and
-      (lessThanOrEqualTo ?PRICE ?MAX)
-      (greaterThanOrEqualTo ?PRICE ?MIN)
+      (lessThanOrEqualTo ?NUM ?MAX)
+      (greaterThanOrEqualTo ?NUM ?MIN)
+      (equal ?PRICE
+        (MeasureFn ?NUM ?U))
       (or
         (publishedPrice ?ENT ?PRICE ?AGENT ?PS)
         (productPrice ?ENT ?PRICE ?AGENT)
@@ -414,8 +420,11 @@ that &%CognitiveAgent ?AGENT sells items of type &%Entity ?ENT for &%CurrencyMea
     
 (=>
   (and
-    (productPrice ?ENT ?PRICE1 ?AGENT)
-    (publishedPrice ?ENT ?PRICE2 ?AGENT ?PS)
+    (productPrice ?ENT 
+      (MeasureFn ?PRICE1 ?U) ?AGENT)
+    (instance ?U UnitOfCurrency)
+    (publishedPrice ?ENT 
+      (MeasureFn ?PRICE2 ?U) ?AGENT ?PS)
     (validFor ?PS ?CUSTCLASS)
     (instance ?ITEM ?ENT)
     (instance ?B Buying)
@@ -425,7 +434,6 @@ that &%CognitiveAgent ?AGENT sells items of type &%Entity ?ENT for &%CurrencyMea
     (lessThan ?PRICE2 ?PRICE1))
   (modalAttribute
     (transactionAmount ?B ?PRICE1) Likely))
-
     
 (instance rentalPrice QuaternaryPredicate)
 (documentation rentalPrice EnglishLanguage "(&%rentalPrice ?OBJ ?PRICE ?AGENT ?PS) 
@@ -450,7 +458,9 @@ means that the &%CurrencyMeasure ?PRICE is paid for the use of &%Physical ?OBJ.
 (=>
   (and
     (rentalPrice ?OBJ ?QUANT ?AGENT ?PS)
-    (equal ?QUANT (PerFn ?PRICE ?TIME))
+    (equal ?QUANT (PerFn ?PRICE 
+      (Measure ?TIME ?U)))
+    (instance ?U UnitOfDuration)
     (immediateInstance ?ITEM ?OBJ)
     (instance ?R Renting)
     (patient ?R ?ITEM)
@@ -462,7 +472,8 @@ means that the &%CurrencyMeasure ?PRICE is paid for the use of &%Physical ?OBJ.
       (and
         (during ?TIMEINT ?X)
         (instance ?X TimeInterval)
-        (duration ?X ?DURATION)
+        (duration ?X 
+          (MeasureFn ?DURATION ?U))
         (lessThanOrEqualTo ?DURATION ?TIME))
       (exists (?P)
         (and
