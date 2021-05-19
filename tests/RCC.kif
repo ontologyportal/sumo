@@ -1,0 +1,333 @@
+; An analysis of SUMO with respect to TPTP spatial problems based on
+; https://www.researchgate.net/publication/221393453_A_Spatial_Logic_based_on_Regions_and_Connection
+
+;GEG/GEG006^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG013^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG008^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG017^1.rm:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG020^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG011^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG003^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG014^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG016^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG004^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG010^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG019^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG012^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG015^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG005^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG018^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG009^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG002^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;GEG/GEG007^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+;LCL/LCL924^1.p:% Refs     : [RCC92] Randell et al. (1992), A Spatial Logic Based on Region
+
+
+
+; relation C is SUMO connected
+
+(instance connected ReflexiveBinaryPredicate)
+; forall x C(x,x)
+
+(instance connected SymmetricBinaryPredicate)
+; forall x,y C(x,y)->C(y,x)
+
+(instance part BinaryPredicate)
+; P
+; P(x,y) =def forall z [C(z,x)->C(z,y)]
+
+(=>
+  (and
+    (part ?X ?Y)
+    (connected ?Z ?X))
+  (connected ?Z ?Y))
+
+(instance properPart BinaryPredicate)
+; PP
+;; PP(x,y) =def P(x,y)^~P(y,x)
+
+(=>
+  (properPart ?X ?Y)
+  (and
+    (part ?X ?Y)
+    (not
+      (part ?Y ?X))))
+
+; equals =
+; x=y =def P(x,y)^P(y,x)
+
+(=>
+  (and
+    (instance ?X CorpuscularObject)
+    (instance ?Y CorpuscularObject)
+    (equal ?X ?Y))
+  (and
+    (part ?X ?Y)
+    (part ?Y ?X)))
+
+(instance overlaps BinaryPredicate)
+; O
+; O(x,y) =def exists z [P(z,x)^P(z,y)]
+; called overlapsSpatially in SUMO
+
+(=>
+  (overlapsSpatially ?X ?Y)
+  (exists (?Z)
+    (and
+      (part ?Z ?X)
+      (part ?Z ?Y))))
+
+(instance discrete BinaryPredicate)
+; DR
+; DR(x,y) =def ~O(x,y)
+; not really needed since it's just the negation of overlapsSpatially
+
+(=>
+  (discrete ?X ?Y)
+  (not
+    (overlapsSpatially ?X ?Y)))
+
+(instance partiallyOverlaps BinaryPredicate)
+; PO
+; PO(x,y) =def O(x,y)^~P(x,y)^~P(y,x)
+
+(=>
+  (partiallyOverlaps ?X ?Y)
+  (and
+    (overlaps ?X ?Y)
+    (not
+      (part ?X ?Y))
+    (not
+      (part ?Y ?X)))
+
+(instance meetsSpatially BinaryPredicate)
+; EC(x,y) =def C(x,y)^~O(x,y)
+; EC is meetsSpatially in SUMO
+
+(=>
+  (meetsSpatially ?X ?Y)
+  (and
+    (connected ?X ?Y)
+    (not
+      (overlaps ?X ?Y))))
+
+
+(instance disconnected BinaryPredicate)
+; relation DC
+; DC(x,y) =def ~C(x,y)
+; not really needed since it's just the opposite of connected
+
+(=>
+  (disconnected ?X ?Y)
+  (not
+    (connected ?X ?Y)))
+
+
+(instance tangentialProperPart BinaryPredicate)
+; TPP(x,y) =def PP(x,y)^exists z [EC(z,x)^EC(z,y)]
+
+(=>
+  (tangentialProperPart ?X ?Y)
+  (exists (?Z)
+    (and
+      (meetsSpatially ?Z ?X)
+      (meetsSpatially ?Z ?Y))))
+
+
+(instance nonTangentialProperPart BinaryPredicate)
+; NTPP(x,y) =def PP(x,y)^~exists z [EC(z,x)^EC(z,y)]
+
+(=>
+  (nonTangentialProperPart ?X ?Y)
+  (and
+    (properPart ?X ?Y)
+    (not
+      (exists (?Z)
+        (and
+          (meetsSpatially ?Z ?X)
+          (meetsSpatially ?Z ?Y))))))
+
+; AP - I'll use 'i' for the 'iota' operator
+
+;sum(x,y) - MereologicalSumFn
+; sum(x,y) =def iy[forall z[C(z,y)<->[C(z,x)vC(z,y)]]]
+; sum(x,y) =def forall xyz [C(z,sum(x,y))<->[C(z,x)vC(z,sum(x,y))]]
+; AP - I don't see how it can be iff/<->
+
+(=>
+  (and
+    (equals ?Z (MereologicalSumFn ?X ?Y))
+    (connected ?A ?Z))
+  (or
+    (connected ?A ?X)
+    (connected ?A ?Y)))
+
+
+;compl(x) - ComplementFn?
+; compl(x) =def iy[forall z[[C(z,y)<->~NTPP(z,x)]^[O(z,y)<->~P(z,x)]]]
+; compl(x) =def forall xyz [[C(z,compl(x))<-> ~NTPP(z,x)]^[O(z,compl(x))<->~P(z,x)]]
+
+; AP this seems like the right syntactic translation but doesn't make sense
+
+(or
+  (<=>
+    (connected ?Z (ComplementFn ?Y))
+    (not
+      (nonTangentialProperPart ?Z ?X)))
+  (<=>
+    (overlaps ?Z ?Y)
+    (not
+      (part ?Z ?X))))
+
+; AP - this seems like what is intended
+
+(=>
+  (and
+    (equal ?Z
+      (ComplementFn ?Y))
+    (connected ?X ?Z))
+  (or
+    (overlaps ?X ?Y)
+    (not
+      (nonTangentialProperPart ?X ?Y))))
+
+
+;prod(x,y) - MereologicalProductFn (intersection)
+; prod(x,y) =def iz[forall u [C(u,z)<-> exists v [P(v,x)^P(v,y)^C(u,v)]]]
+; prod(x,y) =def iz[forall u [C(u,prod(x,y))<-> exists v [P(v,x)^P(v,y)^C(u,v)]]]
+
+(=>
+  (and
+    (equals ?Z
+      (MereologicalProductFn ?X ?Y))
+    (connected ?U ?Z))
+  (exists (?V)
+    (and
+      (part ?V ?X)
+      (part ?V ?Y)
+      (connected ?U ?V))))
+
+;diff(x,y) - MereologicalDifferenceFn
+; diff(x,y) =def iw[forall z [C(z,diff(x,y))<->C(z,prod(x,compl(y)))]]
+
+(=>
+  (and
+    (equals ?Z
+      (MereologicalDifferenceFn ?X ?Y))
+    (connected ?Z ?W))
+  (connected ?Z
+    (MereologicalProductFn ?X
+      (ComplementFn ?Y))))
+
+; forall xy [NULL(prod(x,y)) <-> DR(x,y)]
+
+(<=>
+  (discrete ?X ?Y)
+  (not
+    (exists (?R)
+      (and
+        (instance ?R Object)
+        (equals ?R
+          (MereologicalProductFn ?X ?Y))))))
+
+; -------------------------------------------------
+
+; https://en.wikipedia.org/wiki/Region_connection_calculus
+
+;Two houses are connected via a road.
+; Each house is located on an own property.
+; The first house possibly touches the boundary of the property;
+; the second one surely does not.
+; What can we infer about the relation of the second property to the road?
+
+; The spatial configuration can be formalized in RCC8 as the following constraint network:
+
+(instance House1 SingleFamilyResidence)
+(instance House2 SingleFamilyResidence)
+
+(instance Property1 GeographicArea)
+(instance Property2 GeographicArea)
+
+(instance Road1 Road)
+
+;house1 DC house2
+
+(discrete House1 House2)
+
+;house1 {TPP, NTPP} property1
+
+(tangentialProperPart House1 Property1)
+
+; how could it also be a non tangential proper part?
+
+;house1 {DC, EC} property2
+
+(discrete House1 Property2)
+(meetsSpatially House1 Property2)
+
+;house1 EC road
+
+(meetsSpatially House1 Road1)
+
+;house2 { DC, EC } property1
+
+(discrete House2 Property1)
+(meetsSpatially House2 Property1)
+
+;house2 NTPP property2
+
+(nonTangentialProperPart House2 Property2)
+
+;house2 EC road
+
+(meetsSpatially House2 Road1)
+
+;property1 { DC, EC } property2
+
+(discrete Property1 Property2)
+(meetsSpatially Property1 Property2)
+
+;road { DC, EC, TPP, TPPi, PO, EQ, NTPP, NTPPi } property1
+
+(discrete Road1 Property1)
+(meetsSpatially Road1 Property1)
+(tangentialProperPart Road1 Property1)
+(tangentialProperPart Property1 Road1)
+(partiallyOverlaps Road1 Property1)
+; this doesn't make sense (equals Road1 Property1)
+(nonTangentialProperPart Road1 Property1)
+(nonTangentialProperPart Property1 Road1)
+
+;road { DC, EC, TPP, TPPi, PO, EQ, NTPP, NTPPi } property2
+
+(discrete Road1 Property2)
+(meetsSpatially Road1 Property2)
+(tangentialProperPart Road1 Property2)
+(tangentialProperPart Property2 Road1)
+(partiallyOverlaps Road1 Property2)
+; this doesn't make sense (equals Road1 Property2)
+(nonTangentialProperPart Road1 Property2)
+(nonTangentialProperPart Property2 Road1)
+
+;Using the RCC8 composition table and the path-consistency algorithm,
+;we can refine the network in the following way:
+
+;road { PO, EC } property1
+
+(partiallyOverlaps Road1 Property1)
+(meetsSpatially Road1 Property1)
+
+;road { PO, TPP } property2
+
+(partiallyOverlaps Road1 Property2)
+(tangentialProperPart Road1 Property2)
+
+;That is, the road either overlaps (PO) property2, or is a tangential proper part of it.
+;But, if the road is a tangential proper part of property2,
+;then the road can only be externally connected (EC) to property1.
+;That is, road PO property1 is not possible when road TPP property2.
+;This fact is not obvious, but can be deduced once we examine the
+;consistent "singleton-labelings" of the constraint network.
+;The following paragraph briefly describes singleton-labelings.
+
+
