@@ -6303,7 +6303,15 @@ between 8 and 14 meters in length.")
   (instance ?QUANTITY ?CLASS))
 
 (<=>
-   (instance ?QUANTITY (IntervalFn ?FROM ?TO))
+   (and
+     (instance ?Q (IntervalFn ?F ?T))
+     (instance ?U UnitOfMeasure)
+     (equal ?Q
+       (MeasureFn ?QUANTITY ?U))
+     (equal ?F
+       (MeasureFn ?FROM ?U))
+     (equal ?T
+       (MeasureFn ?TO ?U)))       
    (and
         (greaterThanOrEqualTo ?QUANTITY ?FROM)
         (lessThanOrEqualTo ?QUANTITY ?TO)))
@@ -6838,12 +6846,12 @@ days.")
 (documentation MonthDuration EnglishLanguage "Time unit.  A month's duration is at least
 28 days, and no more than 31 days.  Note that this unit is a range, rather than
 than an exact amount, unlike most other units.")
-
+      
 (greaterThanOrEqualTo
   (MeasureFn ?NUMBER MonthDuration)
   (MeasureFn (MultiplicationFn ?NUMBER 28) DayDuration))
 
-(lessThanOrEqualTo
+(lessThanOrEqualTo 
   (MeasureFn ?NUMBER MonthDuration)
   (MeasureFn (MultiplicationFn ?NUMBER 31) DayDuration))
 
@@ -7197,6 +7205,7 @@ specifying the age of the &%Object.")
 
 (subrelation linearExtent measure)
 (instance linearExtent BinaryPredicate)
+(domain linearExtent 1 SelfConnectedObject)
 (domain linearExtent 2 LengthMeasure)
 
 (documentation linearExtent EnglishLanguage "&%BinaryPredicate that is used to state the
@@ -7208,6 +7217,8 @@ separates two distinct objects.")
 
 (instance width SingleValuedRelation)
 (instance width BinaryPredicate)
+(domain width 1 SelfConnectedObject)
+(domain width 2 LengthMeasure)
 (subrelation width linearExtent)
 
 (documentation width EnglishLanguage "&%BinaryPredicate that is used to state the measure
@@ -7224,17 +7235,23 @@ its &%top and its &%bottom.")
 (instance length SingleValuedRelation)
 (subrelation length linearExtent)
 (instance length BinaryPredicate)
+(domain length 1 SelfConnectedObject)
+(domain length 2 LengthMeasure)
 
 (documentation length EnglishLanguage "&%BinaryPredicate that is used to state the measure
 of an &%Object along its longest span.")
 
 (=>
-  (length ?O ?M)
+  (and
+    (length ?O 
+      (MeasureFn ?M ?U))
+    (instance ?U UnitOfLength))
   (not
     (exists (?M2)
       (and
-        (linearExtent ?O ?M2)
-	(greaterThan ?M2 ?M)))))
+        (linearExtent ?O 
+          (MeasureFn ?M2 ?U))
+	      (greaterThan ?M2 ?M)))))
 
 (subclass Oval ClosedTwoDimensionalFigure)
 
@@ -7637,11 +7654,18 @@ the &%TimePoint at which the interval ends.")
          (before ?OTHERPOINT ?POINT))))
 
 (=>
-     (and
-          (resource ?PROC ?OBJ)
-          (holdsDuring (BeginFn (WhenFn ?PROC)) (measure ?OBJ ?QUANT1))
-          (holdsDuring (EndFn (WhenFn ?PROC)) (measure ?OBJ ?QUANT2)))
-     (greaterThan ?QUANT1 ?QUANT2))
+  (and
+    (resource ?PROC ?OBJ)
+    (instance ?U UnitOfMeasure)
+    (holdsDuring 
+      (BeginFn (WhenFn ?PROC)) 
+      (measure ?OBJ 
+        (MeasureFn ?QUANT1 ?U)))
+    (holdsDuring 
+      (EndFn (WhenFn ?PROC)) 
+      (measure ?OBJ 
+        (MeasureFn ?QUANT2 ?U))))
+  (greaterThan ?QUANT1 ?QUANT2))
 
 (subrelation starts temporalPart)
 (instance starts TemporalRelation)
@@ -10206,15 +10230,16 @@ a &%Text, i.e. understanding the &%Text.")
   (and
     (instance ?INCREASE Increasing)
     (patient ?INCREASE ?OBJ))
-  (exists (?UNIT ?QUANT1 ?QUANT2)
+  (exists (?UNIT ?NUM1 ?NUM2)
     (and
+      (instance ?UNIT UnitOfMeasure)
       (holdsDuring
         (BeginFn (WhenFn ?INCREASE))
-        (equal (MeasureFn ?OBJ ?UNIT) ?QUANT1))
+        (measure ?OBJ (MeasureFn ?NUM1 ?UNIT)))
       (holdsDuring
         (EndFn (WhenFn ?INCREASE))
-        (equal (MeasureFn ?OBJ ?UNIT) ?QUANT2))
-      (greaterThan ?QUANT2 ?QUANT1))))
+        (measure ?OBJ (MeasureFn ?NUM2 ?UNIT)))
+      (greaterThan ?NUM2 ?NUM1))))
 
 (subclass Heating Increasing)
 (disjoint Heating Cooling)
@@ -10226,16 +10251,16 @@ a &%Text, i.e. understanding the &%Text.")
    (and
       (instance ?HEAT Heating)
       (patient ?HEAT ?OBJ))
-   (exists (?UNIT ?QUANT1 ?QUANT2)
+   (exists (?UNIT ?NUM1 ?NUM2)
      (and
-         (instance ?UNIT TemperatureMeasure)
+         (instance ?UNIT UnitOfTemperature)
          (holdsDuring
            (BeginFn (WhenFn ?HEAT))
-           (equal (MeasureFn ?OBJ ?UNIT) ?QUANT1))
+           (measure ?OBJ (MeasureFn ?OBJ ?UNIT)))
          (holdsDuring
            (EndFn (WhenFn ?HEAT))
-           (equal (MeasureFn ?OBJ ?UNIT) ?QUANT2))
-         (greaterThan ?QUANT2 ?QUANT1))))
+           (measure ?OBJ (MeasureFn ?OBJ ?UNIT)))
+         (greaterThan ?NUM2 ?NUM1))))
 
 (subclass Decreasing QuantityChange)
 (relatedInternalConcept Decreasing Removing)
@@ -10249,13 +10274,15 @@ a &%Text, i.e. understanding the &%Text.")
       (patient ?DECREASE ?OBJ))
    (exists (?UNIT ?QUANT1 ?QUANT2)
      (and
+       (instance ?UNIT UnitOfMeasure)
        (holdsDuring
          (BeginFn
            (WhenFn ?DECREASE))
-           (equal (MeasureFn ?OBJ ?UNIT) ?QUANT1))
+         (measure ?OBJ (MeasureFn ?QUANT1 ?UNIT)))
        (holdsDuring
-         (EndFn (WhenFn ?DECREASE))
-         (equal (MeasureFn ?OBJ ?UNIT) ?QUANT2))
+         (EndFn 
+           (WhenFn ?DECREASE))
+         (measure ?OBJ (MeasureFn ?QUANT2 ?UNIT)))
        (lessThan ?QUANT2 ?QUANT1))))
 
 (subclass Cooling Decreasing)
@@ -10269,13 +10296,13 @@ a &%Text, i.e. understanding the &%Text.")
       (patient ?COOL ?OBJ))
    (exists (?UNIT ?QUANT1 ?QUANT2)
      (and
-       (instance ?UNIT TemperatureMeasure)
+       (instance ?UNIT UnitOfTemperature)
        (holdsDuring
          (BeginFn (WhenFn ?COOL))
-         (equal (MeasureFn ?OBJ ?UNIT) ?QUANT1))
+         (measure ?OBJ (MeasureFn ?QUANT1 ?UNIT)))
        (holdsDuring
          (EndFn (WhenFn ?COOL))
-         (equal (MeasureFn ?OBJ ?UNIT) ?QUANT2))
+         (measure ?OBJ (MeasureFn ?QUANT2 ?UNIT)))
        (lessThan ?QUANT2 ?QUANT1))))
 
 ;; NS: moved from Mid-level-ontology.kif
@@ -10389,8 +10416,9 @@ following proposition:  the car drove up Highway 101.")
       (path ?PROCESS ?PATH1)
       (origin ?PROCESS ?SOURCE)
       (destination ?PROCESS ?DEST)
-      (length ?PATH1 ?MEASURE1)
-      (distance ?SOURCE ?DEST ?DISTANCE)
+      (instance ?U UnitOfLength)
+      (length ?PATH1 (MeasureFn ?MEASURE1 ?U))
+      (distance ?SOURCE ?DEST (MeasureFn ?DISTANCE ?U))
       (not (greaterThan ?MEASURE1 ?DISTANCE)))
    (forall (?OBJ)
       (=>
@@ -10462,14 +10490,23 @@ such a way that, with each step, neither foot is in contact with the ground for 
 period of time.")
 
 (=>
-   (and
-      (instance ?WALK Walking)
-      (instance ?RUN Running)
-      (agent ?WALK ?AGENT)
-      (agent ?RUN ?AGENT)
-      (holdsDuring (WhenFn ?WALK) (measure ?AGENT (SpeedFn ?LENGTH1 ?TIME)))
-      (holdsDuring (WhenFn ?RUN) (measure ?AGENT (SpeedFn ?LENGTH2 ?TIME))))
-   (greaterThan ?LENGTH2 ?LENGTH1))
+  (and
+    (instance ?WALK Walking)
+    (instance ?RUN Running)
+    (instance ?U UnitOfLength)
+    (agent ?WALK ?AGENT)
+    (agent ?RUN ?AGENT)
+    (holdsDuring 
+      (WhenFn ?WALK) 
+      (measure ?AGENT 
+      (SpeedFn 
+        (MeasureFn ?LENGTH1 ?U) ?TIME)))
+    (holdsDuring 
+      (WhenFn ?RUN) 
+      (measure ?AGENT 
+        (SpeedFn 
+          (MeasureFn ?LENGTH2 ?U) ?TIME))))
+  (greaterThan ?LENGTH2 ?LENGTH1))
 
 (subclass Swimming BodyMotion)
 (subclass Swimming IntentionalProcess)
@@ -12915,8 +12952,9 @@ from &%Solid to &%Gas which means that its melting and boiling points are equal.
 
 (=>
   (and
-    (meltingPoint ?TYPE ?MELT)
-    (boilingPoint ?TYPE ?BOIL))
+    (instance ?U UnitOfTemperature)
+    (meltingPoint ?TYPE (MeasureFn ?MELT ?U))
+    (boilingPoint ?TYPE (MeasureFn ?BOIL ?U)))
   (greaterThanOrEqualTo ?BOIL ?MELT))
 
 (subclass Melting StateChange)
@@ -13772,12 +13810,13 @@ vapor.")
          (and
             (part ?PART ?CLOUD)
             (not (instance ?PART Water)))
-         (exists (?WATER)
+         (exists (?WATER ?U)
             (and
                (instance ?WATER Water)
+               (instance ?U UnitOfVolume)
                (part ?WATER ?CLOUD)
-               (measure ?WATER ?MEASURE1)
-               (measure ?PART ?MEASURE2)
+               (measure ?WATER (MeasureFn ?MEASURE1 ?U))
+               (measure ?PART (MeasureFn ?MEASURE2 ?U))
                (greaterThan ?MEASURE1 ?MEASURE2))))))
 
 (subclass Air GasMixture)
