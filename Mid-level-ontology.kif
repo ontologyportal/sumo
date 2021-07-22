@@ -22034,37 +22034,35 @@ flashes light when a door knock is made. It is used by the hearing impaired")
 (=>
   (and
     (instance ?KL KnockLight)
-    (instance ?ROOM Room)
     (located ?KL ?ROOM)
+    (instance ?ROOM Room)     
     (instance ?DOOR Door)
     (part ?DOOR ?ROOM))
-  (hasPurpose ?KL
-    (exists (?SOUND ?LIGHT ?IMPACT)
-      (and
-        (instance ?IMPACT Impacting)
-        (patient ?IMPACT ?DOOR)
-        (causes ?IMPACT ?SOUND)
-        (instance ?SOUND RadiatingSound)
-        (agent ?SOUND ?DOOR)
-        (causes ?SOUND ?LIGHT)
-        (instance ?LIGHT RadiatingLight)
-        (agent ?LIGHT ?KL)))))
+  (exists (?KNOCK)
+    (and
+      (instance ?KNOCK Impacting)
+      (patient ?IMPACT ?DOOR)
+      (holdsDuring (WhenFn ?KNOCK)
+        (exists (?LIGHT)
+          (and
+            (causes ?IMPACT ?LIGHT)
+            (instance ?LIGHT RadiatingVisibleLight)
+            (instrument ?LIGHT ?KL)))))))
 
 (=>
   (and
     (instance ?KL KnockLight)
-    (attribute ?X Deaf)
-    (located ?KL ?LOC)
-    (located ?X ?LOC)
-    (instance ?DOOR Door)
-    (part ?DOOR ?LOC))
-  (hasPurposeForAgent ?KL
-    (knows ?X
-      (exists (?KNOCK)
-        (and
-          (instance ?KNOCK Impacting)
-          (patient ?KNOCK ?DOOR)))) ?X))
-
+    (instance ?A Human)
+    (attribute ?A Deaf)
+    (uses ?KL ?A))
+  (hasPurpose ?KL
+    (exists (?KNOCK ?DOOR)
+      (and
+        (instance ?KNOCK Impacting)
+        (patient ?KNOCK ?DOOR)
+        (instance ?DOOR Door)
+        (knows ?A ?KNOCK)))))
+ 
 (subclass PrayerMat Rug)
 (documentation PrayerMat EnglishLanguage "&%PrayerMat is a type of &%Rug which is used
 in &%Praying")
@@ -27067,7 +27065,7 @@ of and is certified for use as protection in rock climbing.")
 (disjoint UncertifiedCarabiner ClimbingCarabiner)
 
 (subclass Rope String)
-(document Rope EnglishLanguage "Any &%String that is a &%Collection of
+(documentation Rope EnglishLanguage "Any &%String that is a &%Collection of
 strings woven together.")
 
 (termFormat EnglishLanguage Rope "rope")
@@ -27084,7 +27082,7 @@ strings woven together.")
       (part ?S2 ?R))))
 
 (subclass ClimbingRope Rope)
-(document Rope EnglishLanguage "Any &%Rope that is designed to be used
+(documentation Rope EnglishLanguage "Any &%Rope that is designed to be used
 in &%RockClimbing.  This can include dynamic and static rope.")
 
 (termFormat EnglishLanguage ClimbingRope "climbing rope")
@@ -27095,6 +27093,7 @@ at a particular price or cost.  The cost should include transport from
 the source to the agent.")
 (termFormat EnglishLanguage shortage "shortage")
 (format EnglishLanguage shortage "there is a &%shortage of %5 of %2 for %1 at %3 during %4")
+(instance shortage QuintaryRelation)
 
 (domain shortage 1 Agent)
 (domainSubclass shortage 2 Object)
@@ -27427,9 +27426,9 @@ its center and point on the circle.")
 
 (instance VoltageRatingPrimary MeasurementAttribute)
 
-(documentation VoltageRatingPrimary EnglishLanguage "As with
-&%voltageRatingPrimary, the primary rating voltage of a &%Transformer
-is the voltage of primary side i.e. power recieving side.")
+(documentation VoltageRatingPrimary EnglishLanguage "&%VoltageRatingPrimary is 
+the primary rating voltage of an &%ElectricalTransformer. It is the power the
+transfrmer can pass on its receiving side (input).")
 
 (termFormat EnglishLanguage VoltageRatingPrimary "Primary Voltage Rating")
 
@@ -27447,11 +27446,32 @@ is the voltage of primary side i.e. power recieving side.")
     (instance ?O ?S))
   (voltageRatingPrimary ?O ?Q))
 
+(instance voltageRatingPrimary BinaryPredicate)
+(domain voltageRatingPrimary 1 ElectricalTransformer)
+(domain voltageRatingPrimary 2 FunctionQuantity)
+(documentation voltageRatingPrimary EnglishLanguage "&%voltageRatingPrimary is a
+&%PrimaryPredicate which maps the &%MeasurementAttribute, &%VoltageRatingPrimary of
+an &%ElectricTransmission to a value of &%FunctionQuantity it
+can receive (input).")
+(format EnglishLanguage voltageRatingPrimary "the &%FunctionQuantity of %1 is %2")
+(termFormat EnglishLanguage voltageRatingPrimary "primary voltage rating")
+
+(=>
+  (voltageRatingPrimary ?O ?Q)
+  (exists (?P ?EC ?P ?E)
+    (and
+      (part ?P ?O)
+      (instance ?EC ElectricTransmission)
+      (destination ?EC ?P)
+      (objectTransferred ?EC ?E)
+      (instance ?E Electricity)
+      (measure ?E ?Q))))
+   
 (instance VoltageRatingSecondary MeasurementAttribute)
 
-(documentation VoltageRatingSecondary EnglishLanguage "As with
-&%voltageRatingSecondary, the secondary rating voltage of a &%Transformer
-is the voltage of secondary side i.e. power distributing side.")
+(documentation VoltageRatingSecondary EnglishLanguage "&%VoltageRatingSecondary
+is the secondary rating voltage of an &%ElectricalTransformer. It is the power the transformer
+can pass on its distributing side (output).")
 
 (termFormat EnglishLanguage VoltageRatingSecondary "Secondary Voltage Rating")
 
@@ -27469,11 +27489,30 @@ is the voltage of secondary side i.e. power distributing side.")
     (instance ?O ?S))
   (voltageRatingSecondary ?O ?Q))
 
+(instance voltageRatingSecondary BinaryPredicate)
+(domain voltageRatingSecondary 1 ElectricalTransformer)
+(domain voltageRatingSecondary 2 FunctionQuantity)
+(documentation voltageRatingSecondary EnglishLanguage "&%voltageRatingSecondary is a
+&%BinaryPredicate which maps the &%MeasurementAttribute, &%VoltageRatingSecondary of
+an &%ElectricalTransformer to a value of &%FunctionQuantity it distribute (output).")
+(format EnglishLanguage voltageRatingSecondary "the &%FunctionQuantity of %1 is %2")
+(termFormat EnglishLanguage voltageRatingSecondary "seconary voltage rating")
+
+(=>
+  (voltageRatingSecondary ?O ?Q)
+  (exists (?S ?EC ?E)
+    (and
+      (part ?S ?O)
+      (instance ?EC ElectricTransmission)
+      (origin ?EC ?S)
+      (objectTransferred ?EC ?E)
+      (instance ?E Electricity)
+      (measure ?E ?Q))))
+
 (instance Frequency MeasurementAttribute)
 
-(documentation Frequency EnglishLanguage "As with &%frequency, the
-frequency of an &%Object which is number of time a process occur in
-unit time.")
+(documentation Frequency EnglishLanguage "The &%Frequency of an &%Object is
+the number of time a %Process occurs in a unit of time (&%frequency).")
 
 (termFormat EnglishLanguage Frequency "Frequency")
 
@@ -27481,26 +27520,30 @@ unit time.")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
-  (frequency ?O ?Q))
+    (member ?O ?S)
+    (instance ?P Process)
+    (agent ?P ?O))
+  (frequency ?P ?Q))
 
 (=>
   (and
     (memberMeasure ?S Frequency ?Q)
     (instance ?S Class)
-    (instance ?O ?S))
-  (frequency ?O ?Q))
+    (instance ?O ?S)
+    (instance ?P Process)
+    (agent ?P ?O))
+  (frequency ?P ?Q)) 
 
 (instance transformerCapacity BinaryPredicate)
 (termFormat EnglishLanguage transformerCapacity "transformer capacity")
 (format EnglishLanguage transformerCapacity "the &%capacity of %1 is %2")
-(domain transformerCapacity 1 Transformer)
-(domain transformerCapacity 2 CompositeUnitOfMeasure)
+(domain transformerCapacity 1 ElectricalTransformer)
+(domain transformerCapacity 2 FunctionQuantity)
 
 (instance TransformerCapacity MeasurementAttribute)
 
 (documentation TransformerCapacity EnglishLanguage "As with
-&%transformerCapacity, the capacity of a &%Transformer is the maximum
+&%transformerCapacity, the capacity of an &%ElectricalTransformer is the maximum
 power it can receive and distribute.")
 
 (termFormat EnglishLanguage TransformerCapacity "Transformer Capacity")
