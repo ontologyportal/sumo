@@ -1962,9 +1962,9 @@ require payment.")
   (hasPurpose ?A
     (exists (?D)
       (and
-        (instance ?D Downloading)
+        (instance ?D DownloadingOverNetwork)
         (origin ?D ?C)))))
-
+             
 (subclass AppleID UserAccount)
 
 (documentation AppleID EnglishLanguage "An Apple ID is a &%UserAccount that has a valid email
@@ -2348,6 +2348,9 @@ Showとして紹介しないように公式に記している。 ラスベガス
 (subclass TradeShow FormalMeeting)
 (subclass ConsumerElectronicsShow TradeShow)
 
+(instance Countries-USA-provinces-Nevada-cities-LasVegas City)
+(geographicSubregion Countries-USA-provinces-Nevada-cities-LasVegas Nevada)
+
 (=>
   (instance ?CES ConsumerElectronicsShow)
   (located ?CES Countries-USA-provinces-Nevada-cities-LasVegas))  ;; term from mondial.kif
@@ -2418,16 +2421,16 @@ SDKという開発キットの一部となっており、同ソフトで開発�
 (termFormat ChineseLanguage SteveWozniakOfApple "斯蒂夫·沃兹尼亚克")
 (termFormat JapaneseLanguage SteveWozniakOfApple "スティーブ・ウｵズニアック氏")
 
-(subclass CascadingStylesheets MarkupLanguage)
-(termFormat EnglishLanguage CascadingStylesheets "CSS")
-(termFormat ChineseTraditionalLanguage CascadingStylesheets "CSS")
-(termFormat ChineseLanguage CascadingStylesheets "CSS")
-(termFormat JapaneseLanguage CascadingStylesheets "CSS")
-
-(termFormat EnglishLanguage CascadingStylesheets "Cascading Stylesheets")
-(termFormat ChineseTraditionalLanguage CascadingStylesheets "層疊樣式表")
-(termFormat ChineseLanguage CascadingStylesheets "层叠样式表")
-(termFormat JapaneseLanguage CascadingStylesheets "カスケードスタイルシート")
+;;(subclass CascadingStylesheets MarkupLanguage)
+;;(termFormat EnglishLanguage CascadingStylesheets "CSS")
+;;(termFormat ChineseTraditionalLanguage CascadingStylesheets "CSS")
+;;(termFormat ChineseLanguage CascadingStylesheets "CSS")
+;;(termFormat JapaneseLanguage CascadingStylesheets "CSS")
+;;
+;;(termFormat EnglishLanguage CascadingStylesheets "Cascading Stylesheets")
+;;(termFormat ChineseTraditionalLanguage CascadingStylesheets "層疊樣式表")
+;;(termFormat ChineseLanguage CascadingStylesheets "层叠样式表")
+;;(termFormat JapaneseLanguage CascadingStylesheets "カスケードスタイルシート")
 
 (documentation CydiaPackageManager EnglishLanguage "Cydia is a package manager mobile app
 for iOS that enables a user to find and install software not authorized by &%AppleComputer on
@@ -2845,7 +2848,7 @@ a &%USBCable carrying messages that conform to the &%USBProtocol.")
 (termFormat ChineseLanguage AppleDockPort "插槽")
 (termFormat JapaneseLanguage AppleDockPort "DockPort")
 
-(subclass EarlyTerminationFeeClause Contract)
+(subAttribute EarlyTerminationFeeClause Contract)
 
 (documentation EarlyTerminationFeeClause EnglishLanguage "An early termination fee
 is a charge levied when a party wants to break the term of an agreement or long-term
@@ -3280,7 +3283,7 @@ SafariやApple Mailを通してダウンロードしたファイルやマルチ�
 (hasPurpose IBookstore
   (exists (?D)
     (and
-      (instance ?D Downloading)
+      (instance ?D DownloadingOverNetwork)
       (instrument ?D IBookstore)
       (instance ?T Text)
       (objectTransferred ?D ?T))))
@@ -3383,7 +3386,7 @@ Windows版の無料配布を開始、iTunesを通してアップル流の操作�
     (exists (?M ?D)
       (and
         (instance ?M MultimediaFile)
-        (instance ?D Downloading)
+        (instance ?D DownloadingOverNetwork)
         (objectTransferred ?D ?M)
         (instrument ?D ?I)))))
 
@@ -3791,49 +3794,99 @@ a later version of the same software")
 (termFormat ChineseLanguage SoftwareUpgrading "软体更新")
 (termFormat JapaneseLanguage SoftwareUpgrading "ソフトウェアの更新")
 
-;
-; this ComputerProgram is Abstract, it cannot be used with WhenFn which requires a Physical
-; Jennie 10th May 2021
-;(instance softwareVersion BinaryRelation)
-;(documentation softwareVersion EnglishLanguage "The software in the first
-;argument is a 'version' of the software in the second argument. Note that while
-;this typically means they will share a lot of code, that's not strictly necessary
-;as one version could be a complete rewrite of the other as long as they broadly share
-;the same purpose.")
-;
-;(domain softwareVersion 1 ComputerProgram)
-;(domain softwareVersion 2 ComputerProgram)
-;
-;(format EnglishLanguage softwareVersion "%1 is a later &%software version of %2")
-;(termFormat EnglishLanguage softwareVersion "software version")
-;
-;(=>
-;  (softwareVersion ?P1 ?P2)
-;  (greaterThan (WhenFn ?P1) (WhenFn ?P2)))
-;
-;(=>
-;  (softwareVersion ?P1 ?P2)
-;  (modalAttribute
-;    (exists (?L)
-;      (and
-;        (containsInformation ?L ?P1)
-;        (containsInformation ?L ?P2)))
-;    Likely))
-
 (=>
   (and
     (instance ?SU SoftwareUpgrading)
     (patient ?SU ?C)
-    (instance ?C Computer)
-    (objectTransferred ?SU ?P)
-    (instance ?P ComputerProgram))
-  (exists (?POLD ?DSD)
+    (instance ?C Computer))
+  (exists (?P)
     (and
-      (instance ?POLD ComputerProgram)
-      (instance ?DSD DataStorageDevice)
-      (connectedPeripheral ?DSD ?C)
-      (stored ?POLD ?DSD)
-      (softwareVersion ?P ?POLD))))
+     (objectTransferred ?SU ?P)
+     (instance ?P ComputerProgram)
+     (holdsDuring
+       (BeginFn (WhenFn ?SU)
+       (softwareVersion ?P PreviousVersion)))
+     (holdsDuring
+       (EndFn (WhenFn ?SU)
+       (softwareVersion ?P CurrentVersion))))))
+
+;; Jennie 11th July 2021
+;; Rewriting the axiom for softwareVersion to make the second argument a relational Attribute.
+;; This can fix the issues with WhenFn wrapping an abstract as well as avoiding the use
+;; of physicalquantity in equality operators in the axioms that were commented out below
+;;
+;;(=>
+;;  (and
+;;    (instance ?SU SoftwareUpgrading)
+;;    (patient ?SU ?C)
+;;    (instance ?C Computer)
+;;    (objectTransferred ?SU ?P)
+;;    (instance ?P ComputerProgram))
+;;  (exists (?POLD ?DSD)
+;;    (and
+;;      (instance ?POLD ComputerProgram)
+;;      (instance ?DSD DataStorageDevice)
+;;      (connectedPeripheral ?DSD ?C)
+;;      (stored ?POLD ?DSD)
+;;      (softwareVersion ?P ?POLD))))
+
+(instance softwareVersion BinaryRelation)
+(documentation softwareVersion EnglishLanguage "&%softwareVersion is a &%VersionAttribute 
+to the &%Proposition, &%ComputerProgram.")
+(domain softwareVersion 1 ComputerProgram)
+(domain softwareVersion 2 VersionAttribute)
+(format EnglishLanguage softwareVersion "%1 is the &%software version of %1")
+(termFormat EnglishLanguage softwareVersion "software version")
+
+(=>
+  (and
+    (softwareVersion ?COM CurrentVersion)
+    (instance ?P2 ComputerProgramming)
+    (patient ?P2 ?COM)) 
+  (exists (?P1)
+    (and
+      (instance ?P1 ComputerProgramming)
+      (not
+        (equal ?P1 ?P2))
+      (earlier (WhenFn ?P1) (WhenFn ?P2))  
+      (patient ?P1 ?COM)            
+      (softwareVersion ?COM PreviousVersion))))
+       
+(instance VersionAttribute RelationalAttribute)
+(documentation VersionAttribute EnglishLanguage "&%VersionAttribute is used to label
+the version of a &%ComputerProgram.")
+(termFormat EnglishLanguage VersionAttribute "version atribute")
+
+(subAttribute PreviousVersion VersionAttribute)
+(disjoint PreviousVersion CurrentVersion)
+(documentation PreviousVersion EnglishLanguage "&%PreviousVersion is an &%earlier
+'version' of the software of the &%VersionAttribute.Note that while
+this typically means they will share a lot of code, that's not strictly necessary
+as one version could be a complete rewrite of the other as long as they broadly share
+the same purpose.")
+(termFormat EnglishLanguage PreviousVersion "previous version")
+
+(subAttribute CurrentVersion VersionAttribute)
+(documentation CurrentVersion EnglishLanguage "&%CurrentVersion is an latest
+'version' of the software of the &%VersionAttribute.Note that while
+this typically means they will share a lot of code, that's not strictly necessary
+as one version could be a complete rewrite of the other as long as they broadly share
+the same purpose.")
+(termFormat EnglishLanguage CurrentVersion "current version")
+
+;;ComputerProgram is Abstract, it cannot be used with WhenFn which requires a Physical
+;;(=>
+;;  (softwareVersion ?P1 ?P2)
+;;  (greaterThan (WhenFn ?P1) (WhenFn ?P2)))
+;;
+;;(=>
+;; (softwareVersion ?P1 ?P2)
+;;  (modalAttribute
+;;    (exists (?L)
+;;      (and
+;;        (containsInformation ?L ?P1)
+;;        (containsInformation ?L ?P2)))
+;;    Likely))
 
 (instance thirdPartyProduct TernaryPredicate)
 (documentation thirdPartyProduct EnglishLanguage "A relationship between a product, a manufacturer and
