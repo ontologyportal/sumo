@@ -7164,6 +7164,54 @@ different from the one accepted in the SI system.")
   (MeasureFn ?NUMBER MegaByte)
   (MeasureFn (MultiplicationFn ?NUMBER 1024) KiloByte))
 
+(subclass SoundPressureLevelUnit UnitOfMeasure)
+(documentation SoundPressureLevelUnit EnglishLanguage "The &%Class of all
+UnitOfMeasure that measure a sound pressure level.")
+(termFormat EnglishLanguage SoundPressureLevelUnit "sound pressure level unit")
+
+(instance Decibel SoundPressureLevelUnit)
+
+(documentation Decibel EnglishLanguage "The decibel (symbol: dB) is a relative
+unit of measurement equal to one tenth of a bel (B). It expresses the ratio of
+two values of a power or root-power quantity on a logarithmic scale. Two signals
+whose levels differ by one decibel have a power ratio of 101/10 (approximately
+1.26) or root-power ratio of 101⁄20 (approximately 1.12).[from Wikipedia]")
+(termFormat EnglishLanguage Decibel "decibel")
+(termFormat EnglishLanguage Decibel "dB")
+
+(instance DecibelA SoundPressureLevelUnit)
+
+(documentation DecibelA EnglishLanguage "A-weighting is the most commonly used of a family of curves defined in the
+International standard IEC 61672:2003 and various national standards relating to
+the measurement of sound pressure level.[1] A-weighting is applied to
+instrument-measured sound levels in an effort to account for the relative
+loudness perceived by the human ear, as the ear is less sensitive to low audio
+frequencies. It is employed by arithmetically adding a table of values, listed
+by octave or third-octave bands, to the measured sound pressure levels in dB.
+The resulting octave band measurements are usually added (logarithmic method) to
+provide a single A-weighted value describing the sound; the units are written as
+dB(A).[from Wikipedia]")
+(termFormat EnglishLanguage Decibel "decibel (A-weighting)")
+(termFormat EnglishLanguage Decibel "dB(A)")
+
+; TBD, AP - something like
+; (=>
+;  (and
+;    (instance ?AIR AtmosphericRegion)
+;    (holdsDuring ?T
+;      (and   
+;        (measure ?AIR 
+;          (MeasureFn ?X Decibel)))
+;        (measure ?AIR ?Y)
+;        (equal ?Y
+;          (MultiplicationFn 20
+;            (LogFn
+;              (DivisionFn
+;                (StandardDeviationFn <list of measurements of pressure>)
+;                (MeasureFn 20 (MicroFn Pascal))))))))
+;   (equal ?X ?Y))
+;         
+    
 ;; The following content was inspired by the Quantities ontology
 ;; developed by ITBM-CNR.
 
@@ -7853,13 +7901,15 @@ initial point of the &%TimeInterval ?INTERVAL2.")
 
 (=>
   (and
+    (instance ?INTERVAL1 TimeInterval)
+    (instance ?INTERVAL2 TimeInterval)
     (equal
       (BeginFn ?INTERVAL1)
       (BeginFn ?INTERVAL2))
     (equal
       (EndFn ?INTERVAL1)
       (EndFn ?INTERVAL2)))
-    (equal ?INTERVAL1 ?INTERVAL2))
+  (equal ?INTERVAL1 ?INTERVAL2))
 
 (instance earlier BinaryPredicate)
 (instance earlier TemporalRelation)
@@ -9848,6 +9898,25 @@ systemic effects.")
          (instance ?DISEASE DiseaseOrSyndrome)
          (attribute ?PART ?DISEASE))))
 
+(instance pathologicSymptom BinaryPredicate)
+(documentation pathologicSymptom EnglishLanguage "A symptom that is a possible
+manifestation of a particular &%PathologicProcess.")
+(termFormat EnglishLanguage pathologicSymptom "pathologic symptom")
+(format EnglishLanguage pathologicSymptom "%2 is a &%symptom of %1")
+(domain pathologicSymptom 1 DiseaseOrSyndrome)
+(domainSubclass pathologicSymptom 2 PathologicProcess)
+
+(=>
+  (pathologicSymptom ?D ?S)
+  (increasesLikelihood
+    (attribute ?O ?D)
+    (exists (?I)
+      (and
+        (instance ?I ?S)
+        (experiencer ?S ?O)))))
+        
+(relatedInternalConcept pathologicalSymptom diseaseSymptom)
+
 (subclass Injuring PathologicProcess)
 (subclass Injuring Damaging)
 
@@ -10003,6 +10072,46 @@ becoming a &%member of an &%Organization.")
       (holdsDuring (BeginFn (WhenFn ?JOIN)) (not (member ?PERSON ?ORG)))
       (holdsDuring (EndFn (WhenFn ?JOIN)) (member ?PERSON ?ORG))))
 
+(subclass Hiring OrganizationalProcess)
+(documentation Hiring EnglishLanguage "The &%OrganizationalProcess of
+becoming a &%member of an &%Organization that will conduct a 
+&%FinancialTransaction, paying the new member for his or her efforts.")
+
+(=>
+   (and
+      (instance ?JOIN Hiring)
+      (instance ?ORG Organization)
+      (agent ?JOIN ?ORG)
+      (patient ?JOIN ?PERSON))
+   (and
+      (holdsDuring (BeginFn (WhenFn ?JOIN)) (not (member ?PERSON ?ORG)))
+      (holdsDuring (EndFn (WhenFn ?JOIN)) (member ?PERSON ?ORG))))
+   
+(=>
+   (and
+      (instance ?JOIN Hiring)
+      (instance ?ORG Organization)
+      (agent ?JOIN ?ORG)
+      (patient ?JOIN ?PERSON))
+    (holdsDuring 
+      (ImmediateFutureFn 
+        (WhenFn ?JOIN))
+      (employs ?ORG ?PERSON)))
+      
+(=>
+   (and
+      (instance ?JOIN Hiring)
+      (instance ?ORG Organization)
+      (agent ?JOIN ?ORG)
+      (patient ?JOIN ?PERSON))
+   (expects ?ORG
+     (exists (?FT)
+       (and
+         (instance ?FT FinancialTransaction)
+         (agent ?FT ?ORG)
+         (destination ?FT ?PERSON)
+         (earlier (WhenFn ?JOIN) (WhenFn ?FT))))))      
+   
 (subclass LeavingAnOrganization OrganizationalProcess)
 (disjoint LeavingAnOrganization JoiningAnOrganization)
 
@@ -10018,6 +10127,42 @@ leaving an &%Organization, whether voluntarily or involuntarily.")
    (and
       (holdsDuring (BeginFn (WhenFn ?LEAVE)) (member ?PERSON ?ORG))
       (holdsDuring (EndFn (WhenFn ?LEAVE)) (not (member ?PERSON ?ORG)))))
+
+(subclass Quitting LeavingAnOrganization)
+(documentation LeavingAnOrganization EnglishLanguage "The &%OrganizationalProcess of
+leaving an &%Organization, initiated voluntarily by the employee.")
+
+(=>
+  (and
+    (instance ?LEAVE Quitting)
+    (instance ?ORG Organization)
+    (agent ?LEAVE ?PERSON)
+    (patient ?LEAVE ?ORG))
+  (desires ?PERSON
+    (holdsDuring 
+      (EndFn 
+        (WhenFn ?LEAVE)) 
+      (not (member ?PERSON ?ORG)))))
+      
+(documentation Firing EnglishLanguage "The &%OrganizationalProcess of
+leaving an &%Organization involuntarily. Although initiated by the
+organization, sometimes an employee may want to be fired because
+of compensation from the organization or labor law issues.")
+(subclass Firing OrganizationalProcess)
+
+(=>
+  (and
+    (instance ?LEAVE Firing)
+    (instance ?ORG Organization)
+    (agent ?LEAVE ?ORG)
+    (patient ?LEAVE ?P))
+  (and
+    (holdsDuring (BeginFn (WhenFn ?LEAVE)) (member ?P ?ORG))
+    (holdsDuring (EndFn (WhenFn ?LEAVE)) (not (member ?P ?ORG)))))
+      
+(subclass Volunteering Offering)
+(documentation Volunteering EnglishLanguage "&%Offering to work without
+financial compensation.")
 
 (subclass Graduation LeavingAnOrganization)
 
@@ -11535,6 +11680,29 @@ where they were combined.")
          (instance ?OBJ CorpuscularObject)
          (patient ?ATTACH ?OBJ))))
 
+(instance objectAttached CaseRole)
+(subrelation objectAttached patient)
+(documentation objectAttached EnglishLanguage "Relates an object that is
+attached to the &%Process of &%Attaching.")
+(termFormat EnglishLanguage objectAttached "attached")
+(format EnglishLanguage objectAttached "%1 &%attaches %2 to another object")
+
+(=>
+  (and
+    (instance ?A Attaching)
+    (patient ?A ?O1)
+    (patient ?A ?O2)
+    (holdsDuring 
+      (BeginFn (WhenFn ?A)) 
+      (not
+        (connected ?O1 ?O2)))
+    (holdsDuring 
+      (EndFn (WhenFn ?A)) 
+      (connected ?O1 ?O2)))
+  (and
+    (objectAttached ?A ?O1)
+    (objectAttached ?A ?O2)))
+    
 (subclass Detaching DualObjectProcess)
 
 (documentation Detaching EnglishLanguage "A &%Process where the &%agent detaches one thing
@@ -11560,6 +11728,24 @@ may not be moved from the location where they were attached.")
          (instance ?OBJ CorpuscularObject)
          (patient ?DETACH ?OBJ))))
 
+(instance objectDetached CaseRole)         
+(subrelation objectDetached patient)
+(documentation objectDetached EnglishLanguage "Relates an object that is
+dettached to the &%Process of &%Detaching.")
+(termFormat EnglishLanguage objectDetached "detached")
+(format EnglishLanguage objectDetached "%1 &%detaches %2 from another object")
+
+(=>
+  (and
+    (instance ?D Detaching)
+    (patient ?D ?O1)
+    (patient ?D ?O2)
+    (holdsDuring (BeginFn (WhenFn ?D)) (connected ?O1 ?O2))
+    (holdsDuring (EndFn (WhenFn ?A)) (not (connected ?O1 ?O2))))
+  (and
+    (objectDetached ?A ?O1)
+    (objectDetached ?A ?O2)))
+    
 (subclass Ungrasping Detaching)
 (documentation Ungrasping EnglishLanguage "Any instance of &%Detaching which results in
 a situation where it is not the case that the &%agent &%grasps something
@@ -16955,6 +17141,14 @@ their birth.")
 something that alters or interferes with a normal process, state or activity
 of an &%Organism.  It is usually characterized by the abnormal functioning of
 one or more of the host's systems, parts, or &%Organs.")
+
+(instance ImpairedBodyPartFn UnaryFn)
+(domainSubclass ImpairedBodyPartFn 1 BodyPart)
+(range ImpairedBodyPartFn DiseaseOrSyndrome)
+(documentation ImpairedBodyPartFn EnglishLanguage "A &%Function that returns
+an instance of ImpairedBodyPartFn that &%refers to a particular &%BodyPart.
+For example, a broken leg would be a &%subAttribute of 
+(ImpairedBodyPartFn Leg)")
 
 ;; NS: If we wanted to ascribe PsychologicalAttributes
 ;; to a non-OrganicObject robot or an AI, this
