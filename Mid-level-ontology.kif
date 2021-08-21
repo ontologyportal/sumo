@@ -5347,6 +5347,59 @@ open wound.")
 kneading &%Muscles in such a way that tension is relieved, blood circulation 
 is increased, etc.")
 
+(subclass Itching TactilePerception)
+(termFormat EnglishLanguage Itching "itching")
+(termFormat EnglishLanguage Itching "pruritus")
+
+(documentation EnglishLanguage Itching "Itch (also known as pruritus)
+is a sensation that causes the desire or reflex to scratch. [from
+Wikipedia]")
+
+(subclass Scratching BodyMotion)
+(termFormat EnglishLanguage Scratching "scratching")
+
+(documentation Scratching EnglishLanguage "Scratching is a rhythmic
+rubbing of the body with a sharp object or other part of the body,
+such as a claw or nail. During a scratch reflex, a nearby limb reaches
+toward and rubs against the site on the body surface that has been
+stimulated. Despite decades of research, key aspects of the scratch reflex are
+still unknown, such as the neural mechanisms by which the reflex is
+terminated.[from Wikipedia]")
+
+(=>
+  (and
+    (instance ?I Itching)
+    (located ?I ?P)
+    (part ?P ?H)
+    (experiencer ?I ?H))
+  (desires ?H
+    (exists (?S)
+      (and
+        (instance ?S Scratching)
+        (during (WhenFn ?S) (WhenFn ?I))
+        (located ?S ?P)))))
+  
+(subclass SkinRash PathologicProcess)
+
+(documentation SkinRash EnglishLanguage "A rash is a change of the
+&%Human &%Skin which affects its color, appearance, or texture. A rash may
+be localized in one part of the body, or affect all the skin. Rashes
+may cause the skin to change color, itch, become warm, bumpy, chapped,
+dry, cracked or blistered, swell, and may be painful. The causes, and
+therefore treatments for rashes, vary widely. [from Wikipedia]")
+
+(=>
+  (and
+    (instance ?S SkinRash)
+    (experiencer ?S ?H))
+  (modalAttribute 
+    (exists (?I)
+      (and 
+        (instance ?I Itching)
+        (experiencer ?I ?H)
+        (during (WhenFn ?I) (WhenFn ?S))))
+    Likely))
+             
 (subclass RelievingPain TherapeuticProcess)
 (documentation RelievingPain EnglishLanguage "Any &%TherapeuticProcess that removes &%Pain from 
 the patient of the process.")
@@ -5378,6 +5431,14 @@ caused by a single type of &%Microorganism.")
                (attribute ?VICTIM ?DISEASE)
                (located ?AGENT ?VICTIM)))))))
 
+(subclass PhysicalDisease DiseaseOrSyndrome)
+(documentation PhysicalDisease EnglishLanguage "A &%DiseaseOrSyndrome other than
+a PsychologicalDysfunction.")
+(termFormat EnglishLanguage PhysicalDisease "physical disease")
+
+(disjoint PhysicalDisease PsychologicalDysfunction)
+
+                     
 (subclass BacterialDisease InfectiousDisease)
 (documentation BacterialDisease EnglishLanguage "A disease that is caused by instances of 
 &%Bacterium.")
@@ -5397,6 +5458,28 @@ caused by a single type of &%Microorganism.")
       (instance ?O Microorganism)
       (experiencer ?P ?A))))
 
+(subclass ChronicDisease DiseaseOrSyndrome)
+
+(document ChronicDisease EnglishLanguage "A chronic condition is a
+human health condition or disease that is persistent or otherwise
+long-lasting in its effects or a disease that comes with time. The
+term chronic is often applied when the course of the disease lasts for
+more than three months. Common chronic diseases include arthritis,
+asthma, cancer, chronic obstructive pulmonary disease, diabetes, Lyme
+disease, autoimmune diseases, genetic disorders and some viral
+diseases such as hepatitis C and acquired immunodeficiency syndrome.
+[from Wikipedia]")
+(termFormat EnglishLanguage ChronicDisease "chronic disease")
+
+(=>
+  (and
+    (holdsDuring ?T
+      (attribute ?H ?C))
+    (instance ?H ChronicDisease)
+    (duration ?T ?D))
+  (greaterThan ?D 
+    (MeasureFn 3 MonthDuration)))
+  
 (subclass TakingIll PathologicProcess)
 (documentation TakingIll EnglishLanguage "Any &%Process where the experiencer contracts a 
 &%DiseaseOrSyndrome.")
@@ -5469,6 +5552,29 @@ and which results in an enlarged &%ThyroidGland.")
 (documentation Tuberculosis EnglishLanguage "A &%BacterialDisease caused by the &%Tubercle &%Bacillus 
 that results in lesions on various body parts, especially the &%Lungs.")
 
+(subclass AllergicReaction PathologicProcess)
+(documentation AllergicReaction EnglishLanguage "A reaction by someone who is &%allergic to some substance
+coming into contact with it.")
+
+(instance allergic BinaryPredicate)
+(domain allergic 1 Human)
+(domainSubclass allergic 2 Substance)
+
+(=>
+  (and
+    (allergic ?H ?S)
+    (instance ?SUB ?S)
+    (holdsDuring ?T
+      (meetsSpatially ?S ?H)))
+  (modalAttribute
+    (exists (?AR)
+      (and
+        (instance ?AR AllergicReaction)
+        (experiencer ?AR ?H)
+        (overlapsTemporally ?T (WhenFn ?AR))
+        (before (BeginFn ?T) (BeginFn (WhenFn ?AR)))))
+    Likely))
+    
 (subclass RecoveringFromIllness OrganismProcess)
 (documentation RecoveringFromIllness EnglishLanguage "Any &%Process where the experiencer recovers 
 from a &%DiseaseOrSyndrome.")
@@ -11262,7 +11368,7 @@ name, its &%monetaryValue, etc.")
          (instance ?OBJ SelfConnectedObject)
          (connected ?LABEL ?OBJ)
          (refers ?LABEL ?OBJ))))
-
+    
 (subclass FormText Text)
 (documentation FormText EnglishLanguage "A page or set of pages containing spaces where 
 information is to be entered by an &%Agent.")
@@ -11583,6 +11689,21 @@ glossy paper.")
 (subclass Letter FactualText)
 (documentation Letter EnglishLanguage "A brief message which is intended to be mailed 
 to a person or &%Organization.")
+
+(instance WeekBeforeFn UnaryFunction)
+(domain WeekBeforeFn 1 TimePeriod)
+(range WeekBeforeFn Week)
+(documentation WeekBeforeFn EnglishLanguage "A &%Function that returns the week
+immediately preceding the beginning of the given &%TimePeriod.")
+
+(=>
+  (equal ?WF (WeekBeforeFn ?TI))
+  (equal ?WF 
+    (TimeIntervalFn
+      (SubtractionFn
+        (BeginFn ?TI)
+        (MeasureFn 1 WeekDuration))
+      (BeginFn ?TI)))) 
 
 (subclass Holiday TimeInterval)
 (documentation Holiday EnglishLanguage "&%Holiday is the class of time periods that are 
@@ -16930,18 +17051,66 @@ but that is larger than a &%Mouse.")
       (result ?COPY ?THING2))
    (copy ?THING1 ?THING2))
 
-(subclass Vacationing RecreationOrExercise)
-(documentation Vacationing EnglishLanguage "Taking time off from &%Working.")
+(subclass WorkLeave IntentionalProcess)
+(documentation WorkLeave EnglishLanguage "A temporary leave from &%Working.
+Note that this is disjoint from being &%Unemployed.")
 
 (=>
    (and
-      (instance ?VACATION Vacationing)
+      (instance ?W WorkLeave)
       (instance ?WORK Working)
-      (agent ?VACATION ?PERSON)
+      (agent ?W ?PERSON)
       (agent ?WORK ?PERSON)
       (instance ?PERSON Human))
-   (not (overlapsTemporally (WhenFn ?VACATION) (WhenFn ?WORK))))
+   (not 
+     (overlapsTemporally 
+       (WhenFn ?W) 
+       (WhenFn ?WORK))))
+    
+(=>
+  (and
+    (instance ?W WorkLeave)
+    (agent ?W ?PERSON))
+  (holdsDuring 
+    (WhenFn ?W)
+    (not       
+      (attribute ?PERSON Unemployed))))
+      
+(subclass Vacationing RecreationOrExercise)
+(subclass Vacationing WorkLeave)
+(documentation Vacationing EnglishLanguage "Taking time off from &%Working for
+the purpose of recreation. Note that this is disjoint from just being &%Unemployed.")
 
+(subclass SickLeave WorkLeave)
+(documentation SickLeave EnglishLanguage "A leave from &%Working
+taken because a &%DiseaseOrSyndrome makes is difficult or impossible
+to work.  Note also that one can take sick leave but not actually
+be sick, either through &%TellingALie or if work rules allow one to take
+leave to care for someone else who is sick.")
+
+(=>
+  (and
+    (instance ?W SickLeave)
+    (agent ?W ?PERSON))
+  (exists (?S)
+    (and
+      (instance ?S DiseaseOrSyndrome)
+      (refers ?W ?S))))
+      
+(subclass DisabilityLeave WorkLeave)
+(documentation DisabilityLeave EnglishLanguage "A leave from &%Working
+taken because a &%DiseaseOrSyndrome makes is difficult or impossible
+to work for an extended period.  ")
+
+(=>
+  (and
+    (instance ?W DisabilityLeave)
+    (agent ?W ?PERSON))
+  (holdsDuring (WhenFn ?W)
+    (and
+      (instance ?D Disability)
+      (attribute ?PERSON ?D))))
+      
 (documentation OccupationFn EnglishLanguage "(OccupationFn ?PROCESS) denotes the 
 subclass of ?PROCESS where instances of ?PROCESS are performed as 
 one's occupation, i.e. as part of a &%FinancialTransaction where one 
@@ -18114,11 +18283,54 @@ native to the Americas.")
 and/or &%FruitOrVegetables to a translucent broth which can be used as 
 a base for soups or sauces.") 
 
+(instance productOfPlant BinaryPredicate)
+(domainSubclass productOfPlant 1 PlantAnatomicalStructure)
+(domainSubclass productOfPlant 2 Plant)
+
+(subclass Caffeine Molecule) 
+(subclass Caffeine Stimulant)
+(termFormat EnglishLanguage Caffeine "caffeine")
+
+(documentation Caffeine EnglishLanguage "Caffeine is a central nervous
+system (CNS) &%Stimulant of the methylxanthine class. It is the
+world's most widely consumed psychoactive drug. Unlike many other
+psychoactive substances, it is &%Legal and unregulated in nearly all
+parts of the world. There are several known mechanisms of action to
+explain the effects of caffeine. The most prominent is that it
+reversibly blocks the action of adenosine on its receptors and
+consequently prevents the onset of drowsiness induced by adenosine.
+Caffeine also stimulates certain portions of the autonomic
+&%NervousSystem.[from Wikipedia]")
+
+(subclass CoffeePlant FloweringPlant)
+
+(documentation CoffeePlant EnglishLanguage "Coffea is a genus of
+flowering plants in the family Rubiaceae. Coffea species are shrubs or
+small trees native to tropical and southern Africa and tropical Asia.
+The seeds of some species, called coffee beans, are used to flavor
+various beverages and products. The fruits, like the seeds, contain a
+large amount of caffeine, and have a distinct sweet taste and are
+often juiced. The plant ranks as one of the world's most valuable and
+widely traded commodity crops and is an important export product of
+several countries, including those in Central and South America, the
+Caribbean and Africa.[from Wikipedia]")
+
+(productOfPlant CoffeeBean CoffeePlant)
+ 
+(subclass CoffeeBean Fruit)
+
 (subclass Coffee Beverage)
 (subclass Coffee PreparedFood)
 (documentation Coffee EnglishLanguage "A &%Beverage which is prepared by infusing ground, 
 roasted coffee beans into hot water.")
 
+(=>
+  (instance ?C Coffee)
+  (exists (?CAF)
+    (and
+      (instance ?CAF Caffeine)
+      (piece ?CAF ?C))))
+      
 (subclass Apple FruitOrVegetable)
 (subclass Apple (FoodForFn Animal))
 (documentation Apple EnglishLanguage "A &%FruitOrVegetable that has a tart to sweet taste and 
@@ -20327,6 +20539,134 @@ by a &%Canine.")
 (documentation Menstruation EnglishLanguage "A periodic discharge of &%Blood and other 
 &%BiologicalSubstances by &%Females that is part of a readjustment of 
 the uterus.")
+(termFormat EnglishLanguage Menstruation "menstruation")
+(termFormat EnglishLanguage Menstruation "menstruating")
+(termFormat EnglishLanguage Menstruation "period")
+
+(=>
+  (and
+    (instance ?M Menstruation)
+    (experiencer ?M ?F))
+  (and
+    (attribute ?F Female)
+    (not
+      (attribute ?F Menopausal))))
+
+(=>
+  (and
+    (holdsDuring ?T1
+      (attribute ?F Menopausal))
+    (equal ?BEFORE
+      (SubtractionFn 
+        (YearDuration 1)
+        (BeginFn ?T1)))
+    (equal ?YBEFORE
+      (TemporalIntervalFn ?YBEFORE (BeginFn ?T1))))
+  (not
+    (exists (?M)
+      (and
+        (instance ?M Menstruation)
+        (experiencer ?M ?F)))))
+
+(instance Menopausal BiologicalAttribute)
+
+(documentation Menopausal EnglishLanguage "Menopause, also known as
+the climacteric, is the time in women's lives when menstrual periods
+stop permanently, and they are no longer able to bear children.
+Menopause typically occurs between 49 and 52 years of age. Medical
+professionals often define menopause as having occurred when a woman
+has not had any menstrual bleeding for a year. [from Wikipedia]")
+(termFormat EnglishLanguage Menopausal "menopause")
+
+(=>
+  (and
+    (holdsDuring ?T
+      (attribute ?F Menopausal))
+    (birthdate ?F ?B)
+    (equal ?A1
+      (AdditionFn
+        (YearDuration 49) ?B))
+    (equal ?A2
+      (AdditionFn
+        (YearDuration 52) ?B))
+    (equal ?START 
+      (BeginFn ?T)))
+  (modalAttribute 
+    (and
+      (greaterThan ?START ?A1)
+      (greaterThan ?A2 ?START))
+    Likely))
+    
+(=>
+  (attribute ?F Menopausal)
+  (attribute ?F Female))
+             
+(subclass Gamete Cell)
+(subclass Ovum Gamete)
+(subclass Sperm Gamete)
+(subclass Fertilisation OrganOrTissueProcess)
+(subclass Fertilisation Attaching)
+
+(documentation Fertilisation EnglishLanguage "Fertilisation or
+fertilization (see spelling differences), also known as generative
+fertilisation, syngamy and impregnation,[1] is the fusion of gametes
+to give rise to a new individual organism or offspring and initiate
+its development. Processes such as insemination or pollination which
+happen before the fusion of gametes are also sometimes informally
+called fertilization. [from Wikipedia]")
+
+(termFormat EnglishLanguage Fertilisation "fertilization")
+(termFormat EnglishLanguage Fertilisation "fertilisation")
+(termFormat EnglishLanguage Fertilisation "conception")
+ 
+(=>
+  (instance ?F Fertilisation)
+  (exists (?G1 ?G2)
+    (and
+      (instance ?G1 Gamete)
+      (instance ?G2 Gamete)
+      (not
+        (equal ?G1 ?G2))
+      (objectAttached ?F ?G1)
+      (objectAttached ?F G2))))
+
+(subclass Zygote Cell)
+(termFormat EnglishLanguage Zygote "zygote")
+
+(documentation Zygote EnglishLanguage "A zygote is a &%EukaryoticCell
+formed by a &%Fertilization event between two &%Gametes. The zygote's
+genome is a combination of the DNAMolecule in each gamete, and
+contains all of the genetic information necessary to form a new
+individual &%Organism. [from Wikipedia]")
+
+(=>
+  (instance ?F Fertilisation)
+  (exists (?Z)
+    (and
+      (instance ?Z Zygote)
+      (result ?F ?Z))))
+      
+(subclass Birth Removing)
+
+(=>
+  (instance ?B Birth)
+  (exists (?M ?BABY)
+    (and
+      (attribute ?M Female)
+      (origin ?B ?M)
+      (objectTransferred ?B ?BABY)
+      (attribute ?BABY NonFullyFormed))))
+
+(=>
+  (and
+    (instance ?B Birth)
+    (origin ?B ?F))
+  (exists (?Z ?T)
+    (and
+      (instance ?Z Zygote)
+      (earlier ?T (WhenFn ?B))
+      (holdsDuring ?T         
+        (located ?Z ?F)))))   
 
 (subclass Organification OrganOrTissueProcess)
 (documentation Organification EnglishLanguage "Any &%BiologicalProcess that results in 
@@ -20339,6 +20679,7 @@ the formation of an &%Organ.")
          (instance ?O Organ)
          (result ?P ?O))))
 
+         
 (subclass BiologicalConception OrganOrTissueProcess)
 (relatedInternalConcept BiologicalConception SexualReproduction)
 (relatedInternalConcept BiologicalConception Birth)
@@ -26502,7 +26843,14 @@ for an &%Agent or any macroscopic-level motion for an &%Object")
 
 (instance Healthy BiologicalAttribute)
 (documentation Healthy EnglishLanguage "The state of not having any &%DiseaseOrSyndrome.")
-(contraryAttribute Healthy DiseaseOrSyndrome)
+
+(=>
+  (attribute ?X Healthy)
+  (not
+    (exists (?Y)
+      (and
+        (instance ?Y DiseaseOrSyndrome)
+        (attribute ?X ?Y)))))
 
 (instance Harmless RelationalAttribute)
 (documentation Harmless EnglishLanguage "An &%Attribute stating that the &%Process did not cause harm -
