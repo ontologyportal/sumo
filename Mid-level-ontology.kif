@@ -5407,29 +5407,38 @@ the patient of the process.")
 (=>
   (and
     (instance ?R RelievingPain)
-    (patient ?R ?P))
+    (patient ?R ?H))
   (and
-    (holdsDuring 
-      (BeginFn (WhenFn ?R)) 
-      (attribute ?P Pain))
-    (holdsDuring 
-      (EndFn (WhenFn ?R)) 
-      (not 
-        (attribute ?P Pain)))))
+    (exists (?P1)
+      (and
+        (overlapsTemporally 
+          (WhenFn ?P1) 
+          (ImmediatePastFn (WhenFn ?R))
+        (instance ?P1 Pain)
+        (located ?P1 ?H))))
+    (not
+      (exists (?P2)
+        (and
+          (overlapsTemporally
+            (WhenFn ?P2)
+            (ImmediateFutureFn (WhenFn ?R)) 
+            (instance ?P Pain)
+            (located ?P ?H)))))))
 
 (subclass NonspecificDisease DiseaseOrSyndrome)
 (documentation NonspecificDisease EnglishLanguage "The class of &%DiseaseOrSyndromes that are not 
 caused by a single type of &%Microorganism.")
 
 (=>
-   (instance ?DISEASE NonspecificDisease)
-   (not (exists (?AGENT)
+  (instance ?DISEASE NonspecificDisease)
+  (not 
+    (exists (?AGENT)
       (and
-         (instance ?AGENT Microorganism)
-         (forall (?VICTIM)
-            (=>
-               (attribute ?VICTIM ?DISEASE)
-               (located ?AGENT ?VICTIM)))))))
+        (instance ?AGENT Microorganism)
+        (forall (?VICTIM)
+          (=>
+            (attribute ?VICTIM ?DISEASE)
+            (located ?AGENT ?VICTIM)))))))
 
 (subclass PhysicalDisease DiseaseOrSyndrome)
 (documentation PhysicalDisease EnglishLanguage "A &%DiseaseOrSyndrome other than
@@ -5630,6 +5639,65 @@ uncontrolled cell division that results in a &%Tumor.")
          (instance ?TUMOR Tumor)
          (part ?TUMOR ?PERSON))))
 
+(instance Paralysis DiseaseOrSyndrome)
+(documentation Paralysis EnglishLanguage "The syndrome where some or all of an &%Animal's muscles 
+cannot be moved voluntarily.")
+
+(=>
+  (attribute ?ORGANISM Paralysis)
+  (exists (?MUSCLE)
+    (and
+      (instance ?MUSCLE Muscle)
+      (part ?MUSCLE ?ORGANISM)
+      (not 
+        (exists (?MOTION)
+          (and
+            (instance ?MOTION BodyMotion)
+            (agent ?MOTION ?ORGANISM)
+            (patient ?MOTION ?MUSCLE)))))))
+
+(instance ParalysisFn UnaryFunction)
+(documentation ParalysisFn EnglishLanguage "A &%Function that returns that class of
+&%Paralysis affecting a particular &%BodyPart of an &%Animal.")
+(domain ParalysisFn 1 BodyPart)
+(rangeSubclass ParalysisFn Paralysis)
+(termFormat EnglishLanguage ParalysisFn "paralysis")
+(format EnglishLanguage ParalysisFn "&%paralysis of the %1")
+
+(=>
+  (attribute ?ORGANISM 
+    (ParalysisFn ?PART))
+  (exists (?MUSCLE)
+    (and
+      (instance ?MUSCLE Muscle)
+      (part ?MUSCLE ?PART)
+      (part ?PART ?ORGANISM)
+      (not 
+        (exists (?MOTION)
+          (and
+            (instance ?MOTION BodyMotion)
+            (agent ?MOTION ?ORGANISM)
+            (patient ?MOTION ?MUSCLE)))))))
+       
+            
+(instance PainFn UnaryFunction)
+(documentation PainFn EnglishLanguage "A &%Function that returns that class of
+&%Pain affecting a particular &%BodyPart of an &%Animal.")
+(domain PainFn 1 BodyPart)
+(rangeSubclass PainFn Pain)
+(termFormat EnglishLanguage PainFn "pain")
+(format EnglishLanguage PainFn "&%pain in the %1")
+
+(=>
+  (experiencer ?ORGANISM 
+    (PainFn ?P))
+  (exists (?PART)
+    (and
+      (instance ?PART ?P)
+      (part ?PART ?ORGANISM)
+      (location ?PART Pain)))))))
+           
+            
 (subclass Neurosis PsychologicalDysfunction)
 (documentation Neurosis EnglishLanguage "Any &%PsychologicalDysfunction which is not due 
 to an organic impairment of the &%NervousSystem.")
@@ -15986,20 +16054,19 @@ affairs that might occur in the future.")
    (exists (?PROP)
       (disapproves ?PERSON ?PROP)))
 
-(subAttribute Pain Unhappiness)
+(subclass Pain PathologicProcess)
 (documentation Pain EnglishLanguage "A physical sensation of discomfort which can vary widely 
 in intensity.")
 
-(subAttribute Headache Pain)
+(subAttribute Headache (PainFn Head))
 (documentation Headache EnglishLanguage "&%Pain that that is restricted to the &%Head.")
 
 (=>
-  (attribute ?E Headache)
+  (instance ?E Headache)
   (exists (?H)
     (and
       (instance ?H Head)
-      (part ?H ?E)
-      (attribute ?H Pain))))
+      (located ?E ?H))))
 
 (instance Surprise EmotionalState)
 (documentation Surprise EnglishLanguage "The &%EmotionalState that one experiences when something 
