@@ -5446,8 +5446,7 @@ a PsychologicalDysfunction.")
 (termFormat EnglishLanguage PhysicalDisease "physical disease")
 
 (disjoint PhysicalDisease PsychologicalDysfunction)
-
-                     
+                    
 (subclass BacterialDisease InfectiousDisease)
 (documentation BacterialDisease EnglishLanguage "A disease that is caused by instances of 
 &%Bacterium.")
@@ -5467,6 +5466,71 @@ a PsychologicalDysfunction.")
       (instance ?O Microorganism)
       (experiencer ?P ?A))))
 
+(subclass Infecting TakingIll)
+(documentation Infecting EnglishLanguage "The &%Process (from the perspective
+of the entity becoming ill) by which an
+&%InfectiousDisease enters an &%Organism and begins &%Replication.")
+(termFormat EnglishLanguage Infecting "infecting")
+
+(=>
+  (and
+    (instance ?I Infecting)
+    (experiencer ?I ?H))
+  (exists (?T ?R ?O)
+    (and
+      (instance ?T Translocation)
+      (moves ?T ?O)
+      (instance ?O Organism)
+      (instance ?R Replication)
+      (experiencer ?R ?O)
+      (subProcess ?T ?I)
+      (subProcess ?R ?I))))
+      
+(subclass ParasiticDisease DiseaseOrSyndrome)
+(documentation ParasiticDisease DiseaseOrSyndrome "A disease caused by
+a &%Parasite.")
+(termFormat EnglishLanguage ParasiticDisease "parasitic disease")
+(=>
+  (and
+    (instance ?F ParasiticDisease)
+    (attribute ?H ?F))
+  (exists (?PAR)
+    (and
+      (part ?PAR ?H)
+      (instance ?PAR Parasite))))
+      
+(subclass FungalDisease DiseaseOrSyndrome)
+(documentation FungalDisease DiseaseOrSyndrome "A disease caused by
+a &%Fungus.")
+(termFormat EnglishLanguage FungalDisease "fungal disease")
+
+(=>
+  (and
+    (instance ?F FungalDisease)
+    (attribute ?H ?F))
+  (exists (?FUN)
+    (and
+      (part ?FUN ?H)
+      (instance ?FUN Fungus))))
+      
+(subclass Parasite Organism)
+(documentation Parasite EnglishLanguage "An &%Organism, other than
+a &%Fungus or &%Microorganism that typically lives on or within a host and
+is detrimental to the host.")
+(termFormat EnglishLanguage Parasite "parasite")
+
+(=>
+  (instance ?P Parasite)
+  (modalAttribute
+    (exists (?H ?PROC)
+      (and 
+        (located ?P ?H)
+        (involvedInEvent ?PROC ?P)
+        (involvedInEvent ?PROC ?H)
+        (beneficiary ?PROC ?P)
+        (maleficiary ?PROC ?H)))
+    Likely))
+        
 (subclass ChronicDisease DiseaseOrSyndrome)
 
 (documentation ChronicDisease EnglishLanguage "A chronic condition is a
@@ -5502,13 +5566,14 @@ diseases such as hepatitis C and acquired immunodeficiency syndrome.
       (instance ?D DiseaseOrSyndrome)
       (holdsDuring 
         (BeginFn (WhenFn ?T)) 
-	(not (attribute ?A ?D)))
+	      (not 
+	        (attribute ?A ?D)))
       (holdsDuring 
         (EndFn (WhenFn ?T)) 
-	(attribute ?A ?D)))))
+	      (attribute ?A ?D)))))
 
 (subclass ViralDisease InfectiousDisease)
-(documentation ViralDisease EnglishLanguage "A disease that is caused by instances of 
+(documentation ViralDisease EnglishLanguage "A disease that is caused by instances of a
 &%Virus.")
 
 (instance Diarrhea DiseaseOrSyndrome)
@@ -7677,21 +7742,65 @@ and &%Hydrogen.")
       (instance ?P1 Carbon)
       (instance ?P2 Hydrogen))))
 
+(subclass Poison BiologicallyActiveSubstance)
+(documentation Poison EnglishLanguage "Any &%BiologicallyActiveSubstance
+that causes &%Damaging to an &%Organism when &%Ingesting it.")
+(termFormat EnglishLanguage Poison "poison")
+
+(=>
+  (and
+    (instance ?P Poison)
+    (instance ?I Ingesting)
+    (moves ?I ?P)
+    (experiencer ?I ?H))
+  (exists (?D)
+    (and
+      (instance ?D Damaging)
+      (experiencer ?D ?H)
+      (causes ?I ?D))))
+      
 (subclass Alcohol OrganicCompound)
 (documentation Alcohol EnglishLanguage "&%OrganicCompounds that are produced from hydrocarbons 
 by distillation.")
+
+(subclass Methanol Alcohol)
+(subclass Methanol Poison)
+(documentation Methanol EnglishLanguage "An &%Alcohol used in industrial
+processes that can cause a &%Human &%Ingesting it to become &%Blind.")
+(termFormat EnglishLanguage Methanol "methanol")
+(termFormat EnglishLanguage Methanol "wood alcohol")
+(termFormat EnglishLanguage Methanol "industrial alcohol")
+
+(=>
+  (and
+    (instance ?P Poison)
+    (instance ?I Ingesting)
+    (moves ?I ?P)
+    (experiencer ?I ?H))
+  (modalAttribute
+    (holdsDuring 
+      (FutureFn
+        (WhenFn ?I))
+      (attribute ?H Blind))
+    Possibility))
+    
+(subclass Ethanol Alcohol)
+(subclass Ethanol Depressant)
+(subclass Ethanol Diuretic)
+(termFormat EnglishLanguage Ethanol "ethanol")
 
 (subclass Alkaloid ChemicalBase)
 (subclass Alkaloid PlantSubstance)
 (subclass Alkaloid BiologicallyActiveSubstance)
 (documentation Alkaloid EnglishLanguage "A &%ChemicalBase found in &%Plants that has 
 physiological and psychological effects.")
+
 (=>
-   (instance ?A Alkaloid)
-   (exists (?N)
-      (and
-         (instance ?N Nitrogen)
-         (part ?N ?A))))
+  (instance ?A Alkaloid)
+  (exists (?N)
+    (and
+      (instance ?N Nitrogen)
+      (part ?N ?A))))
 
 (instance Drugged ConsciousnessAttribute)
 (contraryAttribute Drugged Sober)
@@ -8508,6 +8617,50 @@ Some preparations contain a combination of two salts, such as
 magnesium carbonate and aluminum hydroxide.[from Wikipedia]")
 (termFormat EnglishLanguage Antacid "antacid")
 
+(=>
+  (and
+    (instance ?A Antacid)
+    (instance ?I Ingesting)
+    (agent ?I ?H)
+    (moves ?I ?A)
+    (instance ?S Stomach)
+    (part ?S ?H)
+    (holdsDuring 
+      (ImmediatePastFn 
+        (WhenFn ?I))
+      (and
+        (contains ?S ?F1)
+         (instance ?F1 Fluid)))
+    (holdsDuring 
+      (ImmediateFutureFn 
+        (WhenFn ?I))
+      (and
+        (contains ?S ?F2)
+        (instance ?F2 Fluid)))
+    (phMeasure ?F1 ?N1)
+    (phMeasure ?F2 ?N2))
+  (greaterThan ?N2 ?N1))
+
+(instance phMeasure BinaryPredicate)
+(subrelation phMeasure measure)
+(domain phMeasure 1 Object)
+(domain phMeasure 2 AcidityMeasure)
+
+(subclass AcidityMeasure UnitOfMeasure)
+(instance PotentialOfHydrogen AcidityMeasure)
+
+(documentation PotentialOfHydrogen EnglishLanguage "In chemistry, pH
+denoting 'potential of hydrogen' or 'power of
+hydrogen', is a scale used to specify the acidity or basicity of an
+aqueous solution. Acidic solutions (solutions with higher
+concentrations of H+ ions) are measured to have lower pH values than
+basic or alkaline solutions. The pH scale is logarithmic and inversely
+indicates the concentration of hydrogen ions in the solution. This is
+because the formula used to calculate pH approximates the negative of
+the base 10 logarithm of the molar concentration[a] of hydrogen ions
+in the solution. More precisely, pH is the negative of the base 10
+logarithm of the activity of the H+ ion.[from Wikipedia]")
+  
 (documentation pathologyTreatment EnglishLanguage "(pathologyTreatment
 ?DISEASE ?SUBSTANCE ?PROCESS) means that the
 &%BiologicallyActiveSubstance ?SUBSTANCE is effective in the treatment
@@ -8523,6 +8676,145 @@ symptoms associated with the ?DISEASE.")
 (format EnglishLanguage pathologyTreatment "A &%treatment for %1 is %2 administered via %3")
 (termFormat EnglishLanguage pathologyTreatment "pathology treatment")
 
+(subclass Edema PathologicProcess)
+
+(documentation Edema EnglishLanguage "Edema, also spelled oedema, and
+also known as fluid retention, dropsy, hydropsy and swelling, is the
+build-up of fluid in the body's tissue. Most commonly, the legs or
+arms are affected. Symptoms may include skin which feels tight, the
+area may feel heavy, and affected joints may be hard to move. Other
+symptoms depend on the underlying cause. Causes may include venous
+insufficiency, heart failure, kidney problems, low protein levels,
+liver problems, deep vein thrombosis, infections, angioedema, certain
+medications, and lymphedema. It may also occur after prolonged
+sitting or standing and during menstruation or pregnancy. The
+condition is more concerning if it starts suddenly, or pain or
+shortness of breath is present. Treatment depends on the underlying
+cause. If the underlying mechanism involves sodium retention,
+decreased salt intake and a diuretic may be used. Elevating the
+legs and support stockings may be useful for edema of the legs.
+Older people are more commonly affected. [from Wikipedia]")
+(termFormat EnglishLanguage Edema "edema")
+(termFormat EnglishLanguage Edema "oedema")
+(termFormat EnglishLanguage Edema "fluid retention")
+(termFormat EnglishLanguage Edema "dropsy")
+(termFormat EnglishLanguage Edema "hydropsy")
+(termFormat EnglishLanguage Edema "swelling")
+
+(=>
+  (and
+    (instance ?E Edema)
+    (experiencer ?E ?A))
+  (exists (?T ?P ?L)
+    (and
+      (instance ?T Transfer)
+      (instance ?L Liquid)
+      (instance ?P BodyPart)
+      (part ?P ?A)
+      (destination ?T ?P)
+      (moves ?T ?L)
+      (subProcess ?T ?E))))
+      
+(instance EdemaFn UnaryFunction)
+(domainSubclass EdemaFn 1 BodyPart)
+(rangeSubclass EdemaFn Edema)
+(termFormat EnglishLanguage EdemaFn "edema")
+(format EnglishLanguage EdemaFn "&%edema in %1")
+(documentation EdemaFn EnglishLanguage "A &%Function that returns the
+class of &%Edema cases in the given &%BodyPart.")
+
+(=>
+  (and
+    (instance ?E (EdemaFn ?P))
+    (experiencer ?E ?A))
+  (exists (?PI)
+    (and
+      (instance ?PI BodyPart)
+      (part ?PI ?A)
+      (located ?E ?PI))))
+     
+(subclass Diuretic BiologicallyActiveSubstance)
+(pathologicTreatment Diuretic Edema)
+(termFormat EnglishLanguage Diuretic "diuretic")
+
+(documentation Diuretic EnglishLanguage "A diuretic
+is any substance that promotes diuresis, the increased production of
+urine. This includes forced diuresis. A diuretic tablet is sometimes
+colloquially called a water tablet. There are several categories of
+diuretics. All diuretics increase the excretion of water from the
+body, through the kidneys. There exist several classes of diuretic,
+and each works in a distinct way. Alternatively, an antidiuretic, such
+as vasopressin (antidiuretic hormone), is an agent or drug which
+reduces the excretion of water in urine.[from Wikipedia]")
+
+(=>
+  (instance ?D Diuretic)
+  (hasPurpose ?D
+    (exists (?R ?L ?H ?LOC)
+      (and
+        (instance ?H Human)
+        (instance ?R Removing)
+        (instance ?L Liquid)
+        (experiencer ?R ?H)
+        (moves ?R ?L)
+        (origin ?L ?H)
+        (not
+          (contains ?H ?LOC))
+        (destination ?R ?LOC)))))
+
+(=>
+  (and
+    (instance ?D Diuretic)
+    (instance ?I Ingesting)
+    (agent ?I ?H)
+    (moves ?I ?D)
+    (instance ?U1 Urination)
+    (result ?U1 ?P1)
+    (agent ?U1 ?H)
+    (instance ?U2 Urination)
+    (result ?U2 ?P2)
+    (agent ?U2 ?H)
+    (earlier ?U1 ?I)
+    (earlier ?I ?U2)
+    (instance ?V VolumeMeasure)
+    (measure ?U1 
+      (MeasureFn ?N1 ?V))
+    (measure ?U2 
+      (MeasureFn ?N2 ?V)))
+  (modalAttribute
+    (greaterThan ?N2 ?N1)
+    Likely))
+
+(subclass Antidiuretic BiologicallyActiveSubstance)
+(termFormat EnglishLanguage Antidiuretic "antidiuretic")
+
+(documentation Antidiuretic EnglishLanguage "An antidiuretic, such
+as vasopressin (antidiuretic hormone), is an agent or drug which
+reduces the excretion of water in urine.[from Wikipedia]")
+
+(=>
+  (and
+    (instance ?D Antidiuretic)
+    (instance ?I Ingesting)
+    (agent ?I ?H)
+    (moves ?I ?D)
+    (instance ?U1 Urination)
+    (result ?U1 ?P1)
+    (agent ?U1 ?H)
+    (instance ?U2 Urination)
+    (result ?U2 ?P2)
+    (agent ?U2 ?H)
+    (earlier ?U1 ?I)
+    (earlier ?I ?U2)
+    (instance ?V VolumeMeasure)
+    (measure ?U1 
+      (MeasureFn ?N1 ?V))
+    (measure ?U2 
+      (MeasureFn ?N2 ?V)))
+  (modalAttribute
+    (greaterThan ?N1 ?N2)
+    Likely))
+                         
 (subclass BloodCell Cell)
 (subclass BloodCell AnimalAnatomicalStructure)
 (documentation BloodCell EnglishLanguage "A &%Cell that is normally present in &%Blood.")
@@ -9055,17 +9347,18 @@ into hot water.")
 
 (subclass AlcoholicBeverage Beverage)
 (subclass AlcoholicBeverage Depressant)
-(documentation AlcoholicBeverage EnglishLanguage "Any &%Beverage that contains &%Alcohol.")
+(documentation AlcoholicBeverage EnglishLanguage "Any &%Beverage that contains &%Ethanol.")
 
 (=>
    (instance ?BEVERAGE AlcoholicBeverage)
    (exists (?ALCOHOL)
       (and
-         (instance ?ALCOHOL Alcohol)
+         (instance ?ALCOHOL Ethanol)
          (part ?ALCOHOL ?BEVERAGE))))
 
 (subclass Wine AlcoholicBeverage)
-(documentation Wine EnglishLanguage "An &%AlcoholicBeverage that is prepared by fermenting the juice of grapes.")
+(documentation Wine EnglishLanguage "An &%AlcoholicBeverage that is 
+prepared by fermenting the juice of grapes.")
 
 (subclass DistilledAlcoholicBeverage AlcoholicBeverage)
 (documentation DistilledAlcoholicBeverage EnglishLanguage "An &%AlcoholicBeverage that has 
@@ -9082,7 +9375,8 @@ covers drinks of unmixed, hard liquor.")
          (origin ?REMOVE ?BEVERAGE))))
 
 (subclass Beer AlcoholicBeverage)
-(documentation Beer EnglishLanguage "An &%AlcoholicBeverage that is prepared by fermenting malt and hops.")
+(documentation Beer EnglishLanguage "An &%AlcoholicBeverage that is 
+prepared by fermenting malt and hops.")
 
 (subclass SpinalColumn Organ)
 (subclass SpinalColumn AnimalAnatomicalStructure)
@@ -19087,6 +19381,7 @@ a base for soups or sauces.")
 
 (subclass Caffeine Molecule) 
 (subclass Caffeine Stimulant)
+(subclass Caffeine Diuretic)
 (termFormat EnglishLanguage Caffeine "caffeine")
 
 (documentation Caffeine EnglishLanguage "Caffeine is a central nervous
