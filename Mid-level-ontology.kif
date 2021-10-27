@@ -3983,6 +3983,7 @@ attached to the type of cushion a &%Bed has")
 (documentation WaterBed EnglishLanguage "&%WaterBed describes how the cushion of a &%Bed
 is filled with water")
 (termFormat EnglishLanguage WaterBed "water bed")
+(termFormat EnglishLanguage WaterBed "waterbed")
 
 (=>
   (attribute ?X WaterBed)
@@ -6191,19 +6192,65 @@ person to breathe.")
           (agent ?B ?V))))))
 
 (subclass Spitting Impelling)
-(documentation Spitting EnglishLanguage "Any instance of &%Impelling where the &%origin is 
+(documentation Spitting EnglishLanguage "Any voluntary instance of &%Impelling where the &%origin is 
 the &%Mouth of the &%agent.")
 
 (=>
-   (and
-      (instance ?SPIT Spitting)
-      (agent ?SPIT ?ANIMAL))
-   (exists (?MOUTH)
-      (and
-         (instance ?MOUTH Mouth)
-         (part ?MOUTH ?ANIMAL)
-         (origin ?SPIT ?MOUTH))))
+  (and
+    (instance ?SPIT Spitting)
+    (agent ?SPIT ?ANIMAL))
+  (exists (?MOUTH)
+    (and
+      (instance ?MOUTH Mouth)
+      (part ?MOUTH ?ANIMAL)
+      (origin ?SPIT ?MOUTH))))
 
+(subclass Drooling Impelling)
+(documentation Drooling EnglishLanguage "Any voluntary instance of &%Impelling 
+&%Saliva where the &%origin is the &%Mouth of the &%agent.")
+
+(=>
+  (and
+    (instance ?SPIT Drooling)
+    (experiencer ?SPIT ?ANIMAL))
+  (exists (?MOUTH ?S)
+    (and
+      (instance ?MOUTH Mouth)
+      (objectTransferred ?SPIT ?S)
+      (instance ?S Saliva)
+      (part ?MOUTH ?ANIMAL)
+      (origin ?SPIT ?MOUTH))))
+         
+(subclass Swallowing BodyMotion)
+(subclass Swallowing Transfer)
+(documentation Swallowing EnglishLanguage "A &%BodyMotion where an
+&%Object is subject to &%Ingesting, passing from the &%Mouth through
+the &%Esophagus to the &%Stomach.")
+
+(termFormat EnglishLanguage Swallowing "swallowing")
+
+(=>
+  (and
+    (instance ?S Swallowing)
+    (agent ?S ?H))
+  (exists (?M ?E ?ST ?O)
+    (and
+      (instance ?M Mouth)
+      (instance ?E Esophagus)
+      (instance ?ST Stomach)
+      (objectTransferred ?S ?O)
+      (origin ?S ?M)
+      (destination ?S ?ST)
+      (path ?S ?E))))
+      
+ 
+(=>
+  (instance ?S Swallowing)
+  (exists (?I)
+    (and
+      (instance ?I Ingesting)
+      (subProcess ?I ?S))))     
+        
 (subclass Punching Impelling)
 (documentation Punching EnglishLanguage "Any instance of &%Impelling where the instrument 
 is a &%Fist of the agent.")
@@ -6741,7 +6788,25 @@ for the payment of a premium or premiums.")
   (exists (?C)
     (insured ?C ?I)))
 
+(subclass HealthInsuranceCompany InsuranceCompany)
+(documentation HealthInsuranceCompany EnglishLanguage "A &%Business that insures &%Agents 
+against health care costs for the payment of a premium or premiums.")
 
+(=>
+  (and
+    (instance ?I HealthInsuranceCompany)
+    (customer ?I ?C))
+  (hasPurposeForAgent ?I 
+    (exists (?D ?P)
+      (and
+        (or
+          (instance ?D DiagnosticProcess)
+          (instance ?D TherapeuticProcess))
+        (experiencer ?D ?C)
+        (instance ?P Payment)
+        (agent ?P ?I)
+        (refers ?P ?D))) ?C))
+  
 (subclass TransportationCompany Business)
 (documentation TransportationCompany EnglishLanguage "A &%Business whose services 
 include &%Transportation, e.g. a &%RailroadCompany, an airline, a cruise 
@@ -8963,24 +9028,25 @@ in place.")
 and which has the ability to neutralize &%Antigens.")
 
 (=>
-   (instance ?BODY Antibody)
-   (hasPurpose ?BODY (exists (?DEST ?ANTI)
-                        (and
-                           (instance ?DEST Destruction)
-                           (agent ?DEST ?BODY)
-                           (patient ?DEST ?ANTI)
-                           (instance ?ANTI Antigen)))))
+  (instance ?BODY Antibody)
+  (hasPurpose ?BODY 
+    (exists (?DEST ?ANTI)
+      (and
+        (instance ?DEST Destruction)
+        (agent ?DEST ?BODY)
+        (patient ?DEST ?ANTI)
+        (instance ?ANTI Antigen)))))
 
 (subclass Antibiotic BiologicallyActiveSubstance)
 (documentation Antibiotic EnglishLanguage "A &%BiologicallyActiveSubstance than can kill 
 instances of &%Bacterium.")
 
 (=>
-  (instance ?A Antibiotic)
+  (subclass ?A Antibiotic)
   (exists (?D)
     (and
       (instance ?D BacterialDisease)
-      (medicine ?AVM ?D))))
+      (medicine ?A ?D))))
 
 (subclass Antiparasitic BiologicallyActiveSubstance)
 (documentation Antiparasitic EnglishLanguage "A &%BiologicallyActiveSubstance than can kill 
@@ -9601,6 +9667,12 @@ and does not contain &%AntigenA.")
 (domain heartRate 1 Heart)
 (domain heartRate 2 TimeInterval)
 (domain heartRate 3 Integer)
+(documentation BloodTypeO EnglishLanguage "The number of times the
+&%Heart of a &%Mammal beats in a given period.  A normal rate for a
+&%Human at rest is 60 beats per minute although this can vary
+significantly with age, fitness level and health status.")
+(format EnglishLanguage heartRate "%1 &%beats at a rate of %3 beats
+per %2")
 
 (=>
   (heartRate ?H ?T ?I)
@@ -11193,6 +11265,8 @@ the anus and which is used in digesting Food.")
 an &%Animal.")
 
 (subclass GastroIntestinalTract AnimalAnatomicalStructure)
+(documentation GastroIntestinalTract EnglishLanguage "The digestive path of 
+an &%Animal, consisting of the &%Mouth, &%Esophagus, &%Stomach, &%Intestines and &%Rectum.")
 (termFormat EnglishLanguage GastroIntestinalTract "gastro-intestinal tract")
 (termFormat EnglishLanguage GastroIntestinalTract "GI")
 
@@ -11220,6 +11294,18 @@ an &%Animal.")
 (subclass Anus BodyOrifice)
 (subclass Vagina BodyOrifice)
 (subclass Esophagus BodyVessel)
+(documentation Esophagus EnglishLanguage "A &%BodyVessel that is a conduit
+for &%Food subject to &%Ingesting.")
+(termFormat EnglishLanguage Esophagus "esophagus")
+
+(subclass RespiratoryTract AnimalAnatomicalStructure)
+(documentation RespiratoryTract EnglishLanguage "A &%BodyVessel the path
+taken by &%Air through the &%Nose or &%Mouth then the &%Trachea, to
+the &%Lungs of a &%Mammal.")
+(termFormat EnglishLanguage RespiratoryTract "respiratory tract")
+(connectedBodyPart Mouth Trachea)
+(connectedBodyPart Nose Trachea)
+(connectedBodyPart Trachea Lung)
 
 (subclass Hypothalamus BodyPart)
 (subclass Hypothalamus AnimalAnatomicalStructure)
@@ -11451,6 +11537,26 @@ to regulate the metabolism of &%Carbohydrates.")
       (instance ?SG SalivaryGland)
       (instrument ?P ?SG)
       (result ?P ?S))))
+
+(subclass MucusGland Gland)
+(secretesSubstance MucusGland Mucus) 
+(termFormat EnglishLanguage MucusGland "mucus gland")
+
+(subclass Mucus BodySubstance)
+
+(documentation Mucus EnglishLanguage "Mucus is a slippery aqueous
+secretion produced by, and covering, mucous membranes. It is typically
+produced from cells found in &%MucousGlands, although it may also
+originate from mixed glands, which contain both serous and mucous
+cells. It is a viscous colloid containing inorganic &%Salts,
+antimicrobial &%Enzymes (such as lysozymes), immunoglobulins (especially
+IgA), and glycoproteins such as lactoferrin and mucins, which are
+produced by goblet cells in the mucous membranes and submucosal
+glands. Mucus serves to protect &%Epithelial cells in the linings of the
+respiratory, digestive, and urogenital systems, and structures in the
+visual and auditory systems from pathogenic fungi (&%Fungus), bacteria (&%Bacterium) and
+&%Viruses. Most of the mucus in the body is produced in the
+gastrointestinal tract.")
 
 (subclass Neurotransmitter BodySubstance)
 (documentation Neurotransmitter EnglishLanguage "eurotransmitters are
