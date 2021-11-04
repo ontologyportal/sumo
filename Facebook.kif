@@ -29,13 +29,12 @@
 (subclass SocialNetworkingAccount UserAccount)
 
 (documentation connectedInSocialNetwork EnglishLanguage "This refers
-to the connections made between two distinc people who have
-&%SocialNetworkingAccounts on the same &%SocialNetworkingSite.  Some
-examples would be &%facebookFriends, &%classmates, &%colleagues, and
-followers.  Note that while many connections are symmetrical
-(e.g. &%facebookFriend, &%classmate), many are not (e.g. follower).
-Therefore, this is neither a symmetric nor an antisymmetric
-relation.")
+to a connection made between two distinct people who have
+&%SocialNetworkingAccounts on the same &%SocialNetworkingSite. Some
+examples would be &%facebookFriends, classmates, colleagues, and
+followers.  Note that connections can be symmetrical
+(e.g. &%facebookFriend or asymmetrical (e.g. follower).
+Therefore, this is neither a &%SymmetricRelation nor an &%AntisymmetricRelation.")
 
 (instance connectedInSocialNetwork BinaryRelation)
 (instance connectedInSocialNetwork IntentionalRelation)
@@ -45,25 +44,24 @@ relation.")
 (domain connectedInSocialNetwork 2 SocialNetworkingUser)
 (termFormat EnglishLanguage connectedInSocialNetwork "connected in social network")
 
-;;If two people are connected in a social network, then they are both
-;;social networking users who have accounts on the same social
-;;networking site.
-
 (=>
+  (and
     (connectedInSocialNetwork ?USER1 ?USER2)
-    (exists (?ACCOUNT1 ?ACCOUNT2 ?SITE)
-        (and
-            (instance ?SITE SocialNetworkingSite)
-            (instance ?ACCOUNT1 (AccountOfServiceFn ?SITE))
-            (instance ?ACCOUNT2 (AccountOfServiceFn ?SITE))
-            (hasAccount ?USER1 ?ACCOUNT1)
-            (hasAccount ?USER2 ?ACCOUNT2))))
+    (not
+      (equal ?USER1 ?USER2)))
+  (exists (?ACCOUNT1 ?ACCOUNT2 ?SITE)
+    (and
+      (instance ?SITE SocialNetworkingSite)
+      (instance ?ACCOUNT1 (AccountOfServiceFn ?SITE))
+      (instance ?ACCOUNT2 (AccountOfServiceFn ?SITE))
+      (hasAccount ?USER1 ?ACCOUNT1)
+      (hasAccount ?USER2 ?ACCOUNT2))))
 
 (documentation follows EnglishLanguage "This is an example of a
 connection within a &%SocialNetworkingSite such as Twitter or
 Tumblr.  (&%follows ?USER1 ?USER2) means that ?USER1 has subscribed to
-?USER2's posts.  In other words, ?USER1 will be able to see everything
-that ?USER2 has posted.")
+?USER2's posts.  In other words, ?USER1 will be able to see &%DigitalPost
+that ?USER2 has posted (&%Posting).")
 
 (instance follows BinaryRelation)
 (instance follows IntentionalRelation)
@@ -72,8 +70,21 @@ that ?USER2 has posted.")
 (domain follows 2 SocialNetworkingUser)
 (instance follows AsymmetricRelation)
 
+(=>
+  (and
+    (follows ?USER1 ?USER2)
+    (not
+      (equal ?USER1 ?USER2)))
+  (exists (?POST ?SEE)
+    (and
+      (instance ?POST DigitalPost)
+      (creator ?USER2 ?POST)
+      (instance ?SEE AccessingWebPage)
+      (agent ?SEE ?USER1)
+      (patient ?SEE ?POST))))
+      
 (documentation SocialNetworkingUser EnglishLanguage "A
-&%SocialNetworkingUser is a &%InternetUser who has a
+&%SocialNetworkingUser is an &%InternetUser who has a
 &%SocialNetworkingAccount on a &%SocialNetworkingSite.  When someone
 becomes a social networking user, they are usually asked to make a
 &%ProfilePage and, over time, they create
@@ -82,14 +93,14 @@ becomes a social networking user, they are usually asked to make a
 (subAttribute SocialNetworkingUser InternetUser)
 (termFormat EnglishLanguage SocialNetworkingUser "social networking user")
 
-;;If someone is a social networking user, then they have a social networking account.
 (=>
-    (instance ?USER SocialNetworkingUser)
-    (exists (?ACCOUNT)
-        (and
-            (instance ?ACCOUNT SocialNetworkingAccount)
-            (hasAccount ?USER ?ACCOUNT))))
-            
+  (instance ?USER SocialNetworkingUser)
+    (exists (?SITE ?ACCOUNT)
+      (and
+        (instance ?SITE SocialNetworkingSite)
+        (instance ?ACCOUNT (AccountOfServiceFn ?SITE))       
+        (hasAccount ?USER ?ACCOUNT))))            
+
 (documentation AccountOfServiceFn EnglishLanguage "This function takes
 some &%SocialNetworkingSite as an argument and returns a subclass of
 &%SocialNetworkingAccount. (&%AccountOfServiceFn Network) represents
@@ -109,7 +120,8 @@ FacebookAccount (AccountOfServiceFn Facebook)).")
         (and
             (instance ?USER SocialNetworkingUser)
             (hasAccount ?USER ?ACCOUNT))))
-    
+            
+;; Jennie revision until this line on 4th November 2021
 ;;;;;;;;;;;;
 ;;Facebook;;
 ;;;;;;;;;;;;
