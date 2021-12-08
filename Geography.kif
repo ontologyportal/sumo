@@ -1244,16 +1244,18 @@ the &%TerritorialSea that is claimed by the &%GeopoliticalArea ?POLITY.")
 (domain climateTypeInArea 1 GeographicArea)
 (domainSubclass climateTypeInArea 2 ClimateZone)
 
-(documentation climateTypeInArea EnglishLanguage "(&%climateTypeInArea ?TYPE ?REGION) 
-means that all or &%part of the &%GeographicArea ?REGION is of the 
+(documentation climateTypeInArea EnglishLanguage "(&%climateTypeInArea ?REGION ?TYPE) 
+means that all or &%part of the &%GeographicArea ?REGION is of the &%Attribute of
 &%ClimateZone ?TYPE.")
 
+;; changed ClimateZone to subClass of Attribute
+;; Jennie 1st December 2021
 (=>
   (climateTypeInArea ?AREA ?TYPE)
   (exists (?REGION)
     (and
       (instance ?REGION GeographicArea)
-      (instance ?REGION ?TYPE)
+      (attribute  ?REGION ?TYPE)
       (part ?REGION ?AREA))))
 
 (=>
@@ -1262,12 +1264,12 @@ means that all or &%part of the &%GeographicArea ?REGION is of the
     (subclass ?TYPE ClimateZone))
   (climateTypeInArea ?AREA ?TYPE))
 
-(subclass ClimateZone GeographicArea)
+(subclass ClimateZone Attribute)
 
 (documentation ClimateZone EnglishLanguage 
-"&ClimateZone is a subclass of &%GeographicArea in which regions 
-are classified according to their long-term weather conditions. 
-The subclasses of &%ClimateZone are based on the Koeppen Climate 
+"&ClimateZone is a subclass of &%Attribute used by the &%BinaryPredicate
+&%climateTypeInArea to classify a &GeographicArea according to its long-term 
+weather conditions. The subclasses of &%ClimateZone are based on the Koeppen Climate 
 Classification system.  In the Koeppen system, climate zones are 
 distinguished based on temperatures and rainfall.")
 
@@ -1279,14 +1281,19 @@ coldest month is greater than 18 degrees Celsius.  This is Class
 'A' in the Koeppen climate classification system.")
 
 (=>
+  (climateTypeInArea ?AREA TropicalClimateZone)
   (and
-    (instance ?AREA TropicalClimateZone)
-    (subclass ?MO Month)
-    (instance ?AREA GeographicArea)
+    (instance ?MO Month)
     (averageTemperatureForPeriod ?AREA ?MO 
-    (MeasureFn ?TEMP CelsiusDegree)))
-  (greaterThan ?TEMP 18))
-
+      (MeasureFn ?TEMP CelsiusDegree))
+    (greaterThan ?TEMP 18)
+    (not
+      (exists (?M2 ?MT2)
+        (and
+          (averageTemperatureForPeriod ?AREA ?M2 
+            (MeasureFn ?MT2 CelsiusDegree))
+          (lessThan ?MT2 ?TEMP))))))          
+    
 (instance averageRainfallForPeriod TernaryPredicate)
 (documentation averageRainfallForPeriod EnglishLanguage "(averageRainfallForPeriod ?AREA ?MO ?AMOUNT)
 means that ?AREA receives ?AMOUNT of rain in month ?MO in an average
@@ -1305,18 +1312,18 @@ This is subtype 'Af' in the Koeppen climate system.")
 
 (=>
   (and
-    (instance ?AREA TropicalClimateZone)
-    (forall (?MO ?AMOUNT)
-       (=>
-         (averageRainfallForPeriod ?AREA ?MO 
-             (MeasureFn ?AMOUNT (MilliFn Meter)))
-         (greaterThanOrEqualTo ?AMOUNT 60))))
-  (instance ?AREA WetTropicalClimateZone))    
+    (climateTypeInArea ?AREA TropicalClimateZone)
+    (instance ?MO Month)
+    (averageRainfallForPeriod ?AREA ?MO 
+      (MeasureFn ?AMOUNT (MilliFn Meter)))
+    (greaterThanOrEqualTo ?AMOUNT 60))
+  (climateTypeInArea ?AREA WetTropicalClimateZone)) 
 
 (=>
-  (instance ?AREA WetTropicalClimateZone)
+  (climateTypeInArea ?AREA WetTropicalClimateZone)
   (forall (?MO ?AMOUNT)
-    (=>
+    (and
+      (instance ?MO Month)
       (averageRainfallForPeriod ?AREA ?MO 
         (MeasureFn ?AMOUNT (MilliFn Meter)))
       (greaterThanOrEqualTo ?AMOUNT 60))))
@@ -1329,7 +1336,7 @@ rains heavy enough to keep the ground wet all through the year.  This
 is Koeppen climate system subtype 'Aw'.")
 
 (=>
-  (instance ?AREA MonsoonClimateZone)
+  (climateTypeInArea ?AREA MonsoonClimateZone)
   (exists (?INTERVAL) (rainySeasonInArea ?AREA ?INTERVAL)))
 
 (subclass AridClimateZone ClimateZone)
@@ -1359,20 +1366,20 @@ system 'BWh'.")
 
 (=>
   (and
-    (instance ?AREA DesertClimateZone)
-    (subclass ?MO Month)
+    (climateTypeInArea ?AREA DesertClimateZone)
+    (instance ?MO Month)
     (averageTemperatureForPeriod ?AREA ?MO 
       (MeasureFn ?TEMP CelsiusDegree))
     (greaterThan ?TEMP 18))
-  (instance ?AREA SubtropicalDesertClimateZone))
+  (climateTypeInArea ?AREA SubtropicalDesertClimateZone))
 
 (=>
+  (climateTypeInArea ?AREA SubtropicalDesertClimateZone)
   (and
-    (instance ?AREA SubtropicalDesertClimateZone)
-    (subclass ?MO Month)
+    (instance ?MO Month)
     (averageTemperatureForPeriod ?AREA ?MO 
-      (MeasureFn ?TEMP CelsiusDegree)))
-  (greaterThan ?TEMP 18))
+      (MeasureFn ?TEMP CelsiusDegree))
+    (greaterThan ?TEMP 18)))
 
 (subclass MiddleLatitudeDesertClimateZone DesertClimateZone)
 
@@ -1385,39 +1392,51 @@ in the Keoppen climate system.")
 (subclass SemiaridClimateZone ClimateZone)
 
 (subclass TemperateClimateZone ClimateZone)
-
+;;
+;; double-checked Koeppen classification on wikipedia and revised
+;; documentation 15th November 2021 Jennie
+;;
 (documentation TemperateClimateZone EnglishLanguage "&%TemperateClimateZone is the 
-subclass of &%ClimateZone whose warmest month has an average 
-temperature greater than 10 degrees Celsius and whose coolest month 
-has an average temperature between 18 degrees and -3 degrees Celsius. 
-This is Class C in the Koeppen climate system.")
+subclass of &%ClimateZone which the coldest month averaging between
+18 degrees and -3 degrees Celsius, and at least one month averaging above
+10 degrees Celsius. This is Class C in the Koeppen climate system.") 
 
+;; at least one month with average temperature above 10 C
 (=>
-  (instance ?AREA TemperateClimateZone)
-  (exists (?MO ?AMOUNT)
+  (climateTypeInArea ?AREA TemperateClimateZone)
+  (exists (?MO)
     (and
-      (subclass ?MO Month)
+      (instance ?MO Month)
       (averageTemperatureForPeriod ?AREA ?MO 
         (MeasureFn ?AMOUNT CelsiusDegree))
       (greaterThan ?AMOUNT 10))))
-
+      
+;; average monthly temperature above - 3C
 (=>
   (and
-    (instance ?AREA TemperateClimateZone)
-    (subclass ?MO Month)
+    (climateTypeInArea ?AREA TemperateClimateZone)
+    (instance ?MO Month)
     (averageTemperatureForPeriod ?AREA ?MO 
       (MeasureFn ?TEMP CelsiusDegree)))
   (greaterThanOrEqualTo ?TEMP -3))
 
+;; coldest monthly average temperature -3 C < and > 18 C
 (=>
-  (instance ?AREA TemperateClimateZone)
-  (exists (?MO ?AMOUNT)
+  (climateTypeInArea ?AREA TemperateClimateZone)
+  (exists (?MO ?MOUNT)
     (and
-      (subclass ?MO Month)
+      (instance ?MO Month)
       (averageTemperatureForPeriod ?AREA ?MO 
         (MeasureFn ?AMOUNT CelsiusDegree))
       (greaterThanOrEqualTo ?AMOUNT -3)
-      (lessThanOrEqualTo ?AMOUNT 18))))
+      (lessThanOrEqualTo ?AMOUNT 18)
+      (not
+        (exists (?M2 ?MT2)
+          (and
+            (instance ?M2 Month)
+            (averageTemperatureForPeriod ?AREA ?M2 
+              (MeasureFn ?MT2 CelsiusDegree))
+            (lessThan ?M2 ?AMOUNT)))))))
 
 (subclass MediterraneanClimateZone TemperateClimateZone)
 
@@ -1427,19 +1446,19 @@ mild, cool, wet winters and warm dry summers.  Mediterranean shores
 are the archetype, but the Mediterranean climate is also found elsewhere.")
 
 (=>
-  (instance ?AREA MediterraneanClimateZone)
+  (climateTypeInArea ?AREA MediterraneanClimateZone)
   (coolSeasonInArea ?AREA WinterSeason))
 
 (=>
-  (instance ?AREA MediterraneanClimateZone)
+  (climateTypeInArea ?AREA MediterraneanClimateZone)
   (warmSeasonInArea ?AREA SummerSeason))
 
 (=>
-  (instance ?AREA MediterraneanClimateZone)
+  (climateTypeInArea ?AREA MediterraneanClimateZone)
   (rainySeasonInArea ?AREA WinterSeason))
 
 (=>
-  (instance ?AREA MediterraneanClimateZone)
+  (climateTypeInArea ?AREA MediterraneanClimateZone)
   (drySeasonInArea ?AREA SummerSeason))
 
 (subclass ContinentalClimateZone TemperateClimateZone)
@@ -1449,11 +1468,11 @@ are the archetype, but the Mediterranean climate is also found elsewhere.")
 characterized by cold winters and hot summers.")
 
 (=>
-  (instance ?AREA ContinentalClimateZone)
+  (climateTypeInArea ?AREA ContinentalClimateZone)
   (coldSeasonInArea ?AREA WinterSeason))
 
 (=>
-  (instance ?AREA ContinentalClimateZone)
+  (climateTypeInArea ?AREA ContinentalClimateZone)
   (hotSeasonInArea ?AREA SummerSeason))
 
 (subclass MidlatitudeContinentalClimateZone ClimateZone)
@@ -1464,11 +1483,11 @@ characterized by cold winters and hot summers.")
 and hot summers.")
 
 (=>
-  (instance ?AREA MidlatitudeContinentalClimateZone)
+  (climateTypeInArea ?AREA MidlatitudeContinentalClimateZone)
   (coolSeasonInArea ?AREA WinterSeason))
 
 (=>
-  (instance ?AREA MidlatitudeContinentalClimateZone)
+  (climateTypeInArea ?AREA MidlatitudeContinentalClimateZone)
   (hotSeasonInArea ?AREA SummerSeason))
 
 (subclass TemperateWinterDryClimateZone TemperateClimateZone)
@@ -1498,17 +1517,21 @@ system Type D.")
 
 (=>
   (and
-    (instance ?AREA ColdClimateZone)
-    (subclass ?MO Month)
-    (averageTemperatureForPeriod ?AREA ?MO 
-      (MeasureFn ?TEMP CelsiusDegree)))
+    (climateTypeInArea ?AREA ColdClimateZone)
+    (forall (?MO)
+      (and
+        (instance ?MO Month)
+        (averageTemperatureForPeriod ?AREA ?MO 
+          (MeasureFn ?TEMP CelsiusDegree)))))
   (greaterThan 10 ?TEMP))
 
+;; coldest months
 (=>
-  (instance ?AREA ColdClimateZone)
+  (climateTypeInArea ?AREA ColdClimateZone)
   (exists (?MO ?AMOUNT)
     (and
-      (subclass ?MO Month)
+      (instance ?MO Month)
+      (temperalPart ?MO WinterSeason)
       (averageTemperatureForPeriod ?AREA ?MO 
         (MeasureFn ?AMOUNT CelsiusDegree))
       (lessThan ?AMOUNT -3))))
@@ -1535,22 +1558,23 @@ as in the driest winter month.  This is Koeppen climate system subtype
 10 degrees Celsius in the warmest month.  This is Koeppen climate system 
 Type E.  No agriculture is supported in polar climates.")
 
+
 (=>
+  (climateTypeInArea ?AREA PolarClimateZone)
   (and
-    (instance ?AREA PolarClimateZone)
-    (subclass ?MO Month)
+    (instance ?MO Month)
     (averageTemperatureForPeriod ?AREA ?MO 
-      (MeasureFn ?TEMP CelsiusDegree)))
-  (greaterThan 10 ?TEMP))
+      (MeasureFn ?TEMP CelsiusDegree))
+        (greaterThan 10 ?TEMP)))
 
 (=>
   (and
     (instance ?AREA GeographicArea)
-    (subclass ?MO Month)
-    (averageTemperatureForPeriod ?AREA ?MO 
+    (instance ?MO Month)
+    (averageTemperatureForPeriod ?AREA ?MO
       (MeasureFn ?TEMP CelsiusDegree))
     (greaterThan 10 ?TEMP))
-  (instance ?AREA PolarClimateZone))
+  (climateTypeInArea ?AREA PolarClimateZone))
 
 (subclass TundraClimateZone PolarClimateZone)
 
@@ -1567,7 +1591,7 @@ which the temperature rises to 10 degrees Celsius or above.")
 
 (=>
   (and
-    (instance ?AREA PolarTypeFClimateZone)
+    (climateTypeInArea ?AREA PolarTypeFClimateZone)
     (instance ?TIME TimePosition)
     (holdsDuring ?TIME (airTemperature ?AREA 
       (MeasureFn ?TEMP CelsiusDegree))))
@@ -4480,7 +4504,8 @@ Ocean.")
 (naturalHazardTypeInArea SouthernOcean CyclonicStorm)
 (naturalHazardTypeInArea SouthernOcean Iceberg)
 (naturalHazardTypeInArea SouthernOcean SeaIce)
-(instance SouthernOcean PolarClimateZone)
+
+(attribute SouthernOcean PolarClimateZone)
 
 (elevation (ElevationHighPointFn SouthernOcean) (MeasureFn 0 Meter))
 (elevation (ElevationLowPointFn SouthernOcean) (MeasureFn -7235 Meter))
@@ -6053,6 +6078,48 @@ typically multi-stemmed woody plants, called shrubs or bushes.")
       (MeasureFn ?SHORT ?U)))
   (greaterThan ?TALL ?SHORT))
 
+;; added definitons for Succulent and Cactus
+
+(subclass Succulent FloweringPlant)
+(documentation Succulent EnglishLanguage "&%Succulents are &%Drought resistant
+&%Plants in which their &%Plantleaf and PlantStem &%contain water-storing &%Tissue.")
+
+;; drought resistant
+(=>
+  (instance ?P Succulent)
+  (modalAttribute
+    (exists (?D)
+      (and
+         (instance ?D Drought)
+         (experiencer ?D ?P)
+         (attribute ?P Living))) Likely))
+        
+(subclass Cactus FloweringPlant)
+(documentation Cactus EnglishLanuage "The word &%Cactus derives, through Latin, 
+from Greek Kaktos, a name for spiny plant. Most Cacti live in habitats subject
+to at least some drought. Almost all cacti are succulents. Areoles are structures
+unique to cacti. (Reference wikipedia)")
+
+;; Most Cacti live in habitats subject to at least some drought
+(=>
+  (instance ?CAC Cactus)
+  (modalAttribute
+    (and
+      (instance ?AREA GeographicArea)
+      (located ?CAC ?AREA)
+      (exists (?D)
+        (and
+          (instance ?D Drought)
+          (eventLocated ?D ?AREA)))) Likely))   
+
+;; Areoles are parts of a Cactus
+(=>
+  (instance ?A PlantAreole)
+  (exists (?C)
+    (and
+      (instance ?C Cactus)
+      (part ?A ?C))))
+    
 (subclass Lichen NonFloweringPlant)
 
 (documentation Lichen EnglishLanguage "&%Lichen is the class of complex thallyphytic 
