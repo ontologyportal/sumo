@@ -49,7 +49,7 @@
 
 ;; The knowledge representation language in which the SUMO is expressed is SUO-KIF, 
 ;; which stands for "Standard Upper Ontology - Knowledge Interchange Format".  SUO-KIF 
-;; is a simplified form of the popular KIF knowledge representation language.  A 
+;; is a simplified form of the KIF knowledge representation language.  A
 ;; specification of SUO-KIF can be found at:  http://www.ontologyportal.org
 
 ;; The SUMO is a modular ontology.  That is, the ontology is divided into 
@@ -58,7 +58,7 @@
 ;; statements of the form ";; INCLUDES '<SUBONTOLOGY>'".  These statements are 
 ;; found at the beginning of each section.  
 
-;; We ask the people using or referencing SUMO cite our primary paper:
+;; We ask that people using or referencing SUMO cite our primary paper:
 
 ;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
 ;; Proceedings of the 2nd International Conference on Formal Ontology in 
@@ -740,7 +740,7 @@ quality ?ATT than ?ENTITY2.")
 by means of the proof theory of SUO-KIF.")
 
 ;; The following axiom is commented out, because it is rejected by the
-;; inference engine parser.
+;; inference engine parser as higher order.
 
 ;;(=>
 ;;   (entails ?FORMULA1 ?FORMULA2)
@@ -1093,7 +1093,7 @@ charge.")
 
 (subclass CompoundSubstance PureSubstance)
 (documentation CompoundSubstance EnglishLanguage "The &%Class of &%Substances that contain
-two or more elements (&%ElementalSubstances) in definite proportion by weight.				; Here!  Removed extraneous comma.
+two or more elements (&%ElementalSubstances) in definite proportion by weight.
 The composition of a pure compound will be invariant, regardless of the method
 of preparation. Compounds are composed of more than one kind of atom (element).
 The term molecule is often used for the smallest unit of a compound that still
@@ -1379,7 +1379,7 @@ community, but rather had its core grammar and vocabulary invented by
 one or more language experts, often with an aim to produce a more
 grammatically regular language than any language that has evolved
 naturally.  This &%Class includes languages like Esperanto that were
-created to facilitate international communication.")                                      ; Here! Add final period to last sentence.
+created to facilitate international communication.")
 
 (=>
    (instance ?LANG ConstructedLanguage)
@@ -1479,15 +1479,6 @@ produce changes in the world.")
 
 (subclass SentientAgent Agent)
 
-;; NS: delete.
-;; (documentation SentientAgent EnglishLanguage "An &%Agent that has rights but may or may
-;; not have responsibilities and the ability to reason.  If the latter are
-;; present, then the &%Agent is also an instance of &%CognitiveAgent.
-;; Domesticated animals are an example of &%SentientAgents that are not
-;; also &%CognitiveAgents.")                                               ;  here !!!!!!!
-
-;; NS: add.
-
 (documentation SentientAgent EnglishLanguage "A &%SentientAgent is an
 &%Agent that is capable of &%Perception and experiences some level of
 consciousness (see &%ConsciousnessAttribute).  If the &%Agent is able
@@ -1498,18 +1489,6 @@ may not be a &%CognitiveAgent, depending on the type of &%Animal.")
 
 (subclass CognitiveAgent SentientAgent)
 
-;; NS: delete.
-;; (documentation CognitiveAgent EnglishLanguage "A &%SentientAgent with
-;; responsibilities and the ability to deliberate, make plans,        ; Here!!!!! Extraneous comma deleted.
-;; etc.  This is essentially the legal/ethical notion of a person.  Note
-;; that, although &%Human is a subclass of &%CognitiveAgent, there may be
-;; instances of &%CognitiveAgent which are not also instances of &%Human.
-;; For example, chimpanzees, gorillas, dolphins, whales, and some
-;; extraterrestrials
-;; (if they exist) may be &%CognitiveAgents.")                        ;  here !!!!!!!
-
-;; NS: add.
-
 (documentation CognitiveAgent EnglishLanguage "A &%CognitiveAgent is
 an &%Agent that has the ability to reason, deliberate, make plans, and
 experience emotions.  Although &%Human is a subclass of
@@ -1518,15 +1497,9 @@ not also instances of &%Human.  For example, &%Primates, dolphins,
 whales, and some extraterrestrials (if they exist) might be considered
 &%CognitiveAgents.")
 
-;; NS: new.  Since an Entity might or might not be considered a
-;; LegalAgent for its entire existence, depending on the
-;; circumstances, it might be better to represent &%LegalAgent as a
-;; &%RelationalAttribute.
+(subclass LegalAgent RelationalAttribute)
 
-(subclass LegalAgent Agent)
-
-;; NS: add.
-(documentation LegalAgent EnglishLanguage "A &%LegalAgent is an
+(documentation LegalAgent EnglishLanguage "A &%LegalAgent is an &%Attribute of an
 &%Agent that is allowed by law to to act and be treated as a legal
 person for certain purposes, such as being a party to a lawsuit,
 owning property, and entering into a contract.  Typically, a
@@ -1539,10 +1512,9 @@ description of <a
 href=http://en.wikipedia.org/wiki/Juristic_person>Juristic
 person</a>.")
 
-;; NS: add.
 (<=>
   (holdsDuring ?TIME
-    (instance ?AGENT LegalAgent))
+    (attribute ?AGENT LegalAgent))
   (holdsDuring ?TIME
     (or
       (capability LegalAction agent ?AGENT)
@@ -7903,7 +7875,7 @@ precedes ?POINT2 on the universal timeline.")
 (documentation beforeOrEqual EnglishLanguage "(&%beforeOrEqual ?POINT1 ?POINT2) means that
 ?POINT1 is identical with ?POINT2 or occurs before it on the universal timeline.")
 
-(=>
+(<=>
    (beforeOrEqual ?POINT1 ?POINT2)
    (or
        (before ?POINT1 ?POINT2)
@@ -7982,6 +7954,42 @@ have a &%TimeInterval as a common part.")
   (during ?SMALL ?BIG)
   (temporalPart ?SMALL ?BIG))
 
+(=>
+  (and
+    (instance ?TI TimeInterval)
+    (equal ?S (BeginFn ?TI))
+    (equal ?E (EndFn ?TI)))
+  (before ?S ?E))
+
+(=>
+  (and
+    (instance ?TI1 TimeInterval)
+    (instance ?TI2 TimeInterval)
+    (beforeOrEqual
+      (BeginFn ?TI2)
+      (BeginFn ?TI1))
+    (before
+      (BeginFn ?TI1)
+      (EndFn ?TI2)))
+  (overlapsTemporally ?TI2 ?TI1))
+
+(=>
+  (and
+    (earlier ?TI1 ?TI2)
+    (instance ?P1 TimePoint)
+    (instance ?P2 TimePoint)
+    (temporalPart ?P1 ?TI1)
+    (temporalPart ?P2 ?TI2))
+  (before ?P1 ?P2))
+
+(<=>
+  (overlapsTemporally ?INTERVAL1 ?INTERVAL2)
+  (exists (?INTERVAL3)
+    (and
+      (instance ?INTERVAL3 TimePosition)
+      (temporalPart ?INTERVAL3 ?INTERVAL1)
+      (temporalPart ?INTERVAL3 ?INTERVAL2))))
+
 (instance during TransitiveRelation)
 (instance during BinaryPredicate)
 (instance during IrreflexiveRelation)
@@ -8015,6 +8023,15 @@ initial point of the &%TimeInterval ?INTERVAL2.")
    (equal
       (EndFn ?INTERVAL1)
       (BeginFn ?INTERVAL2)))
+
+(=>
+  (meetsTemporally ?T1 ?T2)
+  (not
+    (exists (?T3)
+      (and
+        (instance ?T3 TimeInterval)
+        (temporalPart ?T3 ?T1)
+        (temporalPart ?T3 ?T2)))))
 
 (=>
   (and
