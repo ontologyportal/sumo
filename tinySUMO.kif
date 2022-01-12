@@ -15,6 +15,7 @@
 (subclass Abstract Entity)
 (subclass List Abstract)
 (subclass TimePosition Abstract)
+(subclass TimeInterval TimePosition)
 (subclass Set Abstract)
 (subclass Class Abstract)
 (subclass Process Physical)
@@ -43,6 +44,7 @@
 (subclass SymmetricRelation Relation)
 (subclass MilitaryForce Physical)
 (subclass Agent Object)
+(subclass Organism Agent)
 (subclass Organization Agent)
 (subclass Vehicle Object)
 (subclass Carrying Process)
@@ -50,11 +52,15 @@
 (instance TonMass UnitOfMeasure)
 (instance PoundMass UnitOfMeasure)
 (subclass CaseRole BinaryPredicate)
+(subclass ComputerProgram Abstract)
 
 (domain disjoint 1 Class)	
 (domain disjoint 2 Class)	
 (instance disjoint BinaryPredicate)
 (instance disjoint SymmetricRelation)
+
+(domain contraryAttribute 1 Attribute)	
+(instance contraryAttribute VariableArityRelation)
 
 (disjoint Abstract Physical)
 (disjoint Object Process)
@@ -101,12 +107,12 @@
 (instance rangeSubclass AsymmetricRelation)
 (instance rangeSubclass BinaryPredicate)
 
-(=>
-  (and
-    (instance ?F Function)
-    (rangeSubclass ?F ?C)
-    (instance ?I (?F ?X)))
-  (instance ?I ?C))
+;(=>
+;  (and
+;    (instance ?F Function)
+;    (rangeSubclass ?F ?C)
+;    (instance ?I (?F ?X)))
+;  (instance ?I ?C))
 
 (instance domainSubclass TernaryPredicate)
 (domain domainSubclass 1 Relation)
@@ -115,15 +121,28 @@
 
 (instance subclass BinaryRelation)
 (instance subclass TransitiveRelation)
-(domain subclass 1 Entity)
-(domain subclass 2 Entity)
+(domain subclass 1 Class)
+(domain subclass 2 Class)
 
 (=>
   (subclass ?X ?Y)
   (instance ?X Class))
 
+(domain subrelation 1 Relation)		
+(domain subrelation 2 Relation)	
+(instance subrelation BinaryPredicate)
+(instance subrelation TransitiveRelation)
+
+(=>
+  (and
+    (subrelation ?REL1 ?REL2)
+    (instance ?REL1 Predicate)
+    (instance ?REL2 Predicate)
+    (?REL1 @ROW))
+  (?REL2 @ROW))
+    
 (domain instance 1 Entity)
-(domain instance 2 Entity)
+(domain instance 2 Class)
 (instance instance BinaryRelation)
 
 (instance documentation TernaryPredicate)
@@ -190,6 +209,11 @@ one class is more specific than another.")
 (instance attribute BinaryPredicate)
 (domain attribute 1 Entity)
 (domain attribute 2 Attribute)
+
+(domain property 1 Entity)	
+(domain property 2 Attribute)	
+(instance property BinaryPredicate)
+(subrelation attribute property)
 
 (instance maleficiary BinaryPredicate)
 (domain maleficiary 1 Process)
@@ -349,6 +373,38 @@ one class is more specific than another.")
 ;        (ListFn @ARGS) ?ARG)))
 ;  (greaterThan ?VAL ?N))
 
+(domain inList 1 Entity)	
+(domain inList 2 List)	
+(instance inList BinaryPredicate)
+
+(=>
+  (inList ?ITEM ?LIST)
+  (exists (?NUMBER)
+    (equal
+      (ListOrderFn ?LIST ?NUMBER) ?ITEM)))
+            
+(forall (@ROW ?ITEM)
+  (equal
+    (ListOrderFn
+      (ListFn @ROW ?ITEM)
+      (ListLengthFn
+        (ListFn @ROW ?ITEM))) ?ITEM))
+
+(=>
+  (equal ?LIST1 ?LIST2)
+  (=>
+    (and
+      (equal ?LIST1
+        (ListFn @ROW1))
+      (equal ?LIST2
+        (ListFn @ROW2)))
+      (forall (?NUMBER)
+        (equal
+          (ListOrderFn
+            (ListFn @ROW1) ?NUMBER)
+          (ListOrderFn
+            (ListFn @ROW2) ?NUMBER)))))
+                                                                
 (domain orientation 1 Object)	
 (domain orientation 2 Object)	
 (domain orientation 3 PositionalAttribute)		
@@ -439,3 +495,19 @@ one class is more specific than another.")
             (ListSumFn
                 (SubListFn 2
                     (ListLengthFn ?L) ?L)))))
+
+(instance Male Attribute)
+(instance Female Attribute)
+(contraryAttribute Male Female)
+ 
+(domain mother 1 Organism)	
+(domain mother 2 Organism)	
+(instance mother BinaryPredicate)
+ 
+(domain father 1 Organism)	
+(domain father 2 Organism)	
+(instance father BinaryPredicate)
+                   
+(=>
+  (mother ?CHILD ?MOTHER)
+  (attribute ?MOTHER Female))
