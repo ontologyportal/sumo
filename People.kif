@@ -60,7 +60,7 @@ Zimbabwe.")
 ;; PopulationGrowthFn
 (instance PopulationGrowthFn BinaryFunction)
 (domain PopulationGrowthFn 1 GeopoliticalArea)
-(domainSubclass PopulationGrowthFn 2 Year)
+(domain PopulationGrowthFn 2 Year)
 (range PopulationGrowthFn RealNumber)
 (documentation PopulationGrowthFn EnglishLanguage "(&%PopulationFn ?AREA ?YEAR) denotes the 
 &%RealNumber that represents the average annual percent change in the 
@@ -73,21 +73,21 @@ changing needs of its people for infrastructure (e.g., schools, hospitals,
 housing, roads), resources (e.g., food, water, electricity), and jobs. Rapid 
 population growth can be seen as threatening by neighboring countries.")
 
-;;revised to turn YearFn (?YEAR) into an instance for holdsDuring Jennie 11th November 2021
+;;revised to fix inconsistent variable types caused by YearFn 28 Jul 2022
 
 (<=>
-  (equal (PopulationGrowthFn ?AREA (YearFn ?YEAR)) ?ADJUSTEDPERCENT)
-  (exists (?Y1 ?Y2)
-    (and
-      (equal (SubtractionFn ?YEAR ?PREVIOUSYEAR) 1)
-       (equal ?Y1 (YearFn ?YEAR))
-       (equal ?Y2 (YearFn ?PREVIOUSYEAR))
-       (holdsDuring ?Y1
+  (and
+    (instance ?YEAR (YearFn ?Y))
+    (equal (PopulationGrowthFn ?AREA ?YEAR) ?ADJUSTEDPERCENT))
+  (and
+    (equal (SubtractionFn ?Y ?YP) 1)
+       (instance ?PREVIOUSYEAR (YearFn ?YP))
+       (holdsDuring ?YEAR
          (equal (PopulationFn ?AREA) ?POPULATION))
-       (holdsDuring ?Y2
+       (holdsDuring ?PREVIOUSYEAR
          (equal (PopulationFn ?AREA) ?PREVIOUSPOPULATION))
        (equal (DivisionFn ?POPULATION ?PREVIOUSPOPULATION) ?PERCENT)
-       (equal (SubtractionFn ?PERCENT 1) ?ADJUSTEDPERCENT))))
+       (equal (SubtractionFn ?PERCENT 1) ?ADJUSTEDPERCENT)))
 
 ;;  D. Birth rate
 ;; BirthsPerThousandFn
@@ -106,7 +106,9 @@ structure of the population.")
 
 ;; Definition of &%BirthsPerThousandFn
 (<=>
-  (equal (BirthsPerThousandFn ?AREA (YearFn ?YEAR)) ?REALNUMBER)
+  (and
+    (instance ?YEAR (YearFn ?Y))
+    (equal (BirthsPerThousandFn ?AREA ?YEAR) ?REALNUMBER))
   (and
     (equal (DivisionFn (PopulationFn ?AREA) 1000) ?THOUSANDS)
     (equal ?BIRTHCOUNT
@@ -116,7 +118,7 @@ structure of the population.")
             (instance ?BIRTH Birth)
             (experiencer ?BIRTH ?INFANT)
             (instance ?INFANT Human)
-            (during (WhenFn ?BIRTH) (YearFn ?YEAR))
+            (during (WhenFn ?BIRTH) ?YEAR)
             (equal (WhereFn ?BIRTH (WhenFn ?BIRTH)) ?AREA)))))
     (equal (DivisionFn ?BIRTHCOUNT ?THOUSANDS) ?REALNUMBER)))
 
@@ -140,7 +142,9 @@ population.")
 
 ;; Definition of &%DeathsPerThousandFn
 (<=>
-  (equal (DeathsPerThousandFn ?AREA (YearFn ?YEAR)) ?REALNUMBER)
+  (and
+    (instance ?YEAR (YearFn ?Y))
+    (equal (DeathsPerThousandFn ?AREA ?YEAR) ?REALNUMBER))
   (and
     (equal (DivisionFn (PopulationFn ?AREA) 1000) ?THOUSANDS)
     (equal ?DEATHCOUNT
@@ -150,7 +154,7 @@ population.")
             (instance ?DEATH Death)
             (experiencer ?DEATH ?PERSON)
             (instance ?PERSON Human)
-            (during (WhenFn ?DEATH) (YearFn ?YEAR))
+            (during (WhenFn ?DEATH) ?YEAR)
             (equal (WhereFn ?DEATH (WhenFn ?DEATH)) ?AREA)))))
     (equal (DivisionFn ?DEATHCOUNT ?THOUSANDS) ?REALNUMBER)))
 
@@ -176,10 +180,13 @@ key sectors (if people are leaving).")
 
 ;; Definition of &%MigrantsPerThousandFn
 (<=>
-  (equal (MigrantsPerThousandFn ?AREA (YearFn ?YEAR)) ?REALNUMBER)
   (and
-    (equal (SubtractionFn ?YEAR ?PREVIOUSYEAR) 1)
-    (holdsDuring (YearFn ?YEAR)
+    (instance ?YEAR (YearFn ?Y))
+    (equal (MigrantsPerThousandFn ?AREA ?YEAR) ?REALNUMBER))
+  (and
+    (equal (SubtractionFn ?Y ?PY) 1)
+    (instance ?PREVIOUSYEAR (YearFn ?PY))
+    (holdsDuring ?YEAR
       (equal (PopulationFn ?AREA) ?POPULATION))
     (equal (DivisionFn ?POPULATION 1000) ?THOUSANDS)
     (equal ?IMMIGRATION
@@ -187,19 +194,19 @@ key sectors (if people are leaving).")
         (KappaFn ?PERSON
           (and
             (instance ?PERSON Human)
-            (holdsDuring (YearFn ?PREVIOUSYEAR)
+            (holdsDuring ?PREVIOUSYEAR
               (not
                 (inhabits ?PERSON ?AREA)))
-            (holdsDuring (YearFn ?YEAR)
+            (holdsDuring ?YEAR
               (inhabits ?PERSON ?AREA))))))
     (equal ?EMMIGRATION
       (CardinalityFn
         (KappaFn ?PERSON
           (and
             (instance ?PERSON Human)
-            (holdsDuring (YearFn ?PREVIOUSYEAR)
+            (holdsDuring ?PREVIOUSYEAR
               (inhabits ?PERSON ?AREA))
-            (holdsDuring (YearFn ?YEAR)
+            (holdsDuring ?YEAR
               (not
                 (inhabits ?PERSON ?AREA)))))))
     (equal (SubtractionFn ?IMMIGRATION ?EMMIGRATION) ?MIGRATIONCOUNT)
@@ -255,7 +262,9 @@ indicator of the level of health in a country.")
 
 ;; Definition of &%DeathsPerThousandLiveBirthsFn
 (<=>
-  (equal (DeathsPerThousandLiveBirthsFn ?AREA (YearFn ?YEAR)) ?REALNUMBER)
+  (and
+    (instance ?YEAR (YearFn ?Y))
+    (equal (DeathsPerThousandLiveBirthsFn ?AREA ?YEAR) ?REALNUMBER))
   (and
     (equal ?BIRTHCOUNT
       (CardinalityFn
@@ -264,7 +273,7 @@ indicator of the level of health in a country.")
             (instance ?BIRTH Birth)
             (experiencer ?BIRTH ?INFANT)
             (instance ?INFANT Human)
-            (during (WhenFn ?BIRTH) (YearFn ?YEAR))
+            (during (WhenFn ?BIRTH) ?YEAR)
             (equal (WhereFn ?BIRTH (WhenFn ?BIRTH)) ?AREA)))))
     (equal (DivisionFn ?BIRTHCOUNT 1000) ?THOUSANDSOFBIRTHS)
     (equal ?INFANTDEATHCOUNT
@@ -276,7 +285,7 @@ indicator of the level of health in a country.")
             (instance ?INFANT Human)
             (age ?INFANT (MeasureFn ?AGE YearDuration))
             (lessThan ?AGE 1)
-            (during (WhenFn ?DEATH) (YearFn ?YEAR))
+            (during (WhenFn ?DEATH) ?YEAR)
             (equal (WhereFn ?DEATH (WhenFn ?DEATH)) ?AREA)))))
     (equal (DivisionFn ?INFANTDEATHCOUNT ?THOUSANDSOFBIRTHS) ?REALNUMBER)))
 
@@ -325,7 +334,9 @@ actuarial measures.")
 
 ;; Definition of &%LifeExpectancyAtBirthFn
 (<=>
-  (equal (LifeExpectancyAtBirthFn ?AREA (YearFn ?YEAR)) ?REALNUMBER)
+  (and
+    (instance ?YEAR (YearFn ?Y))
+    (equal (LifeExpectancyAtBirthFn ?AREA ?YEAR) ?REALNUMBER))
   (exists (?LIST)
     (and
       (instance ?LIST List)
@@ -348,7 +359,7 @@ actuarial measures.")
                     (instance ?BIRTH Birth)
                     (experiencer ?BIRTH ?INDIVIDUAL)
                     (instance ?INDIVIDUAL Human)
-                    (during (WhenFn ?BIRTH) (YearFn ?YEAR))
+                    (during (WhenFn ?BIRTH) ?YEAR)
                     (equal (WhereFn ?BIRTH (WhenFn ?BIRTH)) ?AREA)
                     (instance ?DEATH Death)
                     (experiencer ?DEATH ?INDIVIDUAL)
@@ -416,7 +427,9 @@ mortality at each age remains constant in the future.")
 
 ;; Definition of &%FemaleLifeExpectancyAtBirthFn
 (<=>
-  (equal (FemaleLifeExpectancyAtBirthFn ?AREA (YearFn ?YEAR)) ?REALNUMBER)
+  (and
+    (instance ?YEAR (YearFn ?Y))
+    (equal (FemaleLifeExpectancyAtBirthFn ?AREA ?YEAR) ?REALNUMBER))
   (exists (?LIST)
     (and
       (instance ?LIST List)
@@ -440,7 +453,7 @@ mortality at each age remains constant in the future.")
                     (experiencer ?BIRTH ?INDIVIDUAL)
                     (instance ?INDIVIDUAL Human)
                     (attribute ?INDIVIDUAL Female)
-                    (during (WhenFn ?BIRTH) (YearFn ?YEAR))
+                    (during (WhenFn ?BIRTH) ?YEAR)
                     (equal (WhereFn ?BIRTH (WhenFn ?BIRTH)) ?AREA)
                     (instance ?DEATH Death)
                     (experiencer ?DEATH ?INDIVIDUAL)
@@ -466,17 +479,20 @@ indicate large family sizes that might limit the ability of the families to
 feed and educate their children.")
 
 ;; Definition of &%ChildrenBornPerWomanFn
-(equal (ChildrenBornPerWomanFn ?AREA (YearFn ?YEAR))
-  (CardinalityFn
-    (KappaFn ?INFANT
-      (and
-        (instance ?BIRTH Birth)
-        (experiencer ?BIRTH ?INFANT)
-        (agent ?BIRTH ?WOMAN)
-        (instance ?WOMAN Human)
-        (attribute ?WOMAN Female)
-        (holdsDuring (YearFn ?YEAR)
-          (inhabits ?WOMAN ?AREA))))))
+(and
+  (instance ?YEAR (YearFn ?Y))
+  (equal 
+    (ChildrenBornPerWomanFn ?AREA ?YEAR)
+    (CardinalityFn
+      (KappaFn ?INFANT
+        (and
+          (instance ?BIRTH Birth)
+          (experiencer ?BIRTH ?INFANT)
+          (agent ?BIRTH ?WOMAN)
+          (instance ?WOMAN Human)
+          (attribute ?WOMAN Female)
+          (holdsDuring ?YEAR
+          (inhabits ?WOMAN ?AREA)))))))
 
 ;;  K. HIV/AIDS - adult prevalence rate
 ;;  L. HIV/AIDS - people living with HIV/AIDS

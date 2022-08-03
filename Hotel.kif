@@ -57,9 +57,14 @@
 (documentation guest EnglishLanguage "&%guest refers to the &%customer living in a
 &%TemporaryResidence for the duration of his stay there")
 (termFormat EnglishLanguage guest "guest")
+;;
+;; Jennie 1st August 2022
+;; Change from (domain guest 2 CognitiveAgent)
+;;         to  (domain guest 2 Agent)
+;; to cover Organization and Group
 
 (domain guest 1 CognitiveAgent)
-(domain guest 2 CognitiveAgent)
+(domain guest 2 Agent)
 
 (=>
   (and
@@ -306,16 +311,18 @@ means some rooms in &%RoomInventory ?INV have &%RelationalAttribute ?ATTR")
               (instrument ?PROC ?O)
               (patient ?PROC ?O)
               (resource ?PROC ?O)))) ?HOTEL ?CUST))))          
-
+;; Jennie 1st August 2022
+;; Changed (part ?ROOM ?HOTEL) to (element ?X (PropertyFn ?HOTEL)) as ?ROOM in roomAmenity is a Class not an instance
+;; 
 (=>
   (and
     (roomAmenity ?ROOM ?SVC)
-    (part ?ROOM ?HOTEL)
     (subclass ?SVC Process))
   (modalAttribute
-    (exists (?X ?S)
+    (exists (?X ?S ?HOTEL ?PROC)
       (and
         (instance ?X ?ROOM)
+        (element ?X (PropertyFn ?HOTEL))    
         (agent ?S ?HOTEL)
         (or
           (instance ?S ?SVC)
@@ -326,11 +333,16 @@ means some rooms in &%RoomInventory ?INV have &%RelationalAttribute ?ATTR")
 
 (subrelation freeRoomAmenity roomAmenity)
 (instance freeRoomAmenity BinaryPredicate)
+(domainSubclass freeRoomAmenity 1 HotelUnit)
+(domainSubclass freeRoomAmenity 2 Physical)
 (documentation freeRoomAmenity EnglishLanguage "(&%freeRoomAmenity ?ROOM ?PHYS) 
 means that there is no price associated with the use of an object or the rendering
 of a service")
 (termFormat EnglishLanguage freeRoomAmenity "free room amenity")
+;; Jennie 1st August 2022
+;; Changed (price ?P (MeasureFn 0 UnitedStatesDollar) ?HOTEL) to (price ?O (MeasureFn 0 UnitedStatesDollar) ?GUEST)
 
+;; Object
 (=>
   (and
     (freeRoomAmenity ?ROOM ?OBJ)
@@ -346,8 +358,9 @@ of a service")
       (patient ?P ?O)
       (instrument ?P ?O)
       (resource ?P ?O)))
-  (price ?P (MeasureFn 0 UnitedStatesDollar) ?HOTEL))
-
+  (price ?O (MeasureFn 0 UnitedStatesDollar) ?GUEST))
+  
+;;Process
 (=>
   (and
     (freeRoomAmenity ?ROOM ?PROC)
@@ -362,58 +375,65 @@ of a service")
         (instance ?S ?PROC)
         (subProcess ?P ?S)))
     (located ?P ?R))
-  (price ?P (MeasureFn 0.0 UnitedStatesDollar) ?HOTEL))
+  (price ?P (MeasureFn 0.0 UnitedStatesDollar) ?GUEST))
 
 (subrelation paidRoomAmenity roomAmenity)
 (instance paidRoomAmenity BinaryPredicate)
+(domainSubclass paidRoomAmenity 1 HotelUnit)
+(domainSubclass paidRoomAmenity 2 Physical)
 (documentation paidRoomAmenity EnglishLanguage "(&%paidRoomAmenity ?ROOM ?PHYS) 
 means that there is a fee associated with the use of an object or the rendering
 of a service")
 (termFormat EnglishLanguage paidRoomAmenity "paid room amenity")
+;;
+;; Jennie 1st August 2022
+;; Deleted (located ?P ?O)
+;; Changed (price ?P (MeasureFn ?PRICE ?U) ?HOTEL) to (price ?O (MeasureFn ?PRICE ?U) ?GUEST)
+;; added existential quantifiers
 
+
+;; Object
 (=>
   (and
     (paidRoomAmenity ?ROOM ?OBJ)
-    (subclass ?OBJ Object))
-  (=>
-    (and
-      (instance ?R ?ROOM)
-      (stays ?GUEST ?R)
-      (element ?R (PropertyFn ?HOTEL))
-      (instance ?O ?OBJ)
-      (located ?O ?R)
-      (instance ?P Process)
-      (agent ?P ?GUEST)
-      (or
-        (located ?P ?O)
-        (patient ?P ?O)
-        (instrument ?P ?O)
-        (resource ?P ?O)))
-    (and
-      (price ?P 
-        (MeasureFn ?PRICE ?U) ?HOTEL)
+    (subclass ?OBJ Object)
+    (instance ?R ?ROOM)
+    (stays ?GUEST ?R)     
+    (element ?R (PropertyFn ?HOTEL))
+    (instance ?O ?OBJ)
+    (located ?O ?R)            
+    (instance ?P Process)
+    (agent ?P ?GUEST)     
+    (or
+      (located ?P ?R)
+      (patient ?P ?O)
+      (instrument ?P ?O)
+      (resource ?P ?O)))
+  (exists (?PRICE ?U)
+    (and     
+      (price ?O 
+        (MeasureFn ?PRICE ?U) ?GUEST)
       (instance ?U UnitOfCurrency)
-      (greaterThan ?PRICE 0))))
-
+      (greaterThan ?PRICE 0)))) 
+;; Process
 (=>
   (and
     (paidRoomAmenity ?ROOM ?PROC)
-    (subclass ?PROC Process))
-  (=>
-    (and
-      (instance ?R ?ROOM)
-      (stays ?GUEST ?R)
-      (element ?R (PropertyFn ?HOTEL))
-      (patient ?P ?GUEST)
-      (or
-        (instance ?P ?PROC)
-        (and
-          (instance ?S ?PROC)
-          (subProcess ?P ?S)))
-      (located ?P ?R))
+    (subclass ?PROC Process)
+    (instance ?R ?ROOM)
+    (stays ?GUEST ?R)
+    (element ?R (PropertyFn ?HOTEL))
+    (patient ?P ?GUEST)
+    (or
+      (instance ?P ?PROC)
+      (and
+        (instance ?S ?PROC)
+        (subProcess ?P ?S)))
+        (located ?P ?R))
+  (exists (?PRICE ?U)
     (and
       (price ?P 
-        (MeasureFn ?PRICE ?U) ?HOTEL)
+        (MeasureFn ?PRICE ?U) ?GUEST)
       (instance ?U UnitOfCurrency)
       (greaterThan ?PRICE 0))))
     
@@ -462,7 +482,7 @@ during one stay")
     (instance ?X ?ROOM)
     (element ?X (PropertyFn ?AGENT)))
   (modalAttribute
-    (exists (?GRP)
+    (exists (?GRP ?PPL)
       (and
         (instance ?GRP GroupOfPeople)
         (memberCount ?GRP ?PPL)
@@ -505,7 +525,7 @@ that &Agent ?AGENT provides &%Physical ?PHYS on its property")
     (propertyAmenity ?AGENT ?PHYS)
     (subclass ?PHYS Process))
   (modalAttribute
-    (exists (?S ?LOC)
+    (exists (?S ?LOC ?PROC)
       (and
         (element ?LOC (PropertyFn ?AGENT))
         (agent ?S ?AGENT)
@@ -513,7 +533,7 @@ that &Agent ?AGENT provides &%Physical ?PHYS on its property")
         (or
           (instance ?S ?PHYS)
           (and
-            (instance ?PROC ?PHY)
+            (instance ?PROC ?PHYS)
             (subProcess ?S ?PROC)))
         (located ?S ?LOC))) Possibility))
 
@@ -561,11 +581,12 @@ means that &%Agent ?AGENT provides &%Physical ?PHYS at additional cost")
         (possesses ?AGENT ?X)
         (instance ?X Object)
         (uses ?CUST ?X))))
-  (and
-    (price ?X 
-      (MeasureFn ?PRICE ?U) ?AGENT)
-    (instance ?U UnitOfCurrency)
-    (greaterThan ?PRICE 0)))
+  (exists (?PRICE ?U)
+    (and
+      (price ?X 
+        (MeasureFn ?PRICE ?U) ?AGENT)
+      (instance ?U UnitOfCurrency)
+      (greaterThan ?PRICE 0))))
         
 (instance activityCapability BinaryPredicate)
 (documentation activityCapability EnglishLanguage "(&%activityCapability ?AGENT ?ACT)
@@ -771,7 +792,7 @@ means that an &%Organization with &%Attribute ?ATTR1 is colocated with ?ORG1")
   (=>
     (represents ?AREA ?PROP)
     (modalAttribute
-      (exists (?GRP)
+      (exists (?GRP ?PPL)
         (and
           (instance ?GRP GroupOfPeople)
           (memberCount ?GRP ?PPL)
@@ -868,11 +889,12 @@ renting &%HotelFunctionRoom incurs charges")
         (possesses ?AGENT ?X)
         (instance ?X Object)
         (uses ?CUST ?X))))
-  (and
-    (price ?X 
-      (MeasureFn ?PRICE ?U) ?AGENT)
-    (instance ?U UnitOfCurrency)
-    (greaterThan ?PRICE 0)))
+  (exists (?PRICE ?U)
+    (and
+      (price ?X 
+        (MeasureFn ?PRICE ?U) ?AGENT)
+      (instance ?U UnitOfCurrency)
+      (greaterThan ?PRICE 0))))
   
 ;; LOCATION RELATIONS
 ;; =================================================================================
@@ -933,14 +955,14 @@ in ?REGION can see ?OBJ")
   (and
     (viewType ?ROOM ?OBJ)
     (instance ?ROOM Room)
-    (orientation ?OBJ ?ROOM Outside))
+    (instance ?INST ?OBJ)
+    (orientation ?INST ?ROOM Outside))
   (modalAttribute
-    (exists (?HUMAN ?SEE ?INST)
+    (exists (?HUMAN ?SEE)
       (and
         (instance ?HUMAN Human)
         (located ?HUMAN ?ROOM)
         (instance ?SEE Seeing)
-        (instance ?INST ?OBJ)
         (patient ?SEE ?INST)
         (agent ?SEE ?HUMAN))) Possibility))
 
@@ -1439,7 +1461,7 @@ has the purpose of housing gambling activities")
 (instance DutyFree NormativeAttribute)
 (documentation DutyFree EnglishLanguage "&%DutyFree describes how &%DutyTax is not
 charged for an imported product")
-(termFormat EnglishLanguage DutyFree "duty free")        
+(termFormat EnglishLanguage DutyFree "duty free")  
         
 (=>
   (and
@@ -1451,19 +1473,22 @@ charged for an imported product")
         (instance ?DUTY DutyTax)
         (patient ?DUTY ?X)))))
 
+;; Jennie 1st August 2022
+;; Revised axioms to reflect ?OBJ are "imported products"
 (=>
   (and
     (attribute ?X DutyFree)
     (instance ?X Store))
-  (forall (?OBJ)
-    (=>
-      (and
-        (instance ?SELL Selling)
-        (patient ?SELL ?OBJ)
-        (located ?SELL ?X)
-        (instance ?OBJ Product))
-      (attribute ?OBJ DutyFree))))  
-
+  (exists (?AREA ?OBJ ?O ?SELL)
+    (and
+      (instance ?AREA GeopoliticalArea)
+      (located ?X ?AREA)
+      (subclass ?O Object)
+      (importCommodityType ?AREA ?O)
+      (instance ?OBJ ?O)
+      (instance ?SELL Selling)          
+      (patient ?SELL ?OBJ)
+      (located ?SELL ?X))))
       
 ;; axiom for temperature control as a physical amenity      
 (=>
@@ -1879,11 +1904,11 @@ an agent looking after children and babies")
     (instance ?X Nursery)
     (element ?X (PropertyFn ?HOTEL))
     (attribute ?HOTEL TravelerAccommodation))
-  (and
-    (attribute ?X CommunalAttribute)
-    (employs ?HOTEL ?NANNY)
-    (hasPurpose ?NANNY
-      (exists (?CARE)
+  (exists (?NANNY ?CARE)
+    (and
+      (attribute ?X CommunalAttribute)
+      (employs ?HOTEL ?NANNY)
+      (hasPurpose ?NANNY
         (and
           (instance ?CARE ChildCareService)
           (serviceProvider ?CARE ?NANNY))))))
@@ -2073,23 +2098,25 @@ customers to different &%TouristSite")
 type of service where some amount in a certain currency is exchange for an equivalent
 amount in another currency")
 (termFormat EnglishLanguage CurrencyExchangeService "currency exchange")
-
+;; Jennie 2st August 2022
+;; fixed errors for the first argument for both statments of holdsDuring
+;;
 (=>
   (instance ?X CurrencyExchangeService)
-  (exists (?AMT1 ?CURR1 ?AMT2 ?CURR2 ?CUST)
+  (exists (?AMT1 ?CURR1 ?AMT2 ?CURR2 ?CUST ?M1 ?M2 ?NUM1 ?NUM2)
     (and
       (agent ?X ?CUST)
       (not (equal ?CURR1 ?CURR2))
       (instance ?AMT1 CurrencyMeasure)
       (instance ?AMT2 CurrencyMeasure)
       (holdsDuring
-        (WhenFn (StartFn ?X))
+        (BeginFn (WhenFn ?X))
         (and
           (monetaryValue ?M1 ?AMT1)
           (possesses ?CUST ?M1)
           (equal ?AMT1 (MeasureFn ?NUM1 ?CURR1))))
       (holdsDuring
-        (WhenFn (EndFn ?X))
+        (EndFn (WhenFn ?X))
         (and
           (monetaryValue ?M2 ?AMT2)
           (possesses ?CUST ?M2)
@@ -2326,7 +2353,7 @@ refer to agencies that sell &%Ticket to &%Sport events or &%Performance")
 (=>
   (attribute ?X ArtsAndRecreationTicketingServices) 
   (hasPurpose ?X
-    (exists (?SELL ?TICKET)
+    (exists (?SELL ?TICKET ?CUST)
       (and
         (instance ?SELL Selling)
         (patient ?SELL ?TICKET)
@@ -2629,7 +2656,7 @@ that &%RoomCleaning is done at least once a day for the duration of a &%guest st
     (instance ?POLICY DailyHousekeepingPolicy)
     (policyOwner ?AGENT ?POLICY))
   (modalAttribute
-    (exists (?GUEST ?ROOM)
+    (exists (?GUEST ?ROOM ?STAY)
       (and 
         (guest ?GUEST ?AGENT)
         (stays ?GUEST ?ROOM)
@@ -2710,14 +2737,18 @@ package includes a ?QTY number of days stay at room type ?ROOM at the
 (domain roomStay 1 HotelPackage)
 (domain roomStay 2 Integer)
 (domainSubclass roomStay 3 HotelUnit)
+;; Jennie 1st August 2022
+;; Changed 1. from (propositionOwner ?HP ?AGENT) to (propositionOwner ?AGENT ?HP)
+;;         2. from (part ?ROOM ?HOTEL) to (instance ?R ?ROOM) and (element ?R (PropertyFn ?HOTEL))
 
 (=>
   (and
-    (propositionOwner ?HP ?AGENT)
+    (propositionOwner ?AGENT ?HP)
     (instance ?HP HotelPackage)
     (accommodationProvider ?HP ?HOTEL)
     (roomStay ?HP ?NUM ?ROOM)
-    (part ?ROOM ?HOTEL)
+    (instance ?R ?ROOM)
+    (element ?R (PropertyFn ?HOTEL))
     (buys ?CUST ?AGENT ?HP))
   (exists (?TI)
     (and
@@ -2895,7 +2926,7 @@ that has &%age &%greaterThanOrEqualTo 60")
   (and 
     (numberSeniorOccupant ?RESERVE ?NUM)
     (fulfillingEntity ?RESERVE ?HOTEL))
-  (exists (?COL)
+  (exists (?COL ?AGE)
     (and
       (instance ?COL GroupOfPeople)
       (forall (?X)
@@ -2926,9 +2957,10 @@ indicated by &%HotelReservation ?RESERVE")
   (modalAttribute
     (holdsDuring
       (TimeIntervalFn ?TIME1 ?TIME2)
-      (and
-        (instance ?X ?ROOMTYPE)
-        (stays ?CUST ?X))) Likely))
+      (exists (?X)
+        (and
+          (instance ?X ?ROOMTYPE)
+          (stays ?CUST ?X)))) Likely))
         
 (instance reservedPackage BinaryPredicate)
 (documentation reservedPackage EnglishLanguage "(&%reservedPackage ?RESERVE ?PACKAGE)
@@ -3016,11 +3048,12 @@ specifically targeted the overall quality of &%Food")
 (=>
   (instance ?RATING FoodRating)
   (hasPurpose ?RATING
-    (and
-      (instance ?C Classifying)
-      (destination ?C ?FOOD)
-      (patient ?C ?RATING)
-      (instance ?FOOD PreparedFood))))
+    (exists (?C ?FOOD)
+      (and
+        (instance ?C Classifying)
+        (destination ?C ?FOOD)
+        (patient ?C ?RATING)
+        (instance ?FOOD PreparedFood)))))
       
 (=> 
   (and
@@ -3044,11 +3077,12 @@ specifically targeted at the overall quality of &%service given by an agent")
 (=>
   (instance ?RATING ServiceRating)
   (hasPurpose ?RATING
-    (and
-      (instance ?C Classifying)
-      (destination ?C ?S)
-      (patient ?C ?RATING)
-      (instance ?S ServiceProcess))))
+    (exists (?C ?S)
+      (and
+        (instance ?C Classifying)
+        (destination ?C ?S)
+        (patient ?C ?RATING)
+        (instance ?S ServiceProcess)))))
       
 (=> 
   (and
