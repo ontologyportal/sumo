@@ -162,8 +162,8 @@ to pay a specified amount of money to a specific person upon demand.")
     (equal (WhenFn ?Processing) ?ProcessingTime)
     (meetsTemporally ?DrawingTime ?Time)
     (meetsTemporally ?Time ?ProcessingTime)
-    (duration ?Time ?Duration))
-  (lessThan ?Duration (MeasureFn 6 MonthDuration)))
+    (duration ?Time (MeasureFn ?Duration MonthDuration)))
+  (lessThan ?Duration 6))
 
 (subclass PayCheck Check)
 (documentation PayCheck EnglishLanguage "A check issued to an employee in payment of salary or wages")
@@ -408,12 +408,20 @@ to the monetary value of part or all of the debtor's obligation.")
 (=>
   (and
     (instance ?Payment Payment)
-    (origin ?Payment (CurrencyFn ?Account))
+    (origin ?Payment
+      (CurrencyFn ?Account))
     (instance ?Account FinancialAccount)
-    (transactionAmount ?Payment ?Amount)
-    (currentAccountBalance ?Account (ImmediatePastFn (WhenFn ?Payment)) ?Balance1)
-    (equal ?Balance2 (SubtractionFn ?Balance1 ?Amount)))
-  (currentAccountBalance ?Account (ImmediateFutureFn (WhenFn ?Payment)) ?Balance2))
+    (transactionAmount ?Payment
+      (MeasureFn ?Amount ?CUNIT))
+    (currentAccountBalance ?Account
+      (ImmediatePastFn
+        (WhenFn ?Payment))
+      (MeasureFn ?Balance1 ?CUNIT))
+    (equal ?Balance2
+      (SubtractionFn ?Balance1 ?Amount)))
+  (currentAccountBalance ?Account
+    (ImmediateFutureFn (WhenFn ?Payment))
+    (MeasureFn ?Balance2 ?CUNIT)))
 
 (subclass Deposit FinancialTransaction)
 (disjoint Deposit Withdrawal)
@@ -429,11 +437,20 @@ account at a financial institution.")
   (and
     (instance ?Deposit Deposit)
     (instance ?Account FinancialAccount)
-    (destination ?Deposit (CurrencyFn ?Account))
-    (transactionAmount ?Deposit ?Amount)
-    (currentAccountBalance ?Account (ImmediatePastFn (WhenFn ?Deposit)) ?Balance1)
-    (equal ?Balance2 (AdditionFn ?Balance1 ?Amount)))
-  (currentAccountBalance ?Account (ImmediateFutureFn (FutureFn ?Deposit)) ?Balance2))
+    (destination ?Deposit
+      (CurrencyFn ?Account))
+    (transactionAmount ?Deposit
+      (MeasureFn ?Amount ?CUNIT))
+    (currentAccountBalance ?Account
+      (ImmediatePastFn
+        (WhenFn ?Deposit))
+      (MeasureFn ?Balance1 ?CUNIT))
+    (equal ?Balance2
+      (AdditionFn ?Balance1 ?Amount)))
+  (currentAccountBalance ?Account
+    (ImmediateFutureFn
+      (FutureFn ?Deposit))
+    (MeasureFn ?Balance2 ?CUNIT)))
 
 (subclass Withdrawal FinancialTransaction)
 (documentation Withdrawal EnglishLanguage "An activity of money being transferred from a customer's 
@@ -451,10 +468,17 @@ account at a financial institution.")
     (instance ?Withdrawal Withdrawal)
     (instance ?Account FinancialAccount)
     (origin ?Withdrawal ?Account)
-    (transactionAmount ?Withdrawal ?Amount)
-    (currentAccountBalance ?Account (ImmediatePastFn (WhenFn ?Withdrawal)) ?Balance1)
+    (transactionAmount ?Withdrawal
+      (MeasureFn ?Amount ?CUNIT))
+    (currentAccountBalance ?Account
+      (ImmediatePastFn
+        (WhenFn ?Withdrawal))
+      (MeasureFn ?Balance1 ?CUNIT))
     (equal ?Balance2 (SubtractionFn ?Balance1 ?Amount)))
-  (currentAccountBalance ?Account (ImmediateFutureFn (FutureFn ?Withdrawal)) ?Balance2))
+  (currentAccountBalance ?Account
+    (ImmediateFutureFn
+      (FutureFn ?Withdrawal))
+    (MeasureFn ?Balance2 ?CUNIT)))
 
 (subclass Investing FinancialTransaction)
 (documentation Investing EnglishLanguage "An activity of commiting money or capital in order to 
@@ -513,11 +537,15 @@ earned interest, for the duration ?Time.")
 
 (=>
   (and
-    (principalAmount ?Account ?Balance)
+    (principalAmount ?Account
+      (MeasureFn ?Balance ?CUNIT))
     (fixedInterestRate ?Account ?Rate)
-    (simpleInterest ?Account ?Amount ?Period)
-    (equal ?Rate-Decimal (DivisionFn (MagnitudeFn ?Rate) 100)))
-  (equal ?Amount (MultiplicationFn (MultiplicationFn (MagnitudeFn ?Period) ?Balance) ?Rate-Decimal)))
+    (simpleInterest ?Account
+      (MeasureFn ?Amount ?CUNIT) ?Period)
+    (equal ?Rate-Decimal
+      (DivisionFn ?Rate 100)))
+  (equal ?Amount
+    (MultiplicationFn ?Balance ?Rate-Decimal)))
 
 (instance compoundInterest TernaryPredicate)
 (subrelation compoundInterest interestEarned)
@@ -527,22 +555,30 @@ earned interest, for the duration ?Time.")
 (documentation compoundInterest EnglishLanguage "(&%compoundInterest ?Account ?Amount ?Time) means 
 that ?Amount is the interest which is calculated not only on the initial principal 
 but also the accumulated interest of prior periods. Compound interest can be 
-calculated annually, semi-annually, quartely, monthly, or daily.")
+calculated annually, semi-annually, quarterly, monthly, or daily.")
 
-(=>
-  (and
-    (principalAmount ?Account ?Balance)
-    (fixedInterestRate ?Account ?Rate)
-    (compoundInterest ?Account ?Interest ?Period)
-    (equal ?Rate-Decimal (DivisionFn ?Rate 100))
-    (equal ?Add (AdditionFn 1 ?Rate-Decimal))
-    (equal ?Exponent (ExponentiationFn ?Add  (MagnitudeFn ?Period)))
-    (equal ?Multiply (MultiplicationFn ?Exponent ?Balance)))
-  (equal ?Interest (SubtractionFn ?Multiply ?Balance)))
+;(=>
+;  (and
+;    (principalAmount ?Account
+;      (MeasureFn ?Balance ?CUNIT))
+;    (fixedInterestRate ?Account ?Rate)
+;    (compoundInterest ?Account
+;      (MeasureFn ?Interest ?CUNIT) ?Period)
+;    (equal ?Rate-Decimal
+;      (DivisionFn ?Rate 100))
+;    (equal ?Add
+;      (AdditionFn 1 ?Rate-Decimal))
+;    (equal ?Exponent
+;      (ExponentiationFn ?Add
+;        (MagnitudeFn ?Period)))
+;    (equal ?Multiply
+;      (MultiplicationFn ?Exponent ?Balance)))
+;  (equal ?Interest
+;    (SubtractionFn ?Multiply ?Balance)))
 
 (instance interestRatePerPeriod TernaryPredicate)
-(domain interestRatePerPeriod 1  FinancialAccount)
-(domain interestRatePerPeriod 2 Number)
+(domain interestRatePerPeriod 1 FinancialAccount)
+(domain interestRatePerPeriod 2 RealNumber)
 (domain interestRatePerPeriod 3 TimeInterval)
 (documentation interestRatePerPeriod EnglishLanguage
 "(interestRatePerPeriod ?ACCOUNT ?RATE ?TIME) means that ?RATE is the interest 
@@ -550,10 +586,14 @@ per the period TIME divided by principal amount, expressed as a percentage")
 
 (=>
   (and
-    (simpleInterest ?Account ?Interest ?Period)
-    (principalAmount ?Account ?Principal)
-    (equal ?Rate-Decimal (DivisionFn ?Interest ?Principal))
-    (equal ?Rate (MultiplicationFn ?Rate-Decimal 100)))
+    (simpleInterest ?Account
+      (MeasureFn ?Interest ?CUNIT) ?Period)
+    (principalAmount ?Account
+      (MeasureFn ?Principal ?CUNIT))
+    (equal ?Rate-Decimal
+      (DivisionFn ?Interest ?Principal))
+    (equal ?Rate
+      (MultiplicationFn ?Rate-Decimal 100.0)))
   (interestRatePerPeriod ?Account ?Rate ?Period))
 
 (instance primeInterestRate BinaryPredicate)
@@ -771,15 +811,20 @@ reducing the amount of the loan or mortgage.")
     (and
       (transactionAmount ?Payment ?Amount)
       (date ?Payment ?Date)
-      (destination ?Payment (CurrencyFn ?Loan)))))
+      (destination ?Payment
+        (CurrencyFn ?Loan)))))
 
 (=>
   (and
-    (downPayment ?Loan ?Amount)
+    (downPayment ?Loan
+      (MeasureFn ?Amount ?CUNIT))
     (loanForPurchase ?Loan ?Purchase)
-    (monetaryValue ?Purchase ?Value)
-    (equal ?Balance (SubtractionFn ?Value ?Amount)))
-  (originalBalance ?Loan ?Balance))
+    (monetaryValue ?Purchase
+      (MeasureFn ?Value ?CUNIT))
+    (equal ?Balance
+      (SubtractionFn ?Value ?Amount)))
+  (originalBalance ?Loan
+    (MeasureFn ?Balance ?CUNIT)))
 
 (subclass Prepayment Payment)
 (documentation Prepayment EnglishLanguage "Prepayment is the payment of all or part of a debt 
@@ -1496,7 +1541,6 @@ Administration (FHA).")
 
 ;; KJN: Moving this to Mid-level-ontology.kif to remove dependencies.
 ;;(instance insured BinaryPredicate)
-;;(instance insured AsymmetricRelation)
 ;;(domain insured 1 Contract)
 ;;(domain insured 2 Organization)
 ;;(documentation insured EnglishLanguage "(insured ?Contract ?Org) means that ?Contract is insured 
@@ -1692,7 +1736,6 @@ in stock prices.")
  
 (documentation listedOn EnglishLanguage "The relation between a &%Stock and the exchange
 on which it is traded.")
-(instance listedOn AsymmetricRelation)
 (domain listedOn 1 Stock)
 (domain listedOn 2 Organization)
 
@@ -1759,8 +1802,7 @@ Exchange.")
       (instance ?Investment Investment)
       (possesses ?Agent ?Investment))))
 
-;; KJN: Moving this to Mid-level-ontology.kif to remove dependencies.      
-;;(instance profit AsymmetricRelation)
+;; KJN: Moving this to Mid-level-ontology.kif to remove dependencies.
 ;;(domain profit 1 FinancialTransaction)
 ;;(domain profit 2 CurrencyMeasure)
 ;;(documentation profit EnglishLanguage "The positive gain from an investment or business operation after 
@@ -1780,7 +1822,6 @@ on an individual's or institution's specific situation and goals.")
       (attribute ?Account ?Attribute)
       (instance ?Account InvestmentAccount))))
 
-(instance liquidity AsymmetricRelation)
 (domain liquidity 1 FinancialAccount)
 (domain liquidity 2 LiquidityAttribute)
 (documentation liquidity EnglishLanguage "Degree to which accounts can be easily converted to cash.")
@@ -1811,7 +1852,6 @@ converted to cash.")
 (documentation LowLiquidity EnglishLanguage "An &%Attribute of &%FinancialAccounts which cannot be easily 
 converted to cash.")
 
-(instance riskLevel AsymmetricRelation)
 (domain riskLevel 1 Investment)
 (domain riskLevel 2 RiskAttribute)
 (documentation riskLevel EnglishLanguage "Relates an instance of &%Investing to the level of risk associated 
@@ -1829,7 +1869,6 @@ to lose their principal.")
 
 (instance LowRisk RiskAttribute)
 
-(instance yieldLevel AsymmetricRelation)
 (domain yieldLevel 1 FinancialAccount)
 (domain yieldLevel 2 YieldAttribute)
 (documentation yieldLevel EnglishLanguage "Relates a &%FinancialAccount to the yield level (i.e. the type of profit) 
@@ -1964,7 +2003,6 @@ is to realize an instance of ?Transaction where ?Security is the patient of ?Tra
 of a &%Security at or below a specified price, or to sell it at or above a specified &%limitPrice.")
 
 (instance limitPrice BinaryPredicate)
-(instance limitPrice AsymmetricRelation)
 (domain limitPrice 1 LimitOrder)
 (domain limitPrice 2 CurrencyMeasure)
 (documentation limitPrice EnglishLanguage "(&%limitPrice ?Order ?Money) means that ?Money is the limit price 
@@ -2303,18 +2341,26 @@ maturity date.")
 (=>
   (and
     (instance ?Bond ZeroCouponBond)
-    (maturityDate (AccountFn ?Bond) ?Date)
+    (maturityDate
+      (AccountFn ?Bond) ?Date)
     (possesses ?BondHolder ?Bond)
-    (principalAmount (AccountFn ?Bond) ?Principal)
-    (agreementPeriod (AccountFn ?Bond) ?Period)
-    (interestEarned (AccountFn ?Bond) ?Interest ?Period)
-    (equal ?Total (AdditionFn ?Principal ?Interest)))
+    (principalAmount
+      (AccountFn ?Bond)
+      (MeasureFn ?Principal ?CUNIT))
+    (agreementPeriod
+      (AccountFn ?Bond) ?Period)
+    (interestEarned
+      (AccountFn ?Bond)
+      (MeasureFn ?Interest ?CUNIT) ?Period)
+    (equal ?Total
+      (AdditionFn ?Principal ?Interest)))
   (exists (?Payment)
     (and
       (instance ?Payment Payment)
       (destination ?Payment ?BondHolder)
-      (origin ?Payment (AccountFn ?Bond))
-      (transactionAmount ?Payment ?Total)))) 
+      (origin ?Payment
+        (AccountFn ?Bond))
+      (transactionAmount ?Payment (MeasureFn ?Total ?CUNIT)))))
 
 (subclass RegisteredBond Bond)
 (documentation RegisteredBond EnglishLanguage "A bond issued with the name of the owner printed on the 
@@ -3235,7 +3281,6 @@ at a price lower than the preceding one for the same security.")
 of time in exchange for labor or services, from the sale of goods or 
 property, or as profit from financial investments")
 
-(instance monthlyIncome AsymmetricRelation)
 (domain monthlyIncome 1 Human)
 (domain monthlyIncome 2 CurrencyMeasure)
 (documentation monthlyIncome EnglishLanguage "(&%monthlyIncome ?Agent ?Money) means that 
@@ -3397,12 +3442,10 @@ opportunity to make contributions to their SEP accounts with pre-tax
 dollars and reduce their current year's net income.") 
 
 (instance accountNumber BinaryPredicate)
-(instance accountNumber AsymmetricRelation)
 (domain accountNumber 1 FinancialAccount)
 (domain accountNumber 2 PositiveInteger)
 
 (instance stockSymbol BinaryPredicate)
-(instance stockSymbol AsymmetricRelation)
 (domain stockSymbol 1 Stock)
 (domain stockSymbol 2 SymbolicString)
 (documentation stockSymbol EnglishLanguage "A unique symbol assigned to a security. NYSE and 
@@ -3414,12 +3457,10 @@ securities have four or five characters.")
 (subclass DiscoverCard CreditCard)
 (subclass AmericanExpressCard CreditCard)
 
-(instance checkNumber AsymmetricRelation)
 (domain checkNumber 1 Check)
 (domain checkNumber 2 PositiveInteger)
 
 (instance netAmount BinaryPredicate)
-(instance netAmount AsymmetricRelation)
 (domain netAmount 1 Investment)
 (domain netAmount 2 CurrencyMeasure)
 (documentation netAmount EnglishLanguage "The amount due the supplier after commissions 
@@ -3447,7 +3488,6 @@ price of the &%Stock ?Stock on the &%Day ?Day was ?Amount.")
     (monetaryValue ?Cash ?Value)))
 
 (instance riskTolerance BinaryPredicate)
-(instance riskTolerance AsymmetricRelation)
 (domain riskTolerance 1 Investor)
 (domain riskTolerance 2 RiskAttribute) 
 
@@ -3567,7 +3607,6 @@ and then transmits a completed transaction notice.")
 ;; KJN: Moving this to Mid-level-ontology.kif as it seems to be a more general concept.
 ;;(instance customer IrreflexiveRelation)
 ;;(instance customer BinaryPredicate)
-;;(instance customer AsymmetricRelation)
 ;;(domain customer 1 CognitiveAgent)
 ;;(domain customer 2 CognitiveAgent)
 ;;(documentation customer EnglishLanguage "A very general relation that exists whenever there
@@ -3789,7 +3828,6 @@ holds if ?Amount is the amount credited to the FinancialAccount ?Account during
 the time period ?Period.")
 
 (instance confirmationNumber BinaryPredicate)
-(instance confirmationNumber AsymmetricRelation)
 (domain confirmationNumber 1 FinancialTransaction)
 (domain confirmationNumber 2 SymbolicString)
 
@@ -3849,7 +3887,6 @@ of a legal right of possession or control.")
     (containsInformation ?Title (possesses ?Agent ?Property)))) 
 
 (instance bankAccount BinaryPredicate)
-(instance bankAccount AsymmetricRelation)
 (domainSubclass bankAccount 1 FinancialAccount)
 (domain bankAccount 2 Bank-FinancialOrganization)
 (documentation bankAccount EnglishLanguage "(&%bankAccount ?Type ?Bank) holds if ?Type is a 

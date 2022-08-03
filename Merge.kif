@@ -49,7 +49,7 @@
 
 ;; The knowledge representation language in which the SUMO is expressed is SUO-KIF, 
 ;; which stands for "Standard Upper Ontology - Knowledge Interchange Format".  SUO-KIF 
-;; is a simplified form of the popular KIF knowledge representation language.  A 
+;; is a simplified form of the KIF knowledge representation language.  A
 ;; specification of SUO-KIF can be found at:  http://www.ontologyportal.org
 
 ;; The SUMO is a modular ontology.  That is, the ontology is divided into 
@@ -58,7 +58,7 @@
 ;; statements of the form ";; INCLUDES '<SUBONTOLOGY>'".  These statements are 
 ;; found at the beginning of each section.  
 
-;; We ask the people using or referencing SUMO cite our primary paper:
+;; We ask that people using or referencing SUMO cite our primary paper:
 
 ;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In 
 ;; Proceedings of the 2nd International Conference on Formal Ontology in 
@@ -589,11 +589,29 @@ is a set of mutually &%disjoint classes (a subclass partition) which
 covers C.  Every instance of C is an instance of exactly one of the
 subclasses in the partition.")
 
-(<=>
+(=>
    (partition @ROW)
    (and
       (exhaustiveDecomposition @ROW)
       (disjointDecomposition @ROW)))
+
+(=>
+  (and
+    (exhaustiveDecomposition @ROW)
+    (disjointDecomposition @ROW))
+  (partition @ROW))
+
+(=>
+    (partition ?SUPER ?SUB1 ?SUB2)
+    (partition ?SUPER ?SUB2 ?SUB1))
+
+(=>
+  (and
+    (partition ?SUPER ?SUB1 ?SUB2)
+    (instance ?INST ?SUPER)
+    (not
+      (instance ?INST ?SUB1)))
+  (instance ?INST ?SUB2))
 
 (instance relatedInternalConcept BinaryPredicate)
 (instance relatedInternalConcept EquivalenceRelation)
@@ -681,14 +699,20 @@ ascribed to everything which has the first argument ascribed to it.")
 means that ?ATTR2 is the &%Attribute that comes immediately after ?ATTR1
 on the scale that they share.")
 
-(=>
-   (and
-      (successorAttribute ?ATTR1 ?ATTR2)
-      (holdsDuring ?TIME1 (property ?ENTITY ?ATTR2)))
-   (exists (?TIME2)
-      (and
-         (temporalPart ?TIME2 (PastFn ?TIME1))
-         (holdsDuring ?TIME2 (property ?ENTITY ?ATTR1)))))
+; often true but what about something hot that needn't have previously been cold?
+; was a newborn baby every cold?  Does water created through combustion have to
+; previously have been cold if it just came into existence?
+;(=>
+;   (and
+;      (successorAttribute ?ATTR1 ?ATTR2)
+;      (holdsDuring ?TIME1
+;        (property ?ENTITY ?ATTR2)))
+;   (exists (?TIME2)
+;      (and
+;         (temporalPart ?TIME2
+;           (PastFn ?TIME1))
+;         (holdsDuring ?TIME2
+;           (property ?ENTITY ?ATTR1)))))
 
 (instance successorAttributeClosure BinaryPredicate)
 (instance successorAttributeClosure TransitiveRelation)
@@ -742,7 +766,7 @@ quality ?ATT than ?ENTITY2.")
 by means of the proof theory of SUO-KIF.")
 
 ;; The following axiom is commented out, because it is rejected by the
-;; inference engine parser.
+;; inference engine parser as higher order.
 
 ;;(=>
 ;;   (entails ?FORMULA1 ?FORMULA2)
@@ -891,12 +915,19 @@ of the &%Object ?WHOLE.  Note that, since &%part is a
 &%TransitiveRelation and &%AsymmetricRelation (hence an
 &%IrreflexiveRelation).")
 
-(<=>
+(=>
   (properPart ?OBJ1 ?OBJ2)
   (and
     (part ?OBJ1 ?OBJ2)
     (not
       (part ?OBJ2 ?OBJ1))))
+
+(=>
+  (and
+    (part ?OBJ1 ?OBJ2)
+    (not
+      (part ?OBJ2 ?OBJ1)))
+  (properPart ?OBJ1 ?OBJ2))
 
 (subrelation piece part)
 (instance piece BinaryPredicate)
@@ -954,12 +985,18 @@ automobile and one of its seats), the relation of &%part should be used.
 (&%contains ?OBJ1 ?OBJ2) means that the &%SelfConnectedObject ?OBJ1 has
 a space (i.e. a &%Hole) which is at least partially filled by ?OBJ2.")
 
-(<=>
-   (contains ?OBJ1 ?OBJ2)
-   (exists (?HOLE)
-      (and
-         (hole ?HOLE ?OBJ1)
-         (properlyFills ?OBJ2 ?HOLE))))
+(=>
+  (contains ?OBJ1 ?OBJ2)
+  (exists (?HOLE)
+    (and
+      (hole ?HOLE ?OBJ1)
+      (properlyFills ?OBJ2 ?HOLE))))
+
+(=>
+  (and
+    (hole ?HOLE ?OBJ1)
+    (properlyFills ?OBJ2 ?HOLE))
+  (contains ?OBJ1 ?OBJ2))
 
 (subclass Substance SelfConnectedObject)
 (partition Substance PureSubstance Mixture)
@@ -992,7 +1029,7 @@ to another.  An example would be a body of water.")
 (documentation SyntheticSubstance EnglishLanguage "Any &%Substance that is the result of
 an &%IntentionalProcess, i.e. any substance that is created by &%Humans.")
 
-(<=>
+(=>
    (instance ?SUBSTANCE SyntheticSubstance)
    (exists (?PROCESS)
       (and
@@ -1095,7 +1132,7 @@ charge.")
 
 (subclass CompoundSubstance PureSubstance)
 (documentation CompoundSubstance EnglishLanguage "The &%Class of &%Substances that contain
-two or more elements (&%ElementalSubstances) in definite proportion by weight.				; Here!  Removed extraneous comma.
+two or more elements (&%ElementalSubstances) in definite proportion by weight.
 The composition of a pure compound will be invariant, regardless of the method
 of preparation. Compounds are composed of more than one kind of atom (element).
 The term molecule is often used for the smallest unit of a compound that still
@@ -1180,11 +1217,6 @@ which can be located at itself. Note too that &%Region is not a
 subclass of &%SelfConnectedObject, because some &%Regions, e.g.
 archipelagos, have &%parts which are not &%connected with one
 another.")
-
-(=>
-   (instance ?REGION Region)
-   (exists (?PHYS)
-      (located ?PHYS ?REGION)))
 
 (subclass Collection Object)
 (disjoint Collection SelfConnectedObject)
@@ -1381,7 +1413,7 @@ community, but rather had its core grammar and vocabulary invented by
 one or more language experts, often with an aim to produce a more
 grammatically regular language than any language that has evolved
 naturally.  This &%Class includes languages like Esperanto that were
-created to facilitate international communication.")                                      ; Here! Add final period to last sentence.
+created to facilitate international communication.")
 
 (=>
    (instance ?LANG ConstructedLanguage)
@@ -1481,15 +1513,6 @@ produce changes in the world.")
 
 (subclass SentientAgent Agent)
 
-;; NS: delete.
-;; (documentation SentientAgent EnglishLanguage "An &%Agent that has rights but may or may
-;; not have responsibilities and the ability to reason.  If the latter are
-;; present, then the &%Agent is also an instance of &%CognitiveAgent.
-;; Domesticated animals are an example of &%SentientAgents that are not
-;; also &%CognitiveAgents.")                                               ;  here !!!!!!!
-
-;; NS: add.
-
 (documentation SentientAgent EnglishLanguage "A &%SentientAgent is an
 &%Agent that is capable of &%Perception and experiences some level of
 consciousness (see &%ConsciousnessAttribute).  If the &%Agent is able
@@ -1500,18 +1523,6 @@ may not be a &%CognitiveAgent, depending on the type of &%Animal.")
 
 (subclass CognitiveAgent SentientAgent)
 
-;; NS: delete.
-;; (documentation CognitiveAgent EnglishLanguage "A &%SentientAgent with
-;; responsibilities and the ability to deliberate, make plans,        ; Here!!!!! Extraneous comma deleted.
-;; etc.  This is essentially the legal/ethical notion of a person.  Note
-;; that, although &%Human is a subclass of &%CognitiveAgent, there may be
-;; instances of &%CognitiveAgent which are not also instances of &%Human.
-;; For example, chimpanzees, gorillas, dolphins, whales, and some
-;; extraterrestrials
-;; (if they exist) may be &%CognitiveAgents.")                        ;  here !!!!!!!
-
-;; NS: add.
-
 (documentation CognitiveAgent EnglishLanguage "A &%CognitiveAgent is
 an &%Agent that has the ability to reason, deliberate, make plans, and
 experience emotions.  Although &%Human is a subclass of
@@ -1520,15 +1531,9 @@ not also instances of &%Human.  For example, &%Primates, dolphins,
 whales, and some extraterrestrials (if they exist) might be considered
 &%CognitiveAgents.")
 
-;; NS: new.  Since an Entity might or might not be considered a
-;; LegalAgent for its entire existence, depending on the
-;; circumstances, it might be better to represent &%LegalAgent as a
-;; &%RelationalAttribute.
+(subclass LegalAgent RelationalAttribute)
 
-(subclass LegalAgent Agent)
-
-;; NS: add.
-(documentation LegalAgent EnglishLanguage "A &%LegalAgent is an
+(documentation LegalAgent EnglishLanguage "A &%LegalAgent is an &%Attribute of an
 &%Agent that is allowed by law to to act and be treated as a legal
 person for certain purposes, such as being a party to a lawsuit,
 owning property, and entering into a contract.  Typically, a
@@ -1541,10 +1546,9 @@ description of <a
 href=http://en.wikipedia.org/wiki/Juristic_person>Juristic
 person</a>.")
 
-;; NS: add.
 (<=>
   (holdsDuring ?TIME
-    (instance ?AGENT LegalAgent))
+    (attribute ?AGENT LegalAgent))
   (holdsDuring ?TIME
     (or
       (capability LegalAction agent ?AGENT)
@@ -1713,41 +1717,37 @@ into the &%Class whose condition for membership is the &%Attribute.")
 ;    (equal (AbstractionFn ?CLASS) ?ATTRIBUTE))
 
 (documentation AttrFn EnglishLanguage "For given class and for given attribute, return
-a subclass of the class of object having the attribute")
+a subclass of the class of the argument having the attribute")
 
 (instance AttrFn BinaryFunction)
 (instance AttrFn PartialValuedRelation)
-(range AttrFn Class)
-(domain AttrFn 1 Class)
+(rangeSubclass AttrFn Object)
+(domainSubclass AttrFn 1 Object)
 (domain AttrFn 2 Attribute)
 
 (=>
+  (and
     (equal ?X
-        (AttrFn ?CLASS ?ATTR))
-    (forall (?I)
-        (=>
-            (instance ?I ?X)
-        (and
-            (instance ?I ?CLASS)
-            (subclass ?X ?CLASS)
-            (property ?I ?ATTR)))))
+      (AttrFn ?CLASS ?ATTR))
+    (instance ?I ?X))
+  (and
+    (instance ?I ?CLASS)
+    (subclass ?X ?CLASS)
+    (attribute ?I ?ATTR)))
 
 (=>
-    (and
-        (subclass ?X ?CLASS)
-        (instance ?I ?X)
-        (instance ?ATTR Attribute))
-    (=>
-        (property ?I ?ATTR)
-        (equal ?X
-            (AttrFn ?CLASS ?ATTR))))
+  (instance ?X
+    (AttrFn ?CLASS ?ATTR))
+  (and
+    (instance ?X ?CLASS)
+    (attribute ?X ?ATTR)))
 
-(<=>
-    (instance ?X
-        (AttrFn ?CLASS ?ATTR))
-    (and
-        (instance ?X ?CLASS)
-        (property ?X ?ATTR)))
+(=>
+  (and
+    (instance ?X ?CLASS)
+    (attribute ?X ?ATTR))
+  (instance ?X
+    (AttrFn ?CLASS ?ATTR)))
 
 (subclass InternalAttribute Attribute)
 
@@ -2225,11 +2225,17 @@ symmetric just iff (?REL ?INST1 ?INST2) imples (?REL ?INST2 ?INST1), for all ?IN
 (documentation AsymmetricRelation EnglishLanguage "A &%BinaryRelation is asymmetric if and
 only if it is both an &%AntisymmetricRelation and an &%IrreflexiveRelation.")
 
-(<=>
-   (instance ?REL AsymmetricRelation)
-   (and
-       (instance ?REL AntisymmetricRelation)
-       (instance ?REL IrreflexiveRelation)))
+(=>
+  (instance ?REL AsymmetricRelation)
+  (and
+    (instance ?REL AntisymmetricRelation)
+    (instance ?REL IrreflexiveRelation)))
+
+(=>
+  (and
+    (instance ?REL AntisymmetricRelation)
+    (instance ?REL IrreflexiveRelation))
+  (instance ?REL AsymmetricRelation))
 
 (subclass AntisymmetricRelation BinaryRelation)
 
@@ -3010,23 +3016,26 @@ concatenation of the two &%Lists that are given as arguments.  For example, the 
 
 ; previously removed to solve an obscure contradiction, but needs to be reexamined
 
-(<=>
-   (and
-     (equal ?LIST3 (ListConcatenateFn ?LIST1 ?LIST2))
-     (not
-       (equal ?LIST1 NullList))
-     (not
-       (equal ?LIST2 NullList)))
-   (forall (?NUMBER1 ?NUMBER2)
-      (=>
-         (and
-            (lessThanOrEqualTo ?NUMBER1 (ListLengthFn ?LIST1))
-            (lessThanOrEqualTo ?NUMBER2 (ListLengthFn ?LIST2))
-            (instance ?NUMBER1 PositiveInteger)
-            (instance ?NUMBER2 PositiveInteger))
-         (and
-            (equal (ListOrderFn ?LIST3 ?NUMBER1) (ListOrderFn ?LIST1 ?NUMBER1))
-            (equal (ListOrderFn ?LIST3 (AdditionFn (ListLengthFn ?LIST1) ?NUMBER2)) (ListOrderFn ?LIST2 ?NUMBER2))))))
+(=>
+  (and
+    (equal ?LIST3 (ListConcatenateFn ?LIST1 ?LIST2))
+    (not
+      (equal ?LIST1 NullList))
+    (not
+      (equal ?LIST2 NullList))
+    (lessThanOrEqualTo ?NUMBER1 (ListLengthFn ?LIST1))
+    (lessThanOrEqualTo ?NUMBER2 (ListLengthFn ?LIST2))
+    (instance ?NUMBER1 PositiveInteger)
+    (instance ?NUMBER2 PositiveInteger))
+  (and
+    (equal
+      (ListOrderFn ?LIST3 ?NUMBER1)
+      (ListOrderFn ?LIST1 ?NUMBER1))
+    (equal
+      (ListOrderFn ?LIST3
+        (AdditionFn
+          (ListLengthFn ?LIST1) ?NUMBER2))
+      (ListOrderFn ?LIST2 ?NUMBER2))))
 
 (instance inList BinaryPredicate)
 (instance inList PartialValuedRelation)
@@ -3136,13 +3145,18 @@ runs from the first index to the second index - 1.  Note that lists subscripts b
 &%List ?LIST.  For example, (&%LastFn (&%ListFn &%Monday &%Tuesday 
 &%Wednesday)) would return the value of &%Wednesday.")
 
-(<=>
-   (equal (LastFn ?LIST) ?ITEM)
-   (exists (?NUMBER)
-      (and
-         (equal (ListLengthFn ?LIST) ?NUMBER)
-         (equal (ListOrderFn ?LIST ?NUMBER) ?ITEM))))
+(=>
+  (equal (LastFn ?LIST) ?ITEM)
+  (exists (?NUMBER)
+    (and
+      (equal (ListLengthFn ?LIST) ?NUMBER)
+      (equal (ListOrderFn ?LIST ?NUMBER) ?ITEM))))
 
+(=>
+  (and
+    (equal (ListLengthFn ?LIST) ?NUMBER)
+    (equal (ListOrderFn ?LIST ?NUMBER) ?ITEM))
+  (equal (LastFn ?LIST) ?ITEM))
 
 (instance FirstFn UnaryFunction)
 (domain FirstFn 1 List)
@@ -3586,11 +3600,17 @@ ordering on a &%Class only if it is a partial ordering for which either
 (?REL ?INST1 ?INST2) or (?REL ?INST2 ?INST1) for every ?INST1 and ?INST2
 in the &%Class.")
 
-(<=>
-     (totalOrderingOn ?RELATION ?CLASS)
-     (and
-          (partialOrderingOn ?RELATION ?CLASS)
-          (trichotomizingOn ?RELATION ?CLASS)))
+(=>
+  (totalOrderingOn ?RELATION ?CLASS)
+  (and
+    (partialOrderingOn ?RELATION ?CLASS)
+    (trichotomizingOn ?RELATION ?CLASS)))
+
+(=>
+  (and
+    (partialOrderingOn ?RELATION ?CLASS)
+    (trichotomizingOn ?RELATION ?CLASS))
+  (totalOrderingOn ?RELATION ?CLASS))
 
 (instance trichotomizingOn BinaryPredicate)
 (instance trichotomizingOn AsymmetricRelation)
@@ -4126,9 +4146,17 @@ width or depth).")
 &%Object exists to the &%Region where the &%Object existed at that
 &%TimePoint.")
 
-(<=>
-   (equal (WhereFn ?THING ?TIME) ?REGION)
-   (holdsDuring ?TIME (exactlyLocated ?THING ?REGION)))
+(=>
+  (equal
+    (WhereFn ?THING ?TIME) ?REGION)
+  (holdsDuring ?TIME
+    (exactlyLocated ?THING ?REGION)))
+
+(=>
+  (holdsDuring ?TIME
+    (exactlyLocated ?THING ?REGION))
+  (equal
+    (WhereFn ?THING ?TIME) ?REGION))
 
 (instance possesses BinaryPredicate)
 (instance possesses AsymmetricRelation)
@@ -4167,9 +4195,15 @@ from having the right to use or be located at a particular object, for example, 
 (documentation PropertyFn EnglishLanguage "A &%UnaryFunction that maps an &%Agent to the
 &%Set of &%Objects owned by the &%Agent.")
 
-(<=>
-   (instance ?OBJ (PropertyFn ?PERSON))
-   (possesses ?PERSON ?OBJ))
+(=>
+  (instance ?OBJ
+    (PropertyFn ?PERSON))
+  (possesses ?PERSON ?OBJ))
+
+(=>
+  (possesses ?PERSON ?OBJ)
+  (instance ?OBJ
+    (PropertyFn ?PERSON)))
 
 (instance precondition BinaryPredicate)
 (instance precondition AsymmetricRelation)
@@ -4380,11 +4414,17 @@ Christie's 'Murder on the Orient Express'.  Note that
 (&%equivalentContentClass ?CLASS1 ?CLASS2) implies (&%subsumesContentClass
 ?CLASS1 ?CLASS2) and (&%subsumesContentClass ?CLASS2 ?CLASS1).")
 
-(<=>
-   (and
-      (subsumesContentClass ?CLASS1 ?CLASS2)
-      (subsumesContentClass ?CLASS2 ?CLASS1))
-   (equivalentContentClass ?CLASS1 ?CLASS2))
+(=>
+  (and
+    (subsumesContentClass ?CLASS1 ?CLASS2)
+    (subsumesContentClass ?CLASS2 ?CLASS1))
+  (equivalentContentClass ?CLASS1 ?CLASS2))
+
+(=>
+  (equivalentContentClass ?CLASS1 ?CLASS2)
+  (and
+    (subsumesContentClass ?CLASS1 ?CLASS2)
+    (subsumesContentClass ?CLASS2 ?CLASS1)))
 
 (instance subsumesContentClass BinaryPredicate)
 (instance subsumesContentClass PartialOrderingRelation)
@@ -4431,11 +4471,17 @@ copy of the same letter.  Note that (&%equivalentContentInstance ?OBJ1
 ?OBJ2) implies (&%subsumesContentInstance ?OBJ1 ?OBJ2) and
 (&%subsumesContentInstance ?OBJ2 ?OBJ2).")
 
-(<=>
-   (and
-      (subsumesContentInstance ?OBJ1 ?OBJ2)
-      (subsumesContentInstance ?OBJ2 ?OBJ1))
-   (equivalentContentInstance ?OBJ1 ?OBJ2))
+(=>
+  (and
+    (subsumesContentInstance ?OBJ1 ?OBJ2)
+    (subsumesContentInstance ?OBJ2 ?OBJ1))
+  (equivalentContentInstance ?OBJ1 ?OBJ2))
+
+(=>
+  (equivalentContentInstance ?OBJ1 ?OBJ2)
+  (and
+    (subsumesContentInstance ?OBJ1 ?OBJ2)
+    (subsumesContentInstance ?OBJ2 ?OBJ1)))
 
 (instance subsumesContentInstance BinaryPredicate)
 (instance subsumesContentInstance PartialOrderingRelation)
@@ -4453,11 +4499,10 @@ between &%Classes, e.g. between the version of an intellectual work and a
 part of that work, the relation &%subsumesContentClass should be used.")
 
 (=>
-   (subsumesContentInstance ?OBJ1 ?OBJ2)
-   (forall (?INFO)
-      (=>
-         (containsInformation ?OBJ2 ?INFO)
-         (containsInformation ?OBJ1 ?INFO))))
+  (and
+    (subsumesContentInstance ?OBJ1 ?OBJ2)
+    (containsInformation ?OBJ2 ?INFO))
+  (containsInformation ?OBJ1 ?INFO))
 
 (subrelation realization represents)
 (instance realization AsymmetricRelation)
@@ -4488,10 +4533,14 @@ reading of a poem.")
 means that the &%LinguisticExpression ?EXPRESS is part of the &%Language
 ?LANG.")
 
-(<=>
+(=>
   (expressedInLanguage ?EXPRESS ?LANGUAGE)
   (exists (?PROP)
     (representsInLanguage ?EXPRESS ?PROP ?LANGUAGE)))
+
+(=>
+  (representsInLanguage ?EXPRESS ?PROP ?LANGUAGE)
+  (expressedInLanguage ?EXPRESS ?LANGUAGE))
 
 (instance subProposition BinaryPredicate)
 (instance subProposition TransitiveRelation)
@@ -4629,17 +4678,17 @@ is the reciprocal of ?NUMBER2.  Note too that (&%DivisionFn ?NUMBER1
 is the absolute value of the &%RealNumber ?NUMBER.")
 
 (<=>
-     (and
-         (equal (AbsoluteValueFn ?NUMBER1) ?NUMBER2)
-         (instance ?NUMBER1 RealNumber)
-         (instance ?NUMBER2 RealNumber))
-     (or
-         (and
-              (instance ?NUMBER1 NonnegativeRealNumber)
-              (equal ?NUMBER1 ?NUMBER2))
-         (and
-              (instance ?NUMBER1 NegativeRealNumber)
-              (equal ?NUMBER2 (SubtractionFn 0.0 ?NUMBER1)))))
+  (and
+    (equal (AbsoluteValueFn ?NUMBER1) ?NUMBER2)
+    (instance ?NUMBER1 RealNumber)
+    (instance ?NUMBER2 RealNumber))
+  (or
+    (and
+      (instance ?NUMBER1 NonnegativeRealNumber)
+      (equal ?NUMBER1 ?NUMBER2))
+    (and
+      (instance ?NUMBER1 NegativeRealNumber)
+      (equal ?NUMBER2 (SubtractionFn 0.0 ?NUMBER1)))))
 
 (instance CeilingFn UnaryFunction)
 (instance CeilingFn TotalValuedRelation)
@@ -4722,21 +4771,33 @@ less than or equal to the &%RealNumber ?NUMBER.")
     (instance ?ELEMENT Number)))
 
 (=>
-   (equal (GreatestCommonDivisorFn @ROW) ?NUMBER)
-   (forall (?ELEMENT)
-      (=>
-         (inList ?ELEMENT (ListFn @ROW))
-         (equal (RemainderFn ?ELEMENT ?NUMBER) 0))))
+  (and
+    (equal
+      (GreatestCommonDivisorFn @ROW) ?NUMBER)
+    (not
+      (equal ?NUMBER 0)))
+  (forall (?ELEMENT)
+    (=>
+      (inList ?ELEMENT
+        (ListFn @ROW))
+      (equal
+        (RemainderFn ?ELEMENT ?NUMBER) 0))))
 
 (=>
-   (equal (GreatestCommonDivisorFn @ROW) ?NUMBER)
-   (not (exists (?GREATER)
+  (and
+    (equal
+      (GreatestCommonDivisorFn @ROW) ?NUMBER)
+    (not
+      (equal ?NUMBER 0)))
+  (not
+    (exists (?GREATER)
       (and
-         (greaterThan ?GREATER ?NUMBER)
-         (forall (?ELEMENT)
-            (=>
-               (inList ?ELEMENT (ListFn @ROW))
-               (equal (RemainderFn ?ELEMENT ?GREATER) 0)))))))
+        (greaterThan ?GREATER ?NUMBER)
+        (forall (?ELEMENT)
+          (=>
+            (inList ?ELEMENT (ListFn @ROW))
+            (equal
+              (RemainderFn ?ELEMENT ?GREATER) 0)))))))
 
 (documentation multiplicativeFactor EnglishLanguage "(multiplicativeFactor ?NUMBER1
 ?NUMBER2)means that ?NUMBER1 is a factor of ?NUMBER2, i.e. ?NUMBER1 can be multiplied by
@@ -4795,21 +4856,32 @@ returns the integer square root of ?NUMBER.")
         (instance ?ELEMENT Number)))
 
 (=>
-   (equal (LeastCommonMultipleFn @ROW) ?NUMBER)
-   (forall (?ELEMENT)
-      (=>
-         (inList ?ELEMENT (ListFn @ROW))
-         (equal (RemainderFn ?NUMBER ?ELEMENT) 0))))
+  (and
+    (equal
+      (LeastCommonMultipleFn @ROW) ?NUMBER)
+    (not
+      (equal ?NUMBER 0)))
+  (forall (?ELEMENT)
+    (=>
+      (inList ?ELEMENT (ListFn @ROW))
+      (equal
+        (RemainderFn ?NUMBER ?ELEMENT) 0))))
 
 (=>
-   (equal (LeastCommonMultipleFn @ROW) ?NUMBER)
-   (not (exists (?LESS)
+  (and
+    (equal
+      (LeastCommonMultipleFn @ROW) ?NUMBER)
+    (not
+      (equal ?NUMBER 0)))
+  (not
+    (exists (?LESS)
       (and
-         (lessThan ?LESS ?NUMBER)
-         (forall (?ELEMENT)
-            (=>
-               (inList ?ELEMENT (ListFn @ROW))
-               (equal (RemainderFn ?LESS ?ELEMENT) 0)))))))
+        (lessThan ?LESS ?NUMBER)
+        (forall (?ELEMENT)
+          (=>
+            (inList ?ELEMENT (ListFn @ROW))
+            (equal
+              (RemainderFn ?LESS ?ELEMENT) 0)))))))
 
 (instance LogFn BinaryFunction)
 (domain LogFn 1 RealNumber)
@@ -4941,27 +5013,61 @@ applying the &%ExponentiationFn function to the element to the power
 remainder of the number ?NUMBER divided by the number ?DIVISOR.
 The result has the same sign as ?DIVISOR.")
 
-(<=>
-   (equal (RemainderFn ?NUMBER1 ?NUMBER2) ?NUMBER)
-   (equal (AdditionFn (MultiplicationFn (FloorFn (DivisionFn ?NUMBER1 ?NUMBER2)) ?NUMBER2) ?NUMBER) ?NUMBER1))
+(=>
+  (and
+    (equal
+      (RemainderFn ?NUMBER1 ?NUMBER2) ?NUMBER)
+    (not
+      (equal ?NUMBER2 0)))
+  (equal
+    (AdditionFn
+      (MultiplicationFn
+        (FloorFn
+          (DivisionFn ?NUMBER1 ?NUMBER2)) ?NUMBER2) ?NUMBER)
+    ?NUMBER1))
 
 (=>
-   (equal (RemainderFn ?NUMBER1 ?NUMBER2) ?NUMBER)
-   (equal (SignumFn ?NUMBER2) (SignumFn ?NUMBER)))
+  (and
+    (not
+      (equal ?NUMBER2 0))
+    (equal
+      (AdditionFn
+        (MultiplicationFn
+          (FloorFn
+            (DivisionFn ?NUMBER1 ?NUMBER2)) ?NUMBER2) ?NUMBER)
+      ?NUMBER1))
+  (equal
+    (RemainderFn ?NUMBER1 ?NUMBER2) ?NUMBER))
+
+(=>
+  (and
+    (equal
+      (RemainderFn ?NUMBER1 ?NUMBER2) ?NUMBER)
+    (not
+      (equal ?NUMBER2 0)))
+  (equal
+    (SignumFn ?NUMBER2)
+    (SignumFn ?NUMBER)))
 
 (=>
   (instance ?NUMBER EvenInteger)
-  (equal (RemainderFn ?NUMBER 2) 0))
+  (equal
+    (RemainderFn ?NUMBER 2) 0))
 
 (=>
   (instance ?NUMBER OddInteger)
-  (equal (RemainderFn ?NUMBER 2) 1))
+  (equal
+    (RemainderFn ?NUMBER 2) 1))
 
 (=>
    (instance ?PRIME PrimeNumber)
    (forall (?NUMBER)
       (=>
-         (equal (RemainderFn ?PRIME ?NUMBER) 0)
+         (and
+           (equal
+             (RemainderFn ?PRIME ?NUMBER) 0)
+           (not
+             (equal ?NUMBER 0)))
          (or
             (equal ?NUMBER 1)
             (equal ?NUMBER ?PRIME)))))
@@ -5198,12 +5304,17 @@ number of list elements.")
 (documentation subset EnglishLanguage "(subset ?SET1 ?SET2) is true just in case the
 &%elements of the &%Set ?SET1 are also &%elements of the &%Set ?SET2.")
 
-(<=>
-   (subset ?SUBSET ?SET)
-   (forall (?ELEMENT)
-      (=>
-         (element ?ELEMENT ?SUBSET)
-         (element ?ELEMENT ?SET))))
+(=>
+  (and
+    (subset ?SUBSET ?SET)
+    (element ?ELEMENT ?SUBSET))
+  (element ?ELEMENT ?SET))
+
+(=>
+  (=>
+    (element ?ELEMENT ?SUBSET)
+    (element ?ELEMENT ?SET))
+  (subset ?SUBSET ?SET))
 
 (instance element BinaryPredicate)
 (instance element AsymmetricRelation)
@@ -5550,12 +5661,18 @@ the same terminal node (see &%TerminalNodeFn).")
 &%BeginNodeFn) and ends (see &%EndNodeFn) at the same
 &%GraphNode.")
 
-(<=>
+(=>
    (instance ?GRAPH GraphCircuit)
    (exists (?NODE)
       (and
          (equal (BeginNodeFn ?GRAPH) ?NODE)
          (equal (EndNodeFn ?GRAPH) ?NODE))))
+
+(=>
+  (and
+    (equal (BeginNodeFn ?GRAPH) ?NODE)
+    (equal (EndNodeFn ?GRAPH) ?NODE))
+  (instance ?GRAPH GraphCircuit))
 
 (subclass MultiGraph Graph)
 
@@ -5563,29 +5680,47 @@ the same terminal node (see &%TerminalNodeFn).")
 is a &%Graph containing at least one pair of &%GraphNodes that are
 connected by more than one &%GraphArc.")
 
-(<=>
-   (instance ?GRAPH MultiGraph)
-   (exists (?ARC1 ?ARC2 ?NODE1 ?NODE2)
-      (and
-         (graphPart ?ARC1 ?GRAPH)
-         (graphPart ?ARC2 ?GRAPH)
-         (graphPart ?NODE1 ?GRAPH)
-         (graphPart ?NODE2 ?GRAPH)
-         (links ?NODE1 ?NODE2 ?ARC1)
-         (links ?NODE1 ?NODE2 ?ARC2)
-         (not (equal ?ARC1 ?ARC2)))))
+(=>
+  (instance ?GRAPH MultiGraph)
+  (exists (?ARC1 ?ARC2 ?NODE1 ?NODE2)
+    (and
+      (graphPart ?ARC1 ?GRAPH)
+      (graphPart ?ARC2 ?GRAPH)
+      (graphPart ?NODE1 ?GRAPH)
+      (graphPart ?NODE2 ?GRAPH)
+      (links ?NODE1 ?NODE2 ?ARC1)
+      (links ?NODE1 ?NODE2 ?ARC2)
+      (not
+        (equal ?ARC1 ?ARC2)))))
+
+(=>
+  (and
+    (graphPart ?ARC1 ?GRAPH)
+    (graphPart ?ARC2 ?GRAPH)
+    (graphPart ?NODE1 ?GRAPH)
+    (graphPart ?NODE2 ?GRAPH)
+    (links ?NODE1 ?NODE2 ?ARC1)
+    (links ?NODE1 ?NODE2 ?ARC2)
+    (not (equal ?ARC1 ?ARC2)))
+  (instance ?GRAPH MultiGraph))
 
 (subclass PseudoGraph Graph)
 
 (documentation PseudoGraph EnglishLanguage "The &%Class of pseudographs.  A pseudograph
 is a &%Graph containing at least one &%GraphLoop.")
 
-(<=>
-   (instance ?GRAPH PseudoGraph)
-   (exists (?LOOP)
-      (and
-         (instance ?LOOP GraphLoop)
-         (graphPart ?LOOP ?GRAPH))))
+(=>
+  (instance ?GRAPH PseudoGraph)
+  (exists (?LOOP)
+    (and
+      (instance ?LOOP GraphLoop)
+      (graphPart ?LOOP ?GRAPH))))
+
+(=>
+  (and
+    (instance ?LOOP GraphLoop)
+    (graphPart ?LOOP ?GRAPH))
+  (instance ?GRAPH PseudoGraph))
 
 (subclass GraphElement Proposition)
 (partition GraphElement GraphNode GraphArc)
@@ -5625,10 +5760,14 @@ and &%GraphArcs.  Every &%GraphArc links two &%GraphNodes.")
 (documentation GraphLoop EnglishLanguage "A &%GraphArc in which a &%GraphNode is
 linked to itself.")
 
-(<=>
+(=>
    (instance ?LOOP GraphLoop)
    (exists (?NODE)
       (links ?NODE ?NODE ?LOOP)))
+
+(=>
+  (links ?NODE ?NODE ?LOOP)
+  (instance ?LOOP GraphLoop))
 
 (=>
    (and
@@ -6378,28 +6517,6 @@ between 8 and 14 meters in length.")
 ;   (and
 ;        (greaterThanOrEqualTo ?QUANTITY ?FROM)
 ;        (lessThanOrEqualTo ?QUANTITY ?TO)))
-
-(instance MagnitudeFn UnaryFunction)
-(instance MagnitudeFn TotalValuedRelation)
-
-(domain MagnitudeFn 1 PhysicalQuantity)
-(range MagnitudeFn RealNumber)
-
-(documentation MagnitudeFn EnglishLanguage "The magnitude of a &%PhysicalQuantity is the
-numeric value for the quantity.  In other words, &%MagnitudeFn converts
-a &%PhysicalQuantity with an associated &%UnitOfMeasure into an ordinary
-&%RealNumber.  For example, the magnitude of the (&%ConstantQuantity 2
-&%Kilometer) is the &%RealNumber 2.   Note that the magnitude of a
-quantity in a given unit times that unit is equal to the original
-quantity.")
-
-(=>
-  (and
-    (instance ?QUANT PhysicalQuantity)
-    (instance ?UNIT UnitOfMeasure)
-    (equal ?QUANT
-      (MeasureFn ?NUMBER ?UNIT)))
-  (equal (MagnitudeFn ?QUANT) ?NUMBER))
 
 (instance UnitFn UnaryFunction)
 (instance UnitFn TotalValuedRelation)
@@ -7593,9 +7710,17 @@ Note that this &%Function is generally used in conjunction with the
 &%Function &%PropertyFn, e.g. (&%WealthFn (&%PropertyFn BillGates)) would
 return the monetary value of the sum of Bill Gates' holdings.")
 
-(<=>
-   (equal (WealthFn ?PERSON) ?AMOUNT)
-   (monetaryValue (PropertyFn ?PERSON) ?AMOUNT))
+(=>
+  (equal
+    (WealthFn ?PERSON) ?AMOUNT)
+  (monetaryValue
+    (PropertyFn ?PERSON) ?AMOUNT))
+
+(=>
+  (monetaryValue
+    (PropertyFn ?PERSON) ?AMOUNT)
+  (equal
+    (WealthFn ?PERSON) ?AMOUNT))
 
 (instance barometricPressure BinaryPredicate)
 (instance barometricPressure AsymmetricRelation)
@@ -7685,7 +7810,6 @@ all other &%TimePoints.")
       (temporallyBetween NegativeInfinity ?OTHERPOINT ?POINT)))
 
 (instance duration BinaryPredicate)
-(instance duration AsymmetricRelation)
 (instance duration TotalValuedRelation)
 (domain duration 1 TimeInterval)
 (domain duration 2 TimeDuration)
@@ -7696,7 +7820,6 @@ duration of the &%TimeInterval ?POS is ?TIME.  Note that this
 to specify the duration of any instance of &%Physical.")
 
 (instance frequency BinaryPredicate)
-(instance frequency AsymmetricRelation)
 (domainSubclass frequency 1 Process)
 (domain frequency 2 TimeDuration)
 
@@ -7755,9 +7878,15 @@ is part of &%TimePosition ?POS2.  Note that since &%temporalPart is a
       (time ?INST1 ?INTERVAL)
       (time ?INST2 ?INTERVAL)))
 
-(<=>
-   (temporalPart ?POS (WhenFn ?THING))
-   (time ?THING ?POS))
+(=>
+  (temporalPart ?POS
+    (WhenFn ?THING))
+  (time ?THING ?POS))
+
+(=>
+  (time ?THING ?POS)
+  (temporalPart ?POS
+    (WhenFn ?THING)))
 
 (instance BeginFn TemporalRelation)
 (instance BeginFn UnaryFunction)
@@ -7824,15 +7953,25 @@ the &%TimePoint at which the interval ends.")
 ?INTERVAL1 and ?INTERVAL2 are both &%TimeIntervals that have the same
 initial &%TimePoint and that ?INTERVAL1 ends before ?INTERVAL2.")
 
-(<=>
-   (starts ?INTERVAL1 ?INTERVAL2)
-   (and
-      (equal
-         (BeginFn ?INTERVAL1)
-         (BeginFn ?INTERVAL2))
-      (before
-         (EndFn ?INTERVAL1)
-         (EndFn ?INTERVAL2))))
+(=>
+  (starts ?INTERVAL1 ?INTERVAL2)
+  (and
+    (equal
+      (BeginFn ?INTERVAL1)
+      (BeginFn ?INTERVAL2))
+    (before
+      (EndFn ?INTERVAL1)
+      (EndFn ?INTERVAL2))))
+
+(=>
+  (and
+    (equal
+      (BeginFn ?INTERVAL1)
+      (BeginFn ?INTERVAL2))
+    (before
+      (EndFn ?INTERVAL1)
+      (EndFn ?INTERVAL2)))
+  (starts ?INTERVAL1 ?INTERVAL2))
 
 (subrelation finishes temporalPart)
 (instance finishes TemporalRelation)
@@ -7846,7 +7985,7 @@ initial &%TimePoint and that ?INTERVAL1 ends before ?INTERVAL2.")
 ?INTERVAL1 and ?INTERVAL2 are both &%TimeIntervals that have the same
 ending &%TimePoint and that ?INTERVAL2 begins before ?INTERVAL1.")
 
-(<=>
+(=>
    (finishes ?INTERVAL1 ?INTERVAL2)
    (and
       (before
@@ -7855,6 +7994,16 @@ ending &%TimePoint and that ?INTERVAL2 begins before ?INTERVAL1.")
       (equal
          (EndFn ?INTERVAL2)
          (EndFn ?INTERVAL1))))
+
+(=>
+   (and
+      (before
+         (BeginFn ?INTERVAL2)
+         (BeginFn ?INTERVAL1))
+      (equal
+         (EndFn ?INTERVAL2)
+         (EndFn ?INTERVAL1)))
+   (finishes ?INTERVAL1 ?INTERVAL2))
 
 (instance before TemporalRelation)
 (instance before IrreflexiveRelation)
@@ -7906,10 +8055,16 @@ precedes ?POINT2 on the universal timeline.")
 ?POINT1 is identical with ?POINT2 or occurs before it on the universal timeline.")
 
 (=>
-   (beforeOrEqual ?POINT1 ?POINT2)
-   (or
-       (before ?POINT1 ?POINT2)
-       (equal ?POINT1 ?POINT2)))
+  (beforeOrEqual ?POINT1 ?POINT2)
+  (or
+    (before ?POINT1 ?POINT2)
+    (equal ?POINT1 ?POINT2)))
+
+(=>
+  (or
+    (before ?POINT1 ?POINT2)
+    (equal ?POINT1 ?POINT2))
+  (beforeOrEqual ?POINT1 ?POINT2))
 
 (instance temporallyBetween TemporalRelation)
 (instance temporallyBetween TernaryPredicate)
@@ -7924,11 +8079,17 @@ precedes ?POINT2 on the universal timeline.")
 ?POINT1 and ?POINT3, i.e. ?POINT1 is before ?POINT2 and ?POINT2 is before
 ?POINT3.")
 
-(<=>
-   (temporallyBetween ?POINT1 ?POINT2 ?POINT3)
-   (and
-      (before ?POINT1 ?POINT2)
-      (before ?POINT2 ?POINT3)))
+(=>
+  (temporallyBetween ?POINT1 ?POINT2 ?POINT3)
+  (and
+    (before ?POINT1 ?POINT2)
+    (before ?POINT2 ?POINT3)))
+
+(=>
+  (and
+    (before ?POINT1 ?POINT2)
+    (before ?POINT2 ?POINT3))
+  (temporallyBetween ?POINT1 ?POINT2 ?POINT3))
 
 (instance temporallyBetweenOrEqual TemporalRelation)
 (instance temporallyBetweenOrEqual TernaryPredicate)
@@ -7942,17 +8103,34 @@ precedes ?POINT2 on the universal timeline.")
 &%TimePoint ?POINT2 and ?POINT2 is before or equal to the &%TimePoint
 ?POINT3.")
 
-(<=>
-   (temporallyBetweenOrEqual ?POINT1 ?POINT2 ?POINT3)
-   (and
-      (beforeOrEqual ?POINT1 ?POINT2)
-      (beforeOrEqual ?POINT2 ?POINT3)))
+(=>
+  (temporallyBetweenOrEqual ?POINT1 ?POINT2 ?POINT3)
+  (and
+    (beforeOrEqual ?POINT1 ?POINT2)
+    (beforeOrEqual ?POINT2 ?POINT3)))
 
-(<=>
+(=>
+  (and
+    (beforeOrEqual ?POINT1 ?POINT2)
+    (beforeOrEqual ?POINT2 ?POINT3))
+  (temporallyBetweenOrEqual ?POINT1 ?POINT2 ?POINT3))
+
+(=>
    (and
       (time ?PHYS ?TIME)
       (instance ?TIME TimePoint))
    (temporallyBetweenOrEqual (BeginFn (WhenFn ?PHYS)) ?TIME (EndFn (WhenFn ?PHYS))))
+
+(=>
+  (temporallyBetweenOrEqual
+    (BeginFn
+      (WhenFn ?PHYS))
+    ?TIME
+    (EndFn
+      (WhenFn ?PHYS)))
+  (and
+    (time ?PHYS ?TIME)
+    (instance ?TIME TimePoint)))
 
 (instance overlapsTemporally BinaryPredicate)
 (instance overlapsTemporally TemporalRelation)
@@ -7965,13 +8143,20 @@ precedes ?POINT2 on the universal timeline.")
 ?INTERVAL2) means that the &%TimeIntervals ?INTERVAL1 and ?INTERVAL2
 have a &%TimeInterval as a common part.")
 
-(<=>
-   (overlapsTemporally ?INTERVAL1 ?INTERVAL2)
-   (exists (?INTERVAL3)
-      (and
-         (instance ?INTERVAL3 TimeInterval)
-         (temporalPart ?INTERVAL3 ?INTERVAL1)
-         (temporalPart ?INTERVAL3 ?INTERVAL2))))
+(=>
+  (overlapsTemporally ?INTERVAL1 ?INTERVAL2)
+  (exists (?INTERVAL3)
+    (and
+      (instance ?INTERVAL3 TimeInterval)
+      (temporalPart ?INTERVAL3 ?INTERVAL1)
+      (temporalPart ?INTERVAL3 ?INTERVAL2))))
+
+(=>
+  (and
+    (instance ?INTERVAL3 TimeInterval)
+    (temporalPart ?INTERVAL3 ?INTERVAL1)
+    (temporalPart ?INTERVAL3 ?INTERVAL2))
+  (overlapsTemporally ?INTERVAL1 ?INTERVAL2))
 
 (=>
    (and
@@ -7983,6 +8168,49 @@ have a &%TimeInterval as a common part.")
 (=>
   (during ?SMALL ?BIG)
   (temporalPart ?SMALL ?BIG))
+
+(=>
+  (and
+    (instance ?TI TimeInterval)
+    (equal ?S (BeginFn ?TI))
+    (equal ?E (EndFn ?TI)))
+  (before ?S ?E))
+
+(=>
+  (and
+    (instance ?TI1 TimeInterval)
+    (instance ?TI2 TimeInterval)
+    (beforeOrEqual
+      (BeginFn ?TI2)
+      (BeginFn ?TI1))
+    (before
+      (BeginFn ?TI1)
+      (EndFn ?TI2)))
+  (overlapsTemporally ?TI2 ?TI1))
+
+(=>
+  (and
+    (earlier ?TI1 ?TI2)
+    (instance ?P1 TimePoint)
+    (instance ?P2 TimePoint)
+    (temporalPart ?P1 ?TI1)
+    (temporalPart ?P2 ?TI2))
+  (before ?P1 ?P2))
+
+(=>
+  (overlapsTemporally ?INTERVAL1 ?INTERVAL2)
+  (exists (?INTERVAL3)
+    (and
+      (instance ?INTERVAL3 TimePosition)
+      (temporalPart ?INTERVAL3 ?INTERVAL1)
+      (temporalPart ?INTERVAL3 ?INTERVAL2))))
+
+(=>
+  (and
+    (instance ?INTERVAL3 TimePosition)
+    (temporalPart ?INTERVAL3 ?INTERVAL1)
+    (temporalPart ?INTERVAL3 ?INTERVAL2))
+  (overlapsTemporally ?INTERVAL1 ?INTERVAL2))
 
 (instance during TransitiveRelation)
 (instance during BinaryPredicate)
@@ -8012,11 +8240,26 @@ have a &%TimeInterval as a common part.")
 means that the terminal point of the &%TimeInterval ?INTERVAL1 is the
 initial point of the &%TimeInterval ?INTERVAL2.")
 
-(<=>
+(=>
    (meetsTemporally ?INTERVAL1 ?INTERVAL2)
    (equal
       (EndFn ?INTERVAL1)
       (BeginFn ?INTERVAL2)))
+
+(=>
+   (equal
+      (EndFn ?INTERVAL1)
+      (BeginFn ?INTERVAL2))
+   (meetsTemporally ?INTERVAL1 ?INTERVAL2))
+
+(=>
+  (meetsTemporally ?T1 ?T2)
+  (not
+    (exists (?T3)
+      (and
+        (instance ?T3 TimeInterval)
+        (temporalPart ?T3 ?T1)
+        (temporalPart ?T3 ?T2)))))
 
 (=>
   (and
@@ -8042,9 +8285,13 @@ initial point of the &%TimeInterval ?INTERVAL2.")
 the &%TimeInterval ?INTERVAL1 ends before the &%TimeInterval ?INTERVAL2
 begins.")
 
-(<=>
-    (earlier ?INTERVAL1 ?INTERVAL2)
-    (before (EndFn ?INTERVAL1) (BeginFn ?INTERVAL2)))
+(=>
+  (earlier ?INTERVAL1 ?INTERVAL2)
+  (before (EndFn ?INTERVAL1) (BeginFn ?INTERVAL2)))
+
+(=>
+  (before (EndFn ?INTERVAL1) (BeginFn ?INTERVAL2))
+  (earlier ?INTERVAL1 ?INTERVAL2))
 
 (instance cooccur BinaryPredicate)
 (instance cooccur TemporalRelation)
@@ -8058,9 +8305,13 @@ or jointly with the &%Object or &%Process ?THING2.  This covers the
 following temporal relations:  is co-incident with, is concurrent with,
 is contemporaneous with, and is concomitant with.")
 
-(<=>
+(=>
    (cooccur ?PHYS1 ?PHYS2)
    (equal (WhenFn ?PHYS1) (WhenFn ?PHYS2)))
+
+(=>
+   (equal (WhenFn ?PHYS1) (WhenFn ?PHYS2))
+   (cooccur ?PHYS1 ?PHYS2))
 
 ;; The following functions generate &%TimeIntervals.
 
@@ -8200,7 +8451,6 @@ immediately follows the &%TimePosition.")
 
 (instance date BinaryPredicate)
 (instance date SingleValuedRelation)
-(instance date AsymmetricRelation)
 (domain date 1 Physical)
 (domain date 2 Day)
 (subrelation date time)
@@ -8482,7 +8732,10 @@ and end at noon.")
 class of &%Mornings of the given &%Day.")
 
 (=>
-  (equal ?E (MorningFn ?D))
+  (and
+    (instance ?E Morning)
+    (instance ?D Day)
+    (equal ?E (MorningFn ?D)))
   (during ?E ?D))
 
 (instance AfternoonFn TemporalRelation)
@@ -8495,7 +8748,10 @@ class of &%Mornings of the given &%Day.")
 &%Afternoons of the given &%Day.")
 
 (=>
-  (equal ?E (AfternoonFn ?D))
+  (and
+    (instance ?E Afternoon)
+    (instance ?D Day)
+    (equal ?E (AfternoonFn ?D)))
   (during ?E ?D))
 
 (=>
@@ -8592,7 +8848,10 @@ which is the end of &%Afternoon, and end at midnight.")
 &%Evenings of the given &%Day.")
 
 (=>
-  (equal ?E (EveningFn ?D))
+  (and
+    (instance ?E Evening)
+    (instance ?D Day)
+    (equal ?E (EveningFn ?D)))
   (during ?E ?D))
 
 (instance WeekFn TemporalRelation)
@@ -8627,8 +8886,9 @@ is the singular &%Class of the last &%QuarterYear of the &%Year 1999.")
 
 (=>
   (and
+    (instance ?Q QuarterYear)
     (instance ?Q (QuarterFn ?N ?Y))
-    (instance ?YI ?Y))
+    (instance ?YI (YearFn ?Y)))
   (during ?Q ?YI))
 
 (subclass QuarterYear TimeInterval)
@@ -9176,17 +9436,29 @@ of the three things connects the other two.  More formally, (&%connects ?OBJ1
 ?OBJ2 ?OBJ3) means that (&%connected ?OBJ1 ?OBJ2) and (&%connected ?OBJ1 ?OBJ3)
 and not (&%connected ?OBJ2 ?OBJ3).")
 
-(<=>
+(=>
   (connects ?OBJ1 ?OBJ2 ?OBJ3)
   (between ?OBJ2 ?OBJ1 ?OBJ3))
 
-(<=>
+(=>
+  (between ?OBJ2 ?OBJ1 ?OBJ3)
+  (connects ?OBJ1 ?OBJ2 ?OBJ3))
+
+(=>
   (connects ?OBJ1 ?OBJ2 ?OBJ3)
   (and
     (connected ?OBJ1 ?OBJ2)
     (connected ?OBJ1 ?OBJ3)
     (not
       (connected ?OBJ2 ?OBJ3))))
+
+(=>
+  (and
+    (connected ?OBJ1 ?OBJ2)
+    (connected ?OBJ1 ?OBJ3)
+    (not
+      (connected ?OBJ2 ?OBJ3)))
+  (connects ?OBJ1 ?OBJ2 ?OBJ3))
 
 (=>
   (connects ?ARC ?NODE1 ?NODE2)
@@ -9215,12 +9487,18 @@ and not (&%connected ?OBJ2 ?OBJ3).")
 that the &%Objects ?OBJ1 and ?OBJ2 have some parts in common.  This is a
 reflexive and symmetric (but not transitive) relation.")
 
-(<=>
+(=>
   (overlapsSpatially ?OBJ1 ?OBJ2)
   (exists (?OBJ3)
     (and
       (part ?OBJ3 ?OBJ1)
       (part ?OBJ3 ?OBJ2))))
+
+(=>
+  (and
+    (part ?OBJ3 ?OBJ1)
+    (part ?OBJ3 ?OBJ2))
+  (overlapsSpatially ?OBJ1 ?OBJ2))
 
 (=>
    (and
@@ -9253,15 +9531,24 @@ is a &%part of the other.")
 (domain overlapsPartially 1 Object)
 (domain overlapsPartially 2 Object)
 
-(<=>
+(=>
    (overlapsPartially ?OBJ1 ?OBJ2)
-      (and
-         (not (part ?OBJ1 ?OBJ2))
-         (not (part ?OBJ2 ?OBJ1))
-         (exists (?OBJ3)
-            (and
-               (part ?OBJ3 ?OBJ1)
-               (part ?OBJ3 ?OBJ2)))))
+   (and
+     (not (part ?OBJ1 ?OBJ2))
+     (not (part ?OBJ2 ?OBJ1))
+     (exists (?OBJ3)
+       (and
+         (part ?OBJ3 ?OBJ1)
+         (part ?OBJ3 ?OBJ2)))))
+
+(=>
+   (and
+     (not (part ?OBJ1 ?OBJ2))
+     (not (part ?OBJ2 ?OBJ1))
+     (and
+       (part ?OBJ3 ?OBJ1)
+       (part ?OBJ3 ?OBJ2)))
+   (overlapsPartially ?OBJ1 ?OBJ2))
 
 (=>
   (overlapsPartially ?OBJ1 ?OBJ2)
@@ -9380,13 +9667,21 @@ the object, as opposed to the &%top or &%bottom.")
   (not
     (equal ?TOP ?S)))
 
-(<=>
+(=>
   (width ?OBJECT ?WIDTH)
   (exists (?SIDE1 ?SIDE2)
     (and
       (side ?SIDE1 ?OBJECT)
       (side ?SIDE2 ?OBJECT)
       (distance ?SIDE1 ?SIDE2 ?WIDTH))))
+
+(=>
+  (exists (?SIDE1 ?SIDE2)
+    (and
+      (side ?SIDE1 ?OBJECT)
+      (side ?SIDE2 ?OBJECT)
+      (distance ?SIDE1 ?SIDE2 ?WIDTH)))
+  (width ?OBJECT ?WIDTH))
 
 (=>
   (and
@@ -10055,7 +10350,7 @@ of the organism being injured, it is a subclass of &%BiologicalProcess.")
             (instance ?STRUCT AnatomicalStructure)
             (patient ?INJ ?STRUCT))))
 
-(<=>
+(=>
    (instance ?INJ Injuring)
    (and
       (instance ?INJ Damaging)
@@ -10063,6 +10358,13 @@ of the organism being injured, it is a subclass of &%BiologicalProcess.")
          (and
             (instance ?ORGANISM Organism)
             (patient ?INJ ?ORGANISM)))))
+
+(=>
+  (and
+    (instance ?INJ Damaging)
+    (instance ?ORGANISM Organism)
+    (patient ?INJ ?ORGANISM))
+  (instance ?INJ Injuring))
 
 (subclass Poisoning Injuring)
 
@@ -10888,6 +11190,20 @@ which the &%patient of the act is oriented.")
         (WhenFn ?T2)
         (WhenFn ?T)))))
 
+(=>
+  (and
+    (instance ?T Transfer)
+    (objectTransferred ?T ?O)
+    (orientation ?O2 ?O Inside))
+  (objectTransferred ?T ?O2))
+
+(=>
+  (and
+    (instance ?T Transfer)
+    (objectTransferred ?T ?O)
+    (orientation ?O2 ?O On))
+  (objectTransferred ?T ?O2))
+
 (subclass Carrying Transfer)
 
 (documentation Carrying EnglishLanguage "&%Transfer from one point to another by means of
@@ -11253,19 +11569,31 @@ the &%agent gives the &%destination something for a limited period of
 time with the expectation that it will be returned later (perhaps with
 interest).")
 
-(<=>
-   (exists (?BORROW)
-      (and
-         (instance ?BORROW Borrowing)
-         (agent ?BORROW ?AGENT1)
-         (origin ?BORROW ?AGENT2)
-         (patient ?BORROW ?OBJECT)))
-   (exists (?LEND)
-      (and
-         (instance ?LEND Lending)
-         (agent ?LEND ?AGENT2)
-         (destination ?LEND ?AGENT1)
-         (patient ?LEND ?OBJECT))))
+(=>
+  (and
+    (instance ?BORROW Borrowing)
+    (agent ?BORROW ?AGENT1)
+    (origin ?BORROW ?AGENT2)
+    (patient ?BORROW ?OBJECT))
+  (exists (?LEND)
+    (and
+      (instance ?LEND Lending)
+      (agent ?LEND ?AGENT2)
+      (destination ?LEND ?AGENT1)
+      (patient ?LEND ?OBJECT))))
+
+(=>
+  (and
+    (instance ?LEND Lending)
+    (agent ?LEND ?AGENT2)
+    (destination ?LEND ?AGENT1)
+    (patient ?LEND ?OBJECT))
+  (exists (?BORROW)
+    (and
+      (instance ?BORROW Borrowing)
+      (agent ?BORROW ?AGENT1)
+      (origin ?BORROW ?AGENT2)
+      (patient ?BORROW ?OBJECT))))
 
 (subclass GivingBack Giving)
 
@@ -11415,19 +11743,31 @@ instance of &%CurrencyMeasure within the context of some sort of
 (documentation Selling EnglishLanguage "A &%FinancialTransaction in which an instance of
 &%Physical is exchanged for an instance of &%CurrencyMeasure.")
 
-(<=>
-   (exists (?BUY)
-      (and
-         (instance ?BUY Buying)
-         (agent ?BUY ?AGENT1)
-         (origin ?BUY ?AGENT2)
-         (patient ?BUY ?OBJECT)))
-   (exists (?SELL)
-      (and
-         (instance ?SELL Selling)
-         (agent ?SELL ?AGENT2)
-         (destination ?SELL ?AGENT1)
-         (patient ?SELL ?OBJECT))))
+(=>
+  (and
+    (instance ?BUY Buying)
+    (agent ?BUY ?AGENT1)
+    (origin ?BUY ?AGENT2)
+    (patient ?BUY ?OBJECT))
+  (exists (?SELL)
+    (and
+      (instance ?SELL Selling)
+      (agent ?SELL ?AGENT2)
+      (destination ?SELL ?AGENT1)
+      (patient ?SELL ?OBJECT))))
+
+(=>
+  (and
+    (instance ?BUY Buying)
+    (agent ?BUY ?AGENT1)
+    (origin ?BUY ?AGENT2)
+    (patient ?BUY ?OBJECT))
+  (exists (?SELL)
+    (and
+      (instance ?SELL Selling)
+      (agent ?SELL ?AGENT2)
+      (destination ?SELL ?AGENT1)
+      (patient ?SELL ?OBJECT))))
 
 (=>
    (and
@@ -11717,14 +12057,14 @@ the &%patient (or an essential element of the &%patient) is destroyed.
 Note that the difference between this concept and its superclass is solely
 one of extent.")
 
-(<=>
-   (instance ?PROCESS Destruction)
-   (exists (?PATIENT)
-      (and
-         (patient ?PROCESS ?PATIENT)
-         (time ?PATIENT (BeginFn (WhenFn ?PROCESS)))
-         (not
-            (time ?PATIENT (EndFn (WhenFn ?PROCESS)))))))
+(=>
+  (instance ?PROCESS Destruction)
+  (exists (?PATIENT)
+    (and
+      (patient ?PROCESS ?PATIENT)
+      (time ?PATIENT (BeginFn (WhenFn ?PROCESS)))
+      (not
+        (time ?PATIENT (EndFn (WhenFn ?PROCESS)))))))
 
 (subclass Killing Destruction)
 (documentation Killing EnglishLanguage "The &%subclass of &%Destruction in which the
@@ -11962,17 +12302,28 @@ which a &%CompoundSubstance is formed from simpler reactants.")
       (instance ?SUBSTANCE2 CompoundSubstance))
    (instance ?PROC ChemicalSynthesis))
 
-(<=>
-   (instance ?COMPOUND CompoundSubstance)
-   (exists (?ELEMENT1 ?ELEMENT2 ?PROCESS)
-      (and
-         (instance ?ELEMENT1 ElementalSubstance)
-         (instance ?ELEMENT2 ElementalSubstance)
-         (not (equal ?ELEMENT1 ?ELEMENT2))
-         (instance ?PROCESS ChemicalSynthesis)
-         (resource ?PROCESS ?ELEMENT1)
-         (resource ?PROCESS ?ELEMENT2)
-         (result ?PROCESS ?COMPOUND))))
+(=>
+  (instance ?COMPOUND CompoundSubstance)
+  (exists (?ELEMENT1 ?ELEMENT2 ?PROCESS)
+    (and
+      (instance ?ELEMENT1 ElementalSubstance)
+      (instance ?ELEMENT2 ElementalSubstance)
+      (not (equal ?ELEMENT1 ?ELEMENT2))
+      (instance ?PROCESS ChemicalSynthesis)
+      (resource ?PROCESS ?ELEMENT1)
+      (resource ?PROCESS ?ELEMENT2)
+      (result ?PROCESS ?COMPOUND))))
+
+(=>
+  (and
+    (instance ?ELEMENT1 ElementalSubstance)
+    (instance ?ELEMENT2 ElementalSubstance)
+    (not (equal ?ELEMENT1 ?ELEMENT2))
+    (instance ?PROCESS ChemicalSynthesis)
+    (resource ?PROCESS ?ELEMENT1)
+    (resource ?PROCESS ?ELEMENT2)
+    (result ?PROCESS ?COMPOUND))
+  (instance ?COMPOUND CompoundSubstance))
 
 (subclass ChemicalDecomposition ChemicalProcess)
 (subclass ChemicalDecomposition Separating)
@@ -12211,14 +12562,22 @@ with the &%result &%CaseRole.")
    (exists (?RESULT)
       (result ?ACTION ?RESULT)))
 
-(<=>
-   (instance ?PROCESS Creation)
-   (exists (?PATIENT)
-      (and
-         (patient ?PROCESS ?PATIENT)
-         (time ?PATIENT (EndFn (WhenFn ?PROCESS)))
-         (not
-            (time ?PATIENT (BeginFn (WhenFn ?PROCESS)))))))
+(=>
+  (instance ?PROCESS Creation)
+  (exists (?PATIENT)
+    (and
+      (patient ?PROCESS ?PATIENT)
+      (time ?PATIENT (EndFn (WhenFn ?PROCESS)))
+      (not
+        (time ?PATIENT (BeginFn (WhenFn ?PROCESS)))))))
+
+(=>
+  (and
+    (patient ?PROCESS ?PATIENT)
+    (time ?PATIENT (EndFn (WhenFn ?PROCESS)))
+    (not
+      (time ?PATIENT (BeginFn (WhenFn ?PROCESS)))))
+  (instance ?PROCESS Creation))
 
 (subclass Making Creation)
 (subclass Making IntentionalProcess)
@@ -12236,12 +12595,18 @@ with the &%result &%CaseRole.")
 (documentation Constructing EnglishLanguage "The &%subclass of &%Making in which a
 &%StationaryArtifact is built.")
 
-(<=>
-   (exists (?BUILD)
-      (and
-         (instance ?BUILD Constructing)
-         (result ?BUILD ?ARTIFACT)))
-   (instance ?ARTIFACT StationaryArtifact))
+(=>
+  (and
+    (instance ?BUILD Constructing)
+    (result ?BUILD ?ARTIFACT))
+  (instance ?ARTIFACT StationaryArtifact))
+
+(=>
+  (instance ?ARTIFACT StationaryArtifact)
+  (exists (?BUILD)
+    (and
+      (instance ?BUILD Constructing)
+      (result ?BUILD ?ARTIFACT))))
 
 (subclass Manufacture Making)
 (documentation Manufacture EnglishLanguage "The &%Making of &%Artifacts on a mass
@@ -13049,13 +13414,20 @@ off or absorbed by something else.")
 light is given off or absorbed.  Some examples include blinking, flashing,
 and glittering.")
 
-(<=>
-   (exists (?EMIT)
-      (and
-         (instance ?EMIT RadiatingLight)
-         (patient ?EMIT ?REGION)
-         (instance ?REGION Region)))
-   (attribute ?REGION Illuminated))
+(=>
+  (and
+    (instance ?EMIT RadiatingLight)
+    (patient ?EMIT ?REGION)
+    (instance ?REGION Region))
+  (attribute ?REGION Illuminated))
+
+(=>
+  (attribute ?REGION Illuminated)
+  (exists (?EMIT)
+    (and
+      (instance ?EMIT RadiatingLight)
+      (patient ?EMIT ?REGION)
+      (instance ?REGION Region))))
 
 (subclass RadiatingInfrared RadiatingElectromagnetic)
 (documentation RadiatingXRay EnglishLanguage "A form of &%RadiatingElectromagnetic with
@@ -13103,6 +13475,7 @@ type of &%MakingMusic which is produced using some kind of &%MusicalInstrument")
       (instrument ?M ?I))))
 
 (subclass Vocalizing RadiatingSound)
+(subclass Vocalizing OrganismProcess)
 (documentation Vocalizing EnglishLanguage "Any instance of &%RadiatingSound where
 the instrument is the vocal cord.  This covers grunts, screams, roars, as well as
 &%Speaking.")
@@ -14487,7 +14860,7 @@ systems, e.g. the digestive system or the central nervous system.")
 
 (subclass Tissue BodySubstance)
 (disjointDecomposition Tissue ConnectiveTissue MuscleTissue NervousTissue EpithelialTissue)
-;;(disjointDecomposition Tissue Bone Muscle FatTissue)
+;;(disjointDecomposition Tissue BoneTissue Muscle FatTissue)
 (documentation Tissue EnglishLanguage "An aggregation of similarly specialized &%Cells
 and the associated intercellular substance. &%Tissues are relatively
 non-localized in comparison to &%BodyParts, &%Organs or &%Organ components.
@@ -14545,17 +14918,23 @@ cells and leucocytes.[from Wikipedia]")
         (between ?T1 ?CT ?T2)))
     Likely))
     
-(subclass Bone ConnectiveTissue)
-(subclass Bone AnimalSubstance)
-(documentation Bone EnglishLanguage "Rigid &%Tissue composed largely of calcium that makes
+(subclass BoneTissue ConnectiveTissue)
+(subclass BoneTissue AnimalSubstance)
+(documentation BoneTissue EnglishLanguage "Rigid &%Tissue composed largely of calcium that makes
 up the skeleton of &%Vertebrates.  Note that this &%Class also includes teeth.")
 
 (=>
-  (instance ?BONE Bone)
+  (instance ?BONE BoneTissue)
   (exists (?VERT)
     (and
       (instance ?VERT Vertebrate)
       (part ?BONE ?VERT))))
+
+(subclass Bone BodyPart)
+(documentation BoneTissue EnglishLanguage "Parts of the body that are made up of &%BoneTissue.")
+(=>
+  (instance ?B Bone)
+  (material BoneTissue ?B))
 
 (subclass EpithelialTissue Tissue)
 
@@ -15498,10 +15877,15 @@ several pairs of &%EngineeringComponents.")
          (instance ?COMP1 EngineeringConnection)
          (instance ?COMP2 EngineeringConnection))))
 
-(<=>
-   (connectedEngineeringComponents ?COMP1 ?COMP2)
-   (exists (?CONNECTION)
-      (connectsEngineeringComponents ?CONNECTION ?COMP1 ?COMP2)))
+(=>
+  (connectedEngineeringComponents ?COMP1 ?COMP2)
+  (exists (?CONNECTION)
+    (connectsEngineeringComponents ?CONNECTION ?COMP1 ?COMP2)))
+
+(=>
+  (exists (?CONNECTION)
+    (connectsEngineeringComponents ?CONNECTION ?COMP1 ?COMP2))
+  (connectedEngineeringComponents ?COMP1 ?COMP2))
 
 (subrelation connectsEngineeringComponents connects)
 (instance connectsEngineeringComponents TernaryPredicate)
@@ -16030,12 +16414,18 @@ class of official &%Organizations that are concerned with the government
 of a &%GeopoliticalArea at some level.  They may be a &%subOrganization
 of a government.")
 
-(<=>
+(=>
    (instance ?ORG GovernmentOrganization)
    (exists (?GOV)
       (and
          (instance ?GOV Government)
          (subOrganization ?ORG ?GOV))))
+
+(=>
+  (and
+    (instance ?GOV Government)
+    (subOrganization ?ORG ?GOV))
+  (instance ?ORG GovernmentOrganization))
 
 (=>
    (and
@@ -16271,6 +16661,12 @@ vertically with respect to ?OBJ2.")
    (not
       (orientation ?OBJ1 ?OBJ2 ?ATTR2)))
 
+(=>
+  (and
+    (orientation ?X ?Y Right)
+    (orientation ?Z ?Y Left))
+ (orientation ?X ?Z Right))
+
 (instance direction CaseRole)
 (instance direction PartialValuedRelation)
 (domain direction 1 Process)
@@ -16490,6 +16886,10 @@ contact.")
    (located ?OBJ1 ?OBJ2))
 
 (=>
+   (orientation ?OBJ1 ?OBJ2 Inside)
+   (located ?OBJ1 ?OBJ2))
+
+(=>
    (orientation ?OBJ1 ?OBJ2 On)
    (not
       (orientation ?OBJ2 ?OBJ1 On)))
@@ -16607,12 +17007,14 @@ specify the position or status of a &%CognitiveAgent within an
 he/she is unemployed.")
 
 (<=>
-   (and
+  (holdsDuring ?T
+    (and
       (instance ?PERSON Human)
       (forall (?ORG)
          (not
-            (employs ?ORG ?PERSON))))
-   (attribute ?PERSON Unemployed))
+            (employs ?ORG ?PERSON)))))
+  (holdsDuring ?T
+    (attribute ?PERSON Unemployed)))
 
 (subclass Position SocialRole)
 (documentation Position EnglishLanguage "A formal position of responsibility within an
@@ -16924,12 +17326,18 @@ it has a fixed volume but not a fixed shape.")
 (documentation Gas EnglishLanguage "An &%Object has the &%Attribute of &%Gas if it has
 neither a fixed volume nor a fixed shape.")
 
-(<=>
+(=>
    (instance ?OBJ Substance)
    (exists (?ATTR)
       (and
          (instance ?ATTR PhysicalState)
          (attribute ?OBJ ?ATTR))))
+
+(=>
+  (and
+    (instance ?ATTR PhysicalState)
+    (attribute ?OBJ ?ATTR))
+  (instance ?OBJ Substance))
 
 (instance Plasma PhysicalState)
 (subAttribute Plasma Fluid)
@@ -17360,7 +17768,7 @@ every part of the &%Object has a subpart which is a &%Liquid.")
 
 (subclass BiologicalAttribute InternalAttribute)
 (documentation BiologicalAttribute EnglishLanguage "&%Attributes that apply specifically
-to instances of &%Organism.")
+to instances of &%OrganicObject (&%Organism or &%AnatomicalStructure).")
 
 ;; NS: delete.  Many current instances of BiologicalAttribute apply
 ;; to OrganicObjects that are not Organisms.
@@ -17629,7 +18037,7 @@ emotional states of &%Organisms.")
 an &%Organism is conscious or the qualitative degree of consciousness of
 an &%Organism.")
 
-(<=>
+(=>
    (and
       (instance ?AGENT SentientAgent)
       (attribute ?AGENT Living))
@@ -17637,6 +18045,14 @@ an &%Organism.")
       (and
          (instance ?ATTR ConsciousnessAttribute)
          (attribute ?AGENT ?ATTR))))
+
+(=>
+  (and
+    (instance ?ATTR ConsciousnessAttribute)
+    (attribute ?AGENT ?ATTR))
+  (and
+    (instance ?AGENT SentientAgent)
+    (attribute ?AGENT Living)))
 
 (instance Asleep ConsciousnessAttribute)
 (documentation Asleep EnglishLanguage "&%Attribute that applies to &%Organisms that are
