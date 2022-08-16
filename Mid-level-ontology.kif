@@ -118,14 +118,16 @@ of &%Living &%Organisms of the type ?ORGCLASS.")
     (result ?DEATH ?REM)
     (experiencer ?DEATH ?ORG))
   (instance ?ORG ?ORGTYPE))
-
+;;
+;; Jennie 10th Aug 2022
+;; Revised 1st arguement of subclass from ?ORG to ?ORGTYPE
 (=>
   (and
     (instance ?REM OrganicObject)
     (instance ?DEATH Death)
     (experiencer ?DEATH ?ORG)
     (instance ?ORG ?ORGTYPE)
-    (subclass ?ORG Organism)
+    (subclass ?ORGTYPE Organism)
     (result ?DEATH ?REM))
   (instance ?REM (DeadFn ?ORGTYPE)))
 
@@ -926,12 +928,16 @@ to be &%False by the &%agent of the &%LinguisticCommunication.")
   (yearOfFounding ?O ?Y)
   (dateEstablished ?O 
     (YearFn ?Y)))
+;;
+;; Jennie August 2022
+;; Changed the first arguement of overlapsTemporally ?F a process to (WhenFn ?F) a TimeInterval
 
 (<=>
   (yearOfFounding ?O ?Y)
-  (exists (?F)
+  (exists (?F ?YEAR)
     (and
-      (overlapsTemporally ?F (YearFn ?Y))
+      (overlapsTemporally (WhenFn ?F) ?YEAR)      
+      (instance ?YEAR (YearFn ?Y))
       (instance ?F Founding)
       (result ?F ?O))))
 
@@ -1683,20 +1689,18 @@ nor dissipates, but only transfers energy between its two ports.")
 are devices for converting some form of energy resource into mechanical 
 power.")
 
-(documentation powerComponent EnglishLanguage "(powerComponent ?GENERATOR ?THING) means that the &%CorpuscularObject
-?GENERATOR is the power-producing component of the &%CorpuscularObject ?THING which provides the energy for its operation.")
+;;
+;; Jennie August 2022
+;; moved the definition of powerComponent in transportation.kif to here and deleted irrelevant axioms
+
 (instance powerComponent BinaryPredicate)
-(instance powerComponent AsymmetricRelation)
-(instance powerComponent IrreflexiveRelation)
-(domain powerComponent 1 CorpuscularObject)
-(domain powerComponent 2 CorpuscularObject)
+(domain powerComponent 1 Device)
+(domain powerComponent 2 Artifact)
 (subrelation powerComponent component)
 
-(=>
-  (powerComponent ?G ?O)
-  (and
-    (instance ?G Device)
-    (instance ?O Artifact)))
+(documentation powerComponent EnglishLanguage "(&%powerComponent ?GENERATOR ?THING) 
+means that the &%Device ?GENERATOR is the power source for the &%Artifact 
+?THING.")
 
 (=>
   (and
@@ -1918,7 +1922,7 @@ releases some object, often food or drink, to the customer.")
 (=>
   (instance ?VM VendingMachine)
   (hasPurpose ?VM 
-    (exists (?H ?O)
+    (exists (?H ?O ?V)
       (and
         (instance ?V Vending)
         (instance ?H Human)
@@ -2185,7 +2189,7 @@ humans caring for pets, zoo animals and valuable livestock.")
 (=>
   (instance ?T Toothbrush)
   (hasPurpose ?T
-    (exists (?K)
+    (exists (?K ?B ?TOOTH)
       (and
         (instance ?TOOTH Tooth)
         (instrument ?K ?T)
@@ -2740,16 +2744,17 @@ lengths.")
 (instance Flat ShapeAttribute)
 (=>
   (attribute ?F Flat)
-  (and
-    (side ?S1 ?F)
-    (side ?S2 ?F)
-    (meetsSpatially ?S1 ?S2)
-    (not (equal ?S1 ?S2))
-    (height ?F (MeasureFn ?HF ?U))
-    (height ?S1 (MeasureFn ?H1 ?U))
-    (height ?S2 (MeasureFn ?H2 ?U))
-    (greaterThan ?H1 (MultiplicationFn 2.0 ?HF))
-    (greaterThan ?H2 (MultiplicationFn 2.0 ?HF))))
+  (exists (?S1 ?S2 ?HF ?H1 ?H2)
+    (and
+      (side ?S1 ?F)
+      (side ?S2 ?F)
+      (meetsSpatially ?S1 ?S2)
+      (not (equal ?S1 ?S2))
+      (height ?F (MeasureFn ?HF ?U))
+      (height ?S1 (MeasureFn ?H1 ?U))
+      (height ?S2 (MeasureFn ?H2 ?U))
+      (greaterThan ?H1 (MultiplicationFn 2.0 ?HF))
+      (greaterThan ?H2 (MultiplicationFn 2.0 ?HF)))))
 
 (documentation LongAndThin EnglishLanguage "This
 &%ShapeAttribute describes a three dimensional &%Object that
@@ -2759,16 +2764,17 @@ is markedly longer in one dimension than in the other two.")
 
 (=>
   (attribute ?F LongAndThin)
-  (and
-    (side ?S1 ?F)
-    (side ?S2 ?F)
-    (meetsSpatially ?S1 ?S2)
-    (not (equal ?S1 ?S2))
-    (length ?F (MeasureFn ?HF ?U))
-    (length ?S1 (MeasureFn ?H1 ?U))
-    (length ?S2 (MeasureFn ?H2 ?U))
-    (lessThan ?H1 (MultiplicationFn 3.0 ?HF))
-    (lessThan ?H2 (MultiplicationFn 3.0 ?HF))))
+  (exists (?S1 ?S2 ?HF ?H1 ?H2)
+    (and
+      (side ?S1 ?F)
+      (side ?S2 ?F)
+      (meetsSpatially ?S1 ?S2)
+      (not (equal ?S1 ?S2))
+      (length ?F (MeasureFn ?HF ?U))
+      (length ?S1 (MeasureFn ?H1 ?U))
+      (length ?S2 (MeasureFn ?H2 ?U))
+      (lessThan ?H1 (MultiplicationFn 3.0 ?HF))
+      (lessThan ?H2 (MultiplicationFn 3.0 ?HF)))))
 
 (instance LevelShape ShapeAttribute)
 (documentation LevelShape EnglishLanguage "The &%ShapeAttribute of &%Objects where no 
@@ -2927,7 +2933,7 @@ which typically includes an &%instance of &%Speaking as a
 
 (=>
   (instance ?TEL Telephoning)
-  (exists (?SPEAK)
+  (exists (?SPEAK ?AGENT)
     (and
       (instance ?SPEAK Speaking)
       (subProcess ?SPEAK ?TEL)
@@ -3207,13 +3213,12 @@ with oil-based paints.")
 (subclass PaintingDevice Device)
 (documentation PaintingDevice EnglishLanguage "A &%Device used as an &%instrument for &%Painting.
 Paintbrushes, rollers or sprayers can belong into this class.")
-
+;;
+;; Jennie 10th August 2022
+;; revised the first argument of capability to Painting
 (=>
   (instance ?PD PaintingDevice)
-  (exists (?PAINT)
-    (and
-      (instance ?PAINT Painting)
-      (capability ?PAINT instrument ?PD))))
+  (capability Painting instrument ?PD))
 
 (=>
   (instance ?PD PaintingDevice)
@@ -3966,28 +3971,35 @@ supports the mattress")
 (documentation FourPosterBed EnglishLanguage "&%FourPosterBed is a type of &%BedFrame
 with a post at each corner to support curtains or a canopy")
 (termFormat EnglishLanguage FourPosterBed "four-poster bed")
-
+;;
+;; Jennie 14th August 2022
+;; divided up the axioms
+;; quantified ?SIDE1 and ?SIDE2
 (=>
   (instance ?X FourPosterBed)
   (exists (?SHAPE)
     (and
       (attribute ?X ?SHAPE)
-      (instance ?SHAPE Quadrilateral)
-      (forall (?CORNER)
-        (=>
-          (and
-            (pointOfIntersection ?SIDE1 ?SIDE2 ?CORNER)
-            (sideOfFigure ?SIDE1 ?SHAPE)
-            (sideOfFigure ?SIDE2 ?SHAPE)
-            (not (equal ?SIDE1 ?SIDE2)))
-          (exists (?POST ?FLOOR)
-            (and
-              (meetsSpatially ?CORNER ?POST)
-              (instance ?POST Artifact)
-              (instance ?FLOOR Floor)
-              (orientation ?X ?FLOOR On)
-              (orientation ?POST ?FLOOR Vertical))))))))
-          
+      (instance ?SHAPE Quadrilateral))))
+
+(=>
+  (and
+    (attribute ?X ?SHAPE)
+    (instance ?X FourPosterBed)
+    (instance ?SHAPE Quadrilateral)
+    (sideOfFigure ?SIDE1 ?SHAPE)
+    (sideOfFigure ?SIDE2 ?SHAPE)
+    (not 
+      (equal ?SIDE1 ?SIDE2)))
+  (exists (?POST ?FLOOR ?CORNER1 ?CORNER)
+    (and              
+      (part ?POST ?X)
+      (instance ?FLOOR Floor)
+      (orientation ?X ?FLOOR On)
+      (orientation ?POST ?FLOOR Vertical)
+      (pointOfIntersection ?SIDE1 ?SIDE2 ?CORNER1)
+      (attribute ?CORNER ?CORNER1)
+      (meetsSpatially ?CORNER ?POST))))
       
 (subclass BedAttribute RelationalAttribute)
 (documentation BedAttribute EnglishLanguage "&%BedAttribute is the class of attributes
@@ -4551,7 +4563,9 @@ with the 3-d figure ?FIGURE.")
 (instance RoundShape ThreeDimensionalFigure)
 (documentation RoundShape EnglishLanguage "Any &%ThreeDimensionalFigure that has a single
 tangent at every point on its surface.")
-
+;;
+;; Jennie 16th August 2022
+;; revised the first argument for meetsSpatially to an instance of object instead of a shape
 (=>
   (attribute ?O RoundShape)
   (forall (?P)
@@ -4605,17 +4619,21 @@ all &%GeometricPoints that make up the &%Cylinder are equidistant from a
 (subclass Polygon ClosedTwoDimensionalFigure)
 (documentation Polygon EnglishLanguage "A &%ClosedTwoDimensionalFigure that is composed 
 exclusively of straight lines, i.e. &%OneDimensionalFigures.")
+;;
+;; Jennie 16th August 2022
+;; rewrote the axioms to reflect the meaning expressed in documentation
+(=>
+  (and
+    (instance ?POLYGON Polygon)
+    (geometricPart ?PART ?POLYGON))
+  (instance ?PART OneDimensionalFigure))
 
 (=>
-   (instance ?POLYGON Polygon)
-   (=>
-      (geometricPart ?PART ?POLYGON)
-      (or
-         (sideOfFigure ?PART ?POLYGON)
-         (exists (?SIDE)
-            (and
-               (sideOfFigure ?SIDE ?POLYGON)
-               (geometricPart ?PART ?SIDE))))))
+  (instance ?POLYGON Polygon)
+  (exists (?SIDE)
+    (and
+      (sideOfFigure ?SIDE ?POLYGON)
+      (geometricPart ?SIDE ?POLYGON))))
 
 (subclass Triangle Polygon)
 (documentation Triangle EnglishLanguage "Any three-sided &%Polygon.")
@@ -4653,9 +4671,10 @@ exclusively of straight lines, i.e. &%OneDimensionalFigures.")
 
 (=>
    (instance ?RECTANGLE Rectangle)
-   (=>
-      (angleOfFigure ?ANGLE ?RECTANGLE)
-      (instance ?ANGLE RightAngle)))
+   (exists (?ANGLE)
+     (and
+       (angleOfFigure ?ANGLE ?RECTANGLE)
+       (instance ?ANGLE RightAngle))))
 
 (subclass Square Rectangle)
 (documentation Square EnglishLanguage "Any &%Rectangle whose sides are all equal.")
@@ -5045,7 +5064,7 @@ are designed to be worn together.")
 (=>
   (instance ?R Rug)
   (hasPurpose ?R 
-    (exists (?C)
+    (exists (?C ?F)
       (and
         (instance ?C Covering)
         (instrument ?C ?R)
@@ -5461,7 +5480,9 @@ frequently recurs.")
 (subclass RelievingPain TherapeuticProcess)
 (documentation RelievingPain EnglishLanguage "Any &%TherapeuticProcess that removes &%Pain from 
 the patient of the process.")
-
+;;
+;; Jennie 14th August 2022
+;; changed ?P to ?P@ in the consequence
 (=>
   (and
     (instance ?R RelievingPain)
@@ -5480,8 +5501,8 @@ the patient of the process.")
           (overlapsTemporally
             (WhenFn ?P2)
             (ImmediateFutureFn (WhenFn ?R))) 
-          (instance ?P Pain)
-          (located ?P ?H))))))
+          (instance ?P2 Pain)
+          (located ?P2 ?H))))))
 
 (subclass NonspecificDisease DiseaseOrSyndrome)
 (documentation NonspecificDisease EnglishLanguage "The class of &%DiseaseOrSyndromes that are not 
@@ -5517,7 +5538,7 @@ a PsychologicalDysfunction.")
   (and
     (instance ?I InfectiousDisease)
     (attribute ?A ?I))
-  (exists (?P)
+  (exists (?P ?O)
     (and
       (instance ?P PathologicProcess)
       (agent ?P ?O)
@@ -5666,10 +5687,12 @@ pollution. The diagnosis is based on poor airflow as measured by
 spirometry. [from Wikipedia")
 (termFormat EnglishLanguage ChronicObstructivePulmonaryDisease "chronic obstructive pulmonary disease")
 (termFormat EnglishLanguage ChronicObstructivePulmonaryDisease "COPD")
-
+;;
+;; Jennie 14th August 2022
+;; Changed ?H to an instance
 (=>
   (attribute ?H ChronicObstructivePulmonaryDisease)
-  (attribute ?H 
+  (instance ?H 
     (ImpairmentFn Breathing)))
     
 (subAttribute Emphysema ChronicObstructivePulmonaryDisease)
@@ -5808,7 +5831,7 @@ Wikipedia]")
     (instance ?C Sneezing)
     (experiencer ?C ?H))          
   (hasPurpose ?C
-    (exists (?R ?N ?O)
+    (exists (?R ?N ?NOSE ?O)
       (and
         (instance ?N NasalCavity)
         (instance ?NOSE Nose)
@@ -5907,13 +5930,17 @@ coming into contact with it.")
 (instance allergic BinaryPredicate)
 (domain allergic 1 Human)
 (domainSubclass allergic 2 Substance)
-
+(documentation allergic EnglishLanguage "(allergic ?H ?S) means that a human ?H develops an
+&%AllergicReaction to a class of substance ?S when coming into contact with it.")
+;;
+;; Jennie 13th August 2022
+;; added documentaton to allergic and revised the second arguement of meetsSpatially to ?SUB
 (=>
   (and
     (allergic ?H ?S)
     (instance ?SUB ?S)
     (holdsDuring ?T
-      (meetsSpatially ?S ?H)))
+      (meetsSpatially ?SUB ?H)))
   (modalAttribute
     (exists (?AR)
       (and
@@ -5926,7 +5953,9 @@ coming into contact with it.")
 (subclass RecoveringFromIllness OrganismProcess)
 (documentation RecoveringFromIllness EnglishLanguage "Any &%Process where the experiencer recovers 
 from a &%DiseaseOrSyndrome.")
-
+;;
+;; Jennie 14th August 2022
+;; changed ?T to ?D
 (=>
   (and
     (instance ?R RecoveringFromIllness)
@@ -5935,10 +5964,10 @@ from a &%DiseaseOrSyndrome.")
     (and
       (instance ?D DiseaseOrSyndrome)
       (holdsDuring 
-        (BeginFn (WhenFn ?T)) 
+        (BeginFn (WhenFn ?D)) 
 	(attribute ?A ?D))
       (holdsDuring 
-        (EndFn (WhenFn ?T)) 
+        (EndFn (WhenFn ?D)) 
 	(not
 	  (attribute ?A ?D))))))
 
@@ -6002,10 +6031,13 @@ cannot be moved voluntarily.")
 (rangeSubclass ParalysisFn Paralysis)
 (termFormat EnglishLanguage ParalysisFn "paralysis")
 (format EnglishLanguage ParalysisFn "&%paralysis of the %1")
-
+;;
+;; Jennie 10th August 2022
+;; Revised the second arguement of attribute to an instance ?P as ParalysisFn returns a class variable
 (=>
-  (attribute ?ORGANISM 
-    (ParalysisFn ?PART))
+  (attribute ?ORGANISM
+    (instance ?P
+      (ParalysisFn ?PART)))
   (exists (?MUSCLE)
     (and
       (instance ?MUSCLE Muscle)
@@ -6026,15 +6058,17 @@ cannot be moved voluntarily.")
 (rangeSubclass PainFn Pain)
 (termFormat EnglishLanguage PainFn "pain")
 (format EnglishLanguage PainFn "&%pain in the %1")
-
+;;
+;; Jennie 10th August 2022
+;; Revised the second arguement of experiencer from class to an instance, changed the second arguement to ?P
 (=>
-  (experiencer ?ORGANISM 
-    (PainFn ?P))
+  (and
+    (experiencer ?ORGANISM ?PAIN)
+    (instance ?PAIN (PainFn ?P)))
   (exists (?PART)
     (and
-      (instance ?PART ?P)
       (part ?PART ?ORGANISM)
-      (located ?PART Pain))))
+      (located ?PART ?P))))
 
 (subclass Neurosis PsychologicalDysfunction)
 (documentation Neurosis EnglishLanguage "Any &%PsychologicalDysfunction which is not due 
@@ -6103,7 +6137,7 @@ of something that is not true.")
   (and
     (instance ?H Hallucination)
     (experiencer ?H ?P))
-  (exists (?PER)
+  (exists (?PER ?PROP)
     (and
       (instance ?PER Perception)
       (experiencer ?PER ?P)
@@ -6522,7 +6556,7 @@ devoted to hand-crafting &%Artifacts.")
 (=>
   (instance ?S Workshop)
   (hasPurpose ?S 
-    (exists (?M)
+    (exists (?M ?W)
       (and
         (instance ?M Making)
         (result ?M ?W)
@@ -7057,11 +7091,12 @@ actions.")
 (=>
   (holdsDuring ?T1
     (expects ?AGENT ?FORMULA))
-  (and
-    (holdsDuring ?T1
-      (believes ?AGENT
-        (holdsDuring ?T2 ?FORMULA)))
-    (earlier ?T1 ?T2)))
+  (exists (?T2)
+    (and
+      (holdsDuring ?T1
+        (believes ?AGENT
+          (holdsDuring ?T2 ?FORMULA)))
+      (earlier ?T1 ?T2))))
 
 (subrelation fears expects)
 (instance fears BinaryPredicate)
@@ -7332,14 +7367,16 @@ a &%HospitalOrganization.")
 on an out-patient basis only, i.e. there are no rooms where patients may take 
 up residence for a period of time while they receive care.")
 (termFormat EnglishLanguage MedicalClinic "clinic")
-
+;;
+;; Jennie 13th August 2022
+;; Changed subclass to instance
 (=>
   (instance ?C MedicalClinic)
   (not
     (exists (?B)
       (and
         (possesses ?C ?B)
-        (subclass ?B TemporaryResidence)))))
+        (instance ?B TemporaryResidence)))))
 
 (subclass MedicalClinicBuilding (ComplementFn Residence))
 (subclass MedicalClinicBuilding Building)
@@ -7609,7 +7646,7 @@ more than 10 &%Agents.")
 
 (=>
   (instance ?LGP LargeGroupProcess)
-  (exists (?G)
+  (exists (?G ?M)
     (and
       (instance ?G Collection)
       (member ?M ?G)
@@ -8155,7 +8192,7 @@ is to strengthen its representation in bargaining with the &%Corporation or
 
 (=>
    (instance ?ORG UnionOrganization)
-   (exists (?COLL)
+   (exists (?COLL ?MEMBER)
       (=>
          (member ?MEMBER ?ORG)
          (or
@@ -8760,14 +8797,15 @@ or part of a &%Building.")
      (and
        (instance ?BUILDING Building)
        (orientation ?INDOORS ?BUILDING Inside))))
-
-(subclass BiologicalSpecies Class)
-(documentation BiologicalSpecies EnglishLanguage "The &%Class of all biological species, i.e. 
-the class of all classes of &%Organism whose instances can interbreed.")
-
-(=>
-   (instance ?SPECIES BiologicalSpecies)
-   (subclass ?SPECIES Organism))
+;;
+;; Jennie 13th August 2022
+;; removed the definition for BiologicalSpecies
+;;(subclass BiologicalSpecies Class)
+;;(documentation BiologicalSpecies EnglishLanguage "The &%Class of all biological species, i.e. 
+;;the class of all classes of &%Organism whose instances can interbreed.")
+;;(=>
+;;   (instance ?SPECIES BiologicalSpecies)
+;;   (subclass ?SPECIES Organism))
 
 (subclass Wood Tissue)
 (subclass Wood PlantSubstance)
@@ -9163,17 +9201,20 @@ in place.")
         (instance ?SUB Substance)
         (attribute ?SUB Fluid)
         (objectTransferred ?TRAN ?SUB)))))
-
+;;
+;; Jennie 14th August 2022
+;; Added class ?CLASS as first arguement for capability takes a class
 (=>
   (and
     (instance ?P Plant)
     (part ?TIS ?P))
-  (exists (?K ?W)
+  (exists (?K ?W ?CLASS)
     (and
-      (instance ?K Keeping)
+      (instance ?K ?CLASS)
+      (subclass ?CLASS Keeping)
       (instance ?W Water)
       (patient ?K ?W)
-      (capability ?K instrument ?TIS)
+      (capability ?CLASS instrument ?TIS)
       (or
         (instance ?TIS PlantLeaf)
         (instance ?TIS PlantStem)))))
@@ -9259,7 +9300,7 @@ instances of &%Parasite.")
 
 (=>
   (instance ?A Antiparasitic)
-  (exists (?D)
+  (exists (?D ?AVM)
     (and
       (instance ?D ParasiticDisease)
       (medicine ?AVM ?D))))
@@ -9921,7 +9962,7 @@ per %2")
 
 (=>
   (heartRate ?H ?T ?I)
-  (exists (?C)
+  (exists (?C ?M)
     (and
       (instance ?C Collection)
       (memberType ?C HeartBeat)
@@ -10182,32 +10223,35 @@ two &%Muscles that put opposing forces on a part of the body.")
 (termFormat EnglishLanguage antagonistMuscles "antagonist muscles")
 (format EnglishLanguage antagonistMuscles "%1 and %2 are &%antagonist muscles")
 
-
+;;
+;; Jennie 10th August 2022
+;; Revised variables used by the process of ?F because ?A and ?B are classes not isntances
+;; Corrected the order of arguements for capability
 (=>
   (and
     (antagonistMuscles ?A ?B)
     (instance ?F Flexion)
-    (instrument ?F ?A)
-    (moves ?F ?PART)
+    (instrument ?F ?AC)
+    (moves ?F ?BC)
     (instance ?AC ?A)
     (instance ?BC ?B)
-    (part ?A ?H)
-    (part ?B ?H)
+    (part ?AC ?H)
+    (part ?BC ?H)
     (instance ?H Mammal))
-  (capability ?B instrument Extension))
+  (capability Extension instrument ?BC))
          
 (=>
   (and
     (antagonistMuscles ?A ?B)
-    (instance ?F Extension)
-    (instrument ?F ?A)
-    (moves ?F ?PART)
+    (instance ?E Extension)
+    (instrument ?E ?AC)
+    (moves ?F ?BC)
     (instance ?AC ?A)
     (instance ?BC ?B)
-    (part ?A ?H)
-    (part ?B ?H)
+    (part ?AC ?H)
+    (part ?BC ?H)
     (instance ?H Mammal))
-  (capability ?B instrument Flexion))
+  (capability Flexion instrument ?BC))
 
 (antagonistMuscles Bicep Tricep)
 (antagonistMuscles HamstringMuscle ThighMuscle)
@@ -10783,13 +10827,15 @@ form the &%Chest.")
 (documentation Bladder EnglishLanguage "An &%Organ that holds &%Urine
 produced by the &%Kidneys prior to &%Urination.")
 (termFormat EnglishLanguage Bladder "bladder")
-
+;;
+;; Jennie 14th August
+;; changed ?U to ?P
 (=>
   (instance ?P Urination)
   (exists (?B)
     (and
       (instance ?B Bladder)
-      (origin ?U ?B))))
+      (origin ?P ?B))))
 
 (subclass Spleen Organ)
 (subclass Spleen AnimalAnatomicalStructure)
@@ -11450,7 +11496,9 @@ chronological age, multiplied by 100.")
 (termFormat EnglishLanguage connectedBodyPart "a %1 is connected to a %2")
 (domainSubclass connectedBodyPart 1 BodyPart)
 (domainSubclass connectedBodyPart 2 BodyPart)
-
+;;
+;; Jennie 14th August
+;; changed ?G to ?H
 (=>
   (and
     (connectedBodyPart ?A ?B)
@@ -11459,7 +11507,7 @@ chronological age, multiplied by 100.")
     (and
       (instance ?AI ?A)
       (instance ?BI ?B)
-      (part ?AI ?G)
+      (part ?AI ?H)
       (part ?BI ?H)
       (connected ?AI ?BI))))
       
@@ -11849,14 +11897,16 @@ neuron specifically to transmit a message.[from Wikipedia]")
 for the &%Eye.")
 (termFormat EnglishLanguage TearGland "tear gland")
 (termFormat EnglishLanguage TearGland "lacrymal gland")
-
+;;
+;; Jennie 14th August 2022
+;; Changed ?SG to ?TG and ?S to ?T in result
 (=>
   (instance ?T TearSubstance)
-  (exists (?P ?SG)
+  (exists (?P ?TG)
     (and
       (instance ?TG TearGland)
-      (instrument ?P ?SG)
-      (result ?P ?S))))
+      (instrument ?P ?TG)
+      (result ?P ?T))))
 
 (=>
   (instance ?T TearSubstance)
@@ -12819,13 +12869,12 @@ is a camera and the &%result is a &%Photograph.")
 (=>
   (defaultMinimumHeight ?OBJECT (MeasureFn ?H ?U))
   (modalAttribute
-    (exists (?INST)
+    (exists (?INST ?HEIGHT)
       (and
         (instance ?INST ?OBJECT)
         (height ?INST 
           (MeasureFn ?HEIGHT ?U))
         (lessThan ?HEIGHT ?H))) Unlikely))
-
 
 (instance defaultMaximumHeight BinaryPredicate)
 (domainSubclass defaultMaximumHeight 1 Object)
@@ -12837,13 +12886,12 @@ is a camera and the &%result is a &%Photograph.")
   (defaultMaximumHeight ?OBJECT 
    (MeasureFn ?H ?U))
   (modalAttribute
-    (exists (?INST)
+    (exists (?INST ?HEIGHT)
       (and
         (instance ?INST ?OBJECT)
         (height ?INST 
           (MeasureFn ?HEIGHT ?U))
         (greaterThan ?HEIGHT ?H))) Unlikely))
-
 
 (instance defaultMinimumWidth BinaryPredicate)
 (domainSubclass defaultMinimumWidth 1 Object)
@@ -12854,13 +12902,12 @@ is a camera and the &%result is a &%Photograph.")
 (=>
   (defaultMinimumWidth ?OBJECT (MeasureFn ?W ?U))
   (modalAttribute
-    (exists (?INST)
+    (exists (?INST ?WIDTH)
       (and
         (instance ?INST ?OBJECT)
         (width ?INST 
           (MeasureFn ?WIDTH ?U))
         (lessThan ?WIDTH ?W))) Unlikely))
-
 
 (instance defaultMaximumWidth BinaryPredicate)
 (domainSubclass defaultMaximumWidth 1 Object)
@@ -12872,13 +12919,12 @@ is a camera and the &%result is a &%Photograph.")
   (defaultMaximumWidth ?OBJECT 
     (MeasureFn ?W ?U))
   (modalAttribute
-    (exists (?INST)
+    (exists (?INST ?WIDTH)
       (and
         (instance ?INST ?OBJECT)
         (width ?INST 
           (MeasureFn ?WIDTH ?U))
         (greaterThan ?WIDTH ?W))) Unlikely))
-
 
 (instance defaultMinimumLength BinaryPredicate)
 (domainSubclass defaultMinimumLength 1 Object)
@@ -12889,7 +12935,7 @@ is a camera and the &%result is a &%Photograph.")
 (=>
   (defaultMinimumLength ?OBJECT (MeasureFn ?L ?U))
   (modalAttribute
-    (exists (?INST)
+    (exists (?INST ?LENGTH)
       (and
         (instance ?INST ?OBJECT)
         (length ?INST 
@@ -12906,13 +12952,12 @@ is a camera and the &%result is a &%Photograph.")
   (defaultMaximumLength ?O 
     (MeasureFn ?L ?U))
   (modalAttribute
-    (exists (?INST)
+    (exists (?INST ?LENGTH)
       (and
         (instance ?INST ?O)
         (length ?INST 
           (MeasureFn ?LENGTH ?U))
         (greaterThan ?LENGTH ?U))) Unlikely))
-
 
 (instance sphereRadius BinaryPredicate)
 (domain sphereRadius 1 Object)
@@ -12931,7 +12976,6 @@ means the radius of the spherical &%Object, ?OBJECT, is ?LENGTH.")
         (pointOfFigure ?PART ?OBJECT)
         (geometricDistance ?PART ?POINT ?RADIUS)))))
 
-
 (instance defaultMinimumSphereRadius BinaryPredicate)
 (domainSubclass defaultMinimumSphereRadius 1 Object)
 (domain defaultMinimumSphereRadius 2 LengthMeasure)
@@ -12945,11 +12989,11 @@ that states the assumed minimum &%sphereRadius of a spherical &%Object")
     (instance ?INST ?OBJECT)
     (attribute ?INST Sphere))
   (modalAttribute
-    (and
-      (sphereRadius ?INST 
-        (MeasureFn ?RADIUS ?U))
-      (lessThan ?RADIUS ?R)) Unlikely))
-
+    (exists (?RADIUS)
+      (and  
+        (sphereRadius ?INST 
+          (MeasureFn ?RADIUS ?U))
+        (lessThan ?RADIUS ?R))) Unlikely))
 
 (instance defaultMaximumSphereRadius BinaryPredicate)
 (domainSubclass defaultMaximumSphereRadius 1 Object)
@@ -12965,11 +13009,11 @@ that states the assumed maximum &%sphereRadius of a spherical &%Object")
     (instance ?INST ?OBJECT)
     (attribute ?INST Sphere))
   (modalAttribute
-    (and
-      (sphereRadius ?INST 
-        (MeasureFn ?RADIUS ?U))
-      (greaterThan ?RADIUS ?R)) Unlikely))
-
+    (exists (?RADIUS)
+      (and
+        (sphereRadius ?INST 
+          (MeasureFn ?RADIUS ?U))
+        (greaterThan ?RADIUS ?R))) Unlikely))
 
 (instance defaultMinimumMeasure BinaryPredicate)
 (domainSubclass defaultMinimumMeasure 1 Object)
@@ -13657,7 +13701,7 @@ currency.")
 
 (=>
   (property ?C PurchaseContract)
-  (exists (?S)
+  (exists (?S ?SELLER ?BUYER)
     (and
       (instance ?S Selling)
       (agent ?S ?SELLER)
@@ -13672,7 +13716,7 @@ perform a service for another &%Agent (usually for a price).")
 
 (=>
   (property ?C ServiceContract)
-  (exists (?SP)
+  (exists (?SP ?SERVICE ?CUST)
     (and
       (instance ?SP ServiceProcess)
       (realization ?SP ?C)
@@ -14075,11 +14119,13 @@ on television or radio.")
 (documentation NewsProgram EnglishLanguage "A &%BroadcastProgram that is devoted to 
 reporting the latest events in a city, region, nation or the world at 
 large.")
-
+;;
+;; Jennie 13th August 2022
+;; Changed equal to instance as the range for SeriesVolumeFn is a class
 (=>
    (and
       (subclass ?PROGRAM NewsProgram)
-      (equal ?EPISODE (SeriesVolumeFn ?PROGRAM ?NUMBER)))
+      (instance ?EPISODE (SeriesVolumeFn ?PROGRAM ?NUMBER)))
    (exists (?DISSEMINATE)
       (and
          (instance ?DISSEMINATE Disseminating)
@@ -14483,18 +14529,18 @@ of Spain, Mexico, and many Central and South American countries.")
 (subclass Industry Collection)
 (documentation Industry EnglishLanguage "The class of &%Collections of &%Corporations 
 which are in the same line of business.")
-
+;;
+;; Jennie 14th August 2022
+;; quantified ?MEMB1 ?MEMB2
 (=>
   (instance ?INDUSTRY Industry)
-  (=>
+  (exists (?MEMB1 ?MEMB2 ?CLASS)
     (and
       (member ?MEMB1 ?INDUSTRY)
-      (member ?MEMB2 ?INDUSTRY))
-    (exists (?CLASS)
-      (and
-        (subclass ?CLASS Corporation)
-        (immediateInstance ?MEMB1 ?CLASS)
-        (immediateInstance ?MEMB2 ?CLASS)))))
+      (member ?MEMB2 ?INDUSTRY)
+      (subclass ?CLASS Corporation)
+      (immediateInstance ?MEMB1 ?CLASS)
+      (immediateInstance ?MEMB2 ?CLASS))))
 
 (instance manufacturer BinaryPredicate)
 (documentation manufacturer EnglishLanguage "A relation between a class of &%Objects
@@ -14597,7 +14643,7 @@ it is possible to have &%Seeing.")
 (=>
   (attribute ?O Transparent)
   (modalAttribute
-    (exists (?S)
+    (exists (?S ?A ?D)
       (and
         (instance ?S Seeing)
         (agent ?S ?A)
@@ -14614,7 +14660,7 @@ it is possible to transmit light but not through which is likely to be &%Seeing.
   (attribute ?O Translucent)
   (modalAttribute
     (not
-      (exists (?S)
+      (exists (?S ?A ?D)
         (and
           (instance ?S Seeing)
           (agent ?S ?A)
@@ -14625,7 +14671,7 @@ it is possible to transmit light but not through which is likely to be &%Seeing.
 (=>
   (attribute ?O Translucent)
   (modalAttribute
-    (exists (?EMIT)
+    (exists (?EMIT ?S ?OBJ)
       (and
         (instance ?EMIT RadiatingLight)
         (resource ?EMIT ?S)
@@ -16738,7 +16784,9 @@ so.")
 
 (=>
    (instance ?ESCAPE Escaping)
-   (not (holdsRight (agent ?ESCAPE ?AGENT) ?AGENT)))
+   (not 
+     (exists (?AGENT)
+       (holdsRight (agent ?ESCAPE ?AGENT) ?AGENT))))
    
 (subclass Leaving Translocation)
 (documentation Leaving EnglishLanguage "The initial part of any instance of &%Translocation.")
@@ -17071,12 +17119,13 @@ as to cause or tend to cause motion away from the agent.")
   (holdsDuring
     (ImmediateFutureFn
       (BeginFn ?P))
-    (and
-      (distance ?ALOC ?D 
-        (MeasureFn ?SMALLER ?U))
-      (distance ?ALOC ?O 
-        (MeasureFn ?LARGER ?U))
-      (greaterThan ?LARGER ?SMALLER))))
+    (exists (?LARGER ?U ?SMALLER)
+      (and
+        (distance ?ALOC ?D 
+          (MeasureFn ?SMALLER ?U))
+        (distance ?ALOC ?O 
+          (MeasureFn ?LARGER ?U))
+        (greaterThan ?LARGER ?SMALLER)))))
 
 (disjoint Pulling Pushing)
 
@@ -17092,12 +17141,13 @@ as to cause or tend to cause motion away from the agent.")
   (holdsDuring
     (ImmediateFutureFn
       (BeginFn ?P))
-    (and
-      (distance ?ALOC ?D 
-        (MeasureFn ?SMALLER ?U))
-      (distance ?ALOC ?O 
-        (MeasureFn ?LARGER ?U))
-      (greaterThan ?LARGER ?SMALLER))))
+    (exists (?LARGER ?U ?SMALLER)
+      (and
+        (distance ?ALOC ?D 
+          (MeasureFn ?SMALLER ?U))
+        (distance ?ALOC ?O 
+          (MeasureFn ?LARGER ?U))
+        (greaterThan ?LARGER ?SMALLER)))))
 
 (subclass Submarine WaterVehicle)
 (documentation Submarine EnglishLanguage "A &%WaterVehicle which is capable of travelling 
@@ -17375,8 +17425,8 @@ perfect sphere of the same volume")
         (DivisionFn ?L 2.0) ?LM))
     (measure ?S (MeasureFn ?V1 ?VM))
     (measure ?O (MeasureFn ?V2 ?VM))
-    (instance ?LM LengthMeasure)
-    (instance ?VM VolumeMeasure))
+    (instance ?LM UnitOfLenght)
+    (instance ?VM UnitOfVolume))
   (equal ?V1 ?V2))
 
 (subclass Clay Soil)
@@ -17610,22 +17660,23 @@ contained information can not be decoded again.")
         (instrument ?CUT ?X)
         (instance ?PAPER Paper)
         (patient ?CUT ?PAPER)))))
-        
+;;
+;; Jennie 14th August 2022
+;; quantify ?CBO ?PAPER ?INFO and shortern axioms       
 (=>
   (and
     (instance ?X PaperShredder)
     (instance ?CUT Cutting)
     (instrument ?CUT ?X))
   (hasPurpose ?CUT
-    (=>
+    (exists (?CBO ?PAPER ?INFO ?READ)
       (and
         (instance ?CBO VisualContentBearingObject)
         (containsInformation ?CBO ?INFO)
         (instance ?PAPER Paper)
-        (located ?CBO ?PAPER))
-      (decreasesLikelihood
-        (patient ?CUT ?PAPER)
-        (exists (?READ)
+        (located ?CBO ?PAPER)
+        (decreasesLikelihood
+          (patient ?CUT ?PAPER)
           (and
             (instance ?READ Interpreting)
             (patient ?READ ?INFO)
@@ -17748,7 +17799,7 @@ with these entities but merely the the principal concern of the given department
 
 (=>
   (equal ?DEP (DepartmentOfFn ?COMP ?PHYS))
-  (exists (?P)
+  (exists (?P ?I)
     (and
       (agent ?P ?DEP)
       (instance ?I ?PHYS)
@@ -17772,22 +17823,25 @@ with these entities but merely the the principal concern of the given department
 
 (subrelation DepartmentOfPreventingFn DepartmentOfFn)
 (instance DepartmentOfPreventingFn BinaryFunction)
-(documentation DepartmentOfPreventingFn EnglishLanguage "A department charged with preventing
-or inhibiting processes of a certain kind.")
+(documentation DepartmentOfPreventingFn EnglishLanguage "DepartmentOfPreventingFn is a funtion which returns
+an instance of the department of an organisation (?COMP) charged with preventing or inhibiting a class of processes
+(?PHYS) of a certain kind.")
 (domain DepartmentOfPreventingFn 1 Organization)
-(domain DepartmentOfPreventingFn 2 Process)
+(domainSubclass DepartmentOfPreventingFn 2 Process)
 (format EnglishLanguage DepartmentOfPreventingFn "%1 is %n &%preventing %2")
-
+(range DepartmentOfPreventingFn Organization)
+;;
+;; Jennie 13th August 2022
+;; added range and subOrganization to the first set of axioms and deleted subclass for the second set of axioms
 (=>
   (and
     (equal ?DEP (DepartmentOfPreventingFn ?COMP ?PHYS))
-    (subclass ?PHYS Process))
+    (subclass ?PHYS Process)
+    (subOrganization ?DEP ?COMP))
   (inhibits ?DEP ?PHYS))
 
 (=>
-  (and
-    (equal ?DEP (DepartmentOfPreventingFn ?COMP ?PHYS))
-    (subclass ?PHYS Process))
+  (equal ?DEP (DepartmentOfPreventingFn ?COMP ?PHYS))
   (not
     (desires ?COMP
       (exists (?P)
@@ -17842,13 +17896,14 @@ depriving them of &%Oxygen.")
   (holdsDuring
     (EndFn
       (WhenFn ?S))
-    (and
-      (experiencer ?S ?P)
-      (not
-        (exists (?B)
-          (and
-            (instance ?B Breathing)
-            (experiencer ?B ?P)))))))
+    (exists (?P)
+      (and
+        (experiencer ?S ?P)
+        (not
+          (exists (?B)
+            (and
+              (instance ?B Breathing)
+              (experiencer ?B ?P))))))))
 
 (subclass Hanging Suffocating)
 (documentation Hanging EnglishLanguage "Suffocating someone by suspending him/her from 
@@ -18949,11 +19004,12 @@ are added to the substance undergoing the &%ChemicalProcess.")
     (holdsDuring 
       (BeginFn (WhenFn ?R)) 
       (electronNumber ?S ?L)))
-  (and
-    (greaterThan ?G ?L)
-    (holdsDuring 
-      (EndFn (WhenFn ?R)) 
-      (electronNumber ?S ?G))))
+  (exist (?G)
+    (and
+      (greaterThan ?G ?L)
+      (holdsDuring 
+        (EndFn (WhenFn ?R))
+        (electronNumber ?S ?G)))))
 
 (subclass Oxidation ChemicalDecomposition)
 (documentation Oxidation EnglishLanguage "Any &%ChemicalProcess where &%Electrons 
@@ -19013,7 +19069,7 @@ not longer change.")
 
 (=>
    (property ?PROCESS ChemicalEquilibrium)
-   (exists (?RATIO)
+   (exists (?RATIO ?TIME ?RESOURCE ?RESULT)
       (=>
          (and
             (holdsDuring ?TIME (resource ?PROCESS ?RESOURCE))
@@ -19827,9 +19883,10 @@ to work for an extended period.  ")
     (instance ?W DisabilityLeave)
     (agent ?W ?PERSON))
   (holdsDuring (WhenFn ?W)
-    (and
-      (instance ?D Disability)
-      (attribute ?PERSON ?D))))
+    (exists (?D)
+      (and
+        (instance ?D Disability)
+        (attribute ?PERSON ?D)))))
       
 (documentation OccupationFn EnglishLanguage "(OccupationFn ?PROCESS) denotes the 
 subclass of ?PROCESS where instances of ?PROCESS are performed as 
@@ -19954,19 +20011,20 @@ in &%Restaurant that brings food from the kitchen to the customer's table")
     (customer ?CUST ?REST)
     (located ?CUST ?TABLE)
     (instance ?TABLE Table))
-  (and
-    (possesses ?REST ?KITCHEN)
-    (instance ?KITCHEN KitchenArea)
-    (instance ?DINING DiningArea)
-    (located ?TABLE ?DINING)
-    (hasPurpose ?X
-      (and
-        (instance ?C Carrying)
-        (agent ?C ?X)
-        (origin ?C ?KITCHEN)
-        (destination ?C ?TABLE)
-        (patient ?C ?FOOD)
-        (instance ?FOOD (FoodForFn Human))))))
+  (exists (?DINING ?C ?FOOD ?KITCHEN)
+    (and
+      (possesses ?REST ?KITCHEN)
+      (instance ?KITCHEN KitchenArea)
+      (instance ?DINING DiningArea)
+      (located ?TABLE ?DINING)
+      (hasPurpose ?X
+        (and
+          (instance ?C Carrying)
+          (agent ?C ?X)
+          (origin ?C ?KITCHEN)
+          (destination ?C ?TABLE)
+          (patient ?C ?FOOD)
+          (instance ?FOOD (FoodForFn Human)))))))
 
 (instance Maid ServicePosition)
 
@@ -20137,7 +20195,7 @@ This does not include plumbing, roofing, electrical, foundation and site work.")
 
 (=>
   (instance ?C Carpentry)
-  (exists (?B)
+  (exists (?B ?W)
     (and
       (instance ?B Building)
       (instance ?W Wood)
@@ -20401,33 +20459,50 @@ norm in different nations.")
 (subclass Circumision Removing)
 (subclass Circumision Surgery)
 
-(instance NewsReporter Profession)
+(subAttribute NewsReporter Journalist)
 (documentation NewsReporter EnglishLanguage "The &%Profession of being a news reporter, i.e. 
 investigating and reporting, in a publication or broadcast program, current 
 events.")
+;;
+;; Jennie 13th August 2022
+;; revised the second arguement of authors to a class and added axioms to cover broastcast program
 
 (=>
   (attribute ?H NewsReporter)
-  (exists (?T ?EV)
-    (and
-      (instance ?EV Process)
-      (overlapsTemporally 
-        (WhenFn ?EV) 
-        (WhenFn ?H))
-      (authors ?H ?T)
-      (refers ?T ?EV))))
-
+  (hasPurpose ?H
+    (exists (?EV ?T ?NEWS)
+      (and
+        (instance ?EV Process)
+        (overlapsTemporally 
+          (WhenFn ?EV) 
+          (WhenFn ?H))       
+        (instance ?T ?NEWS)
+        (or
+          (subclass ?NEWS Newspaper)   
+          (subclass ?NEWS Newsprogram))
+        (authors ?H ?NEWS)
+        (refers ?T ?EV)))))
+      
 (subAttribute ArtCritic Journalist)
 (documentation ArtCritic EnglishLanguage "The &%Profession of reporting and critiquing current 
 &%ArtWorks.")
+;;
+;; Jennie 13th August 2022
+;; revised the second arguement of authors to a class and added axioms to cover crtitiqing current work
 
 (=>
   (attribute ?H ArtCritic)
-  (exists (?T ?AW)
-    (and
-      (instance ?AW ArtWork)
-      (authors ?H ?T)
-      (refers ?T ?AW))))
+  (hasPurpose ?H
+    (exists (?AW ?T ?CLASS)
+      (and
+        (instance ?AW ArtWork)
+        (overlapsTemporally 
+          (WhenFn ?AW) 
+          (WhenFn ?H))
+        (instance ?T ?CLASS)
+        (subclass ?CLASS Article)       
+        (authors ?H ?CLASS)
+        (refers ?T ?AW)))))
 
 (instance Accountant Profession)
 (documentation Accountant EnglishLanguage "The &%Profession of being an &%Accountant.")
@@ -20479,7 +20554,7 @@ age of the &%Object is set arbitrarily.")
     (instance ?R Reasoning)
     (subProposition ?X Archeology)
     (realization ?R ?X))
-  (exists (?D ?S ?O ?T)
+  (exists (?D ?S ?O ?T ?W)
     (and
       (instance ?D Discovering)
       (instance ?O Object)
@@ -20733,7 +20808,9 @@ to an &%Injuring of some sort.")
 (documentation Vomiting EnglishLanguage "The process by which an &%Organism expells the
 contents of its &%Stomach.  Although usually involuntary, a &%Human can induce vomiting
 in itself, so this cannot be a purely &%AutonomicProcess.")
-
+;;
+;; Jennie 10th August 2022
+;; Changed StartFn to BeginFn
 (=>
   (and
     (instance ?V Vomiting)
@@ -20743,7 +20820,7 @@ in itself, so this cannot be a purely &%AutonomicProcess.")
       (instance ?S Stomach)
       (part ?S ?A)
       (holdsDuring 
-        (StartFn (WhenFn ?V))
+        (BeginFn (WhenFn ?V))
         (located ?O ?S))
       (holdsDuring
         (EndFn (WhenFn ?V))
@@ -20770,7 +20847,9 @@ in itself, so this cannot be a purely &%AutonomicProcess.")
 (termFormat EnglishLanguage Vomit "vomit")
 (documentation Vomit EnglishLanguage "&%Food that was expelled from the &%Stomach of 
 an &%Animal.")
-
+;;
+;; Jennie 14th August 2022
+;; Changed StartFn to BeginFn
 (=>
   (and
     (instance ?V Vomiting)
@@ -20782,7 +20861,7 @@ an &%Animal.")
       (instance ?S Stomach)
       (part ?S ?A)
       (holdsDuring 
-        (StartFn (WhenFn ?V))
+        (BeginFn (WhenFn ?V))
         (located ?O ?S))
       (holdsDuring
         (EndFn (WhenFn ?V))
@@ -21357,10 +21436,11 @@ to be propelled by a human to its target.")
 
 (=>
   (instance ?X HandGrenade)
-  (and
-    (measure ?X
-      (MeasureFn ?N PoundMass))
-    (lessThan ?N 10.0)))
+  (exists (?N)
+    (and
+      (measure ?X
+        (MeasureFn ?N PoundMass))
+      (lessThan ?N 10.0))))
     
 (=>
   (instance ?X HandgrenadeAttack)
@@ -23210,7 +23290,7 @@ corresponding to &%part.")
     (instance ?WHOLE ?WHOLETYPE))
   (exists (?PART)
     (and
-      (instance ?PART ?PARTTYPE)
+      (instance ?PART ?PART_TYPE)
       (part ?PART ?WHOLE))))
 
 (instance partTypes BinaryPredicate)
@@ -23709,7 +23789,9 @@ See also &%equipmentTypeCount.")
 (instance equipmentType BinaryPredicate)
 (domain equipmentType 1 Artifact)
 (domain equipmentType 2 Device)
-
+;;
+;; Jennie 10th August 2022
+;; revised the second arguement of equipmentType to ?DEVICE, an instance of the class ?T
 (=>
   (equipmentType ?O ?T)
   (exists (?D)
@@ -23721,14 +23803,20 @@ See also &%equipmentTypeCount.")
 
 (=>
   (equipmentCount ?O ?T ?C)
-  (equipmentType ?O ?T))
-
+  (exists (?DEVICE)
+    (and
+      (instance ?DEVICE ?T)
+      (equipmentType ?O ?DEVICE))))
+;;
+;; Jennie 10th August 2022
+;; added ?D as a class of Device for the second arguement of equipmentCount
 (=>
   (equipmentType ?O ?T)
-  (exists (?C)
+  (exists (?C ?D)
     (and
+      (instance ?T ?D)
       (greaterThanOrEqualTo ?C 1)
-      (equipmentCount ?O ?T ?C))))
+      (equipmentCount ?O ?D ?C))))
 
 (documentation grammaticalRelation EnglishLanguage "(grammaticalRelation ?PHRASE ?SENTENCE) 
 means that the &%Phrase ?PHRASE has a grammatical relation to the Sentence 
@@ -24872,7 +24960,7 @@ of &%Devices that allow water to be released when a &%Fire is detected")
 
 (=>
   (instance ?FE FireExtinguisher)
-  (exists (?PERSON ?CARRY)
+  (exists (?PERSON)
     (and
       (instance ?PERSON Human)
       (capability Carrying instrument ?PERSON))))
@@ -25692,23 +25780,21 @@ representation of an &%Object or a copy of a &%TwoDimensionalObject. Note that i
 (=>
   (instance ?X Photocopier)
   (hasPurpose ?X
-    (=>
+    (exists (?COPY ?OBJ1 ?INFO ?OBJ2 ?SHEET)
       (and
         (instance ?OBJ1 TwoDimensionalObject)
         (instance ?OBJ1 VisualContentBearingObject)
         (containsInformation ?OBJ1 ?INFO)
         (instance ?COPY Photocopying)
         (instrument ?COPY ?X)
-        (patient ?COPY ?OBJ1))
-      (exists (?OBJ2 ?SHEET)
-        (and
-          (result ?COPY ?OBJ2)
-          (instance ?OBJ2 TwoDimensionalObject)
-          (instance ?OBJ2 VisualContentBearingObject)
-          (instance ?SHEET PrintedSheet)
-          (located ?OBJ2 ?SHEET)
-          (containsInformation ?OBJ2 ?INFO))))))
-          
+        (patient ?COPY ?OBJ1)
+        (result ?COPY ?OBJ2)
+        (instance ?OBJ2 TwoDimensionalObject)
+        (instance ?OBJ2 VisualContentBearingObject)
+        (instance ?SHEET PrintedSheet)
+        (located ?OBJ2 ?SHEET)
+        (containsInformation ?OBJ2 ?INFO)))))
+         
 (=>
   (instance ?X Photocopier)
   (hasPurpose ?X
@@ -25763,7 +25849,8 @@ how much electricity ?OBJ, a power source, generates")
 
 (=>
   (voltageMeasure ?OBJ ?MEAS)
-  (equal ?MEAS (MeasureFn ?QUANT Volt)))
+  (exists (?QUANT)
+    (equal ?MEAS (MeasureFn ?QUANT Volt))))
   
 (=>
   (voltageMeasure ?OBJ ?MEAS)
@@ -28925,7 +29012,7 @@ that this includes &%ArtWorks.")
   (and
     (attribute ?C Collectible)
     (hasPurpose ?C ?P))
-  (exists (?H) 
+  (exists (?H ?P2) 
     (and
       (instance ?H Human)
       (wants ?H ?C)
@@ -29092,7 +29179,7 @@ committing to the truth of what that person said.")
 
 (=>
   (instance ?R Restating)
-  (exists (?L)
+  (exists (?L ?LP ?RP)
     (and
       (instance ?L LinguisticCommunication)
       (earlier ?L ?R)
@@ -29284,7 +29371,7 @@ after buyer's receipt of goods, but only before before a seller's receipt of pay
 
 (=>
   (instance ?INVOICE Invoice)
-  (exists (?NUMBER ?BUYER ?SELLER ?ENT)
+  (exists (?NUMBER ?BUYER ?SELLER ?ENT ?PRODUCT)
     (and
       (uniqueIdentifier ?NUMBER ?INVOICE)
       (buys ?BUYER ?SELLER ?ENT)
@@ -29311,7 +29398,7 @@ occurs before &%Buying.")
 
 (=>
   (instance ?PO PurchaseOrder)
-  (exists (?NUMBER ?BUYER ?SELLER)
+  (exists (?NUMBER ?BUYER ?SELLER ?PRODUCT)
     (and
       (uniqueIdentifier ?NUMBER ?PO)
       (buys ?BUYER ?SELLER ?PRODUCT)
@@ -29346,7 +29433,7 @@ address with respect to a given &%Street.")
 
 (=> 
   (instance ?NUMBER AccountNumber)
-  (exists (?CORPORATION ?AGENT)
+  (exists (?CORPORATION ?AGENT ?HUMAN)
     (and
       (instance ?CORPORATION Corporation)
       (instance ?AGENT Agent)
@@ -29357,7 +29444,7 @@ address with respect to a given &%Street.")
 
 (=> 
   (instance ?AN InvoiceNumber)
-  (exists (?INVOICE ?SELLER)
+  (exists (?INVOICE ?SELLER ?SELLING)
     (and
       (instance ?INVOICE Invoice)
       (instance ?SELLING Selling)
@@ -29441,7 +29528,9 @@ of a specific &%Class which no other &%Agent of the same &%Class had undertaken 
 &%TimeInterval preceeding the moment when the record was broken and in a specific &%Region. &%BreakingRecord &%refers to
 a &%Quantity which &%refers to the &%Process &%Class.")
 (subclass BreakingRecord Process)
-
+;;
+;; Jennie 13th August 2022
+;; changed ?L from a class to an instant t match the requirement fo the second arguement of eventLocated
 (=>
   (and
     (instance ?X BreakingRecord)
@@ -29451,7 +29540,7 @@ a &%Quantity which &%refers to the &%Process &%Class.")
       (instance ?AC Set)
       (instance ?A1 ?AC)
       (subclass ?PC Process)
-      (subclass ?L Region)
+      (instance ?L Region)
       (instance ?TP TimePoint)
       (instance ?Q Quantity)
       (instance ?P1 ?PC)
@@ -29806,7 +29895,7 @@ sense, the relation embodies a closed world assumption.")
     (exists (?OI)
       (and
         (instance ?OI ?O)
-        (inhabits ?O ?L)))
+        (inhabits ?OI ?L)))
     Likely))
 
 (=>
@@ -30208,7 +30297,7 @@ Some carabiners have locking gates, or wire gates, or bent gates.")
 
 (=>
   (instance ?C Carabiner)
-  (material ?C Metal))
+  (material Metal ?C))
 
 (=>
   (instance ?C Carabiner)
@@ -30321,7 +30410,9 @@ the &%origin to the &%agent.")
         (memberType ?G ?O)
         (memberCount ?G ?N)
         (possesses ?A ?G)))))
-
+;;
+;; Jennie 13th August 2022
+;; Revised the first arguement of measure to ?G as ?O is a class
 (=>
   (and
     (shortage ?A ?O ?C ?T ?N)
@@ -30330,7 +30421,7 @@ the &%origin to the &%agent.")
     (exists (?G)
       (and
         (instance ?G ?O)
-        (measure ?O ?N)
+        (measure ?G ?N)
         (possesses ?A ?G)))))
 
 (=>
@@ -30716,7 +30807,9 @@ an &%ElectricalTransformer to a value of &%FunctionQuantity it distribute (outpu
 the number of time a %Process occurs in a unit of time (&%frequency).")
 
 (termFormat EnglishLanguage Frequency "Frequency")
-
+;;
+;; Jennie 10th August 2022
+;; revised the first arguement of frequency to a class instead of an instant
 (=>
   (and
     (memberMeasure ?S ?M ?Q)
@@ -30724,7 +30817,7 @@ the number of time a %Process occurs in a unit of time (&%frequency).")
     (member ?O ?S)
     (instance ?P Process)
     (agent ?P ?O))
-  (frequency ?P ?Q))
+  (frequency Process ?Q))
 
 (=>
   (and
@@ -30733,7 +30826,7 @@ the number of time a %Process occurs in a unit of time (&%frequency).")
     (instance ?O ?S)
     (instance ?P Process)
     (agent ?P ?O))
-  (frequency ?P ?Q)) 
+  (frequency Process ?Q)) 
 
 (instance transformerCapacity BinaryPredicate)
 (termFormat EnglishLanguage transformerCapacity "transformer capacity")
