@@ -13,8 +13,7 @@
     
 (<=>
   (modalAttribute ?P Obligation)
-  (not
-    (modalAttribute ?P Prohibition)))
+  (modalAttribute (not ?P) Prohibition))
     
 (<=>
   (modalAttribute ?P Prohibition)
@@ -201,4 +200,202 @@
       (and
         (agent ?P ?H)
         (benefits ?P2 ?AG)))))
+
+;;---------------------------------------------------
+
+;; from http://web.cecs.pdx.edu/~mperkows/PERKOWSKI_PRESENTATIONS/Perkowski.Seminar.SySc.2011.pdf
+;; slide 87 onward
+
+; logical omniscience, axiom K
+(=>
+  (and
+    (knows ?A ?F)
+    (knows ?A 
+      (=>
+        ?F ?F2)))
+ (knows ?A ?F2))
+ 
+;;  (=> ?F (knows ?A ?F))  necessitation, only for diety
+
+;; axiom of consistency, axiom D
+
+(not
+  (knows ?A 
+    (and
+      ?F 
+      (not ?F))))
       
+; veridity axiom, axiom T
+; (=> (knows ?F) ?F) Merge.kif line 2786
+      
+; axiom 4, positive introspection
+(=>
+  (knows ?A ?F)
+  (knows ?A 
+    (knows ?A ?F)))
+    
+; axiom 5, negative introspection
+(=>
+  (not
+    (knows ?A ?F))
+  (knows ?A 
+    (not
+      (knows ?A ?F))))
+        
+;Two Muddy Children problem
+;(1) A and B know that each can see the other's forehead. Thus, for example:
+;(1a) If A does not have a muddy spot, B will know that A does not have a muddy spot
+;(1b) A knows (1a)
+
+(knows Aaron 
+  (=>
+    (not
+      (attribute Aaron Muddy))
+    (knows Bob
+      (not
+        (attribute Aaron Muddy)))))
+        
+;(2) A and B each know that at least one of them have a muddy spot, and they each know that the other knows that. In particular
+;(2a) A knows that B knows that either A or B has a muddy spot
+
+(knows Aaron
+  (knows Bob
+    (or
+      (attribute Aaron Muddy)
+      (attribute Bob Muddy))))
+      
+      
+;(3) B says that he does not know whether he has a muddy spot, and A thereby knows that B does not know
+
+(knows Aaron
+  (not
+    (knows Bob
+      (attribute Bob Muddy))))
+      
+; version 2 with time ------------------------------
+
+;1. Muddy(x) = agent X has a mud on his forehead, a1, a2, a3
+
+(attribute X Muddy)
+
+;2. Speak(x,t) = X states the color on time T
+
+(statesColor X T)
+
+;3. t+1 = successor of time T
+
+(instance SuccFn UnaryFunction)
+(domain SuccFn 1 TimePosition)
+(range SuccFn TimePosition)
+(SuccFn T)
+
+;4. 0 = starting time
+
+T0
+
+;5. Know(x, p, t) = agent X knows P at time T
+
+(holdsDuring T (knows X P))
+
+;6. Know-whether(x, p, t) = agent X knows at time T whether P holds
+
+;W1. know-whether(x,p,t) <=> [know(x,p,t) v -know(x,p,t)
+;• definition of know-whether: X knows whether P if he either knows P or he knows not P
+
+(instance knowWhether TernaryPredicate)
+(domain knowWhether 1 AutonomousAgent)
+(domain knowWhether 2 Formula)
+(domain knowWhether 3 TimePosition)
+
+(<=>
+  (knowWhether ?X ?P ?T)
+  (or
+    (holdsDuring ?T 
+      (knows ?X ?P))
+    (holdsDuring ?T 
+      (knows ?X 
+        (not ?P)))))
+        
+;W2. speak (x,p,t) <=> know-whether(x, muddy(x), t)
+;• a child declares the color muddy on his head iff he knows what it is
+
+(instance statesColor BinaryPredicate)
+(domain statesColor 1 AutonomousAgent)
+(domain statesColor 2 TimePosition)
+
+(<=>
+  (statesColor ?X ?T)
+  (knowWhether ?X
+    (attribute ?X Muddy)
+    ?T))
+    
+;W3. (x != y) => know-whether(x, muddy(y), t )
+;• The child can see the color on everyone else’s head
+
+(=>
+  (not
+    (equal ?X ?Y))
+  (knowWhether ?X 
+    (attribute ?Y Muddy) 
+    ?T))
+    
+;W4. know-color(x, t) => speak (x, t)
+;• The children speak as soon as they figure the color out
+
+(instance knowColor BinaryPredicate)
+(domain knowColor 1 AutonomousAgent)
+(domain knowColor 2 TimePosition)
+(=>
+  (knowColor ?X ?T)
+  (statesColor ?X ?T))
+    
+;W5. know-whether (y, speak (x, t), t+1)
+;• Each child knows what has been spoken
+
+(knowWhether ?Y 
+  (statesColor ?X ?T) 
+  (SuccFn ?T))
+
+;W6. know(x,p,t) => know(x,p,t+1)
+;• children do not forget what they know.
+
+(=>
+  (holdsDuring ?T
+    (knows ?X ?P))
+  (holdsDuring 
+    (SuccFn ?T)
+    (knows ?X ?P)))
+    
+;W7. know(x , muddy(a1) v muddy(a2) v muddy(a3) , t)
+;• The children know that at least one of them has a muddy head
+
+(instance A1 Human)
+(instance A2 Human)
+(instance A3 Human)
+
+(holdsDuring ?T 
+  (knows ?X 
+    (or 
+      (attribute A1 Muddy)
+      (attribute A2 Muddy)
+      (attribute A3 Muddy))))
+            
+;W8. If p is an instance of W1 – W.8 then know(x, p, t)      
+        
+(=>        
+  (knowWhether ?X ?P ?T)        
+  (knows ?X
+    (knowWhether ?X ?P ?T)))
+    
+(=>
+  (statesColor ?X ?T)
+  (knows ?X   
+    (statesColor ?X ?T))) 
+    
+(=>    
+  (knowWhether ?X ?P ?T)
+  (knows ?X 
+    (knowWhether ?X ?P ?T)))
+    
+    
+    
