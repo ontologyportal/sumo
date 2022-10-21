@@ -741,12 +741,13 @@ which remains unpaid (excluding interest).")
 
 (=>
   (periodicPayment ?Account ?Amount ?Period)
-  (exists (?Payment)
+  (exists (?Payment ?Class)
     (and
       (instance ?Payment Payment)
       (origin ?Payment (CurrencyFn ?Account))
       (transactionAmount ?Payment ?Amount)
-      (frequency ?Payment ?Period))))
+      (instance ?Payment ?class)
+      (frequency ?Class ?Period))))
 
 (instance minimumPayment TernaryPredicate)
 (domain minimumPayment 1 LiabilityAccount)
@@ -3690,34 +3691,86 @@ a phone number corresponding to the Telephone ?Phone.")
 (domain dayPhone 1 SymbolicString)
 (domain dayPhone 2 Agent) 
 (documentation dayPhone EnglishLanguage "(&%dayPhone ?Phone ?Agent) means that ?Phone is a phone 
-number corresponding to the location where ?Agent can be reached during the day.")
+number corresponding to the phone at which ?Agent can be reached during the day.")
 
 (=>
-  (and
-    (dayPhone ?Number ?Agent)
-    (instance ?Day Day))
-  (exists (?Phone)
+  (dayPhone ?Number ?Agent)
+  (exists (?Phone ?Hour ?Num)
     (and
       (phoneNumber ?Number ?Phone)
-      (holdsDuring (HourFn ?Number ?Day) (possesses ?Agent ?Phone))
-      (lessThan ?Number 18))))
+      (greaterThan ?Num 6)
+      (lessThan ?Num 18)
+      (holdsDuring
+        (instance ?Hour (HourFn ?Num Day))
+        (exists (?T)
+          (and
+            (instance ?T Telephoning)
+            (destination ?T ?Agent)
+            (patient ?T ?Phone)
+            (possesses ?Agent ?Phone)
+            (modalAttribute
+              (exists (?A)
+                (and
+                  (instance ?A Answering)
+                  (subProcess ?A ?T)
+                  (agent ?A ?Agent))) Likely)))))))
+;;
+;; commented out by Jennie Pease 21st October 2022
+;; error the first argument of holdDuring      
+;;(=>
+;;  (and
+;;    (dayPhone ?Number ?Agent)
+;;    (instance ?Day Day))
+;;  (exists (?Phone)
+;;    (and
+;;      (phoneNumber ?Number ?Phone)
+;;      (holdsDuring (HourFn ?Number ?Day) (possesses ?Agent ?Phone))
+;;      (lessThan ?Number 18))))
 
 (instance eveningPhone BinaryPredicate)
 (domain eveningPhone 1 SymbolicString)
 (domain eveningPhone 2 Agent) 
 (documentation eveningPhone EnglishLanguage "(&%eveningPhone ?Phone ?Agent) means that ?Phone 
-is a phone number corresponidng to the location where ?Agent can be reached 
+is a phone number corresponding to the phone at which the ?Agent can be reached 
 during the evening.")
+;; Jennie Pease 21st October 2022
+;; Cannot use NightTime for places in higher latitudes
+;; include the small hours in the morning for this definition
 
 (=>
-  (and
-    (eveningPhone ?Number ?Agent)
-    (instance ?Day Day))
-  (exists (?Phone)
+  (eveningPhone ?Number ?Agent)
+  (exists (?Phone ?Hour ?Num)
     (and
       (phoneNumber ?Number ?Phone)
-      (holdsDuring (HourFn ?Number ?Day) (possesses ?Agent ?Phone))
-      (greaterThan ?Number 18))))
+      (greaterThan ?Num 18)
+      (lessThan ?Num 6)
+      (holdsDuring
+        (instance ?Hour (HourFn ?Num Day))
+        (exists (?T)
+          (and
+            (instance ?T Telephoning)
+            (destination ?T ?Agent)
+            (patient ?T ?Phone)
+            (possesses ?Agent ?Phone)
+            (modalAttribute
+              (exists (?A)
+                (and
+                  (instance ?A Answering)
+                  (subProcess ?A ?T)
+                  (agent ?A ?Agent))) Likely)))))))
+        
+;;
+;; commented out by Jennie Pease 21st October 2022
+;; error the first argument of holdDuring
+;;(=>
+;;  (and
+;;    (eveningPhone ?Number ?Agent)
+;;    (instance ?Day Day))
+;;  (exists (?Phone)
+;;    (and
+;;      (phoneNumber ?Number ?Phone)
+;;      (holdsDuring (HourFn ?Number ?Day) (possesses ?Agent ?Phone))
+;;      (greaterThan ?Number 18))))
 
 ;; KJN: already defined in Mid-level-ontology.kif
 ;;(instance emailAddress BinaryPredicate)

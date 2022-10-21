@@ -87,7 +87,7 @@ specializes in serving steak, which is cooked &%Beef")
 
 (=>
   (instance ?STEAKHOUSE Steakhouse)
-  (exists (?SERVICE ?STEAK ?BEEF)
+  (exists (?SERVICE ?STEAK ?BEEF ?COOK)
     (and
       (instance ?COOK Cooking)
       (instance ?BEEF Beef)
@@ -190,8 +190,12 @@ a specific set of prepared food which is all served and is given one price")
   (and
     (instance ?MENU SetMenu)
     (offers ?AGENT ?MENU)
-    (catalogItem ?X ?MENU)
-    (catalogItem ?Y ?MENU)
+    (catalogItem ?CLASS ?MENU)
+    (subclass ?CLASS PreparedFood)
+    (instance ?X ?VLASS)
+    (instance ?Y ?CLASS)
+    (not
+      (equal ?X ?Y))
     (price ?X ?PRICE1 ?AGENT1)        
     (price ?Y ?PRICE2 ?AGENT2))
   (equal ?PRICE1 ?PRICE2))
@@ -360,26 +364,47 @@ that an ?AGENT provides some ?OBJ to fulfill some goal or need")
 (subrelation standardRetailHours businessHours)
 (instance standardRetailHours BinaryPredicate)
 (documentation standardRetailHours EnglishLanguage "(%&standardRetailHours 
-?TIMEINT ?AGENT) means that an ?AGENT initiates face-to-face processes with 
+?TIMEINT ?AGENT) means that an ?AGENT engages in &%Selling processes with 
 customers only within the time specified by ?TIMEINT")
 (domainSubclass standardRetailHours 1 TimeInterval)
 (domain standardRetailHours 2 Agent)
 (termFormat EnglishLanguage standardRetailHours "standard retail hours")
 
+(=>
+  (standardRetailHours ?TIMEINT ?AGENT)
+  (exists (?S ?T ?C)
+    (and
+      (instance ?S Selling)
+      (instance ?T ?TIMEINT)
+      (agent ?S ?AGENT)
+      (customer ?C ?AGENT)
+      (during
+        (whenFn ?S) ?T))))
+
 ;; the probability that a customer can be served is higher if it is within
 ;; standardRetailHours
+;; Jennie Pease 19 Oct 2022 added above axioms and revised axioms below~
+
 (=>
-  (and
-    (standardRetailHours ?TIMEINT ?AGENT)
-    (potentialCustomer ?C ?AGENT)
-    (instance ?P IntentionalProcess)
-    (destination ?P ?C)
-    (instance ?START (StartFn ?P))
-    (conditionalProbability 
-      (during (WhenFn ?START) ?TIMEINT) (agent ?P ?AGENT) ?NUMBER1)
-    (conditionalProbability 
-      (not (during (WhenFn ?START) ?TIMEINT)) (agent ?P ?AGENT) ?NUMBER2))
-  (lessThan ?NUMBER2 ?NUMBER1))
+  (standardRetailHours ?TIMEINT ?AGENT)
+  (exists (?FT ?T ?C ?SRH ?NONSRH)
+    (and
+      (instance ?FT FinancialTransaction)
+      (agent ?FT ?AGENT)
+      (instance ?T ?TIMEINT)
+      (destination ?FT ?C)
+      (equal ?SRH 
+        (ProbabilityFn
+          (and
+            (during (WhenFn ?FT) ?T)
+            (customer ?C ?AGENT))))
+      (equal ?NONSRH
+        (ProbabilityFn
+          (and
+            (not
+              (during (WhenFn ?FT) ?T))
+            (customer ?C ?AGENT))))
+      (greaterThan ?SRH ?NONSRH))))
 
 ;; KJN: Importing from MILO, but only the part re: standardRetailHours
 ;;(=>
@@ -392,11 +417,13 @@ customers only within the time specified by ?TIMEINT")
 ;;      (during (BeginFn ?TIME) NightTime))))
 
 (=>
-  (instance ?X NightClub)
-  (exists (?TIME)
+  (and
+    (instance ?X NightClub)
+    (standardRetailHours ?TIME ?X))  
+  (exists (?T)
     (and
-      (standardRetailHours ?X ?TIME)
-      (during (BeginFn ?TIME) NightTime))))
+      (instance ?T ?TIME)
+      (during ?T NightTime))))
   
 ;; payment with a credit card
 (subclass BankCardPayment Payment)
@@ -415,9 +442,10 @@ type of &%Payment where a &%CreditCard or a &%DebitCard is used as the
 
 (=>
   (instance ?P BankCardPayment)
-  (and
-    (instrument ?P ?C)
-    (instance ?C BankCard)))
+  (exists (?C)
+    (and
+      (instrument ?P ?C)
+      (instance ?C BankCard))))
   
 ;; payment with cash
 (subclass CashPayment Payment)
@@ -428,9 +456,10 @@ transaction")
 
 (=>
   (instance ?P CashPayment)
-  (and
-    (instrument ?P ?C)
-    (instance ?C Currency)))
+  (exists (?C)
+    (and
+      (instrument ?P ?C)
+      (instance ?C Currency))))
 
 (subclass Outfit Collection)
 (documentation Outfit EnglishLanguage "&%Outfit describes the set of 
@@ -459,20 +488,36 @@ that fulfill ?CODE")
 
 ;; if an agent has a dresscode, then the agent requires the customer to wear an 
 ;; outfit that conform to that dress code.
+
 (=>
   (dressCode ?CODE ?AGENT)
   (modalAttribute
-    (and
-      (subjectiveAttribute ?OUTFIT ?CODE ?AGENT)
-      (instance ?OUTFIT Outfit)
-      (customer ?CUST ?AGENT)
-      (holdsDuring (WhenFn (located ?CUST ?AGENT))
-        (forall (?ITEM)
-          (=>
-            (member ?ITEM ?OUTFIT)
-            (wears ?CUST ?ITEM))))) Obligation))
-            
-            
+    (exists (?OUTFIT ?T)
+      (and
+        (instance ?OUTFIT Outfit)
+        (subjectiveAttribute ?OUTFIT ?CODE ?AGENT)
+        (holdsDuring ?T
+          (forall (?CUST ?ITEM)
+            (and
+              (customer ?CUST ?AGENT)
+              (locatedAtTime ?CUST ?T ?AGENT)                 
+              (memeber ?ITEM ?OUTFIT)
+              (wears ?CUST ?ITEM)))))) Obligation))
+;;
+;;(=>
+;;  (dressCode ?CODE ?AGENT)
+;;  (modalAttribute
+;;    (exists (?CUST ?OUTFIT)
+;;      (and
+;;        (subjectiveAttribute ?OUTFIT ?CODE ?AGENT)
+;;       (instance ?OUTFIT Outfit)
+;;        (customer ?CUST ?AGENT)
+;;        (holdsDuring (WhenFn (located ?CUST ?AGENT))
+;;         (forall (?ITEM)
+;;          (=>
+;;            (member ?ITEM ?OUTFIT)
+;;            (wears ?CUST ?ITEM))))) Obligation))
+                       
 ;; ----------------------------------------------------------------------------
 ;; Restaurant Services
 ;; ----------------------------------------------------------------------------
@@ -703,9 +748,10 @@ a type of &%Reservation intended to reserve seats at a &%Restaurant")
 
 (=>
   (instance ?R DiningReservation)
-  (and
-    (fulfillingEntity ?AGENT ?R)
-    (instance ?AGENT Restaurant)))
+  (exists (?AGENT)
+    (and
+      (fulfillingEntity ?AGENT ?R)
+      (instance ?AGENT Restaurant))))
 
 (subclass Reserving Committing)
 (documentation Reserving EnglishLanguage "&%Reserving is a type of 
@@ -838,7 +884,7 @@ on judging an &%Object instead of some physical process between opponents")
   (contestObject ?CONTEST ?OBJ ?AGENT)
   (and
     (contestParticipant ?CONTEST ?AGENT)
-    (exists (?MAKE ?JUDGE ?PROC)
+    (exists (?MAKE ?JUDGE ?PROC ?AFTR)
       (and
         (instance ?MAKE Making)
         (result ?MAKE ?OBJ)
@@ -1167,7 +1213,7 @@ an instance of food can be shared by 3 or more people")
     (instance ?GRP1 GroupOfPeople)
     (eventLocated ?E1 ?X))
   (modalAttribute
-    (exists (?GRP2 ?E2)
+    (exists (?GRP2 ?E2 ?X2)
       (and
         (instance ?E2 Eating)
         (agent ?E2 ?GRP2)
@@ -1189,7 +1235,7 @@ an instance of food can be shared by 3 or more people")
     (agent ?E1 ?GRP1)
     (instance ?GRP1 GroupOfPeople))
   (modalAttribute
-    (not (exists (?GRP2)
+    (not (exists (?GRP2 ?E2)
       (and
         (customer ?GRP2 ?REST)
         (not (equal ?GRP1 ?GRP2))
