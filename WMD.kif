@@ -876,9 +876,10 @@ suffer from ?SYMPTOM than one which does not.")
 
 (=>
    (diseaseSymptom ?DISEASE ?SYMPTOM)
-   (increasesLikelihood 
+   (exists (?ORGANISM)
+     (increasesLikelihood 
       (attribute ?ORGANISM ?DISEASE)
-      (attribute ?ORGANISM ?SYMPTOM)))
+      (attribute ?ORGANISM ?SYMPTOM))))
 
 (instance diseaseMortality BinaryPredicate)
 (domain diseaseMortality 1 DiseaseOrSyndrome)
@@ -889,7 +890,10 @@ that &%DiseaseOrSyndrome ?DISEASE has a Mortality rate of ?NUMBER.")
 (=>
   (diseaseMortality ?DISEASE ?RATE)
   (conditionalProbability
-    (attribute ?ORGANISM ?DISEASE)
+    (exists (?ORGANISM)
+      (and
+        (instance ?ORGANISM Organism)
+        (attribute ?ORGANISM ?DISEASE)))
     (exists (?DEATH)
       (and
         (instance ?DEATH Death)
@@ -936,16 +940,19 @@ at least reduce the severity of symptoms associated with the ?DISEASE.")
 
 (=>
    (diseaseTreatment ?DISEASE ?SUBSTANCE ?PROCESS)
-   (=>
-      (holdsDuring ?TIME (attribute ?ORGANISM ?DISEASE))
-      (increasesLikelihood
-         (exists (?SAMPLE)
-            (and
-               (temporalPart (WhenFn ?PROCESS) ?TIME)
-               (experiencer ?PROCESS ?ORGANISM)
-               (patient ?PROCESS ?SAMPLE)
-               (instance ?SAMPLE ?SUBSTANCE)))
-         (holdsDuring (ImmediateFutureFn ?TIME) (not (attribute ?ORGANISM ?DISEASE))))))
+   (exists (?ORGANISM ?TIME ?SAMPLE ?PROC)
+     (and
+       (holdsDuring ?TIME (attribute ?ORGANISM ?DISEASE))
+       (increasesLikelihood
+         (and
+           (instance ?PROC ?PROCESS)
+           (temporalPart (WhenFn ?PROC) ?TIME)
+           (experiencer ?PROC ?ORGANISM)
+           (patient ?PROC ?SAMPLE)
+           (instance ?SAMPLE ?SUBSTANCE))
+         (holdsDuring (ImmediateFutureFn ?TIME) 
+           (not 
+             (attribute ?ORGANISM ?DISEASE)))))))
 
 (=>
    (and
@@ -1028,7 +1035,8 @@ to cause the death of &%Humans.")
 (=>
    (and
       (instance ?DISEASE LifeThreateningDisease)
-      (biochemicalAgentSyndrome ?AGENT ?DISEASE))
+      (instance ?AGENT ?CLASS)
+      (biochemicalAgentSyndrome ?CLASS ?DISEASE))
    (instance ?AGENT LifeThreateningAgent))
 
 (subclass VaccinatableDisease InfectiousDisease)
@@ -1037,21 +1045,18 @@ vaccine for &%Humans.")
 
 (=>
   (instance ?DISEASE VaccinatableDisease)
-  (exists (?VACCINE)
+  (exists (?VACCINE ?HUMAN ?PUT)
     (and
       (instance ?VACCINE Vaccine)
-      (=>
-        (and
-          (instance ?PUT Putting)
-          (destination ?PUT ?HUMAN)
-          (instance ?HUMAN Human))
-        (modalAttribute
-          (holdsDuring 
-            (FutureFn 
-              (WhenFn ?PUT)) 
-            (not 
-              (attribute ?HUMAN ?DISEASE)))
-          Likely)))))
+      (instance ?PUT Putting)
+      (destination ?PUT ?HUMAN)
+      (instance ?HUMAN Human)
+      (modalAttribute
+        (holdsDuring 
+          (FutureFn 
+            (WhenFn ?PUT)) 
+          (not 
+            (attribute ?HUMAN ?DISEASE))) Likely))))
 
 (subclass Vaccine BiologicallyActiveSubstance)
 (documentation VaccinatableDisease EnglishLanguage "A treatment that is
@@ -1090,7 +1095,7 @@ effective in preventing a &%VaccinatableDisease.")
     (objectTransferred ?V ?VACI)) 
   (hasPurpose ?VACI
     (not
-      (exists (?I)
+      (exists (?I ?VIRI)
         (and
           (instance ?I Infecting)
           (experiencer ?I ?H)
@@ -1258,12 +1263,13 @@ as Alastrim.")
 
 (=>
   (instance ?ANTIBIOTIC Antibiotic)
-  (capability
-    (KappaFn ?KILL
-      (and
-        (instance ?KILL Killing)
-        (patient ?KILL ?BACTERIUM)
-        (instance ?BACTERIUM Bacterium))) agent ?ANTIBIOTIC))
+  (exists (?KILL ?BACTERIUM)
+    (capability
+      (KappaFn ?KILL
+        (and
+          (instance ?KILL Killing)
+          (patient ?KILL ?BACTERIUM)
+          (instance ?BACTERIUM Bacterium))) agent ?ANTIBIOTIC)))
 
 (=>
   (diseaseTreatment ?DISEASE Antibiotic ?PROCESS)
@@ -1317,7 +1323,7 @@ e.g. &%Bacitracin.")
   (diseaseTreatment ?DISEASE Bacitracin ?PROCESS)
   (and
     (instance ?DISEASE BacterialDisease)
-    (instance ?PROCESS Putting)))
+    (subclass ?PROCESS Putting)))
 
 (subclass Atropine BiologicallyActiveSubstance)
 (documentation Atropine EnglishLanguage "An anticholinergic agent.")
@@ -2000,12 +2006,13 @@ the counterpart to &%parasite, but for classes rather than instances.")
 
 (=>
   (parasitic ?O1 ?O2)
-  (modalAttribute
-    (and
-      (instance ?I1 ?O1)
-      (instance ?I2 ?O2)
-      (parasite ?I1 ?I2))
-    Possibility))
+  (exists (?I1 ?I2)
+    (modalAttribute
+      (and
+        (instance ?I1 ?O1)
+        (instance ?I2 ?O2)
+        (parasite ?I1 ?I2))
+      Possibility)))
     
 (subclass TickBorneEncephalitisVirus Virus)
 
