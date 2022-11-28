@@ -382,7 +382,7 @@ a lower pressure than surrounding regions.")
 
 (=>
   (attribute ?X PartialVacuum)
-  (exists (?O ?G)
+  (exists (?O ?G ?P1 ?P2 ?PM)
     (and
       (instance ?O SelfConnectedObject)
       (instance ?G Region)
@@ -402,7 +402,7 @@ a higher pressure than surrounding regions.")
 
 (=>
   (attribute ?X Pressurized)
-  (exists (?O ?G)
+  (exists (?O ?G ?P1 ?P2 ?PM)
     (and
       (instance ?O SelfConnectedObject)
       (instance ?G Region)
@@ -755,7 +755,7 @@ distance between the physical extremes of the period.")
     (instance ?U UnitOfLength)
     (patient ?T ?O))
   (not
-    (exists (?P1 ?P2 ?T1 ?T2)
+    (exists (?P1 ?P2 ?T1 ?T2 ?L2)
       (and
         (during ?T1 (WhenFn ?T))
         (during ?T2 (WhenFn ?T))
@@ -973,7 +973,7 @@ from &%Fuel.")
 (=>
   (instance ?AI AirIntake)
   (hasPurpose ?AI
-    (exists (?A)
+    (exists (?A ?E ?T)
       (and
         (instance ?A Air)
         (instance ?E Engine)
@@ -1016,7 +1016,7 @@ do not directly supply an engine.")
 (=>
   (instance ?X FuelCapLock)
   (hasPurpose ?X
-    (exists (?TANK ?HOLE)
+    (exists (?TANK ?HOLE ?T)
         (and
             (instance ?TANK GasTank)
             (hole ?HOLE ?TANK)
@@ -1745,7 +1745,7 @@ move the liquid.")
     (attribute ?P DeviceOn)
     (attribute ?L1 Liquid)
     (contains ?P ?L1))
-  (exists (?PP)
+  (exists (?PP ?L2)
     (and
       (part ?PP ?P)
       (hasPurpose ?PP
@@ -2223,7 +2223,7 @@ initiate &%Rotating of the &%Crankshaft and &%Flywheel to the point where
       (part ?S ?EM)
       (subProcess ?R1 ?EC)
       (instance ?R1 Rotating)
-      (patient ?R ?S)
+      (patient ?R1 ?S)
       (instance ?R2 Rotating)
       (patient ?R2 ?C)
       (part ?C ?E)
@@ -2822,7 +2822,7 @@ has too much &%Fuel in its &%CombustionChamber to operate as intended.")
         (attribute ?E EngineFlooded))))
   (hasPurpose ?CC
     (not
-      (exists (?F2)
+      (exists (?F2 ?N2)
         (and
           (instance ?F2 Fuel)
           (contains ?CC ?F2)
@@ -3355,7 +3355,7 @@ prevent (or lessen the likelihood of) the &%Injuring of a &%Human.")
 (=>
     (instance ?X SafetyDevice)
     (hasPurpose ?X
-        (exists (?P ?H)
+        (exists (?P ?H ?I ?T)
             (and
                 (instance ?H Human)
                 (instance ?P Process)
@@ -3387,35 +3387,34 @@ of a &%Human while in &%Vehicle.")
         (part ?VSD ?V)))))
         
 (=>
+  (and
     (instance ?SH SafetyHarness)
-    (hasPurpose ?SH
-        (=>
+    (instance ?PERSON Animal)
+    (wears ?PERSON ?SH))   
+  (hasPurpose ?SH
+    (exists (?PROC ?INJ ?I)
+      (and
+        (instance ?PROC Process)
+        (instrument ?PROC ?SH)
+        (patient ?PROC ?PERSON)
+        (subclass ?INJ
+          (KappaFn ?I
             (and
-                (instance ?PERSON Animal)
-                (wears ?PERSON ?SH))
-            (exists (?PROC ?INJ)
+              (instance ?I Injuring)
+              (exists (?F ?H ?T)
                 (and
-                    (instance ?PROC Process)
-                    (instrument ?PROC ?SH)
-                    (patient ?PROC ?PERSON)
-                    (subclass ?INJ
-                        (KappaFn ?I
-                            (and
-                                (instance ?I Injuring)
-                                (exists (?F ?H)
-                                    (and
-                                        (instance ?H Human)
-                                        (experiencer ?I ?H)
-                                        (instance ?F Falling)
-                                        (experiencer ?F ?H)
-                                        (causes ?F ?I)))
-                                (=>
-                                    (holdsDuring ?T
-                                        (experiencer ?I ?PERSON))
-                                    (not
-                                        (holdsDuring ?T
-                                        (patient ?PROC ?PERSON)))))))
-                    (prevents ?PROC ?INJ))))))
+                  (instance ?H Human)
+                  (experiencer ?I ?H)
+                  (instance ?F Falling)
+                  (experiencer ?F ?H)
+                  (causes ?F ?I)
+                  (=>
+                    (holdsDuring ?T
+                     (experiencer ?I ?PERSON))
+                    (not
+                      (holdsDuring ?T
+                        (patient ?PROC ?PERSON)))))))))
+        (prevents ?PROC ?INJ)))))
 
 (subclass SafetyHarness SafetyDevice)
 (subclass SafetyHarness WearableItem)
@@ -3446,37 +3445,35 @@ of a &%Human while in &%Vehicle.")
 (subclass HearingProtection WearableItem)
 (documentation HearingProtection EnglishLanguage "A &%SafetyDevice that has the purpose to protect &%Human from &%Injuring caused by &%RadiatingSound")
 (=>
+  (and
     (instance ?HP HearingProtection)
-    (hasPurpose ?HP
-        (=>
+    (instance ?PERSON Human)
+    (wears ?PERSON ?HP))   
+  (hasPurpose ?HP
+    (exists (?PROC ?INJ ?I)
+      (and
+        (instance ?PROC Process) 
+        (subclass ?INJ
+          (KappaFn ?I
             (and
-                (instance ?PERSON Human)
-                (wears ?PERSON ?HP))
-            (exists (?PROC ?INJ)
+              (instance ?I Injuring)
+              (exists (?SOUND ?HEAR ?HUMAN ?T)
                 (and
-                    (instance ?PROC Process) 
-                    (subclass ?INJ
-                        (KappaFn ?I
-                            (and
-                                (instance ?I Injuring)
-                                (exists (?SOUND ?HEAR ?HUMAN)
-                                    (and
-                                        (instance ?SOUND RadiatingSound)
-                                        (instance ?HEAR Hearing)
-                                        (instance ?HUMAN Human)
-                                        (patient ?HEAR ?SOUND)
-                                        (experiencer ?HEAR ?HUMAN)
-                                        (causes ?HEAR ?I)
-                                        (experiencer ?I ?HUMAN)))
-                                (=>
-                                    (holdsDuring ?T
-                                        (experiencer ?I ?PERSON))
-                                    (not
-                                        (holdsDuring ?T
-                                        (patient ?PROC ?PERSON)))))))
-                    (prevents ?PROC ?INJ)
-                    (instrument ?PROC ?HP))))))
-
+                  (instance ?SOUND RadiatingSound)
+                  (instance ?HEAR Hearing)
+                  (instance ?HUMAN Human)
+                  (patient ?HEAR ?SOUND)
+                  (experiencer ?HEAR ?HUMAN)
+                  (causes ?HEAR ?I)
+                  (experiencer ?I ?HUMAN)
+                  (=>
+                    (holdsDuring ?T
+                      (experiencer ?I ?PERSON))
+                    (not
+                      (holdsDuring ?T
+                        (patient ?PROC ?PERSON))))))))) 
+        (prevents ?PROC ?INJ)
+        (instrument ?PROC ?HP)))))
           
 (subclass ProtectiveEyewear SafetyDevice)
 (subclass ProtectiveEyewear WearableItem)
@@ -3485,30 +3482,31 @@ of a &%Human while in &%Vehicle.")
 (=>
     (instance ?PE ProtectiveEyewear)
     (hasPurpose ?PE
-        (=>
-            (and
-                (instance ?PERSON Human)
-                (wears ?PERSON ?PE))
-            (exists (?PROTECT ?EYE ?INJ)
-                (and
-                    (instance ?PROTECT Process)
-                    (instrument ?PROTECT ?PE)
-                    (subclass ?INJ 
-                        (KappaFn ?I
-                            (exists (?HUMAN)
-                                (and
-                                    (instance ?I Injuring)
-                                    (instance ?EYE Eye)
-                                    (instance ?HUMAN Human)
-                                    (properPart ?EYE ?HUMAN)
-                                    (patient ?I ?EYE)
-                                    (=>
-                                        (holdsDuring ?T
-                                            (patient ?I ?PERSON))
-                                        (not
-                                            (holdsDuring ?T
-                                                (patient ?PROTECT ?PERSON))))))))
-                    (prevents ?PROTECT ?INJ))))))
+      (=>
+        (exists (?PERSON)
+          (and
+            (instance ?PERSON Human)
+            (wears ?PERSON ?PE)))
+        (exists (?PROTECT ?EYE ?INJ ?I ?T)
+          (and
+            (instance ?PROTECT Process)
+            (instrument ?PROTECT ?PE)
+            (subclass ?INJ 
+              (KappaFn ?I
+                (exists (?HUMAN)
+                  (and
+                    (instance ?I Injuring)
+                    (instance ?EYE Eye)
+                    (instance ?HUMAN Human)
+                    (properPart ?EYE ?HUMAN)
+                    (patient ?I ?EYE)
+                    (=>
+                      (holdsDuring ?T
+                        (patient ?I ?PERSON))
+                      (not
+                        (holdsDuring ?T
+                          (patient ?PROTECT ?PERSON))))))))
+            (prevents ?PROTECT ?INJ))))))
         
 (=>
   (instance ?PE ProtectiveEyewear)
@@ -3531,30 +3529,28 @@ of a &%Human while in &%Vehicle.")
 (documentation Respirator EnglishLanguage "&%Device designed to protect the wearer from &%Injuring caused by &%Inhaling of harmful substances.")
 
 (=>
+  (and
     (instance ?X Respirator)
-    (hasPurpose ?X
-        (=>
+    (instance ?PERSON Animal)
+    (wears ?PERSON ?X))
+  (hasPurpose ?X
+    (exists (?INHAL ?INJ ?PROTECT ?I)
+      (and
+        (instance ?PROTECT Process)
+        (instrument ?PROTECT ?X)
+        (prevents ?PROTECT ?INJ)
+        (subclass ?INJ 
+          (KappaFn ?I 
             (and
-                (instance ?PERSON Animal)
-                (wears ?PERSON ?X))
-            (exists (?INHAL ?INJ ?PROTECT)
+              (instance ?I Injuring)
+              (exists (?H)
                 (and
-                    (instance ?PROTECT Process)
-                    (instrument ?PROTECT ?X)
-                    (prevents ?PROTECT ?INJ)
-                    (subclass ?INJ 
-                        (KappaFn ?I 
-                            (and
-                                (instance ?I Injuring)
-                                (exists (?H)
-                                    (and
-                                        (instance ?H Human)
-                                        (patient ?I ?H)
-                                        (instance ?INHAL Inhaling)
-                                        (agent ?INHAL ?H)
-                                        (causes ?I ?INHAL)))))))))))
+                  (instance ?H Human)
+                  (patient ?I ?H)
+                  (instance ?INHAL Inhaling)
+                  (agent ?INHAL ?H)
+                  (causes ?I ?INHAL))))))))))
           
-
 (subclass SafetyVest Clothing)
 (subclass SafetyVest SafetyDevice)
 (documentation SafetyVest EnglishLanguage "&%Clothing designed to increas the visibility of the wearer and so protect him from &%Injuring")
@@ -3636,7 +3632,7 @@ occupant can be thrown against the hard interior surfaces of the &%Vehicle.")
 (=>
     (instance ?X AutoAirbag)
     (hasPurpose ?X
-        (exists (?CAR ?PERSON ?IMP ?INF)
+        (exists (?CAR ?PERSON ?IMP ?INF ?INJ ?HIT)
             (and
                 (instance ?CAR Automobile)
                 (part ?X ?CAR)
@@ -3679,7 +3675,7 @@ that prevents impact of the wearer into the interior surfaces of the
 (=>
     (instance ?X SeatBelt)
     (hasPurpose ?X
-        (exists (?PERSON ?STOP ?VEHICLE)
+        (exists (?PERSON ?STOP ?VEHICLE ?M)
             (and
                 (instance ?VEHICLE Vehicle)
                 (part ?X ?VEHICLE)
@@ -3716,7 +3712,8 @@ that prevents impact of the wearer into the interior surfaces of the
         (instance ?X CarAlarm)
         (instance ?CAR SelfPoweredRoadVehicle)
         (part ?X ?CAR))
-    (hasPurpose ?X
+    (exists (?HARM ?THIEF ?T ?L)
+      (hasPurpose ?X
         (=>
             (and
                 (or
@@ -3751,7 +3748,7 @@ that prevents impact of the wearer into the interior surfaces of the
                                                 (patient ?H ?CAR)))))
                                 (finishes 
                                     (WhenFn ?ALARM)
-                                    (WhenFn ?HARM))))))))))
+                                    (WhenFn ?HARM)))))))))))
                                     
 (subclass RemoteIgnitionControl RemoteControl)
 (documentation RemoteIgnitionControl EnglishLanguage "A &%RemoteControl able to start the &%Engine of a &%PoweredVehicle using &%ElectronicSignalling.")
@@ -3777,7 +3774,7 @@ that prevents impact of the wearer into the interior surfaces of the
 (documentation RemoteKeylessSystem EnglishLanguage "A &%SecurityDevice that consists of two parts a &%Key and a matching &%Lock. The &%Key is also a &%RemoteControl that &%controls the &Ľock.")
 (=>
     (instance ?X RemoteKeylessSystem)
-    (exists (?KEY ?LOCK)
+    (exists (?KEY ?LOCK ?CLOSE ?OPEN)
         (and
             (instance ?KEY Key)
             (instance ?KEY RemoteControl)
@@ -4533,7 +4530,7 @@ that is the output of &%Manufacture by &%HoldenCorporation.")
 
 (=>
   (engineCylinders ?E ?N)
-  (exists (?G)
+  (exists (?G ?EC)
     (and
       (instance ?G Collection)
       (memberTypeCount ?G EngineCylinder ?N)
@@ -4672,7 +4669,7 @@ cargo, or cargo-carrying &%Containers may be temporarily attached.")
 (=>
   (instance ?VRR VehicleRoofRack)
   (hasPurpose ?VRR
-    (exists (?T ?A)
+    (exists (?T ?A ?C)
       (and
         (instance ?T Transfer)
         (patient ?T ?C)

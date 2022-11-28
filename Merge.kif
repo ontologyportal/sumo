@@ -293,13 +293,14 @@ relation ?REL must be a subclass of ?CLASS.")
 ;;         (?REL2 @ROW))))
 
 (=>
-   (equal ?LIST1 ?LIST2)
-      (=>
-         (and
-            (equal ?LIST1 (ListFn @ROW1))
-            (equal ?LIST2 (ListFn @ROW2)))
-         (forall (?NUMBER)
-            (equal (ListOrderFn (ListFn @ROW1) ?NUMBER) (ListOrderFn (ListFn @ROW2) ?NUMBER)))))
+  (equal ?LIST1 ?LIST2)
+    (=>
+      (exists (@ROW1 @ROW2)
+        (and
+          (equal ?LIST1 (ListFn @ROW1))
+          (equal ?LIST2 (ListFn @ROW2))))
+      (forall (?NUMBER)
+        (equal (ListOrderFn (ListFn @ROW1) ?NUMBER) (ListOrderFn (ListFn @ROW2) ?NUMBER)))))
 
 (instance range BinaryPredicate)
 (instance range AsymmetricRelation)
@@ -476,14 +477,16 @@ For example, (&%contraryAttribute &%Pliable &%Rigid) means that nothing can be b
 (=>
    (contraryAttribute @ROW)
    (forall (?ATTR1 ?ATTR2)
-      (=>
+     (=>
+       (exists (?NUMBER1 ?NUMBER2)
          (and
-            (equal ?ATTR1 (ListOrderFn (ListFn @ROW) ?NUMBER1))
-            (equal ?ATTR2 (ListOrderFn (ListFn @ROW) ?NUMBER2))
-            (not (equal ?NUMBER1 ?NUMBER2)))
-         (=>
-            (property ?OBJ ?ATTR1)
-            (not (property ?OBJ ?ATTR2))))))
+           (equal ?ATTR1 (ListOrderFn (ListFn @ROW) ?NUMBER1))
+           (equal ?ATTR2 (ListOrderFn (ListFn @ROW) ?NUMBER2))
+           (not (equal ?NUMBER1 ?NUMBER2))))
+       (=>
+         (exists (?OBJ)
+           (property ?OBJ ?ATTR1))
+         (not (property ?OBJ ?ATTR2))))))
 
 (instance exhaustiveAttribute Predicate)
 (instance exhaustiveAttribute VariableArityRelation)
@@ -3332,11 +3335,12 @@ domain of F, if X is not identical to Y, then F(X) is not identical to F(Y).")
    (instance ?FUN OneToOneFunction)
    (forall (?ARG1 ?ARG2)
       (=>
-         (and
+        (exists (?CLASS)
+          (and
             (domain ?FUN 1 ?CLASS)
             (instance ?ARG1 ?CLASS)
             (instance ?ARG2 ?CLASS)
-            (not (equal ?ARG1 ?ARG2)))
+            (not (equal ?ARG1 ?ARG2))))
          (not (equal (AssignmentFn ?FUN ?ARG1) (AssignmentFn ?FUN ?ARG2))))))
 
 (subclass SequenceFunction OneToOneFunction)
@@ -3372,7 +3376,7 @@ and ?INST3.")
 
 (=>
    (instance ?FUNCTION AssociativeFunction)
-   (forall (?INST1 ?INST2 ?INST3)
+   (forall (?INST1 ?INST2 ?INST3 ?CLASS)
       (=>
          (and
             (domain ?FUNCTION 1 ?CLASS)
@@ -5656,7 +5660,8 @@ the same terminal node (see &%TerminalNodeFn).")
       (instance ?ARC GraphArc)
       (graphPart ?ARC ?GRAPH))
    (=>
-      (equal (InitialNodeFn ?ARC) ?NODE)
+      (exists (?NODE)
+        (equal (InitialNodeFn ?ARC) ?NODE))
       (not (exists (?OTHER)
          (and
             (equal (InitialNodeFn ?OTHER) ?NODE)
@@ -5668,7 +5673,8 @@ the same terminal node (see &%TerminalNodeFn).")
       (instance ?ARC GraphArc)
       (graphPart ?ARC ?GRAPH))
    (=>
-      (equal (TerminalNodeFn ?ARC) ?NODE)
+      (exists (?NODE)
+        (equal (TerminalNodeFn ?ARC) ?NODE))
       (not (exists (?OTHER)
          (and
             (equal (TerminalNodeFn ?OTHER) ?NODE)
@@ -5950,10 +5956,11 @@ between the two &%GraphNodes.")
       (equal (PathWeightFn ?PATH) ?NUMBER1))
    (forall (?PATH2)
       (=>
-         (and
+        (exists (?NUMBER2)
+          (and
             (instance ?PATH2 (GraphPathFn ?NODE1 ?NODE2))
-            (equal (PathWeightFn ?PATH2) ?NUMBER2))
-         (greaterThanOrEqualTo ?NUMBER2 ?NUMBER1))))
+            (equal (PathWeightFn ?PATH2) ?NUMBER2)))
+        (greaterThanOrEqualTo ?NUMBER2 ?NUMBER1))))
 
 (instance MaximalWeightedPathFn BinaryFunction)
 (instance MaximalWeightedPathFn TotalValuedRelation)
@@ -5975,10 +5982,11 @@ between the two &%GraphNodes.")
       (equal (PathWeightFn ?PATH) ?NUMBER1))
    (forall (?PATH2)
       (=>
-         (and
+        (exists (?NUMBER2)
+          (and
             (instance ?PATH2 (GraphPathFn ?NODE1 ?NODE2))
-            (equal (PathWeightFn ?PATH2) ?NUMBER2))
-         (lessThanOrEqualTo ?NUMBER2 ?NUMBER1))))
+              (equal (PathWeightFn ?PATH2) ?NUMBER2)))
+        (lessThanOrEqualTo ?NUMBER2 ?NUMBER1))))
 
 (instance GraphPathFn BinaryFunction)
 (instance GraphPathFn TotalValuedRelation)
@@ -10163,7 +10171,7 @@ particular &%Organ or &%Tissue.")
     (instance ?DEATH Death)
     (instance ?ORG Organism)
     (experiencer ?DEATH ?ORG))
-  (exists (?REM)
+  (exists (?REM ?OBJ)
     (and
       (result ?DEATH ?REM)
       (instance ?REM OrganicObject)
@@ -13406,7 +13414,7 @@ by a &%Human.")
     (instance ?SOUND RadiatingSound)
     (agent ?SOUND ?OBJ)
     (attribute ?SOUND Audible))
-  (exists (?HUMAN)
+  (exists (?HUMAN ?HEAR)
     (and
       (instance ?HUMAN Human)
       (capability
@@ -14571,7 +14579,7 @@ vapor.")
          (and
             (part ?PART ?CLOUD)
             (not (instance ?PART Water)))
-         (exists (?WATER ?MEASURE1 ?MEASURE2)
+         (exists (?WATER ?MEASURE1 ?MEASURE2 ?U)
             (and
                (instance ?WATER Water)
                (part ?WATER ?CLOUD)
@@ -16056,7 +16064,7 @@ same &%age.")
 
 (=>
    (instance ?UNIT SocialUnit)
-   (exists (?HOME)
+   (exists (?HOME ?MEMBER)
       (=>
          (member ?MEMBER ?UNIT)
          (home ?MEMBER ?HOME))))
