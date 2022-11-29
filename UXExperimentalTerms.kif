@@ -337,7 +337,7 @@
     
 (=>
   (instance ?LIST ListOnSite)
-  (exists (?SITE ?ADVERT ?EARLIER ?AFTER)
+  (exists (?SITE ?ADVERT ?EARLIER ?AFTER ?OWNER)
     (and
       (instance ?SITE WebSite)
       (instance ?ADVERT WebListing)
@@ -522,7 +522,7 @@
     (instance ?U UnitOfCurrency)
     (reservePrice ?AUCTION (MeasureFn ?AMOUNT ?U))
     (destination ?AUCTION ?BUYER))
-  (exists (?OFFER)
+  (exists (?OFFER ?ITEM)
     (and
       (bidPrice ?ITEM (MeasureFn ?OFFER ?U) ?BUYER)
       (greaterThan ?OFFER ?AMOUNT))))
@@ -752,10 +752,10 @@ buy ?ITEM, but did not.")
   (tTest ?SAMPLE_COLL1 ?SAMPLE_COLL2 ?PROB)
   (exists (?POP1 ?POP2 ?EXPERIMENT)
     (and
-      (instance ?POP_COLL1 Collection)
-      (instance ?POP_COLL2 Collection)
-      (statisticalPopulation ?SAMPLE_COLL1 ?POP_COLL1 ?EXPERIMENT)
-      (statisticalPopulation ?SAMPLE_COLL2 ?POP_COLL2 ?EXPERIMENT)
+      (instance ?POP1 Collection)
+      (instance ?POP2 Collection)
+      (statisticalPopulation ?SAMPLE_COLL1 ?POP1 ?EXPERIMENT)
+      (statisticalPopulation ?SAMPLE_COLL2 ?POP2 ?EXPERIMENT)
       (equal
         ?PROB
         (ProbabilityFn (equal ?POP1 ?POP2))))))
@@ -1526,7 +1526,7 @@ the &%patient and the &%agent is also the &%agent of the buying.")
     (instance ?OBJ Object)
     (patient ?ATC ?OBJ)
     (agent ?ATC ?USER))
-  (exists (?COLL ?SITE ?AFTER)
+  (exists (?COLL ?SITE ?AFTER ?INTERVAL)
     (and
       (instance ?COLL Collection)
       (instance ?SITE WebSite)
@@ -1537,7 +1537,6 @@ the &%patient and the &%agent is also the &%agent of the buying.")
         (EndFn ?ATC))
       (holdsDuring ?AFTER
         (member ?OBJ ?COLL)))))
-
 
 ;; Bidding
 ;; -------------------------------------------------------------------
@@ -1815,7 +1814,7 @@ This &%proccess signifies that the &%Object which is the &%patient of the &%Watc
     (instance ?OBJ Object)
     (patient ?WATCH ?OBJ)
     (agent ?WATCH ?USER))
-  (exists (?COLL ?SITE ?AFTER)
+  (exists (?COLL ?SITE ?AFTER ?INTERVAL)
     (and
       (instance ?COLL Collection)
       (instance ?SITE WebSite)
@@ -1826,7 +1825,6 @@ This &%proccess signifies that the &%Object which is the &%patient of the &%Watc
         (EndFn ?WATCH))
       (holdsDuring ?AFTER
         (member ?OBJ ?COLL)))))
-
 
 ;; -------------------------------------------------------------------
 ;; TRANSACTIONS
@@ -1863,7 +1861,7 @@ This &%proccess signifies that the &%Object which is the &%patient of the &%Watc
   (instance ?BEST_OFFER BestOffering)
   (and
     (containsInformation ?BEST_OFFER
-      (exists (?BUYING)
+      (exists (?BUYING ?AGENT ?OBJECT ?MONEY1 ?U)
           (and
             (instance ?BUYING Buying)
             (agent ?BUYING ?AGENT)
@@ -1950,8 +1948,8 @@ This &%proccess signifies that the &%Object which is the &%patient of the &%Watc
       (hasAccount ?USER2 ?ACCT2)
       (accountAtSite ?ACCT1 ?SITE)
       (accountAtSite ?ACCT2 ?SITE)
-      (attribute ?ACC1 BusinessAccount)
-      (attribute ?ACC2 BusinessAccount))))
+      (attribute ?ACCT1 BusinessAccount)
+      (attribute ?ACCT2 BusinessAccount))))
 
 
 ;; BusinessToConsumer
@@ -1982,8 +1980,8 @@ This &%proccess signifies that the &%Object which is the &%patient of the &%Watc
       (hasAccount ?USER2 ?ACCT2)
       (accountAtSite ?ACCT1 ?SITE)
       (accountAtSite ?ACCT2 ?SITE)
-      (attribute ?ACCOUNT1 BusinessAccount)
-      (attribute ?ACCOUNT2 ConsumerAccount))))
+      (attribute ?ACCT1 BusinessAccount)
+      (attribute ?ACCT2 ConsumerAccount))))
 
 
 ;; ConsumerToConsumer
@@ -2014,9 +2012,8 @@ This &%proccess signifies that the &%Object which is the &%patient of the &%Watc
       (hasAccount ?USER2 ?ACCT2)
       (accountAtSite ?ACCT1 ?SITE)
       (accountAtSite ?ACCT2 ?SITE)
-      (attribute ?ACCOUNT1 ConsumerAccount)
-      (attribute ?ACCOUNT2 ConsumerAccount))))
-
+      (attribute ?ACCT1 ConsumerAccount)
+      (attribute ?ACCT2 ConsumerAccount))))
 
 ;; CBT
 ;; -------------------------------------------------------------------
@@ -2381,7 +2378,7 @@ description of the &%patient of the listing.")
 
 (=>
   (userDatabase ?DATABASE ?WEBSITE)
-  (exists (?PART)
+  (exists (?PART ?USERS)
     (and
       (instance ?USERS Collection)
       (part ?PART ?DATABASE)
@@ -2450,7 +2447,7 @@ description of the &%patient of the listing.")
 
 (=>
   (siteCatalog ?DATABASE ?WEBSITE)
-  (exists (?PART)
+  (exists (?PART ?PRODUCTS ?BUYING)
     (and
       (instance ?PRODUCTS Collection)
       (part ?PART ?DATABASE)
@@ -2466,7 +2463,6 @@ description of the &%patient of the listing.")
                   (instance ?BUYING Buying)
                   (eCommerceSite ?BUYING ?WEBSITE)))
               patient ?MEMBER)))))))
-
 
 ;; -------------------------------------------------------------------
 ;; SEARCH
@@ -2600,7 +2596,7 @@ description of the &%patient of the listing.")
     (instance ?SEO SEO)
     (patient ?SEO ?PAGE))
   (hasPurpose ?SEO
-    (exists (?SRPRESULT_BEFORE ?SRPRESULT_AFTER ?BM1 ?BM2)
+    (exists (?SRPRESULT_BEFORE ?SRPRESULT_AFTER ?BEFORE ?AFTER ?BM1 ?BM2)
       (and
         (instance ?SRPRESULT_BEFORE SRPResults)
         (instance ?SRPRESULT_AFTER SRPResults)
@@ -3062,20 +3058,21 @@ description of the &%patient of the listing.")
   (equal
     (DivisionFn 
       (CardinalityFn
-        (KappaFn ?LISTING
-          (and
-            (instance ?LISTING WebListing)
-            (instance ?SITE WebSite)
-            (instance ?ITEM Physical)
-            (member ?LISTING ?COLL)
-            (patient ?LISTING ?ITEM)
-            (hostedOn ?LISTING ?SITE)
-            (exists (?BUYING)
-              (and
-                (instance ?BUYING Buying)
-                (patient ?BUYING ?ITEM)
-                (eCommerceSite ?BUYING ?SITE))))))
-      (CardinalityFn ?COLL))
+        (exists (?LISTING ?SITE ?ITEM)
+          (KappaFn ?LISTING
+            (and
+              (instance ?LISTING WebListing)
+              (instance ?SITE WebSite)
+              (instance ?ITEM Physical)
+              (member ?LISTING ?COLL)
+              (patient ?LISTING ?ITEM)
+              (hostedOn ?LISTING ?SITE)
+              (exists (?BUYING)
+                (and
+                  (instance ?BUYING Buying)
+                  (patient ?BUYING ?ITEM)
+                  (eCommerceSite ?BUYING ?SITE)))))))
+        (CardinalityFn ?COLL))
     (BidCountFn ?COLL)))
 
 
@@ -3100,15 +3097,16 @@ description of the &%patient of the listing.")
       (=>
         (member ?MEMBER ?COLL)
         (instance ?MEMBER FinancialTransaction))))
-  (equal 
-    (CardinalityFn
-      (KappaFn ?ITEM
-        (and
-          (instance ?ITEM Physical)
-          (instance ?BUYING Buying)
-          (member ?BUYING ?COLL)
-          (patient ?BUYING ?ITEM))))
-    (BoughtItemsFn ?COLL)))
+  (exists (?ITEM ?BUYING)
+    (equal 
+      (CardinalityFn
+        (KappaFn ?ITEM
+          (and
+            (instance ?ITEM Physical)
+            (instance ?BUYING Buying)
+            (member ?BUYING ?COLL)
+            (patient ?BUYING ?ITEM))))
+      (BoughtItemsFn ?COLL))))
     
     
 
@@ -3134,17 +3132,18 @@ description of the &%patient of the listing.")
       (=>
         (member ?MEMBER ?COLL)
         (instance ?MEMBER WebListing))))
-  (equal 
-    (CardinalityFn
-      (KappaFn ?BIDDING
-        (and
-          (instance ?ITEM Physical)
-          (instance ?LISTING WebListing)
-          (instance ?BIDDING Bidding)
-          (member ?LISTING ?COLL)
-          (objectOfBid ?BIDDING ?ITEM)
-          (patient ?LISTING ?ITEM))))
-    (BidCountFn ?COLL)))
+  (exists (?BIDDING ?ITEM ?LISTING ?BIDDING)
+    (equal 
+      (CardinalityFn
+        (KappaFn ?BIDDING
+          (and
+            (instance ?ITEM Physical)
+            (instance ?LISTING WebListing)
+            (instance ?BIDDING Bidding)
+            (member ?LISTING ?COLL)
+            (objectOfBid ?BIDDING ?ITEM)
+            (patient ?LISTING ?ITEM))))
+      (BidCountFn ?COLL))))
 
 ;; GMBFn
 ;; -------------------------------------------------------------------
@@ -3178,16 +3177,16 @@ description of the &%patient of the listing.")
               (member ?BUYING ?PURCHASES)
               (agent ?BUYING ?BUYER))
             (located ?BUYER ?REGION))))))
-  (and
-    (total (KappaFn ?AMOUNT
-      (and
-        (instance ?PURCHASE Buying)
-        (member ?PURCHASE ?PURCHASES)
-        (transactionAmount ?PURCHASE ?AMOUNT)))
-      ?TOTAL_PURCHASE_AMOUNT)
-    (equal 
-      (GMBFn ?PURCHASES) ?TOTAL_PURCHASE_AMOUNT)))
-
+  (exists (?AMOUNT ?PURCHASE ?TOTAL_PURCHASE_AMOUNT)
+    (and
+      (total (KappaFn ?AMOUNT
+        (and
+          (instance ?PURCHASE Buying)
+          (member ?PURCHASE ?PURCHASES)
+          (transactionAmount ?PURCHASE ?AMOUNT)))
+       ?TOTAL_PURCHASE_AMOUNT)
+      (equal 
+        (GMBFn ?PURCHASES) ?TOTAL_PURCHASE_AMOUNT))))
 
 ;; GMVFn
 ;; -------------------------------------------------------------------
@@ -3221,16 +3220,16 @@ description of the &%patient of the listing.")
               (member ?SELLING ?SALES)
               (agent ?SELLING ?SELLER))
             (located ?SELLER ?REGION))))))
-  (and
-    (total (KappaFn ?AMOUNT
-      (and
-        (instance ?SALE Selling)
-        (member ?SALE ?SALES)
-        (transactionAmount ?SALE ?AMOUNT)))
-      ?TOTAL_SALE_AMOUNT)
-    (equal 
-      (GMVFn ?SALES) ?TOTAL_SALE_AMOUNT)))
-
+  (exists (?AMOUNT ?SALE ?TOTAL_SALE_AMOUNT)
+    (and
+      (total (KappaFn ?AMOUNT
+               (and
+                 (instance ?SALE Selling)
+                 (member ?SALE ?SALES)
+                 (transactionAmount ?SALE ?AMOUNT)))
+        ?TOTAL_SALE_AMOUNT)
+      (equal 
+        (GMVFn ?SALES) ?TOTAL_SALE_AMOUNT))))
 
 ;; QualifyingPurchasesFn
 ;; -------------------------------------------------------------------
@@ -3413,16 +3412,13 @@ description of the &%patient of the listing.")
       (=>
         (member ?AUC ?AUCTIONS)
         (instance ?AUC Auctioning))))
-  (and
-    (total (KappaFn ?AMOUNT
-      (and
-        (instance ?AUCTION Auctioning)
-        (member ?AUCTION ?AUCTIONS)
-        (transactionAmount ?AUCTION ?AMOUNT)))
-      ?TOTAL_PURCHASE_AMOUNT)
-    (equal 
-      (AuctionGMBFn ?AUCTIONS) ?TOTAL_PURCHASE_AMOUNT)))
-
+  (exists (?AMOUNT ?TOTAL_PURCHASE_AMOUNT)
+    (and
+      (total 
+        (KappaFn ?AMOUNT 
+          (transactionAmount ?AUC ?AMOUNT)) ?TOTAL_PURCHASE_AMOUNT)
+      (equal 
+        (AuctionGMBFn ?AUCTIONS) ?TOTAL_PURCHASE_AMOUNT))))
 
 ;; ABPFn
 ;; -------------------------------------------------------------------
@@ -3898,19 +3894,20 @@ in other markup languages.")
           (during (WhenFn ?BUYING) (WhenFn ?ACCESSING))
           (instrument ?BUYING ?PAGE))
         (member ?BUYING ?PURCHASES))))
-    (equal
-      (SCRFn ?VISITS ?INTERVAL)
-      (DivisionFn
-        (CardinalityFn 
-          (KappaFn ?PURCHASE_IN_INTERVAL
-            (and
-              (member ?PURCHASE_IN_INTERVAL ?PURCHASES)
-              (during (WhenFn ?PURCHASE_IN_INTERVAL) ?INTERVAL))))
-        (CardinalityFn 
-          (KappaFn ?VISIT_IN_INTERVAL
-            (and
-              (member ?VISIT_IN_INTERVAL ?VISITS)
-              (during (WhenFn ?PURCHASE_IN_INTERVAL) ?INTERVAL)))))))
+    (exists (?INTERVAL ?PURCHASE_IN_INTERVAL ?VISIT_IN_INTERVAL)
+      (equal
+        (SCRFn ?VISITS ?INTERVAL)
+        (DivisionFn
+          (CardinalityFn 
+            (KappaFn ?PURCHASE_IN_INTERVAL
+              (and
+                (member ?PURCHASE_IN_INTERVAL ?PURCHASES)
+                (during (WhenFn ?PURCHASE_IN_INTERVAL) ?INTERVAL))))
+          (CardinalityFn 
+            (KappaFn ?VISIT_IN_INTERVAL
+              (and
+                (member ?VISIT_IN_INTERVAL ?VISITS)
+                (during (WhenFn ?PURCHASE_IN_INTERVAL) ?INTERVAL))))))))
 
 ;; SRPEngagementFn
 ;; -------------------------------------------------------------------
@@ -4310,7 +4307,7 @@ in other markup languages.")
 
 (=>
   (qualifiedTreatment ?TREATMENT ?VISITOR)
-  (exists (?PROCESS)
+  (exists (?PROCESS ?CLASS) 
     (and
       (instance ?PROCESS ?CLASS)
       (member ?PROCESS ?TREATMENT)
@@ -4333,7 +4330,7 @@ in other markup languages.")
 
 (=>
   (treatedPage ?WEBPAGE ?EXPERIMENT)
-  (exists (?EVENT)
+  (exists (?EVENT ?VISITOR ?ACCESSING)
     (and
       (member ?EVENT (QualifyingEventsFn ?EXPERIMENT))
       (=>
@@ -4680,7 +4677,7 @@ in other markup languages.")
     (subclass ?CLASS1 Experimenting)
     (member ?EXPERIMENT1 ?TESTCOL1)
     (capability ?CLASS1 experimentalSubject ?SUBJECT))
-  (exists (?EXPERIMENT2)
+  (exists (?EXPERIMENT2 ?CLASS2 ?TESTCOL2)
     (and
       (instance ?EXPERIMENT2 ?CLASS2)
       (member ?EXPERIMENT2 ?TESTCOL2)
