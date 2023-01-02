@@ -15,3 +15,6 @@ This directory also contains a subdirectory called "Translations" which contains
 natural language format files for languages other than English.
 
 Files of knowledge that are new and immature belong in the "development" subdirectory.
+
+There are many videos about SUMO at https://www.youtube.com/@adampease/ to help with learning how to use and extend SUMO.
+
