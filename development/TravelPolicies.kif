@@ -204,20 +204,24 @@ principles or a plan or course of action adopted by that organization.")
   (holdsDuring (ImmediateFutureFn ?TIME) (holdsRight ?FORMULA ?AGENT))) 
 
 ;; Policies have a time period when they are active (from Contract.kif 79-91):
-
-(instance policyPeriod BinaryPredicate)
-(domain policyPeriod 1 Policy)
-(domain policyPeriod 2 TimeInterval)
-(documentation policyPeriod EnglishLanguage "(&%policyPeriod ?POL ?DURATION) holds if ?DURATION specifies
-a &%TimeDuration, which is the length of time that the ?POL is an &%activePolicy.")
-   
-(=>
-  (and
-    (policyPeriod ?POL ?DURATION)
-    (policyEffectiveDate ?POL ?STARTDATE))
-  (holdsDuring (TimePeriodFn ?STARTDATE ?DURATION)
-  (property ?POL activePolicy)))
-
+;;
+;; Jennie Pease 8th January
+;; commented out policyPeriod because the first argument for policyEffectiveDate needs to be a class,
+;; also the second argument for proterty requires to be an Attribute not a binary predicate as used in activePolicy"
+;;
+;;(instance policyPeriod BinaryPredicate)
+;;(domain policyPeriod 1 Policy)
+;;(domain policyPeriod 2 TimeInterval)
+;;(documentation policyPeriod EnglishLanguage "(&%policyPeriod ?POL ?DURATION) holds if ?DURATION specifies
+;;a &%TimeDuration, which is the length of time that the ?POL is an &%activePolicy.")
+;;   
+;;(=>
+;;  (and
+;;    (policyPeriod ?POL ?DURATION)
+;;    (policyEffectiveDate ?POL ?STARTDATE))
+;;  (holdsDuring (TimePeriodFn ?STARTDATE ?DURATION)
+;;  (property ?POL activePolicy)))
+;;
 ;; Policies need to be agreed on by owners and people subject to them.
 ;; this might be necessary if there is a dispute. (from ReachingAgreement, Media.kif 122-157)
 
@@ -318,7 +322,7 @@ a specific policy (e.g. Travel Policy) of a given company.")
 
 (termFormat EnglishLanguage organizationRepresentative "an agent that is an organization representative (in some transaction)")
  
-(domain organizationRepresentative 1 Agent)
+(domain organizationRepresentative 1 AutonomousAgent)
 (domain organizationRepresentative 2 Organization)  
 (instance organizationRepresentative SocialRole)
  
@@ -415,7 +419,7 @@ organization ?ORG is usually based or headquartered in ?AREA.")
       (agent ?T ?HUMAN)
       (subProcess ?TRANSLOCATION ?T))))
 
-;;; A business trip   has at least one CommercialService 
+;;; A business trip has at least one CommercialService 
 ;;; that the employee pays for (and expects reimbursement for).
 
 (=>
@@ -744,22 +748,31 @@ for the purchases by the company.")
       (instrument ?AS ?ROOM)
       (instance ?ROOM HotelUnit))))     
      
- ;; since an AccommodationService is a ServiceProcess, it has a serviceProvider and a serviceRecipient MILO 16467-16477.     
-(=>
-  (instance ?AS AccommodationService)
-  (and
-    (serviceProvider ?AS HotelOrganization)
-    (serviceRecipient ?AS Human))) 
+;; since an AccommodationService is a ServiceProcess, it has a serviceProvider and a serviceRecipient MILO 16467-16477.     
+;; Jennie Pease 6th Janary 2023
+;; commented out the following axioms as it superceded by the next axioms as seen in the comment below by the arthor.
+;;(=>
+;;  (instance ?AS AccommodationService)
+;;  (and
+;;    (serviceProvider ?AS HotelOrganization)
+;;    (serviceRecipient ?AS Human))) 
     
 ;; some services have an instrument through which the service is rendered, e.g. photocopying needs instrument Photocopier.
 ;; Accommodation services require an instrument Room, which is an instance of HotelUnit, but for which we need more details.
 ;; So rewriting above as:
+;; Jennie Pease 6th January 2023
+;; just corrected the variables used in the consequence to be an instance instead of a class for SericeProvider Service Recipient and ServiceInstrument
+
 (=>
   (instance ?AS AccommodationService)
-  (and
-    (serviceProvider ?AS HotelOrganization)
-    (serviceRecipient ?AS Human)
-    (serviceInstrument ?AS HotelUnit)))
+  (exists (?HOTEL ?CUSTOMER ?ROOM)
+    (and
+      (instance ?HOTEL HotelOrganization)
+      (instance ?CUSTOMER Human)
+      (instance ?ROOM HotelUnit)
+      (serviceProvider ?AS ?HOTEL)
+      (serviceRecipient ?AS ?CUSTOMER)
+      (serviceInstrument ?AS ?ROOM))))
     
 (documentation serviceInstrument EnglishLanguage "(serviceInstrument ?EVENT ?OBJ) means that ?OBJect is the instrument of the service provided in ?EVENT.")  
 (domain serviceInstrument 1 ServiceProcess)       
@@ -873,40 +886,42 @@ for the purchases by the company.")
 ;;; then the preferred hotel/or preferred chain should be used.
 
 ; preferred accommodation might be a Hotel
-(=> 
-  (and
-    (instance ?BT BusinessTrip)
-    (instance ?AS AccommodationService)
-    (subProcess ?AS ?BT)  
-    (instance ?TP TravelPolicy)
-    (agent ?BT ?EMPLOYEE)
-    (employs ?COMPANY ?EMPLOYEE)
-    (policyOwner ?COMPANY ?TP) 
-    (policyClause ?PrefAccom Obligation ?TP ?COMPANY))    
-  (exists (?H)
-    (and
-      (serviceRecipient ?AS ?EMPLOYEE)
-      (serviceProvider ?AS ?H)
-      (instance ?H HotelOrganization)
-      (subjectiveAttribute ?H Favorite ?ORG))))
- 
-; preferred accommodation might be a HotelChain         
-(=> 
-   (and
-     (instance ?BT BusinessTrip)
-     (instance ?AS AccommodationService)
-     (subProcess ?AS ?BT)  
-     (instance ?TP TravelPolicy)
-     (agent ?BT ?EMPLOYEE)
-     (employs ?COMPANY ?EMPLOYEE)
-     (policyOwner ?COMPANY ?TP) 
-     (policyClause ?PrefAccom Obligation ?TP ?COMPANY))    
-   (exists (?HC)
-       (and
-         (serviceRecipient ?AS ?EMPLOYEE)
-         (serviceProvider ?AS ?HC)
-         (instance ?HC HotelChain)
-         (subjectiveAttribute ?H Favorite ?ORG))))  
+;;
+;; Jennie Pease 6th January 2023
+;;commented out as ?PrefAccom is not referred in the consequence
+;;(=> 
+;;  (and
+;;    (instance ?BT BusinessTrip)
+;;    (instance ?AS AccommodationService)
+;;    (subProcess ?AS ?BT)  
+;;    (instance ?TP TravelPolicy)
+;;   (agent ?BT ?EMPLOYEE)
+;;    (employs ?COMPANY ?EMPLOYEE)
+;;    (policyOwner ?COMPANY ?TP) 
+;;    (policyClause ?PrefAccom Obligation ?TP ?COMPANY))    
+;;  (exists (?H)
+;;    (and
+;;      (serviceRecipient ?AS ?EMPLOYEE)
+;;      (serviceProvider ?AS ?H)
+;;      (instance ?H HotelOrganization)
+;;      (subjectiveAttribute ?H Favorite ?ORG))))
+;;        
+;;(=> 
+;;   (and
+;;     (instance ?BT BusinessTrip)
+;;     (instance ?AS AccommodationService)
+;;     (subProcess ?AS ?BT)  
+;;     (instance ?TP TravelPolicy)
+;;     (agent ?BT ?EMPLOYEE)
+;;     (employs ?COMPANY ?EMPLOYEE)
+;;     (policyOwner ?COMPANY ?TP) 
+;;     (policyClause ?PrefAccom Obligation ?TP ?COMPANY))    
+;;   (exists (?HC)
+;;       (and
+;;         (serviceRecipient ?AS ?EMPLOYEE)
+;;         (serviceProvider ?AS ?HC)
+;;         (instance ?HC HotelChain)
+;;        (subjectiveAttribute ?H Favorite ?ORG))))  
          
 ; need to say that a RoomRate is out of policy               
          
@@ -1002,34 +1017,41 @@ for the purchases by the company.")
          (instance ?H HotelOrganization))))
          
 ;;; a private rate hotel (PRH) room rate might be required in the policy...
-;; Even if a Private Rate Hotel is not required, and a private hotel rate is not required, the PrivateHotelRate can be used as a bound on the RoomRate allowed, instead of a given max rate allowed.
+;; Even if a Private Rate Hotel is not required, and a private hotel rate is not required, the PrivateHotelRate can be used as a bound on the 
+;; RoomRate allowed, instead of a given max rate allowed.
 ;;; Condition (8) in John's summary reads    "Room rate limited to private rate",  a little flowchart to explain how this relates to private rates.
     
 ;; given a hotel ?H room ?ROOM the there is a RoomRate which is the amount of rental that one pays for the room per night, usually.
-
-(subclass RoomRate FunctionQuantity)
-
-(=>
-  (instance ?RR RoomRate)
-  (exists (?H ?ROOM ?ORG ?PS)
-  (and
-    (instance ?H HotelOrganization)
-    (instance ?ROOM HotelRoom)
-    (located ?ROOM ?H)
-    (rentalPrice ?ROOM ?RR ?ORG ?PS))))
-    
+;;
+;; Jennie Pease 8th January 2023
+;; commented out the following axioms because rentalPRice requires ?ROOM to be a class and 
+;; also lathough (located ?ROOM and ?H) is syntactically correct, ownership seems more appropriate here, just a thought for future revision
+;;
+;;(subclass RoomRate FunctionQuantity)
+;;
+;;(=>
+;;  (instance ?RR RoomRate)
+;;  (exists (?H ?ROOM ?ORG ?PS)
+;;  (and
+;;    (instance ?H HotelOrganization)
+;;    (instance ?ROOM HotelRoom)
+;;    (located ?ROOM ?H)
+;;    (rentalPrice ?ROOM ?RR ?ORG ?PS))))
+;;   
 ;;; If a given hotel is a PrivateRate hotel and ROOM is any room in it, then ROOM has a PrivateRate hotel rate (as well as a normal rate?).
-
-(=>
-  (and
-    (instance ?H HotelOrganization)
-    (attribute ?H PrivateRate)
-    (instance ?ROOM HotelRoom)
-    (located ?ROOM ?H))
-  (exists (?RATE1 ?PS ?ORG)
-    (and
-      (instance ?PS PricingScheme)
-      (rentalPrice ?ROOM ?RATE1 ?ORG ?PS))))
+;;
+;; Jennie Pease 6th January 2023
+;; commented out the following axioms because rentalPrice requires ?ROOM to be a class and ?ORG in the consequence is not declared
+;;(=>
+;;  (and
+;;    (instance ?H HotelOrganization)
+;;    (attribute ?H PrivateRate)
+;;    (instance ?ROOM HotelRoom)
+;;    (located ?ROOM ?H))
+;;  (exists (?RATE1 ?PS ?ORG)
+;;    (and
+;;      (instance ?PS PricingScheme)
+;;      (rentalPrice ?ROOM ?RATE1 ?ORG ?PS))))
    
 ;; The pricing scheme should give us a different room rate when the Hotel has a Private Rate.       
 ;;;-------------------------------------------------------------------------------------------------------
@@ -1072,25 +1094,27 @@ for the purchases by the company.")
       (instance ?B KingBed)
       (located ?B ?KB))))
 
+(subclass SuiteRoom HotelRoom)
+
 (subclass DoubleRoom HotelRoom)
 
 ;; A double room has either a double bed or two single beds 
 ;; actually most hotels I know in the US have  two *full* beds. need to add this detail?
 (=>
   (instance ?DR DoubleRoom)
-    (exists (?B ?B1 ?B2)
-      (or
-        (and
+  (exists (?B ?B1 ?B2)
+    (or
+      (and
         (instance ?B DoubleBed)
         (instance ?DR HotelRoom)
         (located ?B ?DR))
-        (and
+      (and
         (instance ?B1 SingleBed)
         (instance ?B2 SingleBed)
         (instance ?DR HotelRoom)
         (located ?B1 ?DR)
         (located ?B2 ?DR)))))
-        
+       
 ;;; The accommodation service has a serviceProvider, the hotel, a serviceRecipient, the customer and a serviceInstrument, the hotel room provided.        
         
 ;;; The policy is to restrict the room type, that is, one policy clause is "Do not permit SuiteRoom", "Do not permit KingBedRoom", etc..
@@ -1116,26 +1140,29 @@ for the purchases by the company.")
           
 ;;; given a specific BusinessTrip ?BT and an accommodation service ?AS, if the TravelPolicy has "Do not permit SuiteRoom", code:SU
 ;;; then a room which is not a suite should be used.
+;;
+;; Jennie Pease 6th January 2023
+;; Commented our the following axioms because ?SuiteRoom is not referred and SuiteRoom is not an Attribure but a subclass of HotelRoom
 
-(=> 
-   (and
-     (instance ?BT BusinessTrip)
-     (instance ?AS AccommodationService)
-     (subProcess ?AS ?BT)  
-     (instance ?TP TravelPolicy)
-     (agent ?BT ?EMPLOYEE)
-     (employs ?COMPANY ?EMPLOYEE)
-     (policyOwner ?COMPANY ?TP) 
-     (policyClause ?SuiteRoom Prohibition ?TP ?COMPANY))    
-   (exists (?H ?ROOM)
-       (and
-         (serviceRecipient ?AS ?EMPLOYEE)
-         (serviceProvider ?AS ?H)
-         (serviceInstrument ?AS ?ROOM)
-         (instance ?H HotelOrganization)
-         (instance ?ROOM HotelRoom)
-         (not
-           (attribute ?ROOM SuiteRoom)))))
+;;(=> 
+;;   (and
+;;     (instance ?BT BusinessTrip)
+;;     (instance ?AS AccommodationService)
+;;     (subProcess ?AS ?BT)  
+;;     (instance ?TP TravelPolicy)
+;;     (agent ?BT ?EMPLOYEE)
+;;     (employs ?COMPANY ?EMPLOYEE)
+;;     (policyOwner ?COMPANY ?TP) 
+;;     (policyClause ?SuiteRoom Prohibition ?TP ?COMPANY))    
+;;   (exists (?H ?ROOM)
+;;       (and
+;;         (serviceRecipient ?AS ?EMPLOYEE)
+;;         (serviceProvider ?AS ?H)
+;;         (serviceInstrument ?AS ?ROOM)
+;;         (instance ?H HotelOrganization)
+;;         (instance ?ROOM HotelRoom)
+;;         (not
+;;          (attribute ?ROOM SuiteRoom)))))
            
 ;; similar rules for KingBedRoom, QueenBedRoom, DeLuxeRoom, DoubleRoom. a way of doing it once only?                       
 ;;;-------------------------------------------------------------------------------------------------------
@@ -1147,22 +1174,23 @@ for the purchases by the company.")
 ;;; Consider the following kinds of maximum rate per room, where the numbers are amounts of dollars per night
 ;;; {0, .01, 1, 10, 100, 1000, 10000, 105, 110, 115, 119, 120,...,200}
 ;;; Karen has PricingScheme in Catalog.kif and rents and rentalPrice
-
-(=>
-  (and
-    (instance ?AS AccommodationService)
-    (serviceRecipient ?AS ?CUST)
-    (serviceProvider ?AS ?H)
-    (serviceInstrument ?AS ?ROOM)
-    (instance ?CUST Human)
-    (instance ?ROOM HotelRoom)
-    (instance ?H HotelOrganization))
-  (exists (?RATE ?PS)
-    (and 
-      (instance ?PS PricingScheme)
-      (rentalPrice ?ROOM ?RATE ?H ?PS)
-      (rents ?CUST ?H ?ROOM (MeasureFn 1 DayDuration)))))
-    
+;;
+;; Jennie Pease 6th January 2023
+;; commented out the following axioms because rentalPrice requires the first argument to be a class, but ?ROOM is an instance in the antecedent
+;;(=>
+;;  (and
+;;    (instance ?AS AccommodationService)
+;;    (serviceRecipient ?AS ?CUST)
+;;    (serviceProvider ?AS ?H)
+;;    (serviceInstrument ?AS ?ROOM)
+;;    (instance ?CUST Human)
+;;    (instance ?H HotelOrganization))
+;;  (exists (?RATE ?PS)
+;;    (and 
+;;      (instance ?PS PricingScheme)
+;;      (rentalPrice ?ROOM ?RATE ?H ?PS)
+;;      (rents ?CUST ?H ?ROOM (MeasureFn 1 DayDuration)))))
+;;    
 ;; Rate is what the pricing scheme says you pay for a room per day (or night) 
 ;; the policy clause is to say that the max rate allowed for a room is N, say 1000 dollars.
 ;; or that a rate that is greater than 1000 dollars is forbidden.
@@ -1189,23 +1217,26 @@ for the purchases by the company.")
           
 ;;; given a specific BusinessTrip ?BT and an accommodation service ?AS, if the TravelPolicy has "Do not permit room rate above 1000 dollars", 
 ;;; then a room which costs more than 1000 dollars should not be used.
+;;
+;; Jennie Pease 6th August 2023
+;; commented this out as $1000 is hypothetial amount deeming the following axioms redundant 
 
-(=> 
-   (and
-     (instance ?BT BusinessTrip)
-     (instance ?AS AccommodationService)
-     (subProcess ?AS ?BT)  
-     (instance ?TP TravelPolicy)
-     (agent ?BT ?EMPLOYEE)
-     (employs ?COMPANY ?EMPLOYEE)
-     (policyOwner ?COMPANY ?TP)   
-     (serviceRecipient ?AS ?EMPLOYEE)
-     (serviceProvider ?AS ?H)
-     (serviceInstrument ?AS ?ROOM)
-     (policyClause ?MaxRateK Prohibition ?TP ?COMPANY)     
-     (rentalPrice ?ROOM ?RATE ?H ?PS))
-   (not
-     (greaterThan ?RATE (MeasureFn 1000 UnitedStatesDollar))))
+;;(=> 
+;;   (and
+;;     (instance ?BT BusinessTrip)
+;;     (instance ?AS AccommodationService)
+;;     (subProcess ?AS ?BT)  
+;;     (instance ?TP TravelPolicy)
+;;     (agent ?BT ?EMPLOYEE)
+;;     (employs ?COMPANY ?EMPLOYEE)
+;;     (policyOwner ?COMPANY ?TP)   
+;;     (serviceRecipient ?AS ?EMPLOYEE)
+;;     (serviceProvider ?AS ?H)
+;;     (serviceInstrument ?AS ?ROOM)
+;;     (policyClause ?MaxRateK Prohibition ?TP ?COMPANY)     
+;;     (rentalPrice ?ROOM ?RATE ?H ?PS))
+;;   (not
+;;     (greaterThan ?RATE (MeasureFn 1000 UnitedStatesDollar))))
            
 ;;; the existence of a max rate clause  does not mean that what it requires is true.        
      
@@ -1219,26 +1250,32 @@ for the purchases by the company.")
 
 ;;;the room rate of an accommodation service cannot be greater than the Per-diem rate, a constant for each ORG, stored in a table somewhere.
 
-(instance PerDiemFn UnaryFunction)
-(domain PerDiemFn 1 Organization)
-(range PerDiemFn ConstantQuantity)
-
-(=> 
-  (and
-    (instance ?TP TravelPolicy)
-    (policyOwner ?ORG ?TP)
-    (policyClause ?PerDiemBound Obligation ?TP ?ORG))
-  (exists (?AS ?H ?RATE ?ROOM ?BOUND)
-    (and
-      (instance ?AS AccommodationService)
-      (instance ?H HotelOrganization)
-      (instance ?PS PricingScheme)
-      (serviceProvider ?AS ?H)
-      (serviceInstrument ?AS ?ROOM)
-      (rentalPrice ?ROOM ?RATE ?H ?PS)
-      (not
-        (greaterThan ?RATE ?BOUND))
-      (equal ?BOUND (PerDiemFn ?ORG)))))
+;;
+;; Jennie Pease 6th January 2023
+;;commented the following definition out because PerDiemFn doesn't have a documentation, not rate is not linked to any table as mentioned above
+;; axioms in the antecedent ?PerDiemBound is not used in the consequence and the use of ?ROOM in rentalPrice is in conflict with the its use in service
+;; serviceInstrument, in other words mixing instance and class in arguments
+;;
+;;(instance PerDiemFn UnaryFunction)
+;;(domain PerDiemFn 1 Organization)
+;;(range PerDiemFn ConstantQuantity)
+;;
+;;(=> 
+;;  (and
+;;    (instance ?TP TravelPolicy)
+;;    (policyOwner ?ORG ?TP)
+;;    (policyClause ?PerDiemBound Obligation ?TP ?ORG))
+;;  (exists (?AS ?H ?RATE ?ROOM ?CLASS ?BOUND)
+;;    (and
+;;      (instance ?AS AccommodationService)
+;;      (instance ?H HotelOrganization)
+;;      (instance ?PS PricingScheme)
+;;      (serviceProvider ?AS ?H)
+;;      (serviceInstrument ?AS ?ROOM)
+;;      (rentalPrice ?ROOM ?RATE ?H ?PS)
+;;      (not
+;;        (greaterThan ?RATE ?BOUND))
+;;      (equal ?BOUND (PerDiemFn ?ORG)))))
 
 ;;;---------------------------------------------------------------------------------------------------------
 ;;; 7. Single leg transportation (flight or rail),  no hotel
