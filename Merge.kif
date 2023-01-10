@@ -293,14 +293,13 @@ relation ?REL must be a subclass of ?CLASS.")
 ;;         (?REL2 @ROW))))
 
 (=>
-  (equal ?LIST1 ?LIST2)
-    (=>
-      (exists (@ROW1 @ROW2)
-        (and
-          (equal ?LIST1 (ListFn @ROW1))
-          (equal ?LIST2 (ListFn @ROW2))))
-      (forall (?NUMBER)
-        (equal (ListOrderFn (ListFn @ROW1) ?NUMBER) (ListOrderFn (ListFn @ROW2) ?NUMBER)))))
+  (and
+    (equal ?LIST1 ?LIST2)
+    (equal ?LIST1 (ListFn @ROW1))
+    (equal ?LIST2 (ListFn @ROW2)))
+  (equal
+    (ListOrderFn (ListFn @ROW1) ?NUMBER)
+    (ListOrderFn (ListFn @ROW2) ?NUMBER)))
 
 (instance range BinaryPredicate)
 (instance range AsymmetricRelation)
@@ -475,18 +474,14 @@ For example, (&%contraryAttribute &%Pliable &%Rigid) means that nothing can be b
    (contraryAttribute @ROW2))
 
 (=>
-   (contraryAttribute @ROW)
-   (forall (?ATTR1 ?ATTR2)
-     (=>
-       (exists (?NUMBER1 ?NUMBER2)
-         (and
-           (equal ?ATTR1 (ListOrderFn (ListFn @ROW) ?NUMBER1))
-           (equal ?ATTR2 (ListOrderFn (ListFn @ROW) ?NUMBER2))
-           (not (equal ?NUMBER1 ?NUMBER2))))
-       (=>
-         (exists (?OBJ)
-           (property ?OBJ ?ATTR1))
-         (not (property ?OBJ ?ATTR2))))))
+  (and
+    (contraryAttribute @ROW)
+    (equal ?ATTR1 (ListOrderFn (ListFn @ROW) ?NUMBER1))
+    (equal ?ATTR2 (ListOrderFn (ListFn @ROW) ?NUMBER2))
+    (not (equal ?NUMBER1 ?NUMBER2))
+    (property ?OBJ ?ATTR1))
+  (not
+    (property ?OBJ ?ATTR2)))
 
 (instance exhaustiveAttribute Predicate)
 (instance exhaustiveAttribute VariableArityRelation)
@@ -981,6 +976,29 @@ For example, plastic is a &%material of my computer monitor.  Compare
 (=>
   (contains ?SMALL ?BIG)
   (partlyLocated ?SMALL ?BIG))
+
+(instance hole BinaryPredicate)
+(instance hole SpatialRelation)
+(instance hole AsymmetricRelation)
+(domain hole 1 HoleRegion)
+(domain hole 2 SelfConnectedObject)
+
+(documentation hole EnglishLanguage "(&%hole ?HOLE ?OBJ) means that ?HOLE is a
+&%HoleRegion in ?OBJ.  A &%HoleRegion is a fillable body located at the &%surface an &%Object.")
+
+(instance properlyFills AsymmetricRelation)
+(subrelation properlyFills partiallyFills)
+(domain properlyFills 1 Object)
+(domain properlyFills 2 HoleRegion)
+
+(documentation properlyFills EnglishLanguage "(&%properlyFills ?OBJ ?HOLE)means that ?HOLE
+is properly (though perhaps incompletely) filled by ?OBJ, i.e. some part of ?HOLE is
+perfectly filled by ?OBJ.  Note that&%properlyFills is the dual of &%completelyFills, and
+is so related to &%partiallyFills that ?OBJ &%properlyFills ?HOLE just in case ?OBJ
+&%partiallyFills every part of ?HOLE.  (Thus, every perfect filler is both complete and
+proper in this sense). Every hole is connected with everything with which a proper filler
+of the hole is connected. Every proper part of a perfect filler of (a part of) a hole
+properly fills (that part of) that hole.")
 
 (instance contains SpatialRelation)
 (instance contains AsymmetricRelation)
@@ -3706,6 +3724,15 @@ for all ?INST1, ?INST2, and ?INST3.")
 ;             (AssignmentFn ?FUNCTION1 ?INST1 ?INST2)
 ;             (AssignmentFn ?FUNCTION1 ?INST1 ?INST3))))))
 
+(instance subProcess BinaryPredicate)
+(instance subProcess PartialOrderingRelation)
+(domain subProcess 1 Process)
+(domain subProcess 2 Process)
+
+(documentation subProcess EnglishLanguage "(&%subProcess ?SUBPROC ?PROC) means that
+?SUBPROC is a subprocess of ?PROC.  A subprocess is here understood as a temporally
+distinguished part (proper or not) of a &%Process.")
+
 (documentation relatedEvent EnglishLanguage "(relatedEvent ?EVENT1 ?EVENT2) means
 that the &%Process ?EVENT1 is related to the Process ?EVENT2.  The
 relationship is between separate individual events, not events and
@@ -3979,6 +4006,15 @@ brings it about that the &%Formula does not have the &%ObjectiveNorm.")
       (holdsDuring 
         (ImmediateFutureFn ?TIME) 
           (not (modalAttribute ?FORMULA ?NORM)))))
+
+(subrelation overlapsSpatially connected)
+(instance overlapsSpatially ReflexiveRelation)
+(instance overlapsSpatially SymmetricRelation)
+(format EnglishLanguage overlapsSpatially "%1 and %2 %n{doesn't} &%overlapsSpatially")
+
+(documentation overlapsSpatially EnglishLanguage "(&%overlapsSpatially ?OBJ1 ?OBJ2) means
+that the &%Objects ?OBJ1 and ?OBJ2 have some parts in common.  This is a
+reflexive and symmetric (but not transitive) relation.")
 
 (instance partlyLocated SpatialRelation)
 (instance partlyLocated BinaryPredicate)
@@ -5655,30 +5691,30 @@ the &%DirectedGraph have the same initial node (see &%InitialNodeFn) or
 the same terminal node (see &%TerminalNodeFn).")
 
 (=>
-   (and
-      (instance ?GRAPH GraphPath)
-      (instance ?ARC GraphArc)
-      (graphPart ?ARC ?GRAPH))
-   (=>
-      (exists (?NODE)
-        (equal (InitialNodeFn ?ARC) ?NODE))
-      (not (exists (?OTHER)
-         (and
-            (equal (InitialNodeFn ?OTHER) ?NODE)
-            (not (equal ?OTHER ?ARC)))))))
+  (and
+    (instance ?GRAPH GraphPath)
+    (instance ?ARC GraphArc)
+    (graphPart ?ARC ?GRAPH)
+    (equal (InitialNodeFn ?ARC) ?NODE))
+  (not
+    (exists (?OTHER)
+      (and
+        (equal (InitialNodeFn ?OTHER) ?NODE)
+        (not
+          (equal ?OTHER ?ARC))))))
 
 (=>
-   (and
-      (instance ?GRAPH GraphPath)
-      (instance ?ARC GraphArc)
-      (graphPart ?ARC ?GRAPH))
-   (=>
-      (exists (?NODE)
-        (equal (TerminalNodeFn ?ARC) ?NODE))
-      (not (exists (?OTHER)
-         (and
-            (equal (TerminalNodeFn ?OTHER) ?NODE)
-            (not (equal ?OTHER ?ARC)))))))
+  (and
+    (instance ?GRAPH GraphPath)
+    (instance ?ARC GraphArc)
+    (graphPart ?ARC ?GRAPH)
+    (equal (TerminalNodeFn ?ARC) ?NODE))
+  (not
+    (exists (?OTHER)
+      (and
+        (equal (TerminalNodeFn ?OTHER) ?NODE)
+        (not
+          (equal ?OTHER ?ARC))))))
 
 (subclass GraphCircuit GraphPath)
 
@@ -5953,10 +5989,10 @@ between the two &%GraphNodes.")
 (=>
    (and
       (equal (MinimalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
-      (equal (PathWeightFn ?PATH) ?NUMBER1))
+      (equal (PathWeightFn ?PATH) ?NUMBER1)
       (instance ?PATH2 (GraphPathFn ?NODE1 ?NODE2))
-      (equal (PathWeightFn ?PATH2) ?NUMBER2)
-    (greaterThanOrEqualTo ?NUMBER2 ?NUMBER1))
+      (equal (PathWeightFn ?PATH2) ?NUMBER2))
+   (greaterThanOrEqualTo ?NUMBER2 ?NUMBER1))
 
 (instance MaximalWeightedPathFn BinaryFunction)
 (instance MaximalWeightedPathFn TotalValuedRelation)
@@ -5973,16 +6009,12 @@ between the two &%GraphNodes.")
    (instance ?PATH (GraphPathFn ?NODE1 ?NODE2)))
 
 (=>
-   (and
-      (equal (MaximalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
-      (equal (PathWeightFn ?PATH) ?NUMBER1))
-   (forall (?PATH2)
-      (=>
-        (exists (?NUMBER2)
-          (and
-            (instance ?PATH2 (GraphPathFn ?NODE1 ?NODE2))
-              (equal (PathWeightFn ?PATH2) ?NUMBER2)))
-        (lessThanOrEqualTo ?NUMBER2 ?NUMBER1))))
+  (and
+    (equal (MaximalWeightedPathFn ?NODE1 ?NODE2) ?PATH)
+    (equal (PathWeightFn ?PATH) ?NUMBER1)
+    (instance ?PATH2 (GraphPathFn ?NODE1 ?NODE2))
+    (equal (PathWeightFn ?PATH2) ?NUMBER2))
+  (lessThanOrEqualTo ?NUMBER2 ?NUMBER1))
 
 (instance GraphPathFn BinaryFunction)
 (instance GraphPathFn TotalValuedRelation)
@@ -9785,15 +9817,6 @@ and not to ?OBJ2.")
 ;; What follows is an alignment of the Casati and Varzi theory of
 ;; holes with the SUMO.
 
-(instance hole BinaryPredicate)
-(instance hole SpatialRelation)
-(instance hole AsymmetricRelation)
-(domain hole 1 HoleRegion)
-(domain hole 2 SelfConnectedObject)
-
-(documentation hole EnglishLanguage "(&%hole ?HOLE ?OBJ) means that ?HOLE is a
-&%HoleRegion in ?OBJ.  A &%HoleRegion is a fillable body located at the &%surface an &%Object.")
-
 (subclass HoleRegion Region)
 
 (documentation HoleRegion EnglishLanguage "A hole is an immaterial body located at the surface
@@ -9928,20 +9951,6 @@ stick out), which means that every complete filler also qualifies as
       (part ?HOLE2 ?HOLE1)
       (completelyFills ?OBJ ?HOLE2))))
 
-(instance properlyFills AsymmetricRelation)
-(subrelation properlyFills partiallyFills)
-(domain properlyFills 1 Object)
-(domain properlyFills 2 HoleRegion)
-
-(documentation properlyFills EnglishLanguage "(&%properlyFills ?OBJ ?HOLE)means that ?HOLE
-is properly (though perhaps incompletely) filled by ?OBJ, i.e. some part of ?HOLE is
-perfectly filled by ?OBJ.  Note that&%properlyFills is the dual of &%completelyFills, and
-is so related to &%partiallyFills that ?OBJ &%properlyFills ?HOLE just in case ?OBJ
-&%partiallyFills every part of ?HOLE.  (Thus, every perfect filler is both complete and
-proper in this sense). Every hole is connected with everything with which a proper filler
-of the hole is connected. Every proper part of a perfect filler of (a part of) a hole
-properly fills (that part of) that hole.")
-
 (=>
   (properlyFills ?OBJ ?HOLE1)
   (exists (?HOLE2)
@@ -10046,15 +10055,6 @@ parts (see &%superficialPart) of the &%HoleRegion's principal host (see
 ;; INCLUDES 'TEMPORAL CONCEPTS'
 ;; INCLUDES 'OBJECTS'
 ;; INCLUDES 'QUALITIES'
-
-(instance subProcess BinaryPredicate)
-(instance subProcess PartialOrderingRelation)
-(domain subProcess 1 Process)
-(domain subProcess 2 Process)
-
-(documentation subProcess EnglishLanguage "(&%subProcess ?SUBPROC ?PROC) means that
-?SUBPROC is a subprocess of ?PROC.  A subprocess is here understood as a temporally
-distinguished part (proper or not) of a &%Process.")
 
 (=>
    (subProcess ?SUBPROC ?PROC)
