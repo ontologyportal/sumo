@@ -633,6 +633,10 @@ relation between a concept in an external knowledge source, a concept
 in the SUMO, and the name of the other knowledge source.")
 
 (subrelation synonymousExternalConcept relatedExternalConcept)
+(domain synonymousExternalConcept 1 SymbolicString)
+(domain synonymousExternalConcept 2 Entity)
+(domain synonymousExternalConcept 3 Language)
+
 (instance synonymousExternalConcept TernaryPredicate)
 (disjointRelation synonymousExternalConcept subsumedExternalConcept)
 (disjointRelation synonymousExternalConcept subsumingExternalConcept)
@@ -650,8 +654,15 @@ same meaning as ?STRING in ?LANGUAGE.")
 the meaning of ?STRING in ?LANGUAGE, i.e. the concept ?THING is broader
 in meaning than ?STRING.")
 
+(domain subsumingExternalConcept 1 SymbolicString)
+(domain subsumingExternalConcept 2 Entity)
+(domain subsumingExternalConcept 3 Language)
+
 (subrelation subsumedExternalConcept relatedExternalConcept)
 (instance subsumedExternalConcept TernaryPredicate)
+(domain subsumedExternalConcept 1 SymbolicString)
+(domain subsumedExternalConcept 2 Entity)
+(domain subsumedExternalConcept 3 Language)
 
 (documentation subsumedExternalConcept EnglishLanguage "(&%subsumedExternalConcept
 ?STRING ?THING ?LANGUAGE) means that the SUMO concept ?THING is subsumed
@@ -9823,10 +9834,14 @@ overlapping hosts.  No hole is atomic.  HoleRegions are connected with their
 hosts.  No hole can have a proper part that is externally connected with
 exactly the same things as the hole itself.")
 
-(<=>
+(=>
   (instance ?HOLE HoleRegion)
   (exists (?OBJ)
     (hole ?HOLE ?OBJ)))
+
+(=>
+  (hole ?HOLE ?OBJ)
+  (instance ?HOLE HoleRegion))
 
 (=>
   (hole ?HOLE ?OBJ)
@@ -9910,17 +9925,22 @@ Something is fillable just in case it is part of a hole, i.e.,
 fillability is an exclusive property of holes and their parts.")
 
 (=>
-  (exists (?TIME)
-    (holdsDuring ?TIME
-      (fills ?OBJ ?HOLE)))
+  (holdsDuring ?TIME
+    (fills ?OBJ ?HOLE))
   (attribute ?HOLE Fillable))
 
-(<=>
+(=>
   (attribute ?HOLE1 Fillable)
   (exists (?HOLE2)
     (and
       (instance ?HOLE2 HoleRegion)
       (part ?HOLE1 ?HOLE2))))
+
+(=>
+  (and
+    (instance ?HOLE2 HoleRegion)
+    (part ?HOLE1 ?HOLE2))
+  (attribute ?HOLE1 Fillable))
 
 (subrelation partiallyFills located)
 (instance partiallyFills SpatialRelation)
@@ -10026,14 +10046,22 @@ parts (see &%superficialPart) of the &%HoleRegion's principal host (see
 
 (=>
   (equal ?OBJ1 (HoleSkinFn ?HOLE))
-  (forall (?OBJ2)
-    (<=>
-      (overlapsSpatially ?OBJ2 ?OBJ1)
-      (exists (?OBJ3)
-        (and
-          (superficialPart ?OBJ3 (HoleHostFn ?HOLE))
-          (meetsSpatially ?HOLE ?OBJ3)
-          (overlapsSpatially ?OBJ2 ?OBJ3))))))
+  (=>
+    (overlapsSpatially ?OBJ2 ?OBJ1)
+    (exists (?OBJ3)
+      (and
+        (superficialPart ?OBJ3 (HoleHostFn ?HOLE))
+        (meetsSpatially ?HOLE ?OBJ3)
+        (overlapsSpatially ?OBJ2 ?OBJ3))))))
+
+(=>
+  (equal ?OBJ1 (HoleSkinFn ?HOLE))
+  (=>
+    (and
+      (superficialPart ?OBJ3 (HoleHostFn ?HOLE))
+      (meetsSpatially ?HOLE ?OBJ3)
+      (overlapsSpatially ?OBJ2 ?OBJ3)))
+    (overlapsSpatially ?OBJ2 ?OBJ1))
 
 ;; END FILE
 
