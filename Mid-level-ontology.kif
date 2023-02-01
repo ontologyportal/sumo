@@ -22,6 +22,8 @@
 ;; Proceedings of the 2nd International Conference on Formal Ontology in 
 ;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
 ;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
+;;
+;; started editing Jennie Pease 2022
 
 (subclass OrganismRemains OrganicObject)
 (documentation OrganismRemains EnglishLanguage "An
@@ -23920,9 +23922,10 @@ the uterus.")
       (and
         (instance ?M Menstruation)
         (experiencer ?M ?F)))))
-
+;;
+;; 31Jan2023 JP
+;; corrected ?B
 (instance Menopausal BiologicalAttribute)
-
 (documentation Menopausal EnglishLanguage "Menopause, also known as
 the climacteric, is the time in women's lives when menstrual periods
 stop permanently, and they are no longer able to bear children.
@@ -23936,12 +23939,11 @@ has not had any menstrual bleeding for a year. [from Wikipedia]")
     (holdsDuring ?T
       (attribute ?F Menopausal))
     (birthdate ?F ?B)
+    (instance ?B (DayFn ?D (MonthFn ?M (YearFn ?Y))))
     (equal ?A1
-      (AdditionFn
-        (MeasureFn 49 YearDuration) ?B))
+      (AdditionFn 49 ?Y))
     (equal ?A2
-      (AdditionFn
-        (MeasureFn 52 YearDuration) ?B))
+      (AdditionFn 52 ?Y))
     (equal ?START
       (BeginFn ?T)))
   (modalAttribute
@@ -24165,24 +24167,80 @@ the &%Organization ?ORG1 descended from the &%Organization ?ORG2.")
 (domain ancestorOrganization 1 Organization)
 (domain ancestorOrganization 2 Organization)
 (disjointRelation ancestorOrganization subOrganization)
-
+;;
+;; Jennie Pease 30th January 2023
+;; changed the second arguement of birthday to a class instead of and instance, same to birthday
+;;
 (documentation anniversary EnglishLanguage "(anniversary ?PHYSICAL ?TIME) means that
-?TIME is the class of TimeIntervals which mark the anniversary of
-?PHYSICAL.  For example, (anniversary Christmas (&%DayFn 35 &%December))
+?TIME is the class of TimeIntervals which mark the &%anniversary of
+?PHYSICAL.  For example, (anniversary Christmas (&%DayFn 25 &%December))
 means that Christmas is celebrated each year on the 25th of &%December.")
 (instance anniversary BinaryPredicate)
 (instance anniversary TemporalRelation)
 (domain anniversary 1 Physical)
-(domain anniversary 2 TimeInterval)
+(domainSubclass anniversary 2 Day)
 
+;;
+;; added weddingAnniversary 31Jan2023 JP
+;;
+(documentation weddingAnniversary EnglishLanguage "(weddingAnniversary ?PHYSICAL ?TIME) means that
+?TIME is the class of TimeIntervals which mark the &%anniversary of their &%weddingdate.")
+(instance weddingAnniversary BinaryPredicate)
+(instance weddingAnniversary TemporalRelation)
+(domain weddingAnniversary 1 Physical)
+(domainSubclass weddingAnniversary 2 Day)
+(subrelation weddingAnniversary anniversary)
+
+(=>
+  (and
+    (instance ?WED Wedding)
+    (date ?WED ?DAY)  
+    (instance ?DAY (DayFn ?D (MonthFn ?M (YearFn ?Y)))))
+  (exists (?CLASS ?FUTURE)
+    (and
+      (weddingAnniversary ?WEB ?CLASS)
+      (subclass ?CLASS Day)
+      (instance ?FUTURE Integer)
+      (equal ?CLASS (DayFn ?D (MonthFn ?M (YearFn ?FUTURE))))
+      (greaterThan ?FUTURE ?Y))))
+
+;; inserted from biography.kif 31Jan2023 JP      
+(documentation weddingdate EnglishLanguage "(weddingdate ?PERSON1 ?PERSON2 ?DAY) means that ?DAY is the day on which ?PERSON1 
+and ?PERSON2 were married.")      
+(domain weddingdate 1 Human)  
+(domain weddingdate 2 Human)
+(domain weddingdate 3 Day)
+(instance weddingdate TernaryPredicate)
+
+(=>
+  (weddingdate ?PERSON1 ?PERSON2 ?DAY)
+  (exists (?WEDDING)
+    (and
+      (instance ?WEDDING Wedding)
+      (patient ?WEDDING ?PERSON1)
+      (patient ?WEDDING ?PERSON2)
+      (date ?WEDDING ?DAY))))
+      
 (documentation birthday EnglishLanguage "(birthday ?PERSON ?DAY) means that ?DAY is the
 anniversary each year of the birth of ?PERSON.  For example, (birthday
 &%WilliamJeffersonClinton (&%DayFn 19 &%August)) means that Bill Clinton's
 birthday is &%August 19th.")
 (instance birthday BinaryPredicate)
 (domain birthday 1 Human)
-(domain birthday 2 Day)
+(domainSubclass birthday 2 Day)
 (subrelation birthday anniversary)
+
+(=>
+  (and
+    (birthdate ?A ?DAY)
+    (instance ?DAY (DayFn ?D (MonthFn ?M (YearFn ?Y)))))
+  (exists (?CLASS ?FUTURE)
+    (and
+      (birthday ?A ?CLASS)
+      (subclass ?CLASS Day)
+      (instance ?FUTURE Integer)
+      (equal ?CLASS (DayFn ?D (MonthFn ?M (YearFn ?FUTURE))))
+      (greaterThan ?FUTURE ?Y))))
 
 (documentation birthplace EnglishLanguage "(birthplace
 ?INDIV ?PLACE) means that the &%Animal ?INDIV was born at
