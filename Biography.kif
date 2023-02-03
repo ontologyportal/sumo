@@ -120,29 +120,77 @@ part of the &%Ceremony.")
     (and
       (instance ?PROC ReligiousService)
       (subProcess ?PROC ?MIT))))
+;;
+;; 1Feb2023 JP
+;; restored Ordination as Ordaining
 
-;;Baptism
-
-(documentation baptismdate EnglishLanguage "(baptismdate ?PERSON1 ?DAY) means that ?DAY is the day on which  ?PERSON1 was baptized.")      
-(domain baptismdate 1 Human)   
-(domain baptismdate 2 Day)    
-(instance baptismdate BinaryPredicate)
+(subclass Ordaining ReligiousProcess)
+(documentation  Ordaining EnglishLanguage "the act of &%Ordaining is the &%Process by which individuals are
+set apart and elevated from laity class and be authorized to perform &%ReligiousServices, eg. in &%Christianity, &%Cleric. Not
+all &%BeliefGroup holds Ordaination as a &%Ceremony but most do.")
 
 (=>
-    (baptismdate ?PERSON ?DAY)
+  (instance ?ORD Ordaining)
+  (hasPurpose ?ORD
+    (exists (?X ?ORG ?POS)
+      (and
+        (patient ?ORD ?X)
+        (instance ?X Human)
+        (instance ?ORG ReligiousOrganization)
+        (member ?X ?ORG)
+        (result ?ORD ?POS)
+        (instance ?POS ReligiousPosition)
+        (occupiesPosition ?X ?POS ?ORG)))))
+;;
+;; 2Feb2023 JP
+;; added appointedPosition
+
+(instance appointedPosition TernaryPredicate)
+(domain appointedPosition 1 Appointing)
+(domain appointedPosition 2 AutonomousAgent)
+(domain appointedPosition 3 Position)
+(documentation appointedPosition EnglishLanguage "(appointedPosition ?PROC ?AGENT ?POS) means that
+an ?AGENT (can be a &%Human or an &%Organization) is appointed, through the &%Process of &%Appointing
+to the &%Position of ?POS. For example, a person is appointed to a &%Cleric position in &%Christianity.")
+
+(=>
+  (and
+    (instance ?ORD Ordaining)
+    (patient ?ORD ?X)
+    (instance ?X Human)
+    (member ?X Christianity))
+  (hasPurpose ?ORD
+    (exists (?CER ?A)
+      (and
+        (instance ?CER Ceremony)
+        (instance ?A Appointing)
+        (subProcess ?A ?CER)
+        (patient ?A ?X)
+        (appointedPosition ?A ?X Cleric)))))
+            
+;;Baptism
+(documentation baptizeddate EnglishLanguage "(baptizeddate ?PERSON1 ?DAY) means that ?DAY is the day on which 
+?PERSON1 was baptized.")      
+(domain baptizeddate 1 Human)   
+(domain baptizeddate 2 Day)    
+(instance baptizeddate BinaryPredicate)
+
+(=>
+    (baptizeddate ?PERSON ?DAY)
     (exists (?BAPTISM)
         (and
             (instance ?BAPTISM Baptizing)
             (experiencer ?BAPTISM ?PERSON)
-            (time ?BAPTISM ?DAY))))
+            (date ?BAPTISM ?DAY))))
 
-(documentation baptismplace EnglishLanguage "(baptismplace ?PERSON ?PLACE) means that ?PLACE is the place where the ?PERSON was baptized.")
-(domain baptismplace 1 Human)
-(domain baptismplace 2 Region)
-(instance baptismplace BinaryPredicate)
+(documentation baptizedplace EnglishLanguage "(baptizedplace ?PERSON ?PLACE) means that ?PLACE is the place 
+where the ?PERSON was baptized.")
+(domain baptizedplace 1 Human)
+(domain baptizedplace 2 Region)
+(instance baptizedplace BinaryPredicate)
 
 (=>
-    (baptismplace ?PERSON ?PLACE)
+    (baptizedplace ?PERSON ?PLACE)
     (exists (?BAPTISM)
         (and
             (instance ?BAPTISM Baptizing)
@@ -151,7 +199,8 @@ part of the &%Ceremony.")
 
 ;; Burial
 
-(documentation burialplace EnglishLanguage "(burialplace ?INDIV ?PLACE) means that ?PLACE is the place where ?INDIV was buried.")
+(documentation burialplace EnglishLanguage "(burialplace ?INDIV ?PLACE) means that ?PLACE is the place where 
+?INDIV was buried.")
 (domain burialplace 1 Animal)
 (domain burialplace 2 Object)
 (instance burialplace BinaryPredicate)
@@ -163,6 +212,93 @@ part of the &%Ceremony.")
             (instance ?BURIAL Burial)
             (patient ?BURIAL ?INDIV)
             (eventLocated ?BURIAL ?PLACE))))
+
+;;
+;; 2Feb2023 JP
+;; restored Founder
+
+(instance Founder SocialRole)
+(documentation Founder EnglishLanguage "A person who founds or establishes an institution.")
+
+(=>
+  (and
+    (attribute ?A Founder)
+    (instance ?A Human))
+  (exists (?PROC)
+    (and
+      (instance ?PROC Founding)
+      (agent ?PROC ?A))))
+
+;;
+;; 2Feb2023 JP
+;; Restore the following certificates
+
+(subclass BirthCertificate Certificate)
+(documentation BirthCertificate EnglishLanguage "A &%BirthCertificate is a &%Text which documents the &%Birth of a 
+person.")
+
+(=>
+  (instance ?TEXT BirthCertificate)
+  (hasPurpose ?TEXT
+    (exists (?B ?A)
+      (and
+        (instance ?B Birth)
+        (instance ?A Human)
+        (experiencer ?B ?A)
+        (represents ?TEXT ?B)))))
+        
+(=>
+  (and
+    (instance ?B Birth)
+    (instance ?A Human)
+    (experiencer ?B ?A))
+  (exists (?TEXT)
+    (and
+      (instance ?TEXT BirthCertificate)
+      (describes ?TEXT
+        (exists (?DAY ?P ?N)
+          (and
+            (birthdate ?A ?DAY)
+            (instance ?DAY Day)
+            (birthplace ?A ?P)
+            (instance ?P GeographicArea)
+            (represents ?A ?N)
+            (instance ?N Name)))))))
+
+(subclass DeathCertificate Certificate)
+(documentation DeathCertificate EnglishLanguage "A &%DeathCertificate is a &%Text which documents the &%Death of a 
+person.")
+
+(=>
+  (instance ?TEXT DeathCertificate)
+  (hasPurpose ?TEXT
+    (exists (?D ?A)
+      (and
+        (instance ?D Death)
+        (instance ?A Human)
+        (experiencer ?D ?A)
+        (represents ?TEXT ?D)))))
+
+(=>
+  (and
+    (instance ?D Death)
+    (instance ?A Human)
+    (experiencer ?D ?A))
+  (exists (?TEXT)
+    (and
+      (instance ?TEXT DeathCertificate)
+      (describes ?TEXT
+        (exists (?DAY ?P ?N ?PROC)
+          (and
+            (deathdate ?A ?DAY)
+            (instance ?DAY Day)
+            (deathplace ?A ?P)
+            (instance ?P GeographicArea)
+            (represents ?A ?N)
+            (instance ?N Name)
+            (causes ?PROC ?D)
+            (instance ?PROC Process)))))))      
+                             
 ;;;--------------------------------------------------------------------
 ;;; OCCUPATIONS
 ;;;-------------------------------------------------------------------- 
