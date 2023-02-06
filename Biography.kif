@@ -246,25 +246,23 @@ person.")
         (instance ?A Human)
         (experiencer ?B ?A)
         (represents ?TEXT ?B)))))
-        
+       
 (=>
   (and
+    (instance ?TEXT BirthCertificate)
     (instance ?B Birth)
     (instance ?A Human)
-    (experiencer ?B ?A))
-  (exists (?TEXT)
-    (and
-      (instance ?TEXT BirthCertificate)
-      (describes ?TEXT
-        (exists (?DAY ?P ?N)
-          (and
-            (birthdate ?A ?DAY)
-            (instance ?DAY Day)
-            (birthplace ?A ?P)
-            (instance ?P GeographicArea)
-            (represents ?A ?N)
-            (instance ?N Name)))))))
-
+    (experience ?B ?A))
+  (containsFormula ?TEXT
+    (exists (?DAY ?P ?N)
+      (and
+        (birthdate ?A ?DAY)
+        (instance ?DAY Day)
+        (birthplace ?A ?P)
+        (instance ?P GeographicArea)
+        (represents ?N ?A)
+        (instance ?N Name)))))
+        
 (subclass DeathCertificate Certificate)
 (documentation DeathCertificate EnglishLanguage "A &%DeathCertificate is a &%Text which documents the &%Death of a 
 person.")
@@ -281,24 +279,60 @@ person.")
 
 (=>
   (and
+    (instance ?TEXT DeathCertificate)  
     (instance ?D Death)
     (instance ?A Human)
     (experiencer ?D ?A))
-  (exists (?TEXT)
+  (containsFormula ?TEXT
+    (exists (?DAY ?P ?N ?PROC)
+      (and
+        (deathdate ?A ?DAY)
+        (instance ?DAY Day)
+        (deathplace ?A ?P)
+        (instance ?P GeographicArea)
+        (represents ?N ?A)
+        (instance ?N Name)
+        (causes ?PROC ?D)
+        (instance ?PROC Process))))) 
+
+(subclass MarriageCertificate Certificate)
+(documentation MarriageCertificate EnglishLanguage "A &%MarriageCertificate is a legal document which certifies a 
+marriage has takenplace, containing information of the time and and place about the ceremony, signed by the parties,
+witnesses and the officiant.")
+
+(=>
+  (instance ?TEXT MarriageCertificate)
+  (attribute ?TEXT Legal))
+  
+(=>
+  (and
+    (instance ?TEXT MarriageCertificate)
+    (instance ?A Human)
+    (instance ?B Human)
+    (spouse ?A ?B))
+  (containsFormula ?TEXT
+    (exists (?DAY)
+      (and
+        (weddingdate ?A ?B ?DAY)
+        (instance ?DAY Day)))))
+
+(=>
+  (instance ?TEXT MarriageCertificate)
+  (exists (?S ?W ?A ?B)
     (and
-      (instance ?TEXT DeathCertificate)
-      (describes ?TEXT
-        (exists (?DAY ?P ?N ?PROC)
-          (and
-            (deathdate ?A ?DAY)
-            (instance ?DAY Day)
-            (deathplace ?A ?P)
-            (instance ?P GeographicArea)
-            (represents ?A ?N)
-            (instance ?N Name)
-            (causes ?PROC ?D)
-            (instance ?PROC Process)))))))      
-                             
+      (instance ?S SigningAnAgreement)  
+      (patient ?S ?TEXT)
+      (instance ?W Wedding)
+      (represents ?TEXT ?W)
+      (subProcess ?S ?W)
+      (patient ?W ?A)
+      (instance ?A Human)
+      (patient ?W ?B)
+      (instance ?B Human)
+      (not
+        (equal ?A ?B))
+      (agent ?S ?A)
+      (agent ?S ?B))))                 
 ;;;--------------------------------------------------------------------
 ;;; OCCUPATIONS
 ;;;-------------------------------------------------------------------- 
@@ -317,7 +351,8 @@ person.")
 
 (instance Actuary Profession)
 (subAttribute Actuary Scientist) 
-(documentation Actuary EnglishLanguage "An actuary is a business professional who deals with &%ActuaryScience,  the financial impact of risk and uncertainty.")
+(documentation Actuary EnglishLanguage "An actuary is a business professional who deals with &%ActuaryScience,
+the financial impact of risk and uncertainty.")
 
 (=>
   (attribute ?PERSON Actuary)
@@ -348,7 +383,6 @@ person.")
 
 (instance Astronomer Profession)
 (subAttribute Astronomer Scientist)
-(subAttribute Astronomer Physicist)
 (documentation Astronomer EnglishLanguage "A &%Physicist who studies &%Astronomy.")
 
 (=>
@@ -488,7 +522,6 @@ person.")
   
 (instance Philosopher Profession)
 (documentation Philosopher EnglishLanguage "A specialist in &%Philosophy.")
-;; for philosophers wikipedia has   school_tradition, main interests, notable ideas, era, influences
 
 (=>
   (attribute ?PERSON Philosopher)
@@ -627,8 +660,6 @@ conditions.")
 ;;---------------------------------------------------------------------------------- 
 ;; The Criative Economy Occupations  from http://en.wikipedia.org/wiki/Creative_industries
 ;;----------------------------------------------------------------------------------
-
-
   
 ;;;;;ArtisticOccupation
 ;;msvarny: ArtisticOccupation is conflicting a bit with EntertainmentProfession defined in Mid-level-ontology.kif, but the name of this term itself seemed to me more appropriate so I will merge both terms using the name ArtisticOccupation.
@@ -680,8 +711,8 @@ conditions.")
   (hasSkill WrittenCommunication ?PERSON))
 
 (=>
-    (attribute ?PERSON Writer)
-    (hasSkill Writing ?PERSON))
+  (attribute ?PERSON Writer)
+  (hasSkill Writing ?PERSON))
 
 (=>
   (attribute ?X Writer)
