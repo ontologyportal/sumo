@@ -6,7 +6,7 @@ do
         elif grep --quiet -E 'Timeout' $FILE ; then
                 echo -e "\tTimeout"
         else
-                grep Success $FILE
+                sed -nr "s/.*Success in time ([0-9]+\.[0-9]+).*/\t\1/p" $FILE
         fi
 done
 
@@ -18,7 +18,7 @@ do
         elif grep --quiet -E 'Timeout' $FILE ; then
                 echo -e "\tTimeout"
         else
-                grep Success $FILE
+                sed -nr "s/.*Success in time ([0-9]+\.[0-9]+).*/\t\1/p" $FILE
         fi
 done
           
