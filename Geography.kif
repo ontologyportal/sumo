@@ -1378,11 +1378,12 @@ system 'BWh'.")
 
 (=>
   (climateTypeInArea ?AREA SubtropicalDesertClimateZone)
-  (and
-    (instance ?MO Month)
-    (averageTemperatureForPeriod ?AREA ?MO 
-      (MeasureFn ?TEMP CelsiusDegree))
-    (greaterThan ?TEMP 18.0)))
+  (exists (?MO ?TEMP)
+    (and
+      (instance ?MO Month)
+      (averageTemperatureForPeriod ?AREA ?MO 
+        (MeasureFn ?TEMP CelsiusDegree))
+      (greaterThan ?TEMP 18.0))))
 
 (subclass MiddleLatitudeDesertClimateZone DesertClimateZone)
 
@@ -1564,11 +1565,12 @@ Type E.  No agriculture is supported in polar climates.")
 
 (=>
   (climateTypeInArea ?AREA PolarClimateZone)
-  (and
-    (instance ?MO Month)
-    (averageTemperatureForPeriod ?AREA ?MO 
-      (MeasureFn ?TEMP CelsiusDegree))
-        (greaterThan 10.0 ?TEMP)))
+  (exists (?MO ?TEMP)
+    (and
+      (instance ?MO Month)
+      (averageTemperatureForPeriod ?AREA ?MO 
+        (MeasureFn ?TEMP CelsiusDegree))
+          (greaterThan 10.0 ?TEMP))))
 
 (=>
   (and
@@ -2778,9 +2780,10 @@ above the sea level of &%PlanetEarth")
 
 (<=>
   (earthAltitude ?OBJ ?ALT)
-  (and
-    (altitude ?OBJ ?SEA ?ALT)
-    (surface ?SEA PlanetEarth)))
+  (exists (?SEA)
+    (and
+      (altitude ?OBJ ?SEA ?ALT)
+      (surface ?SEA PlanetEarth))))
 
 (documentation OzoneShield EnglishLanguage "The &%OzoneShield is a layer in 
 &%EarthsAtmosphere, located about 25 miles above Earth's surface, 
@@ -4345,9 +4348,10 @@ Wentworth Scale.")
 
 (=>
   (instance ?GRAVEL Gravel)
-  (and
-    (part ?Particle ?GRAVEL)
-    (instance ?Particle Pebble)))
+  (exists (?P)
+    (and
+      (part ?P ?GRAVEL)
+      (instance ?P Pebble))))
 
 (subclass Marble Rock)
 (documentation Marble EnglishLanguage "A metamorphic &%Rock that is used in &%Constructing 
@@ -4613,13 +4617,14 @@ that is open ocean beyond five &%NauticalMiles of land, also known as
 
 (<=>
   (attribute ?WATER OpenSea)
-  (and
-    (instance ?WATER SaltWaterArea)
-    (not 
-      (instance ?WATER LandlockedWater))
-    (distance ?LAND ?WATER 
-      (MeasureFn ?DIST NauticalMile))
-    (greaterThan ?DIST 5.0)))
+  (exists (?LAND ?DIST)
+    (and
+      (instance ?WATER SaltWaterArea)
+      (not 
+        (instance ?WATER LandlockedWater))
+      (distance ?LAND ?WATER 
+        (MeasureFn ?DIST NauticalMile))
+      (greaterThan ?DIST 5.0))))
 
 (subclass Iceberg Ice)
 (subclass Iceberg SelfConnectedObject)
@@ -5484,9 +5489,10 @@ bodies of water.")
 (=>
   (instance ?P Waterway)
   (hasPurpose ?P
-    (and
-      (instance ?T WaterTransportation)
-      (path ?T ?P))))
+    (exists (?T)
+      (and
+        (instance ?T WaterTransportation)
+        (path ?T ?P)))))
   
 ;; See definition in Geography.kif.  
 ;; Note: (instance <river> Waterway) asserted only for navigable rivers.
@@ -6291,20 +6297,19 @@ their &%PlantLeaf(ves) annually.")
       (origin ?S ?T)
       (patient ?S ?L))))
 
-(subclass sheddingPart BinaryRelation)
-(domain sheddingPart 1 Organism)
-(domain sheddingPart 2 AnatomicalStructure)
-(relatedInternalConcept sheddingBodyPart DeadFn)
-(documentation sheddingPart EnglishLanguage "A relation between an &%Organisim and one of its
-&%Part which is given off as part of the normal process of life. Unlike &%Birth, the &%paitent 
-dies upon its &%Removing from the &%origin.")
+(subclass SheddingPart BinaryPredicate)
+(relatedInternalConcept SheddingPart DeadFn)
+(documentation SheddingPart EnglishLanguage "The &%Class of &%BinaryPredicates relating 
+an &%Organism and the &%Removing of one of its &%Part as part of the normal process of life.
+Unlike &%Birth, the &%paitent dies upon its removal from the its origin.")
 
 (=>
   (and
-    (sheddingBodyPart ?O ?P)
+    (instance ?REL SheddingPart)
+    (?REL ?O ?P)
     (instance ?O Organism)
     (instance ?P AnatomicalStructure)
-    (part ?P ?O))         
+    (part ?P ?O))
   (exists (?R)
     (and
       (instance ?R Removing)
@@ -6313,24 +6318,58 @@ dies upon its &%Removing from the &%origin.")
 
 (=>
   (and
-    (sheddingPart ?O ?P)
+    (instance ?REL SheddingPart)
+    (?REL ?O ?P)
     (instance ?O ?ORG)
     (subclass ?ORG Organism))
   (exists (?PART)
     (and   
-      (instance ?P (DeadFn ?PART)
-      (initialPart ?PART ?ORG)))))        
+      (instance ?P (DeadFn ?PART))
+      (initialPart ?PART ?ORG))))         
 
-(instance sheddingLeaves sheddingPart)
+(instance sheddingLeaves SheddingPart)
 (domain sheddingLeaves 1 Plant)
 (domain sheddingLeaves 2 PlantLeaf)
 (documentation sheddingLeaves EnglishLanguage "A relation between a &%Plant and its
-leaves which is given off as part of the normal process of life.")
+leaves which is given off as part of the normal process of life.")      
 
-;;(instance sheddingHair sheddingBodyPart)
-;;(instance sheddingshell sheddingBodyPart)
-;;(instance sheddingskin sheddingBodyPart)
-             
+(subclass Moulting Removing)
+(documentation Moulting EnglishLanguage "&%Moulting is the &%Process whereby %Organism casts 
+off a part of its body (often, but not always, an outer layer or covering) as a normal part
+of its life.")
+ 
+(instance sheddingBodyPart SheddingPart)    
+(domain sheddingBodyPart 1 Organism)
+(domain sheddingBodyPart 2 BodyPart)
+(documentation sheddingBodyPart EnglishLanguage "A relation between an &%Organisim and its
+&%BodyPart which is given off as part of the normal process of life.")
+
+(=>
+  (sheddingBodyPart ?O ?P)
+  (exists (?M)
+    (and
+      (instance ?M Moulting)
+      (origin ?M ?O)
+      (patient ?M ?P))))
+      
+(=>
+  (and
+    (instance ?C Cat)
+    (sheddingBodyPart ?C ?H))
+  (instance ?H Hair))      
+
+(=>
+  (and
+    (instance ?R Reptile)
+    (sheddingBodyPart ?R ?S))
+  (instance ?S Skin))
+  
+(=>
+  (and
+    (instance ?C Crustacean)
+    (sheddingBodyPart ?C ?S))
+  (instance ?S AnimalShell))   
+            
 (subclass Balsa DeciduousTree)
 (relatedInternalConcept Balsa BalsaWood)
 (documentation Balsa EnglishLanguage "&%Balsa tree is also known as Ochroma pyramidale. 
@@ -6434,10 +6473,10 @@ are native to the mountains of western Himalayas and the Mediterranean region.")
 (documentation Redwood EnglishLanguage "&%Redwood is also known as Sequoioideae. It is in the family of Cupressaceae. 
 The redwood species contains the largest and tallest trees in the world.")
 
-(subclass DouglasFir Conifers)
-(relatedInternalConcept DouglasFir FirWood)
-(documentation DouglasFir EnglishLanguage "&%DouglasFir is in the family of Pinaceae. It is widespread in 
-western &%NorthAmerica and is an important source of timbe. They can also be found in &%Asia.")
+(subclass Fir Conifers)
+(relatedInternalConcept Fir FirWood)
+(documentation Fir EnglishLanguage "&%Fir is in the family of Pinaceae. It belongs to the the genus 
+of Abies. There are 48-56 extant species. The genus is closely related to cedar.")
 
 (subclass Larch Conifers)
 (relatedInternalConcept Larch LarchWood)
