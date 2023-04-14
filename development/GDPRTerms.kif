@@ -66,18 +66,59 @@
           
 ;DATA PROTECTION AUTHORUTY (DPA)
 
-(documentation DataProtectionAuthority EnglishLanguage "monitors the processing of personal data within its jurisdiction (country, region or international organization);
+(documentation DataProtectionAuthority EnglishLanguage "An independent body that monitors the processing of personal data within its jurisdiction (country, region or international organization);
 provides advice to the competent bodies with regard to legislative and administrative measures relating to the processing of personal data;
 hears complaints lodged by citizens with regard to the protection of their data protection rights.")
 
-(subclass DataProtectionAuthority SocialRole)
+(subclass DataProtectionAuthority AutonomousAgent)
 
 ;monitors the processing of personal data within its jurisdiction (country, region or international organization)
 
 
+;if an entity has a DataProtectionAuthority role and there exists data, that is withing its jursidiction
+;then they monitor/supervise that data
+
+;terms: Managing, GeopoliticalArea
 
 
+(=>
+  (and
+    (instance ?DPA DataProtectionAuthority)
+    (instance ?D PersonalData)
+    (instance ?JURISDICTION GeopoliticalArea)
+    (instance ?MANAGE Managing)
+    (hasRight ?DPA
+      (and
+        (eventLocated ?MANAGE ?JURISDICTION)
+        (patient ?MANAGE ?D))))
+    (exists (?PROC)
+      (and
+        (instance ?PROC DataProcessing)
+        (agent ?MANAGE ?DPA)
+        (patient ?MANAGE ?PROC)
+        (patient ?PROC ?D)))
+      
+;provides advice to the competent bodies with regard to legislative and administrative measures relating to the processing of personal data
 
+
+(=>
+  (and
+    (instance ?BODY AutonomousAgent)
+    (instance ?PD PersonalData)
+    (instance ?DPA DataProtectionAuthority)
+    (instance ?PROC DataProcessing)
+    (patient ?PROC ?PD)
+    (agent ?PROC ?BODY))
+  (exists (?ADVISING ?ADVICE)
+    (hasPurpose ?DPA
+      (and
+        (instance ?ADVISING Request)
+        (agent ?ADVISING ?DPA)
+        (result ?ADVISING ?ADVICE)
+        (destination ?ADVICE ?BODY)
+        (containsInformation ?ADVICE ?PD)))))
+
+;hears complaints lodged by citizens with regard to the protection of their data protection rights
 
          
 ;CONFIDENTIALITY
@@ -122,7 +163,7 @@ hears complaints lodged by citizens with regard to the protection of their data 
 (=>
   (and
     (instance ?MINING DataMining)
-    (instance ?DATA PersonalData)
+    (instance ?DATA ContentBearingObject)
     (patient ?MINING ?DATA)) ;Should it be any data or only personal data? Do we only consider personal data?
   (exists (?INFOBJECT ?INFO ?OTHERINFO ?OTHEROBJECT)
     (and
@@ -171,7 +212,7 @@ hears complaints lodged by citizens with regard to the protection of their data 
   (exists (?PERSON ?SUBJECT)
     (and
       (instance ?SUBJECT Human)
-      (refers ?PD ?SUBJECT) 
+      (refers ?PD ?SUBJECT)
       (instance ?PERSON Human)
       (knows ?PERSON
         (refers ?PD ?SUBJECT)))))
@@ -204,33 +245,54 @@ hears complaints lodged by citizens with regard to the protection of their data 
       (instrument ?SURVEILLING ?DEVICE)
       (patient ?SURVEILLING ?TARGET)))
  
-; rule saying that Surveiling has the purpose of looking at areas to make sure their safe  
+; rule saying that Surveiling has the purpose of looking at areas to make sure their safe, modeled as : processes that are patient to surveilling should be less dangerous  
 
 (=>
   (instance ?SURVEILLING VideoSurveillance)
   (and
     (hasPurpose ?SURVEILLING
       (descreasesLikelihood
-        (exists (?PROCESS)
+        (=>
           (and
             (instance ?PROCESS Process)
-            (patient ?SURVEILLING ?PROCESS)
-            (attribute ?PROCESS Dangerous)))))))
-            
-            
+            (patient ?SURVEILLING ?PROCESS))
+            (exists (?PROCESS)
+              (attribute ?PROCESS Dangerous)))))))
+              
+
+;TERMS RELEVANT TO GDPR, BUT NOT DIRECTLY FROM THE GLOSSARY                       
+                    
+;Monitoring
+
+;meaning : looking at something repetitively with the goal of overseeing its performance          
 
 
-      
-; subrelation : identifies
-  
-;(documentation identifies EnglishLanguage "(identifies ?OBJECT ?ENTITY) means that the ContentBearingObject ?OBJECT cointains information that identifies an ?ENTITY")
+;hasJurisdiction
 
-;(subrelation identifies refers)
+;meaning : the right and power to interpret and apply the law
 
-;(domain identifies 1 ContentBearingObject)
-;(instance identifies BinaryPredicate)
 
-;If something refers to a person and 
+(documentation hasJurisdiction EnglishLanguage "(@hasJursdiction ?AUTONOMOUSAGENT ?AREA) expresses that an ?AUTONOMOUSAGENT has power to interpret and apply the law in an ?AREA")
+
+(domain hasJurisdiction 1 AutonomousAgent)	
+(domain hasJurisdiction 2 GeopoliticalArea)
+
+(=>
+  (and
+    (instance ?AGENT AutonomousAgent)
+    (hasJurisdiction ?AGENT ?AREA))
+  (exists (?LAW ?INTERPRET)
+    (and
+      (modalAttribute ?LAW Law)
+      (instance ?INTERPRET Interpreting)
+      (instance ?DECIDE Deciding)
+      (hasRight ?AGENT
+        (and
+          (agent ?DECIDE ?AGENT)
+          (patient ?DECIDE ?LAW)
+          (agent ?INTERPRET ?AGENT)
+          (patient ?INTERPRET ?LAW))))))
+
 
 
 
