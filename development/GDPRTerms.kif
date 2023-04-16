@@ -6,7 +6,7 @@
 ; such as collection, recording, organisation, structuring, storage, adaptation or alteration, retrieval, consultation, use, 
 ; disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction, erasure or destruction."
 
-(documentation DataProcessing "any operation or set of operations which is performed on personal data or on sets of personal data, whether or not by automated means, such as collection, recording, organisation, structuring, storage, adaptation or alteration, retrieval, consultation, use, disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction, erasure or destruction.")
+(documentation DataProcessing EnglishLanguage "any operation or set of operations which is performed on personal data or on sets of personal data, whether or not by automated means, such as collection, recording, organisation, structuring, storage, adaptation or alteration, retrieval, consultation, use, disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction, erasure or destruction.")
 (subclass DataProcessing ContentDevelopment)       
  
 (exists (?PROC ?DATA)
@@ -15,21 +15,75 @@
     (instance ?DATA PersonalData)
     (patient ?PROC ?DATA)))
     
+    
+;PROCESSOR
 
+(documentation DataProcessor EnglishLanguage "A natural or legal person, public authority, agency or other body which processes personal data on behalf of the controller.")
+
+(instance DataProcessor SocialRole)
+
+(=>
+  (attribute ?DP DataProcessor)
+  (exists (?PROC ?CONTROLLER ?CONTROL)
+    (and
+      (attribute ?CONTROLLER DataController)
+      (instance ?CONTROL Managing)
+      (agent ?CONTROL ?CONTROLLER)
+      (patient ?CONTROL ?PROC)
+      (instance ?PROC DataProcessing)
+      (agent ?PROC ?DP))))
+
+
+      
+      
+;Processor agreement
+
+(documentation ProcessorAgreement EnglishLanguage "Transfers of personal data from a data controller to a data processor must be secured by a data processor agreement.")
+
+(subclass ProcessorAgreement Contract)
+
+
+(=>
+  (instance ?PA ProcessorAgreement)
+  (exists (?PROCESSOR ?CONTROLLER)
+    (attribute ?PROCESSOR DataProcessor)
+    (attribute ?CONTROLLER DataController)
+    (partyToAgreement ?CONTROLLER ?PA)
+    (partyToAgreement ?PROCESSOR ?PA)))
+    
+;The contract must stipulate that the data processor shall act only on instructions from the data controller. 
+
+(=>
+  (and
+    (instance ?PA ProcessorAgreement)
+    (attribute ?PROCESSOR DataProcessor)
+    (attribute ?CONTROLLER DataController)
+    (partyToAgreement ?CONTROLLER ?PA)
+    (partyToAgreement ?PROCESSOR ?PA))
+  (exists (?INSTRUCT ?ACTION)
+    (and
+      (instance ?INSTRUCT Ordering)
+      (result ?INSTRUCT ?ACTION)
+      (holdsObligation
+        (<=>
+          (agent ?ACTION ?PROCESSOR)
+          (agent ?INSTRUCT ?CONTROLLER)) ?PROCESSOR))))
+        
+     
+;The data processor must provide sufficient guarantees in respect of the technical security measures and organisational measure governing the processing to be carried out, and must ensure compliance with such measures.
+  
 ;
 ;DATA CONTROLLER
 ;"The data controller is the party that, alone or jointly with others, determines the purposes and means of the processing of personal data."
 
 (documentation DataController EnglishLanguage "The data controller is the party that, alone or jointly with others, determines the purposes and means of the processing of personal data.")
 
-(subclass DataController SocialRole)
-
+(instance DataController SocialRole)
 
 (=>
   (and
     (instance ?DC AutonomousAgent)
-    (instance ?ROLE DataController)
-    (attribute ?DC ?ROLE))
+    (attribute ?DC DataController))
   (exists (?PD ?PROC ?MEANS ?PURPOSE ?DETERMINE)
     (and
       (instance ?PD PersonalData)
@@ -86,17 +140,14 @@ hears complaints lodged by citizens with regard to the protection of their data 
     (instance ?DPA DataProtectionAuthority)
     (instance ?D PersonalData)
     (instance ?JURISDICTION GeopoliticalArea)
-    (instance ?MANAGE Managing)
-    (hasRight ?DPA
-      (and
-        (eventLocated ?MANAGE ?JURISDICTION)
-        (patient ?MANAGE ?D))))
-    (exists (?PROC)
-      (and
-        (instance ?PROC DataProcessing)
-        (agent ?MANAGE ?DPA)
-        (patient ?MANAGE ?PROC)
-        (patient ?PROC ?D)))
+    (jurisdiction ?DPA ?JURISDICTION))
+  (exists (?PROC ?MANAGE)
+    (and
+      (instance ?MANAGE Managing)
+      (instance ?PROC DataProcessing)
+      (agent ?MANAGE ?DPA)
+      (patient ?MANAGE ?PROC)
+      (patient ?PROC ?D))))
       
 ;provides advice to the competent bodies with regard to legislative and administrative measures relating to the processing of personal data
 
@@ -120,6 +171,30 @@ hears complaints lodged by citizens with regard to the protection of their data 
 
 ;hears complaints lodged by citizens with regard to the protection of their data protection rights
 
+
+; the issue I ran into here: How do I define the topic of their 
+;(=>
+;  (and
+;    (instance ?CITIZEN Human)
+;    (instance ?JURISDICTION GeopoliticalArea)
+;    (instance ?DPA DataProtectionAuthority)
+;    (jurisdiction ?DPA ?JURISDICTION)
+;    (instance ?Q Questioning)
+;    (agent ?Q ?CITIZEN)
+;    (pati))
+;  (holdsObligation 
+;    (=>
+;      (citizen issues a complaint)
+;      (you answer)) ?DPA))
+
+
+;terms: Citizen
+
+;needed concepts: data protection rights, protection
+
+;DPA hears a complaint. C
+
+
          
 ;CONFIDENTIALITY
 ;expressed as a rule on PersonalData
@@ -142,8 +217,7 @@ hears complaints lodged by citizens with regard to the protection of their data 
             (destination ?GIVE ?RECEIVER)
             (patient ?GIVE ?DATA))
           (modalAttribute
-            (destination ?GIVE ?RECEIVER) Permission)) ?PERSON))))     
-      
+            (destination ?GIVE ?RECEIVER) Permission)) ?PERSON))))
     
 ; DATA COLLECTION
 ; TODO: do I need this term? It is not defined in the glossary:https://edps.europa.eu/data-protection/data-protection/glossary_en
@@ -164,14 +238,14 @@ hears complaints lodged by citizens with regard to the protection of their data 
   (and
     (instance ?MINING DataMining)
     (instance ?DATA ContentBearingObject)
-    (patient ?MINING ?DATA)) ;Should it be any data or only personal data? Do we only consider personal data?
-  (exists (?INFOBJECT ?INFO ?OTHERINFO ?OTHEROBJECT)
+    (patient ?MINING ?DATA))
+  (exists (?INFO ?OTHERINFO ?OTHEROBJECT)
     (and
       (containsInformation ?DATA ?INFO)
       (result ?MINING ?INFO)
       (containsInformation ?OTHEROBJECT ?OTHERINFO)
       (not
-        (equal ?INFO ?OTHERINFO))))) 
+        (equal ?INFO ?OTHERINFO)))))
       
 
 
@@ -185,9 +259,9 @@ hears complaints lodged by citizens with regard to the protection of their data 
 
 (=>
   (and
-      (instance ?PERSON Human)
-      (instance ?SUBJECT DataSubject)
-      (attribute ?PERSON ?SUBJECT))
+    (instance ?PERSON Human)
+    (instance ?SUBJECT DataSubject)
+    (attribute ?PERSON ?SUBJECT))
   (exists (?DATA ?ENTITY ?PROCESSING)
     (and
       (instance ?DATA PersonalData)
@@ -195,7 +269,7 @@ hears complaints lodged by citizens with regard to the protection of their data 
       (and
         (instance ?PROCESSING DataProcessing)
         (agent ?PROCESSING ?ENTITY)
-        (patient ?PROCESSING ?DATA))))) 
+        (patient ?PROCESSING ?DATA)))))
 
 ; PERSONAL DATA
 ;"‘personal data’ means any information relating to an identified or identifiable natural person (‘data subject’); 
@@ -228,7 +302,7 @@ hears complaints lodged by citizens with regard to the protection of their data 
 
 ;Question :
 
-(documentation VideoSurveillance "Video-surveillance is the monitoring of a specific area, event, activity, or person by means of an electronic device or system for visual monitoring. Typically, the monitoring is carried out using a SurveillanceSystem.")
+(documentation VideoSurveillance EnglishLanguage "Video-surveillance is the monitoring of a specific area, event, activity, or person by means of an electronic device or system for visual monitoring. Typically, the monitoring is carried out using a SurveillanceSystem.")
 
 (subclass VideoSurveillance ContentDevelopment)
 
@@ -249,15 +323,15 @@ hears complaints lodged by citizens with regard to the protection of their data 
 
 (=>
   (instance ?SURVEILLING VideoSurveillance)
-  (and
-    (hasPurpose ?SURVEILLING
-      (descreasesLikelihood
-        (=>
-          (and
-            (instance ?PROCESS Process)
-            (patient ?SURVEILLING ?PROCESS))
-            (exists (?PROCESS)
-              (attribute ?PROCESS Dangerous)))))))
+  (hasPurpose ?SURVEILLING
+    (decreasesLikelihood
+      (=>
+        (and
+          (instance ?PROCESS Process)
+          (patient ?SURVEILLING ?PROCESS))
+        (exists (?PROCESS)
+          (attribute ?PROCESS Dangerous))))))
+         
               
 
 ;TERMS RELEVANT TO GDPR, BUT NOT DIRECTLY FROM THE GLOSSARY                       
@@ -267,25 +341,25 @@ hears complaints lodged by citizens with regard to the protection of their data 
 ;meaning : looking at something repetitively with the goal of overseeing its performance          
 
 
-;hasJurisdiction
+;jurisdiction
 
 ;meaning : the right and power to interpret and apply the law
 
 
-(documentation hasJurisdiction EnglishLanguage "(@hasJursdiction ?AUTONOMOUSAGENT ?AREA) expresses that an ?AUTONOMOUSAGENT has power to interpret and apply the law in an ?AREA")
+(documentation jurisdiction EnglishLanguage "(@jurisdiction ?AUTONOMOUSAGENT ?AREA) expresses that an ?AUTONOMOUSAGENT has power to interpret and apply the law in an ?AREA")
 
-(domain hasJurisdiction 1 AutonomousAgent)	
-(domain hasJurisdiction 2 GeopoliticalArea)
+(domain jurisdiction 1 AutonomousAgent)	
+(domain jurisdiction 2 GeopoliticalArea)
 
 (=>
   (and
     (instance ?AGENT AutonomousAgent)
-    (hasJurisdiction ?AGENT ?AREA))
+    (jurisdiction ?AGENT ?AREA))
   (exists (?LAW ?INTERPRET)
     (and
       (modalAttribute ?LAW Law)
       (instance ?INTERPRET Interpreting)
-      (instance ?DECIDE Deciding)
+      (instance ?DECIDE LegalDecision)
       (hasRight ?AGENT
         (and
           (agent ?DECIDE ?AGENT)
