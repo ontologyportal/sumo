@@ -1,4 +1,4 @@
-;All definitions taken from : https://edps.europa.eu/data-protection/data-protection/glossary_en, unless indicated otherwise
+;All definitions taken from : https://edps.europa.eu/data-protection/data-protection/glossary_en and https://gdpr-info.eu/art-4-gdpr/, unless indicated otherwise
 
 
 ; DATA PROCESSING : 
@@ -6,9 +6,13 @@
 ; such as collection, recording, organisation, structuring, storage, adaptation or alteration, retrieval, consultation, use, 
 ; disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction, erasure or destruction."
 
-(documentation DataProcessing EnglishLanguage "any operation or set of operations which is performed on personal data or on sets of personal data, whether or not by automated means, such as collection, recording, organisation, structuring, storage, adaptation or alteration, retrieval, consultation, use, disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction, erasure or destruction.")
+(documentation DataProcessing EnglishLanguage "any operation or set of operations which is performed on personal data or on sets of personal data, 
+whether or not by automated means, such as collection, recording, organisation, structuring, storage, adaptation or alteration, retrieval, 
+consultation, use, disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction, erasure or destruction.")
+
+
 (subclass DataProcessing ContentDevelopment)       
- 
+
 (exists (?PROC ?DATA)
   (and
     (instance ?PROC DataProcessing)
@@ -16,6 +20,42 @@
     (patient ?PROC ?DATA)))
     
     
+(documentation CrossBorderDataProcessing EnglishLanguage "processing of personal data which takes place in the context of the activities 
+of establishments in more than one Member State of a controller or processor in the Union where the controller or processor is established in more than one Member State;
+or processing of personal data which takes place in the context of the activities of a single establishment of a controller or processor in the Union but which 
+substantially affects or is likely to substantially affect data subjects in more than one Member State.")   
+   
+(subclass CrossBorderDataProcessing DataProcessing)
+
+(=>
+  (instance ?CP CrossBorderDataProcessing)
+  (exists (?COUNTRIES ?CONTROLLER ?CONTROLLERS ?COUNTRY ?N)
+    (and
+      (or
+        (and
+          (instance ?CONTROLLERS Collection)
+          (memberType ?CONTROLLERS DataProcessor)
+          (memberType ?CONTROLLERS DataController)
+          (forall (?MEMBER)
+            (=>
+              (member ?CONTROLLER ?CONTROLLERS)
+              (and
+                (agent ?CP ?CONTROLLER)
+                (member ?COUNTRY ?COUNTRIES)
+                (eventLocated ?CP ?COUNTRY)
+                (jurisdiction ?CONTROLLER ?COUNTRY)))))
+         (and
+          (patient ?CP ?COUNTRIES)
+          (or
+            (instance ?CONTROLLER DataProcessor)
+            (instance ?CONTROLLER DataController))))
+      (instance ?COUNTRIES Collection)
+      (memberType ?COUNTRIES MemberStateEu)
+      (memberCount ?COUNTRIES ?N)
+      (greaterThan ?N 1))))
+
+
+ 
 ;PROCESSOR
 
 (documentation DataProcessor EnglishLanguage "A natural or legal person, public authority, agency or other body which processes personal data on behalf of the controller.")
@@ -34,7 +74,7 @@
       (agent ?PROC ?DP))))
       
       
-     
+    
 ; RECORDS 
 ;DataController hasObligation to maintatin records of DataProcessing done by DataProcessor
 
@@ -147,7 +187,7 @@
 provides advice to the competent bodies with regard to legislative and administrative measures relating to the processing of personal data;
 hears complaints lodged by citizens with regard to the protection of their data protection rights.")
 
-(subclass DataProtectionAuthority AutonomousAgent) ;maybe chan
+(subclass DataProtectionAuthority GovernmentOrganization) ;maybe chan
 
 ;monitors the processing of personal data within its jurisdiction (country, region or international organization)
 
@@ -338,6 +378,55 @@ hears complaints lodged by citizens with regard to the protection of their data 
       (represents ?ID ?IDENTIFIED)
       (not
         (represents ?ID ?NOTIDENTIFIED)))))
+        
+
+(documentation BiometricData EnglishLanguage "Personal data resulting from specific technical processing relating to the physical, 
+physiological or behavioural characteristics of a natural person, which allow or confirm the unique identification of that natural person, 
+such as facial images or dactyloscopic data")
+ 
+(subclass BiometricData PersonalData)
+
+(=>
+  (instance ?BD BiometricData)
+  (exists (?P ?IDING ?ID)
+    (and
+      (instance ?P Human)
+      (instance ?IDING BiometricIdentifying)
+      (result ?IDING ?ID)
+      (represents ?ID ?P))))  
+      
+      
+(documentation HealthData EnglishLanguage "personal data related to the physical or mental health of a natural person, 
+including the provision of health care services, which reveal information about his or her health status")
+
+(subclass HealthData PersonalData)
+
+(=>
+  (instance ?HD HealthData)
+  (exists (?P ?D)
+    (and
+      (instance ?P Human)
+      (instance ?D DiseaseOrSyndrome)
+      (part ?D ?P)
+      (refers ?HD ?D))))
+      
+      
+(documentation GeneticData EnglishLanguage "means personal data relating to the inherited or acquired genetic characteristics 
+of a natural person which give unique information about the physiology or the health of that natural person")
+
+(subclass GeneticData PersonalData)
+
+(=>
+  (instance ?HD GeneticData)
+  (exists (?P ?DNA)
+    (and
+      (instance ?P Human)
+      (instance ?DNA DNA)
+      (part ?DNA ?P)
+      (refers ?HD ?DNA))))
+      
+      
+
 
 ;CCTV
 ;It is a television system comprised of a camera or a set of cameras monitoring a specific protected area, with additional equipment used for viewing and/or storing the CCTV footage
@@ -349,7 +438,9 @@ hears complaints lodged by citizens with regard to the protection of their data 
 
 ;Question :
 
-(documentation VideoSurveillance EnglishLanguage "Video-surveillance is the monitoring of a specific area, event, activity, or person by means of an electronic device or system for visual monitoring. Typically, the monitoring is carried out using a SurveillanceSystem.")
+(documentation VideoSurveillance EnglishLanguage "Video-surveillance is the monitoring of a specific area, event, activity, 
+or person by means of an electronic device or system for visual monitoring. 
+Typically, the monitoring is carried out using a SurveillanceSystem.")
 
 (subclass VideoSurveillance ContentDevelopment)
 
@@ -398,6 +489,9 @@ hears complaints lodged by citizens with regard to the protection of their data 
 (domain jurisdiction 1 AutonomousAgent)	
 (domain jurisdiction 2 GeopoliticalArea)
 
+
+(subclass jurisdiction BinaryPredicate)
+
 (=>
   (and
     (instance ?AGENT AutonomousAgent)
@@ -414,6 +508,43 @@ hears complaints lodged by citizens with regard to the protection of their data 
           (agent ?INTERPRET ?AGENT)
           (patient ?INTERPRET ?LAW))))))
 
+;MemberStateEU
+
+;(documentation jurisdiction MemberStateEU "(@jurisdiction ?AUTONOMOUSAGENT ?AREA) expresses that an ?AUTONOMOUSAGENT has power to interpret and apply the law in an ?AREA")
+
+(subclass MemberStateEU Nation)
+
+(=>
+  (instance ?STATE MemberStateEU)
+  (member ?STATE EuropeanUnion))
 
 
+;GovernmentRegulatoryBody
+;definition taken from https://www.britannica.com/topic/regulatory-agency
+
+(documentation GovernmentRegulatoryBody EnglishLanguage "independent governmental body established by legislative act in order to set standards in a specific field of activity")
+
+(subclass GovernmentRegulatoryBody GovernmentOrganization)
+
+(=>
+  (and
+    (instance ?DPA GovernmentRegulatoryBody)
+    (instance ?JURISDICTION GeopoliticalArea)
+    (jurisdiction ?DPA ?JURISDICTION)
+    (instance ?LAW RegionalLaw)
+    (refers ?LAW ?JURISDICTION)
+    (instance ?H AutonomousAgent)
+    (located ?H ?JURISDICTION)
+    (instance ?Q Questioning)
+    (agent ?Q ?H)
+    (result ?Q ?QUERY)
+    (refers ?QUERY ?LAW)
+    (patient ?Q ?DPA))
+  (exists (?ANS ?ANSWER)
+    (holdsObligation
+      (and
+        (instance ?ANS Answering)
+        (result ?ANS ?ANSWER)
+        (agent ?ANS ?DPA)
+        (refers ?ANS ?QUERY)) ?DPA)))
 
