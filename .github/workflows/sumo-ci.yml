@@ -1,0 +1,34 @@
+name: SUMO CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    container:
+      image: apease/sumo-ci:latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Produce SUMO.tptp
+      run: java -Xmx8g -classpath "/root/sigmakee/*" com.articulate.sigma.trans.SUMOKBtoTPTPKB
+
+    - name: Run vampire against SUMO.tptp
+      run: |
+        ls -l /root/sigmakee-runtime/KBs/SUMO.tptp
+        /usr/local/bin/vampire --proof tptp -t 900 /root/sigmakee-runtime/KBs/SUMO.tptp > vamp-out.txt || echo "Ignoring vampire exit code"
+
+    - name: Check results
+      if: success() || failure()
+      run: |
+        ls -l /root/sigmakee-runtime/KBs/SUMO.tptp
+        ls -l vamp-out.txt
+        grep "Refutation found" vamp-out.txt  || echo "Ignoring grep exit code"
+        echo "vamp-out.txt"
+        cat vamp-out.txt
