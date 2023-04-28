@@ -2,33 +2,93 @@ name: SUMO CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "main" ]
+  schedule:
+    - cron:  '30 8 * * 6'
+env:
+  DEFAULT_DOCKER_ACCOUNT: apease
 
 jobs:
-  build:
-
+  derive_docker:
     runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      image_account: ${{ steps.step1.outputs.image_account }}
+    steps:
+      - id: step1
+        env:
+          DOCKER_ACCOUNT: ${{ vars.DOCKER_ACCOUNT }}
+        run: echo "image_account=${DOCKER_ACCOUNT:-$DEFAULT_DOCKER_ACCOUNT}" >> "$GITHUB_OUTPUT"
+
+  build:
+    runs-on: ubuntu-latest
+    needs: derive_docker
     container:
-      image: apease/sumo-ci:latest
+      image: ${{ needs.derive_docker.outputs.image_account }}/sumo-ci:latest
+    env:
+      SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
 
     steps:
+    - name: Set vampire timeout
+      run: |
+        case "$GITHUB_EVENT_NAME" in
+         schedule) VAMPIRE_TIMEOUT=10800 ;;
+                *) VAMPIRE_TIMEOUT=900 ;;
+        esac
+        echo "VAMPIRE_TIMEOUT=$VAMPIRE_TIMEOUT"
+        echo "VAMPIRE_TIMEOUT=$VAMPIRE_TIMEOUT" >> $GITHUB_ENV
+          
     - uses: actions/checkout@v3
+      with:
+        path: sumo
+
+    - name: Setup SigmaKEE
+      env:
+        ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
+        VAMPIRE_TIMEOUT: ${{ env.VAMPIRE_TIMEOUT }}
+      run: |
+        echo "SIGMA_HOME: $SIGMA_HOME"
+        echo "VAMPIRE_TIMEOUT: $VAMPIRE_TIMEOUT"
+        mkdir -p $SIGMA_HOME/KBs/WordNetMappings
+        wget https://raw.githubusercontent.com/ontologyportal/sigmakee/master/config.xml
+        cp ./config.xml $SIGMA_HOME/KBs
+        cp -R $ONTOLOGYPORTAL_GIT/sumo/* $SIGMA_HOME/KBs
+        cp /opt/WordNet-3.0/dict/* $SIGMA_HOME/KBs/WordNetMappings/
+        sed -i "s|/home/theuser/.sigmakee|$SIGMA_HOME|g" $SIGMA_HOME/KBs/config.xml
+        sed -i "s|/home/theuser/workspace/sumo|$ONTOLOGYPORTAL_GIT/sumo|g" $SIGMA_HOME/KBs/config.xml
+        sed -i "s|/home/theuser/E/bin/e_ltb_runner|/usr/local/bin/e_ltb_runner|g" $SIGMA_HOME/KBs/config.xml
+        sed -i "s|/home/theuser/workspace/vampire/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
 
     - name: Produce SUMO.tptp
       run: java -Xmx8g -classpath "/root/sigmakee/*" com.articulate.sigma.trans.SUMOKBtoTPTPKB
 
     - name: Run vampire against SUMO.tptp
+      env:
+        VAMPIRE_TIMEOUT: ${{ env.VAMPIRE_TIMEOUT }}
       run: |
-        ls -l /root/sigmakee-runtime/KBs/SUMO.tptp
-        /usr/local/bin/vampire --proof tptp -t 900 /root/sigmakee-runtime/KBs/SUMO.tptp > vamp-out.txt || echo "Ignoring vampire exit code"
+        ls -l $SIGMA_HOME/KBs/SUMO.tptp
+        echo "VAMPIRE_TIMEOUT: $VAMPIRE_TIMEOUT"
+        /usr/local/bin/vampire --proof tptp -t $VAMPIRE_TIMEOUT $SIGMA_HOME/KBs/SUMO.tptp > vamp-out.txt || echo "Ignoring vampire exit code"
+
+    - name: Upload vamp-out.txt
+      if: success() || failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: vamp-out.txt
+        path: ./vamp-out.txt
 
     - name: Check results
       if: success() || failure()
       run: |
-        ls -l /root/sigmakee-runtime/KBs/SUMO.tptp
-        ls -l vamp-out.txt
-        grep "Refutation found" vamp-out.txt  || echo "Ignoring grep exit code"
-        echo "vamp-out.txt"
-        cat vamp-out.txt
+        #allow errors
+        set +e
+        grep "Refutation found" vamp-out.txt
+        #Remap exit code. If refutation found - it's an error
+        if [ $? -eq 0]
+        then
+          exit 1
+        else
+          exit 0
+        fi
