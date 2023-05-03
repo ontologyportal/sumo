@@ -1,12 +1,13 @@
 name: SUMO CI
 
 on:
-  push:
-    branches: [ "master", "main" ]
-  pull_request:
-    branches: [ "master", "main" ]
-  schedule:
-    - cron:  '30 8 * * 6'
+  workflow_call:
+    inputs:
+      vampire_timeout:
+        description: 'How long vampire should run'
+        required: true
+        type: number
+
 env:
   DEFAULT_DOCKER_ACCOUNT: apease
 
@@ -22,7 +23,7 @@ jobs:
           DOCKER_ACCOUNT: ${{ vars.DOCKER_ACCOUNT }}
         run: echo "image_account=${DOCKER_ACCOUNT:-$DEFAULT_DOCKER_ACCOUNT}" >> "$GITHUB_OUTPUT"
 
-  build:
+  build_sumo_tptp:
     runs-on: ubuntu-latest
     needs: derive_docker
     container:
@@ -31,15 +32,6 @@ jobs:
       SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
 
     steps:
-    - name: Set vampire timeout
-      run: |
-        case "$GITHUB_EVENT_NAME" in
-         schedule) VAMPIRE_TIMEOUT=10800 ;;
-                *) VAMPIRE_TIMEOUT=900 ;;
-        esac
-        echo "VAMPIRE_TIMEOUT=$VAMPIRE_TIMEOUT"
-        echo "VAMPIRE_TIMEOUT=$VAMPIRE_TIMEOUT" >> $GITHUB_ENV
-          
     - uses: actions/checkout@v3
       with:
         path: sumo
@@ -47,10 +39,8 @@ jobs:
     - name: Setup SigmaKEE
       env:
         ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
-        VAMPIRE_TIMEOUT: ${{ env.VAMPIRE_TIMEOUT }}
       run: |
         echo "SIGMA_HOME: $SIGMA_HOME"
-        echo "VAMPIRE_TIMEOUT: $VAMPIRE_TIMEOUT"
         mkdir -p $SIGMA_HOME/KBs/WordNetMappings
         wget https://raw.githubusercontent.com/ontologyportal/sigmakee/master/config.xml
         cp ./config.xml $SIGMA_HOME/KBs
@@ -64,13 +54,32 @@ jobs:
     - name: Produce SUMO.tptp
       run: java -Xmx8g -classpath "/root/sigmakee/*" com.articulate.sigma.trans.SUMOKBtoTPTPKB
 
+    - name: Upload SUMO.tptp
+      uses: actions/upload-artifact@v3
+      with:
+        name: SUMO.tptp
+        path: ${{ env.SIGMA_HOME }}/KBs/SUMO.tptp
+
+  run_vampire:
+    runs-on: ubuntu-latest
+    needs: [derive_docker,build_sumo_tptp]
+    container:
+      image: ${{ needs.derive_docker.outputs.image_account }}/sumo-ci:latest
+    env:
+      SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
+
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        name: SUMO.tptp
+
     - name: Run vampire against SUMO.tptp
       env:
-        VAMPIRE_TIMEOUT: ${{ env.VAMPIRE_TIMEOUT }}
+        VAMPIRE_TIMEOUT: ${{ inputs.vampire_timeout }}
       run: |
-        ls -l $SIGMA_HOME/KBs/SUMO.tptp
+        ls -l .
         echo "VAMPIRE_TIMEOUT: $VAMPIRE_TIMEOUT"
-        /usr/local/bin/vampire --proof tptp -t $VAMPIRE_TIMEOUT $SIGMA_HOME/KBs/SUMO.tptp > vamp-out.txt || echo "Ignoring vampire exit code"
+        /usr/local/bin/vampire --proof tptp -t $VAMPIRE_TIMEOUT SUMO.tptp > vamp-out.txt || echo "Ignoring vampire exit code"
         mkdir -p $SIGMA_HOME/webapps/sigma/graph
         CATALINA_HOME=$SIGMA_HOME java -Xmx8g -classpath "/root/sigmakee/*" com.articulate.sigma.trans.TPTP3ProofProcessor -f vamp-out.txt
         cp $SIGMA_HOME/webapps/sigma/graph/proof.* .
