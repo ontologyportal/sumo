@@ -1,0 +1,117 @@
+name: SUMO CI
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+env:
+  DEFAULT_DOCKER_ACCOUNT: apease
+
+jobs:
+  derive_docker:
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      image_account: ${{ steps.step1.outputs.image_account }}
+    steps:
+      - id: step1
+        env:
+          DOCKER_ACCOUNT: ${{ vars.DOCKER_ACCOUNT }}
+        run: echo "image_account=${DOCKER_ACCOUNT:-$DEFAULT_DOCKER_ACCOUNT}" >> "$GITHUB_OUTPUT"
+
+  build_sumo_tptp:
+    strategy:
+      matrix:
+        logic: [ tptp, tff ]
+        sumo_size: [ top, mid, full ]
+        include:
+          - logic: tptp
+            class: com.articulate.sigma.trans.SUMOKBtoTPTPKB
+          - logic: tff
+            class: com.articulate.sigma.trans.SUMOKBtoTFAKB
+    runs-on: ubuntu-latest
+    needs: derive_docker
+    container:
+      image: ${{ needs.derive_docker.outputs.image_account }}/sumo-ci:latest
+    env:
+      SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        path: sumo
+
+    - name: Setup SigmaKEE
+      env:
+        ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
+        SUMO_SIZE: ${{ matrix.sumo_size }}
+      run: |
+        echo "SIGMA_HOME: $SIGMA_HOME"
+        mkdir -p $SIGMA_HOME/KBs/WordNetMappings
+        wget https://raw.githubusercontent.com/ontologyportal/sigmakee/master/config.xml
+        sed -f $SUMO_SIZE.sed ./config.xml > $SIGMA_HOME/KBs/config.xml
+        cp -R $ONTOLOGYPORTAL_GIT/sumo/* $SIGMA_HOME/KBs
+        cp /opt/WordNet-3.0/dict/* $SIGMA_HOME/KBs/WordNetMappings/
+        sed -i "s|/home/theuser/.sigmakee|$SIGMA_HOME|g" $SIGMA_HOME/KBs/config.xml
+        sed -i "s|/home/theuser/workspace/sumo|$ONTOLOGYPORTAL_GIT/sumo|g" $SIGMA_HOME/KBs/config.xml
+        sed -i "s|/home/theuser/E/bin/e_ltb_runner|/usr/local/bin/e_ltb_runner|g" $SIGMA_HOME/KBs/config.xml
+        sed -i "s|/home/theuser/workspace/vampire/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
+      working-directory: ./tests/TQSP
+
+    - name: Produce SUMO-${{ matrix.sumo_size }}.${{ matrix.logic }}
+      run: java -Xmx8g -classpath "/root/sigmakee/*" ${{ matrix.class }}
+
+    - name: Upload SUMO-${{ matrix.sumo_size }}.${{ matrix.logic }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: SUMO-${{ matrix.sumo_size }}.${{ matrix.logic }}
+        path: ${{ env.SIGMA_HOME }}/KBs/SUMO.${{ matrix.logic }}
+
+  run_vampire:
+    runs-on: ubuntu-latest
+    needs: [derive_docker,build_sumo_tptp]
+    container:
+      image: ${{ needs.derive_docker.outputs.image_account }}/sumo-ci:latest
+    env:
+      SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
+
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        name: SUMO.tptp
+
+    - name: Run vampire against SUMO.tptp
+      env:
+        VAMPIRE_TIMEOUT: ${{ inputs.vampire_timeout }}
+      run: |
+        ls -l .
+        echo "VAMPIRE_TIMEOUT: $VAMPIRE_TIMEOUT"
+        /usr/local/bin/vampire --proof tptp -t $VAMPIRE_TIMEOUT SUMO.tptp > vamp-out.txt || echo "Ignoring vampire exit code"
+        mkdir -p $SIGMA_HOME/webapps/sigma/graph
+        CATALINA_HOME=$SIGMA_HOME java -Xmx8g -classpath "/root/sigmakee/*" com.articulate.sigma.trans.TPTP3ProofProcessor -f vamp-out.txt
+        cp $SIGMA_HOME/webapps/sigma/graph/proof.* .
+
+    - name: Upload vamp-out.txt
+      if: success() || failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: logs-and-graphs
+        path: |
+          ./vamp-out.txt
+          ./proof.*
+
+    - name: Check results
+      if: success() || failure()
+      run: |
+        #allow errors
+        set +e
+        grep "Refutation found" vamp-out.txt
+        #Remap exit code. If refutation found - it's an error
+        if [ $? -eq 0 ]
+        then
+          exit 1
+        else
+          exit 0
+        fi
