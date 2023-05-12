@@ -16,19 +16,85 @@
 
 (instance CookedAttribute RelationalAttribute)
 (documentation CookedAttribute EnglishLanguage "&%CookedAttribute describes how something
-is a product of &%Heating.")
+is a product of &%Cooking and &%Heating.")
 (termFormat EnglishLanguage CookedAttribute "cooked")
+
 
 (=>
   (attribute ?FOOD CookedAttribute)
+  (exists (?PROC1 ?PROC2)
+    (and
+      (instance ?PROC1 Cooking)
+      (instance ?PROC2 Heating)
+      (subProcess ?PROC2 ?PROC1)
+      (result ?PROC1 ?FOOD))))
+
+(subclass WetBar Artifact)
+(documentation WetBar EnglishLanguage "&%WetBar is a place for preparing food and 
+beverage that has a sink with running water")
+(termFormat EnglishLanguage WetBar "wet bar")
+
+(=>
+  (instance ?X WetBar)
+  (exists (?SINK ?OBJ)
+    (and
+      (instance ?SINK WashBasin)
+      (part ?SINK ?X)
+      (instance ?OBJ Object)
+      (attribute ?OBJ Flat)
+      (hasPurpose ?OBJ
+        (exists (?PREP ?FOOD)
+          (and
+            (instance ?PREP Making)
+            (result ?PREP ?FOOD)
+            (or
+              (instance ?FOOD PreparedFood)
+              (instance ?FOOD Beverage))
+            (eventLocated ?PREP ?OBJ))))
+      (part ?OBJ ?X))))
+      
+(subclass Microwave ElectricDevice)
+(documentation Microwave EnglishLanguage "&%Microwave is an &%ElectricDevice that heats
+food by passing an electromagnetic wave through it")
+(termFormat EnglishLanguage Microwave "microwave")
+
+(=>
+  (instance ?M Microwave)
+  (hasPurpose ?M
+    (exists (?FOOD ?HEATING)
+      (and
+        (instance ?FOOD PreparedFood)
+        (instance ?HEATING Heating)
+        (instrument ?HEATING ?M)
+        (patient ?HEATING ?FOOD)))))
+
+(=>
+  (and
+    (instance ?M Microwave)
+    (attribute ?M DeviceOn))
   (exists (?PROC)
     (and
-      (instance ?PROC Heating)
-      (result ?PROC ?FOOD))))
-      
+      (instance ?PROC RadiatingElectromagnetic)
+      (instrument ?PROC ?M))))
+
+(subclass ElectricCoffeeMaker ElectricDevice)
+(documentation ElectricCoffeeMaker EnglishLanguage "&%ElectricCoffeeMaker is a
+&%Device that makes &%Coffee")
+(termFormat EnglishLanguage ElectricCoffeeMaker "coffee maker")
+
+(=>
+  (instance ?C ElectricCoffeeMaker)
+  (hasPurpose ?C
+    (exists (?COFFEE ?M)
+      (and
+        (instance ?M Making)
+        (instrument ?M ?C)
+        (result ?M ?COFFEE)
+        (instance ?COFFEE Coffee)))))
+                  
 (instance RawAttribute RelationalAttribute)
-(documentation RawAttribute EnglishLanguage "&%RawAttribute describes how cooking was
-not involved in the making of something")
+(documentation RawAttribute EnglishLanguage "&%RawAttribute describes how heating was
+not involved in the making of something.")
 (termFormat EnglishLanguage RawAttribute "raw")
 
 (=>
@@ -42,7 +108,167 @@ not involved in the making of something")
       (and
         (instance ?PROC Heating)
         (result ?PROC ?FOOD)))))
-      
+
+(subclass HumanFood Food)
+(documentation HumanFood EnglishLanguage "&%HumanFood is the class of &%Food which are consumed by 
+&%Human.")
+(termFormat EnglishLanguage HumanFood "human food")
+
+(equal HumanFood
+  (FoodForFn Human))
+  
+(subclass Meat Food)
+(disjoint Meat FoodFromPlant)
+  
+(subclass FoodFromPlant Food)
+(documentation FoodFromPlant EnglishLanguage "&%FoodFromPlant is the class of &%Food which are derived 
+from the whole or &%part of &%Plants.")
+(termFormat EnglishLanguage FoodFromPlant "food from plant")
+
+(=>
+  (instance ?X FoodFromPlant)
+  (exists (?P ?CLASS)
+    (and
+      (instance ?P 
+        (DeadFn ?CLASS))
+      (part ?X ?P)
+      (subclass ?CLASS Plant))))
+
+(subclass PreparedFood Food)
+(documentation PreparedFood EnglishLanguage "&%PreparedFood refers to anything that
+undergoes some process intended to result in an object that has &%Nutrient which can be
+ingested by &%Animal, normally metabolized into energy and body tissue.")
+(termFormat EnglishLanguage PreparedFood "food")
+
+(=>
+  (instance ?X PreparedFood)
+  (instance ?X (FoodForFn Animal)))
+
+(=>
+  (instance ?X PreparedFood)
+  (exists (?PROC)
+    (and
+      (instance ?PROC IntentionalProcess)
+      (result ?PROC ?X))))
+
+(subclass Beverage PreparedFood)
+(subclass Beverage Colloid)
+(disjoint Meat Beverage)
+(documentation Beverage EnglishLanguage "Any food that is ingested by &%Drinking.
+Note that this class is disjoint &%Meat and &%FruitOrVegetable.")
+
+(=>
+   (instance ?BEV Beverage)
+   (attribute ?BEV Liquid))
+
+(=>
+   (and
+      (instance ?DRINK Drinking)
+      (patient ?DRINK ?BEV))
+   (instance ?BEV Beverage))
+
+(subclass Coffee Beverage)
+(roomTempState Coffee Liquid)
+(documentation Coffee EnglishLanguage "A &%Beverage which is prepared by infusing ground,
+roasted coffee beans into hot water.")
+(initialPart Coffee CoffeeBean)
+
+(=>
+  (instance ?C Coffee)
+  (exists (?CAF)
+    (and
+      (instance ?CAF Caffeine)
+      (piece ?CAF ?C))))   
+           
+(subclass Baking Cooking)
+(subclass Baking Heating)
+(documentation Baking EnglishLanguage "Any instance of &%Cooking where the instrument
+is an &%Oven.")
+
+(=>
+  (instance ?B Baking)
+  (exists (?O)
+    (and
+      (instance ?O Oven)
+      (instrument ?B ?O))))
+
+(subclass Flour PreparedFood)
+(subclass Flour Powder)
+(documentation Flour EnglishLanguage "A &%Powder that is prepared from &%CerealGrain, e.g.
+wheat flour, rice flour, etc.  Flour is most often used in the making
+of &%BreadOrBiscuits.")
+
+(=>
+  (instance ?F Flour)
+  (exists (?P ?C)
+    (and
+      (instance ?P IntentionalProcess)
+      (resource ?P ?C)
+      (instance ?C CerealGrain)
+      (result ?P ?F)))) 
+
+(=>
+  (instance ?F Flour)
+  (attribute ?F RawAttribute))
+                  
+(subclass BreadOrBiscuit PreparedFood)
+(documentation BreadOrBiscuit EnglishLanguage "Food that consists largely of grain flour
+and water.  Note that this class covers crackers, cookies, as well as any
+self-connected instance of bread, whether it is a loaf, a slice, a chunk
+of bread, etc.")
+
+(=>
+  (instance ?B BreadOrBiscuit)
+  (exists (?D ?BAKE)
+    (and
+      (instance ?D Dough)
+      (instance ?BAKE Baking)
+      (resource ?BAKE ?D)
+      (result ?BAKE ?B))))
+
+(subclass Sandwich PreparedFood)
+(documentation Sandwich EnglishLanguage "Any food which consists of two or more pieces
+of bread and some sort of filling between the two pieces of bread.")
+
+(=>
+  (instance ?S Sandwich)
+  (exists (?B1 ?B2 ?F)
+    (and
+      (instance ?B1 BreadOrBiscuit)
+      (instance ?B2 BreadOrBiscuit)
+      (instance ?F (FoodForFn Human))
+      (between ?B1 ?F ?B2)
+      (not (equal ?B1 ?B2))
+      (not (equal ?B1 ?F))
+      (not (equal ?B2 ?F))
+      (part ?B1 ?S)
+      (part ?B2 ?S)
+      (part ?F ?S))))
+
+(subclass Dough PreparedFood)
+(subclass Dough Mixture)
+(documentation Dough EnglishLanguage "A &%Mixture of &%Flour, &%Water, and possibly
+other ingredients (such as &%Butter and &%Salt), which is used in
+making &%BreadOrBiscuits or &%Pasta or noodles.")
+
+(=>
+  (instance ?D Dough)
+  (attribute ?D RawAttribute))
+
+(=>
+  (instance ?D Dough)
+  (exists (?F ?W)
+    (and
+      (instance ?F Flour)
+      (instance ?W Water)
+      (part ?F ?D)
+      (part ?W ?D))))
+
+(subclass SoupStock PreparedFood)
+(documentation SoupStock EnglishLanguage "Food which is prepared by reducing &%Meat
+and/or &%FruitOrVegetables to a translucent broth which can be used as
+a base for soups or sauces.")
+                   
 (instance ingredientAmount TernaryRelation)
 (documentation ingredientAmount EnglishLanguage "(&%ingredientAmount ?ING ?FOOD ?AMT 
 means that ?AMT of ?ING is used to make ?FOOD")
@@ -581,7 +807,7 @@ leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea i
 
 (subclass Campari Aperitif)
 
-(subclass Cappuccino PreparedFood)
+(subclass Cappuccino Coffee)
 (documentation Cappuccino EnglishLanguage "Espresso with foamed milk")
 
 (=>
@@ -608,7 +834,7 @@ leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea i
 
 (subclass Champagne Wine)
 
-(subclass Chocolate PreparedFood)
+(subclass Chocolate Beverage)
 (=>
   (instance ?C Chocolate)
   (and
@@ -658,6 +884,8 @@ leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea i
 (subclass Espresso Coffee)
 
 (subclass Frying Cooking)
+(subclass Frying Heating)
+
 (=>
   (instance ?F Frying)
   (exists (?O)
@@ -839,6 +1067,15 @@ with other ingredients like ravioli and tortellini. [Wikipedia]")
   (instance ?P Pasta)
   (material Flour ?P))
 
+(=>
+  (instance ?P Pasta)
+  (exists (?D ?C)
+    (and
+      (instance ?D Dough)
+      (instance ?C Cooking)
+      (resource ?C ?D)
+      (result ?C ?P))))
+  
 (subclass PatronTequilla Tequila)
 (subclass Peach Fruit)
 
