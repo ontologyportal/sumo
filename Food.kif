@@ -54,30 +54,78 @@ not involved in the making of something.")
 involved in preserving &%Food.")
 (termFormat EnglishLanguage CuredAttribute "cured")
 
+(=>
+  (attribute ?F CuredAttribute)
+  (exists (?C)
+    (and
+      (instance ?C CuringFood)
+      (result ?C ?F))))
+
 (subclass CuringFood Drying)
 (subclass CuringFood PreservingFood)
 (documentation CuringFood EnglishLanguage "&%CuringFood is the class of Process where &%Food is
-preserved by adding &%SodiumChloride, &%Sugar, Nitrites and Nitrates.")
+preserved drawing out its water content by adding salt. Many curing processes invlove smoking, Spicing 
+and cooking, or adding a combination of &%Sugar, Nitrites and Nitrates.[Wikipedia]")
 (termFormat EnglishLanguage CuringFood "curing food")
-
-;; also need to add Nitrites and Nitrates
+          
+(=>
+  (instance ?C CuringFood)
+  (exists (?F ?P ?S)
+    (and
+      (instance ?F Food)
+      (patient ?C ?F)
+      (instance ?P Putting)
+      (subProcess ?P ?C)
+      (instance ?S SodiumChloride)
+      (patient ?P ?S)
+      (destination ?P ?F))))
+      
+(=>
+  (and
+    (instance ?C CuringFood)
+    (instance ?F Food)
+    (patient ?C ?F))
+  (exists (?D)
+    (and
+      (instance ?D Drying)
+      (subProcess ?D ?C)
+      (patient ?D ?F))))
+        
+;; Maybe add the definitions for Nitrites and Nitrates
 
 (subclass PreservingFood Keeping)
-(relatedInternalConcept PreservingFood Fermentation)
 (relatedInternalConcept PreservingFood Freezing)
 (documentation PreservingFood EnglishLanguage "&%PreservingFood is the class of Process where &%Food
 is prevented from &%ChemicalDecomposition. Some methods of preserving food are &%CuringFood, smoking
 and &%Freezing")
 (termFormat EnglishLanguage PreservingFood "preserving food")
 
-;; need to add term for &%Smoking and maybe &%SmokingFood
+(=>
+  (and
+    (instance ?P PreservingFood)
+    (instance ?F Food)
+    (patient ?P ?F))
+  (hasPurpose ?P
+    (not
+      (exists (?D)
+        (and
+          (instance ?D ChemicalDecomposition)
+          (patient ?D ?F))))))
 
+(subclass Fermentation PreservingFood)
+          
 (instance FermentedAttribute RelationalAttribute)
 (relatedInternalConcept FermentedAttribute RawAttribute)
 (documentation FermentedAttribute EnglishLanguage "&%FermentedAttribute describes how &%Fermentation is
 involved in the making of something.")
 (termFormat EnglishLanguage FermentedAttribute "fermented")
 
+(=>
+  (attribute ?FOOD FermentedAttribute)
+  (exists (?F)
+    (and
+      (instance ?F Fermentation)
+      (result ?F ?FOOD))))
         
 (subclass HumanFood Food)
 (documentation HumanFood EnglishLanguage "&%HumanFood is the class of &%Food which are consumed by 
@@ -226,6 +274,7 @@ is an &%Oven.")
       (instrument ?B ?O))))
 
 (subclass Flour PreparedFood)
+(subclass Flour FoodFromPlant)
 (subclass Flour Powder)
 (documentation Flour EnglishLanguage "A &%Powder that is prepared from &%CerealGrain, e.g.
 wheat flour, rice flour, etc.  Flour is most often used in the making
@@ -259,7 +308,12 @@ of bread, etc.")
       (resource ?BAKE ?D)
       (result ?BAKE ?B))))
 
-(subclass Sandwich PreparedFood)
+(subclass CookedDish PreparedFood)
+(documentation CookedDish EnglishLanguage "A &%CookedDish is a specific food 
+prepation, a 'distinct article or variety of food', ready to eat or to be served. [Wikipedia]")
+(termFormat EnglishLanguage CookedDish "cooked dish")
+      
+(subclass Sandwich CookedDish)
 (documentation Sandwich EnglishLanguage "Any food which consists of two or more pieces
 of bread and some sort of filling between the two pieces of bread.")
 
@@ -413,6 +467,17 @@ eaten during the evening")
       (during (WhenFn ?E) ?TIME)
       (instance ?TIME DinnerTime))) Likely))
 
+(subclass Tea Beverage)
+(documentation Tea EnglishLanguage "A &%Beverage which is prepared by infusing tea &%TeaPlantAerialPart
+into hot water.")
+
+(=>
+  (initialPart Tea ?TEA)
+  (or
+    (equal ?TEA TeaBud)
+    (equal ?TEA TeaLeaf)
+    (equal ?TEA TeaTwig)))
+      
 (instance HighTea RelationalAttribute)
 (documentation HighTea EnglishLanguage "&%HighTea refers to something eaten mid-day that
 consists of light snacks and tea")
@@ -644,7 +709,22 @@ soft-bodied invertebrates that is usually contained in a shell.")
 (documentation Absolut EnglishLanguage "A brand of vodka")
 (subclass Absolut Vodka)
 
-(subclass Aioli PreparedFood)
+(instance Sauce PreparedFood)
+(instance Sauce Colloid)
+(documentation Sauce EnglishLanguage "A &%Sauce is a liquid, cream, or
+semi-solid food, served on or used in preparing other foods. Sauces has a
+liquid component. [Wikipeida]")
+(termFormat EnglishLanguage Sauce "sauce")
+
+(=>
+  (instance ?S Sauce)
+  (exists (?X)
+    (and
+      (instance ?X Substance)
+      (part ?X ?S)
+      (attribute ?X Liquid))))
+
+(subclass Aioli Sauce)
 (documentation Aioli EnglishLanguage "is a garlic mayonnaise. It 
 is a traditional Provençal sauce made of garlic, olive oil, and 
 (typically) egg. There are many variations, such as the addition 
@@ -696,9 +776,19 @@ alcoholic beverages that may be used as aperitifs.")
 
 (subclass Bacardi Rum)
 
+(subclass CuredMeat PreparedFood)
+(subclass CuredMeat Meat)
+(documentation CuredMeat EnglishLanguage "A &%CuredMeat is a cut of &%Meat, including seafood 
+that is cured in salt, then dried.")
+(termFormat EnglishLanguage CuredMeat "cured meat")
+
+(=>
+  (instance ?MEAT CuredMeat)
+  (attribute ?MEAT CuredAttribute))
+
 (documentation Bacon EnglishLanguage "A cut of &%Pork that is cured in salt, then dried.")
 (subclass Bacon Pork)
-(subclass Bacon PreparedFood)
+(subclass Bacon CuredMeat)
 
 (=>
   (instance ?B Bacon)
@@ -829,7 +919,7 @@ leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea i
   (subclass ?P HerbaceousPlant))
 
 (subclass Squid Mollusk)
-(subclass Calamari PreparedFood)
+(subclass Calamari CookedDish)
 
 (=>
   (instance ?C Calamari)
@@ -966,7 +1056,7 @@ created from a given &%FruitOrVegetable.")
 
 (subclass Kahlua Liqueur)
 
-(subclass Ketchup PreparedFood)
+(subclass Ketchup Sauce)
 (=>
   (instance ?K Ketchup)
   (material Tomato ?K))
@@ -1007,7 +1097,7 @@ been flavored with one of various substances.")
 
 (subclass GrandMarnier Liqueur)
 
-(subclass Mayonnaise PreparedFood)
+(subclass Mayonnaise Sauce)
 (documentation Mayonnaise EnglishLanguage "Mayonnaise, is a stable emulsion of oil, 
 &%EggYolk and either vinegar or &%Lemon juice, with many options for embellishment 
 with other herbs and spices. Lecithin in the egg yolk is the emulsifier. It is 
@@ -1052,7 +1142,7 @@ gills (lamellae, sing. lamella) or pores on the underside of the cap. [Wikipedia
   (equal ?P (PlantFn Mustard))
   (subclass ?P HerbaceousPlant))
 
-(subclass Omelette PreparedFood)
+(subclass Omelette CookedDish)
 (=>
   (instance ?O Omelette)
   (exists (?F)
@@ -1130,7 +1220,16 @@ ridges, cut diagonally at both ends. [Wikipedia]")
         (part ?X ?HOLE2)))
     (attribute ?X Fillable)))
 
-(subclass Pickle PreparedFood)
+(subclass FermentedFood PreparedFood)
+(decumentation FermentedFood EnglishLanguage "A &%FermentedFood is a &%PreparedFood which 
+has gone through &%Fermentation.")
+(termFormat EnglishLanguage FermentedFood "fermented food") 
+
+(=>
+  (instance ?F FermentedFood)
+  (attribute ?F FermentedAttribute))   
+    
+(subclass Pickle FermentedFood)
 (documentation Pickle EnglishLanguage "A pickled cucumber (commonly known as 
 a pickle in Australia, Canada, and the United States or generically as Gherkins 
 in the UK) is a cucumber that has been pickled in a brine, vinegar, or other 
@@ -1431,12 +1530,15 @@ French region from which it orginated. Brie is a style of cheese, not in itself 
 
 (subclass Radicchio LeafyGreenVegetable)
 (subclass Raisin PreparedFood)
+(subclass Raisin FoodFromPlant)
 (documentation Raisin EnglishLanguage "A raisin is a dried grape.")
 (=>
   (instance ?R Raisin)
-  (exists (?D)
+  (exists (?D ?G)
     (and
       (instance ?D Drying)
+      (instance ?G Grape)
+      (patient ?D ?G)
       (result ?D ?R))))
 
 (subclass RomaineLettuce LeafyGreenVegetable)
@@ -1532,7 +1634,7 @@ cycle of photosynthesis.")
       (not (equal ?O1 ?O2)))))
 
 (subclass Soda Beverage)
-(subclass Soda Mixture)
+(subclass Soda Colloid)
 (=>
   (instance ?S Soda)
   (exists (?CD)
@@ -1609,6 +1711,7 @@ spaghetti is most commonly available in 25–30 cm (10–12 in) lengths. [Wikipe
 in the production of &%Tequila.")
 
 (subclass Tofu PreparedFood)
+(subclass Tofu FoodFromPlant)
 (documentation Tofu EnglishLanguage "Tofu or bean curd is a food made by, 
 coagulating soy milk and then pressing the resulting curds into soft 
 white blocks. [Wikipedia]")
