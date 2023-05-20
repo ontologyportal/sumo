@@ -127,14 +127,45 @@ involved in the making of something.")
       (instance ?F Fermentation)
       (result ?F ?FOOD))))
         
-(subclass HumanFood Food)
-(documentation HumanFood EnglishLanguage "&%HumanFood is the class of &%Food which are consumed by 
-&%Human.")
-(termFormat EnglishLanguage HumanFood "human food")
+(subclass DrinkingWater Water)
+(subclass DrinkingWater PreparedFood)
+(documentation DrinkingWater EnglishLanguage "&%DrinkingWater is the class of &%Water which is safe 
+to be consumed by &%Human.")
+(termFormat EnglishLanguage DrinkingWater "drinking water")
 
-(equal HumanFood
-  (FoodForFn Human))
-  
+(subclass SparklingWater DrinkingWater)
+(documentation SparklingWater EnglishLanguage "&%SparklingWater is the class of &%DrinkingWater made
+with added carbon dioxide gas.")
+(termFormat EnglishLanguage SparklingWater "sparkling water")
+
+(=>
+  (instance ?S SparklingWater)
+  (exists (?P ?W ?CD)
+    (and
+      (instance ?P Putting)
+      (instance ?W DrinkingWater)
+      (destination ?P ?CD)
+      (instance ?CD CarbonDioxide)
+      (result ?P ?S)
+      (part ?CD ?S))))
+
+(subclass TapWater Water)
+(internalRelatedConcept TapWater DrinkingWater)
+(documentation TapWater EnglishLanguage "&%TapWater is &%Water from the tap. It is mostly safe 
+to be consumed by &%Human in some advanced countries, but it may also contain harmful substance,
+such as lead which are bad for human health. It is this reason that it is not classfified under
+&%DrinkingWater.")
+(termFormat EnglishLanguage TapWater "tap water")
+
+(=>
+  (instance ?TW TapWater)
+  (exists (?LM ?F)
+    (and
+      (instance ?LM LiquidMotion)
+      (patient ?LM ?TW)
+      (origin ?LM ?F)
+      (instance ?F Faucet))))
+ 
 (subclass Meat Food)
 (disjoint Meat FoodFromPlant)
   
@@ -153,14 +184,15 @@ from the whole or &%part of &%Plants.")
       (subclass ?CLASS Plant))))
 
 (subclass PreparedFood Food)
+(subclass PreparedFood Mixture)
 (documentation PreparedFood EnglishLanguage "&%PreparedFood refers to anything that
 undergoes some process intended to result in an object that has &%Nutrient which can be
-ingested by &%Animal, normally metabolized into energy and body tissue.")
+ingested by &%Human, normally metabolized into energy and body tissue.")
 (termFormat EnglishLanguage PreparedFood "food")
 
 (=>
   (instance ?X PreparedFood)
-  (instance ?X (FoodForFn Animal)))
+  (instance ?X (FoodForFn Human)))
 
 (=>
   (instance ?X PreparedFood)
@@ -235,7 +267,7 @@ food by passing an electromagnetic wave through it")
 (subclass Beverage PreparedFood)
 (subclass Beverage Colloid)
 (disjoint Meat Beverage)
-(documentation Beverage EnglishLanguage "Any food that is ingested by &%Drinking.
+(documentation Beverage EnglishLanguage "Any food, excluding water that is ingested by &%Drinking.
 Note that this class is disjoint &%Meat and &%FruitOrVegetable.")
 
 (=>
@@ -352,10 +384,39 @@ making &%BreadOrBiscuits or &%Pasta or noodles.")
       (part ?W ?D))))
 
 (subclass SoupStock PreparedFood)
+(subclass SoupStock Soup)
+(roomTempState SoupStock Liquid)
 (documentation SoupStock EnglishLanguage "Food which is prepared by reducing &%Meat
 and/or &%FruitOrVegetables to a translucent broth which can be used as
 a base for soups or sauces.")
-                   
+(names "Broth" SoupStock)
+
+(=>
+  (instance ?S SoupStock)
+  (exists (?H)
+    (and
+      (instance ?H Heating)
+      (result ?H ?S))))
+      
+(=>
+  (and
+    (subclass ?S Mixture) 
+    (initialPart ?S Meat)
+    (initialPart ?S FoodFromPlant)
+    (initialPart ?S Water))
+  (equal ?S SoupStock))
+
+(=>
+  (instance ?S SoupStock)
+  (attribute ?S Translucent))
+
+(subclass Soup CookedDish)
+(roomTempState Soup Liquid)
+(disjoint Soup Sauce)
+(disjoint Soup Beverage)
+(documentation Soup EnglishLanguage "&%Soup is a &%CookDish that is not a &%Sauce nor a &%Beverage.")
+(termFormat EnglishLanguage Soup "soup")
+               
 (instance ingredientAmount TernaryRelation)
 (documentation ingredientAmount EnglishLanguage "(&%ingredientAmount ?ING ?FOOD ?AMT 
 means that ?AMT of ?ING is used to make ?FOOD")
@@ -709,8 +770,8 @@ soft-bodied invertebrates that is usually contained in a shell.")
 (documentation Absolut EnglishLanguage "A brand of vodka")
 (subclass Absolut Vodka)
 
-(instance Sauce PreparedFood)
-(instance Sauce Colloid)
+(subclass Sauce PreparedFood)
+(subclass Sauce Colloid)
 (documentation Sauce EnglishLanguage "A &%Sauce is a liquid, cream, or
 semi-solid food, served on or used in preparing other foods. Sauces has a
 liquid component. [Wikipeida]")
@@ -935,7 +996,7 @@ leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea i
 
 (=>
   (instance ?C Cappuccino)
-  (material Milk ?C))
+  (material ProcessedMilk ?C))
 
 (=>
   (instance ?C Cappuccino)
@@ -1260,14 +1321,252 @@ either term is based purely on how the fruits are consumed. [Wikipedia]")
 ;;
 
 (subclass DairyArtifact PreparedFood)
-(documentation DairyArtifact EnglishLanguage "&5DairyArtifact are &%PreparedFood from
-or containing the milk of some &%Mammals such as &%Cows, &%Goats, &%Sheep and &%Camels. 
-&%DairyArtifact include items such as &%Cheese, &%Butter and yoghurt etc. ")
+(documentation DairyArtifact EnglishLanguage "&%DairyArtifact are &%PreparedFood from
+or containing the milk of some &%Mammals such as &%Cows, &%Goats, &%Sheep or &%Camels. 
+&%DairyArtifact include items such as &%Cheese, &%Butter and yoghurt etc.[Wikipedia]")
 
 (=>
   (initialPart DairyArtifact ?CLASS)
   (equal ?CLASS Milk))
-  
+
+(subclass ProcessedMilk DairyArtifact)
+(subclass ProcessedMilk Beverage)
+(subclass ProcessedMilk CowMilk)
+(documentation ProcessedMilk EnglishLanguage "&%ProcessedMilk is &%Milk from cows.")
+(termFormat EnglishLanguage ProcessedMilk "processed milk")
+
+(=>
+  (instance ?PM ProcessedMilk)
+  (exists (?P ?M)
+    (and
+      (instance ?P IntentionalProcess)
+      (instance ?M CowMilk)
+      (patient ?P ?M)
+      (result ?P ?PM))))
+
+(subclass CowMilk Milk)
+(documentation CowMilk EnglishLanguage "&%CowMilk is the &%Milk of &%Cows.")
+(termFormat EnglishLanguage CowMilk "cow milk")
+
+(subclass WholeMilk ProcessedMilk)
+(documentation WholeMilk EnglishLanguage "&%WholeMilk is &%CowMilk which contains 3.25% to 5% of 
+&%ButterFat. It is typically 3.25% of butter fat in countries such as Australia, Canada, USA.In the 
+UK it is over 3.5%. [Wikipedia]")
+(termFormat EnglishLanguage WholeMilk "whole milk")
+
+(=>
+  (and
+    (instance ?M WholeMilk)
+    (measure ?M (MeasureFn ?N ?U))
+    (instance ?U UnitOfVolume))
+  (exists (?BF ?N2)
+    (and
+      (instance ?BF ButterFat)
+      (part ?BF ?M)
+      (not
+        (exists (?F2)
+          (and
+            (instance ?F2 ButterFat)
+            (not
+              (equal ?BF ?F2))
+            (part ?F2 ?M))))
+      (measure ?BF (MeasureFn ?N2 ?U))
+      (greaterThanOrEqualTo ?N2 (MultiplicationFn 0.0325 ?N))
+      (lessThanOrEqualTo ?N2 (MultiplicationFn 0.05 ?N)))))
+      
+(subclass AnimalFat Oil)
+(roomTempState AnimalFat Solid)
+(documentation AnimalFat EnglishLanguage "&%AnimalFats are lipids derived from &%Animal.[Wikipedia]")
+(termFormat EnglishLanguage AnimalFat "animal fat")
+
+(=>
+  (and
+    (equal ?AF
+      (OrganicObjectFn ?F))
+    (subclass ?AF AnimalFat)
+    (subclass ?F FatTissue))
+  (initialPart ?F Animal))
+
+(subclass Lard AnimalFat)
+(roomTempState Lard Solid)
+(documentation Lard EnglishLanguage "&%Lard is fat derived from the rendering 
+of &%pork fat.[Wikipedia]")
+(termFormat EnglishLanguage Lard "lard")
+
+(=>
+  (instance ?L Lard)
+  (exists (?H ?F ?P)
+    (and
+      (instance ?H Heating)
+      (patient ?H ?F)
+      (instance ?F FatTissue)
+      (part ?F ?P)
+      (instance ?P Pork)
+      (result ?H ?L))))
+      
+(subclass Suet AnimalFat)
+(roomTempState Suet Solid)
+(documentation Suet EnglishLanguage "&%Suet is raw fat of the &%Meat from &%Cattle or &%Sheep.[Wikipedia]")
+(termFormat EnglishLanguage Suet "suet")
+
+(=>
+  (and
+    (equal ?S
+      (OrganicObjectFn ?F))
+    (subclass ?S Suet)
+    (subclass ?F FatTissue))
+  (or
+    (initialPart ?F Cattle)
+    (initialPart ?F Sheep)))
+
+(subclass Tallow AnimalFat)
+(roomTempState Tallow Solid)
+(documentation Tallow EnglishLanguage "&%Tallow is raw fat of the &%Meat from &%Cattle or &%Sheep.[Wikipedia]")
+(termFormat EnglishLanguage Tallow "tallow")
+
+(=>
+  (instance ?T Tallow)
+  (exists (?H ?S)
+    (and
+      (instance ?H Heating)
+      (patient ?H ?S)
+      (instance ?S Suet)
+      (result ?H ?T))))
+                           
+(subclass ButterFat Oil)
+(roomTempState ButterFat Solid)
+(documentation ButterFat EnglishLanguage "&%ButterFat is the fatty portion of &%Milk.[Wikipedia]")
+(termFormat EnglishLanguage ButterFat "butter fat")
+(names "milk fat" ButterFat)
+
+(=>
+  (subclass ?BF ButterFat)
+  (initialPart ?BF Milk))
+
+(subclass TwoPercentMilk CowMilk)
+(subclass TwoPercentMilk Beverage)
+(documentation TwoPercentMilk EnglishLanguage "&%TwoPercentMilk is &%CowMilk which contains 2% of 
+butter fat. [Wikipedia]")
+(termFormat EnglishLanguage TwoPercentMilk "two percent milk")
+
+(=>
+  (and
+    (instance ?M TwoPercentMilk)
+    (measure ?M (MeasureFn ?N ?U))
+    (instance ?U UnitOfVolume))
+  (exists (?BF ?N2)
+    (and
+      (instance ?BF ButterFat)
+      (part ?BF ?M)
+      (not
+        (exists (?F2)
+          (and
+            (instance ?F2 ButterFat)
+            (not
+              (equal ?BF ?F2))
+            (part ?F2 ?M))))
+      (measure ?BF (MeasureFn ?N2 ?U))
+      (equal ?N2 (MultiplicationFn 0.02 ?N)))))
+      
+(subclass OnePercentMilk CowMilk)
+(subclass OnePercentMilk Beverage)
+(documentation OnePercentMilk EnglishLanguage "&%OnePercentMilk is &%CowMilk which contains
+1% of butter fat. [Wikipedia]")
+(termFormat EnglishLanguage OnePercentMilk "one percent milk")
+
+(=>
+  (and
+    (instance ?M OnePercentMilk)
+    (measure ?M (MeasureFn ?N ?U))
+    (instance ?U UnitOfVolume))
+  (exists (?BF ?N2)
+    (and
+      (instance ?BF ButterFat)
+      (part ?BF ?M)
+      (not
+        (exists (?F2)
+          (and
+            (instance ?F2 ButterFat)
+            (not
+              (equal ?BF ?F2))
+            (part ?F2 ?M))))
+      (measure ?BF (MeasureFn ?N2 ?U))
+      (equal ?N2 (MultiplicationFn 0.01 ?N)))))
+
+(subclass SemiSkimmedMilk CowMilk)
+(subclass SemiSkimmedMilk Beverage)
+(documentation SemiSkimmedMilk EnglishLanguage "&%SemiSkimmedMilk is &%CowMilk which contains
+1.5 - 2% of butter fat. [Wikipedia]")
+(termFormat EnglishLanguage SemiSkimmedMilk "semi skimmed milk")
+
+(=>
+  (and
+    (instance ?M SemiSkimmedMilk)
+    (measure ?M (MeasureFn ?N ?U))
+    (instance ?U UnitOfVolume))
+  (exists (?BF ?N2)
+    (and
+      (instance ?BF ButterFat)
+      (part ?BF ?M)
+      (not
+        (exists (?F2)
+          (and
+            (instance ?F2 ButterFat)
+            (not
+              (equal ?BF ?F2))
+            (part ?F2 ?M))))
+      (measure ?BF (MeasureFn ?N2 ?U))
+      (greaterThanOrEqualTo ?N2 (MultiplicationFn 0.015 ?N))
+      (lessThanOrEqualTo ?N2 (MultiplicationFn 0.02 ?N)))))
+
+(subclass SkimmedMilk CowMilk)
+(subclass SkimmedMilk Beverage)
+(documentation SkimmedMilk EnglishLanguage "&%SkimmedMilk is &%CowMilk which contains 0 - 0.05% 
+of butter fat. [Wikipedia]")
+(termFormat EnglishLanguage SkimmedMilk "skimmed milk")
+
+(=>
+  (and
+    (instance ?M SkimmedMilk)
+    (measure ?M (MeasureFn ?N ?U))
+    (instance ?U UnitOfVolume))
+  (exists (?BF ?N2)
+    (and
+      (instance ?BF ButterFat)
+      (part ?BF ?M)
+      (not
+        (exists (?F2)
+          (and
+            (instance ?F2 ButterFat)
+            (not
+              (equal ?BF ?F2))
+            (part ?F2 ?M))))
+      (measure ?BF (MeasureFn ?N2 ?U))
+      (greaterThanOrEqualTo ?N2 (MultiplicationFn 0 ?N))
+      (lessThanOrEqualTo ?N2 (MultiplicationFn 0.005 ?N)))))     
+             
+(subclass GoatMilk Milk)
+(documentation GoatMilk EnglishLanguage "&%GoatMilk is the &%Milk of &%Goats.")
+(termFormat EnglishLanguage GoatMilk "goat milk")
+
+(subclass ProcessedGoatMilk DairyArtifact)
+(subclass ProcessedGoatMilk Beverage)
+(subclass ProcessedGoatMilk GoatMilk)
+(documentation ProcessedMilk EnglishLanguage "&%ProcessedGoatMilk is &%Milk from goats.")
+(termFormat EnglishLanguage ProcessedMilk "processed gaot milk")
+
+(subclass SheepMilk Milk)
+(documentation SheepMilk EnglishLanguage "&%SheepMilk is &%Milk of &%Sheep.")
+(termFormat EnglishLanguage CowMilk "sheep milk")
+
+(subclass WaterBuffaloMilk Milk)
+(documentation WaterBuffaloMilk EnglishLanguage "&%WaterBuffaloMilk is the &%Milk of &%Buffalos.")
+(termFormat EnglishLanguage WaterBuffaloMilk "water buffalo milk")
+
+(subclass YakMilk Milk)
+(documentation YakMilk EnglishLanguage "&%YakMilk is the &%Milk of yaks.")
+(termFormat EnglishLanguage YakMilk "yak milk")
+   
 (subclass ChurningButter Rotating)
 (documentation ChurningButter EnglishLanguage "&%ChurningButter is a &%Rotating &%Motion applied to 
 &%Milk with the purpose to separate the fat in the milk to make &%Butter.")
@@ -1335,13 +1634,13 @@ the top of &%Milk.[Wikipedia]")
 (=>
   (and
     (instance ?C Cream)
-    (contains ?C ?O1)
-    (instance ?O1 Oil)
+    (part ?C ?O1)
+    (instance ?O1 ButterFat)
     (measure ?O1
       (MeasureFn ?X Gram))    
     (instance ?M Milk)
-    (contains ?M ?O2)
-    (instance ?O2 Oil)
+    (part ?M ?O2)
+    (instance ?O2 ButterFat)
     (measure ?O2
       (MeasureFn ?Y Gram)))
   (greaterThan ?X ?Y))            
@@ -1359,9 +1658,10 @@ the top of &%Milk.[Wikipedia]")
 (roomTempState Whey Liquid)
 
 (subclass FermentedMilkProduct DairyArtifact)
+(subclass FermentedMilkProduct FermentedFood)
 (subclass FermentedMilkProduct Emulsion)
-(documentation FermentedMilkProduct EnglishLanguage "A &%FermentedMilkProduct is the &%result of &%Fermentation of
-&%Milk.")
+(documentation FermentedMilkProduct EnglishLanguage "A &%FermentedMilkProduct is the &%result of 
+&%Fermentation of &%Milk.")
 (termFormat EnglishLanguage FermentedMilkProduct "fermented milk product")
 
 (=>
