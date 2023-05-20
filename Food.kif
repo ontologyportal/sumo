@@ -127,23 +127,11 @@ involved in the making of something.")
       (instance ?F Fermentation)
       (result ?F ?FOOD))))
         
-(subclass HumanFood Food)
-(documentation HumanFood EnglishLanguage "&%HumanFood is the class of &%Food which are consumed by 
-&%Human.")
-(termFormat EnglishLanguage HumanFood "human food")
-
-(equal HumanFood
-  (FoodForFn Human))
-;; added definition of drinking water under prepared food JP 2023 0518
-
 (subclass DrinkingWater Water)
 (subclass DrinkingWater PreparedFood)
 (documentation DrinkingWater EnglishLanguage "&%DrinkingWater is the class of &%Water which is safe 
 to be consumed by &%Human.")
 (termFormat EnglishLanguage DrinkingWater "drinking water")
-
-(equal DrinkingWater
-  (FoodForFn Human))
 
 (subclass SparklingWater DrinkingWater)
 (documentation SparklingWater EnglishLanguage "&%SparklingWater is the class of &%DrinkingWater made
@@ -162,13 +150,21 @@ with added carbon dioxide gas.")
       (part ?CD ?S))))
 
 (subclass TapWater Water)
-(subclass TapWater PreparedFood)
 (internalRelatedConcept TapWater DrinkingWater)
 (documentation TapWater EnglishLanguage "&%TapWater is &%Water from the tap. It is mostly safe 
 to be consumed by &%Human in some advanced countries, but it may also contain harmful substance,
 such as lead which are bad for human health. It is this reason that it is not classfified under
 &%DrinkingWater.")
 (termFormat EnglishLanguage TapWater "tap water")
+
+(=>
+  (instance ?TW TapWater)
+  (exists (?LM ?F)
+    (and
+      (instance ?LM LiquidMotion)
+      (patient ?LM ?TW)
+      (origin ?LM ?F)
+      (instance ?F Faucet))))
  
 (subclass Meat Food)
 (disjoint Meat FoodFromPlant)
@@ -188,14 +184,15 @@ from the whole or &%part of &%Plants.")
       (subclass ?CLASS Plant))))
 
 (subclass PreparedFood Food)
+(subclass PreparedFood Mixture)
 (documentation PreparedFood EnglishLanguage "&%PreparedFood refers to anything that
 undergoes some process intended to result in an object that has &%Nutrient which can be
-ingested by &%Animal, normally metabolized into energy and body tissue.")
+ingested by &%Human, normally metabolized into energy and body tissue.")
 (termFormat EnglishLanguage PreparedFood "food")
 
 (=>
   (instance ?X PreparedFood)
-  (instance ?X (FoodForFn Animal)))
+  (instance ?X (FoodForFn Human)))
 
 (=>
   (instance ?X PreparedFood)
@@ -270,7 +267,7 @@ food by passing an electromagnetic wave through it")
 (subclass Beverage PreparedFood)
 (subclass Beverage Colloid)
 (disjoint Meat Beverage)
-(documentation Beverage EnglishLanguage "Any food that is ingested by &%Drinking.
+(documentation Beverage EnglishLanguage "Any food, excluding water that is ingested by &%Drinking.
 Note that this class is disjoint &%Meat and &%FruitOrVegetable.")
 
 (=>
@@ -387,10 +384,39 @@ making &%BreadOrBiscuits or &%Pasta or noodles.")
       (part ?W ?D))))
 
 (subclass SoupStock PreparedFood)
+(subclass SoupStock Soup)
+(roomTempState SoupStock Liquid)
 (documentation SoupStock EnglishLanguage "Food which is prepared by reducing &%Meat
 and/or &%FruitOrVegetables to a translucent broth which can be used as
 a base for soups or sauces.")
-                   
+(names "Broth" SoupStock)
+
+(=>
+  (instance ?S SoupStock)
+  (exists (?H)
+    (and
+      (instance ?H Heating)
+      (result ?H ?S))))
+      
+(=>
+  (and
+    (subclass ?S Mixture) 
+    (initialPart ?S Meat)
+    (initialPart ?S FoodFromPlant)
+    (initialPart ?S Water))
+  (equal ?S SoupStock))
+
+(=>
+  (instance ?S SoupStock)
+  (attribute ?S Translucent))
+
+(subclass Soup CookedDish)
+(roomTempState Soup Liquid)
+(disjoint Soup Sauce)
+(disjoint Soup Beverage)
+(documentation Soup EnglishLanguage "&%Soup is a &%CookDish that is not a &%Sauce nor a &%Beverage.")
+(termFormat EnglishLanguage Soup "soup")
+               
 (instance ingredientAmount TernaryRelation)
 (documentation ingredientAmount EnglishLanguage "(&%ingredientAmount ?ING ?FOOD ?AMT 
 means that ?AMT of ?ING is used to make ?FOOD")
