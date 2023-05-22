@@ -2,7 +2,6 @@
 ;; Basic medical equipment and actions
 ;  from Wikipedia 
 
-
 ;; Access to and use of these products is governed by the GNU General Public 
 ;; License <http://www.gnu.org/copyleft/gpl.html>. 
 ;; By using these products, you agree to be bound by the terms 
@@ -12,6 +11,7 @@
 
 (attribute Tourniquet RelationalAttribute)
 (documentation Tourniquet EnglishLanguage "Any object used to stop or reduce &$Bleeding.")
+(termFormat EnglishLanguage Tourniquet "tourniquet")
 
 ; a tourniquet has the purpose of stopping bleeding
 (=>
@@ -59,7 +59,8 @@
 (subclass ApplyingTourniquet TherapeuticProces)
 (documentation ApplyingTourniquet EnglishLanguage "The process of applying a tourniquet
 to an injured mammal.")  
-              
+(termFormat EnglishLanguage ApplyingTourniquet "applying a tourniquet")
+
 (+>
   (instance ?AT ApplyingTourniquet)
   (exists (?A ?P ?T)
@@ -95,6 +96,8 @@ to an injured mammal.")
 (instance Injury DiseaseOrSyndrome)
 (documentation Injury EnglishLanguage "Damange to an &%Organism that is the result of
 an &%Injuring.")
+(termFormat EnglishLanguage Injury "injury")
+
 (=>
   (and
     (instance ?I Injuring)
@@ -104,4 +107,158 @@ an &%Injuring.")
       (WhenFn ?I))
     (attribute ?A Injury)))
     
-            
+(instance restingHeartRate BinaryPredicate)
+(domain restingHeartRate 1 Mammal)
+(domain restingHeartRate 2 Integer)
+(documentation restingHeartRate EnglishLanguage "The heart rate at rest
+of a human, in beats per minute.  ")
+(format EnglishLanguage restingHeartRate "the &%resting heart rate of %1 is %2")
+(termFormat EnglishLanguage restingHeartRate "resting heart rate")
+(termFormat EnglishLanguage restingHeartRate "baseline heart rate")
+
+(=>
+  (and
+    (restingHeartRate ?H ?R)
+    (instance ?HEART Heart)
+    (part ?HEART ?H))
+  (exists (?T)
+    (and
+      (not
+        (exists (?R)
+          (and
+            (instance ?R RecreationOrExercise)
+            (agent ?R ?H)
+            (during ?T (WhenFn ?R)))))
+      (instance ?T Minute)
+      (heartRate ?H ?T ?R))))
+
+(instance Anemia DiseaseOrSyndrome)
+(documentation Anemia EnglishLanguage "Anemia or anaemia (British English) is a blood
+disorder in which the blood has a reduced ability to carry &%Oxygen due to a lower than
+normal number of &%RedBloodCells, or a reduction in the amount of &%Hemoglobin.
+When anemia comes on slowly, the symptoms are often vague, such as tiredness, weakness,
+shortness of breath, headaches, and a reduced ability to exercise. When anemia is
+acute, symptoms may include confusion, feeling like one is going to pass out, loss
+of consciousness, and increased thirst. Anemia must be significant before a person
+becomes noticeably pale. Symptoms of anemia depend on how quickly hemoglobin
+decreases. Additional symptoms may occur depending on the underlying cause.
+Preoperative anemia can increase the risk of needing a blood transfusion following
+surgery. Anemia can be temporary or long term and can range from mild to severe.
+in men is based on a hemoglobin of less than 130 to 140 g/L;
+in women, it is less than 120 to 130 g/L. [from Wikipedia]")
+(termFormat EnglishLanguage Anemia "anemia")
+(termFormat EnglishLanguage Anemia "anaemia")
+
+(=>
+  (and
+    (attribute ?H Anemia)
+    (instance ?B Blood)
+    (part ?B ?H)
+    (attribute ?H Male)
+    (measure ?B (MeasureFn 0.1 Liter))
+    (instance ?HE Hemoglobin)
+    (part ?HE ?B)
+    (not
+      (instance ?HE2 Hemoglobin))
+    (not
+      (equal ?HE ?HE2))
+    (part ?H2 ?B)
+    (measure ?HE (MeasureFn ?N Gram)))
+  (lessThan ?N 13))
+
+(=>
+  (and
+    (attribute ?H Anemia)
+    (instance ?B Blood)
+    (part ?B ?H)
+    (attribute ?H Female)
+    (measure ?B (MeasureFn 0.1 Liter))
+    (instance ?HE Hemoglobin)
+    (part ?HE ?B)
+    (not
+      (instance ?HE2 Hemoglobin))
+    (not
+      (equal ?HE ?HE2))
+    (part ?H2 ?B)
+    (measure ?HE (MeasureFn ?N Gram)))
+  (lessThan ?N 12))
+
+(=>
+  (and
+    (not (attribute ?H Anemia))
+    (instance ?B Blood)
+    (part ?B ?H)
+    (attribute ?H Male)
+    (measure ?B (MeasureFn 0.1 Liter))
+    (instance ?HE Hemoglobin)
+    (part ?HE ?B)
+    (not
+      (instance ?HE2 Hemoglobin))
+    (not
+      (equal ?HE ?HE2))
+    (part ?H2 ?B)
+    (measure ?HE (MeasureFn ?N Gram)))
+  (greaterThan ?N 13))
+
+(=>
+  (and
+    (not (attribute ?H Anemia))
+    (instance ?B Blood)
+    (part ?B ?H)
+    (attribute ?H Female)
+    (measure ?B (MeasureFn 0.1 Liter))
+    (instance ?HE Hemoglobin)
+    (part ?HE ?B)
+    (not
+      (instance ?HE2 Hemoglobin))
+    (not
+      (equal ?HE ?HE2))
+    (part ?H2 ?B)
+    (measure ?HE (MeasureFn ?N Gram)))
+  (greaterThan ?N 12))
+
+(instance concentration QuaternaryPredicate)
+(domain concentration 1 Quantity)
+(domainSubclass concentration 2 Substance)
+(domain concentration 3 Quantity)
+(domain concentration 4 Mixture)
+(documentation concentration EnglishLanguage "The concentration of a
+&%Substance in a &%Mixture. ")
+; TODO handle the issue of granularity of the substance
+(format EnglishLanguage concentration "the &%concentration of %2 in %4 is %1 per %3"
+(termFormat EnglishLanguage concentration "concentration")
+
+(=>
+  (and
+    (concentration
+      (MeasureFn ?N1 ?U) ?S
+      (MeasureFn ?N2 ?U2) ?M)
+    (instance ?SI ?S)
+    (part ?SI ?M)
+    (measure ?SI (MeasureFn ?N3 ?U3))
+    (part ?SI ?M)
+    (not
+      (instance ?SI2 ?S))
+    (not
+      (equal ?SI ?SIE2))
+    (part ?SI2 ?M)
+    (measure ?M (MeasureFn ?N2 ?U2)))
+  (approximateValue ?N1 ?N3)
+
+(subclass Hemoglobin Protein)
+(documentation Anemia EnglishLanguage "Hemoglobin (haemoglobin in British
+English), abbreviated Hb or Hgb, is the iron-containing &%Oxygen-transport
+&%Protein present in &%RedBloodCells (erythrocytes) of almost all &%Vertebrates
+(the exception being the fish family Channichthyidae) as well as the &%Tissues
+of some &%Invertebrate &%Animals. Hemoglobin in &%Blood carries oxygen from the
+respiratory &%Organs (&%Lungs or &%Gills) to the other tissues of the body, where it
+releases the oxygen to enable aerobic respiration which powers the animal's
+metabolism. A healthy &%Human has 12 to 20 grams of hemoglobin in every 100 mL of
+blood. Hemoglobin is a metalloprotein and chromoprotein.[from Wikipedia]")
+(termFormat EnglishLanguage Hemoglobin "hemoglobin")
+
+(documentation Gills EnglishLanguage "A respiratory organ of &%Fish. Its
+function is to furnish the blood with oxygen and to remove carbon dioxide.")
+(subclass Gills AnimalAnatomicalStructure)
+(subclass Gills VitalOrgan)
+(termFormat EnglishLanguage Gills "gills")
