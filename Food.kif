@@ -14,7 +14,20 @@
 ;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
 ;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
 
-(instance CookedAttribute RelationalAttribute)
+(subclass FoodAttribute RelationalAttribute)
+(documentation FoodAttribute EnglishLanguage "&%FoodAttribute is a &%Class of 
+&%RelationalAttributes which describe the status in the food it is related. Members 
+of this class include if the food is cooked or raw, cured/fermented, caffineated or 
+decaf etc..")
+(termFormat EnglishLanguage FoodAttribute "food attribute")
+
+(=>
+  (and
+    (instance ?A FoodAttribute)
+    (attribute ?F ?A))
+   (instance ?F Food))
+
+(instance CookedAttribute FoodAttribute)
 (relatedInternalConcept CookedAttribute RawAttribute)
 (documentation CookedAttribute EnglishLanguage "&%CookedAttribute describes how something
 is a product of &%Cooking and &%Heating.")
@@ -30,7 +43,7 @@ is a product of &%Cooking and &%Heating.")
       (subProcess ?PROC2 ?PROC1)
       (result ?PROC1 ?FOOD))))
                 
-(instance RawAttribute RelationalAttribute)
+(instance RawAttribute FoodAttribute)
 (documentation RawAttribute EnglishLanguage "&%RawAttribute describes how heating was
 not involved in the making of something.")
 (termFormat EnglishLanguage RawAttribute "raw")
@@ -47,7 +60,7 @@ not involved in the making of something.")
         (instance ?PROC Heating)
         (result ?PROC ?FOOD)))))
 
-(instance CuredAttribute RelationalAttribute)
+(instance CuredAttribute FoodAttribute)
 (relatedInternalConcept CuredAttribute FermentedAttribute)
 (relatedInternalConcept CuredAttribute RawAttribute)
 (documentation CuredAttribute EnglishLanguage "&%CuredAttribute describes how curing is
@@ -114,7 +127,7 @@ and &%Freezing")
 
 (subclass Fermentation PreservingFood)
           
-(instance FermentedAttribute RelationalAttribute)
+(instance FermentedAttribute FoodAttribute)
 (relatedInternalConcept FermentedAttribute RawAttribute)
 (documentation FermentedAttribute EnglishLanguage "&%FermentedAttribute describes how &%Fermentation is
 involved in the making of something.")
@@ -291,19 +304,243 @@ Note that this class is disjoint &%Meat and &%FruitOrVegetable.")
       (patient ?DRINK ?BEV))
    (instance ?BEV Beverage))
 
-(subclass Coffee Beverage)
-(roomTempState Coffee Liquid)
-(documentation Coffee EnglishLanguage "A &%Beverage which is prepared by infusing ground,
-roasted coffee beans into hot water.")
-(initialPart Coffee CoffeeBean)
+(instance CaffeinatedAttribute FoodAttribute)
+(relatedInternalConcept CaffeinatedAttribute DecafAttribute)
+(documentation CaffeinatedAttribute EnglishLanguage "&%CaffeinatedAttribute describes
+a food that contains &%Caffeine.")
+(termFormat EnglishLanguage CaffeinatedAttribute "caffeinated")
 
 (=>
-  (instance ?C Coffee)
+  (and
+    (instance ?F Food)
+    (attribute ?F CaffeinatedAttribute))
   (exists (?CAF)
     (and
       (instance ?CAF Caffeine)
-      (piece ?CAF ?C))))   
+      (piece ?CAF ?F))))
 
+(instance DecafAttribute FoodAttribute)
+(documentation DecafAttribute EnglishLanguage "&%DecafAttribute describes
+a naturally caffeinated food which has its &%Caffeine removed.")
+(termFormat EnglishLanguage DecafAttribute "decaf")
+
+(=>
+  (and
+    (instance ?F Food)
+    (attribute ?F DecafAttribute)
+    (piece ?C ?F)
+    (instance ?C Caffeine))  
+  (exists (?R)
+    (and
+      (instance ?R Removing)
+      (destination ?R ?F)
+      (patient ?R ?C))))
+      
+(=>
+  (and
+    (attribute ?F DecafAttribute)
+    (instance ?F Food))
+  (not
+    (exists (?C)
+      (and
+        (instance ?C Caffeine)
+        (piece ?C ?F)))))
+
+(subclass CoffeeRoastAttribute RelationalAttribute)
+(internalRelatedConcept CoffeeRoastAttribute CoffeGrindAttribute)
+(documentation CoffeeRoastAttribute EnglishLanguage "&%CoffeeRoastAttribute is a &%Class of 
+&%RelationalAttribute used to describe the degree of &%Heating the &%CoffeeBeans are subjected
+to.")
+(termFormat EnglishLanguage CoffeeRoastAttribute "coffee roast attribute")
+
+(=>
+  (and
+    (instance ?C CoffeeBean)
+    (attribute ?C ?R))
+  (instance ?R CoffeeRoastAttribute))
+  
+(instance roastedToTemperature BinaryRelation)
+(documentation roastedToTemperature EnglishLanguage "&%roastedToTemperature is a &%BinaryRelation 
+linking the temperature in Celsius of the &%CoffeeBeans that are roasted to.")
+(termFormat EnglishLanguage roastedToTemperature "roasted to temperature")
+(domain roastedToTemperature 1 Object)
+(domain roastedToTemperature 2 RealNumber)
+(format EnglishLanguage roastedToTemperature "%2 is the temperature at which %1 is roasted to")
+
+(=>
+  (and
+    (instane ?B CoffeeBean)
+    (roastedToTemperature ?B ?T))
+  (exists (?H)
+    (and
+      (instance ?H Heating)
+      (patient ?H ?B)
+      (holdsDuring
+        (EndFn (WhenFn ?H))
+        (measure ?B (MeasureFn ?T CelsiusDegree))))))
+  
+(instance LightRoast CoffeeRoastAttribute)
+(documentation LightRoast EnglishLanguage "&%LightRoast are &%CoffeeBeans that are 
+roasted to between 196°C (385°F) and 205°C (401°F). [Wikipedia]")
+(termFormat EnglishLanguage LightRoast "light roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B LightRoast)
+    (roastedToTemperature ?B ?T))
+  (and
+    (greaterThanOrEqualTo ?T 196)
+    (lessThanOrEqualTo ?T 205)))
+
+(instance CinnamonRoast CoffeeRoastAttribute)
+(documentation CinnamonRoast EnglishLanguage "&%CinnamonRoast are &%CoffeeBeans that are 
+roasted to around 196°C (385°F). [Wikipedia]")
+(termFormat EnglishLanguage CinnamonRoast "cinnamon roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B CinnamonRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 196))
+        
+(instance NewEnglandRoast CoffeeRoastAttribute)
+(documentation NewEnglandRoast EnglishLanguage "&%NewEnglandRoast are &%CoffeeBeans that are 
+roasted to around 205°C (401°F). [Wikipedia]")
+(termFormat EnglishLanguage NewEnglandRoast "New England roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B NewEnglandRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 205))
+
+(instance MediumRoast CoffeeRoastAttribute)
+(documentation MediumRoast EnglishLanguage "&%MeidumRoast are &%CoffeeBeans that are 
+roasted to between 210°C (410°F) and 219°C (426°F). [Wikipedia]")
+(termFormat EnglishLanguage MediumRoast "medium roast")
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B MediumRoast)
+    (roastedToTemperature ?B ?T))
+  (and
+    (greaterThanOrEqualTo ?T 210)
+    (lessThanOrEqualTo ?T 219)))
+
+(instance AmericanRoast CoffeeRoastAttribute)
+(documentation AmericanRoast EnglishLanguage "&%AmericanRoast are &%CoffeeBeans that are 
+roasted to around 210°C (410°F). [Wikipedia]")
+(termFormat EnglishLanguage AmericanRoast "American roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B AmericanRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 210))
+
+(instance CityRoast CoffeeRoastAttribute)
+(documentation CityRoast EnglishLanguage "&%CityRoast are &%CoffeeBeans that are 
+roasted to around 219°C (426°F). [Wikipedia]")
+(termFormat EnglishLanguage CityRoast "city roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B CityRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 219))
+
+(instance DarkRoast CoffeeRoastAttribute)
+(documentation DarkRoast EnglishLanguage "&%DarkRoast are &%CoffeeBeans that are 
+roasted to between 225°C (437°F) and 245°C (473°F). [Wikipedia]")
+(termFormat EnglishLanguage DarkRoast "dark roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B DarkRoast)
+    (roastedToTemperature ?B ?T))
+  (and
+    (greaterThanOrEqualTo ?T 225)
+    (lessThanOrEqualTo ?T 245)))
+
+(instance FullyCityRoast CoffeeRoastAttribute)
+(documentation FullyCityRoast EnglishLanguage "&%FullyCityRoast are &%CoffeeBeans that are 
+roasted to around 225°C (437°F). [Wikipedia]")
+(termFormat EnglishLanguage FullyCityRoast "full city roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B FullyCityRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 225))
+
+(instance ViennaRoast CoffeeRoastAttribute)
+(documentation ViennaRoast EnglishLanguage "&%ViennaRoast are &%CoffeeBeans that are 
+roasted to around 230°C (446°F). [Wikipedia]")
+(termFormat EnglishLanguage ViennaRoast "Vienna roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B ViennaRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 230))
+
+(instance FrenchRoast CoffeeRoastAttribute)
+(documentation FrenchRoast EnglishLanguage "&%FrenchRoast are &%CoffeeBeans that are 
+roasted to around 240°C (464°F). [Wikipedia]")
+(termFormat EnglishLanguage FrenchRoast "French roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B FrenchRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 240))
+
+(instance ItalianRoast CoffeeRoastAttribute)
+(documentation ItalianRoast EnglishLanguage "&%ItalianRoast are &%CoffeeBeans that are 
+roasted to around 245°C (473°F). [Wikipedia]")
+(termFormat EnglishLanguage ItalianRoast "Italian roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B ItalianRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 245))
+
+(subclass Coffee Beverage)
+(roomTempState Coffee Liquid)
+(documentation Coffee EnglishLanguage "A &%Beverage which is prepared by infusing ground,
+roasted coffee beans into water.")
+(initialPart Coffee CoffeeBean)
+
+ 
+(=>
+  (instance ?C Coffee)
+  (attribute ?C CaffeinatedAttribute))
+    
+(=>
+  (and
+    (instance ?C ?COFFEE)
+    (subclass ?COFFEE Coffee))
+  (exists (?W ?CG ?CLASS)
+    (and   
+      (instance ?W Water)
+      (piece ?W ?C)
+      (instance ?CG ?CLASS)
+      (subclass ?CLASS CoffeeGrind)
+      (attribute ?CG CookedAttribute)
+      (initialPart ?CLASS ?COFFEE))))
+ 
 (subclass Espresso Coffee)
 (documentation Espresso EnglishLanguage "An &%Espresso is a &%Coffee brewed in a method of 
 Italian origin, in which approximately 25-30 ml of &%Water at abour 90 degree centigrate is 
@@ -383,7 +620,6 @@ a &%part of the object.")
         
 (subclass CoffeeGrind Powder)
 (subclass CoffeeGrind FoodFromPlant)
-(subclass CoffeeGrind PreparedFood)
 (documentation CoffeeGrind EnglishLanguage "&%CoffeeGrind is ground &%Coffee powder from
 roasted &%CoffeeBeans of various sizes, catering for different coffee making methods.")
 (termFormat EnglishLanguage CoffeeGrind "coffee grind")
@@ -397,53 +633,125 @@ roasted &%CoffeeBeans of various sizes, catering for different coffee making met
       (instance ?CB CoffeeBean)
       (result ?G ?CG))))
 
-(subclass CoffeGrindAttribute RelationalAttribute)
-(documentation CoffeGrindAttribute EnglishLanguage "&%CoffeGrindAttribute is a &%Class of 
-&%RelationalAttribute used to specify the &%approximateDiameter of the &%CoffeeGrind.")
-(termFormat EnglishLanguage CoffeGrindAttribute "coffee grind attribute")
+(=>
+  (instance ?CG CoffeeGrind)
+  (attribute ?CG CookedAttribute))
+      
+(subclass CoffeeGrindAttribute RelationalAttribute)
+(documentation CoffeeGrindAttribute EnglishLanguage "&%CoffeeGrindAttribute is a &%Class of 
+&%RelationalAttribute used to describe the particle size of the &%CoffeeGrind.")
+(termFormat EnglishLanguage CoffeeGrindAttribute "coffee grind attribute")
 
 (=>
   (and
-    (instance ?A CoffeGrindAttribute)
+    (instance ?A CoffeeGrindAttribute)
     (attribute ?C ?A)
-    (instance ?C Collection)
-    (member ?M ?C))
-  (instance ?M CoffeeGrind))
-      
+    (instance ?C CoffeeGrind))
+  (exists (?L ?X)
+    (and
+      (grainSize ?C ?L)   
+      (instance ?X LengthMeasure)  
+      (equal ?X
+        (MeasureFn ?L Millimeter)))))
+
+(instance grainSize BinaryRelation)
+(documentation grainSize EnglishLanguage "&%grainSize is a &%BinaryRelation 
+describing the diameter measure of a particle.")
+(termFormat EnglishLanguage grainSize "grain size")
+(domain grainSize 1 Object)
+(domain grainSize 2 RealNumber)
+(format EnglishLanguage grainSize "%2 is the diameter in &%UnitOFLength of %1")
+
+(=>
+  (and
+    (instance ?G Grain)
+    (grainSize ?G ?L))
+  (approximateDiameter ?G
+    (MeasureFn ?L UnitOfLength)))
+           
 (instance ExtraCoarseGrind CoffeGrindAttribute)
 (documentation ExtraCoarseGrind EnglishLanguage "&%ExtraCoarseGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 1.5 &%Millimeters.")
 (termFormat EnglishLanguage ExtraCoarseGrind "extra coarse grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C ExtraCoarseGrind)
+    (grainSize ?C ?L))
+   (equal ?L 1.5))
 
 (instance CoarseGrind CoffeGrindAttribute)
 (documentation CoarseGrind EnglishLanguage "&%CoarseGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 1 &%Millimeters.")
 (termFormat EnglishLanguage CoarseGrind "coarse grind")
 
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C CoarseGrind)
+    (grainSize ?C ?L))
+   (equal ?L 1))
+
 (instance MediumCoarseGrind CoffeGrindAttribute)
 (documentation MediumCoarseGrind EnglishLanguage "&%MediumCoarseGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 0.85 &%Millimeters.")
 (termFormat EnglishLanguage MediumCoarseGrind "medium coarse grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C MediumCoarseGrind)
+    (grainSize ?C ?L))
+   (equal ?L 0.85))
 
 (instance MediumGrind CoffeGrindAttribute)
 (documentation MediumGrind EnglishLanguage "&%MediumGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 0.75 &%Millimeters.")
 (termFormat EnglishLanguage MediumGrind "medium grind")
 
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C MediumGrind)
+    (grainSize ?C ?L))
+   (equal ?L 0.75))
+
 (instance MediumFineGrind CoffeGrindAttribute)
 (documentation MediumFineGrind EnglishLanguage "&%MediumFineGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 0.5 &%Millimeters.")
 (termFormat EnglishLanguage MediumFineGrind "medium fine grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C MediumFineGrind)
+    (grainSize ?C ?L))
+   (equal ?L 0.5))
 
 (instance FineGrind CoffeGrindAttribute)
 (documentation FineGrind EnglishLanguage "&%FineGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 0.3 &%Millimeters.")
 (termFormat EnglishLanguage FineGrind "fine grind")
 
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C FineGrind)
+    (grainSize ?C ?L))
+   (equal ?L 0.3))
+
 (instance ExtraFineGrind CoffeGrindAttribute)
 (documentation ExtraFineGrind EnglishLanguage "&%ExtraFineGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 0.1 &%Millimeters.")
 (termFormat EnglishLanguage ExtraFineGrind "extra fine grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C ExtraFineGrind)
+    (grainSize ?C ?L))
+   (equal ?L 0.1))
       
 (subclass Cappuccino Coffee)
 (documentation Cappuccino EnglishLanguage "Espresso with foamed milk")
