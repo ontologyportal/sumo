@@ -179,7 +179,7 @@ such as lead which are bad for human health. It is this reason that it is not cl
   (instance ?TW TapWater)
   (exists (?LM ?F)
     (and
-      (instance ?LM LiquidMotion)
+      (instance ?LM WaterMotion)
       (patient ?LM ?TW)
       (origin ?LM ?F)
       (instance ?F Faucet))))
@@ -347,7 +347,7 @@ a naturally caffeinated food which has its &%Caffeine removed.")
         (piece ?C ?F)))))
 
 (subclass CoffeeRoastAttribute RelationalAttribute)
-(internalRelatedConcept CoffeeRoastAttribute CoffeGrindAttribute)
+(internalRelatedConcept CoffeeRoastAttribute CoffeeGrindAttribute)
 (documentation CoffeeRoastAttribute EnglishLanguage "&%CoffeeRoastAttribute is a &%Class of 
 &%RelationalAttribute used to describe the degree of &%Heating the &%CoffeeBeans are subjected
 to.")
@@ -519,38 +519,199 @@ roasted to around 245°C (473°F). [Wikipedia]")
 
 (subclass Coffee Beverage)
 (roomTempState Coffee Liquid)
+(internalRelatedConcept Coffee CoffeeGrindAttribute)
+(internalRelatedConcept Coffee CoffeeRoastAttribute)
 (documentation Coffee EnglishLanguage "A &%Beverage which is prepared by infusing ground,
 roasted coffee beans into water.")
 (initialPart Coffee CoffeeBean)
-
  
 (=>
   (instance ?C Coffee)
   (attribute ?C CaffeinatedAttribute))
     
 (=>
-  (and
-    (instance ?C ?COFFEE)
-    (subclass ?COFFEE Coffee))
-  (exists (?W ?CG ?CLASS)
-    (and   
+  (instance ?C Coffee)
+  (material Water ?C))
+  
+(=>
+  (subclass ?CLASS Coffee)
+  (initialPart CoffeeBean ?CLASS))
+
+(subclass CoffeeMaking Cooking)
+(subclass CoffeeMaking Soaking)
+(subclass CoffeeMaking LiquidMotion)
+(documentation CoffeeMaking EnglishLanguage "&%CoffeeMaking is a &%Class of &%Coffee 
+brewing methods,usually &%CoffeeGrind is steeped in hot water, then filtered out, 
+producing the coffee to be served.[Wikipedia].")
+(termFormat EnglishLanguage CoffeeMaking "coffee making")   
+
+(=> 
+  (instance ?CM CoffeeMaking)
+  (exists (?C)
+    (and
+      (instance ?C Coffee)
+      (result ?CM ?C))))
+      
+(=>
+  (instance ?CM CoffeeMaking)
+  (exists (?LM ?W ?CG)
+    (and
+      (subProcess ?LM ?CM)
+      (instance ?LM LiquidMotion)
+      (patient ?LM ?W)
       (instance ?W Water)
-      (piece ?W ?C)
-      (instance ?CG ?CLASS)
-      (subclass ?CLASS CoffeeGrind)
-      (attribute ?CG CookedAttribute)
-      (initialPart ?CLASS ?COFFEE))))
- 
+      (destination ?LM ?CG)
+      (instance ?CG CoffeeGrind))))
+
+(=>
+  (instance ?CM CoffeeMaking)
+  (exists (?S ?W ?CG)
+    (and      
+      (subProcess ?S ?CM)
+      (instance ?S Soaking)
+      (resource ?S ?W)
+      (instance ?W Water)
+      (patient ?S ?CG)
+      (instance ?CG CoffeeGrind))))
+
+(=>
+  (instance ?CM CoffeeMaking)
+  (exists (?R ?LM ?CG ?W ?F ?C)
+    (and
+      (subProcess ?R ?CM)
+      (instance ?R Removing)
+      (origin ?R ?LM)
+      (instance ?LM LiquidMixture)
+      (part ?W ?LM)
+      (instance ?W Water)
+      (part ?CG ?LM)
+      (instance ?CG CoffeeGrind)
+      (instrument ?R ?F)
+      (instance ?F Filter)
+      (result ?R ?C)
+      (instance ?C Coffee))))
+      
+(=>
+  (instance ?CM CoffeeMaking)
+  (holdsDuring ?CM
+    (exists (?LM ?S ?R)
+      (and
+        (instance ?LM LiquidMotion)
+        (instance ?S Soaking)
+        (instance ?R Removing)
+        (before
+          (BeginFn (WhenFn ?LM))
+          (BeginFn (WhenFn ?S)))
+        (before
+          (BeginFn (WhenFn ?S))
+          (BeginFn (WhenFn ?R)))))))           
+       
 (subclass Espresso Coffee)
-(documentation Espresso EnglishLanguage "An &%Espresso is a &%Coffee brewed in a method of 
-Italian origin, in which approximately 25-30 ml of &%Water at abour 90 degree centigrate is 
-forced under 900-1,000 kPa of pressure through finely groun &%CoffeeBeans.[Wikipedia]")
+(documentation Espresso EnglishLanguage "An &%Espresso is the result of &%EspressoMaking. 
+A single shot of espresso usually contains approximately 25-30 ml of &%Water. &%DarkRoast
+&%CoffeeBeans are usually used for making espresso coffee. Espresso is served on its own, 
+and is also used as the base for various other coffee drinks, including caffè latte, 
+cappuccino, caffè macchiato, caffè mocha, flat white, and caffè Americano.[Wikipedia]")
 (termFormat EnglishLanguage Espresso "espresso")
 
 (=>
   (instance ?E Espresso)
-  (attribute ?E ItalianCuisine))
+  (exists (?M)
+    (and
+      (instance ?M EspressoMaking)
+      (result of ?M ?E))))
 
+(=>
+  (instance ?E Espresso)
+  (exists (?W ?V)
+    (and
+      (instance ?W Water)
+      (part ?W ?E)
+      (measure ?W
+        (MeasureFn ?V Liter))
+      (approximateValue ?V 0.03))))
+
+(subclass Lungo Coffee)
+(documentation Lungo EnglishLanguage "An &%Lungo is the result of &%EspressoMaking.
+It is an expresso with twice as much as water.[Wikipedia]")
+(termFormat EnglishLanguage Espresso "lungo")
+(names "café allongé" Lungo)
+
+(=>
+  (instance ?L Lungo)
+  (exists (?E ?V)
+    (and
+      (instance ?E Espresso)
+      (part ?E ?L)
+      (measure ?E
+        (MeasureFn ?V Liter))
+      (instance ?V RealNumber)
+      (measure ?L
+        (MeasureFn
+          (MultiplicationFn ?V 2) Liter)))))
+                  
+(subclass EspressoMaking CoffeeMaking)
+(subclass EspressoMaking Heating)
+(documentation EspressoMaking EnglishLanguage "An &%EspressoMaking is a 
+&%ubclass of &%CoffeeMaking, a &%Coffee brewing method of which approximately 
+25-30 ml of &%Water at abour 90 degree centigrate is forced under 900-1,000 kPa 
+of pressure through finely ground (&%FineGrind) &%CoffeeGrind.[Wikipedia]")
+(termFormat EnglishLanguage EspressoMaking "espresso making") 
+
+
+(=>
+  (instance ?EM EspressoMaking)
+  (exists (?C)
+    (and
+      (result ?EM ?C)
+      (instance ?C Coffee))))
+
+(=>
+  (instance ?EM EspressoMaking)
+  (holdsDuring ?EM
+    (exists (?H ?W ?V ?T ?LM ?P ?COLL ?K ?CG ?F ?R)
+      (and
+        (instance ?H Heating)
+        (patient ?H ?W)
+        (measure ?W (MeasureFn ?V Liter))
+        (approximateValue ?V 0.03)
+        (holdsDuring 
+          (EndFn (WhenFn ?H))
+          (and
+            (measure ?W (MeasureFn ?T CelsiusDegree))
+            (approximateValue ?T 90)))
+        (instance ?LM LiquidMotion)
+        (patient ?LM ?W)
+        (holdsDuring ?LM
+          (and
+            (measure ?W (MeasureFn ?P (KiloFn Pascal)))
+            (approximateValue ?P 900)))
+        (destination ?LM ?COLL)
+        (instance ?COLL Collection)
+        (measure ?COLL (MeasureFn ?K Gram))
+        (approximateValue ?K 7.5)
+        (memeber ?COLL ?CG)
+        (instance ?CG CoffeeGrind)
+        (attribute ?CG FineGrind)
+        (location ?COLL ?F)
+        (instance ?F Filter)
+        (instance ?R Removing)
+        (instrument ?R ?F)
+        (patient ?R ?COLL)
+        (temporallyBetween
+          (EndFn (WhenFn ?H))
+          (EndFn (WhenFn ?LM))
+          (EndFn (WhenFn ?R)))))))
+
+(subclass ColdBrewingCoffee CoffeeMaking)
+(subclass FrenchPressingCoffee CoffeeMaking)
+(subclass DrippingCoffee CoffeeMaking)
+(subclass PourOveringCoffee CoffeeMaking)
+(subclass AeropressingCoffee CoffeeMaking)
+(subclass SiphoningCoffee CoffeeMaking)
+(subclass MokaPotEspressoMaking CoffeeMaking)
+(subclass TurkishCoffeeMaking CoffeeMaking)
+          
 (subclass Crushing Impacting)  
 (subclass Crushing Compressing)
 (subclass Crushing ShapeChange)
@@ -631,12 +792,23 @@ roasted &%CoffeeBeans of various sizes, catering for different coffee making met
       (instance ?G Grinding)
       (patient ?G ?CB)
       (instance ?CB CoffeeBean)
+      (attribute ?CB CookedAttribute)
       (result ?G ?CG))))
-
+ 
 (=>
   (instance ?CG CoffeeGrind)
-  (attribute ?CG CookedAttribute))
-      
+  (exists (?B ?A ?C)
+    (and
+      (instance ?B CoffeeBean)
+      (attribute ?B ?A)
+      (instance ?A CoffeeRoastAttribute)
+      (attribute ?CG ?C)
+      (instance ?C CoffeeGrindAttribute))))
+ 
+(=>
+  (instance ?CG CoffeeGrind)
+  (attribute ?CG CookedAttribute))    
+            
 (subclass CoffeeGrindAttribute RelationalAttribute)
 (documentation CoffeeGrindAttribute EnglishLanguage "&%CoffeeGrindAttribute is a &%Class of 
 &%RelationalAttribute used to describe the particle size of the &%CoffeeGrind.")
@@ -669,7 +841,7 @@ describing the diameter measure of a particle.")
   (approximateDiameter ?G
     (MeasureFn ?L UnitOfLength)))
            
-(instance ExtraCoarseGrind CoffeGrindAttribute)
+(instance ExtraCoarseGrind CoffeeGrindAttribute)
 (documentation ExtraCoarseGrind EnglishLanguage "&%ExtraCoarseGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 1.5 &%Millimeters.")
 (termFormat EnglishLanguage ExtraCoarseGrind "extra coarse grind")
@@ -681,7 +853,7 @@ size of &%aproximateValue of &%approximateDiameter of 1.5 &%Millimeters.")
     (grainSize ?C ?L))
    (equal ?L 1.5))
 
-(instance CoarseGrind CoffeGrindAttribute)
+(instance CoarseGrind CoffeeGrindAttribute)
 (documentation CoarseGrind EnglishLanguage "&%CoarseGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 1 &%Millimeters.")
 (termFormat EnglishLanguage CoarseGrind "coarse grind")
@@ -693,7 +865,7 @@ size of &%aproximateValue of &%approximateDiameter of 1 &%Millimeters.")
     (grainSize ?C ?L))
    (equal ?L 1))
 
-(instance MediumCoarseGrind CoffeGrindAttribute)
+(instance MediumCoarseGrind CoffeeGrindAttribute)
 (documentation MediumCoarseGrind EnglishLanguage "&%MediumCoarseGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 0.85 &%Millimeters.")
 (termFormat EnglishLanguage MediumCoarseGrind "medium coarse grind")
@@ -705,7 +877,7 @@ size of &%aproximateValue of &%approximateDiameter of 0.85 &%Millimeters.")
     (grainSize ?C ?L))
    (equal ?L 0.85))
 
-(instance MediumGrind CoffeGrindAttribute)
+(instance MediumGrind CoffeeGrindAttribute)
 (documentation MediumGrind EnglishLanguage "&%MediumGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 0.75 &%Millimeters.")
 (termFormat EnglishLanguage MediumGrind "medium grind")
@@ -717,7 +889,7 @@ size of &%aproximateValue of &%approximateDiameter of 0.75 &%Millimeters.")
     (grainSize ?C ?L))
    (equal ?L 0.75))
 
-(instance MediumFineGrind CoffeGrindAttribute)
+(instance MediumFineGrind CoffeeGrindAttribute)
 (documentation MediumFineGrind EnglishLanguage "&%MediumFineGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 0.5 &%Millimeters.")
 (termFormat EnglishLanguage MediumFineGrind "medium fine grind")
@@ -729,7 +901,7 @@ size of &%aproximateValue of &%approximateDiameter of 0.5 &%Millimeters.")
     (grainSize ?C ?L))
    (equal ?L 0.5))
 
-(instance FineGrind CoffeGrindAttribute)
+(instance FineGrind CoffeeGrindAttribute)
 (documentation FineGrind EnglishLanguage "&%FineGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 0.3 &%Millimeters.")
 (termFormat EnglishLanguage FineGrind "fine grind")
@@ -741,7 +913,7 @@ size of &%aproximateValue of &%approximateDiameter of 0.3 &%Millimeters.")
     (grainSize ?C ?L))
    (equal ?L 0.3))
 
-(instance ExtraFineGrind CoffeGrindAttribute)
+(instance ExtraFineGrind CoffeeGrindAttribute)
 (documentation ExtraFineGrind EnglishLanguage "&%ExtraFineGrind &%CoffeeGrind has a particle 
 size of &%aproximateValue of &%approximateDiameter of 0.1 &%Millimeters.")
 (termFormat EnglishLanguage ExtraFineGrind "extra fine grind")
@@ -759,11 +931,20 @@ size of &%aproximateValue of &%approximateDiameter of 0.1 &%Millimeters.")
 (=>
   (instance ?C Cappuccino)
   (material ProcessedMilk ?C))
-
+  
 (=>
   (instance ?C Cappuccino)
-  (material Coffee ?C))
-         
+  (material Espresso ?C))
+
+(subclass Americano Coffee)
+(subclass FlatWhite Coffee)
+(subclass Latte Coffee)
+(subclass LongBlack Coffee)
+(subclass VitnameseCoffee Coffee)
+(subclass TurkishCoffee Coffee)
+(subclass Manilo Coffee)
+(subclass Instant Coffee)
+          
 (subclass Baking Cooking)
 (subclass Baking Heating)
 (documentation Baking EnglishLanguage "Any instance of &%Cooking where the instrument
