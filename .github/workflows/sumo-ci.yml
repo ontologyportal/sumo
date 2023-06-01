@@ -50,15 +50,16 @@ jobs:
         sed -i "s|/home/theuser/workspace/sumo|$ONTOLOGYPORTAL_GIT/sumo|g" $SIGMA_HOME/KBs/config.xml
         sed -i "s|/home/theuser/E/bin/e_ltb_runner|/usr/local/bin/e_ltb_runner|g" $SIGMA_HOME/KBs/config.xml
         sed -i "s|/home/theuser/workspace/vampire/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
+        sed -i 's|preference name="TPTP" value="yes"|preference name="TPTP" value="no"|g' $SIGMA_HOME/KBs/config.xml
 
-    - name: Produce SUMO.tptp
+    - name: Produce SUMO.fof
       run: java -Xmx8g -classpath "/root/sigmakee/*" com.articulate.sigma.trans.SUMOKBtoTPTPKB
 
-    - name: Upload SUMO.tptp
+    - name: Upload SUMO.fof
       uses: actions/upload-artifact@v3
       with:
-        name: SUMO.tptp
-        path: ${{ env.SIGMA_HOME }}/KBs/SUMO.tptp
+        name: SUMO.fof
+        path: ${{ env.SIGMA_HOME }}/KBs/SUMO.fof
 
   run_vampire:
     runs-on: ubuntu-latest
@@ -71,14 +72,15 @@ jobs:
     steps:
     - uses: actions/download-artifact@v3
       with:
-        name: SUMO.tptp
+        name: SUMO.fof
 
-    - name: Run vampire against SUMO.tptp
+    - name: Run vampire against SUMO.fof
       env:
         VAMPIRE_TIMEOUT: ${{ inputs.vampire_timeout }}
       run: |
         ls -l .
         echo "VAMPIRE_TIMEOUT: $VAMPIRE_TIMEOUT"
+#        /usr/local/bin/vampire --proof tptp -t $VAMPIRE_TIMEOUT SUMO.fof > vamp-out.txt || echo "Ignoring vampire exit code"
         /usr/local/bin/vampire --cores 0 --mode portfolio --schedule snake_tptp_uns --proof tptp --input_syntax tptp --output_axiom_names on -t $VAMPIRE_TIMEOUT SUMO.tptp > vamp-out.txt || echo "Ignoring vampire exit code"
         mkdir -p $SIGMA_HOME/webapps/sigma/graph
         CATALINA_HOME=$SIGMA_HOME java -Xmx8g -classpath "/root/sigmakee/*" com.articulate.sigma.trans.TPTP3ProofProcessor -f vamp-out.txt
