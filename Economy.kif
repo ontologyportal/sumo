@@ -3920,39 +3920,15 @@ of alcoholic bereverages as well as biofuels. ")
 arid and semiarid regions of the world. ")
 (initialPart MilletGrain MilletGrass)
 
-(subclass FoodFromPlant Food)
-(documentation FoodFromPlant EnglishLanguage "&%FoodFromPlant is the class of &%Food which are derived 
-from &%Harvesting the whole or &%part of &%Plants.")
-(disjoint FoodFromPlant FoodFromAnimal)
-(termFormat EnglishLanguage FoodFromPlant "food from plant")
-
-(=>
-  (instance ?X FoodFromPlant)
-  (exists (?H ?CLASS)
-    (and
-      (instance ?H Harvesting)
-      (result ?H ?X)
-      (instance ?X ?CLASS)
-      (initialPart ?CLASS Plant))))
+;; Moved FoodFromPlant to MILO
 
 (subclass Grain FoodFromPlant)
 (documentation Grain EnglishLanguage "&%Grain is the class of &%FoodFromPlant which are derived 
 from &%Harvesting &%CerealGrain and Legumes.")
 (termFormat EnglishLanguage Grain "grain")
 
-(subclass FoodFromAnimal Food)
-(documentation FoodFromAnimal EnglishLanguage "&%FoodFromAnimal is the class of &%Food which are derived 
-from &%Harvesting the whole or &%part of &%Animal.")
-(termFormat EnglishLanguage FoodFromAnimal "food from animal")
-
-(=>
-  (instance ?X FoodFromAnimal)
-  (exists (?H ?CLASS)
-    (and
-      (instance ?H Harvesting)
-      (result ?H ?X)
-      (instance ?X ?CLASS)
-      (initialPart ?CLASS Animal))))
+;; deleted FoodFromAnimal as it overlaps with "meat"
+;; JP 11th May 2023
 
 (subclass Sugar PlantProduct)
 (subclass Sugar Substance)
@@ -3966,7 +3942,7 @@ drinks such as  Ovaltine, and some baked goods, such as malt loaf.")
 (=>
   (and
     (equal ?M
-      (OrganicProductFn ?G))
+      (OrganicObjectFn ?G))
     (subclass ?M Malt)
     (subclass ?G CerealGrain))
   (initialPart ?G CerealGrass))
@@ -4310,24 +4286,30 @@ skin and a sweet, acidic flavor.")
 ;; JP 8Apr2023
 ;; Changed Spice to PlantSubstance
 
-(subclass Spice PlantSubstance)
-(documentation Spice EnglishLanguage "A &%Spice is &%PlantSubstance derived
+(subclass Spice PreparedFood)
+(subclass Spice FoodFromPlant)
+(documentation Spice EnglishLanguage "A &%Spice is a class of &%PreparedFood derived
 from &%Seeds, &%Fruits, &%PlantRoots, barks, or other &%PlantAnatomicalStructure 
 primarily used for flavoring or coloring food. ")
 
 (=>
-  (and
-    (instance ?S
-      (OrganicProductFn ?P))
-      (instance ?S Spice)
-      (subclass ?P PlantAnatomicalStructure))
+  (instance  ?S Spice)
+  (exists (?P ?CLASS)
+    (and
+      (instance ?P
+        (DeadFn ?CLASS))
+      (part ?S ?P)
+      (subclass ?CLASS PlantAnatomicalStructure))))
+
+(=>
+  (instance ?S Spice)  
   (hasPurpose ?S
     (exists (?PUT ?F)
       (and
         (instance ?PUT Putting)
         (patient ?PUT ?S)
         (destination ?PUT ?F)
-        (instance ?F Food)))))
+        (instance ?F PreparedFood)))))
 
 (=>
   (and
@@ -4335,7 +4317,7 @@ primarily used for flavoring or coloring food. ")
     (patient ?P ?S)
     (instance ?S Spice)
     (destination ?P ?F)
-    (instance ?F Food))
+    (instance ?F PreparedFood))
   (exists (?C ?A)
     (and
       (instance ?C InternalChange)
@@ -4471,7 +4453,7 @@ they are technically &%Seeds, FDA classifies them as a type of tree nut.")
 ;(subclass PalmKernel PlantAgriculturalProduct)
 
 
-(subclass OilFromPlant PlantProduct)
+(subclass OilFromPlant Oil)
 (documentation OilFromPlant EnglishLanguage "&%OilFromPlant are oils extracted from 
 seeds or from other parts of fruits. It is worth to note that not all &%OilFromPlant 
 are edible, unlike &%VegetableOil.")
@@ -4480,7 +4462,7 @@ are edible, unlike &%VegetableOil.")
 (=>
   (and
     (equal ?O
-      (OrganicProductFn ?S))
+      (OrganicObjectFn ?S))
     (subclass ?O OilFromPlant)
     (or
       (subclass ?S Seed)
@@ -4562,25 +4544,13 @@ and the source for coffee.")
 
 (=>
   (and
-    (equal ?B (OrganicProductFn ?P))
+    (equal ?B (OrganicObjectFn ?P))
     (subclass ?B CoffeeBean)
     (subclass ?P Fruit))
   (initialPart ?P CoffeePlant))
 
-(subclass Coffee Beverage)
-(subclass Coffee PreparedFood)
-(roomTempState Coffee Liquid)
-(documentation Coffee EnglishLanguage "A &%Beverage which is prepared by infusing ground,
-roasted coffee beans into hot water.")
-(initialPart Coffee CoffeeBean)
-
-(=>
-  (instance ?C Coffee)
-  (exists (?CAF)
-    (and
-      (instance ?CAF Caffeine)
-      (piece ?CAF ?C))))
-
+;; Moved Coffee to Food.kif JP 20230511
+  
 (subclass CocoaSolid PlantProduct)
 (subclass CocoaSolid FoodFromPlant)
 (subclass CocoaSolid Powder)
@@ -4606,7 +4576,7 @@ of Theobroma cacao.")
 (=>
   (and
     (equal ?C
-      (OrganicProductFn ?S))
+      (OrganicObjectFn ?S))
     (subclass ?C CocoaBean)
     (subclass ?S Seed))
   (initialPart ?S CocoaTree))
@@ -4628,7 +4598,7 @@ including leaves, stems, and twigs.")
 (=>
   (and
     (equal ?T
-      (OrganicProductFn ?S))
+      (OrganicObjectFn ?S))
     (subclass ?T TeaPlantAerialPart)
     (subclass ?S PlantStem))
   (initialPart ?S TeaPlant))
@@ -4639,18 +4609,6 @@ including leaves, stems, and twigs.")
 (documentation TeaPlant EnglishLanguage "&%TeaPlant, Camellia, is a species of evergreen 
 shrub or small tree in the flowering plant family Theaceae.Its leaves and buds are used
 to produce &%Tea. The Japanese tea, kukicha and bocha, are made using stems and twigs.")
-
-(subclass Tea Beverage)
-(subclass Tea PreparedFood)
-(documentation Tea EnglishLanguage "A &%Beverage which is prepared by infusing tea &%TeaPlantAerialPart
-into hot water.")
-
-(=>
-  (initialPart Tea ?TEA)
-  (or
-    (equal ?TEA TeaBud)
-    (equal ?TEA TeaLeaf)
-    (equal ?TEA TeaTwig)))
 
 (subclass WineGrape Fruit)
 
@@ -4823,7 +4781,7 @@ raised as &%AgriculturalProducts.")
 ;; incorrect implementation.  It implies that all Animals, to exist, should be Livestock,
 ;; which of course is incorrect.
 ;;(subclass Sheep Livestock)
-(subclass Cattle HoofedMammal)
+
 ;;(subclass Cattle Livestock)
 (subclass GuernseyCattle Cattle)
 (subclass SenepolCattle Cattle)
@@ -4867,11 +4825,38 @@ raised as &%AgriculturalProducts.")
 ;; TERMS - Meat and other products from dead animals:
 ;(subclass Meat AnimalAgriculturalProduct)
 
-(subclass Mutton Meat)
-(subclass Veal Meat)
+(=>
+  (and
+    (equal ?M
+      (organicObjectFn ?A))
+    (subclass ?M Meat))
+  (subclass ?A Animal))
+
 (subclass LambMeat Meat)
-(subclass TurkeyMeat Meat)
+(documentation LambMeat EnglishLanguage "&%LambMeat is the &%Meat that was 
+originally part of a &%Lamb.")
+(meatOfAnimal LambMeat Lamb)
+
+(subclass Mutton Meat)
+(documentation Mutton EnglishLanguage "&%Mutton is the &%Meat that was 
+originally part of a &%Sheep which is older than 12 months.")
+(meatOfAnimal Mutton Sheep)
+
+(=>
+  (and
+    (instance ?M Mutton)
+    (part ?M ?S)
+    (instance ?S Sheep)
+    (age ?S (MeasureFn ?A MonthDuration)))
+  (greaterThanOrEqualTo ?A 12))
+
+(subclass Veal Meat)
+(documentation Veal EnglishLanguage "&%Veal is the &%Meat that was 
+originally part of a &%Calf.")
+(meatOfAnimal Veal Calf)
+
 (subclass WaterBuffaloMeat Meat)
+(meatOfAnimal WaterBuffaloMeat WaterBuffalo)
 
 ;; KJN: Transferring this to Food.kif, which has a more extensive definition for 
 ;; and categorization for Meat.
@@ -4929,7 +4914,7 @@ the pelts or hides of animals that are used in the manufacture of wearable or ho
 
 (=>
   (and
-    (equal ?P (OrganicProductFn ?S))
+    (equal ?P (OrganicObjectFn ?S))
     (subclass ?P Pelt))
   (subclass ?S Skin))
 
@@ -4938,20 +4923,20 @@ the pelts or hides of animals that are used in the manufacture of wearable or ho
 
 (=>
   (and
-    (equal ?S (OrganicProductFn ?O))
+    (equal ?S (OrganicObjectFn ?O))
     (subclass ?S Lambskin)
     (subclass ?O Skin))
-  (initialPart ?O ?Lamb))
+  (initialPart ?O Lamb))
 
 (subclass Sheepskin Pelt)
 (documentation Sheepskin EnglishLanguage "A &%Pelt of hide made from the &%Skin of a &%Sheep.")
 
 (=>
   (and
-    (equal ?S (OrganicProductFn ?O))
+    (equal ?S (OrganicObjectFn ?O))
     (subclass ?S Sheepskin)
     (subclass ?O Skin))
-  (initialPart ?O ?Sheep))
+  (initialPart ?O Sheep))
 
 ;;----------------------------------------------------------------------
 
@@ -5133,31 +5118,31 @@ manufactured using a part or the whole of a &%Plant.")
 (=>
   (and
     (equal ?W
-      (OrganicProductFn ?S))
+      (OrganicObjectFn ?S))
     (subclass ?W WoodProduct)
     (subclass ?S PlantStem))
   (exists (?T)
     (and
       (subclass ?T BotanicalTree)
       (initialPart ?S ?T))))
-  
-(instance OrganicProductFn UnaryFunction)
-(relatedInternalConcept OrganicProductFn DeadFn)
-(relatedInternalConcept OrganicProductFn Harvesting)
-(domainSubclass OrganicProductFn 1 OrganicObject)
-(rangeSubclass OrganicProductFn Product)
-(format EnglishLanguage OrganicProductFn "&%Product made from %1")
-(termFormat EnglishLanguage OrganicProductFn "organic product fn")
-(documentation OrganicProductFn EnglishLanguage "(OrganicProductFn ?ORGCLASS) denotes the &%Class of 
-&%Product derived from the &%Manufacture or &%Agriculture of an &%OrganicObject. The &%Object were once
-a living &%Organism or a living &%part of an &%Organism. For example, &%Hardwood is made from harvesting the 
+
+;; Changed OrganicObjectFn to OrganicObjectFn JP 20230517  
+(instance OrganicObjectFn UnaryFunction)
+(relatedInternalConcept OrganicObjectFn DeadFn)
+(domainSubclass OrganicObjectFn 1 OrganicObject)
+(rangeSubclass OrganicObjectFn Object)
+(format EnglishLanguage OrganicObjectFn "&%Object made from %1")
+(termFormat EnglishLanguage OrganicObjectFn "organic object fn")
+(documentation OrganicObjectFn EnglishLanguage "(OrganicObjectFn ?ORGCLASS) denotes the &%Class of 
+&%Object derived from an &%OrganicObject. The &%Object was once a living &%Organism or a 
+living &%part of an &%Organism. For example, &%Hardwood is made from harvesting the 
 &%PlantStems of a &%DeciduousTree. &%Juice is made from &%FruitOrVegetable of a &%Plant.")
 
 (=>
   (and
     (equal ?P
-      (OrganicProductFn ?ORG))
-    (subclass ?P Product))
+      (OrganicObjectFn ?ORG))
+    (subclass ?P Object))
   (or    
     (subclass ?ORG Organism)   
     (subclass ?ORG AnatomicalStructure)))
@@ -5165,19 +5150,8 @@ a living &%Organism or a living &%part of an &%Organism. For example, &%Hardwood
 (=>
   (and
     (equal ?P
-      (OrganicProductFn ?ORG))
-      (subclass ?P Product))
-  (exists (?H ?O)
-    (and
-      (instance ?H Harvesting)
-      (result ?H ?O)
-      (instance ?O ?ORG))))
-      
-(=>
-  (and
-    (equal ?P
-      (OrganicProductFn ?ORG))
-    (subclass ?P Product))
+      (OrganicObjectFn ?ORG))
+    (subclass ?P Object))
   (exists (?R ?O)
     (and
       (instance ?R (DeadFn ?ORG))
@@ -5193,7 +5167,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 (=>
   (and
     (equal ?W
-      (OrganicProductFn ?S))
+      (OrganicObjectFn ?S))
     (subclass ?W Hardwood)
     (subclass ?S PlantStem))
   (modalAttribute
@@ -5204,7 +5178,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W BalsaWood)
     (subclass ?S PlantStem))
   (initialPart ?S BalsaTree))
@@ -5214,7 +5188,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W BeechWood)
     (subclass ?S PlantStem))
   (initialPart ?S BeechTree))
@@ -5224,7 +5198,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W BirchWood)
     (subclass ?S PlantStem))
   (initialPart ?S BirchTree))
@@ -5234,7 +5208,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W CherryWood)
     (subclass ?S PlantStem))
   (or
@@ -5246,7 +5220,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W MapleWood)
     (subclass ?S PlantStem))
   (initialPart ?S MapleTree))
@@ -5256,7 +5230,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W OkoumeWood)
     (subclass ?S PlantStem))
   (initialPart ?S OkoumeTree))
@@ -5266,7 +5240,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
  
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W PoplarWood)
     (subclass ?S PlantStem))
   (initialPart ?S PoplarTree))
@@ -5276,7 +5250,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W RedOakWood)
     (subclass ?S PlantStem))
   (initialPart ?S RedOakTree))
@@ -5286,7 +5260,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W SapeleWood)
     (subclass ?S PlantStem))
   (initialPart ?S SapeleTree))
@@ -5296,7 +5270,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W WalnutWood)
     (subclass ?S PlantStem))
   (initialPart ?S WalnutTree))
@@ -5306,7 +5280,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W WhiteOakWood)
     (subclass ?S PlantStem))
   (initialPart ?S WhiteOakTree))
@@ -5318,7 +5292,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 (=>
   (and
     (equal ?W
-      (OrganicProductFn ?S))
+      (OrganicObjectFn ?S))
     (subclass ?W Softwood)
     (subclass ?S PlantStem))
   (modalAttribute
@@ -5329,7 +5303,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W CedarWood)
     (subclass ?S PlantStem))
   (initialPart ?S CedarTree))
@@ -5339,7 +5313,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W FirWood)
     (subclass ?S PlantStem))
   (initialPart ?S FirTree))
@@ -5349,7 +5323,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
  
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W LarchWood)
     (subclass ?S PlantStem))
   (initialPart ?S LarchTree))
@@ -5359,7 +5333,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
 
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W SpruceWood)
     (subclass ?S PlantStem))
   (initialPart ?S SpruceTree))
@@ -5369,7 +5343,7 @@ dicot trees. In temperate and boreal latitudes, they are mostly &%DeciduousTrees
  
 (=>
   (and
-    (equal ?W (OrganicProductFn ?S))
+    (equal ?W (OrganicObjectFn ?S))
     (subclass ?W PineWood)
     (subclass ?S PlantStem))
   (initialPart ?S PineTree))
@@ -5933,7 +5907,7 @@ compost, or they can be entirely synthetic, e.g. ammonium nitrate.")
         (material ?OBJ1 Wood)
         (result ?CUT ?OBJ2)
         (instance ?OBJ2 Object)
-        (material ?OBJ2 Wood)
+        (material Wood ?OBJ2)
         (attribute ?OBJ2 Flat)
         (instance ?U UnitOfLength)
         (height ?OBJ1 

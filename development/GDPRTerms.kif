@@ -1,32 +1,218 @@
 ;All definitions taken from : https://edps.europa.eu/data-protection/data-protection/glossary_en and https://gdpr-info.eu/art-4-gdpr/, unless indicated otherwise
 
 
+;BINDING CORPORATE RULES
+
+(documentation BindingCorporateRules EnglishLanguage "personal data protection policies which are adhered to by a controller or 
+processor established on the territory of a Member State for transfers or a set of transfers of personal data to a controller or 
+processor in one or more third countries within a group of undertakings, or group of enterprises engaged in a joint economic activity;")
+
+
+
+(termFormat BindingCorporateRules EnglishLanguage "binding corporate rules")
+
+(termFormat BindingCorporateRules PolishLanguage "wiążące prawa korporacyjne")
+
+
+(subclass BindingCorporateRules Proposition)
+
+
+
+(=>
+  (and
+    (attribute ?DA DataAgent)
+    (jurisdiction ?DA ?MSEU)
+    (instance ?MSEU MemberStateEU)
+    (instance ?GOUT GroupOfUndertakings)
+    (instance ?T DataTransfer)
+    (agent ?T ?DA)
+    (destination ?T ?GOUT))
+  (exists (?BCR)
+    (and
+      (instance ?BCR BindingCorporateRules)
+      (partyToAgreement ?DA ?BCR))))
+
+;INFORMATION SOCIETY SERVICE
+
+(documentation InformationSocietyService EnglishLanguage "Information society service means a service provided at distance during
+the connection of electronic equipment by an electronic communications network, generally for remuneration at the request of the
+recipient of the information society service, in particular commercial communication, processing, transmission, storage, 
+searching or collection of data and electronic mail other than personal electronic mail.")
+
+
+
+(termFormat InformationSocietyService EnglishLanguage "binding corporate rules")
+
+(termFormat InformationSocietyService PolishLanguage "wiążące prawa korporacyjne")
+
+
+(subclass InformationSocietyService ServiceOrganization)
+
+(=>
+  (instance ?SERVICE InformationSocietyService)
+  (exists (?RECIPIENT ?R ?REQUEST ?PROC ?DATA)
+    (and
+      (instance ?RECIPIENT RecipientOfPersonalData)
+      (instance ?R Requesting)
+      (result ?R ?REQUEST)
+      (instance ?DATA Data)
+      (containsInformation ?REQUEST ?PROC)
+      (agent ?R ?RECIPIENT)
+      (destination ?R ?SERVICE))))
+      
+      
+      
+; SUPERVISORY AUTHORITY
+
+
+(documentation SupervisoryAuthority EnglishLanguage "An individual authority established by its member state to supervise
+ the compliance with the GDPR regulation. ")
+
+
+
+(termFormat SupervisoryAuthority EnglishLanguage "supervisory authority")
+
+(termFormat SupervisoryAuthority PolishLanguage "organ nadzorczy")
+
+
+(subclass SupervisoryAuthority GovernmentRegulatoryBody)
+
+
+
+
+;Each Member State shall provide for one or more independent public authorities to be responsible for 
+;monitoring the application of this Regulation, in order to protect the fundamental rights and freedoms 
+;of natural persons in relation to processing and to facilitate the free flow of personal data within 
+;the Union (‘supervisory authority’).Each Member State shall provide for one or more independent public 
+;authorities to be responsible for monitoring the application of this Regulation, in order to protect the 
+;fundamental rights and freedoms of natural persons in relation to processing and to facilitate the free 
+;flow of personal data within the Union (‘supervisory authority’).
+
+
+
+(=>
+  (instance ?MS MemberStateEu)
+  (exists (?SA)
+    (and
+      (instance ?SA SupervisoryAuthority)
+      (jurisdiction ?SA ?MS))))
+      
+      
+(=>
+  (and
+    (instance ?SA SupervisoryAuthority)
+    (jurisdiction ?SA ?MS))
+  (holdsObligation
+    (forall (?P ?D)
+      (=>
+        (and
+          (instance ?P DataSubject)
+          (loacted ?P ?MS)
+          (instance ?D PersonalData)
+          (identifies ?D ?P))
+        (exists (?PROC)
+          (and
+            (instance ?PROC PersonalDataProcessing)
+            (patient ?PROC ?D)
+            (attribute ?PROC Legal))))) ?SA))
+  
+  
+  
+;Where more than one supervisory authority is established in a Member State, that Member State shall designate 
+;the supervisory authority which is to represent those authorities in the Board and shall set out the mechanism 
+;to ensure compliance by the other authorities with the rules relating to the consistency mechanism referred to in Article 63.
+
+
+
+(=>
+  (and
+    (instance ?MS MemberStateEU)
+    (instance ?SAGROUP Collection)
+    (memberType ?SAGROUP SupervisoryAuthority)
+    (memberCount ?SAGROUP ?N)
+    (greaterThan ?N 1)
+    (=>
+      (member ?SA ?SAGROUP)
+      (jurisdiction ?SA ?MS)))
+  (exists (?SAMAIN ?LEAD)
+    (and
+      (member ?SAMAIN ?SAGROUP)
+      (instance ?LEAD Leading)
+      (agent ?LEAD ?SAMAIN)
+      (patient ?LEAD ?SAGROUP))))
+
+
+;SUPERVISORY AUTHORITY CONCERNED
+
+(=>
+  (and
+    (instance ?DA DataAgent)
+    (instance ?MS MemberStateEU)
+    (agent ?ACT ?DA)
+    (located ?DA ?MS)
+    (instance ?SA SupervisoryAuthority)
+    (jurisdiction ?SA ?MS))
+  (exists (?R)
+    (and
+      (inScopeOfInterest ?SA ?R)
+      (result ?ACT ?R))))  
+      
+      
+(=>
+  (and
+    (instance ?DS DataSubject)
+    (patient ?PROC ?DATA)
+    (identifies ?DATA ?DS)
+    (instance ?PROC PersonalDataProcessing)
+    (involvedInEvent ?PROC ?DS)
+    (attribute ?DS SubjectiveStrongPositiveAttribute)
+    (instance ?MS MemberStateEU)
+    (located ?DS ?MS)
+    (instance ?SA SupervisoryAuthority)
+    (jurisdiction ?SA ?MS))
+  (exists (?R)
+    (and
+      (inScopeOfInterest ?SA ?R)
+      (result ?PROC ?R))))    
+      
 ; DATA PROCESSING : 
 ;"any operation or set of operations which is performed on personal data or on sets of personal data, whether or not by automated means, 
 ; such as collection, recording, organisation, structuring, storage, adaptation or alteration, retrieval, consultation, use, 
 ; disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction, erasure or destruction."
 
-(documentation DataProcessing EnglishLanguage "any operation or set of operations which is performed on personal data or on sets of personal data, 
+(documentation PersonalDataProcessing EnglishLanguage "any operation or set of operations which is performed on personal data or on sets of personal data, 
 whether or not by automated means, such as collection, recording, organisation, structuring, storage, adaptation or alteration, retrieval, 
 consultation, use, disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction, erasure or destruction.")
 
-(termFormat DataProcessing EnglishLanguage "Data Processing")
+(termFormat PersonalDataProcessing EnglishLanguage "data processing")
 
-(subclass DataProcessing ContentDevelopment)       
+(termFormat PersonalDataProcessing PolishLanguage "przetwarzanie danych")
 
-(exists (?PROC ?DATA)
-  (and
-    (instance ?PROC DataProcessing)
-    (instance ?DATA PersonalData)
-    (patient ?PROC ?DATA)))
+(subclass PersonalDataProcessing ContentDevelopment)     
+
+(=>
+  (instance ?PROC PersonalDataProcessing)
+  (exists (?DATA)
+    (and
+      (patient ?PROC ?DATA)
+      (result ?PROC ?DATA)
+      (or
+        (instance ?DATA PersonalData)
+        (and
+          (instance ?DATA Collection)
+          (memberType ?DATA PersonalData))))))
     
-    
+
+; Data Collection
+        
 (documentation DataCollection EnglishLanguage "Data Processing that consists of collecting data")
 
 
 (termFormat DataCollection EnglishLanguage "data collection")
 
-(subclass DataCollection DataProcessing)
+(termFormat DataCollection PolishLanguage "zbieranie danych")
+
+(subclass DataCollection PersonalDataProcessing)
 (subclass DataCollection Getting)     
 
 (=>
@@ -36,15 +222,91 @@ consultation, use, disclosure by transmission, dissemination or otherwise making
       (result ?DC ?DATA)
       (instance ?DATA Collection)
       (memberType ?DATA PersonalData))))
-  
+      
+      
+      
+      
+      
+;Restriction Of Processing
+
+(documentation RestrictionOfProcessing EnglishLanguage "the marking of stored personal data with the aim of limiting their processing in the future")
  
+(termFormat RestrictionOfProcessing EnglishLanguage "restriction of processing")
+
+(termFormat RestrictionOfProcessing PolishLanguage "ograniczanie przetwarzania danych")
+
+(subclass RestrictionOfProcessing PersonalDataProcessing)
+(subclass RestrictionOfProcessing RegulatoryProcess)
+
+
+(=>
+  (and
+    (instance ?RP RestrictionOfProcessing)
+    (patient ?RP ?DATA))
+  (exists (?MARKEDDATA ?PROCESSINGS ?P ?RESTRICTED ?R ?N1 ?N2)
+    (and
+      (result ?RP ?MARKEDDATA)
+      (instance ?PROCESSINGS Collection)
+      (memberType ?PROCESSINGS PersonalDataProcessing)
+      (instance ?RESTRICTED Collection)
+      (memberType ?RESTRICTED PersonalDataProcessing)
+      (=>
+        (member ?P ?PROCESSINGS)
+        (patient ?P ?DATA))
+      (=>
+        (member ?R ?RESTRICTED)
+        (patient ?R ?MARKEDDATA))
+      (memberCount ?PROCESSINGS ?N1)
+      (memberCount ?RESTRICTED ?N2)
+      (lessThan ?N1 ?N2))))
+
+
+
+ 
+      
+      
+; PROFILING
+
+(documentation Profiling EnglishLanguage "automated processing of personal data consisting of the use of personal data to 
+evaluate certain personal aspects relating to a natural person")
+
+(termFormat Profiling EnglishLanguage "profiling")
+
+(termFormat Profiling PolishLanguage "profilowanie")
+
+(subclass Profiling PersonalDataProcessing)
+
+
+(=>
+  (and
+  (instance ?P Profiling)
+  (patient ?P ?DATA)
+  (instance ?DATA PersonalData)
+  (identifies ?DATA ?PERSON)
+  (instance ?PERSON Human))
+  (exists (?PDATA ?ASPECTS ?ASPECT)
+    (and
+      (result ?P ?PDATA)
+      (refers ?PDATA ?PERSON)
+      (instance ?ASPECTS Collection)
+      (represents ?PDATA ?ASPECTS)
+      (memberType ?ASPECTS Attribute)
+      (forAll
+        (=>
+          (member ?ASPECT ?ASPECTS)
+          (attribute ?PERSON ?ASPECT))))))
+
+
+; DATA BREACH
  
 (documentation PersonalDataBreach EnglishLanguage "a breach of security leading to the accidental or unlawful destruction, 
 loss, alteration, unauthorised disclosure of, or access to, personal data transmitted, stored or otherwise processed")
 
 (termFormat PersonalDataBreach EnglishLanguage "personal data breach") 
 
-(subclass PersonalDataBreach ContentBearingProcess) ;or should it be data processing? 
+(termFormat PersonalDataBreach PolishLanguage "wyciek danych osobowych")
+
+(subclass PersonalDataBreach PersonalDataProcessing) ;or should it be data processing? 
 
 (=>
   (and
@@ -58,7 +320,22 @@ loss, alteration, unauthorised disclosure of, or access to, personal data transm
     (instance ?BREACH PersonalDataBreach)
     (patient ?BREACH ?DATA))
    (not (modalAttribute ?BREACH Law)))
-   
+  
+(=>
+  (and
+    (instance ?BREACH PersonalDataBreach)
+    (patient ?BREACH ?DATA))
+  (exists (?DESTR ?COMMUNICATION ?CHANGE ?TRANSFER)
+    (and
+      (instance ?DESTR Destruction)
+      (instance ?CHANGE InternalChange)
+      (instance ?TRANSFER Transfer)
+      (instance ?COMMUNICATION Communication)
+      (or
+        (patient ?DESTR ?DATA)
+        (patient ?CHANGE ?DATA)
+        (patient ?DATA ?TRANSFER)
+        (patient ?DATA ?COMMUNICATION))))) 
 
 ;pseudonymisation
 
@@ -70,8 +347,10 @@ specific data subject without the use of additional information")
 
 (termFormat Pseudonymisation EnglishLanguage "pseudonymisation")
 
+(termFormat Pseudonymisation EnglishLanguage "pseudonimizacja")
 
-(subclass Pseudonymisation DataProcessing)
+
+(subclass Pseudonymisation PersonalDataProcessing)
 
 
 (=>
@@ -102,26 +381,49 @@ substantially affects or is likely to substantially affect data subjects in more
 
 
 (termFormat CrossBorderDataProcessing EnglishLanguage "Cross Border Data Processing")
+(termFormat CrossBorderDataProcessing PolishLanguage "przetwarzanie między-państwowe")
 
-
-(subclass CrossBorderDataProcessing DataProcessing)
+(subclass CrossBorderDataProcessing PersonalDataProcessing)
 ;use involved in event instead
 ;make a simple base rule
 ;try to generalize it 
 ; if CrossBorderDataProcessing and 2 entities are invloved
 
 
+
+;say that these countries are different
 (=>
   (instance ?CP CrossBorderDataProcessing)
-  (exists (?C1 ?C2)
+  (exists (?C1 ?C2 ?A1 ?A2 ?SUBJECTS1 ?SUBJCETS2)
     (and
       (instance ?C1 MemberStateEu)
       (instance ?C2 MemberStateEu)
-      (involvedInEvent ?CP ?C1))))
+      (instance ?A1 DataAgent)
+      (instance ?A2 DataAgent)
+      (instance ?SUBJECTS1 Collection)
+      (memberType ?SUBJCETS1 DataSubject)
+      (located ?SUBJCETS1 ?C1)
+      (instance ?SUBJCETS2 Collection)
+      (memberType ?SUBJCETS2 DataSubject)
+      (located ?SUBJCETS2 ?C2)
+      (not
+        (equal ?A1 ?A2))
+      (not
+        (equal ?SUBJECTS1 ?SUBJECTS2))
+      (not
+        (equal ?C1 ?C2))
+      (or
+        (and
+          (involvedInEvent ?CP ?A1)
+          (involvedInEvent ?CP ?A2)
+          (involvedInEvent ?CP ?SUBJECTS1))
+        (and
+          (involvedInEvent ?CP ?A1)
+          (involvedInEvent ?CP ?SUBJECTS1)
+          (involvedInEvent ?CP ?SUBJECTS2)))
+      (involvedInEvent ?CP ?C1)
+      (involvedInEvent ?CP ?C2))))
       
-      
-    
-
 
 (=>
   (instance ?CP CrossBorderDataProcessing)
@@ -130,8 +432,7 @@ substantially affects or is likely to substantially affect data subjects in more
       (or
         (and
           (instance ?CONTROLLERS Collection)
-          (memberType ?CONTROLLERS DataProcessor)
-          (memberType ?CONTROLLERS DataController)
+          (memberType ?CONTROLLERS DataAgent)
           (forall (?MEMBER)
             (=>
               (member ?CONTROLLER ?CONTROLLERS)
@@ -142,15 +443,26 @@ substantially affects or is likely to substantially affect data subjects in more
                 (jurisdiction ?CONTROLLER ?COUNTRY)))))
          (and
           (patient ?CP ?COUNTRIES)
-          (or
-            (instance ?CONTROLLER DataProcessor)
-            (instance ?CONTROLLER DataController))))
+          (instance ?CONTROLLER DataAgent)))
       (instance ?COUNTRIES Collection)
       (memberType ?COUNTRIES MemberStateEu)
       (memberCount ?COUNTRIES ?N)
       (greaterThan ?N 1))))
 
  
+      
+      
+;DATA AGENT
+
+(documentation DataAgent EnglishLanguage "Data Controller or Data Processor")
+
+(termFormat DataAgent EnglishLanguage "data agent")
+
+(subclass DataAgent SocialRole)
+
+
+
+      
 ;PROCESSOR
 
 
@@ -159,9 +471,11 @@ substantially affects or is likely to substantially affect data subjects in more
 (documentation DataProcessor EnglishLanguage "A natural or legal person, 
 public authority, agency or other body which processes personal data on behalf of the controller.")
 
-(instance DataProcessor SocialRole)
+(instance DataProcessor DataAgent)
 
-(termFormat DataProcessor EnglishLanguage "Data Processor")
+(termFormat DataProcessor EnglishLanguage "data processor")
+
+(termFormat DataProcessor PolishLanguage "procesor danych")
 
 
 (=>
@@ -172,13 +486,13 @@ public authority, agency or other body which processes personal data on behalf o
       (instance ?CONTROL Managing)
       (agent ?CONTROL ?CONTROLLER)
       (patient ?CONTROL ?PROC)
-      (instance ?PROC DataProcessing)
+      (instance ?PROC PersonalDataProcessing)
       (agent ?PROC ?DP))))
       
       
     
 ; RECORDS 
-;DataController hasObligation to maintatin records of DataProcessing done by DataProcessor
+;DataController holdsObligation to maintatin records of PersonalDataProcessing done by DataProcessor
 
 
 (=>
@@ -186,7 +500,7 @@ public authority, agency or other body which processes personal data on behalf o
     (attribute ?DP DataProcessor)
     (attribute ?DC DataController)
     (instance ?MANAGE Managing)
-    (instance ?PROC DataProcessing)
+    (instance ?PROC PersonalDataProcessing)
     (agent ?PROC ?DP)
     (patient ?MANAGE ?DP)
     (agent ?MANAGE ?DC)
@@ -205,7 +519,9 @@ a data controller to a data processor must be secured by a data processor agreem
 
 (subclass ProcessorAgreement Contract)
 
-(termFormat ProcessorAgreement EnglishLanguage "Processor agreement")
+(termFormat ProcessorAgreement EnglishLanguage "processor agreement")
+
+(termFormat ProcessorAgreement PolishLanguage "umowa procesora")
 
 (=>
   (instance ?PA ProcessorAgreement)
@@ -247,9 +563,9 @@ a data controller to a data processor must be secured by a data processor agreem
 alone or jointly with others, determines the purposes and means of the processing of personal data.")
 
 (termFormat DataController EnglishLanguage "Data controller")
+(termFormat DataController PolishLanguage "kontroler danych")
 
-
-(instance DataController SocialRole)
+(instance DataController DataAgent)
 
 (=>
   (and
@@ -258,7 +574,7 @@ alone or jointly with others, determines the purposes and means of the processin
   (exists (?PD ?PROC ?MEANS ?PURPOSE ?DETERMINE)
     (and
       (instance ?PD PersonalData)
-      (instance ?PROC DataProcessing)
+      (instance ?PROC PersonalDataProcessing)
       (instance ?DETERMINE Deciding)
       (instance ?MEANS Method)
       (=>
@@ -288,17 +604,83 @@ alone or jointly with others, determines the purposes and means of the processin
       (possesses ?DATA ?DC)
       (hasPurposeForAgent ?DATA
         (possesses ?DATA ?DC) ?DC)) ?DC))
+        
+        
+        
+(documentation MainEstablishmentOfDataController EnglishLanguage "as regards a controller with establishments in more than one Member State, 
+the place of its central administration in the Union, unless the decisions on the purposes and means of the processing of personal data are 
+taken in another establishment of the controller in the Union and the latter establishment has the power to have such decisions implemented, 
+in which case the establishment having taken such decisions is to be considered to be the main establishment")
+
+
+(termFormat MainEstablishmentOfDataController EnglishLanguage "main establishment of a data controller")
+
+(termFormat MainEstablishmentOfDataController EnglishLanguage "główna siedziba kontrolera danych")
+
+(instance MainEstablishmentOfDataController Organization)
+
+
+(=>
+  (instance ?ME MainEstablishmentOfDataController)
+  (exists (?GROUP ?A ?M ?ACT)
+    (and
+      (instance ?GROUP Collection)
+      (memberType ?GROUP AutonomousAgent)
+      (=>
+        (member ?M ?GROUP)
+        (attribute ?M DataController))
+      (member ?ME ?GROUP)
+      (instance ?M Managing)
+      (forAll
+        (?ACT)
+        (=>
+          (and
+            (agent ?ACT ?M)
+            (member ?A ?GROUP))
+          (and
+            (agent ?M ?ME)
+            (patient ?M ?A)))))))
+
+
+(documentation MainEstablishmentOfDataProcessor EnglishLanguage "as regards a processor with establishments in more than one Member State, 
+the place of its central administration in the Union, or, if the processor has no central administration in the Union, 
+the establishment of the processor in the Union where the main processing activities in the context of the activities of an 
+establishment of the processor take place to the extent that the processor is subject to specific obligations under this Regulation")
+
+(termFormat MainEstablishmentOfDataProcessor EnglishLanguage "main establishment of a data controller")
+
+(termFormat MainEstablishmentOfDataProcessor EnglishLanguage "główna siedziba procesora danych")
+
+(instance MainEstablishmentOfDataProcessor Organization)
+
+
+(=>
+  (instance ?ME MainEstablishmentOfDataController)
+  (exists (?GROUP ?A ?M ?P)
+    (and
+      (instance ?GROUP Collection)
+      (memberType ?GROUP AutonomousAgent)
+      (=>
+        (member ?M ?GROUP)
+        (attribute ?M DataProcessor))
+      (member ?ME ?GROUP)
+      (instance ?P PersonalDataProcessing)
+      (attribute ?P SubjectiveStrongPositiveAttribute))))
+            
+            
           
+
 ;DATA PROTECTION AUTHORUTY (DPA)
 
 (documentation DataProtectionAuthority EnglishLanguage "An independent body that monitors the processing of personal data within its jurisdiction (country, region or international organization);
 provides advice to the competent bodies with regard to legislative and administrative measures relating to the processing of personal data;
 hears complaints lodged by citizens with regard to the protection of their data protection rights.")
 
-(termFormat DataProtectionAuthority EnglishLanguage "Data protection authority")
+(termFormat DataProtectionAuthority EnglishLanguage "data protection authority")
 
+(termFormat DataProtectionAuthority EnglishLanguage "autorytet ws. ochrony danych")
 
-(subclass DataProtectionAuthority GovernmentOrganization) ;maybe chan
+(subclass DataProtectionAuthority GovernmentRegulatoryBody) ;maybe chan
 
 ;monitors the processing of personal data within its jurisdiction (country, region or international organization)
 
@@ -318,7 +700,7 @@ hears complaints lodged by citizens with regard to the protection of their data 
   (exists (?PROC ?MANAGE)
     (and
       (instance ?MANAGE Managing)
-      (instance ?PROC DataProcessing)
+      (instance ?PROC PersonalDataProcessing)
       (agent ?MANAGE ?DPA)
       (patient ?MANAGE ?PROC)
       (patient ?PROC ?D))))
@@ -331,7 +713,7 @@ hears complaints lodged by citizens with regard to the protection of their data 
     (instance ?BODY AutonomousAgent)
     (instance ?PD PersonalData)
     (instance ?DPA DataProtectionAuthority)
-    (instance ?PROC DataProcessing)
+    (instance ?PROC PersonalDataProcessing)
     (patient ?PROC ?PD)
     (agent ?PROC ?BODY))
   (exists (?ADVISING ?ADVICE)
@@ -377,8 +759,6 @@ hears complaints lodged by citizens with regard to the protection of their data 
 (instance CNIL DataProtectionAuthority)
 (jurisdiction CNIL France)
 
-
-          
                    
 ;CONFIDENTIALITY
 ;expressed as a rule on PersonalData
@@ -411,15 +791,19 @@ hears complaints lodged by citizens with regard to the protection of their data 
 
 ;DATA MINING :analysing data from different perspectives and summarising it into useful new information
 
-; my interpretation: If there is some data and it is the patient of Data Mining, then there exists some new information that was extracted from it (the original data is the source of it)
-; I define 'new information' as information that is not any other information
+;my interpretation: If there is some data and it is the patient of Data Mining, then there exists some new information that
+;was extracted from it (the original data is the source of it)
+;I define 'new information' as information that is not any other information
 
 (documentation DataMining EnglishLanguage "Analysing data from different perspectives
  and summarising it into useful new information")
 
 (termFormat DataMining EnglishLanguage "Data mining")
 
-(subclass DataMining DataProcessing)
+(termFormat DataMining EnglishLanguage "wydobywanie danych")
+
+
+(subclass DataMining PersonalDataProcessing)
 
 
 
@@ -437,6 +821,13 @@ hears complaints lodged by citizens with regard to the protection of their data 
         (equal ?INFO ?OTHERINFO)))))
      
 
+        
+        
+        
+;REPRESENTATIVE
+
+
+
 ;
 ; DATA SUBJECT
 ; The data subject is the person whose personal data are collected, held or processed.
@@ -444,6 +835,8 @@ hears complaints lodged by citizens with regard to the protection of their data 
 (documentation DataSubject EnglishLanguage "The data subject is the person whose personal data are collected, held or processed.")
 
 (termFormat DataSubject EnglishLanguage "data subject")
+
+(termFormat DataSubject PolishLanguage "podmiot przetwarzania danych")
 
 
 (subclass DataSubject SocialRole)
@@ -458,7 +851,7 @@ hears complaints lodged by citizens with regard to the protection of their data 
       (instance ?DATA PersonalData)
       (instance ?ENTITY AutonomousAgent)
       (and
-        (instance ?PROCESSING DataProcessing)
+        (instance ?PROCESSING PersonalDataProcessing)
         (agent ?PROCESSING ?ENTITY)
         (patient ?PROCESSING ?DATA)))))
 
@@ -476,6 +869,8 @@ physiological, genetic, mental, economic, cultural or social identity of that na
 
 (termFormat DataSubject EnglishLanguage "personal data")
 
+(termFormat DataSubject PolishLangauge "dane osobowe")
+
 (subclass PersonalData ContentBearingObject)
 
 ;If data is an instance of Personal Data, then there exists a person that that piece of data refers to and if an agent has access to that data then they can identify the Person from it
@@ -489,6 +884,7 @@ physiological, genetic, mental, economic, cultural or social identity of that na
        
 (termFormat BiometricIdentifying EnglishLanguage "biometric identifying")
 
+(termFormat BiometricIdentifying PolishLangauge "identyfikacja biometryczna")
 
 (subclass BiometricIdentifying Classifying)
 
@@ -510,6 +906,7 @@ such as facial images or dactyloscopic data")
  
 (termFormat BiometricData EnglishLanguage "biometric data")
 
+(termFormat BiometricData PolishLangauge "dane biometryczne")
 
 (subclass BiometricData PersonalData)
 
@@ -527,6 +924,8 @@ such as facial images or dactyloscopic data")
 including the provision of health care services, which reveal information about his or her health status")
 
 (termFormat HealthData EnglishLanguage "health data")
+
+(termFormat HealthData PolishLangauge "dane zdrowotne")
 
 
 (subclass HealthData PersonalData)
@@ -546,6 +945,7 @@ of a natural person which give unique information about the physiology or the he
 
 (termFormat GeneticData EnglishLanguage "genetic data")
 
+(termFormat GeneticData PolishLangauge "dane genetyczne")
 
 (subclass GeneticData PersonalData)
 
@@ -661,9 +1061,8 @@ information about oneself." )
   (and
     (instance ?H Human)
     (attribute ?H RightToPrivacy))
-  (exists (?INFO)
-    (hasRight
-      (attribute ?H Alone) ?H)))
+  (hasRight
+    (attribute ?H Alone) ?H))
           
           
 (=>
@@ -715,7 +1114,7 @@ and sharing of information about oneself")
 (=>
   (and
     (instance ?H Human)
-    (instance ?DP DataProcessing)
+    (instance ?DP PersonalDataProcessing)
     (patient ?DP ?DATA)
     (refers ?DATA ?H))
   (exists (?MANAGING)
@@ -743,19 +1142,210 @@ and sharing of information about oneself")
           (patient ?MANAGING ?DC)) ?H))))
 
 
-     
+ 
+          
+;FILE SYSTEM
+
+
+(documentation FilingSystem EnglishLanguage "any structured set of personal data which are accessible according to specific criteria,
+ whether centralised, decentralised or dispersed on a functional or geographical basis")
+ 
+(termFormat FilingSystem EnglishLanguage "filing system") 
+
+(termFormat FilingSystem PolishLanguage "system plików") 
+
+(subclass FilingSystem Collection)
+
+
+
+(=>
+  (instance ?FS FilingSystem)
+  (exists (?A ?DP)
+    (and
+      (memberType ?FS PersonalData)
+      (instance ?A AutonomousAgent)
+      (instance ?DP PersonalDataProcessing)
+      (agent ?DP ?A)
+      (patient ?DP ?A))))
+ 
+;RECIPIENT
+
+(documentation RecipientOfPersonalData EnglishLanguage "a natural or legal person, public authority, agency or another body,
+ to which the personal data are disclosed, whether a third party or not")
+
+(subclass RecipientOfPersonalData SocialRole)
+
+(termFormat RecipientOfPersonalData EnglishLanguage "recipient") 
+(termFormat RecipientOfPersonalData PolishLanguage "odbiorca") 
+
+(=>
+  (and
+    (instance ?P AutonomousAgent)
+    (attribute ?P RecipientOfData))
+  (exists (?DATA ?GET)
+    (and
+      (instance ?DATA PersonalData)
+      (instance ?GET Getting)
+      (agent ?GET ?P)
+      (patient ?GET ?DATA))))
+      
+; THIRD PARTY 
+
+
+(documentation ThirdParty EnglishLanguage "means a natural or legal person, public authority, agency or 
+body other than the data subject, controller, processor and persons who, under the direct 
+authority of the controller or processor, are authorised to process personal data")
+
+
+
+(termFormat ThirdParty EnglishLanguage "third party")
+(termFormat ThirdParty PolishLanguage "strona trzecia")
+
+(subclass ThirdParty SocialRole)
+
+(=>
+  (and
+    (instance ?A AutonomousAgent)
+    (not (attribute ?A DataController))
+    (not (attribute ?A DataSubject))
+    (not (attribute ?A DataProcessor))
+    (instance ?M Manage)
+    (agent ?M ?C)
+    (patient ?M ?A)
+    (instance ?DP PersonalDataProcessing)
+    (agent ?DP ?A)
+    (or (attribute ?C DataProcessor) (attribute ?C DataController) ))
+  (attribute ?A ThirdParty))
+
+      
+; REPRESENTATIVE
+
+
+(documentation Representative EnglishLanguage "means a natural or legal person established in the Union who, designated by the controller or processor, 
+represents the controller or processor with regard to their respective obligations under this Regulation")
+
+(termFormat Representative EnglishLanguage "a representative")
+(termFormat Representative PolishLanguage "przedstawiciel")
+
+(subclass Representative SocialRole)
+
+(=>
+  (and
+    (instance ?A AutonomousAgent)
+    (attribute ?A Representative))
+  (exists (?DC ?OB)
+    (and
+      (or
+        (attribute ?DC DataController)
+        (attribute ?DC DataProcessor))
+      (=>
+        (holdsObligation ?OB ?DC)
+        (holdsObligation ?OB ?A)))))
+        
+        
+; Undertaking
+
+(documentation Undertaking EnglishLanguage "a natural or legal person engaged in an economic activity, irrespective of its legal form")
+
+(termFormat Undertaking EnglishLanguage "an undertaking")
+
+(subclass Undertaking AutonomousAgent)
+
+(=>
+  (instance ?U Undertaking)
+  (exists (?ACT)
+    (and
+      (agent ?ACT ?U)
+      (instance ?ACT EconomicActivity))))
+
+;Group of Undertakings
+
+
+
+(documentation GroupOfUndertakings EnglishLanguage "a controlling undertaking and its controlled undertakings")
+(termFormat GroupOfUndertakings EnglishLanguage "a group of undertakings")
+
+(subclass GroupOfUndertakings Collection)(=>
+  (instance ?GOU GroupOfUndertakings)
+  (exists (?CONTROLLER ?MANAGE ?N)
+    (and
+      (memberType ?GOU Undertaking)
+      (member ?CONTROLLER ?GOU)
+      (instance ?MANAGE Managing)
+      (agent ?MANAGE ?CONTROLLER)
+      (patient ?MANAGE ?GOU)
+      (memberCount ?GOU ?N)
+      (greaterThan ?N 1))))
+      
+;Enterprise
+
+(documentation Enterprise EnglishLanguage "a natural or legal person engaged in an economic activity, irrespective of its legal form")
+
+(termFormat Enterprise EnglishLanguage "enterprise")
+
+(subclass Enterprise Undertaking)
+
+(=>
+  (instance ?E Enterprise)
+  (attribute ?E LegalAgent))
+
+;CONSENT
+
+
+(documentation ConsentGDPR EnglishLanguage "Consent of the data subject means any freely given, specific, informed and unambiguous indication of 
+the data subject’s wishes by which he or she, by a statement or by a clear affirmative action, signifies agreement to the processing of personal 
+data relating to him or her")
+
+
+(termFormat ConsentGDPR EnglishLanguage "consent")
+(termFormat ConsentGDPR PolishLanguage "świadoma zgoda")
+
+(subclass ConsentGDPR IntentionalProcess)
+
+(=>
+  (and
+    (agent ?C ?A)
+    (instance ?C ConsentGDPR))
+  (exists (?PROC ?DATA ?P)
+    (and
+      (confersNorm ?A
+        (and
+          (agent ?PROC ?P)
+          (instance ?PROC PersonalDataProcessing)
+          (patient ?PROC ?DATA)
+          (identifies ?DATA ?A)) Permission)
+      (attribute ?A DataSubject)
+      (instance ?P AutonomousAgent))))
+  
 ;TERMS RELEVANT TO GDPR, BUT NOT DIRECTLY FROM THE GLOSSARY                       
-                    
-;Monitoring
 
-;meaning : looking at something repetitively with the goal of overseeing its performance          
+(documentation EconomicActivity EnglishLanguage "An economic activity is characterised by an input of resources, a production process and an output of products")               
+(termFormat EconomicActivity EnglishLanguage "economic activity")
 
 
+(termFormat EconomicActivity EnglishLanguage "economic activity")
+(termFormat EconomicActivity PolishLanguage "aktyność ekonomiczna")
+
+(subclass EconomicActivty IntentionalProcess)
+
+(=>
+  (and
+    (instance ?ECONACT EconomicActivty)
+    (agent ?ECONACT ?AGENT))
+  (exists (?PRODUCTION ?PRODUCT)
+    (and
+      (result ?ECONACT ?PRODUCT)
+      (agent ?PRODUCTION ?AGENT)
+      (instance ?PRODUCTION Creation)
+      (instance ?PRODUCT Product))))
 
 ;identifies
 
-(documentation identifies EnglishLanguage "(identifies ?OBJ1 ?OBJ2) 
+(documentation identifies EnglishLanguage "(&%identifies ?OBJ1 ?OBJ2) 
 expresses that ?OBJ1 refers to ?OBJ2 and ?OBJ2 is identifiable from ?OBJ1")
+
+(termFormat identifies EnglishLanguage "%1 identifies %2")
+(termFormat identifies PolishLanguage "%1 identyfikuje %2")
 
 (subclass identifies refers)
 
@@ -778,12 +1368,15 @@ expresses that ?OBJ1 refers to ?OBJ2 and ?OBJ2 is identifiable from ?OBJ1")
 
 (documentation PersonalSpace EnglishLanguage "the immediate area surrounding a person")
 
+(termFormat PersonalSpace EnglishLanguage "personal space")
+(termFormat PersonalSpace PolishLanguage "przestrzeń osobista")
+
 (subclass PersonalSpace Region)
 
 
 (=>
   (instance ?PS PersonalSpace)
-  (exists (?PERSON)
+  (exists (?PERSON ?X)
     (and
       (instance ?PERSON Human)
       (located ?PERSON ?PS)
@@ -793,13 +1386,21 @@ expresses that ?OBJ1 refers to ?OBJ2 and ?OBJ2 is identifiable from ?OBJ1")
           (located ?X ?PS))
         (orientation ?X ?PERSON Near)))))
 
+        
+
+
+
 ;jurisdiction
 
 ;meaning : the right and power to interpret and apply the law
 
 
-(documentation jurisdiction EnglishLanguage "(@jurisdiction ?AUTONOMOUSAGENT ?AREA) 
+(documentation jurisdiction EnglishLanguage "(&%jurisdiction ?AUTONOMOUSAGENT ?AREA) 
 expresses that an ?AUTONOMOUSAGENT has power to interpret and apply the law in an ?AREA")
+
+
+(termFormat jurisdiction EnglishLanguage "%1 has jurisdiction over %2")
+(termFormat jurisdiction PolishLanguage "%1 ma jurysdyckcje nas %2")
 
 (domain jurisdiction 1 AutonomousAgent)	
 (domain jurisdiction 2 GeopoliticalArea)
@@ -811,21 +1412,24 @@ expresses that an ?AUTONOMOUSAGENT has power to interpret and apply the law in a
   (and
     (instance ?AGENT AutonomousAgent)
     (jurisdiction ?AGENT ?AREA))
-  (exists (?LAW ?INTERPRET ?DECIDE)
+  (exists (?LEGALACT ?INTERPRET ?DECIDE)
     (and
-      (modalAttribute ?LAW Law)
+      (modalAttribute (agent ?LEGALACT ?AGENT) Law)
       (instance ?INTERPRET Interpreting)
       (instance ?DECIDE LegalDecision)
       (hasRight ?AGENT
         (and
           (agent ?DECIDE ?AGENT)
-          (patient ?DECIDE ?LAW)
+          (patient ?DECIDE ?LEGALACT)
           (agent ?INTERPRET ?AGENT)
-          (patient ?INTERPRET ?LAW))))))
+          (patient ?INTERPRET ?LEGALACT))))))
 
 ;MemberStateEU
 
-(documentation MemberStateEU MemberStateEU "Any nation that is a member of the EuropeanUnion")
+(documentation MemberStateEU EnglishLanguage "Any nation that is a member of the EuropeanUnion")
+(termFormat MemberStateEU EnglishLanguage "EU member state")
+(termFormat MemberStateEU PolishLanguage "państwo członkowskie UE")
+
 
 (subclass MemberStateEU Nation)
 
@@ -847,6 +1451,10 @@ expresses that an ?AUTONOMOUSAGENT has power to interpret and apply the law in a
 
 (documentation GovernmentRegulatoryBody EnglishLanguage "independent governmental body established by 
 legislative act in order to set standards in a specific field of activity")
+
+(termFormat GovernmentRegulatoryBody EnglishLanguage "government regulatory body")
+
+(termFormat GovernmentRegulatoryBody PolishLanguage "rządowa organizacja regulacyjna")
 
 (subclass GovernmentRegulatoryBody GovernmentOrganization)
 
@@ -871,4 +1479,4 @@ legislative act in order to set standards in a specific field of activity")
         (result ?ANS ?ANSWER)
         (agent ?ANS ?DPA)
         (refers ?ANS ?QUERY)) ?DPA)))
-
+       
