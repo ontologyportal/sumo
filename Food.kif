@@ -924,23 +924,290 @@ size of &%aproximateValue of &%approximateDiameter of 0.1 &%Millimeters.")
     (attribute ?C ExtraFineGrind)
     (grainSize ?C ?L))
    (equal ?L 0.1))
-      
-(subclass Cappuccino Coffee)
-(documentation Cappuccino EnglishLanguage "Espresso with foamed milk")
+
+(subclass FoamingMilk Cooking)
+(subclass FoamingMilk Heating)
+(documentation Cappuccino EnglishLanguage "&%FoamingMilk is the &%Process of &%making &%MilkFoam in 
+which the &%ProcessedMilk is aerated then the &%Bubbles are then stirred to mix with the milk while it is 
+being heated to 70C.[Wikipedia]")
+(termFormat EnglishLanguage FoamingMilk "foaming milk")
 
 (=>
-  (instance ?C Cappuccino)
-  (material ProcessedMilk ?C))
+  (instance ?FM FoamingMilk)
+  (exists (?M ?MF)
+    (and
+      (instance ?M ProcessedMilk)
+      (instance ?MF MilkFoam)
+      (patient ?FM ?M)
+      (result ?FM ?MF))))
+      
+(=>
+  (and
+    (instance ?FM FoamingMilk)
+    (instance ?M ProcessedMilk)
+    (patient ?FM ?M))
+  (exists (?H ?A ?B)
+    (and
+      (instance ?H Heating)
+      (patient ?H ?M)
+      (instance ?A Aerating)
+      (patient ?A ?M)
+      (result ?A ?B)
+      (instance ?B Bubble)
+      (during
+        (WhenFn ?A)
+        (WhenFn ?H)))))
+      
+(=>
+  (and
+    (instance ?FM FoamingMilk)
+    (patient ?FM ?M)
+    (instance ?M ProcessedMilk)
+    (instance ?H Heating)
+    (subProcess ?H ?FM)
+    (measure ?M
+      (MeasureFn ?T CelsisuDegree)))
+  (approximateValue ?T 70.0))
   
 (=>
-  (instance ?C Cappuccino)
-  (material Espresso ?C))
+  (and
+    (instance ?FM FoamingMilk)
+    (patient ?FM ?M)
+    (instance ?M ProcessedMilk)
+    (instance ?A Aerating)
+    (patient ?A ?M))
+  (subProcess ?A ?FM))
 
+(subclass MilkFoam ProcessedMilk)
+(documentation MilkFoam EnglishLanguage "&%MilkFoam is produced by &%Aerating &%Milk, then stirred 
+to mix with the milk while it is heated to 70C. MilkFoam is used for making &%Capuccino and &%Latte.
+[Wikipedia]")
+(termFormat EnglishLanguage MilkFoam "milk foam")    
+
+(=>
+  (instance ?M MilkFoam)
+  (attribute ?M HotTemperature))
+             
+(subclass mixtureRatio QuintaryRelation)
+(documentation mixtureRatio EnglishLanguage "&%mixtureRatio is a &%QuintaryRelation 
+which specifies how many &%Liter of two &%Liquid &%Substances in a &%LiquidMixture.")
+(termFormat EnglishLanguage mixtureRatio "mixture ratio")
+(domain mixtureRatio 1 Substance)
+(domain mixtureRatio 2 Substance)
+(domain mixtureRatio 3 RealNumber)      
+(domain mixtureRatio 4 RealNumber)
+(domain mixtureRatio 5 UnitOfMeasure)
+(format EnglishLanguage mixtureRatio "A &%Mixture containing %3 unit %5 of %1 and %4 unit %5 of %2")
+
+(=>
+  (and
+    (instance ?M Mixture)
+    (instance ?Z UnitMeasure)
+    (mixtureRatio ?A ?B ?X ?Y ?Z)
+    (measure ?M
+      (MeasureFn ?T ?Z))
+    (part ?A ?M)
+    (part ?B ?M)
+    (measure ?A
+      (MeasureFn ?X ?Z))
+    (measure ?B
+      (MeasureFn ?Y ?Z)))
+  (equal ?T
+    (AdditionFn ?X ?Y)))
+       
+(subclass Cappuccino Coffee)
+(documentation Cappuccino EnglishLanguage "&%Cappucinno is typically made with 1 shot of 
+&%Espresso with 5 part of foamed milk, so a standard 30ml of espresso with 150ml of milk, 
+giving a 180ml of capuucino.The milk foam on the top is 20mm in thickness. [Wikipedia]")
+
+(=>
+  (instance ?C Cappuccino)
+  (exists (?E ?M ?P)
+    (and
+      (instance ?E Espresso)
+      (instance ?M MilkFoam)
+      (instance ?P Pouring)
+      (patient ?P ?M)
+      (destination ?P ?E)
+      (result ?P ?C))))
+(=>
+  (instance ?C Cappuccino)
+  (and
+    (material MilkFoam ?C)
+    (material Espresso ?C)))
+           
+(=>
+  (and
+    (instance ?C Cappuccino)
+    (part ?E ?C)
+    (part ?M ?C)
+    (instance ?E Espresso)    
+    (instance ?M MilkFoam)    
+    (mixtureRatio ?E ?M ?V1 ?V2 Liter)
+    (part ?B ?M)
+    (instance ?B Bubble)
+    (top ?B ?M)
+    (measure ?B
+      (MeasureFn ?L Millimeter)))
+  (and
+    (approximateValue ?V1 0.03)
+    (approximateValue ?V2 0.15)
+    (approximateValue ?L 20.0))) 
+      
 (subclass Americano Coffee)
+(documentation Americano EnglishLanguage "An &%Americano is  is a type of coffee drink 
+prepared by diluting an espresso with hot water (typically 1:5). [Wikipedia] ")
+(termFormat EnglishLanguage Americano "americano")
+
+(=>
+  (instance ?A Americano)
+  (and
+    (material Espresso ?A)
+    (material Water ?A)))
+
+(=>
+  (instance ?A Americano)
+  (exists (?P ?W ?E)
+    (and
+      (instance ?P Pouring)
+      (patient ?P ?W)
+      (instance ?W Water)
+      (attribute ?W HotTemperature)
+      (destination ?P ?E)
+      (instance ?E Espresso)
+      (result ?P ?A))))
+(=>
+  (and
+    (instance ?A Americano)
+    (part ?E ?A)
+    (part ?W ?A)
+    (instance ?E Espresso)
+    (instance ?W Water)
+    (attribute ?W HotTemperature)
+    (mixtureRatio ?E ?W ?V1 ?V2 Liter))
+  (and
+    (approximateValue ?V1 0.03)
+    (approximateValue ?V2 0.15)))
+   
 (subclass FlatWhite Coffee)
+(documentation FlatWhite EnglishLanguage "A &%FlatWhite is a variation of &%Milkfoam 
+and &%Espresso &%Mixture. It is typically made with 1 shot of 
+&%Espresso with 5 part of foamed milk, so a standard 30ml of espresso with 150ml of milk, 
+giving a 180ml of capuucino.The thickness of milk foam on the top varies between 1 to 20 mm.
+The main difference betwen a flat white and a cappuccino is that the milkfoam in a flat white
+is wet foam and that the milkfoam is mixed with the crema of the espresso. [Wikipedia]")
+(termFormat EnglishLanguage FlatWhite "flat white")
+
+(=>
+  (instance ?F FlatWhite)
+  (and
+    (material MilkFoam ?F)
+    (material Espresso ?F)))  
+    
+(=>
+  (instance ?F FlatWhite)
+  (exists (?E ?M ?P)
+    (and
+      (instance ?E Espresso)
+      (instance ?M MilkFoam)
+      (instance ?P Pouring)
+      (patient ?P ?M)
+      (destination ?P ?E)
+      (result ?P ?F))))
+
+(=>
+  (and
+    (instance ?F FlatWhite)
+    (part ?B ?F)
+    (instance ?B Bubble))
+  (attribute ?B Brown))
+       
+(=>
+  (and
+    (instance ?C FlatWhite)
+    (part ?E ?C)
+    (part ?M ?C)
+    (instance ?E Espresso)
+    (instance ?M MilkFoam)
+    (mixtureRatio ?E ?M ?V1 ?V2 Liter)
+    (part ?B ?M)
+    (part ?B ?E)
+    (top ?B ?M)
+    (instance ?B Bubble)
+    (measure ?B
+      (MeasureFn ?L Millimeter)))
+  (and
+    (approximateValue ?V1 0.03)
+    (approximateValue ?V2 0.15)
+    (greaterThanOrEqualTo ?L 1.0)
+    (lessThanOrEqualTo ?L 20.0)))
+
 (subclass Latte Coffee)
+(documentation Latte EnglishLanguage "A &%Latte is typically made with 1 shot of 
+&%Espresso with 7 part of foamed milk, so a standard 30ml of espresso with 210ml of milk, 
+giving a 240ml of La.Thttee milk foam on the top is 12mm in thickness. [Wikipedia]")
+(termFormat EnglishLanguage Latte "latte")
+
+(=>
+  (instance ?L Latte)
+  (and
+    (material MilkFoam ?L)
+    (material Espresso ?L)))    
+  
+(=>
+  (and
+    (instance ?C Latte)
+    (part ?E ?C)
+    (part ?M ?C)
+    (instance ?E Espresso)
+    (instance ?M MilkFoam)
+    (mixtureRatio ?E ?M ?V1 ?V2 Liter)
+    (part ?B ?M)
+    (instance ?B Bubble)
+    (top ?B ?M)
+    (measure ?B
+      (MeasureFn ?L Millimeter)))
+  (and
+    (approximateValue ?V1 0.03)
+    (approximateValue ?V2 0.21)
+    (approximateValue ?L 12.0))) 
+   
 (subclass LongBlack Coffee)
-(subclass VitnameseCoffee Coffee)
+(documentation LongBlack Englishlanguage "A &%LongBlack is made by pouring a double shot of &%Espresso 
+over hot water. Typically about 120 milliliters (3.5–4 ounces) of water is used but 
+the measurement is considered to be flexible to individual taste.[Wikipedia] ")
+(termFormat EnglishLanguage LongBlack "long black")
+
+(=>
+  (instance ?L LongBlack)
+  (and
+    (material Espresso ?L)
+    (material Water ?L)))
+
+(=>
+  (instance ?L LongBlack)
+  (exists (?P ?W ?E)
+    (and
+      (instance ?P Pouring)
+      (patient ?P ?W)
+      (instance ?W Water)
+      (attribute ?W HotTemperature)
+      (destination ?P ?E)
+      (instance ?E Espresso)
+      (result ?P ?L))))
+(=>
+  (and
+    (instance ?L LongBlack)
+    (part ?E ?L)
+    (part ?W ?L)
+    (instance ?E Espresso)
+    (instance ?W Water)
+    (mixtureRatio ?E ?W ?V1 ?V2 Liter))
+  (and
+    (approximateValue ?V1 0.06)
+    (approximateValue ?V2 0.12)))
+
+(subclass VietnameseCoffee Coffee)
 (subclass TurkishCoffee Coffee)
 (subclass Manilo Coffee)
 (subclass Instant Coffee)
@@ -2082,8 +2349,7 @@ of &%pork fat.[Wikipedia]")
   (subclass ?BF ButterFat)
   (initialPart ?BF Milk))
 
-(subclass TwoPercentMilk CowMilk)
-(subclass TwoPercentMilk Beverage)
+(subclass TwoPercentMilk ProcessedMilk)
 (documentation TwoPercentMilk EnglishLanguage "&%TwoPercentMilk is &%CowMilk which contains 2% of 
 butter fat. [Wikipedia]")
 (termFormat EnglishLanguage TwoPercentMilk "two percent milk")
@@ -2107,8 +2373,7 @@ butter fat. [Wikipedia]")
       (measure ?BF (MeasureFn ?N2 ?U))
       (equal ?N2 (MultiplicationFn 0.02 ?N)))))
       
-(subclass OnePercentMilk CowMilk)
-(subclass OnePercentMilk Beverage)
+(subclass OnePercentMilk ProcessedMilk)
 (documentation OnePercentMilk EnglishLanguage "&%OnePercentMilk is &%CowMilk which contains
 1% of butter fat. [Wikipedia]")
 (termFormat EnglishLanguage OnePercentMilk "one percent milk")
@@ -2132,8 +2397,7 @@ butter fat. [Wikipedia]")
       (measure ?BF (MeasureFn ?N2 ?U))
       (equal ?N2 (MultiplicationFn 0.01 ?N)))))
 
-(subclass SemiSkimmedMilk CowMilk)
-(subclass SemiSkimmedMilk Beverage)
+(subclass SemiSkimmedMilk ProcessedMilk)
 (documentation SemiSkimmedMilk EnglishLanguage "&%SemiSkimmedMilk is &%CowMilk which contains
 1.5 - 2% of butter fat. [Wikipedia]")
 (termFormat EnglishLanguage SemiSkimmedMilk "semi skimmed milk")
@@ -2158,8 +2422,7 @@ butter fat. [Wikipedia]")
       (greaterThanOrEqualTo ?N2 (MultiplicationFn 0.015 ?N))
       (lessThanOrEqualTo ?N2 (MultiplicationFn 0.02 ?N)))))
 
-(subclass SkimmedMilk CowMilk)
-(subclass SkimmedMilk Beverage)
+(subclass SkimmedMilk ProcessedMilk)
 (documentation SkimmedMilk EnglishLanguage "&%SkimmedMilk is &%CowMilk which contains 0 - 0.05% 
 of butter fat. [Wikipedia]")
 (termFormat EnglishLanguage SkimmedMilk "skimmed milk")
@@ -2191,8 +2454,8 @@ of butter fat. [Wikipedia]")
 (subclass ProcessedGoatMilk DairyArtifact)
 (subclass ProcessedGoatMilk Beverage)
 (subclass ProcessedGoatMilk GoatMilk)
-(documentation ProcessedMilk EnglishLanguage "&%ProcessedGoatMilk is &%Milk from goats.")
-(termFormat EnglishLanguage ProcessedMilk "processed gaot milk")
+(documentation ProcessedGoatMilk EnglishLanguage "&%ProcessedGoatMilk is &%Milk from goats.")
+(termFormat EnglishLanguage ProcessedGoatMilk "processed gaot milk")
 
 (subclass SheepMilk Milk)
 (documentation SheepMilk EnglishLanguage "&%SheepMilk is &%Milk of &%Sheep.")
