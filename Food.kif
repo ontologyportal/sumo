@@ -103,7 +103,82 @@ and cooking, or adding a combination of &%Sugar, Nitrites and Nitrates.[Wikipedi
       (instance ?D Drying)
       (subProcess ?D ?C)
       (patient ?D ?F))))
-        
+
+(instance DryRoastAttribute FoodAttribute)
+(relatedInternalConcept DryRoastAttribute CoffeeRoastAttribute)
+(relatedInternalConcept DryRoastAttribute CoffeeGrindAttribute)
+(documentation DryRoastAttribute EnglishLanguage "&%DryRoastAttribute describes how &%DryRoasting is
+involved in preparing &%Food.")
+(termFormat EnglishLanguage DryRoastAttribute "dry roast")
+
+(=>
+  (attribute ?F DryRoastAttribute)
+  (exists (?X)
+    (and
+      (instance ?X DryRoasting)
+      (result ?X ?F))))
+      
+(subclass DryRoasting Cooking)
+(subclass DryRoasting Heating)
+(documentation DryRoasting EnglishLanguage "&%DryRoasting is a process 
+by which heat is applied to dry foodstuffs without the use of &%Oil or &%Water as a carrier. 
+Dry-roasted foods are stirred as they are roasted to ensure even &%Heating.[Wikipedia]")
+(termFormat EnglishLanguage DryRoasting "dry roasting") 
+
+(=>
+  (and
+    (instance ?X DryRoasting)
+    (instance ?F Food)
+    (patient ?X ?F))
+  (holdsDuring ?X
+    (exists (?H ?S)
+      (and
+        (instance ?H Heating)
+        (instance ?S Stirring)
+        (subProcess ?H ?X)
+        (subProcess ?S ?X)
+        (during
+          (WhenFn ?S)
+          (WhenFn ?H))
+        (patient ?H ?F)
+        (patient ?S ?F)
+        (not
+          (exists (?O ?W)
+            (and
+              (instance ?O Oil)
+              (instance ?W Water)
+              (patient ?X ?O)
+              (patient ?X ?W))))))))
+
+(instance HulledAttribute FoodAttribute)
+(relatedInternalConcept HulledAttribute FermentedAttribute)
+(relatedInternalConcept HulledAttribute RawAttribute)
+(documentation HulledAttribute EnglishLanguage "&%HulledAttribute describes how &%Hulling is
+involved in preparing &%Food.")
+(termFormat EnglishLanguage DryRoastAttribute "hulled")
+
+(=>
+  (attribute ?F HulledAttribute)
+  (exists (?X)
+    (and
+      (instance ?X Hulling)
+      (result ?X ?F))))     
+           
+(subclass Hulling Cooking)
+(subclass Hulling Peeling)
+(documentation Hulling EnglishLanguage "&%Hulling is a process by which the outer 
+covering of a fruit or seed, especially the pod of peas and beans, or the 
+husk of grain is removed.[Wikipedia]")
+(termFormat EnglishLanguage Hulling "hulling") 
+
+(=>
+  (and
+    (instance ?H Hulling)
+    (patient ?H ?O))
+  (or
+    (instance ?O Seed)
+    (instance ?O Fruit)))  
+                                  
 ;; Maybe add the definitions for Nitrites and Nitrates
 
 (subclass PreservingFood Keeping)
@@ -373,7 +448,7 @@ linking the temperature in Celsius of the &%CoffeeBeans that are roasted to.")
     (roastedToTemperature ?B ?T))
   (exists (?H)
     (and
-      (instance ?H Heating)
+      (instance ?H DryRoasting)
       (patient ?H ?B)
       (holdsDuring
         (EndFn (WhenFn ?H))
@@ -2142,17 +2217,91 @@ made from roasted and ground cacao seed kernels that is available as a liquid,
 solid, or paste, either on its own or as a flavoring agent in other foods. [wikipedia]")
 (initialPart Chocolate CocoaBean)
 
-;; consider adding CocoaLiquor also move Chocolate Candy from Auto to here JP 16th Jun 2023
+(subclass CocoaLiquor Chocolate)
+(roomTempState CocoaLiquor Solid)
+(documentation CocoaLiquor EnglishLanguage "&%CocoaLiquor is pure cocoa mass (cocoa paste) 
+in solid or semi-solid form. It is produced from cocoa beans that have been fermented, dried, 
+roasted, and separated from their skins. It contains both cocoa solids and cocoa butter in 
+roughly equal proportion.[Wikipedia]")
+(termFormat EnglishLanguage CocoaLiquor "cocoa liquor")
 
+(=>
+  (instance ?X CocoaLiquor)
+  (exists (?H ?B)
+    (and
+      (instance ?H Heating)
+      (patient ?H ?B)
+      (instance ?B CocoaBean)
+      (attribute ?B DryRoastAttribute)
+      (attribute ?B HulledAttribute)
+      (attribute ?B FermentedAttribute)
+      (result ?H ?X)
+      (holdsDuring ?H
+        (attribute ?X Liquid)))))
+
+(=>
+  (and
+    (instance ?L CocoaLiquor)
+    (weight ?L
+      (MeasureFn 100.0 Gram))
+    (instance ?S CocoaSolid)
+    (part ?S ?L)
+    (weight ?S
+      (MeasureFn ?X Gram))
+    (instance ?B CocoaButter)
+    (part ?B ?L)
+    (weight ?B
+      (MeasureFn ?Y Gram)))
+  (and
+    (approximateValue ?X 50.0)
+    (approximateValue ?Y 50.0)))
+        
 (subclass CocoaSolid Chocolate)
+(roomTempState CocoaSolid Solid)
 (documentation CocoaSolid EnglishLanguage "&%CocoaSolid is is extracted from chocolate 
-liquor, roasted cocoa beans that have been ground into a liquid state.[wikipedia]") 
+liquor, roasted cocoa beans that have been ground into a liquid state.[wikipedia]")
+(initialPart CocoaSolid CocoaLiquor)
 
 (subclass CocoaButter VegetableOil)
 (roomTempState CocoaButter Emulsion)
 (subclass CocoaButter Chocolate)
+(roomTempState CocoaButter Solid)
 (documentation CocoaButter EnglishLanguage "&%CocoaButter is edible fat extracted
 from Cocoa liquor. [Wikipedia]")
+(initialPart CocoaButter CocoaLiquor)
+
+(documentation ChocolateCandy EnglishLanguage "A &%ChocolateCandy is a candy made of &%Sugar and &%Choclate.")
+(subclass ChocolateCandy Chocolate)
+(termFormat EnglishLanguage ChocolateCandy "chocolate candy")
+(termFormat ChineseLanguage ChocolateCandy "巧克力糖")
+(termFormat ChineseTraditionalLanguage ChocolateCandy " 巧克力糖")
+
+(=>
+  (instance ?CHOC ChocolateCandy)
+  (and
+    (material CocoaLiquor ?CHOC)
+    (material Oil ?CHOC)
+    (material Sugar ?CHOC)))
+
+(documentation BoxOfChocolates EnglishLanguage "A &%BoxOfChocolates is a &%UnitOfMeasure for &%ChocolateCandy. It has
+a &%defaultMeasure of 250 &%Gram.")
+(instance BoxOfChocolates UnitOfVolume)
+(termFormat EnglishLanguage BoxOfChocolates "box of chocolate")
+(termFormat ChineseLanguage BoxOfChocolates "一盒巧克力")
+(termFormat ChineseTraditionalLanguage BoxOfChocolates " 一盒巧克力")
+
+(exists (?B ?C ?CLASS)
+  (and
+    (instance ?B Box)
+    (instance ?C ChocolateCandy)
+    (contains ?B ?C)
+    (instance ?C ?CLASS)
+    (defaultMeasure ?CLASS
+     (MeasureFn 1.0 BoxOfChocolates))))
+
+(equal
+  (MeasureFn 1.0 BoxOfChocolates)
+  (MeasureFn 250.0 Gram))
     
 (subclass Cilantro Herb)
 
