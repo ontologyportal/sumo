@@ -1,6 +1,83 @@
-;All definitions taken from : https://edps.europa.eu/data-protection/data-protection/glossary_en and https://gdpr-info.eu/art-4-gdpr/, unless indicated otherwise
+;; This file contains definitions of some terms of GDPR
+;; All definitions taken from : https://edps.europa.eu/data-protection/data-protection/glossary_en and https://gdpr-info.eu/art-4-gdpr/, unless indicated otherwise
 
 
+;TRANSFER CASE TERMS
+
+
+;if transfer is between Eu MEmber state and another country that is not an eu member state, then the data has to be anonymized
+
+
+;(documentation OutOfEUTransfer EnglishLanguage "Transfer of data performed outside of EU")
+
+(=>
+  (and
+    (instance ?DT DataTransfer)
+    (located ?ORG1 EuropeanUnion)
+    (patient ?DT ?DATA)
+    (instance ?DATA PersonalData)
+    (origin ?DT ?ORG1)
+    (destination ?DT ?ORG2)
+    (not 
+      (located ?ORG2 EuropeanUnion)))
+  (manner ?DT NotLegalGDPR))
+
+  
+(=>
+  (and
+    (instance ?DT DataTransfer)
+    (located ?ORG1 EuropeanUnion)
+    (patient ?DT ?DATA)
+    (instance ?DATA PersonalData)
+    (origin ?DT ?ORG1)
+    (destination ?DT ?ORG2)
+    (not 
+      (located ?ORG2 EuropeanUnion))
+    (attribute ?DATA Anonymized))
+  (manner ?DT LegalGDPR))
+
+    
+; anonymisation
+
+
+(documentation Anonymization EnglishLanguage "Action performed on personal data to make it anonymous")
+
+
+(subclass Anonymization PersonalDataProcessing)
+
+
+(=>
+  (and 
+    (instance ?ANON Anonymization)
+    (result ?ANON ?DATA))
+  (instance ?DATA ContentBearingObject))
+
+(=>
+  (and
+    (instance ?PD PersonalData)
+    (identifies ?PD ?H)
+    (instance ?ANON Anonymization)
+    (patient ?ANON ?PD)
+    (result ?ANON ?NPD))
+  (not (identifies ?NPD ?H)))
+  
+  
+  
+;anonymized 
+
+(documentation Anonymized EnglishLanguage "Data that has been made anonymous")
+
+
+(subclass Anonymized Attribute)
+
+
+(=>
+  (and 
+    (instance ?ANON Anonymization)
+    (result ?ANON ?DATA))
+  (attribute ?DATA Anonymized))
+  
+  
 ;BINDING CORPORATE RULES
 
 (documentation BindingCorporateRules EnglishLanguage "personal data protection policies which are adhered to by a controller or 
@@ -17,12 +94,11 @@ processor in one or more third countries within a group of undertakings, or grou
 (subclass BindingCorporateRules Proposition)
 
 
-
 (=>
   (and
     (attribute ?DA DataAgent)
     (jurisdiction ?DA ?MSEU)
-    (instance ?MSEU MemberStateEU)
+    (attribute ?MSEU MemberStateEU)
     (instance ?GOUT GroupOfUndertakings)
     (instance ?T DataTransfer)
     (agent ?T ?DA)
@@ -98,6 +174,15 @@ searching or collection of data and electronic mail other than personal electron
       (jurisdiction ?SA ?MS))))
       
       
+      
+(=>
+  (and 
+    (instance ?MS MemberStateEu) 
+    (instance ?SA SupervisoryAuthority) 
+    (located ?SA ?MS))
+      (jurisdiction ?SA ?MS))
+      
+      
 (=>
   (and
     (instance ?SA SupervisoryAuthority)
@@ -126,7 +211,7 @@ searching or collection of data and electronic mail other than personal electron
 
 (=>
   (and
-    (instance ?MS MemberStateEU)
+    (attribute ?MS MemberStateEU)
     (instance ?SAGROUP Collection)
     (memberType ?SAGROUP SupervisoryAuthority)
     (memberCount ?SAGROUP ?N)
@@ -147,7 +232,7 @@ searching or collection of data and electronic mail other than personal electron
 (=>
   (and
     (instance ?DA DataAgent)
-    (instance ?MS MemberStateEU)
+    (attribute ?MS MemberStateEU)
     (agent ?ACT ?DA)
     (located ?DA ?MS)
     (instance ?SA SupervisoryAuthority)
@@ -166,7 +251,7 @@ searching or collection of data and electronic mail other than personal electron
     (instance ?PROC PersonalDataProcessing)
     (involvedInEvent ?PROC ?DS)
     (attribute ?DS SubjectiveStrongPositiveAttribute)
-    (instance ?MS MemberStateEU)
+    (attribute ?MS MemberStateEU)
     (located ?DS ?MS)
     (instance ?SA SupervisoryAuthority)
     (jurisdiction ?SA ?MS))
@@ -176,9 +261,6 @@ searching or collection of data and electronic mail other than personal electron
       (result ?PROC ?R))))    
       
 ; DATA PROCESSING : 
-;"any operation or set of operations which is performed on personal data or on sets of personal data, whether or not by automated means, 
-; such as collection, recording, organisation, structuring, storage, adaptation or alteration, retrieval, consultation, use, 
-; disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction, erasure or destruction."
 
 (documentation PersonalDataProcessing EnglishLanguage "any operation or set of operations which is performed on personal data or on sets of personal data, 
 whether or not by automated means, such as collection, recording, organisation, structuring, storage, adaptation or alteration, retrieval, 
@@ -191,10 +273,11 @@ consultation, use, disclosure by transmission, dissemination or otherwise making
 (subclass PersonalDataProcessing ContentDevelopment)     
 
 (=>
-  (instance ?PROC PersonalDataProcessing)
+  (and
+    (instance ?PROC PersonalDataProcessing)
+    (patient ?PROC ?DATA))
   (exists (?DATA)
     (and
-      (patient ?PROC ?DATA)
       (result ?PROC ?DATA)
       (or
         (instance ?DATA PersonalData)
@@ -203,7 +286,7 @@ consultation, use, disclosure by transmission, dissemination or otherwise making
           (memberType ?DATA PersonalData))))))
     
 
-; Data Collection
+; DATA COLLECTION
         
 (documentation DataCollection EnglishLanguage "Data Processing that consists of collecting data")
 
@@ -216,10 +299,11 @@ consultation, use, disclosure by transmission, dissemination or otherwise making
 (subclass DataCollection Getting)     
 
 (=>
-  (instance ?DC DataCollection)
+  (and
+    (instance ?DC DataCollection)
+    (result ?DC ?DATA))
   (exists (?DATA)
     (and
-      (result ?DC ?DATA)
       (instance ?DATA Collection)
       (memberType ?DATA PersonalData))))
       
@@ -227,7 +311,7 @@ consultation, use, disclosure by transmission, dissemination or otherwise making
       
       
       
-;Restriction Of Processing
+;; RESTRICTION OF PROCESSING
 
 (documentation RestrictionOfProcessing EnglishLanguage "the marking of stored personal data with the aim of limiting their processing in the future")
  
@@ -265,7 +349,7 @@ consultation, use, disclosure by transmission, dissemination or otherwise making
  
       
       
-; PROFILING
+;; PROFILING
 
 (documentation Profiling EnglishLanguage "automated processing of personal data consisting of the use of personal data to 
 evaluate certain personal aspects relating to a natural person")
@@ -275,6 +359,8 @@ evaluate certain personal aspects relating to a natural person")
 (termFormat Profiling PolishLanguage "profilowanie")
 
 (subclass Profiling PersonalDataProcessing)
+
+
 
 
 (=>
@@ -297,7 +383,7 @@ evaluate certain personal aspects relating to a natural person")
           (attribute ?PERSON ?ASPECT))))))
 
 
-; DATA BREACH
+;; DATA BREACH
  
 (documentation PersonalDataBreach EnglishLanguage "a breach of security leading to the accidental or unlawful destruction, 
 loss, alteration, unauthorised disclosure of, or access to, personal data transmitted, stored or otherwise processed")
@@ -319,7 +405,7 @@ loss, alteration, unauthorised disclosure of, or access to, personal data transm
   (and
     (instance ?BREACH PersonalDataBreach)
     (patient ?BREACH ?DATA))
-   (not (modalAttribute ?BREACH Law)))
+   (not (modalAttribute ?BREACH Legal)))
   
 (=>
   (and
@@ -337,7 +423,7 @@ loss, alteration, unauthorised disclosure of, or access to, personal data transm
         (patient ?DATA ?TRANSFER)
         (patient ?DATA ?COMMUNICATION))))) 
 
-;pseudonymisation
+;; PSEUDONYMISATION
 
 
 (documentation Pseudonymisation EnglishLanguage "means the processing of personal data 
@@ -347,7 +433,7 @@ specific data subject without the use of additional information")
 
 (termFormat Pseudonymisation EnglishLanguage "pseudonymisation")
 
-(termFormat Pseudonymisation EnglishLanguage "pseudonimizacja")
+(termFormat Pseudonymisation PolishLanguage "pseudonimizacja")
 
 
 (subclass Pseudonymisation PersonalDataProcessing)
@@ -372,7 +458,9 @@ specific data subject without the use of additional information")
       (not
         (identifies ?NEWDATA ?SUBJECT)))))
 
-   
+ 
+        
+;; CROSS-BORDER DATA PROCESSING  
 (documentation CrossBorderDataProcessing EnglishLanguage "processing of personal data which takes place in the context of the activities 
 of establishments in more than one Member State of a controller or processor in the Union where the controller or processor is established in more than one Member State;
 or processing of personal data which takes place in the context of the activities of a single establishment of a controller or processor in the Union but which 
@@ -384,14 +472,7 @@ substantially affects or is likely to substantially affect data subjects in more
 (termFormat CrossBorderDataProcessing PolishLanguage "przetwarzanie między-państwowe")
 
 (subclass CrossBorderDataProcessing PersonalDataProcessing)
-;use involved in event instead
-;make a simple base rule
-;try to generalize it 
-; if CrossBorderDataProcessing and 2 entities are invloved
 
-
-
-;say that these countries are different
 (=>
   (instance ?CP CrossBorderDataProcessing)
   (exists (?C1 ?C2 ?A1 ?A2 ?SUBJECTS1 ?SUBJCETS2)
@@ -452,7 +533,7 @@ substantially affects or is likely to substantially affect data subjects in more
  
       
       
-;DATA AGENT
+;; DATA AGENT
 
 (documentation DataAgent EnglishLanguage "Data Controller or Data Processor")
 
@@ -463,7 +544,7 @@ substantially affects or is likely to substantially affect data subjects in more
 
 
       
-;PROCESSOR
+;; PROCESSOR
 
 
 
@@ -471,7 +552,7 @@ substantially affects or is likely to substantially affect data subjects in more
 (documentation DataProcessor EnglishLanguage "A natural or legal person, 
 public authority, agency or other body which processes personal data on behalf of the controller.")
 
-(instance DataProcessor DataAgent)
+(subclass DataProcessor DataAgent)
 
 (termFormat DataProcessor EnglishLanguage "data processor")
 
@@ -491,8 +572,9 @@ public authority, agency or other body which processes personal data on behalf o
       
       
     
-; RECORDS 
-;DataController holdsObligation to maintatin records of PersonalDataProcessing done by DataProcessor
+;; RECORDS 
+
+;; DataController holdsObligation to maintatin records of PersonalDataProcessing done by DataProcessor
 
 
 (=>
@@ -555,9 +637,7 @@ a data controller to a data processor must be secured by a data processor agreem
 
 
 
-;
-;DATA CONTROLLER
-;"The data controller is the party that, alone or jointly with others, determines the purposes and means of the processing of personal data."
+;; DATA CONTROLLER
 
 (documentation DataController EnglishLanguage "The data controller is the party that, 
 alone or jointly with others, determines the purposes and means of the processing of personal data.")
@@ -565,7 +645,7 @@ alone or jointly with others, determines the purposes and means of the processin
 (termFormat DataController EnglishLanguage "Data controller")
 (termFormat DataController PolishLanguage "kontroler danych")
 
-(instance DataController DataAgent)
+(subclass DataController DataAgent)
 
 (=>
   (and
@@ -576,7 +656,7 @@ alone or jointly with others, determines the purposes and means of the processin
       (instance ?PD PersonalData)
       (instance ?PROC PersonalDataProcessing)
       (instance ?DETERMINE Deciding)
-      (instance ?MEANS Method)
+      (instance ?MEANS Method) 
       (=>
         (and
           (agent ?DETERMINE ?DC)
@@ -585,13 +665,7 @@ alone or jointly with others, determines the purposes and means of the processin
           (hasPurpose ?PD ?PURPOSE)
           (attribute ?PROC ?MEANS))))))
             
-;DATA MINIMIZATION : means that a data controller should limit the collection of personal information to what is directly relevant and necessary to accomplish a specified purpose  
-; In other words, data controllers should collect only the personal data they really need, and should keep it only for as long as they need it
-;expressed by the rule below
-
-;definition I am using : "data controllers should only have the data that they need"
-
-;more detailed: if an agent possesses some data, they should only possess it if they have some purpose to possess that data.
+;; DATA MINIMIZATION 
 
 
 (=>
@@ -670,7 +744,7 @@ establishment of the processor take place to the extent that the processor is su
             
           
 
-;DATA PROTECTION AUTHORUTY (DPA)
+;; DATA PROTECTION AUTHORUTY (DPA)
 
 (documentation DataProtectionAuthority EnglishLanguage "An independent body that monitors the processing of personal data within its jurisdiction (country, region or international organization);
 provides advice to the competent bodies with regard to legislative and administrative measures relating to the processing of personal data;
@@ -687,8 +761,6 @@ hears complaints lodged by citizens with regard to the protection of their data 
 
 ;if an entity has a DataProtectionAuthority role and there exists data, that is withing its jursidiction
 ;then they monitor/supervise that data
-
-;terms: Managing, GeopoliticalArea
 
 
 (=>
@@ -727,10 +799,6 @@ hears complaints lodged by citizens with regard to the protection of their data 
 
 ;hears complaints lodged by citizens with regard to the protection of their data protection rights
 
-
-; the issue I ran into here: How do I define the topic of the complaint being about Data Protection?
-; 
-
 (=>
   (and
     (instance ?CITIZEN Human)
@@ -760,8 +828,7 @@ hears complaints lodged by citizens with regard to the protection of their data 
 (jurisdiction CNIL France)
 
                    
-;CONFIDENTIALITY
-;expressed as a rule on PersonalData
+;; CONFIDENTIALITY
 ;'share data with a person if and only if they are qualified to receive that information
 
 
@@ -782,14 +849,9 @@ hears complaints lodged by citizens with regard to the protection of their data 
             (patient ?GIVE ?DATA))
           (modalAttribute
             (destination ?GIVE ?RECEIVER) Permission)) ?PERSON))))
-    
-; DATA COLLECTION
-; TODO: do I need this term? It is not defined in the glossary:https://edps.europa.eu/data-protection/data-protection/glossary_en
 
-
-
-
-;DATA MINING :analysing data from different perspectives and summarising it into useful new information
+;; DATA MINING 
+;; analysing data from different perspectives and summarising it into useful new information
 
 ;my interpretation: If there is some data and it is the patient of Data Mining, then there exists some new information that
 ;was extracted from it (the original data is the source of it)
@@ -823,14 +885,9 @@ hears complaints lodged by citizens with regard to the protection of their data 
 
         
         
-        
-;REPRESENTATIVE
+       
 
-
-
-;
-; DATA SUBJECT
-; The data subject is the person whose personal data are collected, held or processed.
+;; DATA SUBJECT
 
 (documentation DataSubject EnglishLanguage "The data subject is the person whose personal data are collected, held or processed.")
 
@@ -840,6 +897,15 @@ hears complaints lodged by citizens with regard to the protection of their data 
 
 
 (subclass DataSubject SocialRole)
+
+
+(=>
+  (and 
+    (instance ?PERSON Human) 
+    (identifies ?DATA ?PERSON))
+  (and 
+    (instance ?DATA PersonalData)
+    (attribute ?PERSON DataSubject)))
 
 (=>
   (and
@@ -855,7 +921,7 @@ hears complaints lodged by citizens with regard to the protection of their data 
         (agent ?PROCESSING ?ENTITY)
         (patient ?PROCESSING ?DATA)))))
 
-; PERSONAL DATA
+;; PERSONAL DATA
 ;"‘personal data’ means any information relating to an identified or identifiable natural person (‘data subject’); 
 ; an identifiable natural person is one who can be identified, directly or indirectly, in particular by reference to an identifier such as a name,
 ; an identification number, location data, an online identifier or to one or more factors specific to the physical, physiological, genetic, mental, economic, cultural or social identity of that natural person;"
@@ -867,9 +933,9 @@ an identification number, location data, an online identifier or to one or more 
 physiological, genetic, mental, economic, cultural or social identity of that natural person;")
 
 
-(termFormat DataSubject EnglishLanguage "personal data")
+(termFormat PersonalData EnglishLanguage "personal data")
 
-(termFormat DataSubject PolishLangauge "dane osobowe")
+(termFormat PersonalData PolishLangauge "dane osobowe")
 
 (subclass PersonalData ContentBearingObject)
 
@@ -879,6 +945,7 @@ physiological, genetic, mental, economic, cultural or social identity of that na
   (exists (?SUBJECT)
     (identifies ?PD ?SUBJECT)))
         
+;; BIOMETRIC IDENTIFYING
         
 (documentation BiometricIdentifying EnglishLanguage "Biometrics or biometric systems are methods for uniquely recognizing humans based upon one or more intrinsic physical or behavioural traits.")
        
@@ -899,6 +966,19 @@ physiological, genetic, mental, economic, cultural or social identity of that na
       (not
         (represents ?ID ?NOTIDENTIFIED)))))
         
+(=>
+  (and 
+    (instance ?IDING BiometricIdentifying) 
+    (instance ?P Human) 
+    (patient ?IDING ?P))
+  (exists (?ID)
+    (and
+      (result ?IDING ?ID)
+      (represents ?ID ?P)
+      (not
+        (represents ?ID ?NOTIDENTIFIED)))))
+        
+;; BIOMETRIC DATA
 
 (documentation BiometricData EnglishLanguage "Personal data resulting from specific technical processing relating to the physical, 
 physiological or behavioural characteristics of a natural person, which allow or confirm the unique identification of that natural person, 
@@ -919,7 +999,8 @@ such as facial images or dactyloscopic data")
       (result ?IDING ?ID)
       (represents ?ID ?P))))  
       
-      
+;; HEALTH DATA
+     
 (documentation HealthData EnglishLanguage "personal data related to the physical or mental health of a natural person, 
 including the provision of health care services, which reveal information about his or her health status")
 
@@ -939,7 +1020,8 @@ including the provision of health care services, which reveal information about 
       (part ?D ?P)
       (refers ?HD ?D))))
       
-      
+;; GENETIC DATA
+     
 (documentation GeneticData EnglishLanguage "means personal data relating to the inherited or acquired genetic characteristics 
 of a natural person which give unique information about the physiology or the health of that natural person")
 
@@ -960,18 +1042,10 @@ of a natural person which give unique information about the physiology or the he
       
       
 
-;CCTV
-;It is a television system comprised of a camera or a set of cameras monitoring a specific protected area,
-; with additional equipment used for viewing and/or storing the CCTV footage
-; this is mapped to SurveillanceSystem in SUMO I believe
-
-
 
 ;VIDEO SURVEILLANCE
 
-;Question :
-
-(documentation VideoSurveillance EnglishLanguage "Video-surveillance is the monitoring of a specific area, event, activity, 
+(documentation VideoSurveillance EnglishLanguage "Video-surveillance is the monitoring of a specific area, event, activity,  
 or person by means of an electronic device or system for visual monitoring. 
 Typically, the monitoring is carried out using a SurveillanceSystem.")
 
@@ -1009,10 +1083,8 @@ Typically, the monitoring is carried out using a SurveillanceSystem.")
          
               
 
-; 24.04-3.05
 
-
-;DATA PROTECTION
+;; DATA PROTECTION
 
 
 (documentation DataProtection EnglishLanguage "Privacy is the ability of an 
@@ -1020,7 +1092,7 @@ individual to be left alone, out of public view, and in control of
 information about oneself." )  
 
 
-;Privacy by design
+;; PRIVACY BY DESIGN
 
 
 (documentation PassengerNameRecord EnglishLanguage "Information collected by airlines or travel agencies at 
@@ -1046,7 +1118,7 @@ Information (API), which is collected later at the time of boarding.." )
 
 
 
-;PRIVACY
+;; PRIVACY
 
 (documentation RightToPrivacy EnglishLanguage "Privacy is the ability of an 
 individual to be left alone, out of public view, and in control of 
@@ -1144,7 +1216,7 @@ and sharing of information about oneself")
 
  
           
-;FILE SYSTEM
+;; FILE SYSTEM
 
 
 (documentation FilingSystem EnglishLanguage "any structured set of personal data which are accessible according to specific criteria,
@@ -1168,7 +1240,7 @@ and sharing of information about oneself")
       (agent ?DP ?A)
       (patient ?DP ?A))))
  
-;RECIPIENT
+;; RECIPIENT
 
 (documentation RecipientOfPersonalData EnglishLanguage "a natural or legal person, public authority, agency or another body,
  to which the personal data are disclosed, whether a third party or not")
@@ -1189,7 +1261,7 @@ and sharing of information about oneself")
       (agent ?GET ?P)
       (patient ?GET ?DATA))))
       
-; THIRD PARTY 
+;; THIRD PARTY 
 
 
 (documentation ThirdParty EnglishLanguage "means a natural or legal person, public authority, agency or 
@@ -1218,7 +1290,7 @@ authority of the controller or processor, are authorised to process personal dat
   (attribute ?A ThirdParty))
 
       
-; REPRESENTATIVE
+;; REPRESENTATIVE
 
 
 (documentation Representative EnglishLanguage "means a natural or legal person established in the Union who, designated by the controller or processor, 
@@ -1243,7 +1315,7 @@ represents the controller or processor with regard to their respective obligatio
         (holdsObligation ?OB ?A)))))
         
         
-; Undertaking
+;; UNDERTAKING
 
 (documentation Undertaking EnglishLanguage "a natural or legal person engaged in an economic activity, irrespective of its legal form")
 
@@ -1258,8 +1330,7 @@ represents the controller or processor with regard to their respective obligatio
       (agent ?ACT ?U)
       (instance ?ACT EconomicActivity))))
 
-;Group of Undertakings
-
+;; GROUP OF UNDERTAKINGS
 
 
 (documentation GroupOfUndertakings EnglishLanguage "a controlling undertaking and its controlled undertakings")
@@ -1277,7 +1348,7 @@ represents the controller or processor with regard to their respective obligatio
       (memberCount ?GOU ?N)
       (greaterThan ?N 1))))
       
-;Enterprise
+;; ENTERPRISE
 
 (documentation Enterprise EnglishLanguage "a natural or legal person engaged in an economic activity, irrespective of its legal form")
 
@@ -1289,7 +1360,7 @@ represents the controller or processor with regard to their respective obligatio
   (instance ?E Enterprise)
   (attribute ?E LegalAgent))
 
-;CONSENT
+;; CONSENT
 
 
 (documentation ConsentGDPR EnglishLanguage "Consent of the data subject means any freely given, specific, informed and unambiguous indication of 
@@ -1317,7 +1388,9 @@ data relating to him or her")
       (attribute ?A DataSubject)
       (instance ?P AutonomousAgent))))
   
-;TERMS RELEVANT TO GDPR, BUT NOT DIRECTLY FROM THE GLOSSARY                       
+  
+;; ----------------------------------------------------------
+;; TERMS RELEVANT TO GDPR, BUT NOT DIRECTLY FROM THE GLOSSARY                       
 
 (documentation EconomicActivity EnglishLanguage "An economic activity is characterised by an input of resources, a production process and an output of products")               
 (termFormat EconomicActivity EnglishLanguage "economic activity")
@@ -1339,7 +1412,7 @@ data relating to him or her")
       (instance ?PRODUCTION Creation)
       (instance ?PRODUCT Product))))
 
-;identifies
+;; IDENTIFIES
 
 (documentation identifies EnglishLanguage "(&%identifies ?OBJ1 ?OBJ2) 
 expresses that ?OBJ1 refers to ?OBJ2 and ?OBJ2 is identifiable from ?OBJ1")
@@ -1363,7 +1436,7 @@ expresses that ?OBJ1 refers to ?OBJ2 and ?OBJ2 is identifiable from ?OBJ1")
         (refers ?OBJ1 ?OBJ2)))))
 
 
-;Personal Space
+;; PERSONAL SPACE
 
 
 (documentation PersonalSpace EnglishLanguage "the immediate area surrounding a person")
@@ -1386,11 +1459,7 @@ expresses that ?OBJ1 refers to ?OBJ2 and ?OBJ2 is identifiable from ?OBJ1")
           (located ?X ?PS))
         (orientation ?X ?PERSON Near)))))
 
-        
-
-
-
-;jurisdiction
+;; JURISDICTION
 
 ;meaning : the right and power to interpret and apply the law
 
@@ -1406,7 +1475,7 @@ expresses that an ?AUTONOMOUSAGENT has power to interpret and apply the law in a
 (domain jurisdiction 2 GeopoliticalArea)
 
 
-(subclass jurisdiction BinaryPredicate)
+(instance jurisdiction BinaryPredicate)
 
 (=>
   (and
@@ -1424,30 +1493,30 @@ expresses that an ?AUTONOMOUSAGENT has power to interpret and apply the law in a
           (agent ?INTERPRET ?AGENT)
           (patient ?INTERPRET ?LEGALACT))))))
 
-;MemberStateEU
+;; MEMEBER STATE EU
+
 
 (documentation MemberStateEU EnglishLanguage "Any nation that is a member of the EuropeanUnion")
 (termFormat MemberStateEU EnglishLanguage "EU member state")
 (termFormat MemberStateEU PolishLanguage "państwo członkowskie UE")
 
 
-(subclass MemberStateEU Nation)
+(subclass MemberStateEU RelationalAttribute)
 
 (=>
-  (instance ?STATE MemberStateEU)
+  (attribute ?STATE MemberStateEU)
   (member ?STATE EuropeanUnion))
   
   
-;GDPR subject
+(attribute Poland MemberStateEU)
+  
+                 
 
 
-;GovernmentRegulatoryBody
-;definition taken from https://www.britannica.com/topic/regulatory-agency
+;; GOVERNMENT REGULATORY BODY
 
+;; definition taken from https://www.britannica.com/topic/regulatory-agency
 
-;in the US fda, epa
-;Government bodies that are charged with advising about the law that is their jurisdiction
-;
 
 (documentation GovernmentRegulatoryBody EnglishLanguage "independent governmental body established by 
 legislative act in order to set standards in a specific field of activity")
@@ -1479,4 +1548,76 @@ legislative act in order to set standards in a specific field of activity")
         (result ?ANS ?ANSWER)
         (agent ?ANS ?DPA)
         (refers ?ANS ?QUERY)) ?DPA)))
+        
+        
+;; legal under GDPR
+
+
+(documentation LegalGDPR EnglishLanguage "A proposition is legal under GDPR if it satisfies the law of GDPR")
+
+(termFormat LegalGDPR EnglishLanguage "legal under GDPR")
+
+(termFormat LegalGDPR PolishLanguage "legalne według RODO")
+
+(instance LegalGDPR Attribute)
+
+
+(documentation NotLegalGDPR EnglishLanguage "A proposition is not legal under GDPR if it does not satisfy the law of GDPR")
+
+(termFormat NotLegalGDPR EnglishLanguage "not legal under GDPR")
+
+(termFormat NotLegalGDPR PolishLanguage "nielegalne według RODO")
+
+(instance NotLegalGDPR Attribute)
+
+(contraryAttribute NotLegalGDPR LegalGDPR)    
+           
+        
+;; ----------------------------------------------------------     
+;; INFERENCE
+
+
+;; The following lines describe a case in which a Data Transfer is performed without respecting the GDPR
+
+
+(instance RespondusInc Organization)
+
+(attribute RespondusInc DataProcessor)
+
+(located RespondusInc UnitedStates)
+
+(not
+  (located RespondusInc EuropeanUnion))
+
+(instance UniversityInEU University)
+
+(instance TransferData PersonalData)
+
+(exists (?H) 
+  (and 
+    (identifies TransferData ?H) 
+    (instance ?H Human)
+    (citizen ?H EuropeanUnion)))
+
+(located UniversityInEU EuropeanUnion)
+
+(instance TransferOfPD DataTransfer)
+
+(origin TransferOfPD UniversityInEU)
+
+(patient TransferOfPD TransferData)
+
+(destination TransferOfPD RespondusInc)
+
+
+
+
+
+
+
+
+
+
+
+
        
