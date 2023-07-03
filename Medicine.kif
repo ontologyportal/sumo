@@ -1,0 +1,641 @@
+;; Medicine.kif
+;; Basic medical equipment and actions
+;  from Wikipedia 
+
+;; Access to and use of these products is governed by the GNU General Public 
+;; License <http://www.gnu.org/copyleft/gpl.html>. 
+;; By using these products, you agree to be bound by the terms 
+;; of the GPL.
+
+;; Author: Adam Pease
+
+ ;; Note that SUMO's medical content is informational only and should in no case
+ ;; be used for medical advice.
+
+(attribute Tourniquet RelationalAttribute)
+(documentation Tourniquet EnglishLanguage "Any object used to stop or reduce &%Bleeding.")
+(termFormat EnglishLanguage Tourniquet "tourniquet")
+
+; a tourniquet has the purpose of stopping bleeding
+(=>
+  (holdsDuring ?TIME
+    (attribute ?T Tourniquet))
+  (exists (?P ?B ?A)
+    (and
+      (instance ?P Human)
+      (instance ?B Bleeding)
+      (instance ?A Attaching)
+      (experiencer ?B ?P)
+      (destination ?A ?P)
+      (objectTransferred ?A ?T)
+      (hasPurpose ?T
+        (not
+          (exists (?B2)
+            (and
+              (instance ?B2 Bleeding)
+              (overlapsTemporally 
+                (WhenFn ?B2) 
+                (ImmediateFutureFn (WhenFn ?A)))
+              (experiencer ?B2 ?P))))))))
+   
+; If a person is likely to bleed to death, any nearby person has an obligation to 
+; apply a tourniquet
+              
+(=>
+  (and
+    (instance ?B Bleeding)
+    (instance ?D Death)
+    (instance ?H Human)
+    (instance ?P Human)
+    (experiencer ?B ?P)
+    (near ?H ?P)
+    (modalAttribute
+      (causes ?B ?D) Likely))
+  (holdsObligation ?H
+    (exists (?A)
+      (and
+        (instance ?A Attaching)
+        (agent ?A ?H)
+        (destination ?A ?P)))))
+                
+(subclass ApplyingTourniquet Attaching)
+(subclass ApplyingTourniquet TherapeuticProcess)
+(documentation ApplyingTourniquet EnglishLanguage "The process of applying a tourniquet
+to an injured mammal.")  
+(termFormat EnglishLanguage ApplyingTourniquet "applying a tourniquet")
+
+(=>
+  (instance ?AT ApplyingTourniquet)
+  (exists (?A ?P ?T)
+    (and
+      (instance ?A Agent)
+      (instance ?P Mammal)
+      (holdsDuring 
+        (WhenFn ?AT)
+        (attribute ?T Tourniquet))
+      (destination ?AT ?P)
+      (agent ?AT ?A)
+      (objectTransferred ?AT ?T))))
+      
+(=>
+  (and
+    (instance ?B Bleeding)      
+    (experiencer ?B ?H))
+  (exists (?VA ?D)
+    (and
+      (or
+        (instance ?VA Vein)
+        (instance ?VA Artery))
+      (part ?VA ?H)
+      (instance ?D Damaging)
+      (earlier 
+        (WhenFn ?D) 
+        (WhenFn ?B))
+      (patient ?D ?VA))))
+      
+; in SUMO: systolicBloodPressure, diastolicBloodPressure,  heartRate, breathingRate
+; injury types - caused by artillery, blunt trauma, burns, falls, grenades
+            
+(instance Injury DiseaseOrSyndrome)
+(documentation Injury EnglishLanguage "Damange to an &%Organism that is the result of
+an &%Injuring.")
+(termFormat EnglishLanguage Injury "injury")
+
+(=>
+  (and
+    (instance ?I Injuring)
+    (experiencer ?I ?A))
+  (holdsDuring
+    (ImmediateFutureFn 
+      (WhenFn ?I))
+    (attribute ?A Injury)))
+    
+(instance restingHeartRate BinaryPredicate)
+(domain restingHeartRate 1 Mammal)
+(domain restingHeartRate 2 Integer)
+(documentation restingHeartRate EnglishLanguage "The heart rate at rest
+of a human, in beats per minute.  ")
+(format EnglishLanguage restingHeartRate "the &%resting heart rate of %1 is %2")
+(termFormat EnglishLanguage restingHeartRate "resting heart rate")
+(termFormat EnglishLanguage restingHeartRate "baseline heart rate")
+
+(=>
+  (and
+    (restingHeartRate ?H ?R)
+    (instance ?HEART Heart)
+    (part ?HEART ?H))
+  (exists (?T)
+    (and
+      (not
+        (exists (?R)
+          (and
+            (instance ?R RecreationOrExercise)
+            (agent ?R ?H)
+            (during ?T (WhenFn ?R)))))
+      (instance ?T Minute)
+      (heartRate ?H ?T ?R))))
+
+(instance Anemia DiseaseOrSyndrome)
+(documentation Anemia EnglishLanguage "Anemia or anaemia (British English) is a blood
+disorder in which the blood has a reduced ability to carry &%Oxygen due to a lower than
+normal number of &%RedBloodCells, or a reduction in the amount of &%Hemoglobin.
+When anemia comes on slowly, the symptoms are often vague, such as tiredness, weakness,
+shortness of breath, headaches, and a reduced ability to exercise. When anemia is
+acute, symptoms may include confusion, feeling like one is going to pass out, loss
+of consciousness, and increased thirst. Anemia must be significant before a person
+becomes noticeably pale. Symptoms of anemia depend on how quickly hemoglobin
+decreases. Additional symptoms may occur depending on the underlying cause.
+Preoperative anemia can increase the risk of needing a blood transfusion following
+surgery. Anemia can be temporary or long term and can range from mild to severe.
+in men is based on a hemoglobin of less than 130 to 140 g/L;
+in women, it is less than 120 to 130 g/L. [from Wikipedia]")
+(termFormat EnglishLanguage Anemia "anemia")
+(termFormat EnglishLanguage Anemia "anaemia")
+
+(=>
+  (and
+    (attribute ?H Anemia)
+    (instance ?B Blood)
+    (part ?B ?H)
+    (attribute ?H Male)
+    (measure ?B (MeasureFn 0.1 Liter))
+    (instance ?HE Hemoglobin)
+    (part ?HE ?B)
+    (not
+      (instance ?HE2 Hemoglobin))
+    (not
+      (equal ?HE ?HE2))
+    (part ?H2 ?B)
+    (measure ?HE (MeasureFn ?N Gram)))
+  (lessThan ?N 13))
+
+(=>
+  (and
+    (attribute ?H Anemia)
+    (instance ?B Blood)
+    (part ?B ?H)
+    (attribute ?H Female)
+    (measure ?B (MeasureFn 0.1 Liter))
+    (instance ?HE Hemoglobin)
+    (part ?HE ?B)
+    (not
+      (instance ?HE2 Hemoglobin))
+    (not
+      (equal ?HE ?HE2))
+    (part ?H2 ?B)
+    (measure ?HE (MeasureFn ?N Gram)))
+  (lessThan ?N 12))
+
+(=>
+  (and
+    (not (attribute ?H Anemia))
+    (instance ?B Blood)
+    (part ?B ?H)
+    (attribute ?H Male)
+    (measure ?B (MeasureFn 0.1 Liter))
+    (instance ?HE Hemoglobin)
+    (part ?HE ?B)
+    (not
+      (instance ?HE2 Hemoglobin))
+    (not
+      (equal ?HE ?HE2))
+    (part ?H2 ?B)
+    (measure ?HE (MeasureFn ?N Gram)))
+  (greaterThan ?N 13))
+
+(=>
+  (and
+    (not (attribute ?H Anemia))
+    (instance ?B Blood)
+    (part ?B ?H)
+    (attribute ?H Female)
+    (measure ?B (MeasureFn 0.1 Liter))
+    (instance ?HE Hemoglobin)
+    (part ?HE ?B)
+    (not
+      (instance ?HE2 Hemoglobin))
+    (not
+      (equal ?HE ?HE2))
+    (part ?H2 ?B)
+    (measure ?HE (MeasureFn ?N Gram)))
+  (greaterThan ?N 12))
+
+(instance concentration QuaternaryPredicate)
+(domain concentration 1 Quantity)
+(domainSubclass concentration 2 Substance)
+(domain concentration 3 Quantity)
+(domain concentration 4 Mixture)
+(documentation concentration EnglishLanguage "The concentration of a
+&%Substance in a &%Mixture. ")
+; TODO handle the issue of granularity of the substance
+(format EnglishLanguage concentration "the &%concentration of %2 in %4 is %1 per %3")
+(termFormat EnglishLanguage concentration "concentration")
+
+(=>
+  (and
+    (concentration
+      (MeasureFn ?N1 ?U) ?S
+      (MeasureFn ?N2 ?U2) ?M)
+    (instance ?SI ?S)
+    (part ?SI ?M)
+    (measure ?SI (MeasureFn ?N3 ?U3))
+    (part ?SI ?M)
+    (not
+      (instance ?SI2 ?S))
+    (not
+      (equal ?SI ?SIE2))
+    (part ?SI2 ?M)
+    (measure ?M (MeasureFn ?N2 ?U2)))
+  (approximateValue ?N1 ?N3))
+
+(subclass Hemoglobin Protein)
+(documentation Anemia EnglishLanguage "Hemoglobin (haemoglobin in British
+English), abbreviated Hb or Hgb, is the iron-containing &%Oxygen-transport
+&%Protein present in &%RedBloodCells (erythrocytes) of almost all &%Vertebrates
+(the exception being the fish family Channichthyidae) as well as the &%Tissues
+of some &%Invertebrate &%Animals. Hemoglobin in &%Blood carries oxygen from the
+respiratory &%Organs (&%Lungs or &%Gills) to the other tissues of the body, where it
+releases the oxygen to enable aerobic respiration which powers the animal's
+metabolism. A healthy &%Human has 12 to 20 grams of hemoglobin in every 100 mL of
+blood. Hemoglobin is a metalloprotein and chromoprotein.[from Wikipedia]")
+(termFormat EnglishLanguage Hemoglobin "hemoglobin")
+
+(documentation Gills EnglishLanguage "A respiratory organ of &%Fish. Its
+function is to furnish the blood with oxygen and to remove carbon dioxide.")
+(subclass Gills AnimalAnatomicalStructure)
+(subclass Gills VitalOrgan)
+(termFormat EnglishLanguage Gills "gills")
+
+(subclass LeftAtrium BodyCavity)
+(documentation LeftAtrium EnglishLanguage "One of the four chambers of the &%Heart
+in &%Primates.")
+(termFormat EnglishLanguage LeftAtrium "left atrium")
+(externalImage LeftAtrium "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Diagram_of_the_human_heart_%28cropped%29.svg/800px-Diagram_of_the_human_heart_%28cropped%29.svg.png")
+
+(=>
+  (and
+    (instance ?LA LeftAtrium)
+    (part ?LA ?H))
+  (exists (?H ?HEART)
+    (and
+      (equal ?HEART (HoleHostFn ?LA))
+      (part ?HEART ?H)
+      (instance ?HEART Heart))))
+
+(subclass LeftVentricle BodyCavity)
+(documentation LeftVentricle EnglishLanguage "One of the four chambers of the &%Heart
+in &%Primates.")
+(termFormat EnglishLanguage LeftVentricle "left ventricle")
+(externalImage LeftVentricle "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Diagram_of_the_human_heart_%28cropped%29.svg/800px-Diagram_of_the_human_heart_%28cropped%29.svg.png")
+
+(=>
+  (and
+    (instance ?LA LeftVentricle)
+    (part ?LA ?H))
+  (exists (?H ?HEART)
+    (and
+      (equal ?HEART (HoleHostFn ?LA))
+      (part ?HEART ?H)
+      (instance ?HEART Heart))))
+
+(subclass RightAtrium BodyCavity)
+(documentation RightAtrium EnglishLanguage "One of the four chambers of the &%Heart
+in &%Primates.")
+(termFormat EnglishLanguage RightAtrium "right atrium")
+(externalImage RightAtrium "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Diagram_of_the_human_heart_%28cropped%29.svg/800px-Diagram_of_the_human_heart_%28cropped%29.svg.png")
+
+(=>
+  (and
+    (instance ?LA RightAtrium)
+    (part ?LA ?H))
+  (exists (?H ?HEART)
+    (and
+      (equal ?HEART (HoleHostFn ?LA))
+      (part ?HEART ?H)
+      (instance ?HEART Heart))))
+
+(subclass RightVentricle BodyCavity)
+(documentation RightVentricle EnglishLanguage "One of the four chambers of the &%Heart
+in &%Primates.")
+(termFormat EnglishLanguage RightVentricle "right ventricle")
+(externalImage RightVentricle "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Diagram_of_the_human_heart_%28cropped%29.svg/800px-Diagram_of_the_human_heart_%28cropped%29.svg.png")
+
+(=>
+  (and
+    (instance ?LA RightVentricle)
+    (part ?LA ?H))
+  (exists (?H ?HEART)
+    (and
+      (equal ?HEART (HoleHostFn ?LA))
+      (part ?HEART ?H)
+      (instance ?HEART Heart))))
+
+(instance restingBreathingRate BinaryPredicate)
+(domain restingBreathingRate 1 Mammal)
+(domain restingBreathingRate 2 Integer)
+(documentation restingBreathingRate EnglishLanguage "The breathing rate at rest
+of a human, in beats per minute.  ")
+(format EnglishLanguage restingBreathingRate "the &%resting breathing rate of %1 is %2")
+(termFormat EnglishLanguage restingBreathingRate "resting breathing rate")
+(termFormat EnglishLanguage restinrestingBreathingRategHeartRate "baseline breathing rate")
+
+(=>
+  (and
+    (restingBreathingRate ?H ?R)
+    (instance ?L Lung)
+    (part ?L ?H))
+  (exists (?T)
+    (and
+      (not
+        (exists (?R)
+          (and
+            (instance ?R RecreationOrExercise)
+            (agent ?R ?H)
+            (during ?T
+              (WhenFn ?R)))))
+      (instance ?T Minute)
+      (breathingRate ?H ?T ?R))))
+
+(=>
+  (and
+    (attribute ?H Healthy)
+    (restingBreathingRate ?H ?R))
+  (and
+    (greaterThanOrEqualTo ?R 12)
+    (greaterThanOrEqualTo 16 ?R)))
+
+(=>
+  (and
+    (breathingRate ?H ?T ?R)
+    (instance ?T Minute)
+    (not
+      (exists (?R)
+        (and
+          (instance ?R RecreationOrExercise)
+          (agent ?R ?H)
+          (during ?T
+            (WhenFn ?R)))))
+    (holdsDuring ?T
+      (attribute ?H HumanAdult))
+    (or
+      (greaterThan ?R 16)
+      (lessThan ?R 12)))
+  (holdsDuring ?T
+    (not
+      (attribute ?H Healthy))))
+
+(instance Ambulatory BiologicalAttribute)
+(documentation Ambulatory EnglishLanguage "The &%capability of &%Walking.")
+(termFormat EnglishLanguage Ambulatory "ambulatory")
+(=>
+  (holdsDuring ?T
+    (attribute ?H Ambulatory))
+  (holdsDuring ?T
+    (capability Walking agent ?H)))
+
+(instance InjuryCausedFn UnaryFunction)
+(documentation InjuryCausedFn EnglishLanguage "A &%Function that denotes an
+&%Injury resulting from a specific kind of &%Process.")
+(range InjuryCausedFn Injury)
+(domain InjuryCausedFn 1 Process)
+(format EnglishLanguage InjuryCausedFn "an &%injury caused by %1")
+
+(=>
+  (attribute ?H (InjuryCausedFn ?PC))
+  (exists (?I ?P)
+    (and
+      (instance ?I Injuring)
+      (patient ?I ?H)
+      (instance ?P ?PC)
+      (causes ?P ?I))))
+
+(instance Bruise DiseaseOrSyndrome)
+(subAttribute Bruise Injury)
+(documentation Bruise EnglishLanguage "Colloquially, a &%Bruise is an area of &%Skin where
+burst &%BloodVessels are visible just below the surface. A bruise, also known as a contusion,
+is a type of hematoma of &%issue, the most common cause being capillaries damaged by trauma,
+causing localized &%Bleeding that extravasates into the surrounding interstitial tissues. Most
+bruises occur close enough to the epidermis such that the bleeding causes a visible discoloration.
+The bruise then remains visible until the &%Blood is either absorbed by tissues or cleared by
+immune system action. [from Wikipedia]")
+(termFormat EnglishLanguage Bruise "bruise")
+(termFormat EnglishLanguage Bruise "contusion")
+(termFormat EnglishLanguage Bruise "hematoma")
+
+(=>
+  (attribute ?H Bruise)
+  (exists (?I ?P)
+    (and
+      (instance ?I Injuring)
+      (patient ?I ?H)
+      (instance ?P Bleeding)
+      (causes ?P ?I))))
+
+(instance Conscious ConsciousnessAttribute)
+(contraryAttribute Conscious Unconscious)
+(documentation Conscious EnglishLanguage "Unlike an &%Unconscious &%Human, a conscious one
+is able to perform at least some sort of &%IntentionalProcess, even if very minimal, such
+as &%Blinking of the &%Eye of someone who is suffereing from a profound &%Paralysis.")
+(termFormat EnglishLanguage Conscious "conscious")
+
+(=>
+  (holdsDuring ?T
+    (attribute ?H Conscious))
+  (holdsDuring ?T
+    (capability IntentionalProcess agent ?H)))
+
+(subclass Blinking BodyMotion)
+(documentation Blinking EnglishLanguage "Blinking is a rapid &%Closing and &%Opening of
+the &%Eye done by the &%Eyelid.")
+(termFormat EnglishLanguage Blinking "blinking")
+
+(=>
+  (instance ?B Blinking)
+  (exists (?CE ?OE)
+    (and
+      (instance ?CE ClosingEyes)
+      (instance ?OE OpeningEyes)
+      (subProcess ?CE ?B)
+      (subProcess ?OE ?B))))
+
+(subclass MeasuringBreathing DiagnosticProcess)
+(documentation MeasuringBreathing EnglishLanguage "The &%DiagnosticProcess of determining whether
+and how frequently someone is &%Breathing.")
+(termFormat EnglishLanguage MeasuringBreathing "measuring breathing")
+
+(=>
+  (and
+    (instance ?MB MeasuringBreathing)
+    (agent ?MB ?A)
+    (instance ?L Lung)
+    (part ?L ?P)
+    (instance ?T TimeInterval)
+    (during ?T
+      (WhenFn ?MB))
+    (duration ?T MinuteDuration)
+    (patient ?MB ?P))
+  (holdsDuring
+    (ImmediateFutureFn
+      (WhenFn ?MB))
+    (exists (?BR)
+      (knows ?A
+        (breathingRate ?L ?T ?BR)))))
+
+(subclass BloodCirculation LiquidMotion)
+(documentation BloodCirculation EnglishLanguage "The &%LiquidMotion of &%Blood through
+the &%Veins and &%Arteries of an &%Animal.   The &%Motion is caused by the
+&%Heart. Note that this is disjoint from non-circulatory motion of blood such
+as &%Bleeding from an &%Injury.")
+(termFormat EnglishLanguage BloodCirculation "blood circulation")
+
+(=>
+  (instance ?BC BloodCirculation)
+  (exists (?O ?V ?A ?B)
+    (and
+      (instance ?O Animal)
+      (instance ?B Blood)
+      (moves ?BC ?B)
+      (instance ?A Artery)
+      (instance ?V Vein)
+      (part ?A ?O)
+      (part ?V ?O)
+      (path ?BC ?A)
+      (path ?BC ?V))))
+
+(instance coreBodyTemp BinaryPredicate)
+(domain coreBodyTemp 1 Organism)
+(domain coreBodyTemp 2 TemperatureMeasure)
+(documentation coreBodyTemp EnglishLanguage "Core temperature, also called core body temperature,
+is the operating temperature of an &%Organism, specifically in deep structures of the body such as
+the &%Liver, in comparison to temperatures of peripheral tissues. Core temperature is normally
+maintained within a narrow range so that essential enzymatic reactions can occur. Significant
+core temperature elevation (&%Hyperthermia) or depression (&%Hypothermia) over more than a brief
+period of time is incompatible with &%Human life. Temperature examination in the &%Heart, using a
+catheter, is the traditional gold standard measurement used to estimate core temperature (oral
+temperature is affected by hot or cold drinks, ambient temperature fluctuations as well as
+mouth-breathing). Since catheters are highly invasive, the generally accepted alternative for
+measuring core body temperature is through measurements in the &%Rectum. [from Wikipedia]")
+
+(=>
+  (and
+    (instance ?H Human)
+    (instance ?R Rectum)
+    (part ?R ?H)
+    (holdsDuring ?T
+      (coreBodyTemp ?H
+        (MeasureFn ?N ?U))
+      (measure ?R
+        (MeasureFn ?N2 ?U))))
+  (approximatelyEqual ?N ?N2))
+
+(subclass Catheter MedicalDevice)
+(subclass Catheter Tube)
+(documentation Catheter EnglishLanguage "In medicine, a catheter is a thin tube made from medical
+grade materials serving a broad range of functions. Catheters are &%MedicalDevices that can be
+inserted in the body to treat diseases or perform a surgical procedure. Catheters are manufactured
+for specific applications, such as cardiovascular, urological, gastrointestinal, neurovascular and
+ophthalmic procedures. The process of inserting a catheter is &%Catheterization.
+Catheters can be inserted into a &%BodyCavity, duct, or vessel, &%Brain, &%Skin or adipose tissue.
+Functionally, they allow drainage, administration of fluids or gases, access by surgical instruments,
+and also perform a wide variety of other tasks depending on the type of catheter. Special types of
+catheters, also called probes, are used in preclinical or clinical research for sampling of lipophilic
+and hydrophilic compounds, protein-bound and unbound drugs, neurotransmitters, peptides and
+&%Proteins, &%Antibodies, nanoparticles and nanocarriers, &%Enzymes and vesicles.[from Wikipedia]")
+
+(subclass Catheterization Inserting)
+(documentation Catheterization EnglishLanguage "The &%Process of &%Inserting a &%Catheter into an &%Organism.")
+(termFormat EnglishLanguage Catheterization "catheterization")
+
+(=>
+  (instance ?C Catheterization)
+  (exists (?CATH ?O)
+    (and
+      (instance ?CATH Catheter)
+      (instance ?O Organism)
+      (objectTransferred ?C ?CATH)
+      (destination ?C ?O))))
+
+(subclass CPR TherapeuticProcess)
+(termFormat EnglishLanguage CPR "cardio-pulmonary resuscitation")
+(documentation CPR EnglishLanguage "Cardiopulmonary resuscitation (CPR) is an emergency procedure
+consisting of chest compressions often combined with artificial ventilation, or &%Mouth to mouth in an
+effort to manually preserve intact &%Brain function until further measures are taken to restore spontaneous
+&%BloodCirculation and &%Breathing in a person who is in cardiac arrest. It is recommended for those who are
+unresponsive with no breathing or abnormal &%Breathing, for example, agonal respirations.
+CPR involves chest compressions for adults between 5 cm (2.0 in) and 6 cm (2.4 in) deep and at a rate of
+at least 100 to 120 per minute. The rescuer may also provide artificial ventilation by either &%Exhaling
+air into the subject's mouth or &%Nose (mouth-to-mouth resuscitation) or using a device that pushes air into
+the subject's &%Lungs (mechanical ventilation). Current recommendations place emphasis on early and high-
+quality chest compressions over artificial ventilation; a simplified CPR method involving only chest
+compressions is recommended for untrained rescuers.
+CPR alone is unlikely to restart the heart. Its main purpose is to restore the partial flow of oxygenated
+blood to the &%Brain and &%Heart. The objective is to delay &%Tissue &%Death and to extend the brief window of
+opportunity for a successful resuscitation without permanent &%Brain damage. Administration of an electric
+shock to the subject's &%Heart, termed &%Defibrillation, is usually needed to restore a viable, or 'perfusing',
+heart rhythm.  In general, CPR is
+continued until the person has a return of spontaneous circulation (ROSC) or is declared &%Dead.[from Wikipedia]")
+
+(subclass Defibrillation TherapeuticProcess)
+(documentation CPR EnglishLanguage "Administering an electric shock to restart the &%Heart")
+
+(instance Hypothermia DiseaseOrSyndrome)
+(documentation Hypothermia EnglishLanguage "Hypothermia is defined as a body core temperature
+below 35.0 degC (95.0 degF) in humans. Symptoms depend on the temperature. In mild hypothermia,
+there is shivering and mental confusion. In moderate hypothermia, shivering stops and confusion
+increases. In severe hypothermia, there may be hallucinations and paradoxical undressing, in
+which a person removes their clothing, as well as an increased risk of the heart stopping.
+The treatment of mild hypothermia involves warm drinks, warm clothing, and voluntary physical
+activity. In those with moderate hypothermia, heating blankets and warmed intravenous fluids
+are recommended. People with moderate or severe hypothermia should be moved gently. In severe
+hypothermia, extracorporeal membrane oxygenation (ECMO) or cardiopulmonary bypass may be useful.
+In those without a pulse, cardiopulmonary resuscitation (CPR) is indicated along with the above
+measures. Rewarming is typically continued until a person's temperature is greater than 32 degC
+(90 °F). If there is no improvement at this point or the blood potassium level is greater than
+12 mmol/liter at any time, resuscitation may be discontinued. [from Wikipedia]")
+(termFormat EnglishLanguage Hypothermia "hypothermia")
+
+(=>
+  (and
+    (instance ?H Human)
+    (holdsDuring ?T
+      (and
+        (attribute ?T Hypothermia)
+        (coreBodyTemp ?H
+          (MeasureFn ?N CelsiusDegree)))))
+  (lessThan ?N 35.0))
+
+(subclass MedicalDevice Device)
+(documentation MedicalDevice EnglishLanguage "A &%Device that is intended to be used
+in a &%DiagnosticProcess or a &%TherpeuticProcess.")
+(termFormat EnglishLanguage MedicalDevice "medical device")
+
+(=>
+  (instance ?MD MedicalDevice)
+  (hasPurpose ?MD
+    (and
+      (exists (?TP ?DP)
+        (and
+          (instance ?TP TherapeuticProcess)
+          (instance ?DP DiagnosticProcess)
+          (or
+            (instrument ?TP ?MD)
+            (instrument ?DP ?MD)))))))
+
+(instance Hyperthermia DiseaseOrSyndrome)
+(documentation Hyperthermia EnglishLanguage "In humans, hyperthermia is defined as a temperature
+greater than 37.5–38.3 degC (99.5–100.9 degF), depending on the reference used, that occurs without
+a change in the body's temperature set point. The normal human body temperature can be as high
+as 37.7 degC (99.9 degF) in the late afternoon. Hyperthermia requires an elevation from the
+temperature that would otherwise be expected. Such elevations range from mild to extreme; body
+temperatures above 40 degC (104 degF) can be life-threatening.[from Wikipedia]")
+(termFormat EnglishLanguage Hyperthermia "hyperthermia")
+
+(=>
+  (and
+    (instance ?H Human)
+    (holdsDuring ?T
+      (and
+        (attribute ?T Hyperthermia)
+        (coreBodyTemp ?H
+          (MeasureFn ?N CelsiusDegree)))))
+  (greaterThan ?N 38.3))

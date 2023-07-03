@@ -4265,13 +4265,13 @@ from having the right to use or be located at a particular object, for example, 
 &%Set of &%Objects owned by the &%AutonomousAgent.")
 
 (=>
-  (instance ?OBJ
+  (element ?OBJ
     (PropertyFn ?PERSON))
   (possesses ?PERSON ?OBJ))
 
 (=>
   (possesses ?PERSON ?OBJ)
-  (instance ?OBJ
+  (element ?OBJ
     (PropertyFn ?PERSON)))
 
 (instance precondition BinaryPredicate)
@@ -4413,6 +4413,7 @@ etc.")
 (subrelation names refers)
 (instance names BinaryPredicate)
 (domain names 1 SymbolicString)
+(domain names 2 Entity)
 
 (documentation names EnglishLanguage "(&%names ?STRING ?ENTITY) means that the thing
 ?ENTITY has the &%SymbolicString ?STRING as its name.  Note that &%names and &%represents
@@ -9505,7 +9506,7 @@ the number of instances of this &%Class by using the function &%CardinalityFn.")
   (connected ?PART1 ?PART2))
 
 (=>
-  (=>
+  (and
     (equal ?OBJ (MereologicalSumFn ?PART1 ?PART2))
     (connected ?PART1 ?PART2))
   (instance ?OBJ SelfConnectedObject))
@@ -10268,7 +10269,7 @@ incorporated into an &%Animal.")
 (subclass Digesting OrganismProcess)
 (subclass Digesting AutonomicProcess)
 
-(documentation Digesting EnglishLanguage "The &%Process by which &%Food that has been
+(documentation Digesting EnglishLanguage "The &%Process by which food that has been
 ingested is broken down into simpler chemical compounds and absorbed by
 the &%Organism.")
 
@@ -10789,6 +10790,8 @@ court, it is not the act of judge or jury &%Deciding the merits  of a particular
    (exists (?DECIDE)
       (and
          (instance ?DECIDE Deciding)
+         (result ?DECIDE ?LD)
+         (instance ?DECISION ?LD)
          (earlier (WhenFn ?DECIDE) (WhenFn ?DECISION)))))
 
 (subclass MilitaryProcess PoliticalProcess)
@@ -11961,17 +11964,71 @@ larger set of &%Entities. Note that this covers all cases of judging or evaluati
 (documentation Deciding EnglishLanguage "The subclass of &%Selecting where the &%agent
 opts for one course of action out of a set of multiple possibilities
 that are open to him/her.")
+;;JP 20230607 Fixed parsing errors
+;; Revised axioms as arguments in CaseRole takes instances. It is better suited to use
+;; the "element" in a "Set" relation to represent a class of options available in the Decision making process
 
 (=>
-   (and
-      (instance ?DECIDE Deciding)
-      (agent ?DECIDE ?AGENT)
-      (patient ?DECIDE ?PROCESS))
-   (and
-      (instance ?PROCESS IntentionalProcess)
-      (agent ?PROCESS ?AGENT)))
+  (and
+    (instance ?DECIDE Deciding)
+    (agent ?DECIDE ?AGENT)
+    (instance ?S Set)
+    (patient ?DECIDE ?S)
+    (element ?M ?S))
+  (believes ?AGENT
+    (exists (?CLASS)
+      (and
+        (instance ?M ?CLASS)
+        (subclass ?CLASS IntentionalProcess)
+        (capability ?CLASS agent ?AGENT)))))
 
-(subclass Voting Deciding)
+;; JP20230607 Commenting the following axioms out
+;;(=>
+;;    (and 
+;;        (instance ?DECIDE Deciding)
+;;        (agent ?DECIDE ?AGENT)
+;;        (result ?DECIDE ?DECISION))
+;;    (believes ?AGENT 
+;;        (exists (?P)
+;;          (and 
+;;            (instance ?P ?DECISION)
+;;            (agent ?P ?AGENT)
+;;            (earlier
+;;              (WhenFn ?DECIDE)
+;;              (WhenFn ?P))))))
+
+;; JP20230607 Fixed parsing errors in which "and" is redundant in the consequence as there is only one line of code that follows
+;; also rewriting this definition to say that the result of DECIDE is not yet an action
+
+(=>
+  (and
+    (instance ?DECIDE Deciding)
+    (agent ?DECIDE ?A)
+    (patient ?DECIDE ?S)
+    (instance ?S Set)
+    (result ?DECIDE ?X)
+    (instance ?X ContentBearingPhysical))
+  (containsFormula ?X
+    (holdsDuring
+      (FutureFn
+        (WhenFn ?DECIDE))
+      (exists (?M)
+        (and
+          (element ?M ?S)
+          (instance ?M IntentionalProcess)
+          (agent ?M ?A))))))
+      
+;; Removed to deal with classes instead of instances.
+;; (=>
+;;    (and
+;;       (instance ?DECIDE Deciding)
+;;       (agent ?DECIDE ?AGENT)
+;;       (patient ?DECIDE ?PROCESS))
+;;    (and
+;;       (instance ?PROCESS IntentionalProcess)
+;;       (agent ?PROCESS ?AGENT)))
+
+(subclass Voting Selecting)
 (documentation Voting EnglishLanguage "&%Voting is the activity of voting in an
 &%Election.  Voting is typically done by individuals, while &%Elections
 are conducted by &%Organizations.  The voting process by an individual
@@ -11990,13 +12047,20 @@ for one belief out of a set of multiple possibilities that are available to
 him/her.")
 
 (=>
-   (and
-      (instance ?JUDGE Judging)
-      (agent ?JUDGE ?AGENT)
-      (result ?JUDGE ?PROPOSITION))
-   (and
-      (holdsDuring (BeginFn (WhenFn ?JUDGE)) (not (believes ?AGENT ?PROPOSITION)))
-      (holdsDuring (EndFn (WhenFn ?JUDGE)) (believes ?AGENT ?PROPOSITION))))
+  (and
+    (instance ?JUDGE Judging)
+    (agent ?JUDGE ?AGENT)
+    (result ?JUDGE ?P))
+  (and
+    (holdsDuring
+      (BeginFn
+        (WhenFn ?JUDGE))
+      (not
+        (believes ?AGENT ?P)))
+    (holdsDuring
+      (EndFn
+        (WhenFn ?JUDGE))
+      (believes ?AGENT ?P))))
 
 (subclass Comparing IntentionalPsychologicalProcess)
 (subclass Comparing DualObjectProcess)
@@ -12761,7 +12825,7 @@ of heat.")
    (instance ?COOK Cooking)
    (exists (?FOOD)
       (and
-         (instance ?FOOD (FoodForFn Organism))
+         (instance ?FOOD (FoodForFn Human))
          (result ?COOK ?FOOD))))
 
 (subclass Pursuing IntentionalProcess)
@@ -14573,8 +14637,9 @@ handling because of their toxicity.")
 
 (subclass Nutrient BiologicallyActiveSubstance)
 (disjointDecomposition Nutrient Protein Carbohydrate Vitamin)
+(relatedInternalConcept Nutrient Food)
 (documentation Nutrient EnglishLanguage "A &%BiologicallyActiveSubstance required by an
-&%Organism. It is generally ingested as &%Food, and it is of primary interest because of
+&%Organism. It is generally ingested as food, and it is of primary interest because of
 its role in the biologic functioning of the &%Organism.")
 
 (subclass Protein Nutrient)
@@ -14761,7 +14826,7 @@ proteins, and fats, that can be ingested by a the given class of living
       (instance ?NUTRIENT Nutrient)
       (part ?NUTRIENT ?FOOD))))
 
-(documentation Food EnglishLanguage "Food that is fit for &%Humans.")
+(documentation Food EnglishLanguage "Food that is fit for &%Human.")
 (equal Food (FoodForFn Human))
 (subclass Food SelfConnectedObject)
 
@@ -14915,6 +14980,7 @@ well as the eggs produced by &%Animals.")
 
 (subclass Egg ReproductiveBody)
 (subclass Egg AnimalAnatomicalStructure)
+(subclass Egg Meat)
 (documentation Egg EnglishLanguage "The fertilized or unfertilized female
 &%ReproductiveBody of an &%Animal.  This includes &%Bird and &%Reptile eggs, as well as
 mammalian ova.")
@@ -15056,8 +15122,13 @@ cells and leucocytes.[from Wikipedia]")
 
 (=>
   (and
+    (subclass ?T1C Tissue)
+    (subclass ?T2C Tissue)
     (instance ?T1 ?T1C)
     (instance ?T2 ?T2C)
+    (instance ?H Human)
+    (part ?T1 ?H)
+    (part ?T2 ?H)
     (not
       (equal ?T1C ?T2C))
     (not
@@ -15085,7 +15156,7 @@ up the skeleton of &%Vertebrates.  Note that this &%Class also includes teeth.")
       (part ?BONE ?VERT))))
 
 (subclass Bone BodyPart)
-(documentation BoneTissue EnglishLanguage "Parts of the body that are made up of &%BoneTissue.")
+(documentation Bone EnglishLanguage "Parts of the body that are made up of &%BoneTissue.")
 (=>
   (instance ?B Bone)
   (material BoneTissue ?B))

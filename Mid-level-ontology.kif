@@ -3181,7 +3181,7 @@ well as painting one's kitchen, for example.")
   (instance ?P WatercolorPaint)
   (exists (?W)
     (and
-      (instance ?W Water)
+      (instance ?W FreshWater)
       (part ?W ?P))))
 
 (subclass OilPaint Paint)
@@ -3703,16 +3703,21 @@ accommodate &%Humans who are &%Sitting.")
 &%Human.")
 
 (=>
-   (instance ?CHAIR Chair)
-   (not (exists (?PERSON1 ?PERSON2)
-      (and
-         (instance ?PERSON1 Human)
-         (instance ?PERSON2 Human)
-         (attribute ?PERSON1 Sitting)
-         (attribute ?PERSON2 Sitting)
-         (located ?PERSON1 ?CHAIR)
-         (located ?PERSON2 ?CHAIR)
-         (not (equal ?PERSON1 ?PERSON2)))))) 
+  (instance ?CHAIR Chair)
+  (hasPurpose ?CHAIR
+    (not
+      (exists (?PERSON1 ?PERSON2)
+        (and
+          (instance ?PERSON1 Human)
+          (instance ?PERSON2 Human)
+          (holdsDuring ?T
+            (and
+              (attribute ?PERSON1 Sitting)
+              (attribute ?PERSON2 Sitting)
+              (located ?PERSON1 ?CHAIR)
+              (located ?PERSON2 ?CHAIR)))
+          (not
+            (equal ?PERSON1 ?PERSON2)))))))
 
 (subclass Sofa Seat)
 (documentation Sofa EnglishLanguage "A padded &%Seat that is designed to accommodate more 
@@ -4703,7 +4708,7 @@ and that is used for &%Swimming.")
     (instance ?P SwimmingPool)
     (contains ?P ?F)
     (instance ?F Fluid))
-  (instance ?F Water))
+  (instance ?F FreshWater))
 
 (subclass BoardOrBlock Artifact)
 (documentation BoardOrBlock EnglishLanguage "A piece of material with flat, rectangular sides.
@@ -5549,7 +5554,7 @@ a &%Detergent and &%Water.")
     (and
       (instance ?D Detergent)
       (instrument ?P ?D)
-      (instance ?W Water)
+      (instance ?W FreshWater)
       (instrument ?P ?W))))
 
 (subclass CleaningDevice Device)
@@ -8265,8 +8270,8 @@ degree.")
       (holdsDuring ?T1 (attribute ?HUMAN ?ROLE)))
    (exists (?FIELD)
       (and
-         (instance ?FIELD FieldOfStudy)
-         (holdsDuring ?T1 (knows ?HUMAN ?FIELD)))))
+         (subclass ?FIELD FieldOfStudy)
+         (holdsDuring ?T1 (hasExpertise ?HUMAN ?FIELD)))))
 
 (documentation GovernmentSecretary EnglishLanguage "This
 &%Position &%Attribute describes a person who is head of an
@@ -8783,7 +8788,7 @@ Note that this general class covers petroleum oil, vegetable oil, animal fat, et
       (and
         (instance ?MIX Mixture)
         (part ?WATER ?MIX)
-        (instance ?WATER Water)
+        (instance ?WATER FreshWater)
         (part ?OIL ?MIX)))))
 
 (subclass Surfactant Substance)
@@ -9482,7 +9487,7 @@ in place.")
         (orientation ?HOST ?ROOT Outside)
         (objectTransferred ?TRAN ?STUFF)
         (or
-          (instance ?STUFF Water)
+          (instance ?STUFF FreshWater)
           (instance ?STUFF Nutrient))))))
 
 (subclass Flower PlantAnatomicalStructure)
@@ -9533,7 +9538,7 @@ in place.")
     (and
       (instance ?K ?CLASS)
       (subclass ?CLASS Keeping)
-      (instance ?W Water)
+      (instance ?W FreshWater)
       (patient ?K ?W)
       (capability ?CLASS instrument ?TIS)
       (or
@@ -9603,7 +9608,7 @@ and which has the ability to neutralize &%Antigens.")
         (patient ?DEST ?ANTI)
         (instance ?ANTI Antigen)))))
 
-(instance medicine BinaryRelation)
+(instance medicine BinaryPredicate)
 (domainSubclass medicine 1 Medicine)
 (domain medicine 2 DiseaseOrSyndrome)
 (documentation medicine EnglishLanguage "A &%Relation between a &%Medicine and a
@@ -10003,7 +10008,7 @@ reduces the excretion of water in urine.[from Wikipedia]")
     (agent ?U2 ?H)
     (earlier ?U1 ?I)
     (earlier ?I ?U2)
-    (instance ?V VolumeMeasure)
+    (instance ?V UnitOfVolume)
     (measure ?U1
       (MeasureFn ?N1 ?V))
     (measure ?U2
@@ -10035,7 +10040,7 @@ reduces the excretion of water in urine.[from Wikipedia]")
     (agent ?U2 ?H)
     (earlier ?U1 ?I)
     (earlier ?I ?U2)
-    (instance ?V VolumeMeasure)
+    (instance ?V UnitOfVolume)
     (measure ?U1
       (MeasureFn ?N1 ?V))
     (measure ?U2
@@ -10302,7 +10307,7 @@ and does not contain &%AntigenA.")
 (domain heartRate 1 Heart)
 (domain heartRate 2 TimeInterval)
 (domain heartRate 3 Integer)
-(documentation BloodTypeO EnglishLanguage "The number of times the
+(documentation heartRate EnglishLanguage "The number of times the
 &%Heart of a &%Mammal beats in a given period.  A normal rate for a
 &%Human at rest is 60 beats per minute although this can vary
 significantly with age, fitness level and health status.")
@@ -10315,6 +10320,47 @@ per %2")
     (and
       (instance ?C Collection)
       (memberType ?C HeartBeat)
+      (memberCount ?C ?I)
+      (=>
+        (member ?M ?C)
+        (and
+          (patient ?M ?H)
+          (during
+            (WhenFn ?M) ?T))))))
+
+(subclass Breath AutonomicProcess)
+(subclass Breath OrganismProcess)
+(documentation Breath EnglishLanguage "A single, contiguous, &%Inhaling and &%Exhaling.")
+
+(=>
+  (instance ?B Breath)
+  (exists (?I ?E)
+    (and
+      (subProcess ?I ?B)
+      (subProcess ?E ?B)
+      (earlier
+        (WhenFn ?I)
+        (WhenFn ?E))
+      (meetsTemporally
+        (WhenFn ?I)
+        (WhenFn ?E)))))
+
+(instance breathingRate TernaryPredicate)
+(domain breathingRate 1 Lung)
+(domain breathingRate 2 TimeInterval)
+(domain breathingRate 3 Integer)
+(documentation breathingRate EnglishLanguage "The number of times the
+&%Lungs of a &%Mammal fill and empty in a given period. The normal rate
+for adults is 12 to1 6 breaths per minute.")
+(format EnglishLanguage breathingRate "%1 &%breathes at a rate of %3 breaths
+per %2")
+
+(=>
+  (breathingRate ?H ?T ?I)
+  (exists (?C ?M)
+    (and
+      (instance ?C Collection)
+      (memberType ?C Breath)
       (memberCount ?C ?I)
       (=>
         (member ?M ?C)
@@ -10623,6 +10669,7 @@ between parts of the body of an &%Animal.")
 (documentation HeartBeat EnglishLanguage "A cycle of the &%Heart
 undergoing &%MuscularContract and then a &%MuscleRelaxing to pump
 &%Blood and then fill with blood to be ready for the next contraction.")
+(externalImage HeartBeat "https://upload.wikimedia.org/wikipedia/commons/1/12/CG_Heart.gif")
 
 (=>
   (instance ?HB HeartBeat)
@@ -10764,11 +10811,14 @@ under normal circumstances.")
 (disjoint Serum Blood)
 (documentation Serum EnglishLanguage "Any &%LiquidBodySubstance other than &%Blood.")
 
+;; Milk milk is raw milk
+
 (subclass Milk LiquidBodySubstance)
-(subclass Milk Beverage)
+(relatedInternalConcept Milk ProcessedMilk)
 (documentation Milk EnglishLanguage "A nutritious &%BodySubstance produced by &%Mammals
-that has evolved to provide nourishment for their offspring during
-their initial period of life.")
+that has evolved to provide nourishment for their offspring duringtheir initial period
+ of life. [Wikipedia] For the 'milk that we drink day-to-day, one should refers to &%ProcessMilk under
+ Beverage.")
 
 (=>
    (instance ?MILK Milk)
@@ -10822,7 +10872,7 @@ prepared by fermenting the juice of grapes.")
 
 (subclass DistilledAlcoholicBeverage AlcoholicBeverage)
 (documentation DistilledAlcoholicBeverage EnglishLanguage "An &%AlcoholicBeverage that has
-had some part of its &%Water content removed by distillation.  This class
+had some part of its &%FreshWater content removed by distillation.  This class
 covers drinks of unmixed, hard liquor.")
 
 (=>
@@ -10831,7 +10881,7 @@ covers drinks of unmixed, hard liquor.")
       (and
          (instance ?REMOVE Removing)
          (patient ?REMOVE ?WATER)
-         (instance ?WATER Water)
+         (instance ?WATER FreshWater)
          (origin ?REMOVE ?BEVERAGE))))
 
 (subclass Beer AlcoholicBeverage)
@@ -11005,7 +11055,8 @@ which is delivered to them by the &%BronchialDucts.")
 
 (subclass Artery BloodVessel)
 (documentation Artery EnglishLanguage "Any &%BloodVessel which transfers &%Blood from
-the &%Heart to the extremities of the body.")
+the &%Heart to the extremities of the body. Note that there can be some variability
+between members of the same species in the branching of some particular arteries they have.")
 
 (=>
    (and
@@ -11238,6 +11289,7 @@ and connect it to the &%Throat.")
 (subclass Heart AnimalAnatomicalStructure)
 (documentation Heart EnglishLanguage "The &%Organ that pumps &%Blood throughout the body.")
 (material Heart InvoluntaryMuscle)
+(externalImage Heart "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Diagram_of_the_human_heart_%28cropped%29.svg/800px-Diagram_of_the_human_heart_%28cropped%29.svg.png")
 
 (=>
    (instance ?HEART Heart)
@@ -11378,17 +11430,35 @@ the &%Brain, the spinal cord, nerves, etc.")
          (instance ?MOUTH Mouth)
          (part ?TOOTH ?MOUTH))))
 
-(subclass Skull Bone)
-(documentation Skull EnglishLanguage "The &%Bone that is found in the &%Heads of &%Vertebrates.")
+(subclass Skull Collection)
+(documentation Skull EnglishLanguage "The &%Collection of &%Bones that are found in the &%Heads of &%Vertebrates.")
 
 (=>
   (instance ?S Skull)
-  (exists (?V ?H)
+  (memberType ?S Bone))
+
+(=>
+  (and
+    (instance ?V Vertebrate)
+    (instance ?H Head)
+    (part ?H ?V)
+    (attribute ?V Healthy))
+  (exists (?S ?B)
     (and
-      (instance ?V Vertebrate)
-      (instance ?H Head)
-      (part ?H ?V)
-      (part ?S ?H))))
+      (instance ?S Skull)
+      (member ?B ?S)
+      (part ?B ?H))))
+
+(=>
+  (and
+    (instance ?V Vertebrate)
+    (instance ?H Head)
+    (part ?H ?V)
+    (instance ?S Skull)
+    (attribute ?V Healthy)
+    (member ?B ?S)
+    (part ?B ?V))
+  (part ?B ?H))
 
 (subclass Horn Bone)
 (documentation Horn EnglishLanguage "An outgrowth of &%Bone that is found on some
@@ -12002,7 +12072,7 @@ thalamus that serves to regulate &%AutonomicProcesses.")
          (part ?EYE ?HEAD))))
 
 (subclass Pupil HoleRegion)
-(documentation Ear EnglishLanguage "The opening of the &%EyeIris that
+(documentation Pupil EnglishLanguage "The opening of the &%Eye that
 lets light pass from the &%Cornea through the &%Eye to the &%Retina.")
 (termFormat EnglishLanguage Pupil "pupil")
 
@@ -12010,19 +12080,19 @@ lets light pass from the &%Cornea through the &%Eye to the &%Retina.")
   (instance ?P Pupil)
   (exists (?I)
     (and
-      (instance ?I EyeIris)
+      (instance ?I Eye)
       (equal ?I
         (HoleHostFn ?P)))))
 
 (subclass Cornea BodyPart)
 (initialPart Cornea Eye)
-(documentation Ear EnglishLanguage "TThe biological lens of the Eye
+(documentation Cornea EnglishLanguage "TThe biological lens of the &%Eye
 that focuses light on the &%Retina.")
 (termFormat EnglishLanguage Cornea "cornea")
 
 (subclass Ear Organ)
 (subclass Ear AnimalAnatomicalStructure)
-(documentation Ear EnglishLanguage "The &%Organ of hearing.")
+(documentation Ear EnglishLanguage "The &%Organ of &%Hearing.")
 
 (=>
    (instance ?EAR Ear)
@@ -12060,7 +12130,7 @@ cover or uncover &%Eyes.")
 
 (subclass EyeIris Organ)
 (documentation EyeIris EnglishLanguage "The iris is a thin, circular structure in the &%Eye, responsible for
-controlling the diameter and size of the pupils.")
+controlling the diameter and size of the &%Pupils.")
 
 (=>
   (instance ?I EyeIris)
@@ -12092,16 +12162,15 @@ that the subclass of &%OrganicObject (either &%Organism or &%BodyPart)
 (domainSubclass secretesSubstance 2 NaturalSubstance)
 
 (=>
-  (secretesSubstance ?O ?S)
-  (forall (?I1)
-    (=>
-      (instance ?I1 ?O)
-      (exists (?P ?I2)
-        (and
-          (instance ?P BiologicalProcess)
-          (eventLocated ?P ?I1)
-          (result ?P ?I2)
-          (instance ?I2 ?S))))))
+  (and
+    (secretesSubstance ?O ?S)
+    (instance ?I1 ?O))
+  (exists (?P ?I2)
+    (and
+      (instance ?P BiologicalProcess)
+      (eventLocated ?P ?I1)
+      (result ?P ?I2)
+      (instance ?I2 ?S))))
 
 (subclass ThyroidGland Gland)
 (documentation ThyroidGland EnglishLanguage "A &%Gland in the neck that produces
@@ -18750,7 +18819,7 @@ researcher.")
    (attribute ?P Researcher)
    (exists (?S)
       (and
-         (instance ?S Science)
+         (subclass ?S Science)
          (hasExpertise ?P ?S))))
 
 (instance Teacher Profession)
@@ -20042,37 +20111,37 @@ wool and for its meat (known as mutton).")
     (instance ?L Sheep)
     (attribute ?L NonFullyFormed)))
 
-(subclass Cow HoofedMammal)
-(subclass Cow DomesticAnimal)
-(documentation Cow EnglishLanguage "A domesticated &%HoofedMammal that is raised for milk
-and beef, and is also used for work.")
+(subclass Cattle HoofedMammal)
+(subclass Cattle DomesticAnimal)
+(documentation Cattle EnglishLanguage "A domesticated &%HoofedMammal, referred in either sex, 
+that is raised for milkand beef, and is also used for work.")
 
-(subclass Calf Cow)
-(documentation Calf EnglishLanguage "A young &%Cow, i.e. a &%Cow that is &%NonFullyFormed.")
+(subclass Cow Cattle)
+(documentation Cow EnglishLanguage "A &%Female &%Cattle that is raised for milk.")
+
+(<=>
+  (instance ?B Bull)
+  (and
+    (instance ?B Cattle)
+    (attribute ?B Female)))
+
+(subclass Calf Cattle)
+(documentation Calf EnglishLanguage "A young &%Cattle, i.e. a &%Cattle that is &%NonFullyFormed.")
 
 (<=>
   (instance ?C Calf)
   (and
-    (instance ?C Cow)
+    (instance ?C Cattle)
     (attribute ?C NonFullyFormed)))
 
-(subclass Bull Cow)
+(subclass Bull Cattle)
 (documentation Bull EnglishLanguage "A &%Cow that is &%Male.")
 
 (<=>
   (instance ?B Bull)
   (and
-    (instance ?B Cow)
+    (instance ?B Cattle)
     (attribute ?B Male)))
-
-(subclass FemaleCow Cow)
-(documentation FemaleCow EnglishLanguage "A &%Cow that is &%Female.")
-
-(<=>
-   (instance ?COW FemaleCow)
-   (and
-      (instance ?COW Cow)
-      (attribute ?COW Female)))
 
 (subclass Poultry Bird)
 (subclass Chicken Poultry)
@@ -20960,15 +21029,15 @@ events.")
   (attribute ?X Accountant)
   (capability Calculating agent ?X))
 
-(instance Literature FieldOfStudy)
+(subclass Literature FieldOfStudy)
 (documentation Literature EnglishLanguage "The study of literature, i.e. instances of &%FictionalText
 that are regarded as having special merit.")
 
-(instance Mathematics FieldOfStudy)
+(subclass Mathematics FieldOfStudy)
 (documentation Mathematics EnglishLanguage "The &%FieldOfStudy dealing with quantities and their
 relations to one another.")
 
-(instance InteriorDesign FieldOfStudy)
+(subclass InteriorDesign FieldOfStudy)
 (documentation InteriorDesign EnglishLanguage "The &%FieldOfStudy of designing the interiors of
 &%Buildings.")
 
@@ -20981,18 +21050,18 @@ careful observations and/or experiments and which has a cumulative body of resul
 the aggregate, as do, for example, &%Economics and &%Linguistics, or with respect to
 the individual, as does &%Psychology.")
 
-(instance PoliticalScience SocialScience)
+(subclass PoliticalScience SocialScience)
 (documentation PoliticalScience EnglishLanguage "The field of political science.")
 
-(instance Anthropology SocialScience)
+(subclass Anthropology SocialScience)
 (documentation Anthropology EnglishLanguage "The study of humanity.")
 
-(instance ActuaryScience Science)
+(subclass ActuaryScience Science)
 (documentation ActuaryScience EnglishLanguage "Actuarial &%Science is the discipline that applies mathematical
 (&%MathematicalMethod) and statistical methods to assess risk in the insurance (&%InsuranceCompany) and finance
 (&%FinancialCompany) industries.")
 
-(instance Archeology FieldOfStudy)
+(subclass Archeology FieldOfStudy)
 (documentation Archeology EnglishLanguage "Archeology is a &%FieldOfStudy, its &%Arguments are refering to &%earlier
 discoverings of old &%Objects burried &%below the &%surface of &%LandArea or a &%BodyOfWater. Note that the minimal
 age of the &%Object is set arbitrarily.")
@@ -21001,7 +21070,8 @@ age of the &%Object is set arbitrarily.")
   (and
     (instance ?X Argument)
     (instance ?R Reasoning)
-    (subProposition ?X Archeology)
+    (instance ?A Archeology)
+    (subProposition ?X ?A)
     (realization ?R ?X))
   (exists (?D ?S ?O ?T ?W ?L)
     (and
@@ -21028,7 +21098,7 @@ age of the &%Object is set arbitrarily.")
             (instance ?L LandArea)
             (orientation ?O ?S Below)))))))
 
-(instance Architecture FieldOfStudy)
+(subclass Architecture FieldOfStudy)
 (documentation Architecture EnglishLanguage "The &%FieldOfStudy of designing &%Buildings, i.e.
 creating &%Blueprints for &%Buildings.")
 
@@ -21043,31 +21113,31 @@ creating &%Blueprints for &%Buildings.")
       (represents ?P ?B)
       (instance ?B Building))))
 
-(instance Astronomy Science)
+(subclass Astronomy Science)
 (documentation Astronomy EnglishLanguage "Astronomy is a natural &%Science that deals with the study of celestial
 objects (or &%AstronomicalBody), such as &%Star s, &%Planet s, comets, nebulae, star clusters and galaxies and
 phenomena that originate outside the (&%PlanetEarth) Earth's &%Atmosphere")
 
-(instance ComputerScience Science)
+(subclass ComputerScience Science)
 (documentation ComputerScience EnglishLanguage "&%ComputerScience is the study of the theoretical foundations of
 information and computation and of practical techniques for their implementation and application in computer systems.")
 
-(instance Economics SocialScience)
+(subclass Economics SocialScience)
 (documentation Economics EnglishLanguage "The field of economics.")
 
-(instance Geography Science)
+(subclass Geography Science)
 (documentation Geography EnglishLanguage "Geography is the science that studies the lands, features, inhabitants,
 and phenomena of Earth. Also Earth's physical environment and human habitat.")
 
 (subField Cartography Geography)
-(instance Cartography Science)
+(subclass Cartography Science)
 (documentation Cartography EnglishLanguage "Cartography is the study and practice of making &%Map s.")
 
-(instance Geology Science)
+(subclass Geology Science)
 (documentation Geology EnglishLanguage "Geology is the science comprising the study of solid (&%PlanetEarth)
 Earth and the processes by which it evolves.")
 
-(instance LibraryScience Science)
+(subclass LibraryScience Science)
 (documentation LibraryScience EnglishLanguage "&%Library science (or Library and Information science) is an
 interdisciplinary field that applies the practices,
 perspectives, and tools of management, information technology, education, and other areas to libraries.")
@@ -21075,95 +21145,95 @@ perspectives, and tools of management, information technology, education, and ot
 (termFormat EnglishLanguage LibraryScience "Information Science")
 (termFormat EnglishLanguage LibraryScience "Library Science")
 
-(instance Linguistics SocialScience)
+(subclass Linguistics SocialScience)
 (documentation Linguistics EnglishLanguage "The field of linguistics.")
 
-(instance Psychology SocialScience)
+(subclass Psychology SocialScience)
 (documentation Psychology EnglishLanguage "The field of psychology.")
 
-(instance Biology Science)
+(subclass Biology Science)
 (documentation Biology EnglishLanguage "The study of the classification, development, and
 functioning of &%Organisms.")
 
 (subField Physiology Biology)
-(instance Physiology Science)
+(subclass Physiology Science)
 (documentation Physiology EnglishLanguage "The part of &%Biology dealing with the functioning of
 &%Organisms.")
 
 (subField MedicalScience Biology)
-(instance MedicalScience Science)
+(subclass MedicalScience Science)
 (documentation MedicalScience EnglishLanguage "The field of medicine.")
 
 (subField VeterinaryScience MedicalScience)
-(instance VeterinaryScience Science)
+(subclass VeterinaryScience Science)
 (documentation VeterinaryScience EnglishLanguage "is the branch of science that deals with the application of
 medical, surgical, public health, dental, diagnostic, and therapeutic principles to non-human animals, including
 wildlife and domesticated animals.")
 
 (subField Botany Biology)
-(instance Botany Science)
+(subclass Botany Science)
 (documentation Botany EnglishLanguage "Botany, plant science(s), or plant biology is a branch of &%Biology that
 involves the scientific study of plant life.")
 
 (subField Zoology Biology)
-(instance Zoology Science)
+(subclass Zoology Science)
 (documentation Zoology EnglishLanguage "Zoology is the branch of &%Biology that relates to the animal kingdom,
 including the structure, embryology, evolution, classification, habits, and distribution of all animals, both
 living and extinct.")
 
-(instance NaturalSciences Science)
+(subclass NaturalSciences Science)
 
-(instance Biochemistry Science)
-(instance Chemistry Science)
+(subclass Biochemistry Science)
+(subclass Chemistry Science)
 (documentation Chemistry EnglishLanguage "The study of the compositions, properties, and
 reactions of &%Substances.")
 
-(instance Paleontology Science)
+(subclass Paleontology Science)
 (documentation Paleontology EnglishLanguage "The earth science that studies fossil organisms and related remains.")
 
-(instance Physics Science)
+(subclass Physics Science)
 (documentation Physics EnglishLanguage "The study of matter and energy and their relations.")
 
-(instance Engineering Science)
+(subclass Engineering Science)
 (documentation Engineering EnglishLanguage "The application of instances of &%Science to the solution
 of practical problems, i.e. the creation of various forms of technology.")
 
-(instance Sociology SocialScience)
+(subclass Sociology SocialScience)
 (documentation Sociology EnglishLanguage "Sociology is the study of society. It is considered one of the
 &%SocialScience s, together with Political Science and Anthropology.")
 
-(instance Statistics FieldOfStudy)
+(subclass Statistics FieldOfStudy)
 (documentation Statistics EnglishLanguage "Statistics is the study of the collection, organization, analysis,
 and interpretation of data.")
 
-(instance ElectricalEngineering FieldOfStudy)
+(subclass ElectricalEngineering FieldOfStudy)
 (subField ElectricalEngineering Engineering)
 (documentation Statistics EnglishLanguage "&%ElectricalEngineering is the study of  design and application of
 equipment, devices and systems which use electricity, electronics, and electromagnetism. (Ref to Wikipedia)")
 
 (subField Electronics Physics)
 (subField Electronics Engineering)
-(instance Electronics FieldOfStudy)
+(subclass Electronics FieldOfStudy)
 (documentation Electronics EnglishLanguage "The branch of &%Physics that deals with the theory
 and applications of electron emissions.")
 
 (subField PowerElectronics Electronics)
-(instance PowerElectronics FieldOfStudy)
+(subclass PowerElectronics FieldOfStudy)
 
 (subField Mechanics Mathematics)
 (subField Mechanics Physics)
-(instance Mechanics FieldOfStudy)
+(subclass Mechanics FieldOfStudy)
 (documentation Mechanics EnglishLanguage "&%Mechanics is the subject area of &%Mathematics
 and &%Physics concerned with the motions of physical objects, more specifically the relationships
 among force, matter, and motion.[ref to Wikipedia]")
 
 (subField MechanicalEngineering Engineering)
-(instance MechanicalEngineering FieldOfStudy)
+(subclass MechanicalEngineering FieldOfStudy)
 (documentation MechanicalEngineering EnglishLanguage "&%MechanicalEngineering an &%Engineering
 branch that combines engineering &%Physics and &%Mathematics principles with materials &%Science to
 design, analyze, manufacture, and maintain mechanical systems.[ref to Wikipedia]")
 
-(instance Theology FieldOfStudy)
+(subclass Theology FieldOfStudy)
 (documentation Theology EnglishLanguage "The systematic study of religion.")
 
 (=>
@@ -21173,43 +21243,44 @@ design, analyze, manufacture, and maintain mechanical systems.[ref to Wikipedia]
       (instance ?Y ReligiousProcess)
       (refers ?X ?Y))))
 
-(instance MilitaryScience FieldOfStudy)
+(subclass MilitaryScience FieldOfStudy)
 (documentation MilitaryScience EnglishLanguage "The study of the principles of war.")
 
-(instance History FieldOfStudy)
+(subclass History FieldOfStudy)
 (documentation History EnglishLanguage "The recording and interpretation of past events involving
 &%Humans, including political events and cultural practices.")
 
-(instance Philosophy FieldOfStudy)
+(subclass Philosophy FieldOfStudy)
 (documentation Philosophy EnglishLanguage "The study of first principles, including epistemology,
 metaphysics, and ethics.")
 
-(instance FieldOfLaw FieldOfStudy)
+(subclass FieldOfLaw FieldOfStudy)
 (documentation FieldOfLaw EnglishLanguage "The study of legal principles and the framework of national
 and/or international laws.")
 
-(subrelation subField subProposition)
+(subrelation subField subclass)
 (instance subField TransitiveRelation)
 (instance subField IrreflexiveRelation)
-(domain subField 1 FieldOfStudy)
-(domain subField 2 FieldOfStudy)
+(domainSubclass subField 1 FieldOfStudy)
+(domainSubclass subField 2 FieldOfStudy)
 (documentation subField EnglishLanguage "(&%subField ?FIELD1 ?FIELD2) means that ?FIELD1 is a proper
-part of the &%FieldOfStudy ?FIELD2.  For example, &%Physiology is a &%subField of
+part of the &% ?FIELD2.  For example, &%Physiology is a &%subField of
 &%Biology.")
 
 (instance hasExpertise BinaryPredicate)
 (domain hasExpertise 1 Human)
-(domain hasExpertise 2 FieldOfStudy)
+(domainSubclass hasExpertise 2 FieldOfStudy)
 (documentation hasExpertise EnglishLanguage "(&%hasExpertise ?PERSON ?FIELD) means that ?PERSON has
 studied the &%FieldOfStudy ?FIELD and is regarded as an expert.")
 
 (=>
    (hasExpertise ?PERSON ?FIELD)
-   (exists (?LEARN)
+   (exists (?LEARN ?SPECIALITY)
       (and
          (instance ?LEARN Learning)
          (agent ?LEARN ?PERSON)
-         (realization ?LEARN ?FIELD))))
+         (instance ?SPECIALITY ?FIELD)
+         (realization ?LEARN ?SPECIALITY))))
 
 (instance hasOccupation BinaryPredicate)
 (domain hasOccupation 1 Human)
@@ -21226,6 +21297,7 @@ engages in activities of the class ?WORK as a means of earning a living.")
       (agent ?INST ?PERSON))))
 
 (subclass Bleeding AutonomicProcess)
+(subclass Bleeding LiquidMotion)
 (documentation Bleeding EnglishLanguage "The release of &%Blood from an &%Animal in response
 to an &%Injuring of some sort.")
 
@@ -21389,159 +21461,12 @@ closed in an &%Object.")
       (subProcess ?E ?P)
       (instance ?E Eating))))
 
-;; JP 13Apr2023
-;; Changed PreparedFood from subclass of Object to Food
+;; Changed PreparedFood from subclass of Object to Food JP 20230413
 
-(subclass PreparedFood Food)
-(documentation PreparedFood EnglishLanguage "&%PreparedFood refers to anything that
-undergoes some process intended to result in an object that has &%Nutrient which can be
-ingested by &%Animal, normally metabolized into energy and body tissue.")
-(termFormat EnglishLanguage PreparedFood "food")
-
-(=>
-  (instance ?X PreparedFood)
-  (instance ?X (FoodForFn Organism)))
-
-(=>
-  (instance ?X PreparedFood)
-  (exists (?PROC)
-    (and
-      (instance ?PROC IntentionalProcess)
-      (result ?PROC ?X))))
-
-(subclass SolidFood PreparedFood)
-(documentation SolidFood EnglishLanguage "&%SolidFood refers to &%PreparedFood that
-has &%Solid parts.")
-(termFormat EnglishLanguage SolidFood "solid food")
-(disjoint SolidFood LiquidFood)
-
-(=>
-  (instance ?X SolidFood)
-  (exists (?ING)
-    (and
-      (part ?ING ?X)
-      (attribute ?ING Solid))))
-
-(subclass LiquidFood PreparedFood)
-(documentation LiquidFood EnglishLanguage "&%LiquidFood refers to &%PreparedFood that
-has no &%Solid parts, only &%Liquid parts, therefore this does not cover stews, root
-beer floats or other combinations of solid and liquid foods.")
-
-(termFormat EnglishLanguage LiquidFood "liquid food")
-
-(=>
-  (instance ?X LiquidFood)
-  (not
-    (exists (?ING)
-      (and
-        (part ?ING ?X)
-        (attribute ?ING Solid)))))
-
-(subclass Beverage LiquidFood)
-(subclass Beverage Colloid)
-(disjoint Meat Beverage)
-(documentation Beverage EnglishLanguage "Any food that is ingested by &%Drinking.
-Note that this class is disjoint &%Meat and &%FruitOrVegetable.")
-
-(=>
-   (instance ?BEV Beverage)
-   (attribute ?BEV Liquid))
-
-(=>
-   (and
-      (instance ?DRINK Drinking)
-      (patient ?DRINK ?BEV))
-   (instance ?BEV Beverage))
-
-(instance CookedAttribute RelationalAttribute)
-(documentation CookedAttribute EnglishLanguage "&%CookedAttribute describes how something
-is a product of &%Cooking.")
-(termFormat EnglishLanguage CookedAttribute "cooked")
-
-(=>
-  (attribute ?FOOD CookedAttribute)
-  (exists (?PROC)
-    (and
-      (instance ?PROC Cooking)
-      (result ?PROC ?FOOD))))
-
-(instance RawAttribute RelationalAttribute)
-(documentation RawAttribute EnglishLanguage "&%RawAttribute describes how cooking was
-not involved in the making of something")
-(termFormat EnglishLanguage RawAttribute "raw")
-
-(=>
-  (attribute ?FOOD RawAttribute)
-  (instance ?FOOD (FoodForFn Organism)))
-
-(=>
-  (attribute ?FOOD RawAttribute)
-  (not
-    (exists (?PROC)
-      (and
-        (instance ?PROC Cooking)
-        (result ?PROC ?FOOD)))))
-
-(subclass Baking Cooking)
-(subclass Baking Heating)
-(documentation Baking EnglishLanguage "Any instance of &%Cooking where the instrument
-is an &%Oven.")
-
-(=>
-  (instance ?B Baking)
-  (exists (?O)
-    (and
-      (instance ?O Oven)
-      (instrument ?B ?O))))
-
-(subclass BreadOrBiscuit PreparedFood)
-(documentation BreadOrBiscuit EnglishLanguage "Food that consists largely of grain flour
-and water.  Note that this class covers crackers, cookies, as well as any
-self-connected instance of bread, whether it is a loaf, a slice, a chunk
-of bread, etc.")
-
-(=>
-  (instance ?B BreadOrBiscuit)
-  (exists (?D ?BAKE)
-    (and
-      (instance ?D Dough)
-      (instance ?BAKE Baking)
-      (resource ?BAKE ?D)
-      (result ?BAKE ?B))))
-
-(subclass Sandwich PreparedFood)
-(documentation Sandwich EnglishLanguage "Any food which consists of two or more pieces
-of bread and some sort of filling between the two pieces of bread.")
-
-(=>
-  (instance ?S Sandwich)
-  (exists (?B1 ?B2 ?F)
-    (and
-      (instance ?B1 BreadOrBiscuit)
-      (instance ?B2 BreadOrBiscuit)
-      (instance ?F (FoodForFn Human))
-      (between ?B1 ?F ?B2)
-      (not (equal ?B1 ?B2))
-      (not (equal ?B1 ?F))
-      (not (equal ?B2 ?F))
-      (part ?B1 ?S)
-      (part ?B2 ?S)
-      (part ?F ?S))))
-
-(subclass Dough PreparedFood)
-(subclass Dough Mixture)
-(documentation Dough EnglishLanguage "A &%Mixture of &%Flour, &%Water, and possibly
-other ingredients (such as &%Butter and &%Salt), which is used in
-making &%BreadOrBiscuits.")
-
-(=>
-  (instance ?D Dough)
-  (exists (?F ?W)
-    (and
-      (instance ?F Flour)
-      (instance ?W Water)
-      (part ?F ?D)
-      (part ?W ?D))))
+;; Moved PreparedFood and related axioms to Food.kif JP 20230511
+;; Removed the class of LiquidFood and SolidFood JP 20230511
+;; Moved CookedAttribute and RawAttribute to Food.kif
+   
 
 (documentation Colloid EnglishLanguage "A &%Colloid is a &%Mixture in which 
 microscopically dispersed &%Insoluble particles, between 0.95 and 977 &%Nanometers in 
@@ -21624,37 +21549,8 @@ continuous &%Liquid medium. Examples of Sol includes &%Blood &%Paint.")
 (subclass SolMixture LiquidMixture)
 (subclass Blood SolMixture)
 
-(subclass CerealGrain Seed)
-(documentation CerealGrain EnglishLanguage "Any &%Seed which is produced by the cereal grasses,
-e.g. rice, corn, wheat, etc.")
-
-(subclass RiceGrain CerealGrain)
-(documentation RiceGrain EnglishLanguage "A &%CerealGrain which has short and long grain varieties
-and which is usually prepared for eating by steaming.")
-
-(subclass WheatGrain CerealGrain)
-(documentation WheatGrain EnglishLanguage "A long &%CerealGrain which is produced by certain grasses and
-which is used to make &%BreadOrBiscuits.")
-
-(subclass Pea Seed)
-(subclass Pea (FoodForFn Animal))
-(documentation Pea EnglishLanguage "The edible &%Seed of a pea plant.")
-
-(subclass Flour PreparedFood)
-(subclass Flour Powder)
-(documentation Flour EnglishLanguage "A &%Powder that is prepared from &%CerealGrain, e.g.
-wheat flour, rice flour, etc.  Flour is most often used in the making
-of &%BreadOrBiscuits.")
-
-(=>
-  (instance ?F Flour)
-  (exists (?P ?C)
-    (and
-      (instance ?P IntentionalProcess)
-      (resource ?P ?C)
-      (instance ?C CerealGrain)
-      (result ?P ?F))))
-
+;; Moved Flour to Food.kif JP 20230511
+      
 (subclass Honey AnimalSubstance)
 (subclass Honey (FoodForFn Animal))
 (documentation Honey EnglishLanguage "An edible, sweet &%Substance produced by some species of
@@ -21669,19 +21565,9 @@ of &%BreadOrBiscuits.")
       (instance ?B Bee)
       (result ?P ?H))))
 
-(subclass Coconut FruitOrVegetable)
-(subclass Coconut (FoodForFn Animal))
-(documentation Coconut EnglishLanguage "A &%FruitOrVegetable that is produced by a type of palm
-and has an edible white meat.")
-
 (subclass MaizeGrain CerealGrain)
 (documentation MaizeGrain EnglishLanguage "A &%CerealGrain which is found on long ears of a &%Plant
 native to the Americas.")
-
-(subclass SoupStock PreparedFood)
-(documentation SoupStock EnglishLanguage "Food which is prepared by reducing &%Meat
-and/or &%FruitOrVegetables to a translucent broth which can be used as
-a base for soups or sauces.")
 
 (subclass Caffeine Molecule)
 (subclass Caffeine Stimulant)
@@ -21701,26 +21587,6 @@ Caffeine also stimulates certain portions of the autonomic
 
 ;; JP 13Apr2023
 ;; Moved axioms for coffee to Economy.kif
-
-(subclass Apple Fruit)
-(subclass Apple (FoodForFn Animal))
-(documentation Apple EnglishLanguage "A &%FruitOrVegetable that has a tart to sweet taste and
-a spherical shape.")
-
-(subclass DateFruit Fruit)
-(subclass DateFruit (FoodForFn Animal))
-(documentation DateFruit EnglishLanguage "A &%FruitOrVegetable that is produced by the date
-palm.")
-
-(subclass PearFruit FruitOrVegetable)
-(subclass PearFruit (FoodForFn Animal))
-(documentation PearFruit EnglishLanguage "A &%FruitOrVegetable that has a thick skin and the
-shape of a tear drop.")
-
-(subclass Avocado FruitOrVegetable)
-(subclass Avocado (FoodForFn Animal))
-(documentation Avocado EnglishLanguage "A &%FruitOrVegetable that is shaped like a pear and
-has a dark green skin and a rich meat.")
 
 (subclass Ion PureSubstance)
 (documentation Ion EnglishLanguage "An electronically charged &%Atom or &%Molecule.  In
@@ -22707,10 +22573,10 @@ is a total ?NUMBER of &%members in the &%Collection ?ORG.")
 
 (instance memberType BinaryPredicate)
 (domain memberType 1 Collection)
-(domain memberType 2 SetOrClass)
+(domain memberType 2 Class)
 
 (documentation memberType EnglishLanguage "(&%memberType ?GROUP ?TYPE) means that all
-the members of the &%Collection ?GROUP belong to the &%SetOrClass
+the members of the &%Collection ?GROUP belong to the &%Class
 ?TYPE.")
 
 (=>
@@ -22721,7 +22587,7 @@ the members of the &%Collection ?GROUP belong to the &%SetOrClass
 
 (instance memberTypeCount TernaryPredicate)
 (domain memberTypeCount 1 Collection)
-(domain memberTypeCount 2 SetOrClass)
+(domain memberTypeCount 2 Class)
 (domain memberTypeCount 3 NonnegativeInteger)
 
 (documentation memberTypeCount EnglishLanguage
@@ -23804,23 +23670,6 @@ corresponding to &%part.")
       (instance ?PART ?C2)
       (holdsDuring (BeginFn (WhenFn ?WHOLE))
       (part ?PART ?WHOLE)))))
-
-(instance havePartTypes BinaryPredicate)
-(instance havePartTypes SpatialRelation)
-(domainSubclass havePartTypes 1 Object)
-(domainSubclass havePartTypes 2 Object)
-(relatedInternalConcept havePartTypes part)
-(documentation havePartTypes EnglishLanguage "(havePartTypes ?PART_TYPE ?WHOLE_TYPE) means that every instance of
-?WHOLE_TYPE has as &%parts an instance of ?PART_TYPE.")
-
-(=>
-  (and
-    (havePartTypes ?PART_TYPE ?WHOLETYPE)
-    (instance ?WHOLE ?WHOLETYPE))
-  (exists (?PART)
-    (and
-      (instance ?PART ?PART_TYPE)
-      (part ?PART ?WHOLE))))
 
 (instance partTypes BinaryPredicate)
 (domainSubclass partTypes 1 Object)
@@ -25457,30 +25306,8 @@ customers")
   (instance ?ROOM SelfServiceLaundry)
   (attribute ?ROOM CommunalAttribute))
 
-(subclass Microwave ElectricDevice)
-(documentation Microwave EnglishLanguage "&%Microwave is an &%ElectricDevice that heats
-food by passing an electromagnetic wave through it")
-(termFormat EnglishLanguage Microwave "microwave")
-
-(=>
-  (instance ?M Microwave)
-  (hasPurpose ?M
-    (exists (?FOOD ?HEATING)
-      (and
-        (instance ?FOOD PreparedFood)
-        (instance ?HEATING Heating)
-        (instrument ?HEATING ?M)
-        (patient ?HEATING ?FOOD)))))
-
-(=>
-  (and
-    (instance ?M Microwave)
-    (attribute ?M DeviceOn))
-  (exists (?PROC)
-    (and
-      (instance ?PROC RadiatingElectromagnetic)
-      (instrument ?PROC ?M))))
-
+;; Moved Microwave to Food.kif  20230511
+  
 (subclass SmokeDetector Device)
 (documentation SmokeDetector EnglishLanguage "&%SmokeDetector is a &%Device that is able
 to &%Discovering the presence of &%Smoke")
@@ -25614,20 +25441,7 @@ radiate sound when a certain time is set")
 that is also a &%RadioReceiver, meaning it can get &%RadioBroadcast from &%RadioStation")
 (termFormat EnglishLanguage AMFMAlarmClock "am / fm alarm clock")
 
-(subclass ElectricCoffeeMaker ElectricDevice)
-(documentation ElectricCoffeeMaker EnglishLanguage "&%ElectricCoffeeMaker is a
-&%Device that makes &%Coffee")
-(termFormat EnglishLanguage ElectricCoffeeMaker "coffee maker")
-
-(=>
-  (instance ?C ElectricCoffeeMaker)
-  (hasPurpose ?C
-    (exists (?COFFEE ?M)
-      (and
-        (instance ?M Making)
-        (instrument ?M ?C)
-        (result ?M ?COFFEE)
-        (instance ?COFFEE Coffee)))))
+;; Moved ElectricCoffeeMaker to Food.kif JP 20230511
 
 (instance Clean SubjectiveAssessmentAttribute)
 (documentation Clean EnglishLanguage "&%Clean describes how something is free from
@@ -25743,7 +25557,7 @@ is a result of &%Boiling it and diffusing it into the air")
     (exists (?HEAT ?WATER)
       (and
         (instance ?HEAT Heating)
-        (instance ?WATER Water)
+        (instance ?WATER FreshWater)
         (patient ?HEAT ?WATER)
         (instrument ?HEAT ?X)))))
 
@@ -26599,7 +26413,7 @@ that has greater than 10 &%BuildingLevel")
 
 (subclass Soaking Wetting)
 (documentation Soaking EnglishLanguage "&%Soaking refers to the process of &%Wetting
-wherein an &%Object is &%Surrounded by &%Water")
+wherein an &%Object is &%Surrounded by &%FreshWater")
 (termFormat EnglishLanguage Soaking "soaking")
 
 (=>
@@ -26608,7 +26422,7 @@ wherein an &%Object is &%Surrounded by &%Water")
     (and
       (instance ?OBJ Object)
       (patient ?SOAK ?OBJ)
-      (instance ?WATER Water)
+      (instance ?WATER FreshWater)
       (resource ?SOAK ?WATER)
       (holdsDuring ?SOAK
         (orientation ?OBJ ?WATER Surrounded)))))
@@ -26885,7 +26699,7 @@ with &%Steam in order to make people sweat")
 
 (subclass HeatedPool SwimmingPool)
 (documentation HeatedPool EnglishLanguage "&%HeatedPool is a type of &%SwimmingPool that
-has &%HotWaterHeater so that the &%Water in the pool is constantly kept at a certain 
+has &%HotWaterHeater so that the &%FreshWater in the pool is constantly kept at a certain 
 warm temperature")
 (termFormat EnglishLanguage HeatedPool "heated pool")
 
@@ -26893,7 +26707,7 @@ warm temperature")
   (and
     (instance ?X HeatedPool)
     (contains ?X ?WATER)
-    (instance ?WATER Water)
+    (instance ?WATER FreshWater)
     (part ?X ?HEATER)
     (instance ?HEATER WaterHeater)
     (attribute ?HEATER DeviceOn))
@@ -27018,30 +26832,8 @@ declares such")
   (exists (?PROP)
     (believes ?AGENT1
       (conforms ?AGENT2 ?PROP))))
-
-(subclass WetBar Artifact)
-(documentation WetBar EnglishLanguage "&%WetBar is a place for preparing food and 
-beverage that has a sink with running water")
-(termFormat EnglishLanguage WetBar "wet bar")
-
-(=>
-  (instance ?X WetBar)
-  (exists (?SINK ?OBJ)
-    (and
-      (instance ?SINK WashBasin)
-      (part ?SINK ?X)
-      (instance ?OBJ Object)
-      (attribute ?OBJ Flat)
-      (hasPurpose ?OBJ
-        (exists (?PREP ?FOOD)
-          (and
-            (instance ?PREP Making)
-            (result ?PREP ?FOOD)
-            (or
-              (instance ?FOOD PreparedFood)
-              (instance ?FOOD Beverage))
-            (eventLocated ?PREP ?OBJ))))
-      (part ?OBJ ?X))))
+      
+;; Moved WetBar to Food.kif JP 20230511
 
 (subclass SurveillanceSystem Collection)
 (documentation SurveillanceSystem EnglishLanguage "&%SurveillanceSystem is a &%Collection
@@ -30111,7 +29903,7 @@ a &%Quantity which &%refers to the &%Process &%Class.")
 (subclass BreakingRecord Process)
 ;;
 ;; Jennie 13th August 2022
-;; changed ?L from a class to an instant t match the requirement fo the second arguement of eventLocated
+;; changed ?L from a class to an instant to match the requirement fo the second arguement of eventLocated
 (=>
   (and
     (instance ?X BreakingRecord)
@@ -30119,7 +29911,7 @@ a &%Quantity which &%refers to the &%Process &%Class.")
   (exists (?AC ?PC ?P1 ?TP ?ROLE ?L ?Q)
     (and
       (instance ?AC Set)
-      (instance ?A1 ?AC)
+      (element ?A1 ?AC)
       (subclass ?PC Process)
       (instance ?L Region)
       (instance ?TP TimePoint)
@@ -30679,7 +30471,7 @@ They originated in the Andes, and earlier studies based on biochemistry and
 hybridization suggest they are domesticated descendants of a closely related
 species of cavy such as Cavia aperea, C. fulgida, or C. tschudii and, therefore,
 do not exist naturally in the wild. Recent studies applying molecular
-markers, in addition to studying the skull and skeletal morphology of
+markers, in addition to studying the &%Skull and skeletal morphology of
 current and mummified animals, revealed that the ancestor is most likely
 Cavia tschudii. [Wikipedia]")
 
@@ -30964,7 +30756,7 @@ at a particular price or cost.  The cost should include transport from
 the &%origin to the &%agent.")
 (termFormat EnglishLanguage shortage "shortage")
 (format EnglishLanguage shortage "there is a &%shortage of %5 of %2 for %1 at %3 during %4")
-(instance shortage QuintaryRelation)
+(instance shortage QuintaryPredicate)
 
 (domain shortage 1 AutonomousAgent)
 (domainSubclass shortage 2 Object)
@@ -31081,15 +30873,15 @@ the &%origin to the &%agent.")
 (termFormat EnglishLanguage MechanicalProductAttribute "mechanical")
 
 (instance memberMeasure TernaryPredicate)
-(documentation memberMeasure EnglishLanguage "A relation between a &%SetOrClass,
-a &%MeasureAttribute and a Quantity.  It states that all members of the set or class
+(documentation memberMeasure EnglishLanguage "A relation between a &%Class,
+a &%MeasureAttribute and a Quantity.  It states that all members of the class
 have the following measure.  Note that for classes this only applies to manufactured
 objects where a particular measurement can be engineering into the product.")
 
 (format EnglishLanguage memberMeasure "members of %1 have the measure
 %3 in terms of %2")
 
-(domain memberMeasure 1 SetOrClass)
+(domain memberMeasure 1 Class)
 (domain memberMeasure 2 MeasurementAttribute)
 (domain memberMeasure 3 Quantity)
 
@@ -31097,7 +30889,7 @@ objects where a particular measurement can be engineering into the product.")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (measure ?O ?Q))
 
 (=>
@@ -31146,7 +30938,7 @@ this is the measure of an &%Object along its longest span.")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (length ?O ?Q))
 
 (instance Width MeasurementAttribute)
@@ -31165,7 +30957,7 @@ side to side at its widest span.")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (width ?O ?Q))
 
 (instance Height MeasurementAttribute)
@@ -31177,7 +30969,7 @@ the height of an &%Object is the distance between its &%top and its &%bottom.")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (height ?O ?Q))
 
 (=>
@@ -31198,7 +30990,7 @@ Circumfrence of an &%Object is the length of the boundary of circle.")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (circumfrence ?O ?Q))
 
 (=>
@@ -31243,7 +31035,7 @@ point on the circle.")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (diameter ?O ?Q))
 
 (=>
@@ -31265,7 +31057,7 @@ point on the circle.")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (approximateDiameter ?O ?Q))
 
 (=>
@@ -31294,7 +31086,7 @@ its center and point on the circle.")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (totalArea ?O ?Q))
 
 (=>
@@ -31316,7 +31108,7 @@ transfrmer can pass on its receiving side (input).")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (voltageRatingPrimary ?O ?Q))
 
 (=>
@@ -31359,7 +31151,7 @@ can pass on its distributing side (output).")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (voltageRatingSecondary ?O ?Q))
 
 (=>
@@ -31402,7 +31194,7 @@ the number of time a %Process occurs in a unit of time (&%frequency).")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S)
+    (element ?O ?S)
     (instance ?P Process)
     (agent ?P ?O))
   (frequency Process ?Q))
@@ -31434,7 +31226,7 @@ power it can receive and distribute.")
   (and
     (memberMeasure ?S ?M ?Q)
     (instance ?S Set)
-    (member ?O ?S))
+    (element ?O ?S))
   (transformerCapacity ?O ?Q))
 
 (=>
@@ -31683,7 +31475,7 @@ must be consistent with that type specification.")
 (roomTempState Ethanol Liquid)
 (roomTempState Exhaust Gas)
 (roomTempState Freon12 Gas)
-(roomTempState Freshwater Liquid)
+(roomTempState FreshWater Liquid)
 (roomTempState GasMixture Gas)
 (roomTempState Gemstone Solid)
 (roomTempState GF Liquid)
@@ -31691,7 +31483,7 @@ must be consistent with that type specification.")
 (roomTempState Glue Liquid)
 (roomTempState Gravel Solid)
 (roomTempState GreenhouseGas Gas)
-(roomTempState Groundwater Liquid)
+(roomTempState GroundWater Liquid)
 (roomTempState GSeriesNerveAgent Liquid)
 (roomTempState GunPowder Solid)
 (roomTempState Hashish Gas)
@@ -31721,7 +31513,7 @@ must be consistent with that type specification.")
 (roomTempState PhosphoricAcid Liquid)
 (roomTempState Pill Solid)
 (roomTempState Plastic Solid)
-(roomTempState PotableWater Liquid)
+(roomTempState DrinkingWater Liquid)
 (roomTempState Potash Solid)
 (roomTempState ProtonPumpInhibitor Liquid)
 (roomTempState PyridostigmineBromide Liquid)

@@ -5,7 +5,7 @@
 
 ;; Authors Karen Nomorosa, Adam Pease
 
-;; Contact Adam Pease (adam.pease [at] reardencommerce [dot] com).
+;; Contact Adam Pease (apease [at] articulatesoftware [dot] com).
 ;; Original date: April, 2011
 ;; We ask that people using or referencing this work cite our primary paper:
 
@@ -14,21 +14,38 @@
 ;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds, 
 ;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
 
-(instance CookedAttribute RelationalAttribute)
+(subclass PreparedFoodAttribute RelationalAttribute)
+(documentation PreparedFoodAttribute EnglishLanguage "&%PreparedFoodAttribute is a &%Class of 
+&%RelationalAttributes which describe the status in the food it is related. Members 
+of this class include if the food is cooked or raw, cured/fermented, caffineated or 
+decaf etc..")
+(termFormat EnglishLanguage PreparedFoodAttribute "prepared food attribute")
+
+(=>
+  (and
+    (instance ?A PreparedFoodAttribute)
+    (attribute ?F ?A))
+   (instance ?F Food))
+
+(instance CookedAttribute PreparedFoodAttribute)
+(relatedInternalConcept CookedAttribute RawAttribute)
 (documentation CookedAttribute EnglishLanguage "&%CookedAttribute describes how something
-is a product of &%Heating.")
+is a product of &%Cooking and &%Heating.")
 (termFormat EnglishLanguage CookedAttribute "cooked")
+
 
 (=>
   (attribute ?FOOD CookedAttribute)
-  (exists (?PROC)
+  (exists (?PROC1 ?PROC2)
     (and
-      (instance ?PROC Heating)
-      (result ?PROC ?FOOD))))
-      
-(instance RawAttribute RelationalAttribute)
-(documentation RawAttribute EnglishLanguage "&%RawAttribute describes how cooking was
-not involved in the making of something")
+      (instance ?PROC1 Cooking)
+      (instance ?PROC2 Heating)
+      (subProcess ?PROC2 ?PROC1)
+      (result ?PROC1 ?FOOD))))
+                
+(instance RawAttribute PreparedFoodAttribute)
+(documentation RawAttribute EnglishLanguage "&%RawAttribute describes how heating was
+not involved in the making of something.")
 (termFormat EnglishLanguage RawAttribute "raw")
 
 (=>
@@ -42,7 +59,1591 @@ not involved in the making of something")
       (and
         (instance ?PROC Heating)
         (result ?PROC ?FOOD)))))
+
+(instance CuredAttribute PreparedFoodAttribute)
+(relatedInternalConcept CuredAttribute FermentedAttribute)
+(relatedInternalConcept CuredAttribute RawAttribute)
+(documentation CuredAttribute EnglishLanguage "&%CuredAttribute describes how curing is
+involved in preserving &%Food.")
+(termFormat EnglishLanguage CuredAttribute "cured")
+
+(=>
+  (attribute ?F CuredAttribute)
+  (exists (?C)
+    (and
+      (instance ?C CuringFood)
+      (result ?C ?F))))
+
+(subclass CuringFood Drying)
+(subclass CuringFood PreservingFood)
+(documentation CuringFood EnglishLanguage "&%CuringFood is the class of Process where &%Food is
+preserved drawing out its water content by adding salt. Many curing processes invlove smoking, Spicing 
+and cooking, or adding a combination of &%Sugar, Nitrites and Nitrates.[Wikipedia]")
+(termFormat EnglishLanguage CuringFood "curing food")
+          
+(=>
+  (instance ?C CuringFood)
+  (exists (?F ?P ?S)
+    (and
+      (instance ?F Food)
+      (patient ?C ?F)
+      (instance ?P Putting)
+      (subProcess ?P ?C)
+      (instance ?S SodiumChloride)
+      (patient ?P ?S)
+      (destination ?P ?F))))
       
+(=>
+  (and
+    (instance ?C CuringFood)
+    (instance ?F Food)
+    (patient ?C ?F))
+  (exists (?D)
+    (and
+      (instance ?D Drying)
+      (subProcess ?D ?C)
+      (patient ?D ?F))))
+
+(instance DryRoastAttribute PreparedFoodAttribute)
+(relatedInternalConcept DryRoastAttribute CoffeeRoastAttribute)
+(relatedInternalConcept DryRoastAttribute CoffeeGrindAttribute)
+(documentation DryRoastAttribute EnglishLanguage "&%DryRoastAttribute describes how &%DryRoasting is
+involved in preparing &%Food.")
+(termFormat EnglishLanguage DryRoastAttribute "dry roast")
+
+(=>
+  (attribute ?F DryRoastAttribute)
+  (exists (?X)
+    (and
+      (instance ?X DryRoasting)
+      (result ?X ?F))))
+      
+(subclass DryRoasting Cooking)
+(subclass DryRoasting Heating)
+(documentation DryRoasting EnglishLanguage "&%DryRoasting is a process 
+by which heat is applied to dry foodstuffs without the use of &%Oil or &%DrinkingWater as a carrier. 
+Dry-roasted foods are stirred as they are roasted to ensure even &%Heating.[Wikipedia]")
+(termFormat EnglishLanguage DryRoasting "dry roasting") 
+
+(=>
+  (and
+    (instance ?X DryRoasting)
+    (instance ?F Food)
+    (patient ?X ?F))
+  (holdsDuring ?X
+    (exists (?H ?S)
+      (and
+        (instance ?H Heating)
+        (instance ?S Stirring)
+        (subProcess ?H ?X)
+        (subProcess ?S ?X)
+        (during
+          (WhenFn ?S)
+          (WhenFn ?H))
+        (patient ?H ?F)
+        (patient ?S ?F)
+        (not
+          (exists (?O ?W)
+            (and
+              (instance ?O Oil)
+              (instance ?W DrinkingWater)
+              (patient ?X ?O)
+              (patient ?X ?W))))))))
+
+(instance HulledAttribute PreparedFoodAttribute)
+(relatedInternalConcept HulledAttribute FermentedAttribute)
+(relatedInternalConcept HulledAttribute RawAttribute)
+(documentation HulledAttribute EnglishLanguage "&%HulledAttribute describes how &%Hulling is
+involved in preparing &%Food.")
+(termFormat EnglishLanguage DryRoastAttribute "hulled")
+
+(=>
+  (attribute ?F HulledAttribute)
+  (exists (?X)
+    (and
+      (instance ?X Hulling)
+      (result ?X ?F))))     
+           
+(subclass Hulling Cooking)
+(subclass Hulling Peeling)
+(documentation Hulling EnglishLanguage "&%Hulling is a process by which the outer 
+covering of a fruit or seed, especially the pod of peas and beans, or the 
+husk of grain is removed.[Wikipedia]")
+(termFormat EnglishLanguage Hulling "hulling") 
+
+(=>
+  (and
+    (instance ?H Hulling)
+    (patient ?H ?O))
+  (or
+    (instance ?O Seed)
+    (instance ?O Fruit)))  
+                                  
+;; Maybe add the definitions for Nitrites and Nitrates
+
+(subclass PreservingFood Keeping)
+(relatedInternalConcept PreservingFood Freezing)
+(documentation PreservingFood EnglishLanguage "&%PreservingFood is the class of Process where &%Food
+is prevented from &%ChemicalDecomposition. Some methods of preserving food are &%CuringFood, smoking
+and &%Freezing")
+(termFormat EnglishLanguage PreservingFood "preserving food")
+
+(=>
+  (and
+    (instance ?P PreservingFood)
+    (instance ?F Food)
+    (patient ?P ?F))
+  (hasPurpose ?P
+    (not
+      (exists (?D)
+        (and
+          (instance ?D ChemicalDecomposition)
+          (patient ?D ?F))))))
+
+(subclass Fermentation PreservingFood)
+          
+(instance FermentedAttribute PreparedFoodAttribute)
+(relatedInternalConcept FermentedAttribute RawAttribute)
+(documentation FermentedAttribute EnglishLanguage "&%FermentedAttribute describes how &%Fermentation is
+involved in the making of something.")
+(termFormat EnglishLanguage FermentedAttribute "fermented")
+
+(=>
+  (attribute ?FOOD FermentedAttribute)
+  (exists (?F)
+    (and
+      (instance ?F Fermentation)
+      (result ?F ?FOOD))))
+
+(subclass DrinkingWater PreparedFood)     
+(names "potable water" DrinkingWater)     
+         
+(subclass SparklingWater DrinkingWater)
+(documentation SparklingWater EnglishLanguage "&%SparklingWater is the class of &%DrinkingWater made
+with added carbon dioxide gas.")
+(termFormat EnglishLanguage SparklingWater "sparkling water")
+
+(=>
+  (instance ?S SparklingWater)
+  (exists (?P ?W ?CD)
+    (and
+      (instance ?P Putting)
+      (instance ?W DrinkingWater)
+      (destination ?P ?CD)
+      (instance ?CD CarbonDioxide)
+      (result ?P ?S)
+      (part ?CD ?S))))
+
+(subclass PurifiedWater Water)
+(relatedInternalConcept PurifiedWater DrinkingWater)
+(documentation PurifiedWater EnglishLanguage "&%PurifiedWater is &%Water 
+that has been mechanically filtered or processed to 
+remove impurities and make it suitable for use. Distilled water was, formerly, 
+the most common form of purified water, but, in recent years, water is more 
+frequently purified by other processes including capacitive deionization, 
+reverse osmosis, carbon filtering, microfiltration, ultrafiltration, ultraviolet 
+oxidation, or electrodeionization.[Wikipedia]")
+(termFormat EnglishLanguage PurifiedWater "purified water")
+
+(=>
+  (instance ?PW PurifiedWater)
+  (exists (?R ?W ?S)
+    (and
+      (instance ?R Removing)
+      (origin ?R ?W)
+      (instance ?W Water)
+      (patient ?R ?S)
+      (instance ?S Substance)
+      (part ?S ?W)
+      (result ?R ?PW))))
+      
+(=>
+  (instance ?PW PurifiedWater)
+  (not
+    (exists (?S)
+      (and
+        (part ?S ?PW)
+        (instance ?S Substance)))))    
+      
+(subclass TapWater FreshWater)
+(relatedInternalConcept TapWater DrinkingWater)
+(documentation TapWater EnglishLanguage "&%TapWater is &%Water from the tap. It is mostly safe 
+to be consumed by &%Human in some advanced countries, but it may also contain harmful substance,
+such as lead which are bad for human health. It is this reason that it is not classfified under
+&%DrinkingWater.")
+(termFormat EnglishLanguage TapWater "tap water")
+
+(=>
+  (instance ?TW TapWater)
+  (exists (?LM ?F)
+    (and
+      (instance ?LM WaterMotion)                
+      (patient ?LM ?TW)
+      (origin ?LM ?F)
+      (instance ?F Faucet))))
+      
+(=>
+  (instance ?TW TapWater)
+  (modalAttribute
+    (instance ?TW
+      (FoodForFn Human)) Likely))
+ 
+(subclass Meat Food)
+(disjoint Meat FoodFromPlant)
+  
+(subclass FoodFromPlant Food)
+(documentation FoodFromPlant EnglishLanguage "&%FoodFromPlant is the class of &%Food which are derived 
+from the whole or &%part of &%Plants.")
+(termFormat EnglishLanguage FoodFromPlant "food from plant")
+
+(=>
+  (instance ?X FoodFromPlant)
+  (exists (?P ?CLASS)
+    (and
+      (instance ?P 
+        (DeadFn ?CLASS))
+      (part ?X ?P)
+      (subclass ?CLASS Plant))))
+
+(subclass PreparedFood Food)
+(subclass PreparedFood Mixture)
+(documentation PreparedFood EnglishLanguage "&%PreparedFood refers to anything that
+undergoes some process intended to result in an object that has &%Nutrient which can be
+ingested by &%Human, normally metabolized into energy and body tissue.")
+(termFormat EnglishLanguage PreparedFood "food")
+
+(=>
+  (instance ?X PreparedFood)
+  (instance ?X (FoodForFn Human)))
+
+(=>
+  (instance ?X PreparedFood)
+  (exists (?PROC)
+    (and
+      (instance ?PROC IntentionalProcess)
+      (result ?PROC ?X))))
+
+(subclass WetBar Artifact)
+(documentation WetBar EnglishLanguage "&%WetBar is a place for preparing food and 
+beverage that has a sink with running water")
+(termFormat EnglishLanguage WetBar "wet bar")
+
+(=>
+  (instance ?X WetBar)
+  (exists (?SINK ?OBJ)
+    (and
+      (instance ?SINK WashBasin)
+      (part ?SINK ?X)
+      (instance ?OBJ Object)
+      (attribute ?OBJ Flat)
+      (hasPurpose ?OBJ
+        (exists (?PREP ?FOOD)
+          (and
+            (instance ?PREP Making)
+            (result ?PREP ?FOOD)
+            (or
+              (instance ?FOOD PreparedFood)
+              (instance ?FOOD Beverage))
+            (eventLocated ?PREP ?OBJ))))
+      (part ?OBJ ?X))))
+      
+(subclass Microwave ElectricDevice)
+(documentation Microwave EnglishLanguage "&%Microwave is an &%ElectricDevice that heats
+food by passing an electromagnetic wave through it")
+(termFormat EnglishLanguage Microwave "microwave")
+
+(=>
+  (instance ?M Microwave)
+  (hasPurpose ?M
+    (exists (?FOOD ?HEATING)
+      (and
+        (instance ?FOOD PreparedFood)
+        (instance ?HEATING Heating)
+        (instrument ?HEATING ?M)
+        (patient ?HEATING ?FOOD)))))
+
+(=>
+  (and
+    (instance ?M Microwave)
+    (attribute ?M DeviceOn))
+  (exists (?PROC)
+    (and
+      (instance ?PROC RadiatingElectromagnetic)
+      (instrument ?PROC ?M))))
+
+(subclass ElectricCoffeeMaker ElectricDevice)
+(documentation ElectricCoffeeMaker EnglishLanguage "&%ElectricCoffeeMaker is a
+&%Device that makes &%Coffee")
+(termFormat EnglishLanguage ElectricCoffeeMaker "coffee maker")
+
+(=>
+  (instance ?C ElectricCoffeeMaker)
+  (hasPurpose ?C
+    (exists (?COFFEE ?M)
+      (and
+        (instance ?M CoffeeMaking)
+        (instrument ?M ?C)
+        (result ?M ?COFFEE)
+        (instance ?COFFEE Coffee)))))
+        
+(subclass Beverage PreparedFood)
+(subclass Beverage Colloid)
+(disjoint Meat Beverage)
+(documentation Beverage EnglishLanguage "Any food, excluding water that is ingested by &%Drinking.
+Note that this class is disjoint &%Meat and &%FruitOrVegetable.")
+
+(=>
+   (instance ?BEV Beverage)
+   (attribute ?BEV Liquid))
+
+(=>
+   (and
+      (instance ?DRINK Drinking)
+      (patient ?DRINK ?BEV))
+   (instance ?BEV Beverage))
+
+(instance CaffeinatedAttribute PreparedFoodAttribute)
+(relatedInternalConcept CaffeinatedAttribute DecafAttribute)
+(documentation CaffeinatedAttribute EnglishLanguage "&%CaffeinatedAttribute describes
+a food that contains &%Caffeine.")
+(termFormat EnglishLanguage CaffeinatedAttribute "caffeinated")
+
+(=>
+  (and
+    (instance ?F Food)
+    (attribute ?F CaffeinatedAttribute))
+  (exists (?CAF)
+    (and
+      (instance ?CAF Caffeine)
+      (piece ?CAF ?F))))
+
+(instance DecafAttribute PreparedFoodAttribute)
+(documentation DecafAttribute EnglishLanguage "&%DecafAttribute describes
+a naturally caffeinated food which has its &%Caffeine removed.")
+(termFormat EnglishLanguage DecafAttribute "decaf")
+
+(=>
+  (and
+    (instance ?F Food)
+    (attribute ?F DecafAttribute)
+    (piece ?C ?F)
+    (instance ?C Caffeine))  
+  (exists (?R)
+    (and
+      (instance ?R Removing)
+      (destination ?R ?F)
+      (patient ?R ?C))))
+      
+(=>
+  (and
+    (attribute ?F DecafAttribute)
+    (instance ?F Food))
+  (not
+    (exists (?C)
+      (and
+        (instance ?C Caffeine)
+        (piece ?C ?F)))))
+
+(subclass CoffeeRoastAttribute RelationalAttribute)
+(relatedInternalConcept CoffeeRoastAttribute CoffeeGrindAttribute)
+(documentation CoffeeRoastAttribute EnglishLanguage "&%CoffeeRoastAttribute is a &%Class of 
+&%RelationalAttribute used to describe the degree of &%Heating the &%CoffeeBeans are subjected
+to.")
+(termFormat EnglishLanguage CoffeeRoastAttribute "coffee roast attribute")
+
+(=>
+  (and
+    (instance ?C CoffeeBean)
+    (attribute ?C ?R))
+  (instance ?R CoffeeRoastAttribute))
+  
+(instance roastedToTemperature BinaryRelation)
+(documentation roastedToTemperature EnglishLanguage "&%roastedToTemperature is a &%BinaryRelation 
+linking the temperature in Celsius of the &%Object that are roasted to.")
+(termFormat EnglishLanguage roastedToTemperature "roasted to temperature")
+(domain roastedToTemperature 1 Food)
+(domain roastedToTemperature 2 RealNumber)
+(format EnglishLanguage roastedToTemperature "%2 is the temperature at which %1 is roasted to")
+
+(=>
+  (and
+    (instance ?B Object)
+    (roastedToTemperature ?B ?T))
+  (exists (?H)
+    (and
+      (instance ?H Heating)
+      (patient ?H ?B)
+      (holdsDuring
+        (EndFn (WhenFn ?H))
+        (measure ?B (MeasureFn ?T CelsiusDegree))))))      
+(=>
+  (and
+    (roastedToTemperature ?B ?T)
+    (instance ?B CoffeeBean)
+    (instance ?T RealNumber))
+  (modalAttribute
+    (exists (?R)
+      (and
+        (instance ?R DryRoasting)
+        (patient ?R ?B))) Likely))
+          
+(instance LightRoast CoffeeRoastAttribute)
+(documentation LightRoast EnglishLanguage "&%LightRoast are &%CoffeeBeans that are 
+roasted to between 196°C (385°F) and 205°C (401°F). [Wikipedia]")
+(termFormat EnglishLanguage LightRoast "light roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B LightRoast)
+    (roastedToTemperature ?B ?T))
+  (and
+    (greaterThanOrEqualTo ?T 196)
+    (lessThanOrEqualTo ?T 205)))
+
+(instance CinnamonRoast CoffeeRoastAttribute)
+(documentation CinnamonRoast EnglishLanguage "&%CinnamonRoast are &%CoffeeBeans that are 
+roasted to around 196°C (385°F). [Wikipedia]")
+(termFormat EnglishLanguage CinnamonRoast "cinnamon roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B CinnamonRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 196))
+        
+(instance NewEnglandRoast CoffeeRoastAttribute)
+(documentation NewEnglandRoast EnglishLanguage "&%NewEnglandRoast are &%CoffeeBeans that are 
+roasted to around 205°C (401°F). [Wikipedia]")
+(termFormat EnglishLanguage NewEnglandRoast "New England roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B NewEnglandRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 205))
+
+(instance MediumRoast CoffeeRoastAttribute)
+(documentation MediumRoast EnglishLanguage "&%MeidumRoast are &%CoffeeBeans that are 
+roasted to between 210°C (410°F) and 219°C (426°F). [Wikipedia]")
+(termFormat EnglishLanguage MediumRoast "medium roast")
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B MediumRoast)
+    (roastedToTemperature ?B ?T))
+  (and
+    (greaterThanOrEqualTo ?T 210)
+    (lessThanOrEqualTo ?T 219)))
+
+(instance AmericanRoast CoffeeRoastAttribute)
+(documentation AmericanRoast EnglishLanguage "&%AmericanRoast are &%CoffeeBeans that are 
+roasted to around 210°C (410°F). [Wikipedia]")
+(termFormat EnglishLanguage AmericanRoast "American roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B AmericanRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 210))
+
+(instance CityRoast CoffeeRoastAttribute)
+(documentation CityRoast EnglishLanguage "&%CityRoast are &%CoffeeBeans that are 
+roasted to around 219°C (426°F). [Wikipedia]")
+(termFormat EnglishLanguage CityRoast "city roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B CityRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 219))
+
+(instance DarkRoast CoffeeRoastAttribute)
+(documentation DarkRoast EnglishLanguage "&%DarkRoast are &%CoffeeBeans that are 
+roasted to between 225°C (437°F) and 245°C (473°F). [Wikipedia]")
+(termFormat EnglishLanguage DarkRoast "dark roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B DarkRoast)
+    (roastedToTemperature ?B ?T))
+  (and
+    (greaterThanOrEqualTo ?T 225)
+    (lessThanOrEqualTo ?T 245)))
+
+(instance FullyCityRoast CoffeeRoastAttribute)
+(documentation FullyCityRoast EnglishLanguage "&%FullyCityRoast are &%CoffeeBeans that are 
+roasted to around 225°C (437°F). [Wikipedia]")
+(termFormat EnglishLanguage FullyCityRoast "full city roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B FullyCityRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 225))
+
+(instance ViennaRoast CoffeeRoastAttribute)
+(documentation ViennaRoast EnglishLanguage "&%ViennaRoast are &%CoffeeBeans that are 
+roasted to around 230°C (446°F). [Wikipedia]")
+(termFormat EnglishLanguage ViennaRoast "Vienna roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B ViennaRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 230))
+
+(instance FrenchRoast CoffeeRoastAttribute)
+(documentation FrenchRoast EnglishLanguage "&%FrenchRoast are &%CoffeeBeans that are 
+roasted to around 240°C (464°F). [Wikipedia]")
+(termFormat EnglishLanguage FrenchRoast "French roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B FrenchRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 240))
+
+(instance ItalianRoast CoffeeRoastAttribute)
+(documentation ItalianRoast EnglishLanguage "&%ItalianRoast are &%CoffeeBeans that are 
+roasted to around 245°C (473°F). [Wikipedia]")
+(termFormat EnglishLanguage ItalianRoast "Italian roast") 
+
+(=>
+  (and
+    (instance ?B CoffeeBean)
+    (attribute ?B ItalianRoast)
+    (roastedToTemperature ?B ?T))
+  (approximateValue ?T 245))
+
+(subclass Coffee Beverage)
+(roomTempState Coffee Liquid)
+(relatedInternalConcept Coffee CoffeeGrindAttribute)
+(relatedInternalConcept Coffee CoffeeRoastAttribute)
+(documentation Coffee EnglishLanguage "A &%Beverage which is prepared by infusing ground,
+roasted coffee beans into water.")
+(initialPart Coffee CoffeeBean)
+(typicallyContainsPart Caffeine Coffee)
+ 
+(=>
+  (instance ?C Coffee)
+  (attribute ?C CaffeinatedAttribute))
+    
+(=>
+  (instance ?C Coffee)
+  (material DrinkingWater ?C))
+  
+(=>
+  (subclass ?CLASS Coffee)
+  (initialPart CoffeeBean ?CLASS))
+
+(subclass CoffeeMaking Cooking)
+(subclass CoffeeMaking Soaking)
+(subclass CoffeeMaking LiquidMotion)
+(documentation CoffeeMaking EnglishLanguage "&%CoffeeMaking is a &%Class of &%Coffee 
+brewing methods,usually &%CoffeeGrind is steeped in hot water, then filtered out, 
+producing the coffee to be served.[Wikipedia].")
+(termFormat EnglishLanguage CoffeeMaking "coffee making")   
+
+(=> 
+  (instance ?CM CoffeeMaking)
+  (exists (?C)
+    (and
+      (instance ?C Coffee)
+      (result ?CM ?C))))
+      
+(=>
+  (instance ?CM CoffeeMaking)
+  (exists (?LM ?W ?CG)
+    (and
+      (subProcess ?LM ?CM)
+      (instance ?LM LiquidMotion)
+      (patient ?LM ?W)
+      (instance ?W DrinkingWater)
+      (destination ?LM ?CG)
+      (instance ?CG CoffeeGrind))))
+
+(=>
+  (instance ?CM CoffeeMaking)
+  (exists (?S ?W ?CG)
+    (and      
+      (subProcess ?S ?CM)
+      (instance ?S Soaking)
+      (resource ?S ?W)
+      (instance ?W DrinkingWater)
+      (patient ?S ?CG)
+      (instance ?CG CoffeeGrind))))
+
+(=>
+  (instance ?CM CoffeeMaking)
+  (exists (?R ?LM ?CG ?W ?F ?C)
+    (and
+      (subProcess ?R ?CM)
+      (instance ?R Removing)
+      (origin ?R ?LM)
+      (instance ?LM LiquidMixture)
+      (part ?W ?LM)
+      (instance ?W DrinkingWater)
+      (part ?CG ?LM)
+      (instance ?CG CoffeeGrind)
+      (instrument ?R ?F)
+      (instance ?F Filter)
+      (result ?R ?C)
+      (instance ?C Coffee))))
+      
+(=>
+  (instance ?CM CoffeeMaking)
+  (holdsDuring ?CM
+    (exists (?LM ?S ?R)
+      (and
+        (instance ?LM LiquidMotion)
+        (instance ?S Soaking)
+        (instance ?R Removing)
+        (before
+          (BeginFn (WhenFn ?LM))
+          (BeginFn (WhenFn ?S)))
+        (before
+          (BeginFn (WhenFn ?S))
+          (BeginFn (WhenFn ?R)))))))           
+
+(instance optimalGrindSizeForMakingCoffee BinaryRelation)
+(relatedInternalConcept optimalGrindSizeForMakingCoffee roastedToTemperature)
+(documentation EnglishLanguage optimalGrindSizeForMakingCoffee "&%optimalGrindSizeForMakingCoffee
+is a &%BinaryRelation which states the optimal size of the &%CoffeeGrind for the a
+particular kind of &%CoffeeMaking process.")
+(domainSubclass optimalGrindSizeForMakingCoffee 1 CoffeeMaking)
+(domain optimalGrindSizeForMakingCoffee 2 CoffeeGrindAttribute)
+(termFormat EnglishLanguage optimalGrindSizeForMakingCoffee "optimal grind size for making coffee")
+(format EnglishLanguage optimalGrindSizeForMakingCoffee "%2 is the optimal &%CoffeeGrindAttribute for %1 coffee making process")
+
+(=>
+  (optimalGrindSizeForMakingCoffee ?CLASS ?A)
+  (exists (?CM ?COLL ?C)
+    (and
+      (instance ?CM ?CLASS)
+      (patient ?CM ?COLL)
+      (instance ?COLL Collection)
+      (member ?C ?COLL)
+      (instance ?C CoffeeGrind)
+      (attribute ?C ?A))))
+      
+(subclass Espresso Coffee)
+(documentation Espresso EnglishLanguage "An &%Espresso is the result of &%EspressoMaking. 
+A single shot of espresso usually contains approximately 25-30 ml of &%DrinkingWater. &%DarkRoast
+&%CoffeeBeans are usually used for making espresso coffee. Espresso is served on its own, 
+and is also used as the base for various other coffee drinks, including caffè latte, 
+cappuccino, caffè macchiato, caffè mocha, flat white, and caffè Americano.[Wikipedia]")
+(termFormat EnglishLanguage Espresso "espresso")
+
+(=>
+  (instance ?E Espresso)
+  (exists (?M)
+    (and
+      (instance ?M EspressoMaking)
+      (result ?M ?E))))
+
+(=>
+  (instance ?E Espresso)
+  (exists (?W ?V)
+    (and
+      (instance ?W DrinkingWater)
+      (part ?W ?E)
+      (measure ?W
+        (MeasureFn ?V Liter))
+      (approximateValue ?V 0.03))))
+
+(subclass Lungo Coffee)
+(documentation Lungo EnglishLanguage "An &%Lungo is the result of &%EspressoMaking.
+It is an expresso with twice as much as water.[Wikipedia]")
+(termFormat EnglishLanguage Espresso "lungo")
+(names "café allongé" Lungo)
+
+(=>
+  (instance ?L Lungo)
+  (exists (?E ?V)
+    (and
+      (instance ?E Espresso)
+      (part ?E ?L)
+      (measure ?E
+        (MeasureFn ?V Liter))
+      (instance ?V RealNumber)
+      (measure ?L
+        (MeasureFn
+          (MultiplicationFn ?V 2) Liter)))))
+                  
+(subclass EspressoMaking CoffeeMaking)
+(subclass EspressoMaking Heating)
+(documentation EspressoMaking EnglishLanguage "An &%EspressoMaking is a 
+&%ubclass of &%CoffeeMaking, a &%Coffee brewing method of which approximately 
+25-30 ml of &%DrinkingWater at abour 90 degree centigrate is forced under 900-1,000 kPa 
+of pressure through finely ground (&%FineGrind) &%CoffeeGrind.[Wikipedia]")
+(termFormat EnglishLanguage EspressoMaking "espresso making") 
+(optimalGrindSizeForMakingCoffee EspressoMaking FineGrind)
+
+(=>
+  (instance ?EM EspressoMaking)
+  (exists (?C)
+    (and
+      (result ?EM ?C)
+      (instance ?C Coffee))))
+
+(=>
+  (instance ?EM EspressoMaking)
+  (holdsDuring ?EM
+    (exists (?H ?W ?V ?T ?LM ?P ?COLL ?K ?CG ?F ?R)
+      (and
+        (instance ?H Heating)
+        (patient ?H ?W)
+        (measure ?W (MeasureFn ?V Liter))
+        (approximateValue ?V 0.03)
+        (holdsDuring 
+          (EndFn (WhenFn ?H))
+          (and
+            (measure ?W (MeasureFn ?T CelsiusDegree))
+            (approximateValue ?T 90)))
+        (instance ?LM LiquidMotion)
+        (patient ?LM ?W)
+        (holdsDuring ?LM
+          (and
+            (measure ?W (MeasureFn ?P (KiloFn Pascal)))
+            (approximateValue ?P 900)))
+        (destination ?LM ?COLL)
+        (instance ?COLL Collection)
+        (measure ?COLL (MeasureFn ?K Gram))
+        (approximateValue ?K 7.5)
+        (member ?COLL ?CG)
+        (instance ?CG CoffeeGrind)
+        (attribute ?CG FineGrind)
+        (located ?COLL ?F)
+        (instance ?F Filter)
+        (instance ?R Removing)
+        (instrument ?R ?F)
+        (patient ?R ?COLL)
+        (temporallyBetween
+          (EndFn (WhenFn ?H))
+          (EndFn (WhenFn ?LM))
+          (EndFn (WhenFn ?R)))))))
+
+(subclass ColdBrewingCoffee CoffeeMaking)
+(documentation EnglishLanguage ColdBrewingCoffee "&%ColdBrewingCoffee, also 
+called cold water extraction or cold pressing, is the process of steeping 
+coffee grounds in water at cool temperatures for an extended period. 
+Coarse-ground beans are soaked in water for about 12 to 24 hours. [Wikipedia]")
+(termFormat EnglishLanguage ColdBrewingCoffee "cold brew coffee")
+(optimalGrindSizeForMakingCoffee ColdBrewingCoffee ExtraCoarseGrind)
+
+(=>
+  (instance ?C ColdBrewingCoffee)
+  (exists (?W)
+    (and
+      (instance ?W DrinkingWater)
+      (resource ?C ?W)
+      (measure ?W
+        (MeasureFn 20 CelsiusDegree)))))
+    
+(subclass FrenchPressingCoffee CoffeeMaking)
+(documentation EnglishLanguage FrenchPressingCoffee "&%FrenchPressingCoffee 
+uses a coffee plunger to brew coffee.Plunging slowly prevents accidental 
+scalding of brewer and is purported to maximize the extraction of the oils 
+and flavonoids from the ground bean. The earliest known device was patented 
+in 1852 in France by Jacques-Victor Delforge and Henri-Otto Mayer.[Wikipedia]")
+(termFormat EnglishLanguage FrenchPressingCoffee "French press coffee")
+(optimalGrindSizeForMakingCoffee FrenchPressingCoffee CoarseGrind)
+
+(=>
+  (instance ?X FrenchPressingCoffee)
+  (exists (?W)
+    (and
+      (instance ?W DrinkingWater)
+      (resource ?W ?X)
+      (measure ?W
+        (MeasureFn 90 CelsiusDegree)))))
+      
+(subclass FrenchPressPot PotOrPan)
+(documentation EnglishLanguage FrenchPressPot "&%FrenchPressPot is
+a coffee plunger to brew coffee.The earliest known device was patented 
+in 1852 in France by Jacques-Victor Delforge and Henri-Otto Mayer.[Wikipedia]")
+(termFormat EnglishLanguage FrenchPressPot "French press")
+
+(=>
+  (instance ?X FrenchPressPot)
+  (hasPurpose ?X
+    (exists (?CM)
+      (and
+        (instance ?CM FrenchPressingCoffee)
+        (instrument ?CM ?X)))))
+
+(subclass DrippingCoffee CoffeeMaking)
+(documentation DrippingCoffee EnglishLanguage "&%DrippingCoffee is pouring
+hot water onto ground coffee beans, allowing it to brew. &%DrinkingWater seeps through 
+the ground coffee, absorbing its constituent chemical compounds, and then 
+passes through a filter. The used coffee grounds are retained in the filter, 
+while the brewed coffee is collected in a vessel such as a carafe or pot.
+[wikipedia]")                                                                                                                                                                                                       
+(termFormat EnglishLanguage DrippingCoffee "dripping coffee")
+(optimalGrindSizeForMakingCoffee DrippingCoffee MediumGrind)
+
+(subclass PouringOverCoffee DrippingCoffee)
+(documentation EnglishLanguage PouringOverCoffee "Manually brewed drip coffee is typically 
+referred to as &%PouringOverCoffee. [Wikipedia]")
+(termFormat EnglishLanguage PouringOverCoffee "pour over coffee")
+(optimalGrindSizeForMakingCoffee PouringOverCoffee MediumGrind)
+
+(subclass AeropressingCoffee CoffeeMaking)
+(documentation EnglishLanguage AeropressingCoffee "&%AeropressingCoffee is making coffee 
+using an AeroPress, a manual coffeemaker invented by Alan Adler. [Wikipedia]")
+(termFormat EnglishLanguage AeropressingCoffee "aeropress coffee")
+(optimalGrindSizeForMakingCoffee AeropressingCoffee MediumFineGrind)
+
+(subclass Aeropress PotOrPan)
+(documentation EnglishLanguage Aeropress "&%Aeropress is
+a manual coffeemaker invented by Alan Adler. It consists of a cylindrical 
+chamber, and a plunger with an airtight silicone seal, similar to a syringe. Ground coffee beans 
+and water are steeped inside, then forced through a filter by pressing the plunger 
+through the chamber. [Wikipedia]")
+(termFormat EnglishLanguage Aeropress "Aeropress")
+
+(=>
+  (instance ?X Aeropress)
+  (hasPurpose ?X
+    (exists (?CM)
+      (and
+        (instance ?CM AeropressingCoffee)
+        (instrument ?CM ?X)))))
+
+(subclass SiphoningCoffee CoffeeMaking)
+(documentation EnglishLanguage SiphoningCoffee "&%SiphoningCoffee uses a vacuum coffee maker
+whcin brews coffee using two chambers where vapor pressure and gravity produce coffee. This 
+type of coffee maker is also known as vac pot, siphon or syphon coffee maker, 
+and was invented by Loeff of Berlin in the 1830s. [Wikipedia]")
+(termFormat EnglishLanguage SiphoningCoffee "siphoning coffee")
+(optimalGrindSizeForMakingCoffee SiphoningCoffee MediumFineGrind)
+
+(subclass MokaPotCoffeeMaking CoffeeMaking)
+(documentation EnglishLanguage MokaPotCoffeeMaking "&%MokaPotCoffeeMaking uses a moka pot 
+on the stove-top or electric device. A typical moka coffee is extracted at relatively low pressures of 1 
+to 2 bar (100 to 200 kPa),[8] while standards for espresso coffee specify a pressure 
+of 9 bar (900 kPa). Therefore, moka coffee is not considered to be an espresso and 
+has different flavor characteristics. [Wikipedia]")
+(termFormat EnglishLanguage MokaPotCoffeeMaking "Moka pot coffee making")
+(optimalGrindSizeForMakingCoffee MokaPotCoffeeMaking MediumFineGrind)
+
+(subclass MokaPot PotOrPan)
+(documentation EnglishLanguage MokaPot "&%MokaPot is
+a stove-top or electric coffee maker that brews coffee by passing boiling water pressurized
+by steam through ground coffee. Named after the Yemeni city of Mocha, it was invented by 
+Alfonso Bialetti.  [Wikipedia]")
+(termFormat EnglishLanguage MokaPot "moka Pot")
+
+(=>
+  (instance ?X MokaPot)
+  (hasPurpose ?X
+    (exists (?CM)
+      (and
+        (instance ?CM MokaPotCoffeeMaking)
+        (instrument ?CM ?X)))))
+
+(subclass TurkishCoffeeMaking CoffeeMaking)
+(documentation EnglishLanguage PouringOverCoffee "T&%TurkishCoffeeMaking produces Turkish coffee
+which is is a style of coffee prepared by boiling, using very finely ground coffee beans without filtering 
+in a cezve.The coffee grounds are left in the coffee when served.[Wikipedia]")
+(optimalGrindSizeForMakingCoffee TurkishCoffeeMaking ExtraFineGrind)
+          
+(subclass Crushing Impacting)  
+(subclass Crushing Compressing)
+(subclass Crushing ShapeChange) 
+(relatedInternalConcept Crushing Breaking)
+(documentation Crushing EnglishLanguage "&%Crushing is an &%Impacting with &%Compressing
+&%Motion appled to an &%Object, causing it to be broken, thus resulted in a &%ShapeChange.")
+(termFormat EnglishLanguage Crushing "crushing")
+
+(=>
+  (instance ?C Crushing)
+  (exists (?I ?C ?O)
+    (and
+      (instance ?I Impacting)      
+      (subProcess ?C ?I)
+      (instance ?C Compressing)
+      (patient ?I ?O)      
+      (patient ?C ?O)
+      (instance ?O Object))))
+      
+(=>
+  (and
+    (instance ?C Crushing)
+    (patient ?C ?O)
+    (instance ?O Object))
+  (exists (?B ?SC)
+    (and
+      (instance ?B Breaking)
+      (causes ?C ?B)
+      (subProcess ?B ?SC)
+      (instance ?SC ShapeChange)
+      (patient ?B ?O)
+      (patient ?SC ?O))))
+      
+(=>
+  (and
+    (instance ?C Crushing)
+    (patient ?C ?O)
+    (instance ?O Object))
+  (exists (?SC)
+    (and
+      (result ?C ?SC)
+      (instance ?SC ShapeChange)
+      (patient ?SC ?O))))     
+
+(subclass Grinding Crushing)  
+(subclass Grinding Breaking)
+(documentation Grinding EnglishLanguage "&%Grinding is a process where an object is experience a 
+&%Crushing or &%Breaking resulting in the &%Object to be broken into small pieces, which were originally 
+a &%part of the object.")
+(termFormat EnglishLanguage Grinding "grinding")
+
+(=>
+  (and
+    (instance ?G Grinding)
+    (patient ?G ?O)
+    (instance ?O CorpuscularObject))
+  (holdsDuring
+    (EndFn (WhenFn ?G))
+    (exists (?C)
+      (and
+        (result ?G ?C)
+        (instance ?C Collection)
+        (forall (?M)
+          (=>
+            (member ?M ?C)
+            (part ?M ?O)))))))
+        
+(subclass CoffeeGrind Powder)
+(subclass CoffeeGrind FoodFromPlant)
+(documentation CoffeeGrind EnglishLanguage "&%CoffeeGrind is ground &%Coffee powder from
+roasted &%CoffeeBeans of various sizes, catering for different coffee making methods.")
+(termFormat EnglishLanguage CoffeeGrind "coffee grind")
+
+(=>
+  (instance ?CG CoffeeGrind)
+  (exists (?G ?CB)
+    (and
+      (instance ?G Grinding)
+      (patient ?G ?CB)
+      (instance ?CB CoffeeBean)
+      (attribute ?CB CookedAttribute)
+      (result ?G ?CG))))
+ 
+(=>
+  (instance ?CG CoffeeGrind)
+  (exists (?B ?A ?C)
+    (and
+      (instance ?B CoffeeBean)
+      (attribute ?B ?A)
+      (instance ?A CoffeeRoastAttribute)
+      (attribute ?CG ?C)
+      (instance ?C CoffeeGrindAttribute))))
+ 
+(=>
+  (instance ?CG CoffeeGrind)
+  (attribute ?CG CookedAttribute))    
+            
+(subclass CoffeeGrindAttribute RelationalAttribute)
+(documentation CoffeeGrindAttribute EnglishLanguage "&%CoffeeGrindAttribute is a &%Class of 
+&%RelationalAttribute used to describe the particle size of the &%CoffeeGrind.")
+(termFormat EnglishLanguage CoffeeGrindAttribute "coffee grind attribute")
+
+(=>
+  (and
+    (instance ?A CoffeeGrindAttribute)
+    (attribute ?C ?A)
+    (instance ?C CoffeeGrind))
+  (exists (?L ?X)
+    (and
+      (grainSize ?C ?L)   
+      (instance ?X LengthMeasure)  
+      (equal ?X
+        (MeasureFn ?L Millimeter)))))
+
+(instance grainSize BinaryRelation)
+(documentation grainSize EnglishLanguage "&%grainSize is a &%BinaryRelation 
+describing the diameter measure of a particle.")
+(termFormat EnglishLanguage grainSize "grain size")
+(domain grainSize 1 Object)
+(domain grainSize 2 RealNumber)
+(format EnglishLanguage grainSize "%2 is the diameter in &%UnitOFLength of %1")
+
+(=>
+  (and
+    (instance ?G Grain)
+    (grainSize ?G ?L))
+  (approximateDiameter ?G
+    (MeasureFn ?L UnitOfLength)))
+           
+(instance ExtraCoarseGrind CoffeeGrindAttribute)
+(documentation ExtraCoarseGrind EnglishLanguage "&%ExtraCoarseGrind &%CoffeeGrind has a particle 
+size of &%aproximateValue of &%approximateDiameter of 1.5 &%Millimeters.")
+(termFormat EnglishLanguage ExtraCoarseGrind "extra coarse grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C ExtraCoarseGrind)
+    (grainSize ?C ?L))
+   (equal ?L 1.5))
+
+(instance CoarseGrind CoffeeGrindAttribute)
+(documentation CoarseGrind EnglishLanguage "&%CoarseGrind &%CoffeeGrind has a particle 
+size of &%aproximateValue of &%approximateDiameter of 1 &%Millimeters.")
+(termFormat EnglishLanguage CoarseGrind "coarse grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C CoarseGrind)
+    (grainSize ?C ?L))
+   (equal ?L 1.0))
+
+(instance MediumCoarseGrind CoffeeGrindAttribute)
+(documentation MediumCoarseGrind EnglishLanguage "&%MediumCoarseGrind &%CoffeeGrind has a particle 
+size of &%aproximateValue of &%approximateDiameter of 0.85 &%Millimeters.")
+(termFormat EnglishLanguage MediumCoarseGrind "medium coarse grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C MediumCoarseGrind)
+    (grainSize ?C ?L))
+   (equal ?L 0.85))
+
+(instance MediumGrind CoffeeGrindAttribute)
+(documentation MediumGrind EnglishLanguage "&%MediumGrind &%CoffeeGrind has a particle 
+size of &%aproximateValue of &%approximateDiameter of 0.75 &%Millimeters.")
+(termFormat EnglishLanguage MediumGrind "medium grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C MediumGrind)
+    (grainSize ?C ?L))
+   (equal ?L 0.75))
+
+(instance MediumFineGrind CoffeeGrindAttribute)
+(documentation MediumFineGrind EnglishLanguage "&%MediumFineGrind &%CoffeeGrind has a particle 
+size of &%aproximateValue of &%approximateDiameter of 0.5 &%Millimeters.")
+(termFormat EnglishLanguage MediumFineGrind "medium fine grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C MediumFineGrind)
+    (grainSize ?C ?L))
+   (equal ?L 0.5))
+
+(instance FineGrind CoffeeGrindAttribute)
+(documentation FineGrind EnglishLanguage "&%FineGrind &%CoffeeGrind has a particle 
+size of &%aproximateValue of &%approximateDiameter of 0.3 &%Millimeters.")
+(termFormat EnglishLanguage FineGrind "fine grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C FineGrind)
+    (grainSize ?C ?L))
+   (equal ?L 0.3))
+
+(instance ExtraFineGrind CoffeeGrindAttribute)
+(documentation ExtraFineGrind EnglishLanguage "&%ExtraFineGrind &%CoffeeGrind has a particle 
+size of &%aproximateValue of &%approximateDiameter of 0.1 &%Millimeters.")
+(termFormat EnglishLanguage ExtraFineGrind "extra fine grind")
+
+(=>
+  (and
+    (instance ?C CoffeeGrind)
+    (attribute ?C ExtraFineGrind)
+    (grainSize ?C ?L))
+   (equal ?L 0.1))
+
+(subclass FoamingMilk Cooking)
+(subclass FoamingMilk Heating)
+(documentation Cappuccino EnglishLanguage "&%FoamingMilk is the &%Process of &%making &%MilkFoam in 
+which the &%ProcessedMilk is aerated then the &%Bubbles are then stirred to mix with the milk while it is 
+being heated to 70C.[Wikipedia]")
+(termFormat EnglishLanguage FoamingMilk "foaming milk")
+
+(=>
+  (instance ?FM FoamingMilk)
+  (exists (?M ?MF)
+    (and
+      (instance ?M ProcessedMilk)
+      (instance ?MF MilkFoam)
+      (patient ?FM ?M)
+      (result ?FM ?MF))))
+      
+(=>
+  (and
+    (instance ?FM FoamingMilk)
+    (instance ?M ProcessedMilk)
+    (patient ?FM ?M))
+  (exists (?H ?A ?B)
+    (and
+      (instance ?H Heating)
+      (patient ?H ?M)
+      (instance ?A Aerating)
+      (patient ?A ?M)
+      (result ?A ?B)
+      (instance ?B Bubble)
+      (during
+        (WhenFn ?A)
+        (WhenFn ?H)))))
+      
+(=>
+  (and
+    (instance ?FM FoamingMilk)
+    (patient ?FM ?M)
+    (instance ?M ProcessedMilk)
+    (instance ?H Heating)
+    (subProcess ?H ?FM)
+    (measure ?M
+      (MeasureFn ?T CelsiusDegree)))
+  (approximateValue ?T 70.0))
+  
+(=>
+  (and
+    (instance ?FM FoamingMilk)
+    (patient ?FM ?M)
+    (instance ?M ProcessedMilk)
+    (instance ?A Aerating)
+    (patient ?A ?M))
+  (subProcess ?A ?FM))
+
+(subclass MilkFoam ProcessedMilk)
+(documentation MilkFoam EnglishLanguage "&%MilkFoam is produced by &%Aerating &%Milk, then stirred 
+to mix with the milk while it is heated to 70C. MilkFoam is used for making &%Capuccino and &%Latte.
+[Wikipedia]")
+(termFormat EnglishLanguage MilkFoam "milk foam")    
+
+(=>
+  (instance ?M MilkFoam)
+  (measure ?M (MeasureFn 70 CelsiusDegree)))
+             
+(subclass mixtureRatio QuintaryRelation)
+(documentation mixtureRatio EnglishLanguage "&%mixtureRatio is a &%QuintaryRelation 
+which specifies how many &%Liter of two &%Liquid &%Substances in a &%LiquidMixture.")
+(termFormat EnglishLanguage mixtureRatio "mixture ratio")
+(domain mixtureRatio 1 Substance)
+(domain mixtureRatio 2 Substance)
+(domain mixtureRatio 3 RealNumber)      
+(domain mixtureRatio 4 RealNumber)
+(domain mixtureRatio 5 UnitOfMeasure)
+(format EnglishLanguage mixtureRatio "A &%Mixture containing %3 unit %5 of %1 and %4 unit %5 of %2")
+
+(=>
+  (and
+    (instance ?M Mixture)
+    (instance ?Z UnitOfMeasure)
+    (mixtureRatio ?A ?B ?X ?Y ?Z)
+    (measure ?M
+      (MeasureFn ?T ?Z))
+    (part ?A ?M)
+    (part ?B ?M)
+    (measure ?A
+      (MeasureFn ?X ?Z))
+    (measure ?B
+      (MeasureFn ?Y ?Z)))
+  (equal ?T
+    (AdditionFn ?X ?Y)))
+       
+(subclass Cappuccino Coffee)
+(documentation Cappuccino EnglishLanguage "&%Cappucinno is typically made with 1 shot of 
+&%Espresso with 5 part of foamed milk, so a standard 30ml of espresso with 150ml of milk, 
+giving a 180ml of capuucino.The milk foam on the top is 20mm in thickness. [Wikipedia]")
+
+(=>
+  (instance ?C Cappuccino)
+  (exists (?E ?M ?P)
+    (and
+      (instance ?E Espresso)
+      (instance ?M MilkFoam)
+      (instance ?P Pouring)
+      (patient ?P ?M)
+      (destination ?P ?E)
+      (result ?P ?C))))
+(=>
+  (instance ?C Cappuccino)
+  (and
+    (material MilkFoam ?C)
+    (material Espresso ?C)))
+           
+(=>
+  (and
+    (instance ?C Cappuccino)
+    (part ?E ?C)
+    (part ?M ?C)
+    (instance ?E Espresso)    
+    (instance ?M MilkFoam)    
+    (mixtureRatio ?E ?M ?V1 ?V2 Liter)
+    (part ?B ?M)
+    (instance ?B Bubble)
+    (top ?B ?M)
+    (measure ?B
+      (MeasureFn ?L Millimeter)))
+  (and
+    (approximateValue ?V1 0.03)
+    (approximateValue ?V2 0.15)
+    (approximateValue ?L 20.0))) 
+      
+(subclass Americano Coffee)
+(documentation Americano EnglishLanguage "An &%Americano is  is a type of coffee drink 
+prepared by diluting an espresso with hot water (typically 1:5). [Wikipedia] ")
+(termFormat EnglishLanguage Americano "americano")
+
+(=>
+  (instance ?A Americano)
+  (and
+    (material Espresso ?A)
+    (material DrinkingWater ?A)))
+
+(=>
+  (instance ?A Americano)
+  (exists (?P ?W ?E)
+    (and
+      (instance ?P Pouring)
+      (patient ?P ?W)
+      (instance ?W DrinkingWater)
+      (measure ?W (MeasureFn 90 CelsiusDegree))
+      (destination ?P ?E)
+      (instance ?E Espresso)
+      (result ?P ?A))))
+(=>
+  (and
+    (instance ?A Americano)
+    (part ?E ?A)
+    (part ?W ?A)
+    (instance ?E Espresso)
+    (instance ?W DrinkingWater)
+    (measure ?W (MeasureFn 90 CelsiusDegree))
+    (mixtureRatio ?E ?W ?V1 ?V2 Liter))
+  (and
+    (approximateValue ?V1 0.03)
+    (approximateValue ?V2 0.15)))
+   
+(subclass FlatWhite Coffee)
+(documentation FlatWhite EnglishLanguage "A &%FlatWhite is a variation of &%Milkfoam 
+and &%Espresso &%Mixture. It is typically made with 1 shot of 
+&%Espresso with 5 part of foamed milk, so a standard 30ml of espresso with 150ml of milk, 
+giving a 180ml of capuucino.The thickness of milk foam on the top varies between 1 to 20 mm.
+The main difference betwen a flat white and a cappuccino is that the milkfoam in a flat white
+is wet foam and that the milkfoam is mixed with the crema of the espresso. [Wikipedia]")
+(termFormat EnglishLanguage FlatWhite "flat white")
+
+(=>
+  (instance ?F FlatWhite)
+  (and
+    (material MilkFoam ?F)
+    (material Espresso ?F)))  
+    
+(=>
+  (instance ?F FlatWhite)
+  (exists (?E ?M ?P)
+    (and
+      (instance ?E Espresso)
+      (instance ?M MilkFoam)
+      (instance ?P Pouring)
+      (patient ?P ?M)
+      (destination ?P ?E)
+      (result ?P ?F))))
+
+(=>
+  (and
+    (instance ?F FlatWhite)
+    (part ?B ?F)
+    (instance ?B Bubble))
+  (attribute ?B Brown))
+       
+(=>
+  (and
+    (instance ?C FlatWhite)
+    (part ?E ?C)
+    (part ?M ?C)
+    (instance ?E Espresso)
+    (instance ?M MilkFoam)
+    (mixtureRatio ?E ?M ?V1 ?V2 Liter)
+    (part ?B ?M)
+    (part ?B ?E)
+    (top ?B ?M)
+    (instance ?B Bubble)
+    (measure ?B
+      (MeasureFn ?L Millimeter)))
+  (and
+    (approximateValue ?V1 0.03)
+    (approximateValue ?V2 0.15)
+    (greaterThanOrEqualTo ?L 1.0)
+    (lessThanOrEqualTo ?L 20.0)))
+
+(subclass Latte Coffee)
+(documentation Latte EnglishLanguage "A &%Latte is typically made with 1 shot of 
+&%Espresso with 7 part of foamed milk, so a standard 30ml of espresso with 210ml of milk, 
+giving a 240ml of La.Thttee milk foam on the top is 12mm in thickness. [Wikipedia]")
+(termFormat EnglishLanguage Latte "latte")
+
+(=>
+  (instance ?L Latte)
+  (and
+    (material MilkFoam ?L)
+    (material Espresso ?L)))    
+  
+(=>
+  (and
+    (instance ?C Latte)
+    (part ?E ?C)
+    (part ?M ?C)
+    (instance ?E Espresso)
+    (instance ?M MilkFoam)
+    (mixtureRatio ?E ?M ?V1 ?V2 Liter)
+    (part ?B ?M)
+    (instance ?B Bubble)
+    (top ?B ?M)
+    (measure ?B
+      (MeasureFn ?L Millimeter)))
+  (and
+    (approximateValue ?V1 0.03)
+    (approximateValue ?V2 0.21)
+    (approximateValue ?L 12.0))) 
+   
+(subclass LongBlack Coffee)
+(documentation LongBlack EnglishLanguage "A &%LongBlack is made by pouring a double shot of &%Espresso 
+over hot water. Typically about 120 milliliters (3.5–4 ounces) of water is used but 
+the measurement is considered to be flexible to individual taste.[Wikipedia] ")
+(termFormat EnglishLanguage LongBlack "long black")
+
+(=>
+  (instance ?L LongBlack)
+  (and
+    (material Espresso ?L)
+    (material DrinkingWater ?L)))
+
+(=>
+  (instance ?L LongBlack)
+  (exists (?P ?W ?E)
+    (and
+      (instance ?P Pouring)
+      (patient ?P ?W)
+      (instance ?W DrinkingWater)
+      (attribute ?W HotTemperature)
+      (destination ?P ?E)
+      (instance ?E Espresso)
+      (result ?P ?L))))
+(=>
+  (and
+    (instance ?L LongBlack)
+    (part ?E ?L)
+    (part ?W ?L)
+    (instance ?E Espresso)
+    (instance ?W DrinkingWater)
+    (mixtureRatio ?E ?W ?V1 ?V2 Liter))
+  (and
+    (approximateValue ?V1 0.06)
+    (approximateValue ?V2 0.12)))
+
+(subclass VietnameseCoffee Coffee)
+(subclass TurkishCoffee Coffee)
+(subclass Manilo Coffee)
+(subclass Instant Coffee)
+          
+(subclass Baking Cooking)
+(subclass Baking Heating)
+(documentation Baking EnglishLanguage "Any instance of &%Cooking where the instrument
+is an &%Oven.")
+
+(=>
+  (instance ?B Baking)
+  (exists (?O)
+    (and
+      (instance ?O Oven)
+      (instrument ?B ?O))))
+
+(subclass Flour PreparedFood)
+(subclass Flour FoodFromPlant)
+(subclass Flour Powder)
+(documentation Flour EnglishLanguage "A &%Powder that is prepared from &%CerealGrain, e.g.
+wheat flour, rice flour, etc.  Flour is most often used in the making
+of &%Dough.")
+
+(=>
+  (instance ?F Flour)
+  (exists (?P ?C)
+    (and
+      (instance ?P Grinding)
+      (patient ?P ?C)
+      (instance ?C CerealGrain)
+      (result ?P ?F)))) 
+
+(=>
+  (instance ?F Flour)
+  (attribute ?F RawAttribute))
+
+(subclass WheatFlour Flour)
+(initialPart WheatFlour WheatGrain)
+(documentation WheatFlour EnglishLanguage "&%WheatFlour is prepared from &%WheatGrain. 
+Common wheat(T.aestivum) is the flour most often used for making &%BreadOrBiscuits. Durum
+wheat flour (T.durum) is the second most used. There are also Semolina and Spelt flour.
+[wikiepedia]")
+(termFormat EnglishLanguage WheatFlour "wheat flour")
+  
+(subclass CommonWheatFlour WheatFlour)
+(documentation CommonWheatFlour EnglishLanguage "&%CommonWheatFlour is prepared from (T.aestivum). 
+It is the flour most often used for making &%BreadOrBiscuits. [wikiepedia]")
+(termFormat EnglishLanguage CommonWheatFlour "common wheat flour")  
+(initialPart CommonWheatFlour CommonWheatGrain)
+
+(subclass DurumWheatFlour WheatFlour)
+(documentation DurumWheatFlour EnglishLanguage "&%DurumWheatFlour is prepared from(T.durum). 
+It is the second most used for making &%BreadOrBiscuits and is often used to make &%Pasta.
+[wikipedia]")
+(termFormat EnglishLanguage DurumWheatFlour "durum wheat flour") 
+(initialPart DurumWheatFlour DurumWheatGrain)
+
+(subclass SemolinaFlour WheatFlour)
+(documentation SemolinaFlour EnglishLanguage "&%SemolinaFlour is coarse flour, prepared from (T.durum). 
+It is often used to make &%Pasta, breakfast cereals, puddings, and couscous.[wikipedia]")
+(termFormat EnglishLanguage SemolinaFlour "semolina flour") 
+(initialPart SemolinaFlour DurumWheatGrain)
+
+(subclass SpeltFlour WheatFlour)
+(documentation SpeltFlour EnglishLanguage "&%SpeltFlour is prepared from (Triticum spelta),
+also known as dinkel wheat. It is a species of &%WheatGrass that has been cultivated since
+approximately 5000 BC.[wikipedia]")
+(termFormat EnglishLanguage SpeltFlour "Spelt flour") 
+(initialPart SpeltFlour SpeltGrain)
+
+(subclass RyeFlour Flour)
+(documentation RyeFlour EnglishLanguage "&%RyeFlour is a four refined from &%RyeGrain.[wikipedia]")
+(termFormat EnglishLanguage RyeFlour "rye flour")
+(initialPart RyeFlour RyeGrain)
+
+(subclass RiceFlour Flour)
+(documentation RiceFlour EnglishLanguage "&%RiceFlour is a form of flour made from finely
+milled &%RiceGrain.[wikipedia]")
+(termFormat EnglishLanguage RiceFlour "rice flour")
+(initialPart RiceFlour RiceGrain)
+
+(subclass CornFlour Flour)
+(documentation CornFlour EnglishLanguage "&%CornFlour is the starch derived from corn (&%MaizeGrain).[wikipedia]")
+(termFormat EnglishLanguage CornFlour "corn flour")
+(names "corn starch" CornFlour)
+(initialPart CornFlour MaizeGrain)
+
+(subclass TapiocaStarch Flour)
+(documentation TapiocaStarch EnglishLanguage "&%TapiocaStarch is a starch extracted from the storage 
+&%Roots of the &%Cassava &%Plant.[wikipedia]")
+(termFormat EnglishLanguage TapiocaStarch "tapioca starch")
+(initialPart TapiocaStarch Cassava)
+                   
+(subclass BreadOrBiscuit PreparedFood)
+(typicalPart WheatFlour BreadOrBiscuit)
+(documentation BreadOrBiscuit EnglishLanguage "Food that consists largely of &%WheatFlour
+and water.  Note that this class covers crackers, cookies, as well as any
+self-connected instance of bread, whether it is a loaf, a slice, a chunk
+of bread, etc.")
+
+(=>
+  (instance ?X BreadOrBiscuit)
+  (attribute ?X CookedAttribute))
+
+(=>
+  (instance ?B BreadOrBiscuit)
+  (exists (?D ?BAKE)
+    (and
+      (instance ?D Dough)
+      (instance ?BAKE Baking)
+      (resource ?BAKE ?D)
+      (result ?BAKE ?B))))
+        
+(subclass CookedDish PreparedFood)
+(documentation CookedDish EnglishLanguage "A &%CookedDish is a specific food 
+prepation, a 'distinct article or variety of food', ready to eat or to be served. [Wikipedia]")
+(termFormat EnglishLanguage CookedDish "cooked dish")
+      
+(subclass Sandwich CookedDish)
+(documentation Sandwich EnglishLanguage "Any food which consists of two or more pieces
+of bread and some sort of filling between the two pieces of bread.")
+
+(=>
+  (instance ?S Sandwich)
+  (exists (?B1 ?B2 ?F)
+    (and
+      (instance ?B1 BreadOrBiscuit)
+      (instance ?B2 BreadOrBiscuit)
+      (instance ?F (FoodForFn Human))
+      (between ?B1 ?F ?B2)
+      (not (equal ?B1 ?B2))
+      (not (equal ?B1 ?F))
+      (not (equal ?B2 ?F))
+      (part ?B1 ?S)
+      (part ?B2 ?S)
+      (part ?F ?S))))
+
+(subclass Dough PreparedFood)
+(subclass Dough Mixture)
+(documentation Dough EnglishLanguage "A &%Mixture of &%Flour, &%DrinkingWater, and possibly
+other ingredients (such as &%Butter and &%Salt), which is used in
+making &%BreadOrBiscuits or &%Pasta or noodles.")
+
+(=>
+  (instance ?D Dough)
+  (attribute ?D RawAttribute))
+
+(=>
+  (instance ?D Dough)
+  (exists (?F ?W)
+    (and
+      (instance ?F Flour)
+      (instance ?W DrinkingWater)
+      (part ?F ?D)
+      (part ?W ?D))))
+
+(subclass SoupStock PreparedFood)
+(subclass SoupStock Soup)
+(roomTempState SoupStock Liquid)
+(documentation SoupStock EnglishLanguage "Food which is prepared by reducing &%Meat
+and/or &%FruitOrVegetables to a translucent broth which can be used as
+a base for soups or sauces.")
+(names "Broth" SoupStock)
+
+(=>
+  (instance ?S SoupStock)
+  (exists (?H)
+    (and
+      (instance ?H Heating)
+      (result ?H ?S))))
+      
+(=>
+  (and
+    (subclass ?S Mixture) 
+    (initialPart ?S Meat)
+    (initialPart ?S FoodFromPlant)
+    (initialPart ?S DrinkingWater))
+  (equal ?S SoupStock))
+
+(=>
+  (instance ?S SoupStock)
+  (attribute ?S Translucent))
+
+(subclass Soup CookedDish)
+(roomTempState Soup Liquid)
+(disjoint Soup Sauce)
+(disjoint Soup Beverage)
+(documentation Soup EnglishLanguage "&%Soup is a &%CookDish that is not a &%Sauce nor a &%Beverage.")
+(termFormat EnglishLanguage Soup "soup")
+               
 (instance ingredientAmount TernaryRelation)
 (documentation ingredientAmount EnglishLanguage "(&%ingredientAmount ?ING ?FOOD ?AMT 
 means that ?AMT of ?ING is used to make ?FOOD")
@@ -111,7 +1712,9 @@ usually the first meal of the day, eaten during the morning")
 
 (subAttribute ContinentalBreakfast Breakfast)
 (documentation ContinentalBreakfast EnglishLanguage "&%ContinentalBreakfast refers to
-food that is normally served during &%BreakfastTime in &%NorthAmerica or &%Europe")
+food that is normally served during &%BreakfastTime in &%NorthAmerica or &%Europe. Typical 
+items include coffee, tea, fruit juice, fruit, and baked goods such as bread, muffins, 
+and pastries, along with packets of butter and jam. [wikipedia]")
 (termFormat EnglishLanguage ContinentalBreakfast "continental breakfast")
 
 (=>
@@ -119,7 +1722,47 @@ food that is normally served during &%BreakfastTime in &%NorthAmerica or &%Europ
   (or
     (equal ContinentalBreakfast (MealAttributeFn ?MEAL NorthAmerica))
     (equal ContinentalBreakfast (MealAttributeFn ?MEAL Europe))))
-      
+
+(=>
+  (and
+    (instance ?M Meal)
+    (member ?H ?M)
+    (or
+      (instance ?H Coffee)
+      (instance ?H Tea))
+    (member ?J ?M)
+    (instance ?J Juice)
+    (member ?B ?M)
+    (instance ?B BreadOrBiscuit)
+    (member ?B ?M)
+    (instance ?B Butter)
+    (member ?JA ?M)
+    (instance ?JA Jam))
+  (attribute ?M ContinentalBreakfast))
+    
+(subclass Jam PreparedFood)
+(subclass Jam Colloid)
+(documentation Jam EnglishLanguage "&%Jam are &%Fruit preserves which are preparations 
+of fruits whose main preserving agent is sugar and sometimes acid, often stored 
+in glass jars and used as a condiment or spread.[Wikipedia]")
+(termFormat EnglishLanguage Jam "jam")
+(initialPart Jam Fruit)
+    
+(=>
+  (instance ?J Jam)
+  (attribute ?J CookedAttribute))
+  
+(=>
+  (instance ?J Jam)
+  (exists (?B ?F ?S)
+    (and
+      (instance ?B Boiling)
+      (patient ?B ?F)
+      (instance ?F Fruit)
+      (patient ?B ?S)
+      (instance ?S Sugar)
+      (result ?B ?J))))
+         
 (instance Lunch RelationalAttribute)
 (documentation Lunch EnglishLanguage "&%Lunch refers to something that is usually eaten
 mid-day")
@@ -154,6 +1797,31 @@ eaten during the evening")
       (during (WhenFn ?E) ?TIME)
       (instance ?TIME DinnerTime))) Likely))
 
+(subclass Tea Beverage)
+(documentation Tea EnglishLanguage "A &%Beverage which is prepared by infusing &%TeaPlantAerialPart
+into hot water.")
+
+(=>
+  (initialPart Tea ?TEA)
+  (or
+    (equal ?TEA TeaBud)
+    (equal ?TEA TeaLeaf)
+    (equal ?TEA TeaTwig)))
+
+(=>
+  (instance ?T Tea)
+  (attribute ?T CaffeinatedAttribute))
+
+(subclass CaffeinateFreeTea Beverage)
+(documentation CaffeinateFreeTea EnglishLanguage "A &%Beverage which is prepared by infusing uncaffeinated leaves, 
+fruits or flowersinto hot water. This include herbal tea, fruit tea and flower tea")
+(termFormat EnglishLanguage CaffeinateFreeTea "caffeinate free tea")
+
+(=>
+  (instance ?X CaffeinateFreeTea)
+  (not
+    (attribute ?X CaffeinatedAttribute)))
+               
 (instance HighTea RelationalAttribute)
 (documentation HighTea EnglishLanguage "&%HighTea refers to something eaten mid-day that
 consists of light snacks and tea")
@@ -385,7 +2053,22 @@ soft-bodied invertebrates that is usually contained in a shell.")
 (documentation Absolut EnglishLanguage "A brand of vodka")
 (subclass Absolut Vodka)
 
-(subclass Aioli PreparedFood)
+(subclass Sauce PreparedFood)
+(subclass Sauce Colloid)
+(documentation Sauce EnglishLanguage "A &%Sauce is a liquid, cream, or
+semi-solid food, served on or used in preparing other foods. Sauces has a
+liquid component. [Wikipeida]")
+(termFormat EnglishLanguage Sauce "sauce")
+
+(=>
+  (instance ?S Sauce)
+  (exists (?X)
+    (and
+      (instance ?X Substance)
+      (part ?X ?S)
+      (attribute ?X Liquid))))
+
+(subclass Aioli Sauce)
 (documentation Aioli EnglishLanguage "is a garlic mayonnaise. It 
 is a traditional Provençal sauce made of garlic, olive oil, and 
 (typically) egg. There are many variations, such as the addition 
@@ -437,9 +2120,19 @@ alcoholic beverages that may be used as aperitifs.")
 
 (subclass Bacardi Rum)
 
+(subclass CuredMeat PreparedFood)
+(subclass CuredMeat Meat)
+(documentation CuredMeat EnglishLanguage "A &%CuredMeat is a cut of &%Meat, including seafood 
+that is cured in salt, then dried.")
+(termFormat EnglishLanguage CuredMeat "cured meat")
+
+(=>
+  (instance ?MEAT CuredMeat)
+  (attribute ?MEAT CuredAttribute))
+
 (documentation Bacon EnglishLanguage "A cut of &%Pork that is cured in salt, then dried.")
 (subclass Bacon Pork)
-(subclass Bacon PreparedFood)
+(subclass Bacon CuredMeat)
 
 (=>
   (instance ?B Bacon)
@@ -476,6 +2169,36 @@ refers to the leafy green or flowering parts of a plant.")
   (equal ?P (PlantFn Basil))
   (subclass ?P HerbaceousPlant))
 
+;; TERMS - Subclasses of Fruit:  
+(subclass Fruit FruitOrVegetable)
+(documentation Fruit EnglishLanguage "&%Fruits comes from the flowering &part of a &%FloweringPlant and contain &%Seeds.
+[Wikipedia]")
+  
+(subclass Apple Fruit)
+(subclass Apple (FoodForFn Animal))
+(documentation Apple EnglishLanguage "A &%Fruit that has a tart to sweet taste and
+a spherical shape.")
+
+(=>
+  (equal ?P (PlantFn Apple))
+  (subclass ?P DeciduousTree))
+
+(subclass DateFruit Fruit)
+(subclass DateFruit (FoodForFn Animal))
+(documentation DateFruit EnglishLanguage "A &%Fruit that is produced by the date
+palm.")
+
+(subclass PearFruit Fruit)
+(subclass PearFruit (FoodForFn Animal))
+(documentation PearFruit EnglishLanguage "A &%Fruit that has a thick skin and the
+shape of a tear drop.") 
+ 
+(subclass Berry Fruit)
+(documentation Berry EnglishLanguage "Fruits commonly considered berries but excluded by the botanical definition
+ include strawberries, raspberries, and blackberries, which are aggregate fruits and mulberries, which are multiple
+ fruits. Watermelons and pumpkins are giant berries that fall into the category pepos. A plant bearing berries is
+ said to be bacciferous or baccate.[Wikipedia]")
+  
 (subclass Blueberry Berry)
 (documentation Blueberry EnglishLanguage "A &%Blueberry is the fruit of a group of perennial &%FloweringPlants 
 in the section Cyanococcus within the genus Vaccinium. Vaccinium also includes cranberries, bilberries,huckleberries 
@@ -487,7 +2210,7 @@ and Madeira blueberries. Commercial blueberries, both wild and cultivated are al
   (subclass ?P Shrub))
 
 (subclass Bilberry Berry)
-(documentation Bilberry EnglishLanguage "A &%Bilberry or sometimes European blueberry, is a primariky Eurasian 
+(documentation Bilberry EnglishLanguage "A &%Bilberry or sometimes European blueberry, is a primarily Eurasian 
 species of low growing shrubs in the genus vaccinium (family Ericaceae),bearing edible, dark blue berries. [Wikipedia]")
 (termFormat EnglishLanguage Bilberry "Bilberry")
 (names "blaeberry" Bilberry)
@@ -553,6 +2276,116 @@ Rubs of the rose family, most of which are in the subgenus Idaeobatus.They are p
 genus Ribes in the gooseberry family. it is native to western Europe.[Wikipedia]")
 (termFormat EnglishLanguage Redcurrent "red current")
 
+(subclass Avocado Fruit)
+(subclass Avocado (FoodForFn Animal))
+(documentation Avocado EnglishLanguage "A &%FruitOrVegetable that is shaped like a pear and
+has a dark green skin and a rich meat.")
+
+(subclass Tomato Fruit)
+
+(subclass Grape Fruit)
+
+(subclass Melon Fruit)
+
+(subclass Watermelon Melon)
+
+(subclass Olive Fruit)
+
+(subclass PeelOrRind PlantSubstance)
+(initialPart PeelOrRind FruitOrVegetable)
+(documentation PeelOrRind EnglishLanguage "&%PeelOrRind is the &%surface of
+a fruit or vegetable.")
+(termFormat EnglishLanguage PeelOrRind "peel or rind")
+
+(=>
+  (instance ?P PeelOrRind)
+  (exists (?X)
+    (and
+      (part ?P ?X)
+      (instance ?X FruitOrVegetable)
+      (surface ?P ?X))))
+             
+(subclass FleshOrPulp PlantSubstance)
+(initialPart FleshOrPulp FruitOrVegetable)
+(documentation FleshOrPulp EnglishLanguage "&%FleshOrPulp is the &%Inside part of
+a fruit or vegetable.")
+(termFormat EnglishLanguage FleshOrPulp "flesh or pulp")
+
+(=>
+  (and
+    (instance ?X FruitOrVegetable)
+    (part ?F ?X)
+    (instance ?F FleshOrPulp)
+    (part ?P ?X)
+    (instance ?P PeelOrRind))
+  (orientation ?F ?P Inside))
+    
+(subclass CitrusFruit Fruit)
+
+(subclass LemonFruit CitrusFruit)
+(subclass LemonFruit (FoodForFn Animal))
+(documentation LemonFruit EnglishLanguage "A citrus &%FruitOrVegetable that has a &%Yellow Pe&%elOrRind 
+and a tart, acidic flavor.")
+
+(=>
+  (and
+    (instance ?X LemonFruit)
+    (part ?S ?X)
+    (instance ?S PeelOrRind))
+  (attribute ?S Yellow))
+
+;; KJN: Changing to subclass from CitrusFruit
+
+(subclass OrangeFruit CitrusFruit)
+(subclass OrangeFruit (FoodForFn Animal))
+(documentation OrangeFruit EnglishLanguage "A citrus &%FruitOrVegetable that has an &%OrangeColor 
+skin and a sweet, acidic flavor.")
+  
+(=>
+  (and
+    (instance ?X OrangeFruit)
+    (part ?S ?X)
+    (instance ?S PeelOrRind))
+  (attribute ?S OrangeColor))
+
+(subclass Lime CitrusFruit)
+
+(=>
+  (and
+    (instance ?X Lime)
+    (part ?S ?X)
+    (instance ?S PeelOrRind))
+  (attribute ?S Green))
+
+(subclass Grapefruit CitrusFruit)
+
+(subclass TropicalFruit Fruit)
+
+(subclass Banana TropicalFruit)
+
+(subclass Breadfruit TropicalFruit)
+
+(subclass Coconut TropicalFruit)
+(subclass Coconut (FoodForFn Animal))
+(documentation Coconut EnglishLanguage "A &%FruitOrVegetable that is produced by a type of palm
+and has an edible white meat.")
+
+(subclass DateFruit TropicalFruit)
+
+(subclass Mango TropicalFruit)
+
+(subclass Papaw TropicalFruit)
+(names "papaw" Papaw)
+(names "pawpaw" Papaw)
+
+(subclass Papaya TropicalFruit)
+
+(subclass PassionFruit TropicalFruit)
+
+(subclass Pineapple TropicalFruit)
+
+(subclass Plantain TropicalFruit)
+
 (subclass Broccoli FruitOrVegetable)
 (documentation Broccoli EnglishLanguage "&%Broccoli is the folowring head, stalk and small associated 
 leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea in the cabbage family. [Wikipedia]")
@@ -570,7 +2403,7 @@ leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea i
   (subclass ?P HerbaceousPlant))
 
 (subclass Squid Mollusk)
-(subclass Calamari PreparedFood)
+(subclass Calamari CookedDish)
 
 (=>
   (instance ?C Calamari)
@@ -580,17 +2413,6 @@ leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea i
       (material ?S ?C))))
 
 (subclass Campari Aperitif)
-
-(subclass Cappuccino PreparedFood)
-(documentation Cappuccino EnglishLanguage "Espresso with foamed milk")
-
-(=>
-  (instance ?C Cappuccino)
-  (material Milk ?C))
-
-(=>
-  (instance ?C Cappuccino)
-  (material Coffee ?C))
 
 (subclass CashewNut EdibleNut)
 
@@ -609,13 +2431,97 @@ leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea i
 (subclass Champagne Wine)
 
 (subclass Chocolate PreparedFood)
-(=>
-  (instance ?C Chocolate)
-  (and
-    (material CocoaSolid ?C)
-    (material CocoaButter ?C)
-    (material Sugar ?C)))
+(documentation Chocolate EnglishLanguage "Chocolate is a food 
+made from roasted and ground cacao seed kernels that is available as a liquid, 
+solid, or paste, either on its own or as a flavoring agent in other foods. [wikipedia]")
+(initialPart Chocolate CocoaBean)
 
+(subclass CocoaLiquor Chocolate)
+(roomTempState CocoaLiquor Solid)
+(documentation CocoaLiquor EnglishLanguage "&%CocoaLiquor is pure cocoa mass (cocoa paste) 
+in solid or semi-solid form. It is produced from cocoa beans that have been fermented, dried, 
+roasted, and separated from their skins. It contains both cocoa solids and cocoa butter in 
+roughly equal proportion.[Wikipedia]")
+(termFormat EnglishLanguage CocoaLiquor "cocoa liquor")
+
+(=>
+  (instance ?X CocoaLiquor)
+  (exists (?H ?B)
+    (and
+      (instance ?H Heating)
+      (patient ?H ?B)
+      (instance ?B CocoaBean)
+      (attribute ?B DryRoastAttribute)
+      (attribute ?B HulledAttribute)
+      (attribute ?B FermentedAttribute)
+      (result ?H ?X)
+      (holdsDuring ?H
+        (attribute ?X Liquid)))))
+
+(=>
+  (and
+    (instance ?L CocoaLiquor)
+    (weight ?L
+      (MeasureFn 100.0 Gram))
+    (instance ?S CocoaSolid)
+    (part ?S ?L)
+    (weight ?S
+      (MeasureFn ?X Gram))
+    (instance ?B CocoaButter)
+    (part ?B ?L)
+    (weight ?B
+      (MeasureFn ?Y Gram)))
+  (and
+    (approximateValue ?X 50.0)
+    (approximateValue ?Y 50.0)))
+        
+(subclass CocoaSolid Chocolate)
+(roomTempState CocoaSolid Solid)
+(documentation CocoaSolid EnglishLanguage "&%CocoaSolid is is extracted from chocolate 
+liquor, roasted cocoa beans that have been ground into a liquid state.[wikipedia]")
+(initialPart CocoaSolid CocoaLiquor)
+
+(subclass CocoaButter VegetableOil)
+(roomTempState CocoaButter Emulsion)
+(subclass CocoaButter Chocolate)
+(roomTempState CocoaButter Solid)
+(documentation CocoaButter EnglishLanguage "&%CocoaButter is edible fat extracted
+from Cocoa liquor. [Wikipedia]")
+(initialPart CocoaButter CocoaLiquor)
+
+(documentation ChocolateCandy EnglishLanguage "A &%ChocolateCandy is a candy made of &%Sugar and &%Choclate.")
+(subclass ChocolateCandy Chocolate)
+(termFormat EnglishLanguage ChocolateCandy "chocolate candy")
+(termFormat ChineseLanguage ChocolateCandy "巧克力糖")
+(termFormat ChineseTraditionalLanguage ChocolateCandy " 巧克力糖")
+
+(=>
+  (instance ?CHOC ChocolateCandy)
+  (and
+    (material CocoaLiquor ?CHOC)
+    (material Oil ?CHOC)
+    (material Sugar ?CHOC)))
+
+(subclass BoxOfChocolates Collection)
+(documentation BoxOfChocolates EnglishLanguage "A &%BoxOfChocolates is a &%Box of &%ChocolateCandy. It has
+a &%defaultMeasure of 250 &%Gram.")
+
+(termFormat EnglishLanguage BoxOfChocolates "box of chocolate")
+(termFormat ChineseLanguage BoxOfChocolates "一盒巧克力")
+(termFormat ChineseTraditionalLanguage BoxOfChocolates " 一盒巧克力")
+
+(=>
+  (instance ?X BoxOfChocolates)
+  (exists (?B ?C)
+    (and
+      (instance ?B Box)
+      (instance ?C ChocolateCandy)
+      (contains ?B ?C)
+      (member ?C ?X))))  
+      
+(defaultMeasure BoxOfChocolates
+  (MeasureFn 250.0 Gram))
+    
 (subclass Cilantro Herb)
 
 (=>
@@ -632,8 +2538,6 @@ leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea i
 (subclass Couscous Pasta)
 
 (subclass Crab Crustacean)
-
-(subclass Cream Milk)
 
 (subclass Daikon Radish)
 
@@ -657,9 +2561,9 @@ leaves eaten as &%Vegetable. It is classified in the species Brassica oleracea i
 
 (subclass Endive LeafyGreenVegetable)
 
-(subclass Espresso Coffee)
-
 (subclass Frying Cooking)
+(subclass Frying Heating)
+
 (=>
   (instance ?F Frying)
   (exists (?O)
@@ -681,8 +2585,6 @@ medicinal purposes. [Wikipedia]")
 
 (subclass GoatMeat Meat)
 (meatOfAnimal GoatMeat Goat)
-
-(subclass Grapefruit Fruit)
 
 (subclass JamesonsWhiskey Whiskey)
 
@@ -707,7 +2609,7 @@ created from a given &%FruitOrVegetable.")
 
 (subclass Kahlua Liqueur)
 
-(subclass Ketchup PreparedFood)
+(subclass Ketchup Sauce)
 (=>
   (instance ?K Ketchup)
   (material Tomato ?K))
@@ -748,7 +2650,7 @@ been flavored with one of various substances.")
 
 (subclass GrandMarnier Liqueur)
 
-(subclass Mayonnaise PreparedFood)
+(subclass Mayonnaise Sauce)
 (documentation Mayonnaise EnglishLanguage "Mayonnaise, is a stable emulsion of oil, 
 &%EggYolk and either vinegar or &%Lemon juice, with many options for embellishment 
 with other herbs and spices. Lecithin in the egg yolk is the emulsifier. It is 
@@ -793,7 +2695,7 @@ gills (lamellae, sing. lamella) or pores on the underside of the cap. [Wikipedia
   (equal ?P (PlantFn Mustard))
   (subclass ?P HerbaceousPlant))
 
-(subclass Omelette PreparedFood)
+(subclass Omelette CookedDish)
 (=>
   (instance ?O Omelette)
   (exists (?F)
@@ -839,8 +2741,17 @@ with other ingredients like ravioli and tortellini. [Wikipedia]")
 
 (=>
   (instance ?P Pasta)
-  (material Flour ?P))
+  (material WheatFlour ?P))
 
+(=>
+  (instance ?P Pasta)
+  (exists (?D ?C)
+    (and
+      (instance ?D Dough)
+      (instance ?C Cooking)
+      (resource ?C ?D)
+      (result ?C ?P))))
+  
 (subclass PatronTequilla Tequila)
 (subclass Peach Fruit)
 
@@ -862,7 +2773,16 @@ ridges, cut diagonally at both ends. [Wikipedia]")
         (part ?X ?HOLE2)))
     (attribute ?X Fillable)))
 
-(subclass Pickle PreparedFood)
+(subclass FermentedFood PreparedFood)
+(documentation FermentedFood EnglishLanguage "A &%FermentedFood is a &%PreparedFood which 
+has gone through &%Fermentation.")
+(termFormat EnglishLanguage FermentedFood "fermented food") 
+
+(=>
+  (instance ?F FermentedFood)
+  (attribute ?F FermentedAttribute))   
+    
+(subclass Pickle FermentedFood)
 (documentation Pickle EnglishLanguage "A pickled cucumber (commonly known as 
 a pickle in Australia, Canada, and the United States or generically as Gherkins 
 in the UK) is a cucumber that has been pickled in a brine, vinegar, or other 
@@ -893,14 +2813,248 @@ either term is based purely on how the fruits are consumed. [Wikipedia]")
 ;;
 
 (subclass DairyArtifact PreparedFood)
-(documentation DairyArtifact EnglishLanguage "&5DairyArtifact are &%PreparedFood from
-or containing the milk of some &%Mammals such as &%Cows, &%Goats, &%Sheep and &%Camels. 
-&%DairyArtifact include items such as &%Cheese, &%Butter and yoghurt etc. ")
+(documentation DairyArtifact EnglishLanguage "&%DairyArtifact are &%PreparedFood from
+or containing the milk of some &%Mammals such as &%Cows, &%Goats, &%Sheep or &%Camels. 
+&%DairyArtifact include items such as &%Cheese, &%Butter and yoghurt etc.[Wikipedia]")
 
 (=>
   (initialPart DairyArtifact ?CLASS)
   (equal ?CLASS Milk))
-  
+
+(subclass ProcessedMilk DairyArtifact)
+(subclass ProcessedMilk Beverage)
+(subclass ProcessedMilk CowMilk)
+(documentation ProcessedMilk EnglishLanguage "&%ProcessedMilk is &%Milk from cows.")
+(termFormat EnglishLanguage ProcessedMilk "processed milk")
+
+(=>
+  (instance ?PM ProcessedMilk)
+  (exists (?P ?M)
+    (and
+      (instance ?P IntentionalProcess)
+      (instance ?M CowMilk)
+      (patient ?P ?M)
+      (result ?P ?PM))))
+
+(subclass CowMilk Milk)
+(documentation CowMilk EnglishLanguage "&%CowMilk is the &%Milk of &%Cows.")
+(termFormat EnglishLanguage CowMilk "cow milk")
+
+(subclass WholeMilk ProcessedMilk)
+(documentation WholeMilk EnglishLanguage "&%WholeMilk is &%CowMilk which contains 3.25% to 5% of 
+&%ButterFat. It is typically 3.25% of butter fat in countries such as Australia, Canada, USA.In the 
+UK it is over 3.5%. [Wikipedia]")
+(termFormat EnglishLanguage WholeMilk "whole milk")
+
+(=>
+  (and
+    (instance ?M WholeMilk)
+    (measure ?M (MeasureFn ?N ?U))
+    (instance ?U UnitOfVolume))
+  (exists (?BF ?N2)
+    (and
+      (instance ?BF ButterFat)
+      (part ?BF ?M)
+      (not
+        (exists (?F2)
+          (and
+            (instance ?F2 ButterFat)
+            (not
+              (equal ?BF ?F2))
+            (part ?F2 ?M))))
+      (measure ?BF (MeasureFn ?N2 ?U))
+      (greaterThanOrEqualTo ?N2 (MultiplicationFn 0.0325 ?N))
+      (lessThanOrEqualTo ?N2 (MultiplicationFn 0.05 ?N)))))
+      
+(subclass AnimalFat Oil)
+(roomTempState AnimalFat Solid)
+(documentation AnimalFat EnglishLanguage "&%AnimalFats are lipids derived from &%Animal.[Wikipedia]")
+(termFormat EnglishLanguage AnimalFat "animal fat")
+
+(=>
+  (and
+    (equal ?AF
+      (OrganicObjectFn ?F))
+    (subclass ?AF AnimalFat)
+    (subclass ?F FatTissue))
+  (initialPart ?F Animal))
+
+(subclass Lard AnimalFat)
+(roomTempState Lard Solid)
+(documentation Lard EnglishLanguage "&%Lard is fat derived from the rendering 
+of &%pork fat.[Wikipedia]")
+(termFormat EnglishLanguage Lard "lard")
+
+(=>
+  (instance ?L Lard)
+  (exists (?H ?F ?P)
+    (and
+      (instance ?H Heating)
+      (patient ?H ?F)
+      (instance ?F FatTissue)
+      (part ?F ?P)
+      (instance ?P Pork)
+      (result ?H ?L))))
+      
+(subclass Suet AnimalFat)
+(roomTempState Suet Solid)
+(documentation Suet EnglishLanguage "&%Suet is raw fat of the &%Meat from &%Cattle or &%Sheep.[Wikipedia]")
+(termFormat EnglishLanguage Suet "suet")
+
+(=>
+  (and
+    (equal ?S
+      (OrganicObjectFn ?F))
+    (subclass ?S Suet)
+    (subclass ?F FatTissue))
+  (or
+    (initialPart ?F Cattle)
+    (initialPart ?F Sheep)))
+
+(subclass Tallow AnimalFat)
+(roomTempState Tallow Solid)
+(documentation Tallow EnglishLanguage "&%Tallow is raw fat of the &%Meat from &%Cattle or &%Sheep.[Wikipedia]")
+(termFormat EnglishLanguage Tallow "tallow")
+
+(=>
+  (instance ?T Tallow)
+  (exists (?H ?S)
+    (and
+      (instance ?H Heating)
+      (patient ?H ?S)
+      (instance ?S Suet)
+      (result ?H ?T))))
+                           
+(subclass ButterFat Oil)
+(roomTempState ButterFat Solid)
+(documentation ButterFat EnglishLanguage "&%ButterFat is the fatty portion of &%Milk.[Wikipedia]")
+(termFormat EnglishLanguage ButterFat "butter fat")
+(names "milk fat" ButterFat)
+
+(=>
+  (subclass ?BF ButterFat)
+  (initialPart ?BF Milk))
+
+(subclass TwoPercentMilk ProcessedMilk)
+(documentation TwoPercentMilk EnglishLanguage "&%TwoPercentMilk is &%CowMilk which contains 2% of 
+butter fat. [Wikipedia]")
+(termFormat EnglishLanguage TwoPercentMilk "two percent milk")
+
+(=>
+  (and
+    (instance ?M TwoPercentMilk)
+    (measure ?M (MeasureFn ?N ?U))
+    (instance ?U UnitOfVolume))
+  (exists (?BF ?N2)
+    (and
+      (instance ?BF ButterFat)
+      (part ?BF ?M)
+      (not
+        (exists (?F2)
+          (and
+            (instance ?F2 ButterFat)
+            (not
+              (equal ?BF ?F2))
+            (part ?F2 ?M))))
+      (measure ?BF (MeasureFn ?N2 ?U))
+      (equal ?N2 (MultiplicationFn 0.02 ?N)))))
+      
+(subclass OnePercentMilk ProcessedMilk)
+(documentation OnePercentMilk EnglishLanguage "&%OnePercentMilk is &%CowMilk which contains
+1% of butter fat. [Wikipedia]")
+(termFormat EnglishLanguage OnePercentMilk "one percent milk")
+
+(=>
+  (and
+    (instance ?M OnePercentMilk)
+    (measure ?M (MeasureFn ?N ?U))
+    (instance ?U UnitOfVolume))
+  (exists (?BF ?N2)
+    (and
+      (instance ?BF ButterFat)
+      (part ?BF ?M)
+      (not
+        (exists (?F2)
+          (and
+            (instance ?F2 ButterFat)
+            (not
+              (equal ?BF ?F2))
+            (part ?F2 ?M))))
+      (measure ?BF (MeasureFn ?N2 ?U))
+      (equal ?N2 (MultiplicationFn 0.01 ?N)))))
+
+(subclass SemiSkimmedMilk ProcessedMilk)
+(documentation SemiSkimmedMilk EnglishLanguage "&%SemiSkimmedMilk is &%CowMilk which contains
+1.5 - 2% of butter fat. [Wikipedia]")
+(termFormat EnglishLanguage SemiSkimmedMilk "semi skimmed milk")
+
+(=>
+  (and
+    (instance ?M SemiSkimmedMilk)
+    (measure ?M (MeasureFn ?N ?U))
+    (instance ?U UnitOfVolume))
+  (exists (?BF ?N2)
+    (and
+      (instance ?BF ButterFat)
+      (part ?BF ?M)
+      (not
+        (exists (?F2)
+          (and
+            (instance ?F2 ButterFat)
+            (not
+              (equal ?BF ?F2))
+            (part ?F2 ?M))))
+      (measure ?BF (MeasureFn ?N2 ?U))
+      (greaterThanOrEqualTo ?N2 (MultiplicationFn 0.015 ?N))
+      (lessThanOrEqualTo ?N2 (MultiplicationFn 0.02 ?N)))))
+
+(subclass SkimmedMilk ProcessedMilk)
+(documentation SkimmedMilk EnglishLanguage "&%SkimmedMilk is &%CowMilk which contains 0 - 0.05% 
+of butter fat. [Wikipedia]")
+(termFormat EnglishLanguage SkimmedMilk "skimmed milk")
+
+(=>
+  (and
+    (instance ?M SkimmedMilk)
+    (measure ?M (MeasureFn ?N ?U))
+    (instance ?U UnitOfVolume))
+  (exists (?BF ?N2)
+    (and
+      (instance ?BF ButterFat)
+      (part ?BF ?M)
+      (not
+        (exists (?F2)
+          (and
+            (instance ?F2 ButterFat)
+            (not
+              (equal ?BF ?F2))
+            (part ?F2 ?M))))
+      (measure ?BF (MeasureFn ?N2 ?U))
+      (greaterThanOrEqualTo ?N2 (MultiplicationFn 0 ?N))
+      (lessThanOrEqualTo ?N2 (MultiplicationFn 0.005 ?N)))))     
+             
+(subclass GoatMilk Milk)
+(documentation GoatMilk EnglishLanguage "&%GoatMilk is the &%Milk of &%Goats.")
+(termFormat EnglishLanguage GoatMilk "goat milk")
+
+(subclass ProcessedGoatMilk DairyArtifact)
+(subclass ProcessedGoatMilk Beverage)
+(subclass ProcessedGoatMilk GoatMilk)
+(documentation ProcessedGoatMilk EnglishLanguage "&%ProcessedGoatMilk is &%Milk from goats.")
+(termFormat EnglishLanguage ProcessedGoatMilk "processed gaot milk")
+
+(subclass SheepMilk Milk)
+(documentation SheepMilk EnglishLanguage "&%SheepMilk is &%Milk of &%Sheep.")
+(termFormat EnglishLanguage CowMilk "sheep milk")
+
+(subclass WaterBuffaloMilk Milk)
+(documentation WaterBuffaloMilk EnglishLanguage "&%WaterBuffaloMilk is the &%Milk of &%Buffalos.")
+(termFormat EnglishLanguage WaterBuffaloMilk "water buffalo milk")
+
+(subclass YakMilk Milk)
+(documentation YakMilk EnglishLanguage "&%YakMilk is the &%Milk of yaks.")
+(termFormat EnglishLanguage YakMilk "yak milk")
+   
 (subclass ChurningButter Rotating)
 (documentation ChurningButter EnglishLanguage "&%ChurningButter is a &%Rotating &%Motion applied to 
 &%Milk with the purpose to separate the fat in the milk to make &%Butter.")
@@ -949,7 +3103,78 @@ or containing the milk of some &%Mammals such as &%Cows, &%Goats, &%Sheep and &%
       (instance ?C ChurningButter)
       (result ?C ?B))))
 
-(subclass Curdling InternalChange)
+;; Cream
+
+(subclass Cream DairyArtifact)
+(roomTempState Cream Liquid)
+(documentation Cream EnglishLanguage "&%Cream is composed of the higher-fat layer skimmed from
+the top of &%Milk.[Wikipedia]")
+
+(=>
+  (instance ?C Cream)
+  (exists (?CH ?M)
+    (and
+      (instance ?CH Separating)
+      (patient ?CH ?M)
+      (instance ?M Milk)
+      (result ?CH Cream))))
+     
+(=>
+  (and
+    (instance ?C Cream)
+    (part ?C ?O1)
+    (instance ?O1 ButterFat)
+    (measure ?O1
+      (MeasureFn ?X Gram))    
+    (instance ?M Milk)
+    (part ?M ?O2)
+    (instance ?O2 ButterFat)
+    (measure ?O2
+      (MeasureFn ?Y Gram)))
+  (greaterThan ?X ?Y))            
+
+(subclass Curd DairyArtifact)
+(subclass Curd Gel)
+(roomTempState Curd Solid)
+(documentation Curd EnglishLanguage "&%Curd is the &%result of &%CurdlingMilk.")
+(termFormat EnglishLanguage Curd "curd")
+
+(subclass Whey DairyArtifact)
+(subclass Whey Colloid)
+(documentation Whey EnglishLanguage "&%Whey is the &%result of &%CurdlingMilk.")
+(termFormat EnglishLanguage Whey "whey")
+(roomTempState Whey Liquid)
+
+(subclass FermentedMilkProduct DairyArtifact)
+(subclass FermentedMilkProduct FermentedFood)
+(subclass FermentedMilkProduct Emulsion)
+(documentation FermentedMilkProduct EnglishLanguage "A &%FermentedMilkProduct is the &%result of 
+&%Fermentation of &%Milk.")
+(termFormat EnglishLanguage FermentedMilkProduct "fermented milk product")
+
+(=>
+  (instance ?FM FermentedMilkProduct)
+  (exists (?M ?F)
+    (and
+      (instance ?M Milk)
+      (instance ?F Fermentation)
+      (patient ?F ?M)
+      (result ?F ?FM))))
+
+(subclass Buttermilk FermentedMilkProduct)
+(subclass Buttermilk Colloid)
+(documentation Buttermilk EnglishLanguage "&%Buttermilk is a fermented dairy drink. [wikipedia]")
+(termFormat EnglishLanguage Buttermilk "buttermilk")
+(roomTempState Buttermilk Liquid)
+
+(subclass Yogurt FermentedMilkProduct)
+(subclass Yogurt Emulsion)
+(documentation Yogurt EnglishLanguage "&%Yogurt is a fermented milk product. [wikipedia]")
+(termFormat EnglishLanguage Yogurt "yogurt")
+(roomTempState Yogurt Liquid)
+(names "yoghurt" Yogurt)
+      
+(subclass Curdling StateChange)
 (documentation Curdling EnglishLanguage "&%Curdling in is the breaking of an &%Emulsion or &%Colloid 
 into large parts of different composition through the physio-chemical processes of flocculation, creaming, 
 and coalescence. Curdling occurs naturally but it can also be intentially. It is purposeful in the 
@@ -988,6 +3213,45 @@ production of cheese curd and tofu; undesirable in the production of a sauce, ch
 and becomes more acidic. Independently floating casein molecules attract one another, forming lumps that float in
 a translucent whey.[Wikipedia]")
 (termFormat EnglishLanguage CurdlingMilk "curdling milk")
+
+(=>
+  (instance ?C CurdlingMilk)
+  (exists (?M)
+    (and
+      (instance ?M Milk)
+      (patient ?C ?M))))
+
+(=>
+  (and
+    (instance ?C CurdlingMilk)
+    (instance ?M Milk)
+    (patient ?C ?M))
+  (exists (?PH ?D ?H ?L)
+    (and
+      (measure ?M
+          (MeasureFn ?PH PHValue))     
+      (instance ?D Decreasing)
+      (subProcess ?D ?C)
+      (patient ?D ?PH)
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?D))
+        (equal ?PH ?H)
+        (approximateValue ?H 6.5))
+      (holdsDuring
+        (EndFn
+          (WhenFn ?D))
+        (equal ?PH ?L)
+        (approximateValue ?L 4.5))))) 
+        
+(=>
+  (instance ?CM CurdlingMilk)
+  (exists (?C ?W)
+    (and
+      (result ?CM ?C)
+      (result ?CM ?W)
+      (instance ?C Curd)
+      (instance ?W Whey))))
      
 (subclass Cheese DairyArtifact)
 (subclass Cheese Gel)
@@ -1054,12 +3318,15 @@ French region from which it orginated. Brie is a style of cheese, not in itself 
 
 (subclass Radicchio LeafyGreenVegetable)
 (subclass Raisin PreparedFood)
+(subclass Raisin FoodFromPlant)
 (documentation Raisin EnglishLanguage "A raisin is a dried grape.")
 (=>
   (instance ?R Raisin)
-  (exists (?D)
+  (exists (?D ?G)
     (and
       (instance ?D Drying)
+      (instance ?G Grape)
+      (patient ?D ?G)
       (result ?D ?R))))
 
 (subclass RomaineLettuce LeafyGreenVegetable)
@@ -1083,7 +3350,7 @@ sugarcane that is then aged.")
 (domainSubclass PlantFn 1 PlantAnatomicalStructure)
 (rangeSubclass PlantFn Plant)
 (documentation PlantFn EnglishLanguage "This function denotes the class of &%Plant
-of a given &%PlantAnatomicalStructure, such as &%Seed or &%Flowr or &%FruitOrVegetable.")
+of a given &%PlantAnatomicalStructure, such as &%Seed or &%Flower or &%FruitOrVegetable.")
 (termFormat EnglishLanguage PlantFn "plant fn")
     
 (subclass Scallion FruitOrVegetable)
@@ -1117,8 +3384,13 @@ of a given &%PlantAnatomicalStructure, such as &%Seed or &%Flowr or &%FruitOrVeg
 (documentation Seaweed EnglishLanguage "Seaweed is a loose, colloquial term 
 encompassing macroscopic, multicellular, benthic marine algae. The term includes 
 some members of the red, brown and green algae. [text courtesy Wikipedia]")
-(subclass Sesame FruitOrVegetable)
+
+
 (subclass Sesame Seed)
+(documentation Sesame EnglishLanguage "&%Sesame is a &%FloweringPlant in the genus 
+Sesamum.Sesame seed is one of the oldest oilseed crops known, domesticated well over 
+3,000 years ago. Sesamum has many other species, most being wild and native to sub-Saharan Africa.
+ S. indicum, the cultivated type, originated in India. [wikipedia]")
 
 (=>
   (equal ?P (PlantFn Sesame))
@@ -1155,7 +3427,7 @@ cycle of photosynthesis.")
       (not (equal ?O1 ?O2)))))
 
 (subclass Soda Beverage)
-(subclass Soda Mixture)
+(subclass Soda Colloid)
 (=>
   (instance ?S Soda)
   (exists (?CD)
@@ -1169,7 +3441,7 @@ sweetened water flavored with fruit (typically juice or puree), and also
 sometimes wine and/or liqueur. [Wikipedia]")
 (=>
   (instance ?S Sorbet)
-  (material Water ?S))
+  (material DrinkingWater ?S))
 
 (=>
   (instance ?S Sorbet)
@@ -1232,6 +3504,7 @@ spaghetti is most commonly available in 25–30 cm (10–12 in) lengths. [Wikipe
 in the production of &%Tequila.")
 
 (subclass Tofu PreparedFood)
+(subclass Tofu FoodFromPlant)
 (documentation Tofu EnglishLanguage "Tofu or bean curd is a food made by, 
 coagulating soy milk and then pressing the resulting curds into soft 
 white blocks. [Wikipedia]")
@@ -1314,7 +3587,7 @@ typically used during the modern area for ageing of alcoholic beverages.")
   (instance ?V Vodka)
   (exists (?W)
     (and
-      (instance ?W Water)
+      (instance ?W DrinkingWater)
       (part ?W ?V))))
 
 (=>

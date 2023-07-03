@@ -1,4 +1,4 @@
-/* This code is copyrighted by Articulate Software (c) 2004-2016. Infosys 2017-
+/* This code is copyrighted by Articulate Software (c) 2004-. Infosys 2017-2020
 It is released under the GNU Public License <http://www.gnu.org/copyleft/gpl.html>.
 Users of this code also consent, by use of this code, to provide credit in any
 writings, briefings, publications, presentations, or other representations of any
