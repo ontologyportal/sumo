@@ -536,11 +536,29 @@ inserted in the body to treat diseases or perform a surgical procedure. Catheter
 for specific applications, such as cardiovascular, urological, gastrointestinal, neurovascular and
 ophthalmic procedures. The process of inserting a catheter is &%Catheterization.
 Catheters can be inserted into a &%BodyCavity, duct, or vessel, &%Brain, &%Skin or adipose tissue.
-Functionally, they allow drainage, administration of fluids or gases, access by surgical instruments,
+Functionally, they allow drainage, administration of &%Fluids or &%Gases, access by surgical instruments,
 and also perform a wide variety of other tasks depending on the type of catheter. Special types of
 catheters, also called probes, are used in preclinical or clinical research for sampling of lipophilic
 and hydrophilic compounds, protein-bound and unbound drugs, neurotransmitters, peptides and
 &%Proteins, &%Antibodies, nanoparticles and nanocarriers, &%Enzymes and vesicles.[from Wikipedia]")
+
+(=>
+  (instance ?C Catheter)
+  (hasPurpose ?C
+    (exists (?M ?O ?OBJ ?L)
+      (and
+        (instance ?O Organism)
+        (instance ?M Motion)
+        (moves ?M ?OBJ)
+        (orientation ?L ?O Outside)
+        (path ?M ?C)
+        (or
+          (and
+            (origin ?M ?L)
+            (destination ?M ?O))
+          (and
+            (origin ?M ?O)
+            (destination ?M ?L)))))))
 
 (subclass Catheterization Inserting)
 (documentation Catheterization EnglishLanguage "The &%Process of &%Inserting a &%Catheter into an &%Organism.")
@@ -574,6 +592,39 @@ opportunity for a successful resuscitation without permanent &%Brain damage. Adm
 shock to the subject's &%Heart, termed &%Defibrillation, is usually needed to restore a viable, or 'perfusing',
 heart rhythm.  In general, CPR is
 continued until the person has a return of spontaneous circulation (ROSC) or is declared &%Dead.[from Wikipedia]")
+
+(=>
+  (instance ?CPR CPR)
+  (hasPurpose ?CPR
+    (exists (?O ?HB)
+      (and
+        (instance ?O Human)
+        (instance ?HB HeartBeat)
+        (located ?HB ?O)
+        (causes ?CPR ?HB)))))
+
+(=>
+  (instance ?CPR CPR)
+  (exists (?C ?CH ?O)
+    (and
+      (instance ?C Compressing)
+      (patient ?CPR ?O)
+      (instance ?CH Chest)
+      (part ?CH ?O)
+      (patient ?C ?CH)
+      (subProcess ?C ?CPR))))
+
+(=>
+  (and
+    (instance ?CPR CPR)
+    (instance ?C Compressing)
+    (path ?C ?P)
+    (subProcess ?C ?CPR)
+    (length ?P
+      (MeasureFn ?L Centimeter)))
+  (and
+    (greaterThan ?L 5.0)
+    (lessThan ?L 6.0)))
 
 (subclass Defibrillation TherapeuticProcess)
 (documentation CPR EnglishLanguage "Administering an electric shock to restart the &%Heart")
@@ -639,3 +690,75 @@ temperatures above 40 degC (104 degF) can be life-threatening.[from Wikipedia]")
         (coreBodyTemp ?H
           (MeasureFn ?N CelsiusDegree)))))
   (greaterThan ?N 38.3))
+
+; injuries to the Airway are often caused by facial trauma or burns
+
+(=>
+  (and
+    (instance ?V ViolentContest)
+    (patient ?V ?H)
+    (attribute ?H
+       (InjuryCausedFn ?PC))
+    (attribute ?H
+      (ImpairedBodyPartFn Airway)))
+  (modalAttribute
+    (or
+      (subclass ?PC Combustion)
+      (exists (?FI)
+        (and
+          (instance ?I Injuring)
+          (located ?I ?F)
+          (instance ?F Face)
+          (patient ?I ?H))))
+    Likely))
+
+(subclass NasopharyngealAirway Catheter)
+(termFormat EnglishLanguage NasopharyngealAirway "nasopharyngeal airway")
+(termFormat EnglishLanguage NasopharyngealAirway "NPA")
+(termFormat EnglishLanguage NasopharyngealAirway "nasal trumpet")
+(termFormat EnglishLanguage NasopharyngealAirway "nose hose")
+(documentation NasopharyngealAirway EnglishLanguage "In medicine, a nasopharyngeal airway, also known as an NPA,
+nasal trumpet (because of its flared end), or nose hose, is a type of airway adjunct, a tube that is designed
+to be inserted through the nasal passage down into the posterior pharynx to secure an open airway.  When a
+patient becomes &%Jnconscious, the &%Muscles in the &%Jaw commonly relax and can allow the &%Tongue to slide
+back and obstruct the &%Airway. This makes airway management necessary, and an NPA is one of the available
+tools. The purpose of the flared end is to prevent the device from becoming lost inside the patient's nose.
+[from Wikipedia]")
+
+(=>
+  (instance ?NA NasopharyngealAirway)
+  (hasPurpose ?NA
+    (exists (?H ?B)
+      (and
+        (instance ?B Breathing)
+        (located ?B ?H)
+        (holdsDuring
+          (WhenFn ?B)
+          (attribute ?H Unconscious))
+        (path ?B ?NA)))))
+
+(subclass Cricothyroidotomy Surgery)
+(documentation NasopharyngealAirway EnglishLanguage "A cricothyrotomy (also called cricothyroidotomy) is an
+incision made through the &%Skin and cricothyroid membrane to establish a patient &%Airway during certain
+life-threatening situations, such as airway obstruction by a foreign body, angioedema, or massive facial
+trauma. Cricothyrotomy is nearly always performed as a last resort in cases where other means of tracheal
+intubation are impossible or impractical. Compared with tracheotomy, cricothyrotomy is quicker and easier
+to perform, does not require manipulation of the cervical spine, and is associated with fewer complications.
+However, while cricothyrotomy may be life-saving in extreme circumstances, this technique is only intended
+to be a temporizing measure until a definitive airway can be established.[from Wikipedia]")
+(termFormat EnglishLanguage Cricothyroidotomy "cricothyroidotomy")
+(termFormat EnglishLanguage Cricothyroidotomy "cricothyrotomy")
+
+(=>
+  (and
+    (instance ?C Cricothyroidotomy)
+    (patient ?C ?O))
+  (holdsDuring
+    (EndFn (WhenFn ?C))
+    (exists (?H)
+      (and
+        (instance ?H Hole)
+        (equal ?T (HoleHostFn ?H))
+        (instance ?T Throat)
+        (part ?T ?O)))))
+
