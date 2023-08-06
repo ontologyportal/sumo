@@ -1,0 +1,261 @@
+; Airway
+
+;if a patient has an obstructed airway and a cricothyroidotomy is performed then after the procedure the patient will not have an obstructed airway
+
+;A patient with an obstructed airway cannot breathe
+
+;A patient who cannot breathe will die in less than five minutes
+;; https://medlineplus.gov/ency/article/000013.htm says 4-6 min
+
+(=>
+  (and
+    (instance ?A Airway)
+    (instance ?H Human)
+    (bodyPart ?A ?H)
+    (instance ?TO TransitwayObstacle)
+    (instance ?C Cricothyroidotomy)
+    (patient ?C ?H)
+    (holdsDuring ?T
+      (located ?TO ?A))
+    (meetsTemporally ?T ?T2)
+    (during (WhenFn ?TO) ?T))
+  (holdsDuring ?T2
+    (not
+      (exists (?TO2)
+        (and
+          (instance ?TO2 TransitwayObstacle)
+          (located ?TO2 ?A))))))  ;; not really, just a new airway
+
+(=>
+  (and
+    (instance ?A Airway)
+    (instance ?H Human)
+    (bodyPart ?A ?H)
+    (instance ?TO TransitwayObstacle)
+    (holdsDuring ?T
+      (located ?TO ?A)))
+  (not
+    (exists (?B)
+      (and
+        (instance ?B Breathing)
+        (patient ?B ?H)
+        (during (WhenFn ?B) ?T)))))
+
+(=>
+  (and
+    (instance ?T TimePeriod)
+    (duration ?T
+      (MeasureFn ?N MinuteDuration))
+    (greaterThan ?N 5.0)
+    (instance ?H Human)
+    (not
+      (exists (?B)
+        (and
+          (instance ?B Breathing)
+          (during (WhenFn ?B) ?T)
+          (patient ?B ?H))))
+  (exists (?D)
+    (and
+      (instance ?D Death)
+      (experiencer ?D ?H)
+      (meetsTemporally ?T
+        (WhenFn ?D)))))
+
+
+; ChestSeal
+
+;If a patient has an open chest wound and a chest seal is applied to the chest wound then the patient doesn't have an open chest wound
+
+(=>
+  (and
+    (instance ?L Lesion)
+    (instance ?H Hole)
+    (located ?H ?L)
+    (located ?L ?C)
+    (instance ?C Chest)
+    (part ?C ?H)
+    (instance ?A Attaching)
+    (objectTransferred ?A ?CS)
+    (instance ?CS ChestSeal)
+    (meetsTemporally (WhenFn ?A) ?T)
+    (destination ?A ?L))
+  (holdsDuring ?T
+    (not
+      (exists (?H)
+        (located ?H ?L)))))
+        
+(=>
+  (and
+    (instance ?L Lesion)
+    (instance ?H Hole)
+    (located ?H ?L)
+    (located ?L ?C)
+    (instance ?C Chest)
+    (part ?C ?H)
+  (instance ?L OpenChestWound))        
+
+(=>
+  (instance ?L OpenChestWound)
+  (exists (?H ?C)
+    (and
+      (instance ?L Lesion)
+      (instance ?H Hole)
+      (located ?H ?L)
+      (located ?L ?C)
+      (instance ?C Chest)
+      (part ?C ?H))))
+      
+
+  
+;a patient with an open chest wound is likely to develop pneumothorax
+
+(=>
+  (and
+    (instance ?OCW OpenChestWound)
+    (holdsDuring ?T
+      (located ?OCW ?H))
+    (meetsTemporally ?T ?T2))
+  (modalAttribute
+    (holdsDuring ?T2
+      (attribute ?H Pneumothorax)
+      Likely)))
+      
+;a patient with pneumothorax may die if not treated
+
+(=>
+  (holdsDuring ?T2
+    (attribute ?H Pneumothorax))
+  (modalAttribute
+    (exists (?D)
+      (and
+        (instance ?D Death)
+        (experiencer ?D ?H)
+        (causesProposition
+          (attribute ?H Pneumothorax)
+          (experiencer ?D ?H))))
+    Possibility))
+          
+; SalineLock
+
+;a patient with MRSA needs carbapenem class antibiotics
+
+; questionable simplification - one isn't always cured and certainly not cured immediately
+(=>
+  (and
+    (holdsDuring ?T
+      (attribute ?H (InfectionFn MRSA)))
+    (instance ?I Ingesting)
+    (instance ?C Carbapenem)
+    (objectTransferred ?I ?C)
+    (destination ?I ?H)
+    (during (WhenFn ?I) ?T)
+    (meetsTemporally (WhenFn ?I) ?T2))
+  (holdsDuring ?T2
+    (not
+      (attribute ?H (InfectionFn MRSA)))))
+      
+;a carbapenem class antibiotic must be administered intravenously
+; rephrase as "...is administered..."
+(=>
+  (and
+    (instance ?I Ingesting)
+    (instance ?C Carbapenem)
+    (objectTransferred ?I ?C))
+  (instance ?I IVTherapy))
+  
+;if a patient needs intravenous medicine a saline lock may be used
+
+(=>
+  (and
+    (instance ?IVT IVTherapy)
+    (instance ?H Human)
+    (destination ?IVT ?H))
+  (modalAttribute
+    (exists (?SL)
+      (and
+        (instance ?SL SalineLock)
+        (instrument ?IVT ?SL)))
+    Possibility))
+
+;if a patient needs medicine of a certain type and that medicine is delivered then the patient no longer needs medicine of that type (questionable)
+
+
+; IntraossDevice
+
+;If a patient can't have an IV, an intraosseus device may be used
+
+;A ItraossDevice is called for when a patient is in shock
+
+
+; IVFluids
+
+;If a patient has hyperthermia, administer IV fluids
+
+
+; HemorrhageControl
+
+;If a patient is bleeding on a limb, apply a tourniquet.  If a patient is bleeding from the abdomen, apply a wound seal.  If a patient is bleeding from the chest, apply a chest seal
+
+;if a patient is bleeding from a limb and a tourniquet is applied, the patient is no longer bleeding
+
+;if a patient is bleeding from the torso and a wound seal is applied then the patient is no longer bleeding
+
+
+; Medications
+
+
+; A patient with persistent diarrhea has an infection and needs antibiotics
+
+if the patient has an infection and an antibiotic is administered, then the patient will not have an infection (way oversimplified)
+
+; TranexamicAcid
+
+If a patient has low blood pressure, and catastrophic loss of blood (more than 50%), administer transexamic acid
+
+; BloodProducts
+
+A patient who has lost 20-50% of their blood requires a transfusion [whole blood] (or may die).
+
+https://med.libretexts.org/Under_Construction/Developing_Anaesthesia_(Pescod)/07%3A_Critical_Incident_Management/7.02%3A_New_Page#:~:text=Check%20the%20haematocrit%20or%20haemoglobin,haematocrit%20or%20haemoglobin%20and%20coagulation.
+
+
+; NeedleDecomp
+
+
+If a patient has a pneumothorax and needle decompression is applied, the patient will not have a pneumothorax 
+
+(=>
+  (and
+    (instance ?X Human)
+    (instance ?ND NeedleDecompression)
+    (holdsDuring ?T
+      (attribute ?X Pneumothorax))
+    (during (WhenFn ?ND) ?T)
+    (meetsTemporally ?T ?T2)
+    (patient ?ND ?X))
+  (holdsDuring ?T2
+    (not
+      (attribute ?X Pneumothorax))))
+
+(=>
+  (and
+    (instance ?X Human)
+    (instance ?ND NeedleDecompression)
+    (attributeT ?T ?X Pneumothorax))
+    (during (WhenFn ?ND) ?T)
+    (meetsTemporally ?T ?T2)
+    (patient ?ND ?X))
+  (not
+      (attributeT ?T2 ?X Pneumothorax))))
+            
+(=>
+  (and
+    (instance ?X Human)
+    (instance ?ND NeedleDecompression)
+    (t_attribute ?T1 ?X Pneumothorax)
+    (during (WhenFn ?ND) ?T1)
+    (patient ?ND ?X)
+    (meetsTemporally ?T1 ?T2))
+  (not
+    (t_attribute ?T2 ?X Pneumothorax)))
+          
