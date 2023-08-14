@@ -244,40 +244,141 @@
 
 ;If a patient is bleeding on a limb, apply a tourniquet.  If a patient is bleeding from the abdomen, apply a wound seal.  If a patient is bleeding from the chest, apply a chest seal
 
+(=>
+  (and
+    (instance ?B Bleeding)
+    (located ?B ?L)
+    (patient ?B ?H)
+    (instance ?L Limb)
+    (part ?L ?H))
+  (exists (?AT)
+    (and
+      (instance ?AT ApplyingTourniquet)
+      (destination ?AT ?L))))
+
+; questionable since it might not stop the bleeding, or patient could be bleeding elsewhere
+
+(=>
+  (and
+    (instance ?B Bleeding)
+    (located ?B ?L)
+    (patient ?B ?H)
+    (instance ?L Limb)
+    (part ?L ?H)
+    (instance ?AT ApplyingTourniquet)
+    (destination ?AT ?L))
+  (exists (?T)
+    (and
+      (meetsTemporally (WhenFn ?AT) ?T)
+      (not
+        (exists (?B2)
+          (and
+            (instance ?B Bleeding)
+            (located ?B ?L)
+            (patient ?B ?H)
+            (during (WhenFn ?B) ?T)))))))
+
 ;if a patient is bleeding from a limb and a tourniquet is applied, the patient is no longer bleeding
 
 ;if a patient is bleeding from the torso and a wound seal is applied then the patient is no longer bleeding
 
+(=>
+  (and
+    (instance ?B Bleeding)
+    (located ?B ?T)
+    (patient ?B ?H)
+    (instance ?T Torso)
+    (part ?T ?H))
+  (exists (?AT ?CS)
+    (and
+      (instance ?AT Attaching)
+      (instance ?CS ChestSeal)
+      (objectTransferred ?AT ?CS)
+      (destination ?AT ?T))))
+
+(=>
+  (and
+    (instance ?B Bleeding)
+    (located ?B ?T)
+    (patient ?B ?H)
+    (instance ?T Torso)
+    (part ?T ?H)
+    (instance ?AT Attaching)
+    (instance ?CS ChestSeal)
+    (objectTransferred ?AT ?CS)
+    (destination ?AT ?T))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?AT) ?T2)
+      (not
+        (exists (?B2)
+          (and
+            (instance ?B Bleeding)
+            (located ?B ?T)
+            (patient ?B ?H)
+            (during (WhenFn ?B) ?T2)))))))
 
 ; Medications
 
 
 ; A patient with persistent diarrhea has an infection and needs antibiotics
 
-if the patient has an infection and an antibiotic is administered, then the patient will not have an infection (way oversimplified)
+(diseaseTreatment Diarrhea Antibiotic)
+
+(=>
+  (holdsDuring ?T
+    (attribute ?H Diarrhea))
+  (exists (?I ?A)
+    (and
+      (instance ?I Ingesting)
+      (overlapsTemporally ?T (WhenFn ?I))
+      (objectTransferred ?I ?A)
+      (instance ?A Antibiotic)
+      (destination ?I ?H))))
+
+(=>
+  (and
+    (holdsDuring ?T
+      (attribute ?H Diarrhea))
+    (instance ?I Ingesting)
+    (overlapsTemporally ?T (WhenFn ?I))
+    (objectTransferred ?I ?A)
+    (instance ?A Antibiotic)
+    (destination ?I ?H))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?I) ?T2)
+      (holdsDuring ?T2
+        (not
+          (attribute ?H Diarrhea))))))
+
+; instant cure - not realistic
+
+; if the patient has an infection and an antibiotic is administered, then the patient will not have an infection (way oversimplified)
 
 ; TranexamicAcid
 
-If a patient has low blood pressure, and catastrophic loss of blood (more than 50%), administer transexamic acid
+;If a patient has low blood pressure, and catastrophic loss of blood (more than 50%), administer transexamic acid
+
 
 ; BloodProducts
 
-A patient who has lost 20-50% of their blood requires a transfusion [whole blood] (or may die).
+;A patient who has lost 20-50% of their blood requires a transfusion [whole blood] (or may die).
 
-https://med.libretexts.org/Under_Construction/Developing_Anaesthesia_(Pescod)/07%3A_Critical_Incident_Management/7.02%3A_New_Page#:~:text=Check%20the%20haematocrit%20or%20haemoglobin,haematocrit%20or%20haemoglobin%20and%20coagulation.
+; https://med.libretexts.org/Under_Construction/Developing_Anaesthesia_(Pescod)/07%3A_Critical_Incident_Management/7.02%3A_New_Page#:~:text=Check%20the%20haematocrit%20or%20haemoglobin,haematocrit%20or%20haemoglobin%20and%20coagulation.
 
 
 ; NeedleDecomp
 
 
-If a patient has a pneumothorax and needle decompression is applied, the patient will not have a pneumothorax 
+;If a patient has a pneumothorax and needle decompression is applied, the patient will not have a pneumothorax
 
 (=>
   (and
     (instance ?X Human)
     (instance ?ND NeedleDecompression)
     (holdsDuring ?T
-      (attribute ?X Pneumothorax))
+      (attribute ?X Pneumothorax))
     (during (WhenFn ?ND) ?T)
     (meetsTemporally ?T ?T2)
     (patient ?ND ?X))
@@ -289,7 +390,7 @@ If a patient has a pneumothorax and needle decompression is applied, the patient
   (and
     (instance ?X Human)
     (instance ?ND NeedleDecompression)
-    (attributeT ?T ?X Pneumothorax))
+    (attributeT ?T ?X Pneumothorax))
     (during (WhenFn ?ND) ?T)
     (meetsTemporally ?T ?T2)
     (patient ?ND ?X))
@@ -300,7 +401,7 @@ If a patient has a pneumothorax and needle decompression is applied, the patient
   (and
     (instance ?X Human)
     (instance ?ND NeedleDecompression)
-    (t_attribute ?T1 ?X Pneumothorax)
+    (t_attribute ?T1 ?X Pneumothorax)
     (during (WhenFn ?ND) ?T1)
     (patient ?ND ?X)
     (meetsTemporally ?T1 ?T2))
