@@ -1068,7 +1068,7 @@ problematic. Tranexamic acid is a synthetic analog of the amino acid lysine. [fr
 (subclass IVTherapy Ingesting)
 (subclass IVTherapy TherapeuticProcess)
 (documentation IVTherapy EnglishLanguage "Intravenous therapy is a medical technique that administers
-&%Fluids, &%Medicine and/and nutrients directly into a person's &%Vein. The intravenous route of administration
+&%Fluids, &%Medicine and/or nutrients directly into a person's &%Vein. The intravenous route of administration
 is commonly used for rehydration or to provide nutrients for those who cannot, or will not—due to reduced
 mental states or otherwise—consume food or water by &%Mouth. It may also be used to administer medications
 or other medical therapy such as &%Blood products or &%Electrolytes to correct electrolyte imbalances.
@@ -5859,6 +5859,7 @@ affected area.[from Wikipedia].")
 (domainSubclass mixturePartType 2 Mixture)
 (documentation mixturePartType EnglishLanguage "The relation states that the given class of &%Substance is
 part of the given class of &%Mixture.")
+(format EnglishLanguage mixturePartType "%1 is a part of the &%mixture %2")
 
 (subclass CalciumChloride ChemicalSalt)
 (molecularRatio Chlorine 2 CalciumChloride)
@@ -5884,3 +5885,110 @@ part of the given class of &%Mixture.")
 (mixturePartType Water SodiumLactate)
 
 ; CardiacArrest
+
+(instance bloodVolume BinaryPredicate)
+(domain bloodVolume 1 Human)
+(domain bloodVolume 2 VolumeMeasure)
+(documentation bloodVolume EnglishLanguage "The &%Quantity of &%Blood present in a &%Human. A
+&%Liter of blood weights 2.33 pounds (according to https://www.aqua-calc.com/calculate/volume-to-weight)
+or 1060 kg/m3 (Wikipedia) and 7 percent of a &%HumanAdult's weight.")
+(format EnglishLanguage bloodVolume "%1 &%has %2 of blood")
+
+(=>
+  (bloodVolume ?H ?V)
+  (and
+    (exists (?B)
+      (and
+        (instance ?B Blood)
+        (contains ?H ?B)
+        (instance ?H Human)
+        (measure ?B ?V)))
+    (not
+      (exists (?B2)
+         (and
+           (instance ?B2 Blood)
+           (contains ?H ?B2)
+           (not
+             (piece ?B2 ?B)))))))
+
+
+(=>
+  (and
+    (instance ?H HumanAdult)
+    (measure ?H
+      (MeasureFn ?N Pounds)))
+  (and
+    (bloodVolume ?H (MeasureFn ?N2 Liter))
+    (equal ?N2
+      (DivisionFn
+        (MultiplicationFn ?N 0.07) 2.33))))
+
+(instance typicalBloodVolume BinaryPredicate)
+(domainSubclass typicalBloodVolume 1 Mammal)
+(domain typicalBloodVolume 2 VolumeMeasure)
+(documentation typicalBloodVolume EnglishLanguage "The typical, approximate volume of &%Blood for
+the given class of &%Mammal.")
+(format EnglishLanguage typicalBloodVolume "the typical &%volume of blood of a %1 is %2")
+
+(=>
+  (and
+    (typicalBloodVolume ?M
+      (MeasureFn ?N ?U))
+    (instance ?MI ?M)
+    (holdsDuring ?T
+      (not
+        (attribute ?H DiseaseOrSyndrome))
+      (bloodVolume ?H
+        (MeasureFn ?N2 ?U))))
+  (approximateValue ?N2 ?N))
+
+(instance CatastrophicBloodLoss DiseaseOrSyndrome)
+(documentation CatastrophicBloodLoss EnglishLanguage "Loss of 50% or more of the blood volume of a &%Human.")
+(termFormat EnglishLanguage CatastrophicBloodLoss "catastrophic blood loss")
+
+(=>
+  (and
+    (typicalBloodVolume ?M
+      (MeasureFn ?N ?U))
+    (holdsDuring ?T
+      (bloodVolume ?H
+        (MeasureFn ?N2 ?U)))
+    (instance ?H ?M)
+    (lessThan
+      (MultiplicationFn ?N2 2.0)
+      ?N))
+  (holdsDuring ?T
+    (attribute ?H CatastrophicBloodLoss)))
+
+(instance SevereBloodLoss DiseaseOrSyndrome)
+(documentation SevereBloodLoss EnglishLanguage "Loss of 20-50% of the blood volume of a &%Human.")
+(termFormat EnglishLanguage SevereBloodLoss "severe blood loss")
+
+(=>
+  (and
+    (typicalBloodVolume ?M
+      (MeasureFn ?N ?U))
+    (holdsDuring ?T
+      (bloodVolume ?H
+        (MeasureFn ?N2 ?U)))
+    (instance ?H ?M)
+    (greaterThan
+      (MultiplicationFn ?N2 2.0)
+      ?N)
+    (lessThan ?N2
+      (MultiplicationFn 0.8 ?N)))
+  (holdsDuring ?T
+    (attribute ?H SevereBloodLoss)))
+
+(subclass Transfusion IVTherapy)
+(documentation Transfusion EnglishLanguage "Giving &%Blood to an &%Animal, typically as a
+&%TherapeuticProcess in response to significant prior loss of &%Blood caused by &%Injuring
+or &%Surgery.")
+(termFormat EnglishLanguage Transfusion "transfusion")
+
+(=>
+  (instance ?T Transfusion)
+  (exists (?B)
+    (and
+      (instance ?B Blood)
+      (objectTransferred ?T ?B))))
