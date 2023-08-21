@@ -1,3 +1,7 @@
+; Sample medical reasoning axioms
+; embodies a sketch of an approach to a first order temporal logic translation of SUMO
+
+
 (instance attributeT TernaryPredicate)
 (domain attributeT 1 TimePosition)
 (domain attributeT 2 Entity)
@@ -14,6 +18,8 @@
 (domain during 1 TimeInterval)
 (domain during 2 TimeInterval)
 
+; NeedleDecomp
+
 (=>
   (and
     (instance ?X Human)
@@ -24,15 +30,322 @@
     (patient ?ND ?X))
   (not
     (attributeT ?T2 ?X Pneumothorax)))
-    
+
+; patient and equipment
+
 (instance PvtSmith Human)
 (instance T1 TimeInterval)
-(attributeT T1 PvtSmith Pneumothorax)
 (instance T2 TimeInterval)
-(meetsTemporally T1 T2)
-(instance Decomp1 NeedleDecompression)
-(during (WhenFn Decomp1) T1)
-(patient Decomp1 PvtSmith)
+(instance Torso1 Torso)
+(part Torso1 PvtSmith)
+(instance Acid1 TranexamicAcid)
+(instance Ant1 Antibiotic)
+(instance Seal1 ChestSeal)
+(instance Saline1 SalineSolution)
+(instance Intraoss1 IntraosseusDevice)
+(instance Med1 Medicine)
+(instance Air1 Airway)
+(bodyPart Air1 PvtSmith)
 
-    
-      
+;(attributeT T1 PvtSmith Pneumothorax)
+;(meetsTemporally T1 T2)
+;(instance Decomp1 NeedleDecompression)
+;(during (WhenFn Decomp1) T1)
+;(patient Decomp1 PvtSmith)
+
+; BloodProducts
+
+(instance SevereBloodLoss Attribute)
+(subclass Transfusion Process)
+
+; (attributeT T1 PvtSmith SevereBloodLoss)
+; (instance Trans1 Transfusion)
+; (destination Trans1 PvtSmith)
+; (meetsTemporally T1 (WhenFn Trans1))
+
+(=>
+  (and
+    (attributeT ?T ?H SevereBloodLoss)
+    (instance ?IVT Transfusion)
+    (destination ?IVT ?H)
+    (meetsTemporally ?T (WhenFn ?IVT)))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?IVT) ?T2)
+      (not
+        (attributeT ?T2 ?H SevereBloodLoss)))))
+
+; TranexamicAcid
+
+(instane LowBloodPressure Attribute)
+(instane CatastrophicBloodLoss Attribute)
+(subclass IVTherapy Process)
+(subclass TranexamicAcid Substance)
+
+;    (attributeT T1 PvtSmith LowBloodPressure)
+;    (attributeT T1 PvtSmith CatastrophicBloodLoss)
+;    (instance IVTherapy1 IVTherapy)
+;    (objectTransferred IVTherapy1 Acid1)
+;    (destination IVTherapy1 PvtSmith)
+;    (meetsTemporally T1 (WhenFn IVTherapy1)))
+
+(=>
+  (and
+    (attributeT ?T ?H LowBloodPressure)
+    (attributeT ?T ?H CatastrophicBloodLoss)
+    (instance ?IVT IVTherapy)
+    (instance ?TA TranexamicAcid)
+    (objectTransferred ?IVT ?TA)
+    (destination ?IVT ?H)
+    (meetsTemporally ?T
+      (WhenFn ?IVT)))
+  (exists (?T2)
+    (and
+      (meetsTemporally
+        (WhenFn ?IVT) ?T2)
+      (not
+        (attributeT ?T2 ?H LowBloodPressure))
+      (not
+        (attributeT ?T2 ?H CatastrophicBloodLoss)))))
+
+; Medications
+
+(instane Diarrhea Attribute)
+(subclass Antibiotic Substance)
+(subclass Ingesting Process)
+
+;    (attributeT T1 PvtSmith Diarrhea)
+ ;    (instance In1 Ingesting)
+ ;    (overlapsTemporally T1 (WhenFn In1))
+ ;    (objectTransferred In1 Ant1)
+ ;    (destination Int1 PvtSmith))
+
+(=>
+  (and
+    (attributeT ?T ?H Diarrhea)
+    (instance ?I Ingesting)
+    (overlapsTemporally ?T (WhenFn ?I))
+    (objectTransferred ?I ?A)
+    (instance ?A Antibiotic)
+    (destination ?I ?H))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?I) ?T2)
+      (not
+        (attributeT ?T2 ?H Diarrhea)))))
+
+; HemorrhageControl
+
+(subclass Bleeding Process)
+(instance ChestSeal Object)
+(instance Torso Object)
+(subclass Attaching Process)
+
+;     (instance Bleed1 Bleeding)
+  ;    (located Bleed1 Torso1)
+  ;    (patient Bleed1 PvtSmith)
+  ;    (instance Attach1 Attaching)
+  ;    (objectTransferred Attach1 Seal1)
+  ;    (destination Attach1 Torso1)
+
+(=>
+  (and
+    (instance ?B Bleeding)
+    (located ?B ?T)
+    (patient ?B ?H)
+    (instance ?T Torso)
+    (part ?T ?H)
+    (instance ?AT Attaching)
+    (instance ?CS ChestSeal)
+    (objectTransferred ?AT ?CS)
+    (destination ?AT ?T))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?AT) ?T2)
+      (not
+        (exists (?B2)
+          (and
+            (instance ?B Bleeding)
+            (located ?B ?T)
+            (patient ?B ?H)
+            (during (WhenFn ?B) ?T2)))))))
+
+; IVFluids
+
+(instance Hyperthermia Attribute)
+(subclass SalineSolution Substance)
+
+;     (attributeT PvtSmith Hyperthermia)
+  ;    (instance IVTherapy1 IVTherapy)
+  ;    (objectTransferred IVTherapy1 Saline1)
+  ;    (during (WhenFn IVTherapy1) T1)
+  ;    (destination IVTherapy1 PvtSmith)
+
+(=>
+  (and
+    (attributeT ?H Hyperthermia)
+    (instance ?IVF IVTherapy)
+    (instance ?SS SalineSolution)
+    (objectTransferred ?IVF ?SS)
+    (during (WhenFn ?IVF) ?T)
+    (destination ?IVF ?H))
+  (exists (?T2)
+    (and
+      (meetsTemporally ?T ?T2)
+      (not
+        (attributeT ?T2 ?H Hyperthermia)))))
+
+; IntraossDevice
+
+(instance Shock Attribute)
+(instance IntraosseusDevice Object)
+
+;  (attributeT T1 PvtSmith Shock)
+  ;    (instance IVTherapy1 Ingesting)
+  ;    (during T1 (WhenFn IVTherapy1))
+  ;    (instrument IVTherapy1 Intraoss1)
+  ;    (destination IVTherapy1 PvtSmith)
+
+(=>
+  (and
+    (attributeT ?T ?H Shock)
+    (instance ?IVF Ingesting)
+    (during ?T (WhenFn ?IVF))
+    (instance ?IOD IntraosseusDevice)
+    (instrument ?IVF ?IOD)
+    (destination ?IVF ?H))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?IVF) ?T2)
+      (not
+          (attributeT ?T2 ?H Shock)))))
+
+(instance needsT TernaryPredicate)
+(domain needsT 1 TimePosition)
+(domain needsT 2 Entity)
+(domain needsT 3 Object)
+
+(subclass Medicine Substance)
+
+  ;    (needsT T1 PvtSmith Med1)
+  ;    (instance Injest1 Injesting)
+  ;    (destination Injest1 PvtSmith)
+  ;    (overlapsTemporally (WhenFn Injest1) T1)
+  ;    (objectTransferred Injest1 Med1)
+
+(=>
+  (and
+    (instance ?M Medicine)
+    (needsT ?T ?H ?M)
+    (instance ?I Injesting)
+    (destination ?I ?H)
+    (overlapsTemporally (WhenFn ?I) ?T)
+    (objectTransferred ?I ?M))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?I) ?T2)
+      (not
+        (needsT ?T2 ?H ?M)))))
+
+; SalineLock
+
+(subclass Microorganism Organism)
+(subclass InfectiousDisease Attribute)
+(subclass Carbapenem Medicine)
+(instance MRSA InfectiousDisease)
+
+(domainSubclass InfectionFn 1 Microorganism)
+(range InfectionFn InfectiousDisease)
+(subclass InfectionFn UnaryFunction)
+
+; (attributeT T1 PvtSmith (InfectionFn MRSA))
+  ;    (instance Injest1 Ingesting)
+  ;    (instance Carb1 Carbapenem)
+  ;    (objectTransferred Injest1 Carb1)
+  ;    (destination Injest1 PvtSmith)
+  ;    (during (WhenFn Injest1) T1)
+  ;    (meetsTemporally (WhenFn Injest1) T2)
+
+(=>
+  (and
+    (attributeT ?T ?H (InfectionFn MRSA))
+    (instance ?I Ingesting)
+    (instance ?C Carbapenem)
+    (objectTransferred ?I ?C)
+    (destination ?I ?H)
+    (during (WhenFn ?I) ?T)
+    (meetsTemporally (WhenFn ?I) ?T2))
+  (not
+    (attributeT ?T2 ?H (InfectionFn MRSA))))
+
+; ChestSeal
+
+(subclass Lesion Object)
+(subclass HoleRegion Region)
+(instance locatedT TernaryRelation)
+(domain locatedT 1 TimePosition)
+(domain locatedT 2 Physical)
+(domain locatedT 3 Physical)
+
+; (instance Les1 Lesion)
+  ;    (instance Hole1 HoleRegion)
+  ;    (locatedT (WhenFn Attach1) Hole1 Les1)
+  ;    (locatedT (WhenFn Attach1) Les1 Chest1)
+  ;    (instance Chest1 Chest)
+  ;    (part Chest1 PvtSmith)
+  ;    (instance Attach1 Attaching)
+  ;    (objectTransferred Attach1 Seal1)
+  ;    (instance Seal1 ChestSeal)
+  ;    (meetsTemporally (WhenFn Attach1) T1)
+  ;    (destination Attach1 Les1)
+
+(=>
+  (and
+    (instance ?L Lesion)
+    (instance ?HR HoleRegion)
+    (locatedT (WhenFn ?A) ?HR ?L)
+    (locatedT (WhenFn ?A) ?L ?C)
+    (instance ?C Chest)
+    (part ?C ?H)
+    (instance ?A Attaching)
+    (objectTransferred ?A ?CS)
+    (instance ?CS ChestSeal)
+    (meetsTemporally (WhenFn ?A) ?T)
+    (destination ?A ?L))
+  (not
+    (exists (?H)
+      (locatedT ?T ?HR ?L))))
+
+; Airway
+
+(subclass Airway Object)
+(subclass TransitwayObstacle Object)
+(subclass Cricothyroidotomy Process)
+(instance bodyPart BinaryPredicate)
+(instance bodyPart TransitiveRelation)
+(domain bodyPart 1 Object)
+(domain bodyPart 2 Object)
+
+ ;    (instance Obst1 TransitwayObstacle)
+ ;    (instance Crico1 Cricothyroidotomy)
+ ;    (patient Crico1 PvtSmith)
+ ;    (locatedT T1 Obst1 Air1)
+ ;    (meetsTemporally T1 T2)
+ ;    (during (WhenFn Obst1) T1)
+
+(=>
+  (and
+    (instance ?A Airway)
+    (instance ?H Human)
+    (bodyPart ?A ?H)
+    (instance ?TO TransitwayObstacle)
+    (instance ?C Cricothyroidotomy)
+    (patient ?C ?H)
+    (locatedT ?T ?TO ?A)
+    (meetsTemporally ?T ?T2)
+    (during (WhenFn ?TO) ?T))
+  (not
+    (exists (?TO2)
+      (and
+        (instance ?TO2 TransitwayObstacle)
+        (locatedT ?T2 ?TO2 ?A)))))

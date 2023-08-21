@@ -32,6 +32,23 @@
     (instance ?H Human)
     (bodyPart ?A ?H)
     (instance ?TO TransitwayObstacle)
+    (instance ?C Cricothyroidotomy)
+    (patient ?C ?H)
+    (locatedT ?T ?TO ?A)
+    (meetsTemporally ?T ?T2)
+    (during (WhenFn ?TO) ?T))
+  (not
+    (exists (?TO2)
+      (and
+        (instance ?TO2 TransitwayObstacle)
+        (locatedT ?T2 ?TO2 ?A)))))
+
+(=>
+  (and
+    (instance ?A Airway)
+    (instance ?H Human)
+    (bodyPart ?A ?H)
+    (instance ?TO TransitwayObstacle)
     (holdsDuring ?T
       (located ?TO ?A)))
   (not
@@ -41,27 +58,6 @@
         (patient ?B ?H)
         (during (WhenFn ?B) ?T)))))
 
-(=>
-  (and
-    (instance ?T TimePeriod)
-    (duration ?T
-      (MeasureFn ?N MinuteDuration))
-    (greaterThan ?N 5.0)
-    (instance ?H Human)
-    (not
-      (exists (?B)
-        (and
-          (instance ?B Breathing)
-          (during (WhenFn ?B) ?T)
-          (patient ?B ?H))))
-  (exists (?D)
-    (and
-      (instance ?D Death)
-      (experiencer ?D ?H)
-      (meetsTemporally ?T
-        (WhenFn ?D)))))
-
-
 ; ChestSeal
 
 ;If a patient has an open chest wound and a chest seal is applied to the chest wound then the patient doesn't have an open chest wound
@@ -69,7 +65,7 @@
 (=>
   (and
     (instance ?L Lesion)
-    (instance ?H Hole)
+    (instance ?H HoleRegion)
     (located ?H ?L)
     (located ?L ?C)
     (instance ?C Chest)
@@ -83,11 +79,28 @@
     (not
       (exists (?H)
         (located ?H ?L)))))
-        
+
 (=>
   (and
     (instance ?L Lesion)
-    (instance ?H Hole)
+    (instance ?H HoleRegion)
+    (locatedT (WhenFn ?A) ?H ?L)
+    (locatedT (WhenFn ?A)?L ?C)
+    (instance ?C Chest)
+    (part ?C ?H)
+    (instance ?A Attaching)
+    (objectTransferred ?A ?CS)
+    (instance ?CS ChestSeal)
+    (meetsTemporally (WhenFn ?A) ?T)
+    (destination ?A ?L))
+  (not
+    (exists (?H)
+      (locatedT ?T ?H ?L))))
+
+(=>
+  (and
+    (instance ?L Lesion)
+    (instance ?H HoleRegion)
     (located ?H ?L)
     (located ?L ?C)
     (instance ?C Chest)
@@ -99,7 +112,7 @@
   (exists (?H ?C)
     (and
       (instance ?L Lesion)
-      (instance ?H Hole)
+      (instance ?H HoleRegion)
       (located ?H ?L)
       (located ?L ?C)
       (instance ?C Chest)
@@ -140,6 +153,7 @@
 ;a patient with MRSA needs carbapenem class antibiotics
 
 ; questionable simplification - one isn't always cured and certainly not cured immediately
+
 (=>
   (and
     (holdsDuring ?T
@@ -152,7 +166,19 @@
     (meetsTemporally (WhenFn ?I) ?T2))
   (holdsDuring ?T2
     (not
-      (attribute ?H (InfectionFn MRSA)))))
+      (attributeT ?H (InfectionFn MRSA)))))
+
+(=>
+  (and
+    (attributeT ?T ?H (InfectionFn MRSA))
+    (instance ?I Ingesting)
+    (instance ?C Carbapenem)
+    (objectTransferred ?I ?C)
+    (destination ?I ?H)
+    (during (WhenFn ?I) ?T)
+    (meetsTemporally (WhenFn ?I) ?T2))
+  (not
+    (attributeT ?T2 ?H (InfectionFn MRSA))))
       
 ;a carbapenem class antibiotic must be administered intravenously
 ; rephrase as "...is administered..."
@@ -195,6 +221,20 @@
         (not
           (needs ?H ?M))))))
 
+(=>
+  (and
+    (instance ?M Medicine)
+    (needsT ?T ?H ?M)
+    (instance ?I Injesting)
+    (destination ?I ?H)
+    (overlapsTemporally (WhenFn ?I) ?T)
+    (objectTransferred ?I ?M))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?I) ?T2)
+      (not
+        (needsT ?T2 ?H ?M)))))
+
 ; IntraossDevice
 
 ;If a patient in shock can't have an IV, an intraosseus device may (will) be used
@@ -217,6 +257,36 @@
       (instrument ?IVF ?IOD)
       (destination ?IVF ?H))))
 
+(=>
+  (and
+    (holdsDuring ?T
+      (attribute ?H Shock))
+    (instance ?IVF Ingesting)
+    (during ?T (WhenFn ?IVF))
+    (instance ?IOD IntraosseusDevice)
+    (instrument ?IVF ?IOD)
+    (destination ?IVF ?H))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?IVF) ?T2)
+      (holdsDuring ?T2
+        (not
+          (attribute ?H Shock))))))
+
+(=>
+  (and
+    (attributeT ?T ?H Shock)
+    (instance ?IVF Ingesting)
+    (during ?T (WhenFn ?IVF))
+    (instance ?IOD IntraosseusDevice)
+    (instrument ?IVF ?IOD)
+    (destination ?IVF ?H))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?IVF) ?T2)
+      (not
+          (attributeT ?T2 ?H Shock)))))
+
 ;A IntraossDevice is called for when a patient is in shock
 
 
@@ -227,10 +297,23 @@
 (diseaseTreatment Hyperthermia IVFluids)
 
 (=>
+  (holdsDuring ?T
+    (attribute ?H Hyperthermia))
+  (exists (?IVF ?SS)
+    (and
+      (instance ?IVF IVTherapy)
+      (instance ?SS SalineSolution)
+      (objectTransferred ?IVF ?SS)
+      (during (WhenFn ?IVF) ?T)
+      (destination ?IVF ?H))))
+
+(=>
   (and
     (holdsDuring ?T
       (attribute ?H Hyperthermia))
-    (instance ?IVF IVFluids)
+    (instance ?IVF IVTherapy)
+    (instance ?SS SalineSolution)
+    (objectTransferred ?IVF ?SS)
     (during (WhenFn ?IVF) ?T)
     (destination ?IVF ?H))
   (exists (?T2)
@@ -239,6 +322,20 @@
       (holdsDuring ?T2
         (not
           (attribute ?H Hyperthermia))))))
+
+(=>
+  (and
+    (attributeT ?H Hyperthermia)
+    (instance ?IVF IVTherapy)
+    (instance ?SS SalineSolution)
+    (objectTransferred ?IVF ?SS)
+    (during (WhenFn ?IVF) ?T)
+    (destination ?IVF ?H))
+  (exists (?T2)
+    (and
+      (meetsTemporally ?T ?T2)
+      (not
+        (attributeT ?T2 ?H Hyperthermia)))))
 
 ; HemorrhageControl
 
@@ -352,6 +449,20 @@
         (not
           (attribute ?H Diarrhea))))))
 
+(=>
+  (and
+    (attributeT ?T ?H Diarrhea)
+    (instance ?I Ingesting)
+    (overlapsTemporally ?T (WhenFn ?I))
+    (objectTransferred ?I ?A)
+    (instance ?A Antibiotic)
+    (destination ?I ?H))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?I) ?T2)
+      (not
+        (attributeT ?T2 ?H Diarrhea)))))
+
 ; instant cure - not realistic
 
 ; if the patient has an infection and an antibiotic is administered, then the patient will not have an infection (way oversimplified)
@@ -373,6 +484,48 @@
       (destination ?IVT ?H)
       (meetsTemporally ?T (WhenFn ?IVT)))))
 
+(=>
+  (and
+    (holdsDuring ?T
+      (and
+        (attribute ?H LowBloodPressure)
+        (attribute ?H CatastrophicBloodLoss)))
+    (instance ?IVT IVTherapy)
+    (instance ?TA TranexamicAcid)
+    (objectTransferred ?IVT ?TA)
+    (destination ?IVT ?H)
+    (meetsTemporally ?T
+      (WhenFn ?IVT)))
+  (exists (?T2)
+    (and
+      (meetsTemporally
+        (WhenFn ?IVT) ?T2)
+      (holdsDuring ?T2
+        (and
+          (not
+            (attribute ?H LowBloodPressure))
+          (not
+            (attribute ?H CatastrophicBloodLoss)))))))
+
+(=>
+  (and
+    (attributeT ?T ?H LowBloodPressure)
+    (attributeT ?T ?H CatastrophicBloodLoss)
+    (instance ?IVT IVTherapy)
+    (instance ?TA TranexamicAcid)
+    (objectTransferred ?IVT ?TA)
+    (destination ?IVT ?H)
+    (meetsTemporally ?T
+      (WhenFn ?IVT)))
+  (exists (?T2)
+    (and
+      (meetsTemporally
+        (WhenFn ?IVT) ?T2)
+      (not
+        (attributeT ?T2 ?H LowBloodPressure))
+      (not
+        (attributeT ?T2 ?H CatastrophicBloodLoss)))))
+
 ; BloodProducts
 
 ;A patient who has lost 20-50% of their blood requires a transfusion [whole blood] (or may die).
@@ -387,6 +540,32 @@
       (instance ?IVT Transfusion)
       (destination ?IVT ?H)
       (meetsTemporally ?T (WhenFn ?IVT)))))
+
+(=>
+  (and
+    (holdsDuring ?T
+      (attribute ?H SevereBloodLoss))
+    (instance ?IVT Transfusion)
+    (destination ?IVT ?H)
+    (meetsTemporally ?T (WhenFn ?IVT)))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?IVT) ?T2)
+      (holdsDuring ?T2
+        (not
+          (attribute ?H SevereBloodLoss))))))
+
+(=>
+  (and
+    (attributeT ?T ?H SevereBloodLoss)
+    (instance ?IVT Transfusion)
+    (destination ?IVT ?H)
+    (meetsTemporally ?T (WhenFn ?IVT)))
+  (exists (?T2)
+    (and
+      (meetsTemporally (WhenFn ?IVT) ?T2)
+      (not
+        (attributeT ?T2 ?H SevereBloodLoss)))))
 
 ; NeedleDecomp
 
@@ -410,20 +589,10 @@
   (and
     (instance ?X Human)
     (instance ?ND NeedleDecompression)
-    (attributeT ?T ?X Pneumothorax))
+    (attributeT ?T ?X Pneumothorax)
     (during (WhenFn ?ND) ?T)
     (meetsTemporally ?T ?T2)
     (patient ?ND ?X))
   (not
-      (attributeT ?T2 ?X Pneumothorax))))
-            
-(=>
-  (and
-    (instance ?X Human)
-    (instance ?ND NeedleDecompression)
-    (t_attribute ?T1 ?X Pneumothorax)
-    (during (WhenFn ?ND) ?T1)
-    (patient ?ND ?X)
-    (meetsTemporally ?T1 ?T2))
-  (not
-    (t_attribute ?T2 ?X Pneumothorax)))
+    (attributeT ?T2 ?X Pneumothorax)))
+
