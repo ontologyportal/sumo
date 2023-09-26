@@ -1,0 +1,155 @@
+; a file of sample modal logic questions
+
+; This first one isn't actually modal. It's included for contrast.
+; 1. John was walking all Tuesday afternoon.  Was he walking from 1-2pm that day?
+
+(instance AParticularAfternoon Afternoon)
+(instance John Human)
+(names John "John")
+
+(exists (?W ?T)
+  (and
+    (instance ?W Walking)
+    (agent ?W John)
+    (instance ?T Tuesday)
+    (during AParticularAfternoon ?T)
+    (equal
+      (BeginFn AParticularAfternoon)
+      (BeginFn
+        (WhenFn ?W)))
+    (equal
+      (EndFn AParticularAfternoon)
+      (EndFn (WhenFn ?W)))))
+
+; query (and (instance ?W Walking) (agent ?W John) (equal (BeginFn (HourFn 13)) (BeginFn (WhenFn ?W))) (equal (EndFn (HourFn 14)) (EndFn (WhenFn ?W))))
+; yes - with an additional axiom
+
+(=>
+  (and
+    (?R ?P ?E)
+    (instance ?R CaseRole)
+    (instance ?P ?C)
+    (equal ?TI1 (WhenFn ?P))
+    (during ?TI2 ?TI1))
+  (exists (?P2)
+    (and
+      (instance ?P2 ?C)
+      (?R ?P2 ?E)
+      (equal ?TI2 (WhenFn ?P2)))))
+
+
+
+; 2.  Mary knows that Bill likes Sue and Bob likes Joan.  Does Mary know that Bill likes Sue.  (we did this one already).  Does Bill like Sue?
+
+(knows Mary (and (likes Bill Sue) (likes Bob Joan)))
+
+; query: (knows Mary (likes Bill Sue))  - yes
+; query: (likes Bill Sue) - yes
+; but if we change knows to believes then believing something doesn't make it true so the second query is unknown, see next one
+
+
+;3. Bill believes that the Earth is flat.  Is the Earth flat?  Does Bill know that the Earth is flat?
+
+(believes Bill (attribute Earth Flat))
+
+; query: (attribute Earth Flat) - unknown
+; query: (knows Bill (attribute Earth Flat)) - unknown
+
+
+;4. Bill obliges Mary to buy him milk.
+; Bill likes Mary.
+; Bill doesn't like people who don't conform to his obligations.
+; Mary doesn't buy Bill milk.
+; Does Bill like Mary after this?
+
+(confersObligation
+  (exists (?B ?M)
+    (and
+      (instance ?B Buying)
+      (agent ?B Mary)
+      (objectTransferred ?B ?M)
+      (destination ?B Bill)))
+  Bill
+  Mary)
+
+(likes Bill Mary)
+
+(=>
+  (and
+    (confers ?F Bill ?P)
+    (not ?F))
+  (not
+    (likes Bill ?P)))
+
+(not
+  (exists (?B ?M)
+    (and
+      (instance ?B Buying)
+      (agent ?B Mary)
+      (objectTransferred ?B ?M)
+      (destination ?B Bill))))
+
+; query (likes Bill Mary) - false (but we need this with time too, since this will result in Bill
+; liking and not liking Mary)
+
+
+; 5. Bill sees Mary wearing a green hat.
+; Bill believes what he sees.
+; Does Bill believe Mary is wearing a green hat?
+
+(instance sees BinaryPredicate)
+(domain sees 1 AutonomousAgent)
+(domain sees 2 Formula)
+
+(sees Bill
+  (exists (?H)
+    (and
+      (instance ?H Hat)
+      (attribute ?H Green)
+      (wears Mary ?H))))
+
+(=>
+  (sees Bill ?F)
+  (believes Bill ?F))
+
+; query (believes Bill (exists (?H) (and (instance ?H Hat) (attribute ?H Green) (wears Mary ?H))))
+
+
+; 6. Bill believes things until they are contradicted and then believes the latest thing.
+; Bill sees Mary wearing a red hat (after he sees her wearing a green hat).
+; What color does Bill believe Mary is wearing (now)?
+
+(instance T1 TimeInterval)
+(instance T2 TimeInterval)
+(instance Now TimeInterval)
+
+(meetsTemporally T1 T2)
+(meetsTemporally T2 Now)
+
+(holdsDuring T1
+  (sees Bill
+    (exists (?H)
+      (and
+        (instance ?H Hat)
+        (attribute ?H Green)
+        (wears Mary ?H)))))
+
+(holdsDuring T2
+  (sees Bill
+    (exists (?H)
+      (and
+        (instance ?H Hat)
+        (attribute ?H Red)
+        (wears Mary ?H)))))
+
+(=>
+  (sees Bill ?F)
+  (believes Bill ?F))
+
+; query: (holdsDuring Now
+;           (believes Bill
+;             (exists (?H)
+;               (and
+;                 (instance ?H Hat)
+;                 (attribute ?H ?C)
+;                 (wears Mary ?H)))))
