@@ -1,0 +1,380 @@
+; a file of sample modal logic questions
+
+; This first one isn't actually modal. It's included for contrast.
+; 1. John was walking all Tuesday afternoon.  Was he walking from 1-2pm that day?
+
+(instance AParticularAfternoon Afternoon)
+(instance John Human)
+(names John "John")
+
+(exists (?W ?T)
+  (and
+    (instance ?W Walking)
+    (agent ?W John)
+    (instance ?T Tuesday)
+    (during AParticularAfternoon ?T)
+    (equal
+      (BeginFn AParticularAfternoon)
+      (BeginFn
+        (WhenFn ?W)))
+    (equal
+      (EndFn AParticularAfternoon)
+      (EndFn (WhenFn ?W)))))
+
+; query (and (instance ?W Walking) (agent ?W John) (equal (BeginFn (HourFn 13)) (BeginFn (WhenFn ?W))) (equal (EndFn (HourFn 14)) (EndFn (WhenFn ?W))))
+; yes - with an additional axiom
+
+(=>
+  (and
+    (?R ?P ?E)
+    (instance ?R CaseRole)
+    (instance ?P ?C)
+    (equal ?TI1 (WhenFn ?P))
+    (during ?TI2 ?TI1))
+  (exists (?P2)
+    (and
+      (instance ?P2 ?C)
+      (?R ?P2 ?E)
+      (equal ?TI2 (WhenFn ?P2)))))
+
+
+
+; 2.  Mary knows that Bill likes Sue and Bob likes Joan.  Does Mary know that Bill likes Sue.  (we did this one already).  Does Bill like Sue?
+
+(knows Mary (and (likes Bill Sue) (likes Bob Joan)))
+
+; query: (knows Mary (likes Bill Sue))  - yes
+; query: (likes Bill Sue) - yes
+; but if we change knows to believes then believing something doesn't make it true so the second query is unknown, see next one
+
+
+;3. Bill believes that the Earth is flat.  Is the Earth flat?  Does Bill know that the Earth is flat?
+
+(believes Bill (attribute Earth Flat))
+
+; query: (attribute Earth Flat) - unknown
+; query: (knows Bill (attribute Earth Flat)) - unknown
+
+
+;4. Bill obliges Mary to buy him milk.
+; Bill likes Mary.
+; Bill doesn't like people who don't conform to his obligations.
+; Mary doesn't buy Bill milk.
+; Does Bill like Mary after this?
+
+(confersObligation
+  (exists (?B ?M)
+    (and
+      (instance ?B Buying)
+      (agent ?B Mary)
+      (objectTransferred ?B ?M)
+      (destination ?B Bill)))
+  Bill
+  Mary)
+
+(likes Bill Mary)
+
+(=>
+  (and
+    (confers ?F Bill ?P)
+    (not ?F))
+  (not
+    (likes Bill ?P)))
+
+(not
+  (exists (?B ?M)
+    (and
+      (instance ?B Buying)
+      (agent ?B Mary)
+      (objectTransferred ?B ?M)
+      (destination ?B Bill))))
+
+; query (likes Bill Mary) - false (but we need this with time too, since this will result in Bill
+; liking and not liking Mary)
+
+
+; 5. Bill sees Mary wearing a green hat.
+; Bill believes what he sees.
+; Does Bill believe Mary is wearing a green hat?
+
+(instance sees BinaryPredicate)
+(domain sees 1 AutonomousAgent)
+(domain sees 2 Formula)
+
+(sees Bill
+  (exists (?H)
+    (and
+      (instance ?H Hat)
+      (attribute ?H Green)
+      (wears Mary ?H))))
+
+(=>
+  (sees Bill ?F)
+  (believes Bill ?F))
+
+; query (believes Bill (exists (?H) (and (instance ?H Hat) (attribute ?H Green) (wears Mary ?H))))
+
+
+; 6. Bill believes things until they are contradicted and then believes the latest thing.
+; Bill sees Mary wearing a red hat (after he sees her wearing a green hat).
+; What color does Bill believe Mary is wearing (now)?
+
+(instance T1 TimeInterval)
+(instance T2 TimeInterval)
+(instance Now TimeInterval)
+
+(meetsTemporally T1 T2)
+(meetsTemporally T2 Now)
+
+(holdsDuring T1
+  (sees Bill
+    (exists (?H)
+      (and
+        (instance ?H Hat)
+        (attribute ?H Green)
+        (wears Mary ?H)))))
+
+(holdsDuring T2
+  (sees Bill
+    (exists (?H)
+      (and
+        (instance ?H Hat)
+        (attribute ?H Red)
+        (wears Mary ?H)))))
+
+(=>
+  (sees Bill ?F)
+  (believes Bill ?F))
+
+; query: (holdsDuring Now
+;           (believes Bill
+;             (exists (?H)
+;               (and
+;                 (instance ?H Hat)
+;                 (attribute ?H ?C)
+;                 (wears Mary ?H)))))
+
+;;----------------------------------------------------
+
+; Some analysis with respect to the survey done at https://en.wikipedia.org/wiki/Modal_logic
+
+; basic axioms - do these hold?
+
+(=>
+  (and
+    (believes ?A ?F1)
+    (believes ?A ?F2))
+  (believes ?A
+    (and ?F1 ?F2)))
+
+(=>
+  (or
+    (believes ?A ?F1)
+    (believes ?A ?F2))
+  (believes ?A
+    (or ?F1 ?F2)))
+
+; especially, does this hold?
+
+(=>
+  (and
+    (believes ?A ?F1)
+    (=> ?F1 ?F2))
+  (believes ?A ?F2))
+
+; We have already in SUMO -
+
+(<=>
+  (modalAttribute ?FORMULA Necessity)
+  (not
+    (modalAttribute
+      (not ?FORMULA) Possibility)))
+
+; axiom 'D' is already in SUMO
+
+(=>
+  (modalAttribute ?FORMULA Necessity)
+  (modalAttribute ?FORMULA Possibility))
+
+;  We need the following basic axiom
+
+(<=>
+  (modalAttribute ?FORMULA Possibility)
+  (not
+    (modalAttribute
+      (not ?FORMULA) Necessity)))
+
+; need De Morgan's laws?
+
+;       "It is not necessary that X" is logically equivalent to "It is possible that not X".
+
+(<=>
+  (not
+    (modalAttribute ?FORMULA Necessity))
+  (modalAttribute (not ?FORMULA) Possibility))
+
+;        "It is not possible that X" is logically equivalent to "It is necessary that not X".
+
+(<=>
+  (not
+    (modalAttribute ?FORMULA Possibility))
+  (modalAttribute (not ?FORMULA) Necessity))
+
+; 'N', the necessitation rule
+
+(=>
+  ?F
+  (modalAttribute ?F Necessity))
+
+; 'K' the distribution axiom
+; this with 'N' is the most basic modal logic
+
+(=>
+  (modalAttribute
+    (=> ?P ?Q)
+    Necessity)
+  (=>
+    (modalAttribute ?P Necessity)
+    (modalAttribute ?Q Necessity)))
+
+; 'T' - reflexivity
+
+(=>
+  (modalAttribute ?P Necessity)
+  ?P)
+
+; axiom '4'
+
+(=>
+  (modalAttribute ?P Necessity)
+  (modalAttribute
+    (modalAttribute ?P Necessity)
+    Necessity))
+
+; axiom 'B'
+
+(=>
+  ?P
+  (modalAttribute
+    (modalAttribute ?P Possibility)
+      Necessity))
+
+; axiom 'D' is already in SUMO
+
+(=>
+  (modalAttribute ?FORMULA Necessity)
+  (modalAttribute ?FORMULA Possibility))
+
+; axiom '5' is really axiom N
+
+(=>
+  (modalAttribute ?F Possibility)
+  (modalAttribute
+    (modalAttribute ?F Possibility)
+    Necessity))
+
+; 'K' in epistemic
+
+; 'K' the distribution axiom
+; this with 'N' is the most basic modal logic
+
+(=>
+  (knows ?A
+    (=> ?P ?Q))
+  (=>
+    (knows ?A ?P)
+    (knows ?A ?Q)))
+
+; axiom '4'
+
+(=>
+  (knows ?A ?P)
+  (knows ?A
+    (knows ?A ?P)))
+
+; axiom 'K' makes sense - if I know that P implies Q then if I know P I also know Q
+
+; note that many of the modal axioms don't make sense for deontic logic
+; 'knows' and 'believes' don't map exactly to necessity and possibility
+; for example, necessarily P implies P  and   knows P implies P (at least in SUMO) (axiom 'T')
+; but while P implies necessarily P, P doesn't imply knows P (axiom 'N')
+; so T, K, 4 are good but not N
+; if we add 'believes' as the analogue to possibility:
+; B doesn't make sense.  If P is true that doesn't mean one knows that one believes P
+; D is good - if one knows P then one also believes P
+; 5 is good - if one believes P then one knows that one believes P  - axioms 4 and 5 could be called 'introspection' axioms
+
+; we already have axiom T in SUMO for knows, K and 4 are stated above
+
+(=>
+  (knows ?AGENT ?FORMULA)
+  (truth ?FORMULA True))
+
+; axiom D is already in SUMO for epistemic/doxastic
+
+(=>
+  (knows ?AGENT ?FORMULA)
+  (believes ?AGENT ?FORMULA))
+
+; axiom 5 for epistemic/doxastic
+
+(=>
+  (believes ?A ?P)
+  (knows ?A
+    (believes ?A ?P)))
+
+
+; Deontic logic
+
+; map obligatory to necessity and permitted to possibility
+; N doesn't make sense if P is true that doesn't mean it's obligatory
+; K seems true to me - it's obligatory that if you steal money you steal a small amount of money,
+; implies that if you're obliged to steal money then you're obliged to steal a small amount of money.
+; T is not true - if you ought to do P that doesn't mean P is true since people don't always do what they're supposed to
+; 4 is questionable - if you ought to do P does that mean you ought to ought to do P ?  What does it even mean?
+; B is problematic - if P is true then it ought to be permissible to P (if someone committed that doesn't mean that
+; one ought to be permitted to commit murder
+; D makes sense - if you ought to do P then you should be permitted to do P.  We have this in two forms in SUMO
+
+(=>
+  (confersNorm ?E ?F Obligation)
+  (confersNorm ?E ?F Permission))
+
+(=>
+  (modalAttribute ?FORMULA Obligation)
+  (modalAttribute ?FORMULA Permission))
+
+; and a related axiom
+
+(=>
+  (deprivesNorm ?E ?F Permission)
+  (deprivesNorm ?E ?F Obligation))
+
+; we might therefore add
+
+(=>
+  (modalAttribute (not ?FORMULA) Permission)
+  (modalAttribute (not ?FORMULA) Obligation))
+
+; 5 seems a little problematic - if you have permission for P does that mean you're obliged to have permission?
+; It may be dangerous to have obligation and permission without an authority - what does it really
+; mean that P is permitted?  If there's no authority there can be no notion of permissibility just possibility.
+; Permission and obligation as always with respect to an authority.  "He was permitted to do X (by authority Y)."
+; Once relativized to an authority '5' makes a bit more sense but only if we have a hierarchy of authority -
+; if entity X gives you permission to do Y then maybe some parent authority A should have obliged X to give you permission for Y
+; but that all starts to sound rather contrived.
+
+
+; ------------------------------------------
+
+; First order translation could be using https://en.wikipedia.org/wiki/Standard_translation
+; but the last two transformations don't hold for obligation and permission -
+; if one is obliged to do something, that something isn't true in all worlds where
+; one is obliged, since it's possible, for example, for people to break the law
+
+; we have many things that condition worlds -
+; possibility and necessity, but these are about the same thing possibility means there's at least one world
+; in which something is true and necessity means its true in all worlds
+; believes, knows each have their own world per knower or believer
+;
+; https://en.wikipedia.org/wiki/Accessibility_relation

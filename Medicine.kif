@@ -127,11 +127,11 @@ of a human, in beats per minute.  ")
   (exists (?T)
     (and
       (not
-        (exists (?R)
+        (exists (?REC)
           (and
-            (instance ?R RecreationOrExercise)
-            (agent ?R ?H)
-            (during ?T (WhenFn ?R)))))
+            (instance ?REC RecreationOrExercise)
+            (agent ?REC ?H)
+            (during ?T (WhenFn ?REC)))))
       (instance ?T Minute)
       (heartRate ?H ?T ?R))))
 
@@ -347,12 +347,12 @@ of a human, in beats per minute.  ")
   (exists (?T)
     (and
       (not
-        (exists (?R)
+        (exists (?REC)
           (and
-            (instance ?R RecreationOrExercise)
-            (agent ?R ?H)
+            (instance ?REC RecreationOrExercise)
+            (agent ?REC ?H)
             (during ?T
-              (WhenFn ?R)))))
+              (WhenFn ?REC)))))
       (instance ?T Minute)
       (breathingRate ?H ?T ?R))))
 
@@ -397,7 +397,7 @@ of a human, in beats per minute.  ")
 (documentation InjuryCausedFn EnglishLanguage "A &%Function that denotes an
 &%Injury resulting from a specific kind of &%Process.")
 (range InjuryCausedFn Injury)
-(domain InjuryCausedFn 1 Process)
+(domainSubclass InjuryCausedFn 1 Process)
 (format EnglishLanguage InjuryCausedFn "an &%injury caused by %1")
 
 (=>
@@ -527,7 +527,7 @@ measuring core body temperature is through measurements in the &%Rectum. [from W
           (MeasureFn ?N ?U))
         (measure ?R
           (MeasureFn ?N2 ?U)))))
-  (approximatelyEqual ?N ?N2))
+  (approximateValue ?N ?N2))
 
 (subclass Catheter MedicalDevice)
 (subclass Catheter Tube)
@@ -740,7 +740,7 @@ tools. The purpose of the flared end is to prevent the device from becoming lost
         (path ?B ?NA)))))
 
 (subclass Cricothyroidotomy Surgery)
-(documentation NasopharyngealAirway EnglishLanguage "A cricothyrotomy (also called cricothyroidotomy) is an
+(documentation Cricothyroidotomy EnglishLanguage "A cricothyrotomy (also called cricothyroidotomy) is an
 incision made through the &%Skin and cricothyroid membrane to establish a patient &%Airway during certain
 life-threatening situations, such as airway obstruction by a foreign body, angioedema, or massive facial
 trauma. Cricothyrotomy is nearly always performed as a last resort in cases where other means of tracheal
@@ -1764,11 +1764,13 @@ auditory acuity defined as the ability to hear frequencies from
     (greaterThan ?LLIMIT ?LLB)
     (greaterThan ?LLB ?ULIMIT)
     (greaterThan ?FREQ 250)
-    (greaterThan 8000 ?LLB)
+    (greaterThan 8000 ?FREQ)
     (instance ?H Human)
     (instance ?L Listening)
     (agent ?L ?H))
-  (hearingAcuity ?H ?LLIMIT ?ULIMIT))
+  (hearingAcuity ?H
+    (MeasureFn ?LLIMIT Decibel)
+    (MeasureFn ?ULIMIT Decibel)))
 
 (subclass AuditoryAcuityAttribute BiologicalAttribute)
 (termFormat EnglishLanguage AuditoryAcuityAttribute "auditory acuity attribute")
@@ -3019,8 +3021,8 @@ negative repercussions for the posting employee. Even intentionally
 
 (=>
   (and
-    (employee ?P ?ORG)
-    (employee ?CO ?ORG)
+    (employs ?ORG ?P)
+    (employs ?ORG ?CO)
     (instance ?D DoNetworkMessaging)
     (result ?D ?MSG)
     (attribute ?MSG NSFW)
@@ -3037,7 +3039,7 @@ negative repercussions for the posting employee. Even intentionally
 
 (=>
   (and
-    (employee ?CO ?ORG)
+    (employs ?ORG ?CO)
     (instance ?D DoNetworkMessaging)
     (result ?D ?MSG)
     (attribute ?MSG NSFW)
@@ -3709,7 +3711,7 @@ hour and last for about a day. The degree of benefit is similar to
 other &%Antihistamines such as diphenhydramine. Common side effects
 include sleepiness, dry mouth, headache, and abdominal pain.[from Wikipedia]")
 (sideEffect Cetirizine Headache)
-(patholoigcSideEffect Cetirizine (PainFn Abdomen))
+(pathologicSideEffect Cetirizine (PainFn Abdomen))
 
 (termFormat EnglishLanguage Cetirizine "cetirizine")
 
@@ -5849,7 +5851,7 @@ affected area.[from Wikipedia].")
   (and
     (instance ?B Blood)
     (instance ?SL RingersLactate)
-    (tonicity ?SL ?B ?N))
+    (tonicity ?SL ?B (MeasureFn ?N Pascal)))
   (approximateValue ?N 0.0))
 
 (instance mixturePartType BinaryPredicate)
@@ -6117,5 +6119,88 @@ extra help to ascertain the most dire cases.[from Wikipedia]")
         (instance ?C Classifying)
         (instrument ?C ?TT)))))
 
+(instance BoneFracture DiseaseOrSyndrome)
+(documentation BoneFracture EnglishLanguage "An &%Attribute of having a &%Bone that is damaged.  This
+includes cracks that do not completely separate a bone, as well as complete breaks into separate
+pieces and trauma such as an &%OpenFracture.")
+(termFormat EnglishLanguage BoneFracture "bone fracture")
 
+(=>
+  (holdsDuring ?T
+    (attribute ?H BoneFracture))
+  (exists (?S ?B)
+    (and
+      (instance ?S Separating)
+      (patient ?S ?B)
+      (instance ?B Bone)
+      (part ?B ?H)
+      (meetsTemporally (WhenFn ?S) ?T))))
 
+(subAttribute OpenFracture BoneFracture)
+(documentation BoneFracture EnglishLanguage "A &%BoneFracture where a portion of &%Bone breaks the
+&%Skin.")
+(termFormat EnglishLanguage OpenFracture "open fracture")
+
+(=>
+  (holdsDuring ?T
+    (attribute ?H OpenFracture))
+  (exists (?S ?B)
+    (and
+      (instance ?S Skin)
+      (part ?S ?H)
+      (instance ?B Bone)
+      (part ?B ?H)
+      (holdsDuring ?T
+        (traverses ?B ?S)))))
+
+(subclass IVBolusTherapy IVTherapy)
+(documentation IVBolusTherapy EnglishLanguage "Administering IV fluids through an open line, rather
+than a drip, which entails that the contents empty in a few minutes.  This is used in emergency
+settings to administer &%Fluid or &%Medicine quickly.")
+(termFormat EnglishLanguage IVBolusTherapy "IV bolus therapy")
+
+(=>
+  (instance ?IV IVBolusTherapy)
+  (and
+    (duration
+      (WhenFn ?IV)
+      (MeasureFn ?N MinuteDuration))
+    (lessThan ?N 5.0)))
+
+(subclass Morphine BiologicallyActiveSubstance)
+(subclass Morphine Medicine)
+(documentation Morphine EnglishLanguage "Morphine is a strong opiate that is found naturally in
+&%Opium, a dark brown resin produced by drying the latex of opium poppies (Papaver somniferum).
+It is mainly used as a &%Pain medication, and is also commonly used recreationally, or to make
+other illicit opioids. There are numerous methods used to administer morphine: oral; sublingual;
+via inhalation; injection into a &%Muscle, injection under the &%Skin, or injection into the
+&%SpinalCord area; transdermal; or via rectal suppository. It acts directly on the central nervous
+system (CNS) to induce analgesia and alter perception and emotional response to pain. Physical
+and psychological dependence and tolerance may develop with repeated administration. It can
+be taken for both acute pain and chronic pain and is frequently used for pain from &%HeartAttack,
+kidney stones, and during labor. Its maximum effect is reached after about 20
+minutes when administered intravenously and 60 minutes when administered by &%Mouth, while the
+duration of its effect is 3–7 hours.[from Wikipedia]")
+(termFormat EnglishLanguage Morphine "morphine")
+
+(=>
+  (instance ?O Opium)
+  (exists (?M)
+    (and
+      (instance ?M Morphine)
+      (material ?M ?O))))
+
+(subclass Fentanyl BiologicallyActiveSubstance)
+(subclass Morphine Medicine)
+(subclass Morphine Narcotic)
+(documentation Fentanyl EnglishLanguage "Fentanyl is a highly potent
+synthetic piperidine opioid drug primarily used as an analgesic. Because fentanyl is 50 to 100
+times more potent than &%Morphine, its primary clinical utility is in &%Pain management for &%Cancer
+patients and those recovering from painful surgical operations. Fentanyl is also used as a
+sedative. Depending on the method of delivery, fentanyl can be very fast acting and
+ingesting a relatively small quantity can cause overdose. Fentanyl works by activating
+mu-opioid receptors. [from Wikipedia]")
+(termFormat EnglishLanguage Fentanyl "fentanyl")
+(termFormat EnglishLanguage Fentanyl "fentanil")
+(termFormat EnglishLanguage Fentanyl "fentanyl citrate")
+(termFormat EnglishLanguage Fentanyl "Sublimaze")
