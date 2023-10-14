@@ -630,7 +630,423 @@ of a segment of DNA wound around eight &%Histone proteins and resembles thread w
       (instance ?H Histone)
       (part ?D ?N)
       (part ?H ?N))))     
-             
+
+      
+;;       
+;; JP 29 September 2023
+;; added new terms and defenitions on Cell Biology
+;; this is ann initial addition, pending review by a cell biologist
+;; Here Ploidy refers to the cell structure only not an organisim
+
+(subclass Gene OrganicObject)
+(documentation Gene EnglishLanguage "A &%Gene is a segment of &%Nucleotides
+in one of the chains of a &%DNAMolecule.")
+(termFormat EnglishLanguage Gene "gene")
+
+(=>
+  (instance ?G Gene)
+  (exists (?N ?D)
+    (and
+      (instance ?N Nucleotide)
+      (equal ?G ?N)
+      (part ?N ?D)
+      (instance ?D DNAMolecule))))
+
+(=>
+  (and
+    (instance ?G Gene)
+    (located ?G ?C)
+    (instance ?C Cell))
+  (exists (?B ?N ?R)
+    (and
+      (instance ?B BiologicalProcess)
+      (eventLocated ?B ?C)
+      (origin ?B ?G)
+      (result ?B ?N)
+      (instance ?N Nucleotide)
+      (part ?N ?R)
+      (instance ?R RNAMolecule)
+      (located ?R ?C))))    
+
+;;
+;; JP 2 October 2023
+;; the axioms for this definition is not fully defined, awaiting
+;; specialists to define the meaning of the critiria
+;;
+(instance homologousChromosome BinaryPredicate)
+(documentation homologousChromosome EnglishLanguage "A &%homologousChromosome 
+is a &%BinaryPredicate. (homologousChromosome ?X ?Y) means that the instance of 
+&%Chromosome ?X and &%Chromosome ?Y are homologous. Homologous chromosomes 
+are made up of chromosome pairs of approximately the same length, centromere 
+position, and staining pattern (gene sequence), for genes with the same 
+corresponding loci (gene position). [Wikipedia]")
+(termFormat EnglishLanguage homologousChromosome "homologous chromosome")
+(domain homologousChromosome 1 Chromosome)
+(domain homologousChromosome 2 Chromosome)
+(format EnglishLanguage homologousChromosome  "%1 in %2 are &%homologousChromosome")
+;;
+;; JP 2 October 2023
+;; the axioms for homologous is not defined, awaiting
+;; specialists to specifiy the meaning of the critiria
+;;
+
+(instance chromosomeNumber BinaryPredicate)
+(documentation chromosomeNumber EnglishLanguage "&%chromosomeNumber is a
+&%BinaryPredicate indicating the total number of &%Chromosomes contained 
+in the &%CellNucleus of a &%EukaryoticCell.")
+(termFormat EnglishLanguage chromosomeNumber "chromosome number")
+(domain chromosomeNumber 1 EukaryoticCell)
+(domain chromosomeNumber 2 Integer)
+(format EnglishLanguage chromosomeNumber  "There are %2 number of &Chromosome 
+in EukaryoticCell %1.")
+
+(=>
+  (and
+    (chromosomeNumber ?C ?I)
+    (part ?N ?C)
+    (instance ?N CellNucleus)    
+    (instance ?COLL Collection)
+    (located ?COLL ?N)
+    (memberType ?COLL Chromosome))
+  (memberCount ?COLL ?I))      
+
+(subclass MonoploidChromosomeSet Collection)
+(documentation MonoploidChromosomeSet EnglishLanguage "A &%MonoploidChromosomeSet  
+is one (1) unique set of &%Chromosomes in a &%CellNucleus, each of its member is unique and 
+not being part of a pair of &%homologousChromosme within the set.")
+(termFormat EnglishLanguage MonoploidChromosomeSet "monoploid chromosome set")
+
+(=>
+  (and
+    (instance ?COLL MonoploidChromosomeSet)
+    (memberType ?COLL Chromosome)
+    (located ?COLL ?N)
+    (instance ?N CellNucleus)
+    (part ?N EukaryoticCell)
+    (member ?X ?COLL)
+    (member ?Y ?COLL)
+    (not
+      (equal ?X ?Y)))  
+  (not
+        (homologousChromosome ?X ?Y)))
+
+(instance monoploidNumber BinaryPredicate)
+(documentation monoploidNumber EnglishLanguage "&%monoploidNumber is a
+&%BinaryPredicate indicating the number of unique &%Chromosomes contained 
+in a complete &%MonoploidChromosomeSet in the &%CellNuclues of a &%EukaryoticCell.")
+(termFormat EnglishLanguage monoploidNumber "monoploid number")
+(domain monoploidNumber 1 MonoploidChromosomeSet)
+(domain monoploidNumber 2 Integer)
+(format EnglishLanguage chromosomeNumber  "There are %2 number of &%Chromosomes 
+in MonoploidChromosomeSet %1.")
+
+(=>
+  (and
+    (instance ?COLL MonoploidChromosomeSet)
+    (memberCount ?COLL ?I))
+  (monoploidNumber ?COLL ?I))
+
+(subclass MonoploidCell SomaticCell)
+(subclass MonoploidCell Zygote)
+(documentation MonoploidCell EnglishLanguage "&%MonoploidCell is a cell that 
+contains one (1) set of &%Chromosomes, ie.a &%MonoploidChromosomeSet. In other 
+words, its &%chromosomeNumber and &%monoploidNumber are equal.")
+(termFormat EnglishLanguage MonoploidCell "monoploid cell")
+
+(=>
+  (and
+    (instance ?CELL MonoploidCell)
+    (instance ?N CellNucleus)
+    (part ?N ?CELL))
+  (exists (?COLL)
+    (and
+      (instance ?COLL MonoploidChromosomeSet)
+      (located ?COLL ?N)
+      (not
+        (exists (?SET)
+          (and
+            (instance ?SET MonoploidChromosomeSet)
+            (not
+              (equal ?SET ?COLL))
+              (located ?SET ?N)))))))
+  
+(=>
+  (and 
+    (instance ?CELL MonoploidCell)
+    (chromosomeNumber ?CELL ?X)
+    (instance ?COLL MonoploidChromosomeSet)
+    (located ?COLL ?N)
+    (instance ?N CellNucleus)
+    (part ?N ?CELL)
+    (monoploidNumber ?COLL ?Y))
+  (equal ?X ?Y))
+
+(instance haploidNumber BinaryPredicate)
+(documentation haploidNumber EnglishLanguage "&%haploidNumber is a
+&%BinaryPredicate indicating the number of &%Chromosomes contained 
+in the &%CellNuclues of a &%Gamete cell.")
+(termFormat EnglishLanguage haploidNumber "haploid number")
+(domain haploidNumber 1 Gamete)
+(domain haploidNumber 2 Integer)
+(format EnglishLanguage haploidNumber  "There are %2 number of &%Chromosomes 
+in a &%Gamete cell %1.")
+
+(=>
+  (and
+    (haploidNumber ?CELL ?I)
+    (instance ?CELL Gamete)
+    (part ?N ?CELL)
+    (instance ?N CellNucleus)    
+    (instance ?COLL Collection)
+    (located ?COLL ?N)
+    (memberType ?COLL Chromosome))
+  (memberCount ?COLL ?I)) 
+      
+(subclass HaploidCell Gamete)
+(documentation HaploidCell EnglishLanguage "&%HaploidCell refers to a &%Gamete 
+of either sex that contains half (1/2) the set of its complete number of 
+chromosomes contained in its corresponding &%SomaticCell.")
+(termFormat EnglishLanguage HaploidCell "haploid cell")
+
+(=>
+  (and
+    (instance ?CELL HaploidCell)
+    (chromosomeNumber ?CELL ?X)
+    (haploidNumber ?CELL ?Y)) 
+  (equal ?X ?Y))
+
+(instance chromosomeSetCount TernaryPredicate)
+(documentation chromosomeSetCount EnglishLanguage "&%chromosomeSetCount is a
+&%TernaryPredicate. (chromosomeSetCount ?SUB ?COLL ?I) means that there are 
+?I number of ?SUB &%MonoploidChromosomeSet contained in &%Collection ?COLL.")
+(termFormat EnglishLanguage chromosomeSetCount "chromosome set count")
+(domain chromosomeSetCount 1 MonoploidChromosomeSet)
+(domain chromosomeSetCount 2 Collection)
+(domain chromosomeSetCount 3 Integer)
+(format EnglishLanguage chromosomeSetCount  "There are %3 number of %1 MonoploidChromosomeSet 
+in &%Collection %2.")
+
+(=>
+  (and
+    (chromosomeSetCount ?SUB ?COLL ?I)
+    (subCollection ?SUB ?COLL))
+  (equal ?I
+    (CardinalityFn
+      (KappaFn ?I
+        (subCollection ?SUB ?COLL)))))
+
+(instance homologousChromosomePair BinaryPredicate)
+(documentation homologousChromosomePair EnglishLanguage "&%homologousChromosomePair is a
+&%BinaryPredicate indicating (homologousChromosomePair ?A ?B) members of 
+MonoploidChromosomeSet ?A and members of MonoploidChromosomeSet ?B are 
+&%homologousChromosome pairs.")
+(termFormat EnglishLanguage homologousChromosomePair "homologous chromosome pair")
+(domain homologousChromosomePair 1 MonoploidChromosomeSet)
+(domain homologousChromosomePair 2 MonoploidChromosomeSet)
+(format EnglishLanguage homologousChromosomePair  "members of &%MonoploidChromosomeSet 
+%1 and members of &%MonoploidChromosomeSet %2 are &%homologoousChromosome pairs.")
+
+(=>
+  (homologousChromosomePair ?A ?B)
+  (exists (?X ?Y)
+    (and
+      (member ?X ?A)
+      (member ?Y ?B)
+      (not
+        (equal ?X ?Y))
+      (homologousChromosome ?X ?Y))))
+
+(subclass HomologousChromosomeSet Collection)
+(documentation HomologousChromosomeSet EnglishLanguage "A &%HomologousChromosomeSet  
+is one (1) pair of homologous chromosome 2 &%MonoploidChromosomeSets 
+one maternal and one paternal in a &%CellNucleus. One set is the 
+&%homologousChromosomePair of the other set.")
+(termFormat EnglishLanguage HomologousChromosomeSet "homologous chromosome set")
+
+(=>
+  (and
+    (instance ?COLL HomologousChromosomeSet)
+    (memberType ?COLL Chromosome)
+    (located ?COLL ?N)
+    (instance ?N CellNucleus)
+    (part ?N EukaryoticCell)
+    (instance ?A MonoploidChromosomeSet)
+    (subCollection ?A ?COLL))    
+  (chromosomeSetCount ?A ?COLL 2))
+
+(=>
+  (and
+    (instance ?COLL HomologousChromosomeSet)
+    (memberType ?COLL Chromosome)
+    (located ?COLL ?N)
+    (instance ?N CellNucleus)
+    (part ?N EukaryoticCell)
+    (subCollection ?X ?COLL)
+    (subCollection ?Y ?COLL)
+    (not
+      (equal ?X ?Y)))                     
+  (homologousChromosomePair ?X ?Y))
+                
+(subclass DiploidCell SomaticCell)
+(subclass DiploidCell Zygote)
+(documentation DiploidCell EnglishLanguage "&%DiploidCells have a set of two (2) homologous 
+&%Chromosome, usually one from the mother and from the father. [Wikipedia]")
+(termFormat EnglishLanguage DiploidCell "diploid cell")
+
+(=>
+  (and
+    (instance ?COLL Collection)
+    (memberType ?COLL Chromosome)
+    (subCollection ?A ?COLL)
+    (chromosomeSetCount ?A ?COLL 2)
+    (located ?COLL ?N)
+    (instance ?N CellNucleus)
+    (part ?N ?CELL))
+  (instance ?CELL DiploidCell))
+
+(=>
+  (and
+    (instance ?COLL HomologousChromosomeSet)
+    (located ?COLL ?N)
+    (instance ?N CellNucleus)
+    (part ?N ?CELL))
+  (instance ?CELL DiploidCell))
+                
+(subclass TriploidCell SomaticCell)
+(subclass TriploidCell Zygote)
+(documentation TriploidCell EnglishLanguage "&%TriploidCell refers to a cell that 
+contains three (3) sets of homologous &%Chromosomes.")
+(termFormat EnglishLanguage TriploidCell "triploid cell")
+
+(=>
+  (and
+    (instance ?CELL TriploidCell) 
+    (instance ?N CellNucleus)
+    (part ?N ?CELL)
+    (located ?COLL ?N)
+    (instance ?COLL Collection)
+    (memberType ?COLL Chromosome)
+    (instance ?A MonoploidChromosomeSet)
+    (subCollection ?A ?COLL))    
+  (chromosomeSetCount ?A ?COLL 3))
+
+(subclass TetraploidCell SomaticCell)
+(subclass TetraploidCell Zygote)
+(documentation TetraploidCell EnglishLanguage "&%TetraploidCell refers to a cell which has 
+four (4) sets of homologous &%Chromosomes.")
+(termFormat EnglishLanguage TetraploidCell "tetraploid cell")
+
+(=>
+  (and
+    (instance ?COLL Collection)
+    (memberType ?COLL Chromosome)
+    (instance ?A MonoploidChromosomeSet)
+    (subCollection ?A ?COLL)
+    (chromosomeSetCount ?A ?COLL 4)
+    (located ?COLL ?N)
+    (instance ?N CellNucleus)
+    (part ?N ?CELL))
+  (instance ?CELL TetraploidCell))
+  
+(=>
+  (and
+    (instance ?CELL TetraploidCell)
+    (part ?N ?CELL)
+    (instance ?N CellNucleus)
+    (located ?COLL ?N)
+    (instance ?COLL Collection)
+    (memberType ?COLL Chromosome))
+  (exists (?A ?B)
+    (and
+      (instance ?A HomologousChromosomeSet)
+      (subCollection ?A ?COLL)
+      (instance ?B HomologousChromosomeSet)
+      (subCollection ?B ?COLL)
+      (not
+        (equal ?A ?B)))))
+
+(subclass PentaploidCell SomaticCell)
+(subclass PentaploidCell Zygote)
+(documentation PentaploidCell EnglishLanguage "&%PentaploidCell refers to a cell which has 
+five (5) sets of homologous &%Chromosomes.")
+(termFormat EnglishLanguage PentaploidCell "pentaploid cell")
+
+(=>
+  (and
+    (instance ?CELL PentaploidCell) 
+    (instance ?N CellNucleus)
+    (part ?N ?CELL)
+    (located ?COLL ?N)
+    (instance ?COLL Collection)
+    (memberType ?COLL Chromosome)
+    (instance ?A MonoploidChromosomeSet)
+    (subCollection ?A ?COLL))    
+  (chromosomeSetCount ?A ?COLL 5))
+
+(subclass HexaploidCell SomaticCell)
+(subclass HexaploidCell Zygote)
+(documentation HexaploidCell EnglishLanguage "&%HexaploidCell refers to a cell that 
+contains six (6) sets of homologous &%Chromosomes.")
+(termFormat EnglishLanguage HexaploidCell "hexaploid cell")
+
+(=>
+  (and
+    (instance ?COLL Collection)
+    (memberType ?COLL Chromosome)
+    (instance ?A MonoploidChromosomeSet)
+    (subCollection ?A ?COLL)
+    (chromosomeSetCount ?A ?COLL 6)
+    (located ?COLL ?N)
+    (instance ?N CellNucleus)
+    (part ?N ?CELL))
+  (instance ?CELL HexaploidCell))
+
+(=>
+  (and
+    (instance ?CELL HexaploidCell)
+    (part ?N ?CELL)
+    (instance ?N CellNucleus)
+    (located ?COLL ?N)
+    (instance ?COLL Collection)
+    (memberType ?COLL Chromosome))
+  (exists (?A ?B ?C)
+    (and
+      (instance ?A HomologousChromosomeSet)
+      (subCollection ?A ?COLL)
+      (instance ?B HomologousChromosomeSet)
+      (subCollection ?B ?COLL)
+      (instance ?C HomologousChromosomeSet)
+      (subCollection ?C ?COLL)
+      (not
+        (equal ?A ?B)
+        (equal ?A ?C)
+        (equal ?B ?C)))))
+    
+(subclass HeptaploidCell SomaticCell)
+(subclass HeptaploidCell Zygote)
+(documentation HeptaploidCell EnglishLanguage "&%HeptaploidCell refers to a cell which has 
+seven (7) sets of homologous &%Chromosomes.")
+(termFormat EnglishLanguage HeptaploidCell "heptaploid cell")
+
+(subclass OctaploidCell SomaticCell)
+(subclass OctaploidCell Zygote)
+(documentation OctaploidCell EnglishLanguage "&%OctaploidCell refers to a cell which has 
+eight (8) sets of homologous &%Chromosomes.")
+(termFormat EnglishLanguage OctaploidCell "octaploid cell")
+
+(subclass DecaploidCell SomaticCell)
+(subclass DecaploidCell Zygote)
+(documentation DecaploidCell EnglishLanguage "&%DecaploidCell refers to a cell that 
+contains ten (10) sets of homologous &%Chromosomes.")
+(termFormat EnglishLanguage DecaploidCell "decaploid cell")
+
+(subclass DodecaploidCell SomaticCell)
+(subclass DodecaploidCell Zygote)
+(documentation DodecaploidCell EnglishLanguage "&%DodecaploidCell refers to a cell which has 
+twelve (12) sets of homologous &%Chromosomes.")
+(termFormat EnglishLanguage DodecaploidCell "codecaploid cell")
+(names "duodecaploid" DodecaploidCell)
+               
 (subclass Cytoskeleton CellPart)
 (documentation Cytoskeleton EnglishLanguage "The class of cytoskeletons found in cells.")
 
