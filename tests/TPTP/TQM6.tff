@@ -1,0 +1,153 @@
+% NOTE: not working yet
+
+% 6. Bill believes things until they are contradicted and then believes the latest thing.
+% Bill sees Mary wearing a red hat (after he sees her wearing a green hat).
+% What color does Bill believe Mary is wearing (now)?
+
+tff(worlds_tp,type,(w : $tType)).
+%tff(individuals_tp,type,($i : $tType)).
+tff(modals_tp,type,(m : $tType)).
+
+tff(wears_tp,type,(wears : ($i * $i * w) > $o)).
+tff(earlier_tp,type,(earlier : ($i * $i * w) > $o)).
+tff(attribute_tp,type,(attribute : ($i * $i * w) > $o)).
+tff(instance_tp,type,(instance : ($i * $i) > $o)).
+tff(contraryAttribute_tp,type,(contraryAttribute : ($i * $i) > $o)).
+
+tff(green_tp,type,(green : $i)).
+tff(red_tp,type,(red : $i)).
+tff(hat_tp,type,(hat : $i)).
+tff(mary_tp,type,(mary : $i)).
+tff(bill_tp,type,(bill : $i)).
+tff(now_tp,type,(now : $i)).
+tff(t1_tp,type,(t1 : $i)).
+tff(t2_tp,type,(t2 : $i)).
+
+tff(sees_tp,type,(sees : m)).
+tff(believes_tp,type,(believes : m)).
+tff(holdsDuring_tp,type,(holdsDuring : m)).
+
+% modality, agent, consequent world, antecedent world
+tff(accreln_tp,type,(accreln : (m * $i * w * w) > $o)).
+
+tff(axiom_t_believes,axiom,(! [X:$i] : (! [W:w] : (accreln(believes,X,W,W))))).
+tff(axiom_t_sees,axiom,(! [X:$i] : (! [W:w] : (accreln(sees,X,W,W))))).
+tff(axiom_t_holdsDuring,axiom,(! [X:$i] : (! [W:w] : (accreln(holdsDuring,X,W,W))))).
+
+%(instance T1 TimeInterval)
+%(instance T2 TimeInterval)
+%(instance Now TimeInterval)
+
+% (earlier T1 T2)
+% (earlier T2 Now)
+
+tff(fact1,axiom,( earlier(t1,t2))).
+tff(fact2,axiom,( earlier(t2,now))).
+tff(fact3,axiom,( contraryAttribute(red,green))).
+
+%(holdsDuring T1
+%  (sees Bill
+%    (exists (?H)
+%      (and
+%        (instance ?H Hat)
+%        (attribute ?H Green)
+%        (wears Mary ?H)))))
+
+
+tff(kb1,axiom,(
+  (![W:w] : (accreln(holdsDuring,t1,W,W) => 
+    (accreln(sees,bill,W,W) =>
+      ( ?[H:$i] : (
+        instance(H,hat) &
+        attribute(H,green,W) &
+        wears(mary,H,W)))))))).
+      
+%(holdsDuring T2
+%  (sees Bill
+%    (exists (?H)
+%      (and
+%        (instance ?H Hat)
+%        (attribute ?H Red)
+%        (wears Mary ?H)))))
+
+tff(kb2,axiom,(
+  (![W:w] : (accreln(holdsDuring,t2,W,W) => 
+    (accreln(sees,bill,W,W) =>
+      ( ?[H:$i] : (
+        instance(H,hat) &
+        attribute(H,red,W) &
+        wears(mary,H,W)))))))).
+        
+%(=>
+%  (sees Bill ?F)
+%  (believes Bill ?F))
+
+tff(kb3,axiom,(
+  (![W:w, W2:w, H:$i]: (accreln(sees,H,W2,W) =>
+    accreln(believes,H,W2,W))))).
+    
+% something can't be both red and green
+
+%(=>
+%  (attribute ?O Red)
+%  (not
+%    (attribute ?O Green)))
+
+tff(kb4,axiom,(
+  (![W:w, O:$i] :
+    (attribute(O,red,W) =>
+      (~attribute(O,green,W)))))).
+  
+%(=>
+%  (attribute ?O Green)
+%  (not
+%    (attribute ?O Red)))
+        
+tff(kb5,axiom,(
+  (![W:w, O:$i] :
+    (attribute(O,green,W) =>
+      (~attribute(O,red,W)))))).
+              
+% if two things are believed at different times and one time is later
+% the later thing is believed Now.
+% overly specific since in first order we can't quantify over a formula
+% so contradictory knowledge is specific to a literal (attribute)
+  
+%(=>
+%  (and
+%    (holdsDuring ?T1
+%      (believes ?A 
+%        (attribute ?O ?A1)))
+%    (holdsDuring ?T2
+%      (believes ?A 
+%        (attribute ?O ?A2)))
+%    (earlier ?T1 ?T2)
+%    (contraryAttribute ?A1 ?A2))
+%  (holdsDuring Now
+%    (believes ?A 
+%      (attribute ?O ?A2))))
+
+tff(kb6,axiom,(
+  (![W:w, O:$i, A:$i, A1:$i, A2:$i, T1:$i, T2:$i, W1:w, W2:w, W3:w, Wa1:w, Wa2:w, Wa3:w, Wb1:w, Wb2:w, Wb3:w] : (
+    ((accreln(holdsDuring,T1,W2,W1) => accreln(believes,A,W3,W2) => attribute(O,A1,W3)) &
+    (accreln(holdsDuring,T2,Wa2,Wa1) => accreln(believes,A,Wa3,Wa2) => attribute(O,A2,Wa3)) &
+    earlier(T1,T2) &
+    contraryAttribute(A1,A2)) => 
+      (accreln(holdsDuring,now,Wb2,Wb1) => accreln(believes,A,Wb3,Wb2) => attribute(O,A2,Wb3)))))).
+        
+tff(kb7,axiom,(
+  ![A1:$i,A2:$i]:(contraryAttribute(A1,A2) => contraryAttribute(A2,A1)))).
+  
+% query: (holdsDuring Now
+%           (believes Bill
+%             (exists (?H)
+%               (and
+%                 (instance ?H Hat)
+%                 (attribute ?H ?C)
+%                 (wears Mary ?H)))))
+
+% simplified for first order to just the 'attribute' literal
+tff(conj,conjecture,(
+  (![W:w, O:$i, A2:$i, Wb1:w, Wb2:w, Wb3:w] : (
+      (accreln(holdsDuring,now,Wb2,Wb1) => accreln(believes,bill,Wb3,Wb2) => attribute(O,A2,Wb3)))))).
+
