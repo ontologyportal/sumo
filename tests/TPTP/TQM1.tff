@@ -1,0 +1,116 @@
+% TQM1 ('M' for modal)
+% not really a modal problem but does have temporal reasoning
+
+tff(worlds_tp,type,(w : $tType)).
+%tff(individuals_tp,type,($i : $tType)).
+tff(modals_tp,type,(m : $tType)).
+tff(during_tp,type,(during : ($i * $i * w) > $o)).
+tff(walking_tp,type,(walking : $i)).
+tff(john_tp,type,(john : $i)).
+tff(human_tp,type,(human : $i)).
+tff(aParticularAfternoon_tp,type,(aParticularAfternoon : $i)).
+tff(afternoon_tp,type,(afternoon : $i)).
+tff(tuesday_tp,type,(tuesday : $i)).
+tff(caseRole_tp,type,(caseRole : $i)).
+tff(instance_tp,type,(instance : ($i * $i) > $o)).
+tff(beginFn_tp,type,(beginFn : ($i) > $i)).
+tff(endFn_tp,type,(endFn : ($i) > $i)).
+tff(whenFn_tp,type,(whenFn : ($i) > $i)).
+tff(hourFn_tp,type,(hourFn : ($int) > $i)).
+tff(names_tp,type,(names : ($i * $i * w) > $o)).
+tff(agent_tp,type,(agent : ($i * $i * w) > $o)).
+tff(subProcess_tp,type,(subProcess : ($i * $i * w) > $o)).
+tff(knows_tp,type,(knows : m)).
+
+% modality, agent, consequent world, antecedent world
+tff(accreln_tp,type,(accreln : (m * $i * w * w) > $o)).
+
+% (instance AParticularAfternoon Afternoon)
+tff(kb1,axiom,( instance(aParticularAfternoon,afternoon))).
+
+% (instance John Human)
+tff(kb2,axiom,( instance(john,human))).
+
+tff(axiom_t_knows,axiom,(! [X:$i] : (! [W:w] : (accreln(knows,X,W,W))))).
+
+% (names "John" John) TODO: how to use strings in TFA?
+%tff(kb3,axiom,( ![W:w] :(names("John",john,W)))).
+
+%John walks on a (particular) Tuesday afternoon.
+%(exists (?W ?T)
+%  (and
+%    (instance ?W Walking)
+%    (agent ?W John)
+%    (instance ?T Tuesday)
+%    (during AParticularAfternoon ?T)
+%    (equal
+%      (BeginFn AParticularAfternoon)
+%      (BeginFn
+%        (WhenFn ?W)))
+%    (equal
+%      (EndFn AParticularAfternoon)
+%      (EndFn (WhenFn ?W)))))
+
+tff(kb4,axiom,( ![W:w]: (?[P:$i] : ( ? [T:$i] : (
+  instance(P,walking) &
+  agent(P,john,W) &
+  instance(T,tuesday) &
+  during(aParticularAfternoon,T,W) &
+  (beginFn(aParticularAfternoon) = beginFn(whenFn(P))) &
+  (endFn(aParticularAfternoon) = endFn(whenFn(P)))))))).
+
+% if someone is an agent of a process he's also the agent of
+% a subProcess of the process (if it's of the same type) 
+% TODO generalize with a variable for all CaseRoles
+%(=>
+%  (and
+%    (agent ?P ?E)
+%    (instance ?P ?C)
+%    (equal ?TI1 (WhenFn ?P))
+%    (during ?TI2 ?TI1))
+%  (exists (?P2)
+%    (and
+%      (instance ?P2 ?C)
+%      (agent ?P2 ?E)
+%      (subProcess ?P2 ?P)
+%      (equal ?TI2 (WhenFn ?P2)))))
+      
+tff(kb5,axiom,( ![W:w, R:$i, P:$i, E:$i, C:$i, TI1:$i, TI2:$i] : (
+  (agent(P,E,W) &
+   instance(P,C) &
+   (TI1 = whenFn(P)) &
+   during(TI2,TI1,W)) =>
+   (?[P2:$i] : (
+     instance(P2,C) &
+     agent(P2,E,W) &
+     subProcess(P2,P,W) &
+     (TI2 = whenFn(P2))))))).
+
+% if there's a process, then for every time interval during
+% the process, there's a subprocess for the time interval of
+% of the same process with the same agent
+
+% every afternoon starts at noon and ends at 6pm on the same day
+% (=>
+%  (and
+%    (instance ?A Afternoon)
+%    (equal (BeginFn (HourFn ?HB ?D)) (BeginFn ?A))
+%    (equal (EndFn (HourFn ?HE ?D)) (EndFn ?A))
+%    (during ?A ?D))
+%  (and
+%    (equal ?HB 12)
+%    (equal ?HE 18)))
+    
+        
+% does John walk from 1pm to 2pm?
+% query (and (instance ?W Walking) (agent ?W John) (equal (BeginFn (HourFn 13 ?D)) (BeginFn (WhenFn ?W))) (equal (EndFn (HourFn 14 ?D)) (EndFn (WhenFn ?W))))
+% yes - with an additional axiom
+      
+tff(conj,conjecture,(
+  ! [M:m] : (![W:w] : (? [P:$i] : ( ?[D:$i] : (accreln(M,mary,W,W) =>
+  (instance(P,walking) &
+  during(whenFn(P),D) &
+  agent(P,john,W) &
+  (beginFn(hourFn(13,D)) = beginFn(whenFn(P))) &
+  (endFn(hourFn(14,D)) = endFn(whenFn(P)))))))))).
+        
