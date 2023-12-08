@@ -18,7 +18,8 @@
 ;;Created: 23rd October 2023
 ;;
 ;;---------------------------------------------------------------------------------------------------------
-
+;; dependancy file engineering.kif, Cars.kif, QoSontology.kif
+;;
 ;; BEGIN FILE
 ;;
 ;;3d printer (don't confuse with SUMO's Printer)
@@ -421,12 +422,25 @@ are combined and attached to form the final product in a specific order.")
 (subclass ElectroMechanicalFitting Electromagnet)
 (documentation ElectroMechanicalFitting EnglishLanguage "An &%ElectroMechanicalFitting 
 is an &%Electromagnet which takes in an electric current and use the electricity to control 
-a &%MechanicalDevice.")
+a &%Machine.")
 (termFormat EnglishLanguage ElectroMechanicalFitting "electromechanical fitting")
 
+(=>
+  (instance ?X ElectroMechanicalFitting)
+  (hasPurpose ?X
+    (exists (?M ?E ?D)
+      (and
+        (instance ?M Motion)      
+        (instance ?E Electricity)
+        (resource ?M ?E)       
+        (instrument ?M ?X)
+        (patient ?M ?D)
+        (instance ?D Machine)))))
+
 ;;"AMR"
+;; Robot cannot experience emotion, so it's not a CognitiveAgent
 (subclass AutonomousMobileRobot AutonomousAgent)
-(subclass AutonomousMobileRobot Device)
+(subclass AutonomousMobileRobot Robot)
 (documentation AutonomousMobileRobot EnglishLanguage "An &%AutonomousMobileRobot 
 (AMR) is a type of robot. Among other possible activities, it can at least navigate 
 in an uncontrolled environment without the need for physical or electro-mechanical 
@@ -436,6 +450,58 @@ and navigate through their environment.[Wikipedia]")
 (termFormat EnglishLanguage AutonomousMobileRobot "autonomous mobile robot")
 (names "AMR" AutonomousMobileRobot)
 
+;; hasPurpose to move autonomously
+
+(=>
+  (instance ?AMR AutonomousMobileRobot)
+  (hasPurpose ?AMR
+    (exists (?T)
+      (and
+        (instance ?T Translocation)
+        (agent ?T ?AMR)
+        (patient ?T ?AMR)
+        (instrument ?T ?AMR)
+        (experiencer ?T ?AMR)
+        (not
+          (exists (?G ?A)
+            (and
+              (instance ?G Guiding)
+              (patient ?G ?AMR)
+              (agent ?G ?A)
+              (or
+                (instance ?A Human)
+                (instance ?A Device)))))))))
+
+;; PS Guiding is a term originated from Merge but it has not yet
+;; been formalised. Driving is a subclass of Guiding
+;; I haven't seen any implication of "control" or not causing an accident
+;; or not hitting an unintended object involved in the codes
+              
+(subclass Robot Machine)
+(documentation Robot EnglishLanguage "A &%Robot is a machine—especially one 
+programmable by a computer—capable of carrying out a complex series of actions 
+automatically. A robot can be guided by an external control device, or the control 
+may be embedded within. Robots may be constructed to evoke human form, but most 
+robots are task-performing machines, designed with an emphasis on stark 
+functionality, rather than expressive aesthetics.[Wikipedia]")
+(termFormat EnglishLanguage Robot "robot")
+
+(=>
+  (instance ?R Robot)
+  (hasPurpose ?R
+    (exists (?PROC ?COMP)
+      (and
+        (instance ?PROC ComputerProcess)
+        (instance ?COMP ComputerProgram)
+        (computerRunning ?PROC ?COMP)
+        (patient ?PROC ?R)
+        (holdsDuring
+          (WhenFn ?PROC)
+          (exists (?INT)
+            (and
+              (instance ?INT IntentionalProcess)
+              (instrument ?INT ?R))))))))
+              
 ;;camera (SUMO Camera)
 
 ;;robotic gripper (SUMO hasPurpose Grabbing)
@@ -444,7 +510,18 @@ and navigate through their environment.[Wikipedia]")
 effector of a robot or a robotic arm which act as fingers and has the purpose 
 of grabbing objects. [Wikipedia]")
 (termFormat EnglishLanguage RoboticGripper "robotic gripper")
+(typicalPart RoboticGripper Robot)
 
+(=>
+  (instance ?X RoboticGripper)
+  (hasPurpose ?X
+    (exists (?G ?O)
+      (and
+        (instance ?G Grabbing)
+        (instance ?O Object)
+        (patient ?G ?O)
+        (instrument ?G ?X)))))
+   
 ;;laser
 (subclass Laser Device)
 (documentation Laser EnglishLanguage "A &%Laser is a &%Device that emits light 
@@ -453,21 +530,89 @@ electromagnetic radiation. It differs from other light sources in that it emits
 light that is coherent. [Wikipedia]")
 (termFormat EnglishLanguage Laser "laser")
 
+(=>
+  (instance ?L Laser)
+  (hasPurpose ?L
+    (exists (?R)
+      (and
+        (instance ?R RadiatingVisibleLight)
+        (instrument ?R ?L)))))
+
 ;;odometer
 (subclass Odometer MeasuringDevice)
 (documentation Odometer EnglishLanguage "An &%Odometer is a &%Device used for 
 measuring the distance travelled by a vehicle, such as a car.[Wikipedia]")
 (termFormat EnglishLanguage Odometer "odometer")
 (names "odograph" Odometer)
-(typicalPart Odometer Automobile)
+(typicalPart Odometer Vehicle)
+
+(=>
+  (and
+    (instance ?O Odometer)
+    (instance ?V Vehicle)
+    (part ?O ?V)
+    (instance ?T Translocation)
+    (instrument ?T ?V)
+    (path ?T ?P)
+    (distanceOnPath
+      (MeasureFn ?D ?U) ?P)
+    (instance ?U LengthMeasure))
+  (hasPurpose ?O
+    (exists (?M ?L ?DIST)
+      (and
+        (instance ?M Measuring)
+        (instrument ?M ?O)
+        (measurementReading ?O ?DIST)
+        (inList ?D ?L)
+        (holdsDuring
+          (WhenFn
+            (EndFn ?M))
+          (and
+            (equal ?DIST
+              (MeasureFn
+                (ListSumFn ?L) ?U))
+            (not
+              (attribute ?O ResetMeasuringDevice))))))))
+
+;; reset measuring device
+(instance ResetMeasuringDevice RelationalAttribute)
+(documentation resetMeasuringDevice EnglishLanguage "&%ResetMeasuringDevice  is
+an attribute which signified that the &%measurementReading of a &%MeasuringDevice
+has been set to zero.")
+(termFormat EnglishLanguage resetMeasuringDevice "reset measuring device")
+
+(=>
+  (and
+    (instance ?X MeasuringDevice)
+    (attribute ?X ResetMeasuringDevice))
+  (and
+    (measurementReading ?X
+      (MeasureFn 0 ?U))
+    (instance ?U UnitOfMeasure)))
 
 (subclass Speedometer MeasuringDevice)
 (documentation Speedometer EnglishLanguage "A &%Speedometer is a gauge that
 measures and displays the instantaneous speed of a vehicle.[Wikipedia]")
 (termFormat EnglishLanguage Speedometer "speedometer")
-(typicalPart Speedometer Automobile)
+(typicalPart Speedometer Vehicle)
 
-;;cabinet (SUMO's ChestOrCabinet?)
+(=>
+  (instance ?S Speedometer)
+  (hasPurpose ?S
+    (exists (?V ?T ?SPEED ?DIST ?TIME ?M)
+      (and
+        (instance ?V Vehicle)
+        (part ?S ?V)
+        (instance ?T Translocation)
+        (instrument ?T ?V)
+        (measure ?T ?SPEED)
+        (equal ?SPEED
+          (SpeedFn ?DIST ?TIME))
+        (instance ?M Measuring)
+        (instrument ?M ?S)
+        (measurementReading ?M ?SPEED)))))
+    
+;;cabinet (SUMO's ChestOrCabinet)
 
 ;;robotic joint (SUMO's MechanicalJoint)
 (subclass RoboticJoint Device)
@@ -481,8 +626,6 @@ in a robot are linked up with these robotic joints.")
 ;;joint position/angle (SUMO's AngleOfFigure)
 ;;trajectory (SUMO's path relation)
 ;;light curtains 
-
-
 
 
 
