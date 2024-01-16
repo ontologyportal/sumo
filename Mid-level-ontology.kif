@@ -634,6 +634,34 @@ be detected by normal human visual perception.")
 (documentation Sunlight EnglishLanguage "Any instance of &%RadiatingLight where the 
 Sun (&%Sol) is the origin.")
 
+(subclass FlashingLight RadiatingLight)
+(documentation FlashingLight EnglishLanguage "&%RadiatingLight at intervals.  The intervals
+need not be regular.  This could include a light with a malfunctioning electrical connection,
+morse code transmitted by lamp, dance hall lighting or concert light shows.")
+(termFormat EnglishLanguage FlashingLight "flashing light")
+
+(=>
+  (and
+    (instance ?FL FlashingLight)
+    (origin ?FL ?L))
+  (exists (?I1 ?T2 ?I3)
+    (and
+      (instance ?I1 RadiatingLight)
+      (instance ?T2 TimeInterval)
+      (instance ?I3 RadiatingLight)
+      (meetsTemporally (WhenFn ?I1) ?I2)
+      (meetsTemporally ?I2 (WhenFn ?I3))
+      (not
+        (exists (?I2)
+          (and
+            (instance ?I2 RadiatingLight)
+            (origin ?I2 ?L)
+            (during (WhenFn ?I2) ?T2))))
+      (subProcess ?I1 ?FL)
+      (subProcess ?I3 ?FL))))
+
+
+
 (subclass RadioReceiver ReceiverDevice)
 (documentation RadioReceiver EnglishLanguage "A &%RadioReceiver is a &%Device for receiving 
 radio broadcast signals from a &%RadioStation.")
@@ -17630,6 +17658,29 @@ as to cause or tend to cause motion away from the agent.")
 (subclass Submarine WaterVehicle)
 (documentation Submarine EnglishLanguage "A &%WaterVehicle which is capable of travelling
 under the water level by filling tanks with water.")
+(termFormat EnglishLanguage Submarine "submarine")
+
+(=>
+  (instance ?S Submarine)
+  (hasPurpose ?S
+    (exists (?T ?U)
+      (and
+        (instance ?T Transportation)
+        (instance ?U UnderwaterRegion)
+        (located ?T ?U)
+        (instrument ?T ?S)))))
+
+(subclass UnderwaterRegion Region)
+(documentation UnderwaterRegion EnglishLanguage "A &%Region that is under the surface of
+some &%Water.")
+(termFormat EnglishLanguage UnderwaterRegion "under water")
+
+(=>
+  (instance ?R UnderwaterRegion)
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (orientation ?R ?WATER Below))))
 
 (subclass AirTransportation Transportation)
 (documentation AirTransportation EnglishLanguage "Any instance of &%Transportation where the
@@ -25015,6 +25066,23 @@ is a &%Telephone that connects to the telephone network by
 sending and receiving radio transmissions, rather than via a
 cord, and so is portable.")
 
+(subclass SatellitePhone ReceiverDevice)
+(subclass SatellitePhone Telephone)
+(documentation SatellitePhone EnglishLanguage "A mobile &%Telephone that
+primarily communicates through a communication &%ArtificialSatellite orbiting the
+&%PlanetEarth, rather than solely through a set of terrestrial stations.")
+(termFormat EnglishLanguage SatellitePhone "satellite phone")
+
+(=>
+  (instance ?SP SatellitePhone)
+  (hasPurpose ?SP
+    (exists (?RE ?S)
+      (and
+        (instance ?S ArtificialSatellite)
+        (instance ?RE RadioEmission)
+        (origin ?RE ?SP)
+        (destination ?RE ?SP)))))
+
 (subclass Hotline TelecomNumber)
 (documentation Hotline EnglishLanguage "A &%TelecomNumber that has some degree of priority over other numbers for
 an organization.  It can be a government phone that when picked up connects directly to some other top level of
@@ -26543,10 +26611,25 @@ country life as opposed to the city life")
 characteristic of a residential district on the outskirts of a city")
 (termFormat EnglishLanguage Suburban "suburban")
 
-(instance Urban RelationalAttribute)
-(documentation Urban EnglishLanguage "&%Urban describes something that is characteristic
-of a city or city life")
-(termFormat EnglishLanguage Urban "urban")
+(instance UrbanArea RelationalAttribute)
+(documentation UrbanArea EnglishLanguage "An urban area, built-up area or urban
+agglomeration is a human settlement with a high population density and an
+infrastructure of built environment. This is the core of a metropolitan
+statistical area in the United States, if it contains a population of more than
+50,000.[from Wikipedia]")
+(termFormat EnglishLanguage UrbanArea "urban")
+
+(=>
+  (attribute ?A UrbanArea)
+  (instance ?A GeographicArea))
+
+(=>
+  (attribute ?A UrbanArea)
+  (exists (?N)
+    (and
+      (equal ?N
+        (PopulationFn ?A))
+      (greaterThan ?N 50000))))
 
 (subclass Patio Region)
 (documentation Patio EnglishLanguage "&%Patio refers to an &%Region adjoining a building,
@@ -31604,3 +31687,38 @@ must be consistent with that type specification.")
   (holdsDuring ?T
     (measure ?S
       (MeasureFn 68 FahrenheitDegree))))
+
+(instance PopulationFn UnaryFunction)
+(domain PopulationFn 1 GeopoliticalArea)
+(range PopulationFn Integer)
+(documentation PopulationFn EnglishLanguage "(&%PopulationFn ?AREA) denotes the &%Integer
+that represents the count of the number of people inhabiting the
+&%GeopoliticalArea ?AREA. This number gives an estimate from the US Bureau
+of the Census based on statistics from population censuses, vital statistics
+registration systems, or sample surveys pertaining to the recent past and on
+assumptions about future trends. The total population presents one overall
+measure of the potential impact of the country on the world and within its
+region. Note:_starting with the 1993 Factbook, demographic estimates for some
+countries (mostly African) have explicitly taken into account the effects of
+the growing impact of the HIV/AIDS epidemic._ These countries are currently:
+The Bahamas, Benin, Botswana, Brazil, Burkina Faso, Burma, Burundi, Cambodia,
+Cameroon, Central African Republic, Democratic Republic of the Congo,
+Republic of the Congo, Cote d'Ivoire, Ethiopia, Gabon, Ghana, Guyana, Haiti,
+Honduras, Kenya, Lesotho, Malawi, Mozambique, Namibia, Nigeria, Rwanda,
+South Africa, Swaziland, Tanzania, Thailand, Togo, Uganda, Zambia, and
+Zimbabwe.")
+
+;; Definition of &%PopulationFn
+(equal (PopulationFn ?AREA)
+  (CardinalityFn
+    (KappaFn ?PERSON
+      (and
+        (instance ?PERSON Human)
+        (inhabits ?PERSON ?AREA)))))
+
+(instance populationDensity TernaryPredicate)
+(domain populationDensity 1 GeographicArea)
+(domain populationDensity 2 RealNumber)
+(domain populationDensity 3 UnitOfArea)
+(documentation populationDensity EnglishLanguage "The number of people per
+unit area in a given area, as an estimate or approximation.")
