@@ -7,13 +7,16 @@ tff(modals_tp,type,(m : $tType)).
 tff(during_tp,type,(during : ($i * $i) > $o)).
 tff(earlier_tp,type,(earlier : ($i * $i) > $o)).
 tff(walking_tp,type,(walking : $i)).
+tff(process_tp,type,(process : $i)).
 tff(john_tp,type,(john : $i)).
 tff(human_tp,type,(human : $i)).
 tff(aParticularAfternoon_tp,type,(aParticularAfternoon : $i)).
 tff(afternoon_tp,type,(afternoon : $i)).
+tff(timeInterval_tp,type,(timeInterval : $i)).
 tff(tuesday_tp,type,(tuesday : $i)).
 tff(caseRole_tp,type,(caseRole : $i)).
 tff(instance_tp,type,(instance : ($i * $i) > $o)).
+tff(subclass_tp,type,(subclass : ($i * $i) > $o)).
 tff(beginFn_tp,type,(beginFn : ($i) > $i)).
 tff(endFn_tp,type,(endFn : ($i) > $i)).
 tff(whenFn_tp,type,(whenFn : ($i) > $i)).
@@ -23,6 +26,14 @@ tff(agent_tp,type,(agent : ($i * $i) > $o)).
 tff(subProcess_tp,type,(subProcess : ($i * $i) > $o)).
 tff(knows_tp,type,(knows : m)).
 
+tff(kb_subclass, axiom, subclass(walking,process)).
+
+tff(kb_subax, axiom, (![I:$i, C1:$i, C2:$i]:
+  ((instance(I,C1) & subclass(C1,C2)) => instance(I,C2)))).
+  
+tff(kb1a,axiom,( subclass(afternoon,timeInterval))).
+tff(kb1b,axiom,( subclass(tuesday,timeInterval))).
+  
 % (instance AParticularAfternoon Afternoon)
 tff(kb1,axiom,( instance(aParticularAfternoon,afternoon))).
 
@@ -56,8 +67,9 @@ tff(kb4,axiom,(?[P:$i] : ( ? [T:$i] : (
   (endFn(aParticularAfternoon) = endFn(whenFn(P))))))).
 
 tff(kb4a,axiom,(![T1:$i, T2:$i] : (
+   instance(T1,timeInterval) & instance(T2,timeInterval) &
   (beginFn(T1) = beginFn(T2) &
-  (endFn(T1) = endFn(T2))) <=>
+  (endFn(T1) = endFn(T2))) =>
     (T1 = T2)))).
 
 tff(kb4b,axiom,(![T1:$i, T2:$i] : (
@@ -66,9 +78,18 @@ tff(kb4b,axiom,(![T1:$i, T2:$i] : (
     (during(T1,T2))))).
 
 tff(kb4c,axiom,(![T1:$int, T2:$int, D:$i] : (
-  (earlier(hourFn(T1,D),hourFn(T2,D)) <=>
-  ($less(T1,T2)))))).
-
+  (earlier(hourFn(T1,D),hourFn(T2,D)) =>
+  ($lesseq(T1,T2)))))).
+  
+tff(kb4d,axiom,(![T1:$int, T2:$int, D:$i] : (
+  (earlier(hourFn(T1,D),hourFn(T2,D)) =>
+  ($lesseq(T1,T2)))))).
+    
+tff(kb4e,axiom,(![A:$i, B:$i, C:$i] : (
+  (during(A,B) &
+   during(B,C)) =>
+   during(A,C)))).
+   
 % if someone is an agent of a process he's also the agent of
 % a subProcess of the process (if it's of the same type) 
 % TODO generalize with a variable for all CaseRoles
@@ -96,6 +117,21 @@ tff(kb5,axiom,( ![R:$i, P:$i, E:$i, C:$i, TI1:$i, TI2:$i] : (
      subProcess(P2,P) &
      (TI2 = whenFn(P2))))))).
 
+% every process has a subProcess of the same type and agent
+tff(kb5b,axiom,( ![P:$i, E:$i, C:$i] : (
+  (agent(P,E) &
+   instance(P,C) =>
+   (?[P2:$i] : (
+     instance(P2,C) &
+     agent(P2,E) &
+     subProcess(P2,P))))))).
+     
+% any subProcess of a Process is during that Process
+tff(kb5c,axiom,(
+  (! [W1:$i] : ( ![W2:$i] : 
+  (subProcess(W2,W1) =>
+  during(whenFn(W2),whenFn(W1))))))).
+  
 % if there's a process, then for every time interval during
 % the process, there's a subprocess for the time interval of
 % of the same process with the same agent
@@ -113,14 +149,28 @@ tff(kb5,axiom,( ![R:$i, P:$i, E:$i, C:$i, TI1:$i, TI2:$i] : (
 %       (equal ?T (WhenFn ?P2)))))
 
 tff(kb6,axiom,( ![P:$i, T:$i, A:$i] : (
-  (instance(P,process) &
+  (instance(P,C) &
+   subclass(C,process) &
    agent(P,A) &
    instance(T,timeInterval) &
    during(T,whenFn(P))) =>
      ( ?[P2:$i] : (
        agent(P2,A) &
+       subProcess(P2,P) &
+       instance(P2,C) &
        (T = whenFn(P2))))))).
 
+%tff(kb6a,axiom,( ![P:$i, P2:$i, TPB1:$i, TPE1:$i, TPB2:$i, TPE2:$i, A:$i] : (
+%  (instance(P,process) &
+%   agent(P,A) &
+%   (hourFn(TPB,D) = beginFn(whenFn(P))) &
+%   (hourFn(TPE,D) = endFn(whenFn(P))) & 
+%   (hourFn(TPB2,D) = beginFn(whenFn(P2))) &
+%   (hourFn(TPE2,D) = endFn(whenFn(P2)))) =>
+%    (?[P2:$i]: (
+%      subProcess(P2,P)     
+%   ))).
+       
 % every afternoon starts at noon and ends at 6pm on the same day
 % (=>
 %  (and
@@ -132,28 +182,147 @@ tff(kb6,axiom,( ![P:$i, T:$i, A:$i] : (
 %    (equal ?HB 12)
 %    (equal ?HE 18)))
 
-tff(kb7,axiom,( ![HB:$int, HE:$int, D:$i, A:$i] : (
+tff(kb7a,axiom,( ![A:$i] : (
+  (instance(A,afternoon) =>
+  (?[D:$i] : (
+    (beginFn(hourFn(12,D)) = beginFn(A)) &
+    (endFn(hourFn(18,D)) = endFn(A)))))))).
+  
+tff(kb7c,axiom,( ![HB:$int, HE:$int, D:$i, A:$i] : (
   (instance(A,afternoon) &
    beginFn(hourFn(HB,D)) = beginFn(A) &
-   endFn(hourFn(HB,D)) = endFn(A) &
-   during(A,D)) =>
+   endFn(hourFn(HE,D)) = endFn(A)) =>
      ( (HB = 12) &
        (HE = 18))))).
-        
+          
+tff(kb7d,axiom,( ![HB:$int, HE:$int, D1:$i, D2:$i, A:$i] : (
+  (instance(A,afternoon) &
+   beginFn(hourFn(HB,D1)) = beginFn(A) &
+   endFn(hourFn(HE,D2)) = endFn(A)) =>
+    (D1 = D2)))).
+              
 % does John walk from 1pm to 2pm?
 % query (and (instance ?W Walking) (agent ?W John) (equal (BeginFn (HourFn 13 ?D)) (BeginFn (WhenFn ?W))) (equal (EndFn (HourFn 14 ?D)) (EndFn (WhenFn ?W))))
 % yes - with an additional axiom
 
-tff(conj,conjecture,(
- (? [P:$i, D:$i, H:$int] :
-  (instance(P,walking) &
-  (beginFn(hourFn(H,D)) = beginFn(whenFn(P))))))).
+% is there a walking beginning at a certain hour and day? working
+%tff(conj,conjecture,(
+% (? [P:$i, D:$i, H:$int] :
+%  (instance(P,walking) &
+%  (beginFn(hourFn(H,D)) = beginFn(whenFn(P))))))).
+
+% what time does afternoon start? working
+%tff(conj,conjecture,( ?[HB:$int, HE:$int, D:$i, A:$i] : (
+%  (instance(A,afternoon) &
+%   beginFn(hourFn(HB,D)) = beginFn(A))))).
+   
+% what time is afternoon? working
+%tff(conj,conjecture,( ?[HB:$int, HE:$int, D:$i, A:$i] : (
+%  (instance(A,afternoon) &
+%   beginFn(hourFn(HB,D)) = beginFn(A) &
+%   endFn(hourFn(HE,D)) = endFn(A))))).
+   
+% is there a walking done by John some day?  working
+%tff(conj,conjecture,(
+%  (? [P:$i, D:$i] :
+%  (instance(P,walking) &
+%  during(whenFn(P),D) &
+%  agent(P,john))))).
+  
+  % is there a subprocess of a walking done by John some afternoon?  working
+%tff(conj,conjecture,(
+%  (? [P:$i, P2:$i, A:$i] :
+%  (instance(P,walking) &
+%  instance(A,afternoon) &
+%  (beginFn(A) = beginFn(whenFn(P))) &
+%  (endFn(A) = endFn(whenFn(P))) &
+%  subProcess(P2,P) &
+%  agent(P,john))))).
+  
+% If there's a process, then there's also a subprocess at every
+% start later and end earlier than the parent process
+
+tff(kb8,axiom,(
+  (! [P:$i, T1S:$int, T1E:$int, T2S:$int, T2E:$int, D:$i, A:$i, C:$i] : (
+  (instance(P,process) &
+  instance(P,C) &
+  $greater(T2S,T1S) &
+  $greater(T1E,T2S) &
+  $greater(T1E,T2E) &
+  $greater(T2E,T1S) &
+  $greater(T2E,T2S) &
+  (beginFn(hourFn(T1S,D)) = beginFn(whenFn(P))) &
+  (beginFn(hourFn(T1E,D)) = beginFn(whenFn(P))) &
+  agent(P,A)) =>
+    (? [P2:$i] : (
+      instance(P2,C) &
+      agent(P2,A) &
+      subProcess(P2,P) &
+      (beginFn(hourFn(T2S,D)) = beginFn(whenFn(P2))) &
+      (beginFn(hourFn(T2E,D)) = beginFn(whenFn(P2))))))))).
+      
+% is there a walking done by John between 1pm and 2pm?  not working
 
 %tff(conj,conjecture,(
-%  ! [M:m] : (? [P:$i] : ( ?[D:$i] :
+%  (? [P:$i, D:$i] :
 %  (instance(P,walking) &
 %  during(whenFn(P),D) &
 %  agent(P,john) &
 %  (beginFn(hourFn(13,D)) = beginFn(whenFn(P))) &
-%  (endFn(hourFn(14,D)) = endFn(whenFn(P)))))))).
+%  (endFn(hourFn(14,D)) = endFn(whenFn(P))))))).
+
+tff(kb9,axiom,(
+  (? [P:$i, D:$i, T1:$int, T2:$int] :
+  (during(whenFn(P),D) =>
+    (?[T1:$int, T2:$int] : (
+      (beginFn(hourFn(T1,D)) = beginFn(whenFn(P))) &
+      (endFn(hourFn(T2,D)) = endFn(whenFn(P))))))))).
+  
+tff(kb10,axiom,(
+  (? [P1:$i, P2:$i, D:$i, T1:$int, T2:$int] :
+  ((during(whenFn(P1),D) &
+   during(whenFn(P2),whenFn(P1))) =>
+    (?[T1:$int, T2:$int, T3:$int, T4:$int] : (
+      (beginFn(hourFn(T1,D)) = beginFn(whenFn(P1))) &
+      (endFn(hourFn(T2,D)) = endFn(whenFn(P1))) &
+      (beginFn(hourFn(T3,D)) = beginFn(whenFn(P2))) &
+      (endFn(hourFn(T4,D)) = endFn(whenFn(P2))))))))).
         
+%tff(conj,conjecture,(  % not working with during literal
+%  (? [P:$i, D:$i, T1:$int, T2:$int] :
+%  (instance(P,walking) &
+%  during(whenFn(P),D) &
+%  agent(P,john) &
+%  (beginFn(hourFn(T1,D)) = beginFn(whenFn(P))) &
+%  (endFn(hourFn(T2,D)) = endFn(whenFn(P))))))).
+
+%tff(conj,conjecture,(  
+%  (? [P:$i,P2:$i, H:$i, D:$i, T1:$int, T2:$int] :
+%  (instance(P,walking) &
+%  during(whenFn(P),D) &
+%  subProcess(P2,P) &
+%  agent(P2,H) &
+%  (beginFn(hourFn(T1,D)) = beginFn(whenFn(P2))) &
+%  (endFn(hourFn(T2,D)) = endFn(whenFn(P2))))))).
+    
+% at what start time is there a walking that takes place during some other walking?        
+tff(conj,conjecture,(
+  (? [W1:$i, W2:$i, T1:$int, T2:$int, D:$i] :
+  (instance(W1,walking) &
+  instance(W2,walking) &
+  (beginFn(hourFn(T1,D)) = beginFn(whenFn(W2))) &
+  during(whenFn(W2),whenFn(W1)))))).
+        
+% is there a walking that takes place during some other walking?        works
+%tff(conj,conjecture,(
+%  (? [W1:$i] : ( ?[W2:$i] :
+%  (instance(W1,walking) &
+%  instance(W2,walking) &
+%  during(whenFn(W2),whenFn(W1))))))).
+     
+% is there a walking that takes place during some other walking?     works   
+%tff(conj,conjecture,( ?[P:$i, P2:$i, E:$i, C:$i] : (
+%  (agent(P,E) &
+%  subProcess(P2,P) &
+%  during(whenFn(P2),whenFn(P)) &
+%  instance(P,walking))))).        
