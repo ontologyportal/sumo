@@ -1,0 +1,234 @@
+include('SUMOonly.thf').
+% 6. Bill believes things until they are contradicted and then believes the latest thing.
+% Bill sees Mary wearing a red hat (after he sees her wearing a green hat).
+% What color does Bill believe Mary is wearing (now)?
+
+thf(worlds_tp,type,(w : $tType)).
+%tff(individuals_tp,type,($i : $tType)).
+thf(modals_tp,type,(m : $tType)).
+
+thf(wears_tp,type,(wears : ($i > $i > w > $o))).
+thf(earlier_tp,type,(earlier : ($i > $i > $o))).
+thf(attribute_tp,type,(attribute : ($i > $i > w > $o))).
+thf(instance_tp,type,(instance : ($i > $i > $o))).
+thf(contraryAttribute_tp,type,(contraryAttribute : ($i > $i > $o))).
+
+thf(green_tp,type,(green : $i)).
+thf(red_tp,type,(red : $i)).
+thf(hat_tp,type,(hat : $i)).
+thf(mary_tp,type,(mary : $i)).
+thf(bill_tp,type,(bill : $i)).
+thf(now_tp,type,(now : $i)).
+thf(t1_tp,type,(t1 : $i)).
+thf(t2_tp,type,(t2 : $i)).
+
+thf(sees_tp,type,(sees : m)).
+thf(believes_tp,type,(believes : m)).
+thf(holdsDuring_tp,type,(holdsDuring : m)).
+
+% modality, agent, consequent world, antecedent world
+thf(accreln_tp,type,(accreln : (m > $i > w > w > $o))).
+
+% Drop Axiom T. Why?
+% With axiom_t_sees and axiom_t_holdsDuring, the query is solvable
+% with the green hat using kb1 and not the other kb axioms. See TQM6c.tff.
+%tff(axiom_t_believes,axiom,(! [X:$i] : (! [W:w] : (accreln(believes,X,W,W))))).
+%tff(axiom_t_sees,axiom,(! [X:$i] : (! [W:w] : (accreln(sees,X,W,W))))).
+%tff(axiom_t_holdsDuring,axiom,(! [X:$i] : (! [W:w] : (accreln(holdsDuring,X,W,W))))).
+
+%(instance T1 TimeInterval)
+%(instance T2 TimeInterval)
+%(instance Now TimeInterval)
+
+% (earlier T1 T2)
+% (earlier T2 Now)
+
+thf(fact1,axiom,( earlier @ t1 @ t2)).
+thf(fact2,axiom,( earlier @ t2 @ now)).
+thf(fact3,axiom,( contraryAttribute @ red @ green)).
+thf(fact4,axiom,( ~ (t1 = t2))).
+thf(fact5,axiom,( ~ (red = green))).
+
+%(holdsDuring T1
+%  (sees Bill
+%    (exists (?H)
+%      (and
+%        (instance ?H Hat)
+%        (attribute ?H Green)
+%        (wears Mary ?H)))))
+
+thf(kb1,axiom,(
+  (![W:w] :
+   (! [W2:w] :
+    (((accreln @ holdsDuring @ t1 @ W @ W2) => 
+     (! [W3:w] :
+      ((accreln @ sees @ bill @ W2 @ W3) =>
+       (?[H:$i] : (
+         (instance @ H @ hat) &
+         (attribute @ H @ green @ W3) &
+         (wears @ mary @ H @ W3))))))))))).
+      
+%(holdsDuring T2
+%  (sees Bill
+%    (exists (?H)
+%      (and
+%        (instance ?H Hat)
+%        (attribute ?H Red)
+%        (wears Mary ?H)))))
+
+thf(kb2,axiom,(
+  (![W:w] :
+   (! [W2:w] :
+    (((accreln @ holdsDuring @ t2 @ W @ W2) =>
+     (! [W3:w] :
+      (((accreln @ sees @ bill @ W2 @ W3) =>
+       (?[H:$i] : (
+         (instance @ H @ hat) &
+         (attribute @ H @ red @ W3) &
+         (wears @ mary @ H @ W3)))))))))))).
+       
+%(=>
+%  (sees Bill ?F)
+%  (believes Bill ?F))
+% CEB: A direct translation of this would require us
+% to quantify over F:w > $o.
+% Instead we use this. Note that the implication
+% is the *converse* of kb3 from the "official" TQM6.tff of Dec 13 2023.
+% I claim this version corresponds to "forall F.Box sees-Bill F -> Box believes-Bill F".
+
+thf(kb3,axiom,
+  (![W:w, W2:w, H:$i]: ((accreln @ believes @ H @ W @ W2) => (accreln @ sees @ H @ W @ W2)))).
+    
+% something can't be both red and green
+
+%(=>
+%  (attribute ?O Red)
+%  (not
+%    (attribute ?O Green)))
+
+thf(kb4,axiom,(
+  (![W:w, O:$i] :
+    ((attribute @ O @ red @ W) =>
+      (~(attribute @ O @ green @ W)))))).
+  
+%(=>
+%  (attribute ?O Green)
+%  (not
+%    (attribute ?O Red)))
+        
+thf(kb5,axiom,(
+  (![W:w, O:$i] :
+    ((attribute @ O @ green @ W) =>
+      (~(attribute @ O @ red @ W)))))).
+              
+% if two things are believed at different times and one time is later
+% the later thing is believed Now.
+% overly specific since in first order we can't quantify over a formula
+% so contradictory knowledge is specific to a literal (attribute)
+  
+%(=>
+%  (and
+%    (holdsDuring ?T1
+%      (believes ?A 
+%        (attribute ?O ?A1)))
+%    (holdsDuring ?T2
+%      (believes ?A 
+%        (attribute ?O ?A2)))
+%    (earlier ?T1 ?T2)
+%    (contraryAttribute ?A1 ?A2))
+%  (holdsDuring Now
+%    (believes ?A 
+%      (attribute ?O ?A2))))
+
+% CEB: This isn't what you want.
+% You want to say the *latest* thing is what's believed,
+% not the later of two things.
+
+%(=>
+%  (and
+%    (holdsDuring ?T1
+%      (believes ?A 
+%        (attribute ?O ?A1)))
+%    (forall (?T2 ?A2)
+%     (=>
+%      (and (earlier ?T1 ?T2)
+%           (earlier ?T2 Now)
+%           (holdsDuring ?T2
+%             (believes ?A 
+%              (attribute ?O ?A2))))
+%      (not (contraryAttribute ?A1 ?A2)))))
+%  (holdsDuring Now
+%    (believes ?A 
+%      (attribute ?O ?A1))))
+
+% Just put the real property we want to use this for,
+% instead of just the attribute.
+% If at time T1, B believes M wears a hat of color C
+% and at all times T2 between T1 and now, B does not see M wearing a hat of some color,
+% then at time now, B believes M wears a hat of color C.
+thf(kb6,axiom,(
+  (! [W:w, B:$i, M:$i, C:$i, T1:$i] :
+   ((((! [W2:w] : ((accreln @ holdsDuring @ T1 @ W @ W2) =>
+       (! [W3:w] : ((accreln @ believes @ B @ W2 @ W3) =>
+                       (? [H:$i] : ((instance @ H @ hat)
+                                  & (attribute @ H @ C @ W3)
+                                  & (wears @ M @ H @ W3))))))))
+    & (! [T2:$i] :
+        (((earlier @ T1 @ T2) & (earlier @ T2 @ now))
+      => (! [W2:w] : ((accreln @ holdsDuring @ T2 @ W @ W2) =>
+          (~(! [W3:w] : ((accreln @ sees @ B @ W2 @ W3) =>
+                         (? [H:$i, C:$i] :
+                            ((instance @ H @ hat)
+                           & (attribute @ H @ C @ W3)
+                           & (wears @ M @ H @ W3)))))))))))
+ => (! [W2:w] : ((accreln @ holdsDuring @ now @ W @ W2) =>
+     (! [W3:w] : ((accreln @ believes @ B @ W2 @ W3) =>
+                  (? [H:$i] : ((instance @ H @ hat)
+                             & (attribute @ H @ C @ W3)
+                             & (wears @ M @ H @ W3))))))))))).
+        
+thf(kb7,axiom,(
+  ![A1:$i,A2:$i]:((contraryAttribute @ A1 @ A2) => (contraryAttribute @ A2 @ A1)))).
+
+% CEB: adding assumption that bill doesn't see mary wearing a hat between t2 and now.
+% (forall (?T)
+%    (=> (and (earlier t2 ?T) (earlier ?T Now))
+%        (holdsDuring ?T
+%          (not (sees Bill
+%                 (exists (?H ?C)
+%                  (and
+%                   (instance ?H Hat)
+%                   (attribute ?H Red)
+%                   (wears Mary ?H))))))))
+
+thf(kb8,axiom,(
+     ! [W:w, T:$i] :
+         (((earlier @ t2 @ T) & (earlier @ T @ now))
+       => (! [W2:w] : ((accreln @ holdsDuring @ T @ W @ W2) =>
+           (~(! [W3:w] : ((accreln @ sees @ bill @ W2 @ W3) =>
+                (? [H:$i, C:$i] :
+                    ((instance @ H @ hat)
+                   & (attribute @ H @ C @ W3)
+                   & (wears @ mary @ H @ W3))))))))))).
+  
+% query: (holdsDuring Now
+%           (believes Bill
+%             (exists (?H)
+%               (and
+%                 (instance ?H Hat)
+%                 (attribute ?H ?C)
+%                 (wears Mary ?H)))))
+
+% Note that I can't have Bill believing Mary wears the hat
+% since that's not an attribute.
+
+% simplified for first order to just the 'attribute' literal
+% CEB: Well, not really, it uses 'wears' as well.
+thf(conj,conjecture,
+    (! [W:w] :
+     (! [W2:w] : ((accreln @ holdsDuring @ now @ W @ W2) =>
+      (! [W3:w] : ((accreln @ believes @ bill @ W2 @ W3) =>
+       (? [H:$i, C:$i] :
+         ((instance @ H @ hat)
+        & (attribute @ H @ C @ W3)
+        & (wears @ mary @ H @ W3))))))))).
