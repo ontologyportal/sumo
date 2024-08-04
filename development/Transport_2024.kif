@@ -222,7 +222,106 @@ where equipment can be staged prior to the arrival or departure of an aircraft.[
         (instance ?D Device)
         (locatedAtTime ?C ?T ?S)
         (during ?T (WhenFn ?DB))))))   
+
+;; PrivateOrganization
+(subclass PrivateOrganization Organization)
+(documentation PrivateOrganization EnglishLanguage "A &%PrivateOrganization is an organization
+owned by private groups, usually as a means of establishment for profit or non profit, rather than
+being owned by the government.[Wikipedia]")
+(termFormat EnglishLanguage PrivateOrganization "Private organization")
+
+(=>
+  (instance ?P PrivateOrganization)
+  (not
+    (exists (?G)
+      (and
+      (instance ?G Government)
+      (possesses ?G ?P)))))
+
+;; PositionReport
+(subclass PositionReport  Report)
+(documentation PositionReport EnglishLanguage "A &%PositionReport is a &%FactualText that 
+&%containsInformation about where something is located.")
+(termFormat EnglishLanguage PositionReport "position report")
+
+(=>
+  (instance ?R PositionReport)
+  (containsFormula ?R
+    (exists (?O ?A)
+      (and
+        (instance ?O Object)
+        (instance ?A Region)
+        (located ?O
+          (WhenFn (?R)) ?A)))))
           
+;; Weather_Forecast
+(subclass WeatherForecast  FactualText)
+(documentation WeatherForecast EnglishLanguage "A &%WeatherForecast is a &%FactualText made by
+someone who &%believes a &%WeatherProcess will occur.")
+(termFormat EnglishLanguage WeatherForecast "weather forecast")
+(relatedInternalConcept WeatherForecast WeatherAssessment)
+(relatedInternalConcept WeatherForecast weatherThreat)
+
+(=>
+  (instance ?WF WeatherForecast)
+  (containsInformation ?WF
+    (exists (?A)
+      (believes ?A
+        (exists (?WP)
+          (and
+            (instance ?WP WeatherProcess)           
+            (during
+              (ImmediateFutureFn (WhenFn ?WF))
+              (WhenFn ?WP))))))))
+
+;; Weather_Assessment
+(subclass WeatherAssessment  Report)
+(documentation WeatherAssessment EnglishLanguage "A &%WeatherAssessment is a &%Report made
+based on someone's believes in a &%WeatherProcess occured in the immediate past.")
+(termFormat EnglishLanguage WeatherAssessment "weather assessment")
+(relatedInternalConcept WeatherAssessment WeatherThreat)
+
+(=>
+  (instance ?WA WeatherAssessment)
+  (containsFormula ?WA
+    (exists (?R ?A ?WP)
+      (and
+        (instance ?R Reasoning)
+        (instance ?A CognitiveAgent)
+        (agent ?R ?A)
+        (instance ?WP WeatherProcess)
+        (patient ?R ?WP)
+        (result ?R ?WA)
+        (earlier (WhenFn ?WP) (WhenFn ?WA))))))
+         
+;; Weather_Threat
+(instance weatherThreat  QuaternaryPredicate)
+(documentation weatherThreat EnglishLanguage "A &%weatherThreat is a &%Relation linking 4 arguments. 
+(weatherThreat ?WP ?P ?A ?TI) means it is believed that an instance of a class of &%WeatherProcess 
+?WP will occur in &%GeographicArea ?A during &%TimeInterval ?TI and it is not desirable to a GroupOfPeople 
+that it happens.")
+(termFormat EnglishLanguage weatherThreat "weather threat")
+(domainSubclass weatherThreat 1 WeatherProcess)
+(domain weatherThreat 2 GroupOfPeople)
+(domain weatherThreat 3 GeographicArea)
+(domain weatherThreat 4 TimeInterval)
+(format EnglishLanguage weatherThreat "%1 is a threat to %2 located at %3 during %4")
+
+(=>
+  (weatherThreat ?CLASS ?G ?A ?TI)
+  (exists (?M)
+    (believes ?M
+      (exists (?I)
+        (and
+          (member ?I ?G)
+          (holdsDuring ?TI
+            (exists (?WP)
+              (and
+                (instance ?WP ?CLASS)
+                (eventLocated ?WP ?A))))
+          (not
+            (desires ?I ?WP)))))))
+                                          
 ;; MTBF
 (instance MTBFFn UnaryFunction)
 (documentation MTBFFn EnglishLanguage "(&%MTBFFn ?D) denotes the mean time between faiures of 
