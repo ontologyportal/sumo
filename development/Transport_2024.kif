@@ -129,7 +129,7 @@ aircrafts are parked, unloaded or loaded, refueled, boarded, or maintained.[Wiki
       (memberCount ?COLL ?N))))
                 
 ;; Facility
-(subclass Facility GeographicArea)
+(subclass Facility Region)
 (documentation Facility EnglishLanguage "A &%Facility is a place for doing 
 something, or a place that facilitates an activity.[Wikipedia]")
 (termFormat EnglishLanguage Facility "Facility")
@@ -144,7 +144,7 @@ something, or a place that facilitates an activity.[Wikipedia]")
         (eventLocated ?P ?F)))))
         
 ;; Base
-(subclass MilitaryBase GeographicArea)
+(subclass MilitaryBase Region)
 (documentation MilitaryBase EnglishLanguage "A &%MilitaryBase is a facility directly owned and 
 operated by or for the military or one of its branches that shelters military equipment and personnel, 
 and facilitates training and operations.[1] A military base always provides accommodations for one or 
@@ -169,7 +169,7 @@ more units, but it may also be used as a command center, training ground or prov
       (inhabits ?H ?B))))    
 
 ;; Campus
-(subclass EducationalCampus GeographicArea)
+(subclass EducationalCampus Region)
 (documentation EducationalCampus EnglishLanguage "An &%EducationalCampus is the land on which 
 a college or &%University and related institutional buildings are situated.[Wikipedia]")
 (termFormat EnglishLanguage EducationalCampus "educational campus")
@@ -242,7 +242,7 @@ base by a miliatry force for the operation of &%MilitaryAircraft. [Wikipedia]")
           (capableAtLocation Landing destination ?M ?A))))))
 
 ;; AirportStagingArea
-(subclass AirportStagingArea GeographicArea)
+(subclass AirportStagingArea Region)
 (documentation AirportStagingArea EnglishLanguage "An &%AirportStagingArea is a designated area 
 where equipment can be staged prior to the arrival or departure of an aircraft.[Wikipedia]")
 (termFormat EnglishLanguage AirportStagingArea "military airport")
@@ -915,6 +915,8 @@ a &%NormativeAttribute. A &%Transitway is &%BiDirectionalTraffic when it divides
 into two streams of traffic that flow in opposite directions. The condition holds when a 
 government or an authority confers permission for two way traffic.[Wikipedia]")       
 (termFormat EnglishLanguage BiDirectionalTraffic "bidirectional traffic")
+(relatedInternalConcept BiDirectionalTraffic UniDirectionalTraffic)
+(contraryAttribute BiDirectionalTraffic UniDirectionalTraffic)
 
 (=>
   (and
@@ -942,22 +944,26 @@ government or an authority confers permission for two way traffic.[Wikipedia]")
                   (not
                     (equal ?T1 ?T2))))))) Permission))))
 
-(subclass OnewayStreet Roadway)
-(documentation OnewayStreet EnglishLanguage "&%OnewayStreet is a &%Roadway either 
-facilitating only one-way traffic, or designed to direct &%RoadVehicles to move in 
-one direction.[Wikepedia]")
-(termFormat EnglishLanguage OnewayStreet "one way street")
+(instance UniDirectionalTraffic NormativeAttribute)
+(documentation UniDirectionalTraffic EnglishLanguage "&%UniDirectionalTraffic is 
+a &%NormativeAttribute. A &%Transitway is &%UniDirectionalTraffic when it either 
+facilitating only one-way traffic, or designed to direct &%Vehicles to move in 
+one direction only.The condition holds when a government or an authority confers 
+prohibition for two way traffic.[Wikipedia]")       
+(termFormat EnglishLanguage UniDirectionalTraffic "unidirectional traffic")
 
 (=>
-  (instance ?S OnewayStreet)
+  (and
+    (instance ?W Transitway)
+    (attribute ?W UniDirectionalTraffic))
   (exists (?P)
     (and
       (instance ?P Policy)
       (confersNorm ?P
         (exists (?T1 ?A ?B)
           (and
-            (instance ?T1 LandTransportation)
-            (path ?T1 ?S)
+            (instance ?T1 Transportation)
+            (path ?T1 ?W)
             (instance ?A GeographicArea)
             (origin ?T1 ?A)
             (instance ?B GeographicArea)
@@ -965,20 +971,229 @@ one direction.[Wikepedia]")
             (holdsDuring (WhenFn ?T1)
               (exists (?T2)
                 (and            
-                  (instance ?T2 LandTransportation)
-                  (path ?T2 ?S)
+                  (instance ?T2 Transportation)
+                  (path ?T2 ?W)
                   (origin ?T1 ?B)
                   (destination ?T1 ?A)
                   (not
                     (equal ?T1 ?T2))))))) Prohibition))))
 
-(subclass TwowayStreet Roadway)
-(documentation TwowayStreet EnglishLanguage "&%TwowayStreet is a &%Roadway either 
-facilitating only two-way traffic, or designed to direct &%RoadVehicles to move in 
-&%BiDirectionalTraffic direction.[Wikepedia]")
-(termFormat EnglishLanguage TwowayStreet "two way street")
+(instance BlueforceControlled RelationalAttribute)
+(documentation BlueforceControlled EnglishLanguage "&%BlueforceControlled is 
+a &%RelationalAttribute. An &%Object that is possessed by an agent that is 
+either &%part of the government or an &%Ally of the US government.")       
+(termFormat EnglishLanguage BlueforceControlled "blue force controlled")
+(relatedInternalConcept BlueforceControlled Ally)
 
 (=>
-  (instance ?S TwowayStreet)
-  (attribute ?S BiDirectionalTraffic))
+  (and
+    (attribute ?X BlueforceControlled)
+    (instance ?X Object))
+  (exists (?A)
+    (and
+      (instance ?A GovernmentOrganization)
+      (possesses ?A ?X)
+      (or
+        (subOrganization ?A
+          (GovernmentFn UnitedStates))
+        (allied ?A
+          (GovernmentFn UnitedStates))))))
+
+(subclass Entering Translocation)
+(documentation Entering EnglishLanguage "&%Entering is a &%subclass of &%Translocation 
+in which an object go into a &%Region. &%Entering itself, unlike the relation
+&%entrance, does not required the object to go through a specified entrance.")
+(termFormat EnglishLanguage Entering "entering")
+(disjoint Entering Exiting)
+
+(=>
+  (instance ?E Entering)
+  (exists (?R ?A)
+    (and
+      (instance ?R Region)
+      (destination ?E ?R)
+      (agent ?E ?A)
+      (instance ?A AutonomousAgent)
+      (holdsDuring
+        (BeginFn (WhenFn ?E))
+        (orientation ?A ?R Outside))
+      (holdsDuring
+        (EndFn (WhenFn ?E))
+        (orientation ?A ?R Inside)))))
+
+(subclass Exiting Translocation)
+(documentation Exiting EnglishLanguage "&%Exiting is a &%subclass of &%Translocation 
+in which an object go out of a &%Region. It is the opposite of &%Entering.")
+(termFormat EnglishLanguage Exiting "exiting")
+
+(=>
+  (instance ?E Exiting)
+  (exists (?R ?A)
+    (and
+      (instance ?R Region)
+      (origin ?E ?R)
+      (agent ?E ?A)
+      (instance ?A AutonomousAgent)
+      (holdsDuring
+        (BeginFn (WhenFn ?E))
+        (orientation ?A ?R Inside))
+      (holdsDuring
+        (EndFn (WhenFn ?E))
+        (orientation ?A ?R Outside)))))
+
+(instance PhysicallyRestrictedRegion RelationalAttribute)
+(documentation PhysicallyRestrictedRegion EnglishLanguage "&%PhysicallyRestrictedRegion is a 
+&%RelationalAttribute for a &%GeographicArea where there is always some level of physical boundary. 
+&%Entering into the region requires &%entrance through a specified region where a &%Permission is conferred. 
+This term is still under development in the sense that it is yet to be decided whether it is a
+class or an attribute. Does putting a fence make a region a new region or change the attribute 
+of an existing region?")
+(termFormat EnglishLanguage PhysicallyRestrictedRegion "physically restricted region")
+
+(=>
+  (and
+    (instance ?F Facility)
+    (attribute ?F PhysicallyRestrictedRegion))
+  (exists (?B)
+    (and
+      (instance ?B Barrier)
+      (orientation ?F ?B Surrounded))))    
+    
+(=>
+  (and
+    (instance ?F Facility)
+    (attribute ?F PhysicallyRestrictedRegion)    
+    (entrance ?R ?F))
+  (hasPurpose ?R
+    (exists (?E)
+      (and
+        (or
+          (instance ?E Entering)
+          (instance ?E Exiting))
+        (path ?E ?R)))))
+          
+(=>
+  (and
+    (instance ?F Facility)
+    (attribute ?F PhysicallyRestrictedRegion))
+  (modalAttribute
+    (exists (?E ?R)
+      (and
+        (or
+          (instance ?E Entering)
+          (instance ?E Exiting))
+        (path ?E ?R)
+        (not
+          (entrance ?R ?F)))) Unlikely))
+              
+(instance entrance BinaryPredicate)
+(documentation entrance EnglishLanguage "&%entrance is a &%BinaryPredicate. 
+In (entrance ?R ?F), ?R is the entrance into the &%Facility ?F. Both ?R 
+and ?F are Regions. If one is entering the facility ?F, then 
+one is obliged to enter via ?R.")
+(termFormat EnglishLanguage entrance "entrance")
+(format EnglishLanguage entrance "%1 is the entrance for %2 ")
+(domain entrance 1 Region)
+(domain entrance 2 Region)
+
+(=>
+  (and
+    (instance ?E Entering)
+    (destination ?E ?F)
+    (attribute ?F PhysicallyRestrictedRegion))
+  (modalAttribute
+    (exists (?R) 
+      (and
+        (entrance ?R ?F)
+        (path ?E ?R))) Obligation))
+         
+(=>
+  (and
+    (instance ?E Entering)
+    (destination ?E ?F)
+    (attribute ?F PhysicallyRestrictedRegion)
+    (not
+      (entrance ?R ?F)))         
+  (modalAttribute
+    (path ?E ?R) Prohibition))
+
+(=>
+  (and
+    (instance ?E Exiting)
+    (origin ?E ?F)
+    (attribute ?F PhysicallyRestrictedRegion)) 
+  (modalAttribute
+    (exists (?R) 
+      (and
+        (entrance ?R ?F)
+        (path ?E ?R))) Obligation))
+          
+(=>
+  (and
+    (instance ?E Exiting)
+    (origin ?E ?F)
+    (attribute ?F PhysicallyRestrictedRegion)
+    (not
+      (entrance ?R ?F)))         
+  (modalAttribute
+    (path ?E ?R) Prohibition))
+        
+(instance MilitarilySecure RelationalAttribute)
+(documentation MilitarilySecure EnglishLanguage "&%MilitarilySecure is 
+a &%RelationalAttribute. A &%Facility that is &%MilitarilySecure is owned 
+by a &%MilitaryForce. There does not exist an agent that is an &%Enemy of the 
+military force to launch an attack in which the destintation is the
+the facility and there is no enemy located at the facility, except for prisoners 
+who were captured from the enemy.")       
+(termFormat EnglishLanguage MilitarilySecure "militarily secure")
+(relatedInternalConcept BlueforceControlled MilitarilySecure)
+(relatedInternalConcept Ally MilitarilySecure)
+
+(=>
+  (and
+    (instance ?F Facility)
+    (holdsDuring ?T
+      (attribute ?F MilitarilySecure))
+    (instance ?MF MilitaryForce)
+    (possesses ?MF ?F))  
+  (not
+    (exists (?A ?E)
+      (and
+        (instance ?A Attack)
+        (during ?T (WhenFn ?A))
+        (destination ?A ?F)
+        (agent ?A ?E)
+        (enemy ?MF ?E)))))
+            
+(=>
+  (and
+    (instance ?F Facility)
+    (holdsDuring ?T
+      (attribute ?F MilitarilySecure))
+    (instance ?MF MilitaryForce)
+    (possesses ?MF ?F))  
+  (not
+    (exists (?E)
+      (and
+        (enemy ?MF ?E)
+        (holdsDuring ?T
+          (and
+            (located ?E ?F)
+            (not
+              (attribute ?E PrisonerOfWar))))))))
+          
+(subclass SecureAirfield MilitaryInstallation)
+(documentation SecureAirfield EnglishLanguage "&%SecureAirfield is an airfield that is 
+&%MilitarilySeucre. ")
+(termFormat EnglishLanguage SecureAirfield "secure airfield")
+
+(=>
+  (instance ?SA SecureAirfield)
+  (exists (?A)
+    (and
+      (instance ?A Airport)
+      (attribute ?A MilitarilySecure))))
+  
+
+
     
