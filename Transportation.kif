@@ -1268,6 +1268,78 @@ the &%EarthsAtmosphere.")
 (documentation Airport EnglishLanguage "&%Airport is the subclass of &%TransitTerminals 
 for &%Airplanes (fixed-wing &%Aircraft).")
 
+(subclass AirportApron ParkingRegion)
+(documentation AirportApron EnglishLanguage "An &%AirportApron is the area of an airport where 
+aircrafts are parked, unloaded or loaded, refueled, boarded, or maintained.[Wikipedia]")
+
+(=>
+  (instance ?AA AirportApron)
+  (exists (?A)
+    (and
+      (instance ?A Airport)
+      (located ?AA ?A))))
+      
+(=>
+  (instance ?AA AirportApron)
+  (hasPurpose ?AA
+    (exists (?P ?K)
+      (and
+        (instance ?P Airplane)
+        (instance ?K Keeping)
+        (patient ?K ?P)
+        (destination ?K ?AA)))))
+        
+(instance numberOfAprons BinaryPredicate)
+(documentation numberOfAprons EnglishLanguage "(&%numberOfRunways ?AA ?N) means
+ that &%Airport ?AA has &%Integer ?N number of &%Aprons.")
+(domain numberOfAprons 1 Airport)
+(domain numberOfAprons 2 Integer)
+
+(=>
+  (numberOfAprons ?AA ?N)
+  (exists (?A ?COLL)
+    (and
+      (instance ?A AirportApron)
+      (part ?A ?AA)
+      (member ?A ?COLL)
+      (memberCount ?COLL ?N))))
+
+(subclass AirportStagingArea Region)
+(documentation AirportStagingArea EnglishLanguage "An &%AirportStagingArea is a designated area 
+where equipment can be staged prior to the arrival or departure of an aircraft.[Wikipedia]")
+
+(=>
+  (instance ?S AirportStagingArea)
+  (exists (?A)
+    (and
+      (instance ?A Airport)
+      (located ?S ?A))))
+
+(=>
+  (instance ?S AirportStagingArea)
+  (hasPurpose ?S
+    (exists (?B ?C ?D ?T)
+      (and
+        (instance ?B Boarding)
+        (instance ?C Collection)
+        (instrument ?B ?C)
+        (member ?D ?C)
+        (instance ?D Device)
+        (locatedAtTime ?C ?T ?S)
+        (during ?T (WhenFn ?B))))))
+        
+(=>
+  (instance ?S AirportStagingArea)
+  (hasPurpose ?S
+    (exists (?DB ?C ?D ?T)
+      (and
+        (instance ?DB Deboarding)
+        (instance ?C Collection)
+        (instrument ?DB ?C)
+        (member ?D ?C)
+        (instance ?D Device)
+        (locatedAtTime ?C ?T ?S)
+        (during ?T (WhenFn ?DB))))))             
 ;;----------------------------------------------------------------------
 ;;	H. Airports - with paved runways
 
@@ -1335,6 +1407,63 @@ that are surfaced with concrete or asphalt.")
 		(instance ?SURFACE Concrete))
 	(instance ?RUNWAY PavedRunway))
 
+(subclass Taxiway LandTransitway)
+(documentation Taxiway EnglishLanguage "A &%Taxiway is a path for aircraft at an airport 
+connecting &%Runways  with aprons, hangars, terminals and other facilities. [Wikipedia]")
+
+(=>
+  (instance ?T Taxiway)
+  (exists (?A)
+    (and
+      (instance ?A Airport)
+      (located ?T ?A))))
+      
+(=>
+  (instance ?T Taxiway)
+  (hasPurpose ?T
+    (exists (?R ?AA)
+      (and
+        (instance ?R Runway)
+        (instance ?AA AirportApron)
+        (connects ?T ?R ?AA)))))
+
+(=>
+  (instance ?T Taxiway)
+  (trafficableForTrafficType ?T Airplane))
+
+(instance numberOfRunways BinaryPredicate)
+(documentation numberOfRunways EnglishLanguage "(&%numberOfRunways ?A ?N) means
+ that &%Airport ?A has &%Integer ?N number of &%Runways.")
+(domain numberOfRunways 1 Airport)
+(domain numberOfRunways 2 Integer)
+(relatedInternalConcept numberOfRunways numberOfTaxiways)
+(relatedInternalConcept numberOfRunways numberOfAprons)
+
+(=>
+  (numberOfRunways ?A ?N)
+  (exists (?R ?COLL)
+    (and
+      (instance ?R Runway)
+      (part ?R ?A)
+      (member ?R ?COLL)
+      (memberCount ?COLL ?N))))
+
+(instance numberOfTaxiways BinaryPredicate)
+(documentation numberOfTaxiways EnglishLanguage "(&%numberOfTaxiways ?A ?N) means
+ that &%Airport ?A has &%Integer ?N number of &%Taxiways.")
+(domain numberOfTaxiways 1 Airport)
+(domain numberOfTaxiways 2 Integer)
+(relatedInternalConcept numberOfTaxiways numberOfAprons)
+
+(=>
+  (numberOfTaxiways ?A ?N)
+  (exists (?T ?COLL)
+    (and
+      (instance ?T Taxiway)
+      (part ?T ?A)
+      (member ?T ?COLL)
+      (memberCount ?COLL ?N)))) 
+   	
 (subclass AirportClassification RelationalAttribute)
 (documentation AirportClassification EnglishLanguage "&%AirportClassification 
 is a class of &%Attributes for representing systems that categorize 
@@ -2099,6 +2228,29 @@ includes all non-locomotive, non-self-powered &%RailVehicles.")
 all the &%RailroadTrack and any outbuildings or other related structure 
 in the terminal, as well as the &%TrainStation (if there is one).")
 
+(subclass Railhead Railway)
+(documentation Railhead EnglishLanguage "A &%Railhead is a point on a A point on a railway 
+system where goods (or passengers) are loaded, unloaded or transferred to other transport. [Wiktionary]")
+
+(=>
+  (and
+    (instance ?R Railhead)
+    (instance ?V RailVehicle)
+    (holdsDuring ?T
+      (located ?V ?R)))
+  (exists (?M)
+    (and
+      (patient ?M ?V)
+      (or
+        (and
+          (instance ?M Leaving)
+          (origin ?M ?R)
+          (during (WhenFn ?M) ?T))
+        (and
+          (instance ?M Arriving)
+          (destination ?M ?R)
+          (during (WhenFn ?M) ?T))))))
+
 (subclass RoadTransportationSystem TransitSystem)
 (documentation RoadTransportationSystem EnglishLanguage "&%RoadTransportationSystem 
 is the subclass of &%TransportationSystems whose routes are &%Roadways.")
@@ -2480,7 +2632,7 @@ and take off.")
   (hasPurpose ?C
     (exists (?A ?T ?CLASS)
       (and
-        (instance ?A AirCraft)
+        (instance ?A Aircraft)
         (patient ?T ?A)
         (instance ?T ?CLASS)
         (or
@@ -2584,7 +2736,7 @@ that the vessel can carry when immersed to the proper load line.")
       (instance ?L List)
       (inList ?X ?L)
       (equal ?T
-        (listSumFn ?L)))))
+        (ListSumFn ?L)))))
       
 (instance vesselGrossRegisteredTonnage BinaryPredicate)
 (domain vesselGrossRegisteredTonnage 1 WaterVehicle)
@@ -2631,6 +2783,320 @@ large containers designed for shipping goods aboard &%ContainerShips.")
         (cargo ?S ?O)
         (holdsDuring (WhenFn ?S)
           (contains ?C ?O))))))
+          
+(subclass TwentyFtContainer ShipContainer)
+(documentation TwentyFtContainer EnglishLanguage "A &%TwentyFtContainer is an 
+intermodal container, often used for container ships and container ports.
+It is a standard-sized metal box that can be easily transferred between different 
+modes of transportation, such as ships, trains, and trucks. It is 20 feet (6.1 m) long, 
+8 feet (2.44 m) wide. It comes in three heights: standard - 8 feet 6 inches (2.59 m),
+high cube - 9 feet 6 inches (2.90 m) and half-height - 4 feet 3 inches (1.30 m). [Wikipedia]")
+
+(=>
+  (instance ?T TwentyFtContainer)
+  (and
+    (length ?T
+      (MeasureFn 20 FootLength))
+    (width ?T
+      (MeasureFn 8 FootLength))))
+
+(=>
+  (defaultMeasure TwentyFtContainer
+    (MeasureFn ?X Kilogram))
+  (and
+    (greaterThanOrEqualTo ?X 1800)
+    (lessThanOrEqualTo ?X 2400)))    
+    
+(defaultMaximumMeasure TwentyFtContainer
+      (MeasureFn 24000 Kilogram))
+      
+(=>
+  (and
+    (instance ?T TwentyFtContainer)
+    (attribute ?T Dry))
+  (capacity ?T
+    (MeasureFn 21600 Kilogram)))
+    
+(=>
+  (and
+    (instance ?T ShipContainer)
+    (capacity ?T
+      (MeasureFn ?X ?U))
+    (instance ?X UnitOfMass)
+    (contains ?T ?O)
+    (weight ?O
+      (MeasureFn ?Y ?U))
+    (lessThan ?Y ?X))    
+  (modalAttribute
+    (not
+      (exists (?D)
+        (and
+          (instance ?D Damaging)
+          (patient ?D ?T)))) Likely))
+       
+(subclass TwentyFtStandardContainer TwentyFtContainer)
+(documentation TwentyFtStandardContainer EnglishLanguage "The &%TwentyFtStandardContainer 
+is the most common twenty-foot container. It occupies a space of 20 feet (6.1 m) long, 
+8 feet (2.44 m) wide, and 8 feet 6 inches (2.59 m) high. [Wikipedia]")
+(termFormat EnglishLanguage TwentyFtStandardContainer "twenty foot standard container")      
+
+(=>
+  (instance ?T TwentyFtStandardContainer)
+  (height ?T
+      (MeasureFn 102 Inch)))
+
+(=>
+  (instance ?X TwentyFtStandardContainer)
+  (measure ?X (MeasureFn 1 TEU)))
+
+(=>
+  (instance ?X TwentyFtStandardContainer)
+  (measure ?X (MeasureFn 1172 CubicFoot)))
+
+(subclass TwentyFtHeavyDutyContainer TwentyFtContainer)
+(documentation TwentyFtHeavyDutyContainer EnglishLanguage "The &%TwentyFtHeavyDutyContainer 
+is a twenty-foot heavy duty container for carrying heavy goods such as heavy machinery. 
+It occupies the same space as a &%TwentyFtStandardContainer of 20 feet (6.1 m) long, 
+8 feet (2.44 m) wide, and 8 feet 6 inches (2.59 m) high.  These containers allow a maximum 
+weight of 67,200 pounds (30,500 kg), an empty weight of 5,290 pounds (2,400 kg), and a net 
+load of 61,910 pounds (28,080 kg).[Wikipedia]")
+
+(=>
+  (instance ?T TwentyFtHeavyDutyContainer)
+  (hasPurpose ?T
+    (exists (?O ?X)
+      (and
+        (instance ?O Object)
+        (contains ?T ?O)
+        (measure ?O
+          (MeasureFn ?X Kilogram))
+        (greaterThan ?X 21600)
+        (lessThanOrEqualTo ?X 28080)))))
+        
+(defaultMaximumMeasure TwentyFtHeavyDutyContainer
+  (MeasureFn 30500 Kilogram))
+  
+(=>
+  (instance ?T TwentyFtHeavyDutyContainer)
+  (height ?T
+      (MeasureFn 102 Inch)))
+
+(=>
+  (instance ?X TwentyFtHeavyDutyContainer)
+  (measure ?X (MeasureFn 1 TEU)))
+
+(=>
+  (instance ?X TwentyFtHeavyDutyContainer)
+  (measure ?X (MeasureFn 1172 CubicFoot)))
+            
+(subclass TwentyFtHighcubeContainer TwentyFtContainer)
+(documentation TwentyFtHighcubeContainer EnglishLanguage "A &%TwentyFtHighcubeContainer is
+one foot taller than the &%TwentyFtStandardContainer. It occupies a space of 20 
+feet (6.1 m) long, 8 feet (2.44 m) wide, and 9 feet 6 inches (2.90 m) high. [Wikipedia]")
+
+(=>
+  (instance ?T TwentyFtHighcubeContainer)
+  (height ?T
+      (MeasureFn 114 Inch)))
+      
+(=>
+  (instance ?X TwentyFtHighcubeContainer)
+  (measure ?X (MeasureFn 1 TEU)))
+
+(=>
+  (instance ?X TwentyFtHighcubeContainer)
+  (measure ?X (MeasureFn 1520 CubicFoot)))
+
+(subclass TwentyFtHalfHeightContainer TwentyFtContainer)
+(documentation TwentyFtHalfHeightContainer EnglishLanguage "A &%TwentyFtHalfHeightContainer is
+half the height of the &%TwentyFtStandardContainer. It occupies a space of 20 
+feet (6.1 m) long, 8 feet (2.44 m) wide, and 4 feet 3 inches (1.3 m) high. [Wikipedia]") 
+
+(=>
+  (instance ?T TwentyFtHalfHeightContainer)
+  (height ?T
+      (MeasureFn 53 Inch)))
+      
+(=>
+  (instance ?X TwentyFtHalfHeightContainer)
+  (measure ?X (MeasureFn 1 TEU)))
+
+(=>
+  (instance ?X TwentyFtHalfHeightContainer)
+  (measure ?X (MeasureFn 680 CubicFoot)))   
+
+(subclass FortyFtContainer ShipContainer)
+(documentation FortyFtContainer EnglishLanguage "A &%FortyFtContainer is another standard &%ShipContainer. 
+It is twice the length of a &%TwentyFtContainer. The most common forty-foot container occupies a space of 40 
+feet (12.2 m) long, 8 feet (2.44 m) wide, and 8 feet 6 inches (2.59 m) high. [Wikipedia]")
+
+(=>
+  (instance ?T FortyFtContainer)
+  (and
+    (length ?T
+      (MeasureFn 40 FootLength))
+    (width ?T
+      (MeasureFn 8 FootLength))))
+      
+(=>
+  (defaultMeasure FortyFtContainer
+    (MeasureFn ?X Kilogram))
+  (and
+    (greaterThanOrEqualTo ?X 2800)
+    (lessThanOrEqualTo ?X 4000)))
+
+(defaultMaximumMeasure FortyFtContainer
+      (MeasureFn 30480 Kilogram))
+      
+(=>
+  (and
+    (instance ?T FortyFtContainer)
+    (attribute ?T Dry))
+  (capacity ?T
+    (MeasureFn 26480 Kilogram)))
+          
+(subclass FortyFtStandardContainer FortyFtContainer)
+(documentation FortyFtStandardContainer EnglishLanguage "A &%FortyFtStandardContainer 
+is most common forty-foot container. It occupies a space of 40 feet (12.2 m) long, 8 feet 
+(2.44 m) wide, and 8 feet 6 inches (2.59 m) high. [Wikipedia]")
+
+(=>
+  (instance ?T FortyFtStandardContainer)
+  (height ?T
+      (MeasureFn 102 Inch)))
+      
+(=>
+  (instance ?X FortyFtStandardContainer)
+  (measure ?X (MeasureFn 2 TEU)))
+
+(=>
+  (instance ?X FortyFtStandardContainer)
+  (measure ?X (MeasureFn 2389 CubicFoot)))
+      
+(subclass FortyFtHighcubeContainer FortyFtContainer)
+(documentation FortyFtHighcubeContainer EnglishLanguage "A &%FortyFtHighcubeContainer is
+one foot taller than the standard &%FortyFtContainer. It occupies a space of 40 
+feet (12.2 m) long, 8 feet (2.44 m) wide, and 9 feet 6 inches (2.90 m) high. [Wikipedia]")
+
+(=>
+  (instance ?T FortyFtHighcubeContainer)
+  (height ?T
+      (MeasureFn 114 Inch))) 
+
+(subclass FortyFtHalfHeightContainer FortyFtContainer)
+(documentation FortyFtHalfHeightContainer EnglishLanguage "A &%FortyFtHalfHeightContainer is
+half the height of the standard &%FortyFtContainer. It occupies a space of 40 
+feet (12.2 m) long, 8 feet (2.44 m) wide, and 4 feet 3 inches (1.3 m) high. [Wikipedia]")  
+
+(=>
+  (instance ?T FortyFtHalfHeightContainer)
+  (height ?T
+      (MeasureFn 53 Inch))) 
+
+(subclass FortyfiveFtContainer ShipContainer)
+(documentation FortyfiveFtContainer EnglishLanguage "A &%FortyfiveFtContainer may be pulled as
+a trailer in Europe and most other places. It occupies a space of 45 feet (13.72 m) long, 8 feet 
+(2.44 m) wide, and 8 feet 6 inches (2.59 m) high. [Wikipedia]")
+
+(=>
+  (instance ?T FortyfiveFtContainer)
+  (and
+    (length ?T
+      (MeasureFn 45 FootLength))
+    (height ?T
+      (MeasureFn 102 Inch))
+    (width ?T
+      (MeasureFn 8 FootLength))))  
+
+(=>
+  (instance ?X FortyfiveFtContainer)
+  (measure ?X (MeasureFn 2 TEU)))
+
+(subclass FortyeightFtContainer ShipContainer)
+(documentation FortyeightFtContainer EnglishLanguage "A &%FortyeightFtContainer is restricted
+to road and rail transport in North America. It occupies a space of 48 feet (14.6 m) long, 8 feet 
+(2.44 m) wide, and 8 feet 6 inches (2.59 m) high. [Wikipedia]")
+
+(=>
+  (instance ?T FortyeightFtContainer)
+  (and
+    (length ?T
+      (MeasureFn 48 FootLength))
+    (height ?T
+      (MeasureFn 102 Inch))
+    (width ?T
+      (MeasureFn 8 FootLength))))  
+
+(=>
+  (instance ?X FortyeightFtContainer)
+  (measure ?X (MeasureFn 2.4 TEU)))
+
+(=>
+  (instance ?X FortyeightFtContainer)
+  (measure ?X (MeasureFn 3264 CubicFoot)))
+  
+(subclass FiftythreeFtContainer ShipContainer)
+(documentation FiftythreeFtContainer EnglishLanguage "A &%FiftythreeFtContainer is restricted
+to road and rail transport in North America. It occupies a space of 53 feet (16.2 m) long, 8 feet 
+(2.44 m) wide, and 8 feet 6 inches (2.59 m) high. [Wikipedia]")
+
+(=>
+  (instance ?T FiftythreeFtContainer)
+  (and
+    (length ?T
+      (MeasureFn 53 FootLength))
+    (height ?T
+      (MeasureFn 102 Inch))
+    (width ?T
+      (MeasureFn 8 FootLength))))  
+
+(=>
+  (instance ?X FiftythreeFtContainer)
+  (measure ?X (MeasureFn 2.65 TEU)))
+
+(=>
+  (instance ?X FiftythreeFtContainer)
+  (measure ?X (MeasureFn 3604 CubicFoot)))  
+
+(instance TEU UnitOfVolume)
+(documentation TEU EnglishLanguage "&%TEU (twenty-foot equivalent unit) is a general
+unit of cargo capacity, often used for container ships and container ports. It is based on 
+the volume of a 20-foot-long (6.1 m) intermodal container.The most common twenty-foot 
+container occupies a space 20 feet (6.1 m) long, 8 feet (2.44 m) wide, and 8 feet 6 inches 
+(2.59 m) high, with an allowance externally for the corner castings; the internal volume is 
+1,172 cubic feet (33.2 m3). However, both 9-foot-6-inch-tall (2.90 m) High cube and 4-foot-3-inch 
+(1.30 m) half height containers are also reckoned as 1 TEU. This gives a volume range of 680 to 
+1,520 cubic feet (19 to 43 m3) for one TEU. As TEU is an inexact unit, it cannot be converted
+precisely into other units.[Wikipedia]")
+(names "twenty-foot equivalent unit" TEU)
+(relatedInternalConcept TEU FEU)
+
+(=>
+  (instance ?X TwentyFtContainer)
+  (measure ?X (MeasureFn 1 TEU)))
+
+(=>
+  (equal
+    (MeasureFn 1 TEU)
+    (MeasureFn ?X CubicFoot))
+  (and
+    (greaterThanOrEqualTo ?X 680)
+    (lessThanOrEqualTo ?X 1520)))
+     
+(instance FEU UnitOfVolume)
+(documentation FEU EnglishLanguage "&%FEU (Forty-foot equivalent unit) is the capacity of 
+a &%FortyFtContainer. It is defined as equal to two TEU. [Wikipedia]")
+(names "forty-foot equivalent unit" FEU)
+
+(=>
+  (instance ?X FortyFtContainer)
+  (measure ?X
+    (MeasureFn 1 FEU)))
+    
+(equal
+  (MeasureFn 1 FEU)
+  (MeasureFn 2 TEU))
+
 ;;----------------------------------
 ;;	3. Air Vehicles
 ; airplanes also travel on the ground, and some on water
@@ -2755,6 +3221,73 @@ has the ability to play the &%CaseRole ?ROLE in &%Translocation of
     (instance ?REGION GeographicArea)
     (capability ?TYPE ?ROLE ?OBJECT))
   (capableAtLocation ?TYPE ?ROLE ?OBJECT ?REGION))
+  
+(instance BiDirectionalTraffic NormativeAttribute)
+(documentation BiDirectionalTraffic EnglishLanguage "&%BiDirectionalTraffic is 
+a &%NormativeAttribute. A &%Transitway is &%BiDirectionalTraffic when it divides travellers 
+into two streams of traffic that flow in opposite directions. The condition holds when a 
+government or an authority confers permission for two way traffic.[Wikipedia]")       
+(relatedInternalConcept BiDirectionalTraffic UniDirectionalTraffic)
+(contraryAttribute BiDirectionalTraffic UniDirectionalTraffic)
+
+(=>
+  (and
+    (instance ?W Transitway)
+    (attribute ?W BiDirectionalTraffic))
+  (exists (?P)
+    (and
+      (instance ?P Policy)
+      (confersNorm ?P
+        (exists (?T1 ?A ?B)
+          (and
+            (instance ?T1 Transportation)
+            (path ?T1 ?W)
+            (instance ?A GeographicArea)
+            (origin ?T1 ?A)
+            (instance ?B GeographicArea)
+            (destination ?T1 ?B)
+            (holdsDuring (WhenFn ?T1)
+              (exists (?T2)
+                (and            
+                  (instance ?T2 Transportation)
+                  (path ?T2 ?W)
+                  (origin ?T1 ?B)
+                  (destination ?T1 ?A)
+                  (not
+                    (equal ?T1 ?T2))))))) Permission))))
+
+(instance UniDirectionalTraffic NormativeAttribute)
+(documentation UniDirectionalTraffic EnglishLanguage "&%UniDirectionalTraffic is 
+a &%NormativeAttribute. A &%Transitway is &%UniDirectionalTraffic when it either 
+facilitating only one-way traffic, or designed to direct &%Vehicles to move in 
+one direction only.The condition holds when a government or an authority confers 
+prohibition for two way traffic.[Wikipedia]")       
+
+(=>
+  (and
+    (instance ?W Transitway)
+    (attribute ?W UniDirectionalTraffic))
+  (exists (?P)
+    (and
+      (instance ?P Policy)
+      (confersNorm ?P
+        (exists (?T1 ?A ?B)
+          (and
+            (instance ?T1 Transportation)
+            (path ?T1 ?W)
+            (instance ?A GeographicArea)
+            (origin ?T1 ?A)
+            (instance ?B GeographicArea)
+            (destination ?T1 ?B)
+            (holdsDuring (WhenFn ?T1)
+              (exists (?T2)
+                (and            
+                  (instance ?T2 Transportation)
+                  (path ?T2 ?W)
+                  (origin ?T1 ?B)
+                  (destination ?T1 ?A)
+                  (not
+                    (equal ?T1 ?T2))))))) Prohibition))))
 
 ;;	   2. Transitway state
 
@@ -3107,6 +3640,81 @@ stored.")
 
 (subclass TrainStation TransitTerminal)
 
+(subclass MultimodalTransitPoint Region)
+(subclass MultimodalTransitPoint TransitTerminal)
+(documentation MultimodalTransitPoint EnglishLanguage "&%MultimodalTransitPoint is facility that
+allows travelers to and freight to easily transition between different modes of transportation.
+This can include rail, road, air and water transitway.")
+(typicalPart MultimodalTransitPoint MultiModalTransitSystem)
+
+(=>
+  (instance ?X MultimodalTransitPoint)
+  (exists (?T1 ?A ?T2 ?B)
+    (and
+      (instance ?T1 (TransitFn ?A))
+      (instance ?A AirTransitway)
+      (path ?T1 ?A)
+      (instance ?T2 (TransitFn ?B))
+      (path ?T2 ?B)
+      (connects ?X ?A ?B)
+      (not
+        (equal ?T1 ?T2))
+      (or
+        (instance ?B Railway)
+        (instance ?B Roadway)
+        (instance ?B Waterway)))))
+        
+(=>
+  (instance ?X MultimodalTransitPoint)
+  (exists (?T1 ?A ?T2 ?B)
+    (and
+      (instance ?T1 (TransitFn ?A))
+      (instance ?A Waterway)
+      (path ?T1 ?A)
+      (instance ?T2 (TransitFn ?B))
+      (path ?T2 ?B)
+      (connects ?X ?A ?B)
+      (not
+        (equal ?T1 ?T2))
+      (or
+        (instance ?B Railway)
+        (instance ?B Roadway)
+        (instance ?B AirTransitway)))))
+        
+(=>
+  (instance ?X MultimodalTransitPoint)
+  (exists (?T1 ?A ?T2 ?B)
+    (and
+      (instance ?T1 (TransitFn ?A))
+      (instance ?A Railway)
+      (path ?T1 ?A)
+      (instance ?T2 (TransitFn ?B))
+      (path ?T2 ?B)
+      (connects ?X ?A ?B)
+      (not
+        (equal ?T1 ?T2))
+      (or
+        (instance ?B Waterway)
+        (instance ?B Roadway)
+        (instance ?B AirTransitway)))))
+
+ (=>
+  (instance ?X MultimodalTransitPoint)
+  (exists (?T1 ?A ?T2 ?B)
+    (and
+      (instance ?T1 (TransitFn ?A))
+      (instance ?A Roadway)
+      (path ?T1 ?A)
+      (instance ?T2 (TransitFn ?B))
+      (path ?T2 ?B)
+      (connects ?X ?A ?B)
+      (not
+        (equal ?T1 ?T2))
+      (or
+        (instance ?B Waterway)
+        (instance ?B Railway)
+        (instance ?B AirTransitway)))))   
+
 (subclass TerminalBuilding Building) 
 (documentation TerminalBuilding EnglishLanguage "A &%TerminalBuilding is a &%Building 
 located at a &%TransitTerminal and used in connection with its 
@@ -3218,6 +3826,58 @@ mooring, at dockside or anchorage.")
 
 (documentation ShipBerthingFn EnglishLanguage "(ShipBerthingFn ?SHIP) denotes the 
 class of &%ShipBerthings of an individual &%WaterVehicle ?SHIP.")
+
+;; Transitway capacity
+
+(instance transitwayThroughputCapacity TernaryPredicate)
+(documentation transitwayThroughputCapacity EnglishLanguage "&%transitwayThroughputCapacity is 
+a &%TernaryPredicate. It denotes the maximum number of vehicles that can be handled at a 
+&%Transitway at a given period of time.")
+(domain transitwayThroughputCapacity 1 Transitway)
+(domain transitwayThroughputCapacity 2 TimeInterval)
+(domain transitwayThroughputCapacity 3 NonnegativeInteger)
+  
+(=>
+  (and
+    (transitwayThroughputCapacity ?LT ?TI ?I)
+    (instance ?LT LandTransitway)
+    (instance ?C Collection)
+    (memberType ?C LandVehicle)
+    (memberCount ?C ?I2) 
+    (member ?V ?C)
+    (instance ?T Transportation)
+    (instrument ?T ?V)
+    (during (WhenFn ?T) ?TI)
+    (path ?T ?LT))
+  (greaterThanOrEqualTo ?I ?I2)) 
+    
+(=>
+  (and
+    (transitwayThroughputCapacity ?LT ?TI ?I)
+    (instance ?LT Waterway)
+    (instance ?C Collection)
+    (memberType ?C WaterVehicle)
+    (memberCount ?C ?I2) 
+    (member ?V ?C)
+    (instance ?T Transportation)
+    (instrument ?T ?V)
+    (during (WhenFn ?T) ?TI)
+    (path ?T ?LT))
+  (greaterThanOrEqualTo ?I ?I2))
+  
+(=>
+  (and
+    (transitwayThroughputCapacity ?LT ?TI ?I)
+    (instance ?LT AirTransitway)
+    (instance ?C Collection)
+    (memberType ?C Aircraft)
+    (memberCount ?C ?I2) 
+    (member ?V ?C)
+    (instance ?T Transportation)
+    (instrument ?T ?V)
+    (during (WhenFn ?T) ?TI)
+    (path ?T ?LT))
+  (greaterThanOrEqualTo ?I ?I2))
 
 ;;---------------------------------------------------------------------
 

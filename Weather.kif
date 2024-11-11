@@ -3081,7 +3081,7 @@ See https://www.airnow.gov/aqi/aqi-basics/")
 (format EnglishLanguage airQualityIndex "the &%airQualityIndex of %1 is %2")
 
 (subclass AirQualityAQIAttribute Attribute)
-(documentation AirQualityAttribute EnglishLanguage "&%Attributes that partition the &%airQualityIndex
+(documentation AirQualityAQIAttribute EnglishLanguage "&%Attributes that partition the &%airQualityIndex
 values according to https://www.airnow.gov/aqi/aqi-basics/.")
 
 (instance GoodAQIAirQuality AirQualityAQIAttribute)
@@ -3164,7 +3164,67 @@ Health alert: The risk of health effects is increased for everyone.")
       (attribute ?L HazardousAQIAirQuality)
       (airQualityIndex ?L ?I)))
   (greaterThanOrEqualTo ?I 301))
-  
+
+(subclass WeatherAssessment  Report)
+(documentation WeatherAssessment EnglishLanguage "A &%WeatherAssessment is a &%Report made
+based on someone's believes in a &%WeatherProcess occured in the immediate past.")
+(relatedInternalConcept WeatherAssessment weatherThreat)
+
+(=>
+  (instance ?WA WeatherAssessment)
+  (containsFormula ?WA
+    (exists (?R ?A ?WP)
+      (and
+        (instance ?R Reasoning)
+        (instance ?A CognitiveAgent)
+        (agent ?R ?A)
+        (instance ?WP WeatherProcess)
+        (patient ?R ?WP)
+        (result ?R ?WA)
+        (earlier (WhenFn ?WP) (WhenFn ?WA))))))
+     
+(subclass WeatherForecast  FactualText)
+(documentation WeatherForecast EnglishLanguage "A &%WeatherForecast is a &%FactualText made by
+someone who &%believes a &%WeatherProcess will occur.")
+(relatedInternalConcept WeatherForecast WeatherAssessment)
+(relatedInternalConcept WeatherForecast weatherThreat)
+
+(=>
+  (instance ?WF WeatherForecast)
+  (containsInformation ?WF
+    (exists (?A)
+      (believes ?A
+        (exists (?WP)
+          (and
+            (instance ?WP WeatherProcess)           
+            (during
+              (ImmediateFutureFn (WhenFn ?WF))
+              (WhenFn ?WP))))))))
+
+(instance weatherThreat  QuaternaryPredicate)
+(documentation weatherThreat EnglishLanguage "A &%weatherThreat is a &%Relation linking 4 arguments. 
+(weatherThreat ?WP ?P ?A ?TI) means it is believed that an instance of a class of &%WeatherProcess 
+?WP will occur in &%GeographicArea ?A during &%TimeInterval ?TI and it is not desirable to a GroupOfPeople 
+that it happens.")
+(domainSubclass weatherThreat 1 WeatherProcess)
+(domain weatherThreat 2 GroupOfPeople)
+(domain weatherThreat 3 GeographicArea)
+(domain weatherThreat 4 TimeInterval)
+
+(=>
+  (weatherThreat ?CLASS ?G ?A ?TI)
+  (exists (?M)
+    (believes ?M
+      (exists (?I)
+        (and
+          (member ?I ?G)
+          (holdsDuring ?TI
+            (exists (?WP)
+              (and
+                (instance ?WP ?CLASS)
+                (eventLocated ?WP ?A))))
+          (not
+            (desires ?I ?WP)))))))
   
 
 
