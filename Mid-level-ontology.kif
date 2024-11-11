@@ -6747,6 +6747,57 @@ either in pure form or as part of ores.")
         (instance ?MINERAL Mineral)
         (origin ?REMOVE ?MINE)))))
 
+(subclass Facility Region)
+(documentation Facility EnglishLanguage "A &%Facility is a place for doing 
+something, or a place that facilitates an activity.[Wikipedia]")
+(typicalPart StationaryArtifact Facility)
+
+(=>
+  (instance ?F Facility)
+  (hasPurpose ?F
+    (exists (?P)
+      (and
+        (instance ?P Process)
+        (eventLocated ?P ?F)))))
+        
+(subclass PrivateOrganization Organization)
+(documentation PrivateOrganization EnglishLanguage "A &%PrivateOrganization is an organization
+owned by private groups, usually as a means of establishment for profit or non profit, rather than
+being owned by the government.[Wikipedia]")
+
+(=>
+  (instance ?P PrivateOrganization)
+  (not
+    (exists (?G)
+      (and
+      (instance ?G Government)
+      (possesses ?G ?P)))))
+
+(subclass PositionReport  Report)
+(documentation PositionReport EnglishLanguage "A &%PositionReport is a &%FactualText that 
+&%containsInformation about where something is located.")
+
+(=>
+  (instance ?R PositionReport)
+  (containsFormula ?R
+    (exists (?O ?A)
+      (and
+        (instance ?O Object)
+        (instance ?A Region)
+        (located ?O
+          (WhenFn (?R)) ?A)))))      
+        
+(subclass EducationalCampus Region)
+(documentation EducationalCampus EnglishLanguage "An &%EducationalCampus is the land on which 
+a college or &%University and related institutional buildings are situated.[Wikipedia]")
+
+(=>
+  (instance ?C EducationalCampus)
+    (exists (?F)
+      (and
+        (instance ?F EducationalFacility)
+        (part ?F ?C))))
+                
 (subclass MobileStructure Artifact)
 (disjoint MobileStructure StationaryArtifact)
 (documentation MobileStructure EnglishLanguage "A &%MoibleStruture is an &%Artifact 
@@ -6786,7 +6837,147 @@ because the latter is a subclass of &%StationaryArtifact.")
         (instance ?T Translocation)
         (inhabits ?H ?R)
         (patient ?T ?R)))))
+        
+(subclass PortableRestroom MobileStructure)
+(documentation PortableRestroom EnglishLanguage "A &%PortableRestroom contains a &%Toilet that is
+intended to be moved around.[Wikipedia]")
 
+(=>
+  (instance ?P PortableRestroom)
+  (hasPurpose ?P
+    (exists (?T ?M)
+      (and
+        (instance ?T Toilet)
+        (contains ?P ?T)
+        (instance ?M Translocation)
+        (patient ?M ?P))))) 
+        
+(instance PhysicallyRestrictedRegion RelationalAttribute)
+(documentation PhysicallyRestrictedRegion EnglishLanguage "&%PhysicallyRestrictedRegion is a 
+&%RelationalAttribute for a &%GeographicArea where there is always some level of physical boundary. 
+&%Entering into the region requires &%entrance through a specified region where a &%Permission is conferred. 
+This term is still under development in the sense that it is yet to be decided whether it is a
+class or an attribute. Does putting a fence make a region a new region or change the attribute 
+of an existing region?")
+
+(=>
+  (and
+    (instance ?F Facility)
+    (attribute ?F PhysicallyRestrictedRegion))
+  (exists (?B)
+    (and
+      (instance ?B Barrier)
+      (orientation ?F ?B Surrounded))))    
+    
+(=>
+  (and
+    (instance ?F Facility)
+    (attribute ?F PhysicallyRestrictedRegion)    
+    (entrance ?R ?F))
+  (hasPurpose ?R
+    (exists (?E)
+      (and
+        (or
+          (instance ?E Entering)
+          (instance ?E Exiting))
+        (path ?E ?R)))))
+          
+(=>
+  (and
+    (instance ?F Facility)
+    (attribute ?F PhysicallyRestrictedRegion))
+  (modalAttribute
+    (exists (?E ?R)
+      (and
+        (or
+          (instance ?E Entering)
+          (instance ?E Exiting))
+        (path ?E ?R)
+        (not
+          (entrance ?R ?F)))) Unlikely))
+              
+(instance entrance BinaryPredicate)
+(documentation entrance EnglishLanguage "&%entrance is a &%BinaryPredicate. 
+In (entrance ?R ?F), ?R is the entrance into the &%Facility ?F. Both ?R 
+and ?F are Regions. If one is entering the facility ?F, then 
+one is obliged to enter via ?R.")
+(domain entrance 1 Region)
+(domain entrance 2 Region)
+
+(=>
+  (and
+    (instance ?E Entering)
+    (destination ?E ?F)
+    (attribute ?F PhysicallyRestrictedRegion))
+  (modalAttribute
+    (exists (?R) 
+      (and
+        (entrance ?R ?F)
+        (path ?E ?R))) Obligation))
+         
+(=>
+  (and
+    (instance ?E Entering)
+    (destination ?E ?F)
+    (attribute ?F PhysicallyRestrictedRegion)
+    (not
+      (entrance ?R ?F)))         
+  (modalAttribute
+    (path ?E ?R) Prohibition))
+
+(=>
+  (and
+    (instance ?E Exiting)
+    (origin ?E ?F)
+    (attribute ?F PhysicallyRestrictedRegion)) 
+  (modalAttribute
+    (exists (?R) 
+      (and
+        (entrance ?R ?F)
+        (path ?E ?R))) Obligation))
+          
+(=>
+  (and
+    (instance ?E Exiting)
+    (origin ?E ?F)
+    (attribute ?F PhysicallyRestrictedRegion)
+    (not
+      (entrance ?R ?F)))         
+  (modalAttribute
+    (path ?E ?R) Prohibition))
+        
+(subclass ArtifactAttribute RelationalAttribute)
+(documentation ArtifactAttribute EnglishLanguage "&%ArtifactAttribute is used to 
+describe the status of an &%Artifact.")
+
+(instance Repairable ArtifactAttribute)
+(documentation Repairable EnglishLanguage "&%Repairable is an &%Attribute used to 
+describe an &%Artifact that can be designated for &%Repairing.")
+(relatedInternalConcept Repairable NonRepairable)
+
+(=>
+  (and
+    (instance ?A Artifact)
+    (attribute ?A Repairable))
+  (exists (?R)
+    (and
+      (instance ?R Repairing)
+      (patient ?R ?A))))
+  
+(instance NonRepairable ArtifactAttribute)
+(documentation NonRepairable EnglishLanguage "&%NonRepairable is an &%Attribute used to 
+describe an &%Artifact that cannot be desginated for &Repairing.")
+
+(=>
+  (and
+    (instance ?A Artifact)
+    (attribute ?A NonRepairable))
+  (not
+    (exists (?R)
+      (and
+        (instance ?R Repairing)
+        (patient ?R ?A)))))
+        
 (subclass Prison StationaryArtifact)
 (documentation Prison EnglishLanguage "An installation which is owned and maintained by
 a &%Government for the purpose of &%Confining people.  This class covers
@@ -17229,6 +17420,46 @@ or something is moving.")
         (experiencer ?D ?E)
         (equal ?T (WhenFn ?D))))))
 
+(subclass Entering Translocation)
+(documentation Entering EnglishLanguage "&%Entering is a &%subclass of &%Translocation 
+in which an object go into a &%Region. &%Entering itself, unlike the relation
+&%entrance, does not required the object to go through a specified entrance.")
+(disjoint Entering Exiting)
+
+(=>
+  (instance ?E Entering)
+  (exists (?R ?A)
+    (and
+      (instance ?R Region)
+      (destination ?E ?R)
+      (agent ?E ?A)
+      (instance ?A AutonomousAgent)
+      (holdsDuring
+        (BeginFn (WhenFn ?E))
+        (orientation ?A ?R Outside))
+      (holdsDuring
+        (EndFn (WhenFn ?E))
+        (orientation ?A ?R Inside)))))
+
+(subclass Exiting Translocation)
+(documentation Exiting EnglishLanguage "&%Exiting is a &%subclass of &%Translocation 
+in which an object go out of a &%Region. It is the opposite of &%Entering.")
+
+(=>
+  (instance ?E Exiting)
+  (exists (?R ?A)
+    (and
+      (instance ?R Region)
+      (origin ?E ?R)
+      (agent ?E ?A)
+      (instance ?A AutonomousAgent)
+      (holdsDuring
+        (BeginFn (WhenFn ?E))
+        (orientation ?A ?R Inside))
+      (holdsDuring
+        (EndFn (WhenFn ?E))
+        (orientation ?A ?R Outside)))))
+        
 (subclass Shortening Decreasing)
 (documentation Shortening EnglishLanguage "Decreasing the length of something.")
 
