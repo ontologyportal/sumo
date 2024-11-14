@@ -756,6 +756,132 @@ it swings freely under the influence of gravity.")
 mechanism in order to change the speed or direction of transmitted motion.")
 (subclass Gear EngineeringComponent)
 
+(subclass SpurGear Gear)
+(documentation SpurGear EnglishLanguage "A &%SpurGear, also known as straight-cut 
+gear, is the simplest type of &%Gear. It consists of a &%Cylinder or disk with teeth  
+projecting radially. Though the teeth are not straight-sided (but usually of special 
+form to achieve a constant drive ratio, mainly involute but less commonly cycloidal), 
+the edge of each tooth is straight and aligned &%parallel to the &%axis of rotation. 
+These gears mesh together correctly only if fitted to parallel shafts. [Wikipedia]")
+(names "straight cut gear" SpurGear)
+
+(subclass ExternalGear Gear)
+(documentation ExternalGear EnglishLanguage "&%ExternalGears are &%Gears with 
+teeth on the &%Outside of the &%Cylinder or cone. When two external gears mesh 
+together they rotate in the opposite directions. [Wikipedia]")
+
+; if a gear has a hole and it's an external gear then the surface of
+; its teeth are not part of the hole host fn of that hole
+
+(=>
+  (and
+    (instance ?G ExternalGear)
+    (instance ?H HoleRegion)
+    (equal ?G
+      (HoleHostFn ?H))
+    (instance ?T GearTooth)
+    (part ?T ?G)
+    (surface ?ST ?T))
+  (not
+    (part ?ST ?G)))
+   
+(subclass InternalGear Gear)
+(documentation InternalGear EnglishLanguage "&%InternalGear are 
+&%Gears with teeth on the &%Inside of the &%Cylinder or cone. An &%InternalGear can 
+only mesh with an external gear and the gears rotate in the same direction. [Wikipedia]")
+
+; every internal gear is the HoleHostFn of a Hole and the surface
+; of every gear tooth that is part of the gear is a part of the HoleHostFn of that Hole
+
+(=>
+  (instance ?G InternalGear)
+  (exists (?H)
+    (and
+      (instance ?H HoleRegion)
+      (equal ?G
+        (HoleHostFn ?H)))))
+
+(=>
+  (and
+    (instance ?T GearTooth)
+    (instance ?G InternalGear)
+    (part ?T ?G)
+    (surface ?S ?T))
+  (exists (?H)
+    (and
+      (instance ?H HoleRegion)
+      (equal ?G
+        (HoleHostFn ?H))
+      (part ?S ?G))))
+  
+(subclass GearTooth EngineeringComponent)
+(typicalPart GearTooth Gear)
+(documentation GearTooth EnglishLanguage "Gear teeth are typical parts of a &%Gear. 
+They are usually located at the exterior surface, although there are &%InternalGear 
+in which the gear tooth are found at the interior surface of the &%Gear.")
+
+(=>
+  (and
+    (instance ?G Gear)
+    (superficialPart ?SG ?G)    
+    (instance ?T GearTooth)
+    (part ?T ?G)
+    (surface ?ST ?T))
+  (part ?ST ?SG))
+
+(instance gearToothCount BinaryPredicate)
+(relatedInternalConcept gearToothCount gearRatio)
+(documentation gearToothCount EnglishLanguage "&%gearToothCount is an &%instance 
+of a &%BinaryPredicate. (gearToothCount ?GEAR ?INTEGER) means that there are 
+?INTEGER number of &%GearTooth that are part of the &%Gear ?GEAR.")
+(domain gearToothCount 1 Gear)
+(domain gearToothCount 2 Integer)
+
+(=>
+  (and
+    (instance ?G Gear)
+    (part ?T ?G)
+    (instance ?T GearTooth)
+    (gearToothCount ?G ?I))
+  (exists (?C)
+    (and
+      (instance ?C Collection)
+      (member ?T ?C)
+      (memberCount ?C ?I))))
+
+(instance gearRatio TernaryPredicate)
+(relatedInternalConcept gearRatio gearRatio)
+(documentation gearRatio EnglishLanguage "&%gearRatio is an &%instance 
+of a &%TernaryPredicate. (gearRatio ?GEAR1 ?GEAR2 ?INTEGER) means that the 
+&%gearRatio between ?GEAR1 and ?GEAR2 is ?INTEGER.It is the number of the 
+&%toothCount of a gear ?GEAR1 that causes another gear ?GEAR2 to rotate 
+divided by the &%toothCount of that other gear. So if ?GEAR1 with 20 teeth 
+causes ?GEAR2 to rotate, and that ?GEAR2 has 10 teeth, then the GearRatio 
+of the system of two gears is 2 (or often it will be described as '2:1' 
+in text).")
+(domain gearRatio 1 Gear)
+(domain gearRatio 2 Gear)
+(domain gearRatio 3 RationalNumber)
+
+(=>
+  (gearRatio ?G1 ?G2 ?R)
+  (exists (?R1 ?R2)
+    (and
+      (instance ?R1 Rotating)
+      (patient ?R1 ?G1)
+      (instance ?R2 Rotating)
+      (patient ?R2 ?G2)
+      (causes ?R1 ?R2)
+      (not
+        (equal ?R1 ?R2)))))
+(=>
+  (and
+    (gearToothCount ?G1 ?I1)
+    (gearToothCount ?G2 ?I2)
+    (gearRatio ?G1 ?G2 ?R))
+  (equal ?R
+    (DivisionFn ?I1 ?I2)))
+
 (documentation GearTrain EnglishLanguage "a pair of gears that are used to change speed or
 direction of an angular motion, ideal gear train can be modeled using
 a transformer.")
@@ -770,7 +896,195 @@ to change speed and torque of transmitted motion.")
 (documentation Shaft EnglishLanguage "A revolving rod that transmits power or motion.")
 (subclass Shaft EngineeringComponent)
 (typicalPart Shaft Motor)
+;; a shaft is a revolving rod
 
+(=>
+  (instance ?S Shaft)
+  (exists (?CL)
+    (and   
+      (instance ?CL Cylinder)
+      (shape ?S ?CL))))
+  
+(=>
+  (instance ?S Shaft)
+  (exists (?R)
+    (and
+      (instance ?R Rotating)
+      (patient ?R ?S))))
+
+;;cantilever shaft (SUMO Shaft)   
+(subclass CantileverShaft Shaft)
+(subclass CantileverShaft CantileverObject)
+(documentation CantileverShaft EnglishLanguage "A &%CantileverShaft is 
+is a &%Shaft mounted on one end only with the rest of the shaft protruding out.")
+
+(subclass CantileverObject Artifact)
+(documentation CantileverObject EnglishLanguage "A &%CantileverObject is 
+an &%Artifact that also has the &%Attribute of being a &%Cantilever.")
+
+(instance Cantilever StructureAttribute)
+(documentation Cantilever EnglishLanguage "A &%Cantilever is a &%StructureAttribute 
+that describes a &%Artifact that extends horizontally and is supported at only one 
+end. [Wikipedia] For example, a &%CantilverObject.")
+
+(=>
+  (instance ?OBJ CantileverObject)
+  (attribute ?OBJ Cantilever))
+
+;;electro-mechanical fitting
+(subclass ElectroMechanicalFitting Electromagnet)
+(documentation ElectroMechanicalFitting EnglishLanguage "An &%ElectroMechanicalFitting 
+is an &%Electromagnet which takes in an electric current and use the electricity to control 
+a &%Machine.")
+
+(=>
+  (instance ?X ElectroMechanicalFitting)
+  (hasPurpose ?X
+    (exists (?M ?E ?D)
+      (and
+        (instance ?M Motion)      
+        (instance ?E Electricity)
+        (resource ?M ?E)       
+        (instrument ?M ?X)
+        (patient ?M ?D)
+        (instance ?D Machine)))))
+
+;;"AMR"
+;; Robot cannot experience emotion, so it's not a CognitiveAgent
+(subclass AutonomousMobileRobot AutonomousAgent)
+(subclass AutonomousMobileRobot Robot)
+(documentation AutonomousMobileRobot EnglishLanguage "An &%AutonomousMobileRobot 
+(AMR) is a type of robot. Among other possible activities, it can at least navigate 
+in an uncontrolled environment without the need for physical or electro-mechanical 
+guidance device. AMRs use a sophisticated set of sensors and cameras, aritificial 
+intelligence,machine learning algorithms to compute for path planning to intepret 
+and navigate through their environment.[Wikipedia]")
+
+(names "AMR" AutonomousMobileRobot)
+
+;; hasPurpose to move autonomously
+
+(=>
+  (instance ?AMR AutonomousMobileRobot)
+  (hasPurpose ?AMR
+    (exists (?T)
+      (and
+        (instance ?T Translocation)
+        (agent ?T ?AMR)
+        (patient ?T ?AMR)
+        (instrument ?T ?AMR)
+        (experiencer ?T ?AMR)
+        (not
+          (exists (?G ?A)
+            (and
+              (instance ?G Guiding)
+              (patient ?G ?AMR)
+              (agent ?G ?A)
+              (or
+                (instance ?A Human)
+                (instance ?A Device)))))))))
+
+;; PS Guiding is a term originated from Merge but it has not yet
+;; been formalised. Driving is a subclass of Guiding
+;; I haven't seen any implication of "control" or not causing an accident
+;; or not hitting an unintended object involved in the codes
+              
+(subclass Robot Machine)
+(documentation Robot EnglishLanguage "A &%Robot is a machine—especially one 
+programmable by a computer—capable of carrying out a complex series of actions 
+automatically. A robot can be guided by an external control device, or the control 
+may be embedded within. Robots may be constructed to evoke human form, but most 
+robots are task-performing machines, designed with an emphasis on stark 
+functionality, rather than expressive aesthetics.[Wikipedia]")
+
+(=>
+  (instance ?R Robot)
+  (hasPurpose ?R
+    (exists (?PROC ?COMP)
+      (and
+        (instance ?PROC ComputerProcess)
+        (instance ?COMP ComputerProgram)
+        (computerRunning ?PROC ?COMP)
+        (patient ?PROC ?R)
+        (holdsDuring
+          (WhenFn ?PROC)
+          (exists (?INT)
+            (and
+              (instance ?INT IntentionalProcess)
+              (instrument ?INT ?R))))))))
+              
+;;camera (SUMO Camera)
+
+;;robotic gripper (SUMO hasPurpose Grabbing)
+(subclass RoboticGripper Device)
+(documentation RoboticGripper EnglishLanguage "A &%RoboticGripper is the end 
+effector of a robot or a robotic arm which act as fingers and has the purpose 
+of grabbing objects. [Wikipedia]")
+(typicalPart RoboticGripper Robot)
+
+(=>
+  (instance ?X RoboticGripper)
+  (hasPurpose ?X
+    (exists (?G ?O)
+      (and
+        (instance ?G Grabbing)
+        (instance ?O Object)
+        (patient ?G ?O)
+        (instrument ?G ?X)))))
+   
+;;laser
+(subclass Laser Device)
+(documentation Laser EnglishLanguage "A &%Laser is a &%Device that emits light 
+through a process of optical amplification based on the stimulated emission of
+electromagnetic radiation. It differs from other light sources in that it emits 
+light that is coherent. [Wikipedia]")
+
+(=>
+  (instance ?L Laser)
+  (hasPurpose ?L
+    (exists (?R)
+      (and
+        (instance ?R RadiatingVisibleLight)
+        (instrument ?R ?L)))))
+
+;; monochromatic       
+(=>
+  (and
+    (instance ?L Laser)
+    (instance ?R RadiatingVisibleLight)
+    (instrument ?R ?L)
+    (patient ?R ?X)
+    (instance ?X Region))
+  (color ?X Monochromatic))
+
+;; same wavelength same light source     
+(=>
+  (instance ?L Laser)
+  (exists (?X ?Y ?O1 ?O2 ?X1 ?Y1)
+    (and
+      (instance ?X RadiatingVisibleLight)
+      (instance ?Y RadiatingVisibleLight)
+      (instrument ?X ?L)
+      (instrument ?Y ?L)
+      (origin ?X ?O1)
+      (origin ?Y ?O2)
+      (equal ?O1 ?O2)
+      (not
+        (equal ?X ?Y))
+      (wavelength ?X (MeasureFn ?X1 Nanometer))
+      (wavelength ?Y (MeasureFn ?Y1 Nanometer))
+      (approximateValue ?X1 ?Y1))))
+      
+
+;;robotic joint (SUMO's MechanicalJoint)
+(subclass RoboticJoint MechanicalJoint)
+(documentation RoboticJoint EnglishLanguage "&%RoboticJoints are movable 
+parts of a robot which allow adjacent links to move in relation to one another.
+These links refer to the rigid components that connect the joints to ensure 
+proper and efficient operation. Like the bones in a human arm, movable segments 
+in a robot are linked up with these robotic joints.")
+(typicalPart RoboticJoint Robot)
+  
 (documentation Spring EnglishLanguage "a metal device that returns to its shape or
 position when pushed or pulled or pressed")
 (subclass Spring Device)
