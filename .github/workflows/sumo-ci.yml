@@ -29,13 +29,14 @@ jobs:
     container:
       image: ${{ needs.derive_docker.outputs.image_account }}/sumo-ci:latest
     env:
+      # Explicitly set SIGMA_HOME
       SIGMA_HOME: /root/sigmakee-runtime
 
     # This step it not being utilized, redundant
     steps:
-    - uses: actions/checkout@v4
-      with:
-        path: sumo
+#    - uses: actions/checkout@v4
+#      with:
+#        path: sumo
 
     # This works to produce SUMO.fof, but the env paths are incorrect and I
     # believe that all of the KBs were originally stored in the sumo-ci image.
@@ -56,7 +57,7 @@ jobs:
         sed -i "s|/home/theuser/workspace/vampire/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
         sed -i 's|<preference name="TPTP" value="yes" \/>|<preference name="TPTP" value="no"\/>|g' $SIGMA_HOME/KBs/config.xml
         # DEBUG
-        cat $SIGMA_HOME/KBs/config.xml
+#        cat $SIGMA_HOME/KBs/config.xml
 
     - name: Produce SUMO.fof
       run: java -Xmx8g -cp "/root/sigmakee/*" com.articulate.sigma.trans.SUMOKBtoTPTPKB
@@ -98,9 +99,6 @@ jobs:
         /usr/local/bin/vampire --cores 0 --mode portfolio --schedule snake_tptp_uns --proof tptp --input_syntax tptp --output_axiom_names on -t $VAMPIRE_TIMEOUT SUMO.fof > vamp-out.txt || echo "Ignoring vampire exit code"
         mkdir -p $CATALINA_HOME/webapps/sigma/graph
         java -Xmx8g -cp "/root/sigmakee/*" com.articulate.sigma.trans.TPTP3ProofProcessor -f vamp-out.txt
-        # DEBUG ($HOME: /github/home)
-        cp vamp-out.txt ${{ github.workspace }}
-        cp $CATALINA_HOME/webapps/sigma/graph/proof.* ${{ github.workspace }}
         # DEBUG (pwd: /root/sigma-runtime/KBs)
 
     - name: Upload vamp-out.txt & proof.* files
