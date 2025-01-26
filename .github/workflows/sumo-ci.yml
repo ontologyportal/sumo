@@ -29,28 +29,31 @@ jobs:
     container:
       image: ${{ needs.derive_docker.outputs.image_account }}/sumo-ci:latest
     env:
-      SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
+      SIGMA_HOME: /root/sigmakee-runtime
 
     steps:
     - uses: actions/checkout@v4
       with:
         path: sumo
 
+    # This works to produce SUMO.fof, but the env paths are incorrect and I
+    # believe that all of the KBs were originally stored in the sumo-ci image.
+    # TDN 1/26/25
     - name: Setup SigmaKEE
-      env:
-        ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
+      #env:
+        #ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
       run: |
-        echo "SIGMA_HOME: $SIGMA_HOME"
-        mkdir -p $SIGMA_HOME/KBs/WordNetMappings
-        wget https://raw.githubusercontent.com/ontologyportal/sigmakee/master/config.xml
-        cp ./config.xml $SIGMA_HOME/KBs
-        cp -R $ONTOLOGYPORTAL_GIT/sumo/* $SIGMA_HOME/KBs
-        cp /opt/WordNet-3.0/dict/* $SIGMA_HOME/KBs/WordNetMappings/
+        #echo "SIGMA_HOME: $SIGMA_HOME"
+        #mkdir -p $SIGMA_HOME/KBs/WordNetMappings
+        #wget https://raw.githubusercontent.com/ontologyportal/sigmakee/master/config.xml
+        #cp ./config.xml $SIGMA_HOME/KBs
+        #cp -R $ONTOLOGYPORTAL_GIT/sumo/* $SIGMA_HOME/KBs
+        #cp /opt/WordNet-3.0/dict/* $SIGMA_HOME/KBs/WordNetMappings/
         sed -i "s|/home/theuser/.sigmakee|$SIGMA_HOME|g" $SIGMA_HOME/KBs/config.xml
-        sed -i "s|/home/theuser/workspace/sumo|$ONTOLOGYPORTAL_GIT/sumo|g" $SIGMA_HOME/KBs/config.xml
+        #sed -i "s|/home/theuser/workspace/sumo|$ONTOLOGYPORTAL_GIT/sumo|g" $SIGMA_HOME/KBs/config.xml
         sed -i "s|/home/theuser/E/bin/e_ltb_runner|/usr/local/bin/e_ltb_runner|g" $SIGMA_HOME/KBs/config.xml
         sed -i "s|/home/theuser/workspace/vampire/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
-        sed -i 's|preference name="TPTP" value="yes"|preference name="TPTP" value="no"|g' $SIGMA_HOME/KBs/config.xml
+        sed -i 's|<preference name="TPTP" value="yes" \/>|<preference name="TPTP" value="no"\/>|g' $SIGMA_HOME/KBs/config.xml
 
     - name: Produce SUMO.fof
       run: java -Xmx8g -cp "/root/sigmakee/*" com.articulate.sigma.trans.SUMOKBtoTPTPKB
@@ -67,7 +70,7 @@ jobs:
     container:
       image: ${{ needs.derive_docker.outputs.image_account }}/sumo-ci:latest
     env:
-      # Excplicity set SIGMA_HOME
+      # Explicitly set SIGMA_HOME
       SIGMA_HOME: /root/sigmakee-runtime
 
     steps:
@@ -79,26 +82,23 @@ jobs:
       env:
         VAMPIRE_TIMEOUT: ${{ inputs.vampire_timeout }}
       run: |
-        # DEBUG
-        pwd
-        ls -l .
+        # DEBUG (work dir: /__w/sumo/sumo)
+        #echo "work dir: pwd"
         # DEBUG
         #ls -l $SIGMA_HOME/KBs
         # DEBUG
         #set
+        ls -l .
         echo "VAMPIRE_TIMEOUT: $VAMPIRE_TIMEOUT"
         cp SUMO.fof $SIGMA_HOME/KBs && cd $SIGMA_HOME/KBs
         #/usr/local/bin/vampire --proof tptp -t $VAMPIRE_TIMEOUT SUMO.fof > vamp-out.txt || echo "Ignoring vampire exit code"
         /usr/local/bin/vampire --cores 0 --mode portfolio --schedule snake_tptp_uns --proof tptp --input_syntax tptp --output_axiom_names on -t $VAMPIRE_TIMEOUT SUMO.fof > vamp-out.txt || echo "Ignoring vampire exit code"
         mkdir -p $CATALINA_HOME/webapps/sigma/graph
         java -Xmx8g -cp "/root/sigmakee/*" com.articulate.sigma.trans.TPTP3ProofProcessor -f vamp-out.txt
-        # DEBUG (seems to be /github/home)
-        echo $HOME
-        cp vamp-out.txt $HOME
-        cp $CATALINA_HOME/webapps/sigma/graph/proof.* $HOME
-        # DEBUG (should be $SIGMA_HOME/KBs)
-        pwd
-        cd $HOME
+        # DEBUG ($HOME: /github/home)
+        cp vamp-out.txt ${{ github.workspace }}
+        cp $CATALINA_HOME/webapps/sigma/graph/proof.* ${{ github.workspace }}
+        # DEBUG (work dir: /root/sigma-runtime/KBs)
 
     - name: Upload vamp-out.txt & proof.* files
       if: success() || failure()
@@ -106,16 +106,16 @@ jobs:
       with:
         name: logs-and-graphs
         path: |
-          $HOME/vamp-out.txt
-          $HOME/proof.*
+          ./vamp-out.txt
+          ./proof.*
 
     - name: Check results
       if: success() || failure()
       run: |
         # allow errors
-        # DEBUG (seems to be /__w/sumo/sumo)
-        pwd
-        cd $HOME
+        # DEBUG (work dir: /__w/sumo/sumo)
+        echo "work dir: pwd"
+        echo $SIGMA_HOME
         set +e
         grep "Refutation found" vamp-out.txt
         # Remap exit code. If refutation found - it's an error
