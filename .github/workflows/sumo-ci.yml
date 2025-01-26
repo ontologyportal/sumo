@@ -31,6 +31,7 @@ jobs:
     env:
       SIGMA_HOME: /root/sigmakee-runtime
 
+    # This step it not being utilized, redundant
     steps:
     - uses: actions/checkout@v4
       with:
@@ -54,6 +55,8 @@ jobs:
         sed -i "s|/home/theuser/E/bin/e_ltb_runner|/usr/local/bin/e_ltb_runner|g" $SIGMA_HOME/KBs/config.xml
         sed -i "s|/home/theuser/workspace/vampire/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
         sed -i 's|<preference name="TPTP" value="yes" \/>|<preference name="TPTP" value="no"\/>|g' $SIGMA_HOME/KBs/config.xml
+        # DEBUG
+        cat $SIGMA_HOME/KBs/config.xml
 
     - name: Produce SUMO.fof
       run: java -Xmx8g -cp "/root/sigmakee/*" com.articulate.sigma.trans.SUMOKBtoTPTPKB
@@ -83,7 +86,7 @@ jobs:
         VAMPIRE_TIMEOUT: ${{ inputs.vampire_timeout }}
       run: |
         # DEBUG (work dir: /__w/sumo/sumo)
-        #echo "work dir: pwd"
+        #echo "work dir:" pwd
         # DEBUG
         #ls -l $SIGMA_HOME/KBs
         # DEBUG
@@ -98,7 +101,7 @@ jobs:
         # DEBUG ($HOME: /github/home)
         cp vamp-out.txt ${{ github.workspace }}
         cp $CATALINA_HOME/webapps/sigma/graph/proof.* ${{ github.workspace }}
-        # DEBUG (work dir: /root/sigma-runtime/KBs)
+        # DEBUG (pwd: /root/sigma-runtime/KBs)
 
     - name: Upload vamp-out.txt & proof.* files
       if: success() || failure()
@@ -106,18 +109,16 @@ jobs:
       with:
         name: logs-and-graphs
         path: |
-          ./vamp-out.txt
-          ./proof.*
+          ${{ env.SIGMA_HOME }}/KBs/vamp-out.txt
+          ${{ env.CATALINA_HOME }}/webapps/sigma/graph/proof.*
 
     - name: Check results
       if: success() || failure()
       run: |
         # allow errors
-        # DEBUG (work dir: /__w/sumo/sumo)
-        echo "work dir: pwd"
-        echo $SIGMA_HOME
+        # DEBUG (pwd: /__w/sumo/sumo)
         set +e
-        grep "Refutation found" vamp-out.txt
+        grep "Refutation found" ${{ env.SIGMA_HOME }}/KBs/vamp-out.txt
         # Remap exit code. If refutation found - it's an error
         if [ $? -eq 0 ]
         then
