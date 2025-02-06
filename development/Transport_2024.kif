@@ -820,6 +820,7 @@ on its left side when viewed from the Southern Hemisphere of the Earth.[Wikipedi
         (causes ?S ?M)
         (instance ?S SunLight)
         (destination ?M PlanetEarth)
+        (during ?T1 (WhenFn ?M))
         (measure ?M
           (MeasureFn ?X Lumen))
         (greaterThan ?X 0)
@@ -875,45 +876,84 @@ Earth; on its right side when viewed from the Southern Hemisphere of the Earth.[
 a pair of distinct points on a &%Circle.[Wikipedia]")
 (termFormat EnglishLanguage CircularArc "circular arc")
 
+;; OneDimensionalFigure is stated in Merge.kif as straight lines but not defined explicitly
+
+(instance StraightLine OneDimensionalFigure)
+(documentation StraightLine EnglishLanguage "A &%StraightLine is a &%OneDimensionalFigure with 
+no width, depth, or curvature. It may be embedded in a two or three dimenional &%GeometricFigure. 
+[Wikipedia]")
+(termFormat EnglishLanguage StraightLine "straight line")
+
+;; a CircularArc is the geometric part of a circle 
+
 (=>
-  (and
-    (equal ?C Circle)
-    (equal ?A CircularArc)
-    (sideOfFigure ?A ?C)
-    (pointOfFigure ?P ?C))
-  (exists (?P2)
+  (equal ?A CircularArc)
+  (exists (?C)
     (and
-      (pointOfFigure ?P2 ?A)
-      (equal ?P ?P2))))
-                 
-;; CircleSector defined in MILO line 4967
+      (equal ?C Circle)
+      (geometricPart ?A ?C))))
+
+;; all the points on a CircularArc  is equal to a point of its correspondent Circle
 
 (=>
   (and
-    (equal ?C Circle)
-    (equal ?S CircleSector)
     (equal ?A CircularArc)
-    (sideOfIntersection ?S ?C ?A))
-  (exists (?L ?R)
+    (pointOfFigure ?P ?A))
+  (exists (?C ?P2)
     (and
-      (sideOfFigure ?L ?S)
-      (lineMeasure ?L ?R)
-      (equal ?R
-        (RadiusFn ?C)))))
-      
+      (geometricPart ?A ?C)
+      (equal ?C Circle)
+      (pointOfFigure ?P2 ?C)
+      (equal ?P ?P2))))
+                                     
+;; CircleSector defined in MILO line 4967
+        
+(=>
+  (equal ?S CircleSector)
+  (exists (?C ?A)
+    (and
+      (equal ?C Circle)
+      (geometricPart ?S ?C)
+      (equal ?A CircularArc)
+      (geometricPart ?A ?C)
+      (sideOfFigure ?A ?S)
+      (sideOfIntersection ?S ?C ?A))))
+
+(=>
+  (equal ?S CircleSector)
+  (exists (?A ?AC)
+    (and
+      (equal ?A CentralAngle)
+      (angleOfFigure ?A ?S)
+      (equal ?AC CircularArc)
+      (sideOfFigure ?AC ?S))))
+            
+(=>
+  (and
+    (equal ?S CircleSector)
+    (equal ?C Circle)
+    (geometricPart ?S ?C)
+    (equal ?L StraightLine)
+    (sideOfFigure ?L ?S))
+  (lineMeasure ?L (RadiusFn ?C)))
+   
 (equal
   (CardinalityFn
     (KappaFn ?SIDE
       (sideOfFigure ?SIDE CircleSector))) 3)
         
 (subrelation arcLength lineMeasure)
-(documentation ArcLength EnglishLanguage "&%arcLength is the &%geometricDistance between 
+(documentation arcLength EnglishLanguage "&%arcLength is the &%geometricDistance between 
 two &%GeometricPoints of a &%CircularArc.[Wikipedia]")
 (termFormat EnglishLanguage arcLength "arc length")     
 (format EnglishLanguage arcLength "%2 is the &%LengthMeasure of %1")
 (domain arcLength 1 CircularArc)
 (domain arcLength 2 LengthMeasure)   
 (relatedInternalConcept arcLength geometricDistance)
+(relatedInternalConcept arcLength lineMeasure)
+(relatedInternalConcept arcLength radius)
+(relatedInternalConcept arcLength circumference)
+(relatedInternalConcept arcLength angularMeasure)
 
 (=>
   (and
@@ -935,7 +975,7 @@ the &%Circumference of its &%Circle.[Wikipedia]")
   (and
     (arcLength ?SEMI (MeasureFn ?L ?U))
     (equal ?SEMI SemicircularArc))
-  (exists (?C)
+  (exists (?CIR ?C)
     (and
       (equal ?CIR Circle)
       (geometricPart ?SEMI ?CIR)
@@ -948,26 +988,94 @@ the &%Circumference of its &%Circle.[Wikipedia]")
 is the center of a &%Circle and whose legs (sides) are radii intersecting the circle in two distinct 
 points A and B. Central angles are subtended by an arc between those two points, and the 
 &%arcLength is the central angle of a circle of radius one (measured in &%Radians).The central angle 
-is also known as the arc's angular distance.
-[Wikipedia]")
+is also known as the arc's angular distance.[Wikipedia]")
 (termFormat EnglishLanguage CentralAngle "central angle")
 (relatedInternalConcept CentralAngle CenterOfCircleFn)
 
+;; TwoDimensionalAngle is stated in Merge.kif but not defined
+
 (=>
-  (instance ?A CentralAngle)
-  (exists (?C)
+  (instance ?A TwoDimensionalAngle)  
+  (exists (?L ?L2 ?P)
     (and
+      (instance ?L StraightLine)
+      (sideOfFigure ?L ?A)
+      (instance ?L2 StraightLine)
+      (sideOfFigure ?L2 ?A)
+      (not
+        (equal ?L ?L2))
+      (pointOfFigure ?P ?A)
+      (pointOfIntersection ?L ?L2 ?P))))
+
+(=>
+  (instance ?A CentralAngle)     
+  (exists (?L ?L2 ?C ?R)
+    (and
+      (equal ?L StraightLine)
+      (sideOfFigure ?L ?A) 
+      (equal ?L2 StraightLine)
+      (sideOfFigure ?L2 ?A)
       (equal ?C Circle)
-      (angleOfFigure ?A ?C))))
+      (geometricPart ?A ?C)      
+      (pointOfIntersection ?L ?L2 
+        (CenterOfCircleFn ?C))   
+      (lineMeasure ?L ?R)          
+      (lineMeasure ?L2 ?R)        
+      (radius ?C ?R))))
+                  
+(=>
+  (and
+    (equal ?S CircleSector)
+    (equal ?A CentralAngle)
+    (angleOfFigure ?A ?S)
+    (instance ?L StraightLine)
+    (sideOfFigure ?L ?A)
+    (sideOfIntersection ?A ?S ?L)
+    (lineMeasure ?L ?R))
+  (exists (?AC)
+    (and
+      (equal ?AC CircularArc)
+      (sideOfFigure ?AC ?S)
+      (arcLength ?AC ?R)
+      (angularMeasure ?A (MeasureFn 1 Radian)))))
       
+(=>
+  (and
+    (instance ?A CentralAngle)
+    (angleOfFigure ?A ?C)
+    (equal ?C Circle))
+  (angularMeasure ?A (MeasureFn 360 AngularDegree)))
+            
 (subAttribute MinorArc  CircularArc)
 (documentation MinorArc EnglishLanguage "The &%CentralAngle between the two &%GeometricPoint of a 
 &%MinorArc is less than 180 degrees.[Wikipedia]")
 (termFormat EnglishLanguage MinorArc "minor arc")
+(relatedInternalConcept MinorArc MajorArc)
+
+(=>
+  (and
+    (equal ?MIN MinorArc)
+    (sideOfFigure ?MIN ?S)
+    (equal ?S CircleSector)
+    (angleOfFigure ?A ?S)
+    (angularMeasure ?A (MeasureFn ?X AngularDegree)))
+  (and
+    (greaterThan ?X 0)
+    (lessThan ?X 180)))
 
 (subAttribute MajorArc  CircularArc)
 (documentation MajorArc EnglishLanguage "The &%CentralAngle between the two &%GeometricPoint of a 
 &%MajorArc is greater than 180 degrees.[Wikipedia]")
 (termFormat EnglishLanguage MajorArc "Major arc")
 
+(=>
+  (and
+    (equal ?MAJ MajorArc)
+    (sideOfFigure ?MAJ ?S)
+    (equal ?S CircleSector)
+    (angleOfFigure ?A ?S)
+    (angularMeasure ?A (MeasureFn ?X AngularDegree)))
+  (and
+    (greaterThan ?X 180)
+    (lessThan ?X 360)))
   
