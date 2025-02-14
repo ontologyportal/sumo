@@ -878,11 +878,7 @@ a pair of distinct points on a &%Circle.[Wikipedia]")
 
 ;; OneDimensionalFigure is stated in Merge.kif as straight lines but not defined explicitly
 
-(instance StraightLine OneDimensionalFigure)
-(documentation StraightLine EnglishLanguage "A &%StraightLine is a &%OneDimensionalFigure with 
-no width, depth, or curvature. It may be embedded in a two or three dimenional &%GeometricFigure. 
-[Wikipedia]")
-(termFormat EnglishLanguage StraightLine "straight line")
+
 
 ;; a CircularArc is the geometric part of a circle 
 
@@ -933,7 +929,7 @@ no width, depth, or curvature. It may be embedded in a two or three dimenional &
     (equal ?S CircleSector)
     (equal ?C Circle)
     (geometricPart ?S ?C)
-    (equal ?L StraightLine)
+    (equal ?L ClosedLineSegment)
     (sideOfFigure ?L ?S))
   (lineMeasure ?L (RadiusFn ?C)))
    
@@ -953,6 +949,7 @@ two &%GeometricPoints of a &%CircularArc.[Wikipedia]")
 (relatedInternalConcept arcLength lineMeasure)
 (relatedInternalConcept arcLength radius)
 (relatedInternalConcept arcLength circumference)
+(relatedInternalConcept arcLength diameter)
 (relatedInternalConcept arcLength angularMeasure)
 
 (=>
@@ -998,9 +995,9 @@ is also known as the arc's angular distance.[Wikipedia]")
   (instance ?A TwoDimensionalAngle)  
   (exists (?L ?L2 ?P)
     (and
-      (instance ?L StraightLine)
+      (equal ?L ClosedLineSegment)
       (sideOfFigure ?L ?A)
-      (instance ?L2 StraightLine)
+      (equal ?L2 ClosedLineSegment)
       (sideOfFigure ?L2 ?A)
       (not
         (equal ?L ?L2))
@@ -1011,9 +1008,9 @@ is also known as the arc's angular distance.[Wikipedia]")
   (instance ?A CentralAngle)     
   (exists (?L ?L2 ?C ?R)
     (and
-      (equal ?L StraightLine)
+      (equal ?L ClosedLineSegment)
       (sideOfFigure ?L ?A) 
-      (equal ?L2 StraightLine)
+      (equal ?L2 ClosedLineSegment)
       (sideOfFigure ?L2 ?A)
       (equal ?C Circle)
       (geometricPart ?A ?C)      
@@ -1028,7 +1025,7 @@ is also known as the arc's angular distance.[Wikipedia]")
     (equal ?S CircleSector)
     (equal ?A CentralAngle)
     (angleOfFigure ?A ?S)
-    (instance ?L StraightLine)
+    (equal ?L ClosedLineSegment)
     (sideOfFigure ?L ?A)
     (sideOfIntersection ?A ?S ?L)
     (lineMeasure ?L ?R))
@@ -1078,4 +1075,109 @@ is also known as the arc's angular distance.[Wikipedia]")
   (and
     (greaterThan ?X 180)
     (lessThan ?X 360)))
-  
+
+(instance endPointsOfLine TernaryPredicate)
+(documentation endPointsOfLine EnglishLanguage "(endPointsOfLine ?P1 ?P2 ?L) means that
+point ?P1 and P2 are two points of a &%ClosedLineSegment, each intersects with another
+line segment.")
+(termFormat EnglishLanguage endPointsOfLine "end points of line")
+(domain endPointsOfLine 1 GeometricPoint)
+(domain endPointsOfLine 2 GeometricPoint)
+(domain endPointsOfLine 3 ClosedLineSegment)
+(format EnglishLanguage endPointsOfLine "%1 and %2 are &%endPointsOfLine of %3")
+
+(subAttribute ClosedLineSegment  StraightLine)
+(documentation ClosedLineSegment EnglishLanguage "A &%ClosedLineSegment is part of a
+straight line that is bounded by two distinct endpoints, and contains every point on
+the line that is between its points.[wikepedia]")
+(termFormat EnglishLanguage ClosedLineSegment "closed line segment")
+
+              
+(subAttribute ChordOfACircle  ClosedLineSegment)
+(documentation ChordOfACircle EnglishLanguage "A &%ChordOfACircle is a straight line
+segment whose endpoints lie on the circle.[wikepedia]")
+(termFormat EnglishLanguage ChordOfACircle "chord of a circle")
+
+(=>
+  (and
+    (equal ?CHORD ChordOfACircle)
+    (endPointsOfLine ?P1 ?P2 ?CHORD))
+  (exists (?C)
+    (and
+      (equal ?C Circle)
+      (pointOfFigure ?P1 ?C)
+      (pointOfFigure ?P2 ?C))))
+        
+(subAttribute DiameterLine  ChordOfACircle)
+(documentation DiameterLine EnglishLanguage "A &%DiameterLine of a circle is any straight line that
+passes through the centre of the &%Circle and whose endpoints lie on the circle.[wikepedia]")
+(termFormat EnglishLanguage DiameterLine "diameter line")
+
+(=>
+  (and
+    (equal ?CHORD ChordOfACircle)
+    (pointOfFigure
+      (CenterOfCircleFn ?C) ?CHORD)
+    (equal ?C Circle))
+  (equal ?CHORD DiameterLine))
+    
+(=>
+  (equal ?D DiameterLine)
+  (exists (?C)
+    (and
+      (equal ?C Circle)
+      (lineMeasure ?D
+        (DiameterFn ?C)))))
+ 
+(subAttribute SecantLine  StraightLine)
+(documentation SecantLine EnglishLanguage "A &%SecantLine is a line that intersects the circle at
+exactly two points. Unlikely the &%ChordOfACircle, a secant line can extend indefintely.[wikepedia]")
+(termFormat EnglishLanguage SecantLine "secant line")
+
+(=>
+  (and
+    (equal ?S SecantLine)
+    (pointOfFigure ?P1 ?S)
+    (pointOfFigure ?P2 ?S)
+    (not
+      (equal ?P1 ?P2))
+    (equal ?C Circle)
+    (pointOfFigure ?P1 ?C)
+    (pointOfFigure ?P2 ?C))
+  (exists (?CHORD)
+    (and
+      (equal ?CHORD ChordOfACircle)
+      (endPointsOfLine ?P1 ?P2 ?CHORD)
+      (geometricPart ?CHORD ?S))))
+
+(instance CircularSegment  ClosedTwoDimensionalFigure)
+(documentation CircularSegment EnglishLanguage "A &%CircularSegment is a plane region bounded by
+a circular arc (of less than Pi radian by convention) and the circular chord connecting its
+endpoints.[wikepedia]")
+(termFormat EnglishLanguage CircularSegment "circular segment")
+
+(=>
+  (and
+    (equal ?S CircularSegment)
+    (equal ?A CircularArc)
+    (geometricPart ?A ?S)
+    (equal ?C ChordOfACircle)
+    (geometricPart ?C ?S))  
+  (exists (?P1 ?P2)
+    (and
+      (not
+        (equal ?P1 ?P2))
+      (endPointsOfLine ?P1 ?P2 ?C)
+      (pointOfIntersection ?A ?C ?P1)
+      (pointOfIntersection ?A ?C ?P2))))
+      
+(=>
+  (and
+    (sideOfFigure ?A ?S)
+    (equal ?S CircularSegment))
+  (equal ?A MinorArc))
+ 
+(equal
+    (CardinalityFn
+        (KappaFn ?SIDE
+            (sideOfFigure ?SIDE CircularSegment))) 2)
