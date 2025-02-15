@@ -4768,26 +4768,47 @@ decorative or productive purposes.")
   (hasPurpose ?V
     (exists (?OBJ)
       (covers ?V ?OBJ))))
+      
+(instance StraightLine OneDimensionalFigure)
+(documentation StraightLine EnglishLanguage "A &%StraightLine is a &%OneDimensionalFigure with 
+no width, depth, or curvature. It may be embedded in a two or three dimenional &%GeometricFigure. 
+[Wikipedia]")
+(termFormat EnglishLanguage StraightLine "straight line")
+
+(subAttribute TangentLine  StraightLine)
+(documentation TangentLine EnglishLanguage "A &%TangentLine touches a curve or curved surface at 
+a point, but if extended does not cross it at that point.")
+(termFormat EnglishLanguage TangentLine "tangent line")
+(relatedInternalConcept TangentLine DiameterLine)
+
+(=>
+  (equal ?L TangentLine)
+  (exists (?C)
+    (and
+      (instance ?C Oval)
+      (tangent ?L ?C))))
 
 (instance tangent BinaryPredicate)
-(domain tangent 1 StraightLine)
-(domain tangent 2 TwoDimensionalObject)
+(domain tangent 1 TangentLine)
+(domain tangent 2 Oval)
 (documentation tangent EnglishLanguage "(&%tangent ?LINE ?CIRCLE) means that the straight line
-?LINE is tangent to the figure ?CIRCLE, i.e. ?LINE touches ?CIRCLE without
+?LINE is tangent to the curve of figure ?CIRCLE, i.e. ?LINE touches ?CIRCLE without
 intersecting it.")
 
 (=>
-   (tangent ?LINE ?CIRCLE)
-   (exists (?POINT1)
-      (and
-         (pointOfFigure ?POINT1 ?LINE)
-         (pointOfFigure ?POINT1 ?CIRCLE)
-         (forall (?POINT2)
-            (=>
-               (and
-                  (pointOfFigure ?POINT2 ?LINE)
-                  (pointOfFigure ?POINT2 ?CIRCLE))
-               (equal ?POINT1 ?POINT2))))))
+  (and
+    (tangent ?LINE ?CIRCLE)
+    (sideOfFigure ?CURVE ?CIRCLE))
+  (exists (?POINT1)
+    (and
+      (pointOfFigure ?POINT1 ?LINE)
+      (pointOfFigure ?POINT1 ?CURVE)
+      (forall (?POINT2)
+        (=>
+          (and
+            (pointOfFigure ?POINT2 ?LINE)
+            (pointOfFigure ?POINT2 ?CURVE))
+            (equal ?POINT1 ?POINT2))))))
 
 (subclass TwoDimensionalObject Object)
 (documentation TwoDimensionalObject EnglishLanguage "A real_world physical object
@@ -4811,21 +4832,24 @@ tangent at every point on its surface.")
 ;;
 ;; Jennie 13th September 2022
 ;; Changed RoundShape to ConvexRoundShape
-(=>
-  (and
-    (instance ?O Object)
-    (attribute ?O ConvexRoundShape)
-    (surface ?TO ?O)
-    (instance ?TO TwoDimensionalObject))
-  (forall (?P)
-    (and
-      (part ?P ?O)
-      (attribute ?P GeometricPoint)
-      (pointOfFigure ?P ?O)
-      (meetsSpatially ?P ?O)
-      (meetsSpatially ?P ?TO)
-      (exists (?T)
-        (tangent ?T ?TO)))))
+;; Jennie 6th Feb 2025
+;; need to reconsider the axioms
+;;
+;(=>
+;  (and
+;    (instance ?O Object)
+;    (attribute ?O ConvexRoundShape)
+;    (surface ?TO ?O)
+;    (instance ?TO TwoDimensionalObject))
+;  (forall (?P)
+;    (and
+;      (part ?P ?O)
+;     (attribute ?P GeometricPoint)
+;      (pointOfFigure ?P ?O)
+;      (meetsSpatially ?P ?O)
+;      (meetsSpatially ?P ?TO)
+;      (exists (?T)
+;        (tangent ?T ?TO)))))
 
 (subclass Cone ThreeDimensionalFigure)
 (documentation Cone EnglishLanguage "The class of &%ThreeDimensionalFigures which are
@@ -4874,7 +4898,7 @@ all &%GeometricPoints that make up the &%Cylinder are equidistant from a
 
 (subclass Polygon ClosedTwoDimensionalFigure)
 (documentation Polygon EnglishLanguage "A &%ClosedTwoDimensionalFigure that is composed
-exclusively of straight lines, i.e. &%OneDimensionalFigures.")
+exclusively of straight lines.")
 ;;
 ;; Jennie 16th August 2022
 ;; rewrote the axioms to reflect the meaning expressed in documentation
@@ -4882,7 +4906,7 @@ exclusively of straight lines, i.e. &%OneDimensionalFigures.")
   (and
     (instance ?POLYGON Polygon)
     (geometricPart ?PART ?POLYGON))
-  (instance ?PART OneDimensionalFigure))
+  (equal ?PART StraightLine))
 
 (=>
   (instance ?POLYGON Polygon)
@@ -30427,20 +30451,36 @@ no &%Humans exist.")
 (instance Barefoot RelationalAttribute)
 (documentation Barefoot EnglishLanguage "A state where someone doesn't &%wears &%Shoes.")
 
-(<=>
+(=>
   (holdsDuring ?T 
-    (attribute ?A Barefoot))
+    (and
+      (attribute ?A Barefoot)
+      (instance ?F Foot)
+      (part ?F ?A)))
   (holdsDuring ?T
     (not
-      (exists (?S)
+      (exists (?C)
         (and
-          (instance ?S Shoe)
-          (wears ?A ?S))))))
+          (instance ?C Clothing)
+          (covers ?C ?F))))))
+
+(=>
+  (holdsDuring ?T
+    (and
+      (not
+        (exists (?C)
+          (and
+            (instance ?C Clothing)
+            (covers ?C ?F))))
+      (instance ?F Foot)
+      (part ?F ?A)))
+  (holdsDuring ?T
+    (attribute ?A Barefoot)))
 
 (instance Naked RelationalAttribute)
 (documentation Naked EnglishLanguage "A state where someone doesn't &%wears &%Clothing.")
 
-(<=>
+(=>
   (holdsDuring ?T 
     (attribute ?A Naked))
   (holdsDuring ?T
@@ -30449,6 +30489,16 @@ no &%Humans exist.")
         (and
           (instance ?C Clothing)
           (wears ?A ?C))))))
+
+(=>
+  (holdsDuring ?T
+    (not
+      (exists (?C)
+        (and
+          (instance ?C Clothing)
+          (wears ?A ?C)))))
+  (holdsDuring ?T
+    (attribute ?A Naked)))
 
 (contraryAttribute Naked Clothed)
 (documentation Clothed EnglishLanguage "A state where at least the &%ReproductiveBody
