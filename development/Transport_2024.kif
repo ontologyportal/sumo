@@ -79,45 +79,63 @@ time to failure for a non-repairable system. [Wikipedia]")
 the latitude and longitude in AngleMeasure and returns the magnetic declination as an angle 
 measure for that location. Magnetic declination is the angle between magnetic north and 
 true north at a particular location on the Earth's surface, expressed in degrees and 
-minutes east or west to indicate the direction of magnetic north from &%courseWRTTrueNorth. 
+minutes east or west to indicate the direction of magnetic north from &%headingWRTTrueNorth. 
 The angle can change over time due to polar wandering. By convention, declination is 
 positive when magnetic north is east of the true north, and negative when it is to 
 the west.[Wikipedia]")
 (termFormat EnglishLanguage MagneticDeclinationFn "magnetic declination")
 (format EnglishLanguage MagneticDeclinationFn "Location on Earth at Latitude %1 and Longitude %2 
-has a magnetic declination of &%PlaneAngleMeasure.")
+has a magnetic declination of &%PlaneAngleMeasure. (+) denotes easterly declination, (-)
+denotes westerly declination. zero value means at the agonic line.")
 (domain MagneticDeclinationFn 1 Latitude)
 (domain MagneticDeclinationFn 2 Longitude)
-(range MagneticDeclinationFn AngleMeasure)
+(range MagneticDeclinationFn PlaneAngleMeasure)
 (names MagneticDeclinationFn "magnetic variation")
 (relatedInternalConcept MagneticDeclinationFn courseWRTCompassNorth)
 (relatedInternalConcept MagneticDeclinationFn courseWRTMagneticNorth)
 (relatedInternalConcept MagneticDeclinationFn courseWRTTrueNorth)
 (relatedInternalConcept MagneticDeclinationFn NorthPole)
+(relatedInternalConcept headingWRTMagneticNorth courseWRTMagneticNorth)
+(relatedInternalConcept headingWRTTrueNorth courseWRTTrueNorth)
 
-;; This can supercede magneticVariation if written correctly
-;; need to fix the axioms
+;; deleting magneticVariation in Geography.kif as it is a duplicate term
 
-;(=>
-;  (and
-;    (instance ?P GeographicArea)
-;    (equal ?P
-;      (LatitudeFn ?V (MeasureFn ?LAT AngularDegree)))
-;    (equal ?P
-;      (LongitudeFn ?H (MeasureFn ?LONG AngularDegree)))      
-;    (instance ?M Measuring)
-;    (eventLocated ?M ?P)
-;    (instrument ?M ?C)
-;    (instance ?C Compass)
-;    (result ?M ?MN)
-;    (instance ?MN AngleMeasure)
-;    (equal ?MN (MeasureFn ?X AngularDegree)))
-;  (exists ?Y ?Z)
-;    (and
-;      (courseWRTTrueNorth ?P NorthPole (MeasureFn ?Y AngularDegree))
-;      (MagneticDeclinationFn ?LAT ?LONG)
+;; assuming (+) value denotes an easterly declination and (-) a westerly declination
+;; and 0 value on the agonic line
 
-;; North Pole
+;; the following converts magnetic north to true north by adding the declination value
+
+(=>
+  (and
+    (instance ?AREA GeographicArea)
+    (objectGeographicCoordinates ?AREA ?LAT ?LONG)
+    (equal 
+      (MeasureFn ?DEG AngularDegree)
+      (MagneticDeclinationFn ?LAT ?LONG)))
+  (exists (?MN)
+    (and
+      (headingWRTMagneticNorth ?AREA 
+        (MeasureFn ?MN AngularDegree))      
+      (headingWRTTrueNorth ?AREA 
+        (MeasureFn (AdditionFn ?MN ?DEG) AngularDegree)))))
+
+
+;; the following subracts the declination from true north to get magentic north
+
+(=>
+  (and
+    (instance ?AREA GeographicArea)
+    (objectGeographicCoordinates ?AREA ?LAT ?LONG)
+    (equal 
+      (MeasureFn ?DEG AngularDegree)
+      (MagneticDeclinationFn ?LAT ?LONG)))
+  (exists (?TN)
+    (and
+      (headingWRTTrueNorth ?AREA 
+        (MeasureFn ?TN AngularDegree))      
+      (headingWRTMagneticNorth ?AREA 
+        (MeasureFn (SubtractionFn ?TN ?DEG) AngularDegree)))))
+                
 (instance NorthPole GeographicArea)
 (documentation NorthPole EnglishLanguage "The &%NorthPole is the point in the Northern 
 Hemisphere where the Earth's axis of rotation meets its surface.The North Pole is by 
@@ -130,7 +148,7 @@ counterclockwise is east and clockwise is west. The North Pole is at the center 
 the Northern Hemisphere. [Wikipedia]")
 (termFormat EnglishLanguage NorthPole "North Pole")
 (relatedInternalConcept NorthPole  SouthPole)
-(relatedInternalConcept NorthPole courseWRTTrueNorth)
+(relatedInternalConcept NorthPole headingWRTTrueNorth)
 
 (=>
   (and
@@ -1181,3 +1199,4 @@ endpoints.[wikepedia]")
     (CardinalityFn
         (KappaFn ?SIDE
             (sideOfFigure ?SIDE CircularSegment))) 2)
+            
