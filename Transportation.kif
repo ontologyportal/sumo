@@ -4097,7 +4097,244 @@ aircraft for commercial purposes.")
         (serviceProvider ?AIR ?AIRLINE))) 
     FederalAviationAdministration ?AIRLINE))
 
+(subclass HazardousMaterialTransportAttribute RelationalAttribute)
+(documentation HazardousMaterialTransportAttribute EnglishLanguage "&%HazardousMaterialTransportAttribute 
+is a set of relational attributes for dangerous goods. They are divided into nine classes (in addition to 
+several subcategories) on the basis of the specific characteristics producing the risk. They are 
+explosives, gases, flammable liquids, flammable solids, oxidizing agents and organic peroxides, toxic and 
+infectious substances, radioactive substances, corrosive substances, miscellaneous.[Wikipedia]")
+(termFormat EnglishLanguage HazardousMaterialTransportAttribute "hazardous material transport attribute")
+(relatedInternalConcept HazardousMaterialTransportAttribute hazardous)
+
+(=>
+  (and
+    (instance ?T Transportation)
+    (transported ?T ?C)
+    (attribute ?C ?H)
+    (instance ?H HazardousMaterialTransportAttribute))
+  (holdsDuring ?T
+    (modalAttribute
+      (exists (?D)
+        (and
+          (instance ?D Damaging)
+          (resource ?D ?C))) Possibility)))
+        
+(instance HazardousExplosives HazardousMaterialTransportAttribute)
+(documentation HazardousExplosives EnglishLanguage "&%HazardousExplosives are
+materials that can detonate easily during a chemical reaction.")
+(termFormat EnglishLanguage HazardousExplosives "hazardous explosives")
+
+(=>
+  (attribute ?X HazardousExplosives)
+  (instance ?X ExplosiveSubstance))
+
+(instance HazardousGases HazardousMaterialTransportAttribute)
+(documentation HazardousGases EnglishLanguage "&%HazardousGases are materials stored as compressed, 
+liquified or refrigerated gases that can be flammable, corrosive or toxic.")
+(termFormat EnglishLanguage HazardousGases "hazardous gases")
+
+(=>
+  (attribute ?G HazardousGases)
+  (and
+    (instance ?G Substance)
+    (attribute ?G Gas)
+    (capability Combustion resource ?G)
+    (capability Damaging resource ?G)
+    (capability Corrosion resource ?G)))
+        
+(instance FlammableLiquid HazardousMaterialTransportAttribute)
+(documentation FlammableLiquid EnglishLanguage "&%FlammableLiquid is a liquid with low flashpoints, or 
+the minimum temperature that can cause vapor and easily ignite.")
+(termFormat EnglishLanguage FlammableLiquid "flammable liquid")
+
+(=>
+  (attribute ?G FlammableLiquid)
+  (and
+    (instance ?G Substance)
+    (attribute ?G Liquid)
+    (attribute ?G Flammable)))
+    
+(instance FlammableSolid HazardousMaterialTransportAttribute)
+(documentation FlammableSolid EnglishLanguage "&%FlammableSolid is a solid that can be easily ignited 
+and cause fires.")
+(termFormat EnglishLanguage FlammableSolid "flammable solid")
+
+(=>
+  (attribute ?G FlammableSolid)
+  (and
+    (instance ?G Substance)
+    (attribute ?G Solid)
+    (attribute ?G Flammable)))
+
+(instance OxidizingSubstance HazardousMaterialTransportAttribute)
+(documentation OxidizingSubstance EnglishLanguage "&%OxidizingSubstance is material that can 
+release oxygen, making them highly reactive to cause a fire.")
+(termFormat EnglishLanguage OxidizingSubstance "oxidizing substance")
+
+(=>
+  (and
+    (instance ?G Substance)
+    (attribute ?G OxidizingSubstance))
+  (exists (?R)
+    (and
+      (instance ?R Releasing)
+      (patient ?R Oxygen)   
+      (capability Releasing origin ?G)
+      (modalAttribute
+        (exists (?C)
+          (and
+            (instance ?C Combustion)
+            (causes ?R ?C))) Possibility))))
+    
+(instance ToxicandInfectiousSubstance HazardousMaterialTransportAttribute)
+(documentation ToxicandInfectiousSubstance EnglishLanguage "&%ToxicandInfectiousSubstance is a substance that 
+can cause death or serious injury or to harm human health if swallowed, inhaled or by skin contact. Infectious 
+substances are those which are known or can be reasonably expected to contain pathogens. Dangerous goods regulations 
+define pathogens as microorganisms, such as bacteria, viruses, rickettsiae, parasites and fungi, or other agents 
+which can cause disease in humans or animals.")
+(termFormat EnglishLanguage ToxicandInfectiousSubstance "toxic and infectious substance")
+
+(=>
+  (and
+    (attribute ?G ToxicandInfectiousSubstance)
+    (or
+      (instance ?G Substance)
+      (instance ?G Microorganism)))
+  (exists (?O ?P ?I ?CLASS)
+    (and
+      (or
+        (instance ?O Human)
+        (instance ?O Animal))
+      (orientation ?G ?O Near)
+      (or
+        (instance ?P Inhaling)
+        (instance ?P Ingesting)
+        (instance ?P Touching))      
+      (agent ?P ?O)
+      (patient ?P ?G)     
+      (causes ?P ?I)
+      (patient ?I ?O) 
+      (instance ?I ?CLASS)
+      (capability ?CLASS resource ?G)
+      (or
+        (subclass ?CLASS Injuring)
+        (subclass ?CLASS Death)))))
+
+(instance RadioactiveSubstance HazardousMaterialTransportAttribute)
+(documentation RadioactiveSubstance EnglishLanguage "&%RadioactiveSubstance is a material that emits 
+radiation and can be harmful to one’s health.")
+(termFormat EnglishLanguage RadioactiveSubstance "radioactive substance")
+
+(=>
+  (and
+    (attribute ?G RadioactiveSubstance)
+    (instance ?G Substance))
+  (exists (?R)
+    (and
+      (instance ?R RadiatingNuclear)
+      (origin ?R ?G))))
+
+(instance CorrosiveSubstance HazardousMaterialTransportAttribute)
+(documentation CorrosiveSubstance EnglishLanguage "&%CorrosiveSubstance are substances that erode 
+or destroy other materials when they come into contact.")
+(termFormat EnglishLanguage CorrosiveSubstance "corrosive substance")
+
+(=>
+  (and
+    (attribute ?G CorrosiveSubstance)
+    (instance ?G Substance))
+  (capability Corrosion instrument ?G))
+      
+;; Corrosion 
+(subclass Corrosion Removing)
+(subclass Corrosion ChemicalSynthesis)
+(relatedInternalConcept Corrosion Oxidation)
+(documentation Corrosion EnglishLanguage "&%Corrosion is a natural process that converts 
+a refined metal into a more chemically stable oxide. It is the gradual deterioration of 
+materials by chemical or electrochemical reaction with their environment. [Wikipedia]")
+(termFormat EnglishLanguage Corrosion "corrosion")
+
+(=>
+  (instance ?C Corrosion)    
+  (exists (?S ?R ?P)
+    (and
+      (instance ?S Substance)
+      (patient ?C ?S)
+      (instance ?R Removing)
+      (patient ?R ?P)
+      (part ?P ?S)
+      (result ?C ?R))))
+
+(=>
+  (and
+    (instance ?M Metal)
+    (instance ?O Oxidation)
+    (patient ?O Metal))
+  (exists (?C)
+    (and
+      (instance ?C Corrosion)
+      (patient ?C ?M)
+      (causes ?O ?C))))
+
+(subclass Rusting Corrosion)
+(documentation Rusting EnglishLanguage "&%Rusting is the common term for corrosion of 
+elemental iron and its alloys such as steel. The resulting oxide is called rust.
+[Wikipedia]")
+(termFormat EnglishLanguage Rusting "rusting")
+
+(=>
+  (instance ?R Rusting)
+  (exists (?I ?O)
+    (and
+      (patient ?R ?I)
+      (or
+        (instance ?I Iron)
+        (instance ?I Steel))
+      (result ?R ?O)
+      (instance ?O Rust))))
   
+(subclass IronOxide CompoundSubstance)
+(documentation IronOxide EnglishLanguage "&%IronOxides are chemical compounds composed of
+iron and oxygen. The best known of which is &%Rust.[Wikipedia]")
+(termFormat EnglishLanguage IronOxide "iron oxide")
+(roomTempState IronOxide Solid)
+
+(=>
+  (instance ?IO IronOxide)
+  (exists (?I ?O)
+    (and
+      (instance ?I Iron)
+      (instance ?O Oxygen)
+      (part ?I ?IO)
+      (part ?O ?IO))))
+
+(subclass Rust IronOxide)
+(documentation Rust EnglishLanguage "&%Rust is an iron oxide,a usually reddish-brown oxide 
+formed by the reaction of iron and oxygen in the catalytic presence of water or air 
+moisture.[Wikipedia]")
+(termFormat EnglishLanguage Rust "rust")
+(roomTempState Rust Solid)
+                     
+(instance HazardousMiscellaneous HazardousMaterialTransportAttribute)
+(documentation HazardousMiscellaneous EnglishLanguage "&%HazardousMiscellaneous are materials that don’t fit into 
+the above classes but still pose harm. Note that this is an ontologically poor category included only to
+support the standard of labelling used in practice for hazardous material transport.")
+(termFormat EnglishLanguage HazardousMiscellaneous "hazardous miscellaneous")
+
+(=>
+  (and
+    (attribute ?G ?H)
+    (instance ?G Substance)
+    (instance ?H HazardousMaterialTransportAttribute)
+    (not (attribute ?G HazardousExplosives))
+    (not (attribute ?G HazardousGases))
+    (not (attribute ?G FlammableLiquid))
+    (not (attribute ?G FlammableSolid))
+    (not (attribute ?G OxidizingSubstance))
+    (not (attribute ?G ToxicandInfectiousSubstance))
+    (not (attribute ?G RadioactiveSubstance))
+    (not (attribute ?G CorrosiveSubstance)))
+  (equal ?H HazardousMiscellaneous))  
 ;;---------------------------------------------------------------------
 
 ;;	J. Transportation Businesses
