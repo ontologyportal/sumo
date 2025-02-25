@@ -3752,22 +3752,115 @@ with the reference point of 000 degrees being true North.")
   (courseWRTTrueNorth ?OBJ1 ?OBJ2 (MeasureFn 315.0 AngularDegree))
   (orientation ?OBJ1 ?OBJ2 Northwest))
 
-(instance magneticVariation TernaryPredicate)
-(domain magneticVariation 1 GeographicArea)
-(domain magneticVariation 2 PlaneAngleMeasure)
-(domain magneticVariation 3 DirectionalAttribute)
+(instance MagneticDeclinationFn BinaryFunction)
+(documentation MagneticDeclinationFn EnglishLanguage "&%MagneticDeclinationFn takes in
+the latitude and longitude in AngleMeasure and returns the magnetic declination as an angle 
+measure for that location. Magnetic declination is the angle between magnetic north and 
+true north at a particular location on the Earth's surface, expressed in degrees and 
+minutes east or west to indicate the direction of magnetic north from &%headingWRTTrueNorth. 
+The angle can change over time due to polar wandering. By convention, declination is 
+positive when magnetic north is east of the true north, and negative when it is to 
+the west.[Wikipedia]")
+(domain MagneticDeclinationFn 1 Latitude)
+(domain MagneticDeclinationFn 2 Longitude)
+(range MagneticDeclinationFn PlaneAngleMeasure)
+(names MagneticDeclinationFn "magnetic variation")
+(relatedInternalConcept MagneticDeclinationFn courseWRTCompassNorth)
+(relatedInternalConcept MagneticDeclinationFn courseWRTMagneticNorth)
+(relatedInternalConcept MagneticDeclinationFn courseWRTTrueNorth)
+(relatedInternalConcept MagneticDeclinationFn NorthPole)
+(relatedInternalConcept headingWRTMagneticNorth courseWRTMagneticNorth)
+(relatedInternalConcept headingWRTTrueNorth courseWRTTrueNorth)
 
-(documentation magneticVariation EnglishLanguage 
-"(&%magneticVariation ?AREA ?DEGREE ?DIRECTION) means that in the 
-&%GeographicArea ?AREA, the magnetic variation of a compass from 
-000 degrees true is ?DEGREE &%AngularDegrees in ?DIRECTION (&%East  
-or &%West).")
+;; assuming (+) value denotes an easterly declination and (-) a westerly declination
+;; and 0 value on the agonic line
+
+;; the following converts magnetic north to true north by adding the declination value
 
 (=>
-  (magneticVariation ?AREA ?DEGREE ?DIRECTION)
-  (or
-    (equal ?DIRECTION East)
-    (equal ?DIRECTION West)))
+  (and
+    (instance ?AREA GeographicArea)
+    (objectGeographicCoordinates ?AREA ?LAT ?LONG)
+    (equal 
+      (MeasureFn ?DEG AngularDegree)
+      (MagneticDeclinationFn ?LAT ?LONG)))
+  (exists (?MN)
+    (and
+      (headingWRTMagneticNorth ?AREA 
+        (MeasureFn ?MN AngularDegree))      
+      (headingWRTTrueNorth ?AREA 
+        (MeasureFn (AdditionFn ?MN ?DEG) AngularDegree)))))
+
+;; the following subracts the declination from true north to get magentic north
+
+(=>
+  (and
+    (instance ?AREA GeographicArea)
+    (objectGeographicCoordinates ?AREA ?LAT ?LONG)
+    (equal 
+      (MeasureFn ?DEG AngularDegree)
+      (MagneticDeclinationFn ?LAT ?LONG)))
+  (exists (?TN)
+    (and
+      (headingWRTTrueNorth ?AREA 
+        (MeasureFn ?TN AngularDegree))      
+      (headingWRTMagneticNorth ?AREA 
+        (MeasureFn (SubtractionFn ?TN ?DEG) AngularDegree)))))
+                      
+(instance NorthPole GeographicArea)
+(documentation NorthPole EnglishLanguage "The &%NorthPole is the point in the Northern 
+Hemisphere where the Earth's axis of rotation meets its surface.The North Pole is by 
+definition the northernmost point on the Earth, lying antipodally to the South Pole. 
+It defines geodetic latitude 90° North, as well as the direction of true north. At the 
+North Pole all directions point south; all lines of longitude converge there, so its 
+longitude can be defined as any degree value. No time zone has been assigned to the 
+North Pole, so any time can be used as the local time. Along tight latitude circles, 
+counterclockwise is east and clockwise is west. The North Pole is at the center of 
+the Northern Hemisphere. [Wikipedia]")
+(termFormat EnglishLanguage NorthPole "North Pole")
+(relatedInternalConcept NorthPole  SouthPole)
+(relatedInternalConcept NorthPole headingWRTTrueNorth)
+
+(=>
+  (and
+    (equal ?N NorthPole)
+    (located ?N ArcticRegion))
+  (exists (?A)
+    (and
+      (axis ?A PlanetEarth)
+      (traverses ?A ?N))))
+
+(equal
+  NorthPole
+  (LatitudeFn North
+    (MeasureFn 90 AngularDegree)))
+
+(names "geographic north" courseWRTTrueNorth)
+(names "geodetic north" courseWRTTrueNorth)
+(names "true north" courseWRTTrueNorth)
+
+;; South Pole
+(instance SouthPole  GeographicArea)
+(documentation SouthPole EnglishLanguage "The &%SouthPole is the  southernmost point 
+on Earth and lies antipodally on the opposite side of Earth from the &%NorthPole, at a 
+distance of 20,004 km (12,430 miles) in all directions. It is one of the two points where 
+Earth's axis of rotation intersects its surface.The South Pole is the center of the 
+Southern Hemisphere.[Wikipedia]")
+(termFormat EnglishLanguage SouthPole "South Pole")
+
+(=>
+  (and
+    (equal ?S SouthPole)
+    (located ?S Antarctica))
+  (exists (?A)
+    (and
+      (axis ?A PlanetEarth)
+      (traverses ?A ?S))))
+
+(equal
+  SouthPole
+  (LatitudeFn South
+    (MeasureFn 90 AngularDegree)))
 
 (instance courseWRTMagneticNorth TernaryPredicate)
 (domain courseWRTMagneticNorth 1 Physical)
