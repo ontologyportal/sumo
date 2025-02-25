@@ -32,8 +32,8 @@ jobs:
       # Explicitly set SIGMA_HOME
       SIGMA_HOME: /root/sigmakee-runtime
 
-    # This step it not being utilized, redundant
     steps:
+    # This step is redundant
 #    - uses: actions/checkout@v4
 #      with:
 #        path: sumo
@@ -54,10 +54,21 @@ jobs:
         sed -i "s|/home/theuser/.sigmakee|$SIGMA_HOME|g" $SIGMA_HOME/KBs/config.xml
         #sed -i "s|/home/theuser/workspace/sumo|$ONTOLOGYPORTAL_GIT/sumo|g" $SIGMA_HOME/KBs/config.xml
         sed -i "s|/home/theuser/E/bin/e_ltb_runner|/usr/local/bin/e_ltb_runner|g" $SIGMA_HOME/KBs/config.xml
-        sed -i "s|/home/theuser/workspace/vampire/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
+        sed -i "s|/home/theuser/Programs/vampire/build/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
         sed -i 's|<preference name="TPTP" value="yes" \/>|<preference name="TPTP" value="no"\/>|g' $SIGMA_HOME/KBs/config.xml
+        sed -i '/<kb name/,/<\/kb>/d' $SIGMA_HOME/KBs/config.xml
         # DEBUG
 #        cat $SIGMA_HOME/KBs/config.xml
+
+    - name: Set config.xml for SUMO, MILO (topAndMid) and domain only KBs
+      run: >
+          sed -i '/<\/configuration>/i\
+          <kb name="SUMO">\n
+          <constituent filename="Merge.kif"\/>\n
+          <constituent filename="Mid-level-ontology.kif"\/>\n
+          <constituent filename="english_format.kif"\/>\n
+          <constituent filename="domainEnglishFormat.kif"\/>\n
+          <\/kb>' $SIGMA_HOME/KBs/config.xml
 
     - name: Produce SUMO.fof
       run: java -Xmx10g -Xss1m -cp "/root/sigmakee/*" com.articulate.sigma.trans.SUMOKBtoTPTPKB
@@ -67,6 +78,15 @@ jobs:
       with:
         name: SUMO.fof
         path: ${{ env.SIGMA_HOME }}/KBs/SUMO.fof
+
+    - name: Produce SUMO.tff
+      run: java -Xmx10g -Xss1m -cp "/root/sigmakee/*" com.articulate.sigma.trans.SUMOKBtoTFAKB
+
+    - name: Upload SUMO.tff
+      uses: actions/upload-artifact@v4
+      with:
+        name: SUMO.tff
+        path: ${{ env.SIGMA_HOME }}/KBs/SUMO.tff
 
   run_vampire:
     runs-on: ubuntu-latest
@@ -82,6 +102,10 @@ jobs:
       with:
         name: SUMO.fof
 
+    - uses: actions/download-artifact@v4
+      with:
+        name: SUMO.tff
+
     - name: Run vampire against SUMO.fof
       env:
         VAMPIRE_TIMEOUT: ${{ inputs.vampire_timeout }}
@@ -95,22 +119,21 @@ jobs:
         ls -l .
         echo "VAMPIRE_TIMEOUT: $VAMPIRE_TIMEOUT"
         cp SUMO.fof $SIGMA_HOME/KBs && cd $SIGMA_HOME/KBs
-        #/usr/local/bin/vampire --proof tptp -t $VAMPIRE_TIMEOUT SUMO.fof > vamp-out.txt || echo "Ignoring vampire exit code"
         /usr/local/bin/vampire --cores 0 --mode portfolio --schedule snake_tptp_uns --proof tptp --input_syntax tptp --output_axiom_names on -t $VAMPIRE_TIMEOUT SUMO.fof > vamp-out.txt || echo "Ignoring vampire exit code"
         mkdir -p $CATALINA_HOME/webapps/sigma/graph
         java -Xmx10g -Xss1m -cp "/root/sigmakee/*" com.articulate.sigma.trans.TPTP3ProofProcessor -f vamp-out.txt
         # DEBUG (pwd: /root/sigma-runtime/KBs)
 
-    - name: Upload vamp-out.txt & proof.* files
+    - name: Upload vamp-out.txt & proof.* files for fof
       if: success() || failure()
       uses: actions/upload-artifact@v4
       with:
-        name: logs-and-graphs
+        name: fof-logs-and-graphs
         path: |
           ${{ env.SIGMA_HOME }}/KBs/vamp-out.txt
           /usr/local/tomcat/webapps/sigma/graph/proof.*
 
-    - name: Check results
+    - name: Check fof results
       if: success() || failure()
       run: |
         # allow errors
@@ -120,7 +143,48 @@ jobs:
         # Remap exit code. If refutation found - it's an error
         if [ $? -eq 0 ]
         then
-          exit 1
+          #If refutation found but it's a negated_conjecture then it's OK
+          grep negated_conjecture vamp-out.txt
+          exit $?
+        else
+          exit 0
+        fi
+
+    - name: Run vampire against SUMO.tff
+      env:
+        VAMPIRE_TIMEOUT: ${{ inputs.vampire_timeout }}
+      run: |
+        ls -l .
+        echo "VAMPIRE_TIMEOUT: $VAMPIRE_TIMEOUT"
+        cp SUMO.tff $SIGMA_HOME/KBs && cd $SIGMA_HOME/KBs
+        # Remove math from tff
+        sed -i 's/.*$to_real.*//g' SUMO.tff
+        sed -i 's/.*$remainder_t.*//g' SUMO.tff
+        sed -i 's/.*$quotient_e.*//g' SUMO.tff
+        /usr/local/bin/vampire --cores 0 --mode portfolio --schedule snake_tptp_uns --proof tptp --input_syntax tptp --output_axiom_names on -t $VAMPIRE_TIMEOUT SUMO.tff > vamp-out.txt || echo "Ignoring vampire exit code"
+        mkdir -p $CATALINA_HOME/webapps/sigma/graph
+        java -Xmx10g -Xss1m -cp "/root/sigmakee/*" com.articulate.sigma.trans.TPTP3ProofProcessor -f vamp-out.txt
+
+    - name: Upload vamp-out.txt & proof.* files for tff
+      if: success() || failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: tff-logs-and-graphs
+        path: |
+          ${{ env.SIGMA_HOME }}/KBs/vamp-out.txt
+          /usr/local/tomcat/webapps/sigma/graph/proof.*
+
+    - name: Check tff results
+      if: success() || failure()
+      run: |
+        set +e
+        grep "Refutation found" ${{ env.SIGMA_HOME }}/KBs/vamp-out.txt
+        # Remap exit code. If refutation found - it's an error
+        if [ $? -eq 0 ]
+        then
+          #If refutation found but it's a negated_conjecture then it's OK
+          grep negated_conjecture vamp-out.txt
+          exit $?
         else
           exit 0
         fi
