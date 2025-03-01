@@ -240,7 +240,8 @@ Earth; on its right side when viewed from the Southern Hemisphere of the Earth.[
 (documentation resourceConsumption EnglishLanguage "(&%resourceConsumption ?PROCESS ?QUANT) means that 
 ?PROCESS consumes an amount of the &%resource specified. If the second argument is a &%ConstantQuantity. 
 it will be the total consumption during the &%Process. If the second argument is a &%FuntionQuantity, 
-it would be a rate of consumption over the time of the process.")
+it would be a rate of consumption over the time of the process.For example, in (equal ?QUANT (PerFn 
+(MeasureFn ?Q ?U) (MeasureFn ?DC ?DU))), ?Q = 0.1, ?U = USGallon, ?DC = 1, ?DU = MinuteDuration.")
 (termFormat EnglishLanguage resourceConsumption "resource consumption")
 (format EnglishLanguage resourceConsumption "%2 amount as &%resource for the &%Process %1")
 (domain resourceConsumption 1 Process)
@@ -249,48 +250,88 @@ it would be a rate of consumption over the time of the process.")
 (=>
   (and
     (resourceConsumption ?PROC ?QUANT)
-    (instance ?QUANT ConstantQuantity))
-  (exists (?RES ?X ?U ?Y)
-    (and
-      (resource ?PROC ?RES)
-      (holdsDuring
-        (BeginFn
-          (WhenFn ?PROC)
-          (measure ?RES
-            (MeasureFn ?X ?U))))
-      (holdsDuring
-        (EndFn
-          (WhenFn ?PROC)
-          (measure ?RES
+    (instance ?QUANT ConstantQuantity)
+    (resource ?PROC ?RES)
+    (holdsDuring
+      (BeginFn
+        (WhenFn ?PROC))
+      (measure ?RES
+        (MeasureFn ?X ?U)))
+    (holdsDuring
+      (EndFn
+        (WhenFn ?PROC))
+      (measure ?RES
             (MeasureFn ?Y ?U))))
-      (equal ?QUANT
-        (MeasureFn (SubtractionFn ?X ?Y) ?U)))))
+  (equal ?QUANT
+    (MeasureFn (SubtractionFn ?X ?Y) ?U)))
+    
+;; FunctionQuantity
+;;
+;; Let's say Eddy's giant loader consumes 0.1 gallon of diesel per minute, 
+;; that he spends one hour grading a road and that he starts off with 100 gallons.
+;;
+;;(exists (?M ?D)
+;;  (and
+;;    (instance ?M Maintaining)
+;;    (instance ?D DieselFuel)
+;;    (resource ?M ?D)
+;;    (duration
+;;      (WhenFn ?M)
+;;      (MeasureFn 60 MinuteDuration))
+;;    (holdsDuring
+;;      (BeginFn
+;;        (WhenFn ?M))
+;;      (measure ?D
+;;        (MeasureFn 100 USGallon)))
+;;    (holdsDuring
+;;      (EndFn
+;;        (WhenFn ?M))
+;;      (measure ?D
+;;        (MeasureFn ?Y USGallon)))
+;;   (resourceConsumption ?M
+;;      (PerFn
+;;        (MeasureFn 0.1 USGallon)
+;;        (MeasureFn 1 MinuteDuration))))) 
+;;
+;; We need to multiply the quantity consumed per unit time by the number of the actual time units.  
+;; 60 minutes * 0.1 gallon/minute = 6 gallons. 
+;; To find ?Y, we fill in the variables in the consequent:
+;;
+;;  (equal ?Y
+;;    (MeasureFn
+;;      (SubtractionFn 100
+;;        (MultiplicationFn 60
+;;          (DivisionFn 0.1 1))) USGallon))
         
 (=>
   (and
     (resourceConsumption ?PROC ?QUANT)
-    (instance ?QUANT FunctionQuantity))
-  (exists (?RES ?T ?D ?X ?U ?Y)
-    (and
-      (resource ?PROC ?RES)
-      (duration
-        (WhenFn ?PROC)
-        (MeasureFn ?T ?D))
-      (holdsDuring
-        (BeginFn
-          (WhenFn ?PROC)
-          (measure ?RES
-            (MeasureFn ?X ?U))))
-      (holdsDuring
-        (EndFn
-          (WhenFn ?PROC)
-          (measure ?RES
-            (MeasureFn ?Y ?U))))
-      (equal ?QUANT
-        (PerFn  
-        (MeasureFn (SubtractionFn ?X ?Y) ?U)
-        (MeasureFn ?T ?D))))))
-
+    (instance ?QUANT FunctionQuantity)
+    (resource ?PROC ?RES)
+    (equal ?QUANT
+      (PerFn  
+        (MeasureFn ?Q ?U)
+        (MeasureFn ?DC ?DU)))           
+    (duration
+      (WhenFn ?PROC)
+      (MeasureFn ?T ?DU))
+    (holdsDuring
+      (BeginFn
+        (WhenFn ?PROC))
+      (measure ?RES
+        (MeasureFn ?X ?U)))
+    (holdsDuring
+      (EndFn
+        (WhenFn ?PROC))
+      (measure ?RES
+        (MeasureFn ?Y ?U))))
+  (equal ?Y
+    (MeasureFn
+      (SubtractionFn ?X
+        (MultiplicationFn ?T
+          (DivisionFn ?Q ?DC))) ?U)))
+          
+          
 
                  
 
