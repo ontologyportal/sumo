@@ -234,104 +234,116 @@ Earth; on its right side when viewed from the Southern Hemisphere of the Earth.[
     (lessThanOrEqualTo ?I 0.5)))
 
 ;;
-;; resourceConsumption
+;; resourceConsumption moved to MILO
 ;;
-(instance resourceConsumption CaseRole)
-(documentation resourceConsumption EnglishLanguage "(&%resourceConsumption ?PROCESS ?QUANT) means that 
-?PROCESS consumes an amount of the &%resource specified. If the second argument is a &%ConstantQuantity. 
-it will be the total consumption during the &%Process. If the second argument is a &%FuntionQuantity, 
-it would be a rate of consumption over the time of the process.For example, in (equal ?QUANT (PerFn 
-(MeasureFn ?Q ?U) (MeasureFn ?DC ?DU))), ?Q = 0.1, ?U = USGallon, ?DC = 1, ?DU = MinuteDuration.")
-(termFormat EnglishLanguage resourceConsumption "resource consumption")
-(format EnglishLanguage resourceConsumption "%2 amount as &%resource for the &%Process %1")
-(domain resourceConsumption 1 Process)
-(domain resourceConsumption 2 PhysicalQuantity)
+
+;;        
+;; Amunition
+;; 17 Mar 2025
+
+;; ArtilleryGun in MILO
+
 
 (=>
-  (and
-    (resourceConsumption ?PROC ?QUANT)
-    (instance ?QUANT ConstantQuantity)
-    (resource ?PROC ?RES)
-    (holdsDuring
-      (BeginFn
-        (WhenFn ?PROC))
-      (measure ?RES
-        (MeasureFn ?X ?U)))
-    (holdsDuring
-      (EndFn
-        (WhenFn ?PROC))
-      (measure ?RES
-            (MeasureFn ?Y ?U))))
-  (equal ?QUANT
-    (MeasureFn (SubtractionFn ?X ?Y) ?U)))
-    
-;; FunctionQuantity
-;;
-;; Let's say Eddy's giant loader consumes 0.1 gallon of diesel per minute, 
-;; that he spends one hour grading a road and that he starts off with 100 gallons.
-;;
-;;(exists (?M ?D)
-;;  (and
-;;    (instance ?M Maintaining)
-;;    (instance ?D DieselFuel)
-;;    (resource ?M ?D)
-;;    (duration
-;;      (WhenFn ?M)
-;;      (MeasureFn 60 MinuteDuration))
-;;    (holdsDuring
-;;      (BeginFn
-;;        (WhenFn ?M))
-;;      (measure ?D
-;;        (MeasureFn 100 USGallon)))
-;;    (holdsDuring
-;;      (EndFn
-;;        (WhenFn ?M))
-;;      (measure ?D
-;;        (MeasureFn ?Y USGallon)))
-;;   (resourceConsumption ?M
-;;      (PerFn
-;;        (MeasureFn 0.1 USGallon)
-;;        (MeasureFn 1 MinuteDuration))))) 
-;;
-;; We need to multiply the quantity consumed per unit time by the number of the actual time units.  
-;; 60 minutes * 0.1 gallon/minute = 6 gallons. 
-;; To find ?Y, we fill in the variables in the consequent:
-;;
-;;  (equal ?Y
-;;    (MeasureFn
-;;      (SubtractionFn 100
-;;        (MultiplicationFn 60
-;;          (DivisionFn 0.1 1))) USGallon))
+  (instance ?GUN ArtilleryGun)
+  (not
+    (exists (?A ?C)
+      (and
+        (instance ?A Human)
+        (instance ?C Carrying)
+        (instrument ?C ?A)
+        (objectTransferred ?C ?GUN))))) 
+  
+(=>
+  (instance ?GUN ArtilleryGun)
+  (modalAttribute
+    (exists (?W)
+      (and
+        (instance ?W Wheel)
+        (part ?W ?GUN))) Likely))
         
+;; ArtilleryBattery
+
+(=>
+  (instance ?AB ArtilleryBattery)
+  (exists (?COLL)
+    (and
+      (instance ?COLL Collection)
+      (memberType ?COLL ArtilleryGun)
+      (memberCount ?COLL ?I)
+      (greaterThan ?I 2)
+      (possesses ?AB ?COLL))))
+      
+;; MilitaryTank
+
+(instance ContinuousTrack VehicleWheel)
+(documentation ContinuousTrack EnglishLanguage "&%ContinuousTrack or 
+tracked treads are a system of vehicle propulsion used in tracked vehicles, running on 
+a continuous band of treads or track plates driven by two or more wheels.Modern continuous 
+tracks can be made with soft belts of synthetic rubber, reinforced with steel wires, in the 
+case of lighter agricultural machinery. The more common classical type is a solid chain track 
+made of steel plates (with or without rubber pads), also called caterpillar tread or tank tread,
+which is preferred for robust and heavy construction vehicles and military vehicles.[Wikipedia]")
+(termFormat EnglishLanguage ContinuousTrack "Continuous track")
+
+(=>
+  (instance ?W Wheel)
+  (shape ?W ConvexRoundShape))
+   
 (=>
   (and
-    (resourceConsumption ?PROC ?QUANT)
-    (instance ?QUANT FunctionQuantity)
-    (resource ?PROC ?RES)
-    (equal ?QUANT
-      (PerFn  
-        (MeasureFn ?Q ?U)
-        (MeasureFn ?DC ?DU)))           
-    (duration
-      (WhenFn ?PROC)
-      (MeasureFn ?T ?DU))
-    (holdsDuring
-      (BeginFn
-        (WhenFn ?PROC))
-      (measure ?RES
-        (MeasureFn ?X ?U)))
-    (holdsDuring
-      (EndFn
-        (WhenFn ?PROC))
-      (measure ?RES
-        (MeasureFn ?Y ?U))))
-  (equal ?Y
-    (MeasureFn
-      (SubtractionFn ?X
-        (MultiplicationFn ?T
-          (DivisionFn ?Q ?DC))) ?U)))
-          
-          
+    (instance ?R Rotating)
+    (patient ?R ?TRACK)
+    (instance ?TRACK ContinuousTrack))
+  (exists (?COLL ?MEM ?TREAD ?R2)
+    (and
+      (instance ?COLL Collection)
+      (member ?MEM ?COLL)
+      (instance ?MEM Wheel)         
+      (memberCount ?MEM ?I)
+      (greaterThan ?I 2)
+      (part ?COLL ?TRACK)
+      (part ?TREAD ?TRACK)
+      (instance ?TREAD CorpuscularObject)
+      (shape ?TREAD LongAndThin)
+      (attribute ?TREAD Pliable)
+      (located ?COLL ?TREAD)
+      (instance ?R2 Rotating)
+      (causes ?R2 ?R))))
+           
+(=>
+  (instance ?TRACK ContinuousTrack)
+  (hasPurpose ?TRACK
+    (exists (?R ?V ?T)
+      (and
+        (instance ?R Rotating)
+        (patient ?R ?TRACK)
+        (part ?TRACK ?V)
+        (instance ?V LandVehicle)
+        (instance ?T Translocation)
+        (patient ?T ?V)
+        (causes ?R ?T)
+        (subProcess ?R ?T)))))
+                
+(=>
+  (instance ?TANK MilitaryTank)
+  (exists (?TRACK ?GUN)
+    (and
+      (instance ?TRACK ContinuousTrack)
+      (part ?TRACK ?TANK)
+      (instance ?GUN ArtilleryCannon)
+      (part ?GUN ?TANK))))
 
-                 
+(=>
+  (instance ?TANK MilitaryTank)
+  (hasPurpose ?TANK
+    (exists (?A ?M)
+      (and
+        (instance ?A Attack)
+        (subProcess ?A ?M)
+        (instance ?M MilitaryAssault)
+        (instrument ?A ?TANK)))))
+        
+
+
 
