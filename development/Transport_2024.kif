@@ -529,9 +529,126 @@ affixes and supports the receiver, and relays the recoil impulse from the barrel
 (documentation Shotgun EnglishLanguage "A &%Shotgun (also known as a scattergun, peppergun, or 
 historically as a fowling piece) is a long-barreled firearm designed to shoot a straight-walled cartridge 
 known as a shotshell, which discharges numerous small spherical projectiles called shot, or a 
-single solid projectile called a slug. [Wikipedia]")
+single solid projectile called a slug. Shotguns typically use a smoothbore barrel with a tapered 
+constriction at the muzzle to regulate the extent of scattering.[Wikipedia]")
 (termFormat EnglishLanguage Shotgun "shot gun")
 
+(=>
+  (instance ?G Shotgun)
+  (hasPurpose ?G
+    (exists (?S ?SHELL)
+      (and
+        (instance ?S Shooting)
+        (instrument ?S ?G)
+        (patient ?S ?SHELL)
+        (instance ?SHELL ShotShell)))))
+        
+(=>
+  (instance ?G Shotgun)
+  (exists (?B ?P)
+    (and
+      (instance ?B GunBore)
+      (properPart ?B ?G)
+      (superficialPart ?P ?B)
+      (orientation ?P ?B Inside)
+      (attribute ?P Smooth))))
+      
+(=>
+  (instance ?G Rifle)
+  (exists (?B ?P)
+    (and
+      (instance ?B GunBore)
+      (properPart ?B ?G)
+      (superficialPart ?P ?B)
+      (orientation ?P ?B Inside)
+      (not
+        (attribute ?P Smooth)))))
 
+;; ShotShell, FirearmShot, FirearmSlug
 
+(subclass ShotShell Projectile)
+(documentation ShotShell EnglishLanguage "&%ShotShell or a &%Shotgun cartridge is a type of rimmed, 
+cylindrical (straight-walled) ammunition used specifically in shotguns. It is typically loaded with 
+numerous small, spherical sub-projectiles called shot. Some cartridges contain a single solid projectile 
+known as a slug.[Wikipedia]")
+(termFormat EnglishLanguage ShotShell "shot shell")
 
+(=>
+  (instance ?S ShotShell)
+  (hasPurpose ?S
+    (exists (?X)
+      (and
+        (contains ?S ?X)
+        (properPart ?X ?S)
+        (or
+          (instance ?X FirearmShot)
+          (instance ?X ShotgunSlug))))))
+
+(=>
+  (instance ?SHELL ShotShell)
+  (hasPurpose ?SHELL
+    (exists (?S ?G)
+      (and
+        (instance ?S Shooting)
+        (instrument ?S ?G)
+        (instance ?G Shotgun)
+        (patient ?S ?SHELL)))))
+            
+(subclass FirearmShot Projectile)
+(subclass FirearmShot Collection)
+(documentation FirearmShot EnglishLanguage "&%FirearmShot is a &%Collection of small spheres or pellets, often 
+made of lead. were the original projectiles for shotguns and are still fired primarily from shotguns 
+and grenade launchers. Shot is available in many sizes for different applications. The size of numbered 
+shot decreases as the number increases.[Wikipedia]")
+(termFormat EnglishLanguage FirearmShot "firearm shot")
+
+(=>
+  (instance ?SHOT FirearmShot)
+  (exists (?C ?P ?X)
+    (and
+      (instance ?C Collection)
+      (member ?P ?C)
+      (instance ?P SphericalObject)
+      (approximateDiameter ?P
+        (MeasureFn ?X Millimeter))
+      (modalAttribute
+        (and
+          (material ?P Lead)
+          (lessThan ?X 10)) Likely))))
+            
+(subclass ShotgunSlug Projectile)
+(documentation ShotgunSlug EnglishLanguage "&%ShotgunSlug is a heavy projectile (a slug) made of lead, 
+copper, or other material and fired from a shotgun. It is solid in the sense of being composed of 
+one piece. Slugs are designed for hunting large game, and other uses, particularly in areas near human 
+population where their short range and slow speed helps increase safety margin. [Wikipedia]")
+(termFormat EnglishLanguage ShotgunSlug "shotgun slug")
+       
+(=>
+  (and
+    (instance ?SS ShotShell)
+    (instance ?SL ShotgunSlug)
+    (contains ?SS ?SL))
+  (not
+    (exists (?S2)
+      (and
+        (or
+          (instance ?S2 ShotgunSlug)
+          (instance ?S2 FirearmShot))
+        (not
+          (equal ?SL ?S2))
+          (contains ?SS ?S2)))))
+          
+;; the GunBarrel of a Handgun is shorter than that of a Longgun
+
+(=>
+  (and
+    (instance ?H Handgun)
+    (instance ?B1 GunBarrel)
+    (part ?B1 ?H)
+    (length ?B1 (MeasureFn ?S Inch))
+    (instance ?L Longgun)
+    (instance ?B2 GunBarrel)
+    (part ?B2 ?L)
+    (length ?B2 (MeasureFn ?L Inch)))
+  (lessThan ?S ?L))
+  
