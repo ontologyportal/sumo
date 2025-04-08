@@ -1110,6 +1110,78 @@ a &%Weapon.")
 (=>
    (instance ?PROJECTILE Projectile)
    (capability Shooting patient ?PROJECTILE))
+   
+(subclass ShotShell Projectile)
+(documentation ShotShell EnglishLanguage "&%ShotShell or a &%Shotgun cartridge is a type of rimmed, 
+cylindrical (straight-walled) ammunition used specifically in shotguns. It is typically loaded with 
+numerous small, spherical sub-projectiles called shot. Some cartridges contain a single solid projectile 
+known as a slug.[Wikipedia]")
+(termFormat EnglishLanguage ShotShell "shot shell")
+
+(=>
+  (instance ?S ShotShell)
+  (hasPurpose ?S
+    (exists (?X)
+      (and
+        (contains ?S ?X)
+        (properPart ?X ?S)
+        (or
+          (instance ?X FirearmShot)
+          (instance ?X ShotgunSlug))))))
+
+(=>
+  (instance ?SHELL ShotShell)
+  (hasPurpose ?SHELL
+    (exists (?S ?G)
+      (and
+        (instance ?S Shooting)
+        (instrument ?S ?G)
+        (instance ?G Shotgun)
+        (patient ?S ?SHELL)))))
+            
+(subclass FirearmShot Projectile)
+(subclass FirearmShot Collection)
+(documentation FirearmShot EnglishLanguage "&%FirearmShot is a &%Collection of small spheres or pellets, often 
+made of lead. were the original projectiles for shotguns and are still fired primarily from shotguns 
+and grenade launchers. Shot is available in many sizes for different applications. The size of numbered 
+shot decreases as the number increases.[Wikipedia]")
+(termFormat EnglishLanguage FirearmShot "firearm shot")
+
+(=>
+  (instance ?SHOT FirearmShot)
+  (exists (?C ?P ?X)
+    (and
+      (instance ?C Collection)
+      (member ?P ?C)
+      (instance ?P SphericalObject)
+      (approximateDiameter ?P
+        (MeasureFn ?X Millimeter))
+      (modalAttribute
+        (and
+          (material ?P Lead)
+          (lessThan ?X 10)) Likely))))
+            
+(subclass ShotgunSlug Projectile)
+(documentation ShotgunSlug EnglishLanguage "&%ShotgunSlug is a heavy projectile (a slug) made of lead, 
+copper, or other material and fired from a shotgun. It is solid in the sense of being composed of 
+one piece. Slugs are designed for hunting large game, and other uses, particularly in areas near human 
+population where their short range and slow speed helps increase safety margin. [Wikipedia]")
+(termFormat EnglishLanguage ShotgunSlug "shotgun slug")
+       
+(=>
+  (and
+    (instance ?SS ShotShell)
+    (instance ?SL ShotgunSlug)
+    (contains ?SS ?SL))
+  (not
+    (exists (?S2)
+      (and
+        (or
+          (instance ?S2 ShotgunSlug)
+          (instance ?S2 FirearmShot))
+        (not
+          (equal ?SL ?S2))
+          (contains ?SS ?S2)))))
 
 (subclass ProjectileShell Container)
 (documentation ProjectileShell EnglishLanguage "The outer casing of a &%Projectile.")
@@ -1238,7 +1310,165 @@ when it is fired.")
     (and
       (subProcess ?SUB ?S)
       (path ?SUB ?B))))
+      
+(subclass GunChamber Artifact)
+(documentation GunChamber EnglishLanguage "A &%GunChamber is the cavity at the back end of 
+a breech-loading gun's barrel where the cartridge is inserted in position ready to be fired. 
+In most firearms (rifles, shotguns, machine guns and pistols), the chamber is an integral 
+part of the barrel, often made by simply reaming the rear bore of a barrel blank, with a 
+single chamber within a single barrel.[10] In revolvers, the chamber is a component of 
+the gun's cylinder and completely separate from the barrel, with a single cylinder having 
+multiple chambers that are rotated in turns into alignment with the barrel in anticipation 
+of being fired.[Wikipedia]")
+(termFormat EnglishLanguage GunChamber "gun chamber")
+(relatedInternalConcept GunChamber GunMuzzle)
+(typicalPart GunChamber GunBarrel)
+(typicalPart GunChamber GunCylinder)
 
+(=>
+  (instance ?C GunChamber)
+  (hasPurpose ?C
+    (exists (?B)
+      (and
+        (instance ?B BulletCartridge)
+        (contains ?C ?B)))))
+        
+(=>
+  (and
+    (instance ?S Shooting)
+    (instrument ?S ?G)
+    (instance ?G Gun))
+  (exists (?C ?I ?B)
+    (and
+      (instance ?C GunChamber)
+      (part ?C ?G)
+      (instance ?I Inserting)
+      (instance ?B BulletCartridge)
+      (destination ?I ?C)
+      (objectTransferred ?I ?B)
+      (before
+        (EndFn (WhenFn ?I))
+        (BeginFn (WhenFn ?S))))))
+
+(subclass GunMuzzle Artifact)
+(documentation GunMuzzle EnglishLanguage "A &%GunMuzzle is the front end of a &%GunBarrel 
+from which the projectile will exit.[Wikipedia]")
+(termFormat EnglishLanguage GunMuzzle "gun muzzle")
+(relatedInternalConcept GunBore GunMuzzle)
+(relatedInternalConcept GunMuzzle GunCylinder)
+(partTypes GunMuzzle GunBarrel)
+
+(=>
+  (and
+    (instance ?S Shooting)
+    (instance ?G Gun)
+    (instrument ?S ?G))
+  (exists (?E ?GB ?B ?C?M)
+    (and
+      (subProcess ?E ?S)
+      (instance ?E Exiting)
+      (eventlocated ?E ?GB)
+      (instance ?GB GunBarrel)
+      (part ?GB ?G)
+      (objectTransferred ?E ?B)
+      (instance ?B Bullet)
+      (origin ?B ?C)
+      (instance ?C BulletCartridge)
+      (located ?C ?GB)
+      (path ?E ?GB)
+      (entrance ?M ?GB)  
+      (instance ?M GunMuzzle))))
+
+(subclass GunBore Tube)
+(documentation GunBore EnglishLanguage "A &%GunBore is the hollow internal lumen of the &%GunBarrel, 
+and takes up a vast majority portion of the barrel length. It is the part of the barrel where the 
+&%Projectile (bullet, shot, or slug) is located prior to firing and where it gains speed and 
+kinetic energy during the firing process. [Wikipedia]")
+(termFormat EnglishLanguage GunBore "gun bore")
+(partTypes GunBore GunBarrel)
+(relatedInternalConcept GunBore GunChamber)
+(relatedInternalConcept GunBore GunCylinder)
+(=>
+  (instance ?B GunBore)
+  (exists (?H)
+    (and
+      (instance ?H HoleRegion)
+      (shape ?B Cylinder)
+      (part ?H ?B)
+      (hole ?H ?B))))
+      
+(subclass Gunstock EngineeringComponent)
+(documentation Gunstock EnglishLanguage "A &%Gunstock is a part of a long gun that provides 
+structural support, to which the barrel, action, and firing mechanism are attached. 
+The stock also provides a means for the shooter to firmly brace the gun and easily aim 
+with stability by being held against the user's shoulder when shooting the gun, and helps 
+to counter muzzle rise by transmitting recoil straight into the shooter's body. 
+A gunstock is broadly divided into two parts (with the boundary roughly at where the trigger is. 
+The rear portion is the butt, and front portion is the fore-end.  [Wikipedia]")
+(termFormat EnglishLanguage Gunstock "gun stock")
+(partTypes Gunstock Longgun)
+(relatedInternalConcept Gunstock GunBarrel)     
+
+(=>
+  (instance ?S Gunstock)
+  (hasPurpose ?S
+    (exists (?G ?GRAB)
+      (and
+        (instance ?G Longgun)
+        (part ?S ?G)
+        (instance ?GRAB Grabbing)
+        (patient ?GRAB ?S)
+        (destination ?GRAB ?G)))))
+
+(subclass Buttstock Artifact)
+(documentation Buttstock EnglishLanguage "A &%Buttstock is the rear portion of the &%Gunstock. 
+It is braced against the shooter's shoulder for stability and also interacts with the trigger 
+hand.  [Wikipedia]")
+(termFormat EnglishLanguage Buttstock "butt stock")
+(partTypes Buttstock Gunstock)
+(relatedInternalConcept Buttstock Forestock) 
+
+(=>
+  (instancce ?B Buttstock)
+  (exists (?S)
+    (and
+      (instance ?S Gunstock)
+      (part ?B
+        (BackFn ?S)))))
+
+(=>
+  (instance ?B Buttstock)
+  (hasPurpose ?B
+    (exists (?L ?S ?A ?SH)
+      (and
+        (instance ?L Longgun)
+        (part ?B ?L)
+        (instance ?S Shooting)
+        (instument ?S ?L)
+        (agent ?S ?A)
+        (instance ?A Human)
+        (part ?SH ?A)
+        (instance ?SH Shoulder)
+        (holdsDuring
+          (WhenFn ?S)
+          (meetsSpatially ?S ?B))))))
+                
+(subclass Forestock Artifact)
+(documentation Buttstock EnglishLanguage "A &%Forestock is the fore-end of the &%Gunstock. It 
+affixes and supports the receiver, and relays the recoil impulse from the barrel via a recoil lug.
+[Wikipedia]")
+(termFormat EnglishLanguage Forestock "fore stock")
+(partTypes Forestock Gunstock)
+(relatedInternalConcept Forestock GunBarrel)         
+
+(=>
+  (instancce ?F Forestock)
+  (exists (?S)
+    (and
+      (instance ?S Gunstock)
+      (part ?F
+        (FrontFn ?S)))))
+     
 (subclass GunPowder Mixture)
 (documentation GunPowder EnglishLanguage "A &%Mixture of potassium nitrate, sulfur, and 
 charcoal that is used in &%ExplosiveDevices and to propell &%Projectiles 
@@ -1669,22 +1899,143 @@ a single &%Human.")
  is generally designed to be held by both hands and braced against the shoulder, in contrast 
  to a handgun, which can be fired being held with a single hand. [Wikipedia]")
 (termFormat EnglishLanguage Longgun "long gun")
-              
+
+(=>
+  (instance ?L Longgun)
+  (hasPurpose ?L
+    (exists (?S ?A)
+      (and
+        (instance ?S Shooting)
+        (instrument ?S ?L)
+        (agent ?S ?A)
+        (instance ?A Human)
+        (holdsDuring
+          (WhenFn ?S)
+          (exists (?G)
+            (and
+              (instance ?G Grabbing)
+              (agent ?G ?A)
+              (patient ?G ?L)
+              (modalAttribute
+                (exists (?H1 ?H2)
+                  (and
+                    (instance ?H1 Hand)
+                    (part ?H1 ?A)
+                    (instance ?H2 Hand)
+                    (part ?H2 ?A)
+                    (not
+                      (equal ?H1 ?H2))
+                    (instrument ?G ?H1)
+                    (instrument ?G ?H2))) Necessity))))))))
+
+(subclass Shotgun Longgun)
+(documentation Shotgun EnglishLanguage "A &%Shotgun (also known as a scattergun, peppergun, or 
+historically as a fowling piece) is a long-barreled firearm designed to shoot a straight-walled cartridge 
+known as a shotshell, which discharges numerous small spherical projectiles called shot, or a 
+single solid projectile called a slug. Shotguns typically use a smoothbore barrel with a tapered 
+constriction at the muzzle to regulate the extent of scattering.[Wikipedia]")
+(termFormat EnglishLanguage Shotgun "shot gun")
+                    
+(=>
+  (instance ?G Shotgun)
+  (hasPurpose ?G
+    (exists (?S ?SHELL)
+      (and
+        (instance ?S Shooting)
+        (instrument ?S ?G)
+        (patient ?S ?SHELL)
+        (instance ?SHELL ShotShell)))))
+        
+(=>
+  (instance ?G Shotgun)
+  (exists (?B ?P)
+    (and
+      (instance ?B GunBore)
+      (properPart ?B ?G)
+      (superficialPart ?P ?B)
+      (orientation ?P ?B Inside)
+      (attribute ?P Smooth))))
+                                  
 (subclass Rifle Longgun)
 (documentation Rifle EnglishLanguage "A &%Firearm with a &%Longgun that is designed for accurate 
 &%Shooting and higher stopping power, with a barrel that has a helical or spiralling pattern of 
 grooves (rifling) cut into the bore wall.In keeping with their focus on accuracy,rifles are 
 typically designed to be held with both hands and braced firmly against the shooter's shoulder 
 via a buttstock for stability during shooting.[Wikipedia]")
+     
+(=>
+  (instance ?G Rifle)
+  (exists (?B ?P)
+    (and
+      (instance ?B GunBore)
+      (properPart ?B ?G)
+      (superficialPart ?P ?B)
+      (orientation ?P ?B Inside)
+      (not
+        (attribute ?P Smooth)))))
 
 (subclass Handgun Firearm)
 (documentation Handgun EnglishLanguage "A &%Firearm that is intended to be aimed and fired with a
 single hand.[Wikipedia]")
 (termFormat EnglishLanguage Handgun "hand gun")
 
+(=>
+  (instance ?GUN Handgun)
+  (hasPurpose ?GUN
+    (exists (?MAN ?S ?H ?G ?S)
+      (and
+        (instance ?MAN Human)
+        (instance ?S Shooting)
+        (instrument ?S ?GUN)
+        (agent ?S ?MAN)        
+        (instance ?G Grabbing)
+        (subProcess ?G ?S)
+        (patient ?G ?GUN)
+        (agent ?G ?MAN)
+        (instrument ?G ?H)                
+        (instance ?H Hand)
+        (part ?H ?MAN)
+        (not
+          (modalAttribute
+            (exists (?H2)
+              (and
+                (instance ?H2 Hand)
+                (not
+                  (equal ?H ?H2))
+                (part ?H2 ?MAN)              
+                (instrument ?G ?H2))) Necessity))))))
+
+(=>
+  (and
+    (instance ?H Handgun)
+    (instance ?B1 GunBarrel)
+    (part ?B1 ?H)
+    (length ?B1 (MeasureFn ?S Inch))
+    (instance ?L Longgun)
+    (instance ?B2 GunBarrel)
+    (part ?B2 ?L)
+    (length ?B2 (MeasureFn ?L Inch)))
+  (lessThan ?S ?L))
+                
 (subclass Pistol Handgun)
 (documentation Pistol EnglishLanguage "A &%Pistol is a type of &%Handgun, characterised by a &%GunBarrel
 with a single integral chamber.[Wikipedia]")
+
+(=>
+  (instance ?GUN Pistol)
+  (exists (?B ?C)
+    (and
+      (part ?B ?GUN)
+      (instance ?B GunBarrel)
+      (part ?C ?B)
+      (instance ?C GunChamber)
+      (not
+        (exists (?C2)
+          (and
+            (instance ?C2 GunChamber)
+            (part ?C2 ?B)
+            (not
+              (equal ?C ?C2))))))))
 
 (subclass RevolverGun Handgun)
 (documentation RevolverGun EnglishLanguage "A &%Handgun whose magazine is a revolving cylinder with
@@ -1692,6 +2043,49 @@ multiple chambers, each holding a single cartridge, for &%Bullets.Because most r
 six cartridges before needing to be reloaded, revolvers are commonly called six shooters or sixguns.
 [Wikipedia]")
 
+                   
+(=>
+  (instance ?GUN RevolverGun)
+  (exists (?CY ??COLL ?C ?K ?BC)
+    (and
+      (part ?CY ?GUN)
+      (instance ?CY GunCylinder)
+      (part ?COLL ?CY)
+      (instance ?COLL Collection)
+      (member ?C ?COLL)
+      (instance ?C GunChamber)
+      (contains ?C ?BC)
+      (instance ?BC BulletCartridge)
+      (not
+        (exists (?BC2)
+          (and
+            (instance ?BC2 BulletCartridge)
+            (not
+              (equal ?BC ?BC2))
+              (contains ?C ?BC2)))))))
+              
+(=>
+  (and
+    (instance ?GUN RevolverGun)
+    (part ?CY ?GUN)
+    (instance ?CY GunCylinder))
+  (modalAttribute
+    (exists (?COLL)
+      (and
+        (part ?COLL ?CY)
+        (instance ?COLL Collection)
+        (memberType ?COLL GunChamber)
+        (memberCount ?COLL 6))) Likely))
+
+(subclass GunCylinder Artifact)
+(documentation GunCylinder EnglishLanguage "A &%GunCylinder is the cylindrical, rotating part of 
+a &%RevolverGun containing multiple chambers, each of which is capable of holding a single cartridge. 
+The cylinder rotates (revolves) around a central axis in the revolver's action to sequentially 
+align each individual chamber with the barrel bore for repeated firing.[Wikipedia]")
+(termFormat EnglishLanguage GunCylinder "gun cylinder")
+(relatedInternalConcept GunChamber GunCylinder)
+(partTypes GunCylinder RevolverGun)
+        
 (instance ContainerEmpty RelationalAttribute)
 (documentation ContainerEmpty EnglishLanguage "&%ContainerEmpty is the &%Attribute of a 
 &%Container that is empty.")
@@ -18951,11 +19345,31 @@ used in demolition work and in fireworks displays, for example.")
         (causes ?E ?D)
         (instance ?D Damaging)))))
 
-(subclass ExplosiveMine ExplosiveDevice)
-(subclass ExplosiveMine Weapon)
-(documentation ExplosiveMine EnglishLanguage "An &%ExplosiveDevice which is designed to
+(subclass LandMine ExplosiveDevice)
+(subclass LandMine Weapon)
+(documentation LandMine EnglishLanguage "A &%LandMine is designed to
 explode when there is movement over it, e.g. by a person on foot, by a
 &%RoadVehicle, etc.")
+
+(=>
+  (instance ?MINE LandMine)
+  (hasPurpose ?MINE
+    (exists (?L ?E ?M ?O)
+      (and
+        (instance ?L LandArea)
+        (located ?MINE ?L)        
+        (instance ?E Explosion)
+        (instrument ?E ?MINE)
+        (locatedAtTime ?MINE
+          (WhenFn ?E) ?L)
+        (causes ?M ?E)
+        (instance ?M Motion)
+        (eventlocated ?M ?L)
+        (origin ?M ?O)
+        (orientation ?O ?MINE On)
+        (or
+          (instance ?O Human)
+          (instance ?O LandVehicle))))))
 
 (subclass ExplosiveSubstance Substance)
 (documentation ExplosiveSubstance EnglishLanguage "Any &%Substance which is capable of exploding.")
