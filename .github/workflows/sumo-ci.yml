@@ -65,7 +65,7 @@ jobs:
         name: SUMO.tff
         path: ${{ env.SIGMA_HOME }}/KBs/SUMO.tff
 
-  run_vampire:
+  run_vampire_fof:
     runs-on: ubuntu-latest
     needs: [derive_docker,build_sumo_tptp]
     container:
@@ -79,10 +79,6 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: SUMO.fof
-
-    - uses: actions/download-artifact@v4
-      with:
-        name: SUMO.tff
 
     # TPTP3ProofProcessor required SUMO on the path
     - name: checkout sumo
@@ -137,6 +133,31 @@ jobs:
         else
           exit 0
         fi
+
+  run_vampire_tff:
+    runs-on: ubuntu-latest
+    needs: [derive_docker,build_sumo_tptp]
+    container:
+      image: ${{ needs.derive_docker.outputs.image_account }}/sumo-ci:latest
+    env:
+      # Explicitly set SIGMA_HOME
+      SIGMA_HOME: /root/sigmakee-runtime
+      ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: SUMO.tff
+
+    # TPTP3ProofProcessor required SUMO on the path
+    - name: checkout sumo
+      uses: actions/checkout@v4
+      with:
+        path: sumo
+
+    - name: Setup SIGMA_HOME
+      run: |
+        cp -R $ONTOLOGYPORTAL_GIT/sumo/* $SIGMA_HOME/KBs
 
     - name: Run vampire against SUMO.tff
       env:
