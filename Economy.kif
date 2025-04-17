@@ -1016,6 +1016,43 @@ basis.  This represents Gross Domestic Product (GDP).  See
       (instance ?TIME ?PERIOD)
       (holdsDuring ?TIME (totalGDP ?AREA ?AMOUNT)))))    
 
+
+;; Gross National Product
+(documentation GrossNationalProductFn EnglishLanguage "A measure of a country's total economic output, encompassing the value of all goods and services produced by its residents, regardless of location")
+(termFormat EnglishLanguage GrossNationalProductFn "gross national product")
+(termFormat EnglishLanguage GrossNationalProductFn "GNP")
+(format EnglishLanguage GrossNationalProductFn "gross national product of %1 during %2")
+(domain GrossNationalProductFn 1 GeopoliticalArea)
+(domain GrossNationalProductFn 2 Year)
+(range GrossNationalProductFn CurrencyMeasure)
+(instance GrossNationalProductFn BinaryFunction)
+
+
+(=>
+  (equal ?GNP (GrossNationalProductFn ?GPA ?Y))
+  (exists (?PRODANDSERV)
+    (and
+      (instance ?PRODANDSERV Collection)
+      (monetaryValue ?PRODANDSERV ?GNP)
+      (=>
+        (and
+          (instance ?M Manufacture)
+          (result ?M ?PRODUCT)
+          (agent ?M ?MAKER)
+          (member ?MAKER (CitizenryFn ?GPA))
+          (finishesDuring (WhenFn ?M) ?Y))
+        (member ?PRODUCT ?PRODANDSERV))
+      (=>
+        (and
+          (instance ?SERVICE Process)
+          (attribute ?SERVICE ServiceInEconomics)
+          (agent ?SERVICE ?PROVIDER)
+          (member ?PROVIDER (CitizenryFn ?GPA))
+          (finishesDuring (WhenFn ?SERVICE) ?Y))
+        (member ?SERVICE ?PRODANDSERV)))))
+
+
+
 (subclass PPPBasedEconomicValuation Relation)
 
 (documentation PPPBasedEconomicValuation EnglishLanguage "&%PPPBasedEconomicValuation 
@@ -6692,6 +6729,286 @@ it would be a rate of consumption over the time of the process.For example, in (
           (DivisionFn ?Q ?DC))) ?U)))
 
 
+(documentation Profitable EnglishLanguage "Capable of yielding material gain or profit")
+(termFormat EnglishLanguage Profitable "profitable")
+(instance Profitable InternalAttribute)
+
+(=>
+  (attribute ?PHYSICAL Profitable)
+  (=>
+    (and
+      (instance ?F FinancialTransaction)
+      (patient ?F ?PHYSICAL)
+      (profit ?F (MeasureFn ?C ?U)))
+    (greaterThan ?C 0)))
 
 
 
+(documentation ForSale EnglishLanguage "An attribute of an Object,
+where it is available for purchase.")
+(termFormat EnglishLanguage ForSale "for sale")
+(instance ForSale TransactionAttribute)
+
+(=>
+  (attribute ?OBJECT ForSale)
+  (exists (?CA ?S)
+    (and
+      (instance ?CA CognitiveAgent)
+      (instance ?OBJECT Object)
+      (capability Selling agent ?CA)
+      (capability Selling patient ?OBJECT)
+      (desires ?CA
+        (and
+          (instance ?S Selling)
+          (agent ?S ?CA)
+          (patient ?S ?OBJECT))))))
+
+
+
+;; MarketEconomics
+(documentation MarketEconomics EnglishLanguage "The collection of all goods that are available for purchase everywhere.")
+(termFormat EnglishLanguage MarketEconomics "market")
+(subclass MarketEconomics Collection)
+
+(=>
+  (instance ?ME MarketEconomics)
+  (exists (?ME ?O)
+    (and
+      (instance ?O Object)
+      (member ?O ?ME)
+      (attribute ?O ForSale))))
+
+(=>
+  (and
+    (instance ?O Object)
+    (attribute ?O ForSale))
+  (exists (?ME)
+    (and
+      (instance ?ME MarketEconomics)
+      (member ?O MarketEconomics))))
+
+;; MarketOfItemFn
+(documentation MarketOfItemFn EnglishLanguage "The market where a particular good is available for sale. 'the housing market', or 'car market'")
+(termFormat EnglishLanguage MarketOfItemFn "market")
+(format EnglishLanguage MarketOfItemFn "%1 market")
+(instance MarketOfItemFn UnaryFunction)
+(domainSubclass MarketOfItemFn 1 Object)
+(range MarketOfItemFn MarketEconomics)
+
+(=>
+  (equal ?M (MarketOfItemFn ?OBJCLASS))
+  (and
+    (instance ?M MarketEconomics)
+    (memberType ?M ?OBJCLASS)))
+
+
+
+
+;; MarketInRegionFn
+(documentation MarketInRegionFn EnglishLanguage "The market in a particular region")
+(termFormat EnglishLanguage MarketInRegionFn "market")
+(format EnglishLanguage MarketInRegionFn "market in %1")
+
+(domain MarketInRegionFn 1 Region)
+(range MarketInRegionFn MarketEconomics)
+
+(=>
+  (equal ?M (MarketInRegionFn ?REGION))
+  (and
+    (instance ?M MarketEconomics)
+    (located ?M ?REGION)))
+
+;; MarketOfItemInRegionFn
+(documentation MarketOfItemInRegionFn EnglishLanguage "The market of a particular item in a particular region")
+(termFormat EnglishLanguage MarketOfItemInRegionFn "market")
+(format EnglishLanguage MarketOfItemInRegionFn "market of %1 in %2")
+(instance MarketOfItemInRegionFn BinaryFunction)
+
+(domainSubclass MarketOfItemInRegionFn 1 Object)
+(domain MarketOfItemInRegionFn 2 Region)
+(range MarketOfItemInRegionFn MarketEconomics)
+
+(=>
+  (equal ?M (MarketOfItemInRegionFn ?OBJ ?REGION))
+  (and
+    (instance ?M MarketEconomics)
+    (located ?M ?REGION)
+    (memberType ?M ?OBJ)))
+
+
+
+;; SupplyFn
+(documentation SupplyFn EnglishLanguage "The number of items being sold on the market")
+(termFormat EnglishLanguage SupplyFn "supply")
+(format EnglishLanguage SupplyFn "the supply of %1 on the market")
+(instance SupplyFn UnaryFunction)
+(domain SupplyFn 1 MarketEconomics)
+(range SupplyFn Integer)
+
+(=>
+  (and
+    (instance ?ME MarketEconomics)
+    (equal ?SF (SupplyFn ?ME)))
+  (memberCount ?OM ?SF))
+
+
+
+;; Consumer
+(documentation Consumer EnglishLanguage "A person who purchases goods and services for personal use.")
+(termFormat EnglishLanguage Consumer "consumer")
+(instance Consumer SocialRole)
+
+(=>
+  (attribute ?H Consumer)
+  (exists (?B)
+    (and
+      (instance ?B Buying)
+      (agent ?B ?H))))
+
+
+
+;; DemandFn
+   ;; This might be able to be simplified with (CardinalityFn (KappaFn
+   ;; of the things someone can buy or wants to buy
+(documentation DemandFn EnglishLanguage "The quantity of a good that consumers want to buy, and are able to purchase at various prices during a given time.")
+(termFormat EnglishLanguage DemandFn "demand")
+(instance DemandFn BinaryFunction)
+(domainSubclass DemandFn 1 Object)
+(domain DemandFn 1 CurrencyMeasure)
+(range DemandFn Integer)
+
+
+(=>
+  (and
+    (instance ?NUMDEMANDED Integer)
+    (equal ?NUMDEMANDED (DemandFn ?ITEMCLASS ?CM)))
+  (exists (?DESIREDITEMS)
+    (and
+      (instance ?DESIREDITEMS Collection)
+      (memberCount ?DESIREDITEMS ?NUMDEMANDED)
+      (=>
+        (and
+          (instance ?H Human)
+          (instance ?ITEM ?ITEMCLASS)
+          (=>
+            (and
+              (instance ?B1 Buying)
+              (patient ?B1 ?ITEM))
+            (capability ?B1 agent ?H))
+          (desires ?H
+            (exists (?B2)
+              (and
+                (instance ?B2 Buying)
+                (transactionAmount ?B2 ?CM)
+                (patient ?B2 ?ITEM)
+                (agent ?B2 ?H)))))
+         (member ?ITEM ?DESIREDITEMS)))))
+
+
+;; SupplyPressure
+(documentation SupplyPressure EnglishLanguage "In economics, 'supply pressure' refers to situations where the quantity of a good or service supplied exceeds the quantity demanded, leading to potential price decreases and market adjustments to restore equilibrium.")
+(termFormat EnglishLanguage SupplyPressure "supply pressure")
+(termFormat EnglishLanguage SupplyPressure "loose")
+(instance SupplyPressure Attribute)
+
+(=>
+  (attribute ?M SupplyPressure)
+  (exists (?S ?D)
+    (and
+      (instance ?M MarketEconomics)
+      (equal ?S (SupplyFn ?M))
+      (equal ?D (DemandFn ?M))
+      (greaterThan ?S ?D))))
+
+;; DemandPressure
+(documentation DemandPressure EnglishLanguage "In economics, 'demand pressure' or 'demand-pull inflation' refers to a situation where increased demand for goods and services outpaces the economy's supply, leading to rising prices and inflation")
+(termFormat EnglishLanguage DemandPressure "demand pressure")
+(termFormat EnglishLanguage DemandPressure "demand-pull inflation")
+(termFormat EnglishLanguage DemandPressure "tight")
+(instance DemandPressure Attribute)
+
+(=>
+  (attribute ?M DemandPressure)
+  (and
+    (instance ?M MarketEconomics)
+    (equal ?S (SupplyFn ?M))
+    (equal ?D (DemandFn ?M))
+    (greaterThan ?D ?S)))
+
+
+;; EquilibriumEconomics
+(documentation EquilibriumEconomics EnglishLanguage "In economics, equilibrium refers to the situation where the economy's supply is equal to the demand")
+(termFormat EnglishLanguage EquilibriumEconomics "equilibrium")
+(instance EquilibriumEconomics Attribute)
+
+(=>
+  (attribute ?M EquilibriumEconomics)
+  (exists (?S ?D)
+    (and
+      (instance ?M MarketEconomics)
+      (equal ?S (SupplyFn ?M))
+      (equal ?D (DemandFn ?M))
+      (approximateValue ?D ?S))))
+
+
+;; equilibriumPrice
+(documentation equilibriumPriceFn EnglishLanguage "In economics, the equilibrium price is the price where the quantity of a good or service demanded by consumers equals the quantity supplied by producers, creating a stable market state. This is also known as the 'market-clearing price'.")
+(termFormat EnglishLanguage equilibriumPriceFn "equilibrium price")
+(termFormat EnglishLanguage equilibriumPriceFn "market-clearing price")
+(format EnglishLanguage equilibriumPriceFn "the equilibrium price of %1 on the %2")
+(format EnglishLanguage equilibriumPriceFn "the market-clearing price of %1 on the %2")
+(instance equilibriumPriceFn BinaryFunction)
+
+(domainSubclass equilibriumPriceFn 1 Object)
+(domain equilibriumPriceFn 2 MarketEconomics)
+(range equilibriumPriceFn CurrencyMeasure)
+
+(=>
+  (equal ?P (equilibriumPriceFn ?OBJ ?M))
+  (and
+    (instance ?M MarketEconomics)
+    (member ?OBJ ?M)
+    (attribute ?M EquilibriumEconomics)
+    (askPrice ?OBJ ?P ?AGENT)))
+
+;; service
+(documentation ServiceInEconomics EnglishLanguage "A service is an act for which a consumer, company, or government is willing to pay.")
+(termFormat EnglishLanguage ServiceInEconomics "service")
+(instance ServiceInEconomics Attribute)
+
+(=>
+  (attribute ?PROC ServiceInEconomics)
+  (exists (?S)
+    (and
+      (instance ?PROC Process)
+      (hasPurpose ?PROC
+        (and
+          (instance ?S Selling)
+          (patient ?S ?PROC))))))
+
+;; GoodsAndServices
+(documentation GoodsAndServices EnglishLanguage "Goods and services in economics.")
+(termFormat EnglishLanguage GoodsAndServices "goods and services")
+(subclass GoodsAndServices Collection)
+
+(=>
+  (instance ?GAS GoodsAndServices)
+  (and
+      (=>
+        (and
+          (instance ?M Manufacture)
+          (result ?M ?PRODUCT)
+          (agent ?M ?MAKER)
+          (member ?MAKER (CitizenryFn ?GPA))
+          (finishesDuring (WhenFn ?M) ?Y)
+          (location ?M ?GPA))
+        (member ?PRODUCT ?GAS))
+      (=>
+        (and
+          (instance ?SERVICE Process)
+          (attribute ?SERVICE ServiceInEconomics)
+          (agent ?SERVICE ?PROVIDER)
+          (member ?PROVIDER (CitizenryFn ?GPA))
+          (finishesDuring (WhenFn ?SERVICE) ?Y)
+          (location ?SERVICE ?GPA))
+        (member ?SERVICE ?GAS))))
