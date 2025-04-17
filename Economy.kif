@@ -872,6 +872,60 @@ towards market_oriented systems.  Also known as a 'command economy'.")
 (instance PrivatizingEconomy EconomicSystemAttribute)
 (subAttribute PrivatizingEconomy MixedEconomy)
 
+(documentation Communism EnglishLanguage "A political theory favoring
+collectivism in a classless society.")
+(subclass Communism BeliefGroup)
+(termFormat EnglishLanguage Communism "communism")
+
+(=>
+  (member ?COMMUNIST Communism)
+  (believes ?COMMUNIST
+    (=>
+        (and
+            (instance ?MEANOFPRODUCTION MeanOfProduction)
+            (attribute ?OBJ ?MEANOFPRODUCTION)
+            (instance ?COUNTRY GeopoliticalArea)
+            (located ?OBJ ?COUNTRY))
+        (element ?OBJ (PropertyFn (CitizenryFn ?COUNTRY))))))
+
+(documentation Communist EnglishLanguage "One who subscribes to Communism.")
+(instance Communist InternalAttribute)
+(termFormat EnglishLanguage Communist "communist")
+
+(<=>
+  (attribute ?INDIVIDUAL Communism)
+  (member ?INDIVIDUAL Communism))
+
+
+(documentation Capitalism EnglishLanguage "An economic system based
+on private ownership of capital.")
+(subclass Capitalism BeliefGroup)
+(termFormat EnglishLanguage Capitalism "capitalism")
+
+(=>
+  (member ?CAPITALIST Capitalism)
+  (believes ?CAPITALIST
+    (=>
+      (and
+        (instance ?MEANOFPRODUCTION MeanOfProduction)
+        (attribute ?OBJ ?MEANOFPRODUCTION)
+        (instance ?COUNTRY GeopoliticalArea)
+        (located ?OBJ ?COUNTRY))
+      (exists (?AA)
+        (and
+          (instance ?AA AutonomousAgent)
+          (element ?OBJ (PropertyFn (?AA)))
+          (not
+            (equal ?AA (CitizenryFn ?COUNTRY))))))))
+
+(documentation Capitalist EnglishLanguage "One who subscribes to Capitalism")
+(instance Capitalist InternalAttribute)
+(termFormat EnglishLanguage Capitalist "capitalist")
+
+(<=>
+  (attribute ?INDIVIDUAL Capitalist)
+  (member ?INDIVIDUAL Capitalism))
+
 (documentation PrivatizingEconomy EnglishLanguage "&%PrivatizingEconomy is an 
 &%Attribute that describes a country in which formerly government-
 owned industries are being transferred into private holdings.")
@@ -1376,6 +1430,40 @@ unemployed workers.")
     (and
       (instance ?TIME ?PERIOD)
       (holdsDuring ?TIME (laborForceTotal ?AREA ?AMOUNT)))))
+
+(documentation Employer EnglishLanguage "A person or firm that employs workers.")
+(subclass Employer AutonomousAgent)
+(termFormat EnglishLanguage Employer "employer")
+
+(=>
+  (instance ?EMPLOYER Employer)
+  (exists (?HIRING ?EMPLOYEE)
+    (and
+      (instance ?HIRING Hiring)
+      (instance ?EMPLOYEE Employee)
+      (agent ?HIRING ?EMPLOYER)
+      (patient ?HIRING ?EMPLOYEE))))
+
+(documentation Employee EnglishLanguage "A worker who is hired to perform a job.")
+(instance Employee SocialRole)
+(termFormat EnglishLanguage Employee "employee")
+
+(=>
+  (instance ?EMPLOYEE Employee)
+  (exists (?HIRING)
+    (and
+      (instance ?HIRING Hiring)
+      (instance ?EMPLOYEE Employee)
+      (agent ?HIRING ?EMPLOYER)
+      (patient ?HIRING ?EMPLOYEE))))
+
+(<=>
+  (employs ?EMPLOYER ?EMPLOYEE)
+  (and
+    (instance ?EMPLOYER Employer)
+    (instance ?EMPLOYEE Employee)))
+
+
 
 ;;
 ;;-----------------------------------------------------------------------------
@@ -5952,7 +6040,7 @@ have different boiling points.  (from Wikipedia)")
 ;;the production of other &%Products. For example, raw materials from which end 
 ;;products are manufactured, or machines and other structures used in the production process.")
 
-(instance MeanOfProduction EconomicRole)
+(subclass MeanOfProduction EconomicRole)
 (documentation MeanOfProduction EnglishLanguage "Means of production refers to physical, non_human inputs used in production—the factories, machines, and tools used to produce wealth — along with both infrastructural capital and natural capital. This includes the classical factors of production minus financial capital and minus human capital. They include two broad categories of objects: instruments of labour (tools, factories, infrastructure, etc.) and subjects of labour (natural resources and raw materials). (Wikipedia)")
 (=>
   (attribute ?X MeanOfProduction)
@@ -5976,9 +6064,51 @@ have different boiling points.  (from Wikipedia)")
           (instance ?SERVICE CommercialService)
           (involvedInEvent ?SERVICE ?X))))))
 
+(documentation CapitalMeanOfProduction EnglishLanguage "Wealth in the form of money or property owned by a person or business and human resources of economic value.")
+(subAttribute CapitalMeanOfProduction MeanOfProduction)
+(termFormat EnglishLanguage CapitalMeanOfProduction "capital")
+(termFormat EnglishLanguage CapitalMeanOfProduction "capital goods")
+
+(=>
+  (and
+    (instance ?CG CapitalMeanOfProduction)
+    (attribute ?CGO ?CG))
+  (exists (?M ?A ?MONEY ?AGENT ?PROPERTYITEM)
+    (or
+     (and
+       (instance ?MONEY Currency)
+       (equal ?CGO ?MONEY))
+     (and
+       (element ?PROPERTYITEM (PropertyFn ?AGENT))
+       (equal ?PROPERTYITEM ?CGO))
+     (and
+       (instance ?A Artifact)
+       (equal ?CGO ?A)))))
+
+(documentation LandMeanOfProduction EnglishLanguage "Land is a Means
+of Production that comprises all naturally occurring resources as
+well as geographic land. Examples include particular geographical
+locations, mineral deposits, forests, fish stocks, atmospheric
+quality, geostationary orbits, and portions of the electromagnetic spectrum.")
+(subAttribute LandMeanOfProduction MeanOfProduction)
+(termFormat EnglishLanguage LandMeanOfProduction "natural resource")
+
+(=>
+  (and
+    (instance ?LE LandMeanOfProduction)
+    (attribute ?LEO ?LE))
+  (exists (?L ?EMS)
+    (or
+      (and
+        (instance ?L Region)
+        (part ?LEO ?L))
+      (and
+        (instance ?EMS ElectromagenticSpectrum)
+        (equal ?LEO ?EMS)))))
+
 ;;(subclass IndustrialRawMaterial CapitalGood)
 
-(subAttribute IndustrialRawMaterial MeanOfProduction)
+(subAttribute IndustrialRawMaterial LandMeanOfProduction)
 (=>
   (attribute ?X IndustrialRawMaterial)
   (hasPurpose ?X
@@ -5990,7 +6120,7 @@ have different boiling points.  (from Wikipedia)")
 ;(subclass IndustrialSupply CapitalGood)
 ;(subclass IndustrialSupply Product)
 
-(subAttribute IndustrialSupply MeanOfProduction)
+(subAttribute IndustrialSupply LandMeanOfProduction)
 (documentation IndustrialSupply EnglishLanguage "&%IndustrialSupply is the class of 
 products that are used in industry but which are not raw materials 
 for products being manufactured.  &%IndustrialSupply includes maintenance, 
@@ -6019,6 +6149,20 @@ or other commercial processes.")
       (and
         (instance ?M Manufacture)
         (instrument ?M ?X)))))
+
+(documentation LaborMeanOfProduction EnglishLanguage "Work, labor (labour in Commonwealth English), or an occupation or job is the intentional activity people perform to support the needs and desires of themselves, other people, or organizations.[1] In the context of economics, work can be viewed as the human activity that contributes (along with other factors of production) towards the goods and services within an economy. [Wikipedia]")
+(subAttribute LaborMeanOfProduction MeanOfProduction)
+(termFormat EnglishLanguage LaborMeanOfProduction "labor")
+(termFormat EnglishLanguage LaborMeanOfProduction "labour")
+
+(=>
+  (and
+    (instance ?LE LaborMeanOfProduction)
+    (attribute ?LEO ?LE))
+  (exists (?GOP)
+    (and
+      (instance ?GOP GroupOfPeople)
+      (equal ?GOP ?LEO))))
 
 ;;(subclass MachineTool Machinery)
 
