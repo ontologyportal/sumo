@@ -872,6 +872,60 @@ towards market_oriented systems.  Also known as a 'command economy'.")
 (instance PrivatizingEconomy EconomicSystemAttribute)
 (subAttribute PrivatizingEconomy MixedEconomy)
 
+(documentation Communism EnglishLanguage "A political theory favoring
+collectivism in a classless society.")
+(subclass Communism BeliefGroup)
+(termFormat EnglishLanguage Communism "communism")
+
+(=>
+  (member ?COMMUNIST Communism)
+  (believes ?COMMUNIST
+    (=>
+        (and
+            (instance ?MEANOFPRODUCTION MeanOfProduction)
+            (attribute ?OBJ ?MEANOFPRODUCTION)
+            (instance ?COUNTRY GeopoliticalArea)
+            (located ?OBJ ?COUNTRY))
+        (element ?OBJ (PropertyFn (CitizenryFn ?COUNTRY))))))
+
+(documentation Communist EnglishLanguage "One who subscribes to Communism.")
+(instance Communist InternalAttribute)
+(termFormat EnglishLanguage Communist "communist")
+
+(<=>
+  (attribute ?INDIVIDUAL Communism)
+  (member ?INDIVIDUAL Communism))
+
+
+(documentation Capitalism EnglishLanguage "An economic system based
+on private ownership of capital.")
+(subclass Capitalism BeliefGroup)
+(termFormat EnglishLanguage Capitalism "capitalism")
+
+(=>
+  (member ?CAPITALIST Capitalism)
+  (believes ?CAPITALIST
+    (=>
+      (and
+        (instance ?MEANOFPRODUCTION MeanOfProduction)
+        (attribute ?OBJ ?MEANOFPRODUCTION)
+        (instance ?COUNTRY GeopoliticalArea)
+        (located ?OBJ ?COUNTRY))
+      (exists (?AA)
+        (and
+          (instance ?AA AutonomousAgent)
+          (element ?OBJ (PropertyFn (?AA)))
+          (not
+            (equal ?AA (CitizenryFn ?COUNTRY))))))))
+
+(documentation Capitalist EnglishLanguage "One who subscribes to Capitalism")
+(instance Capitalist InternalAttribute)
+(termFormat EnglishLanguage Capitalist "capitalist")
+
+(<=>
+  (attribute ?INDIVIDUAL Capitalist)
+  (member ?INDIVIDUAL Capitalism))
+
 (documentation PrivatizingEconomy EnglishLanguage "&%PrivatizingEconomy is an 
 &%Attribute that describes a country in which formerly government-
 owned industries are being transferred into private holdings.")
@@ -961,6 +1015,43 @@ basis.  This represents Gross Domestic Product (GDP).  See
     (and
       (instance ?TIME ?PERIOD)
       (holdsDuring ?TIME (totalGDP ?AREA ?AMOUNT)))))    
+
+
+;; Gross National Product
+(documentation GrossNationalProductFn EnglishLanguage "A measure of a country's total economic output, encompassing the value of all goods and services produced by its residents, regardless of location")
+(termFormat EnglishLanguage GrossNationalProductFn "gross national product")
+(termFormat EnglishLanguage GrossNationalProductFn "GNP")
+(format EnglishLanguage GrossNationalProductFn "gross national product of %1 during %2")
+(domain GrossNationalProductFn 1 GeopoliticalArea)
+(domain GrossNationalProductFn 2 Year)
+(range GrossNationalProductFn CurrencyMeasure)
+(instance GrossNationalProductFn BinaryFunction)
+
+
+(=>
+  (equal ?GNP (GrossNationalProductFn ?GPA ?Y))
+  (exists (?PRODANDSERV)
+    (and
+      (instance ?PRODANDSERV Collection)
+      (monetaryValue ?PRODANDSERV ?GNP)
+      (=>
+        (and
+          (instance ?M Manufacture)
+          (result ?M ?PRODUCT)
+          (agent ?M ?MAKER)
+          (member ?MAKER (CitizenryFn ?GPA))
+          (finishesDuring (WhenFn ?M) ?Y))
+        (member ?PRODUCT ?PRODANDSERV))
+      (=>
+        (and
+          (instance ?SERVICE Process)
+          (attribute ?SERVICE ServiceInEconomics)
+          (agent ?SERVICE ?PROVIDER)
+          (member ?PROVIDER (CitizenryFn ?GPA))
+          (finishesDuring (WhenFn ?SERVICE) ?Y))
+        (member ?SERVICE ?PRODANDSERV)))))
+
+
 
 (subclass PPPBasedEconomicValuation Relation)
 
@@ -1376,6 +1467,40 @@ unemployed workers.")
     (and
       (instance ?TIME ?PERIOD)
       (holdsDuring ?TIME (laborForceTotal ?AREA ?AMOUNT)))))
+
+(documentation Employer EnglishLanguage "A person or firm that employs workers.")
+(subclass Employer AutonomousAgent)
+(termFormat EnglishLanguage Employer "employer")
+
+(=>
+  (instance ?EMPLOYER Employer)
+  (exists (?HIRING ?EMPLOYEE)
+    (and
+      (instance ?HIRING Hiring)
+      (instance ?EMPLOYEE Employee)
+      (agent ?HIRING ?EMPLOYER)
+      (patient ?HIRING ?EMPLOYEE))))
+
+(documentation Employee EnglishLanguage "A worker who is hired to perform a job.")
+(instance Employee SocialRole)
+(termFormat EnglishLanguage Employee "employee")
+
+(=>
+  (instance ?EMPLOYEE Employee)
+  (exists (?HIRING)
+    (and
+      (instance ?HIRING Hiring)
+      (instance ?EMPLOYEE Employee)
+      (agent ?HIRING ?EMPLOYER)
+      (patient ?HIRING ?EMPLOYEE))))
+
+(<=>
+  (employs ?EMPLOYER ?EMPLOYEE)
+  (and
+    (instance ?EMPLOYER Employer)
+    (instance ?EMPLOYEE Employee)))
+
+
 
 ;;
 ;;-----------------------------------------------------------------------------
@@ -5952,7 +6077,7 @@ have different boiling points.  (from Wikipedia)")
 ;;the production of other &%Products. For example, raw materials from which end 
 ;;products are manufactured, or machines and other structures used in the production process.")
 
-(instance MeanOfProduction EconomicRole)
+(subclass MeanOfProduction EconomicRole)
 (documentation MeanOfProduction EnglishLanguage "Means of production refers to physical, non_human inputs used in production—the factories, machines, and tools used to produce wealth — along with both infrastructural capital and natural capital. This includes the classical factors of production minus financial capital and minus human capital. They include two broad categories of objects: instruments of labour (tools, factories, infrastructure, etc.) and subjects of labour (natural resources and raw materials). (Wikipedia)")
 (=>
   (attribute ?X MeanOfProduction)
@@ -5976,9 +6101,51 @@ have different boiling points.  (from Wikipedia)")
           (instance ?SERVICE CommercialService)
           (involvedInEvent ?SERVICE ?X))))))
 
+(documentation CapitalMeanOfProduction EnglishLanguage "Wealth in the form of money or property owned by a person or business and human resources of economic value.")
+(subAttribute CapitalMeanOfProduction MeanOfProduction)
+(termFormat EnglishLanguage CapitalMeanOfProduction "capital")
+(termFormat EnglishLanguage CapitalMeanOfProduction "capital goods")
+
+(=>
+  (and
+    (instance ?CG CapitalMeanOfProduction)
+    (attribute ?CGO ?CG))
+  (exists (?M ?A ?MONEY ?AGENT ?PROPERTYITEM)
+    (or
+     (and
+       (instance ?MONEY Currency)
+       (equal ?CGO ?MONEY))
+     (and
+       (element ?PROPERTYITEM (PropertyFn ?AGENT))
+       (equal ?PROPERTYITEM ?CGO))
+     (and
+       (instance ?A Artifact)
+       (equal ?CGO ?A)))))
+
+(documentation LandMeanOfProduction EnglishLanguage "Land is a Means
+of Production that comprises all naturally occurring resources as
+well as geographic land. Examples include particular geographical
+locations, mineral deposits, forests, fish stocks, atmospheric
+quality, geostationary orbits, and portions of the electromagnetic spectrum.")
+(subAttribute LandMeanOfProduction MeanOfProduction)
+(termFormat EnglishLanguage LandMeanOfProduction "natural resource")
+
+(=>
+  (and
+    (instance ?LE LandMeanOfProduction)
+    (attribute ?LEO ?LE))
+  (exists (?L ?EMS)
+    (or
+      (and
+        (instance ?L Region)
+        (part ?LEO ?L))
+      (and
+        (instance ?EMS ElectromagenticSpectrum)
+        (equal ?LEO ?EMS)))))
+
 ;;(subclass IndustrialRawMaterial CapitalGood)
 
-(subAttribute IndustrialRawMaterial MeanOfProduction)
+(subAttribute IndustrialRawMaterial LandMeanOfProduction)
 (=>
   (attribute ?X IndustrialRawMaterial)
   (hasPurpose ?X
@@ -5990,7 +6157,7 @@ have different boiling points.  (from Wikipedia)")
 ;(subclass IndustrialSupply CapitalGood)
 ;(subclass IndustrialSupply Product)
 
-(subAttribute IndustrialSupply MeanOfProduction)
+(subAttribute IndustrialSupply LandMeanOfProduction)
 (documentation IndustrialSupply EnglishLanguage "&%IndustrialSupply is the class of 
 products that are used in industry but which are not raw materials 
 for products being manufactured.  &%IndustrialSupply includes maintenance, 
@@ -6019,6 +6186,20 @@ or other commercial processes.")
       (and
         (instance ?M Manufacture)
         (instrument ?M ?X)))))
+
+(documentation LaborMeanOfProduction EnglishLanguage "Work, labor (labour in Commonwealth English), or an occupation or job is the intentional activity people perform to support the needs and desires of themselves, other people, or organizations.[1] In the context of economics, work can be viewed as the human activity that contributes (along with other factors of production) towards the goods and services within an economy. [Wikipedia]")
+(subAttribute LaborMeanOfProduction MeanOfProduction)
+(termFormat EnglishLanguage LaborMeanOfProduction "labor")
+(termFormat EnglishLanguage LaborMeanOfProduction "labour")
+
+(=>
+  (and
+    (instance ?LE LaborMeanOfProduction)
+    (attribute ?LEO ?LE))
+  (exists (?GOP)
+    (and
+      (instance ?GOP GroupOfPeople)
+      (equal ?GOP ?LEO))))
 
 ;;(subclass MachineTool Machinery)
 
@@ -6548,6 +6729,284 @@ it would be a rate of consumption over the time of the process.For example, in (
           (DivisionFn ?Q ?DC))) ?U)))
 
 
+(documentation Profitable EnglishLanguage "Capable of yielding material gain or profit")
+(termFormat EnglishLanguage Profitable "profitable")
+(instance Profitable InternalAttribute)
+
+(=>
+  (attribute ?PHYSICAL Profitable)
+  (=>
+    (and
+      (instance ?F FinancialTransaction)
+      (patient ?F ?PHYSICAL)
+      (profit ?F (MeasureFn ?C ?U)))
+    (greaterThan ?C 0)))
 
 
 
+(documentation ForSale EnglishLanguage "An attribute of an Object,
+where it is available for purchase.")
+(termFormat EnglishLanguage ForSale "for sale")
+(instance ForSale TransactionAttribute)
+
+(=>
+  (attribute ?OBJECT ForSale)
+  (exists (?CA ?S)
+    (and
+      (instance ?CA CognitiveAgent)
+      (instance ?OBJECT Object)
+      (capability Selling agent ?CA)
+      (capability Selling patient ?OBJECT)
+      (desires ?CA
+        (and
+          (instance ?S Selling)
+          (agent ?S ?CA)
+          (patient ?S ?OBJECT))))))
+
+
+
+;; MarketEconomics
+(documentation MarketEconomics EnglishLanguage "The collection of all goods that are available for purchase everywhere.")
+(termFormat EnglishLanguage MarketEconomics "market")
+(subclass MarketEconomics Collection)
+
+(=>
+  (instance ?ME MarketEconomics)
+  (exists (?ME ?O)
+    (and
+      (instance ?O Object)
+      (member ?O ?ME)
+      (attribute ?O ForSale))))
+
+(=>
+  (and
+    (instance ?O Object)
+    (attribute ?O ForSale))
+  (exists (?ME)
+    (and
+      (instance ?ME MarketEconomics)
+      (member ?O MarketEconomics))))
+
+;; MarketOfItemFn
+(documentation MarketOfItemFn EnglishLanguage "The market where a particular good is available for sale. 'the housing market', or 'car market'")
+(termFormat EnglishLanguage MarketOfItemFn "market")
+(format EnglishLanguage MarketOfItemFn "%1 market")
+(instance MarketOfItemFn UnaryFunction)
+(domainSubclass MarketOfItemFn 1 Object)
+(range MarketOfItemFn MarketEconomics)
+
+(=>
+  (equal ?M (MarketOfItemFn ?OBJCLASS))
+  (and
+    (instance ?M MarketEconomics)
+    (memberType ?M ?OBJCLASS)))
+
+
+
+
+;; MarketInRegionFn
+(documentation MarketInRegionFn EnglishLanguage "The market in a particular region")
+(termFormat EnglishLanguage MarketInRegionFn "market")
+(format EnglishLanguage MarketInRegionFn "market in %1")
+
+(domain MarketInRegionFn 1 Region)
+(range MarketInRegionFn MarketEconomics)
+
+(=>
+  (equal ?M (MarketInRegionFn ?REGION))
+  (and
+    (instance ?M MarketEconomics)
+    (located ?M ?REGION)))
+
+;; MarketOfItemInRegionFn
+(documentation MarketOfItemInRegionFn EnglishLanguage "The market of a particular item in a particular region")
+(termFormat EnglishLanguage MarketOfItemInRegionFn "market")
+(format EnglishLanguage MarketOfItemInRegionFn "market of %1 in %2")
+(instance MarketOfItemInRegionFn BinaryFunction)
+
+(domainSubclass MarketOfItemInRegionFn 1 Object)
+(domain MarketOfItemInRegionFn 2 Region)
+(range MarketOfItemInRegionFn MarketEconomics)
+
+(=>
+  (equal ?M (MarketOfItemInRegionFn ?OBJ ?REGION))
+  (and
+    (instance ?M MarketEconomics)
+    (located ?M ?REGION)
+    (memberType ?M ?OBJ)))
+
+
+
+;; SupplyFn
+(documentation SupplyFn EnglishLanguage "The number of items being sold on the market")
+(termFormat EnglishLanguage SupplyFn "supply")
+(format EnglishLanguage SupplyFn "the supply of %1 on the market")
+(instance SupplyFn UnaryFunction)
+(domain SupplyFn 1 MarketEconomics)
+(range SupplyFn Integer)
+
+(=>
+  (equal ?SF (SupplyFn ?ME))
+  (memberCount ?ME ?SF))
+
+
+
+;; Consumer
+(documentation Consumer EnglishLanguage "A person who purchases goods and services for personal use.")
+(termFormat EnglishLanguage Consumer "consumer")
+(instance Consumer SocialRole)
+
+(=>
+  (attribute ?H Consumer)
+  (exists (?B)
+    (and
+      (instance ?B Buying)
+      (agent ?B ?H))))
+
+
+
+;; DemandFn
+   ;; This might be able to be simplified with (CardinalityFn (KappaFn
+   ;; of the things someone can buy or wants to buy
+(documentation DemandFn EnglishLanguage "The quantity of a good that consumers want to buy, and are able to purchase at various prices during a given time.")
+(termFormat EnglishLanguage DemandFn "demand")
+(instance SupplyFn UnaryFunction)
+(domain SupplyFn 1 MarketEconomics)
+(range DemandFn Integer)
+
+
+(=>
+  (equal ?NUMDEMANDED (DemandFn ?ME))
+  (exists (?DESIREDITEMS ?ITEMCLASS)
+    (and
+      (instance ?DESIREDITEMS Collection)
+      (memberCount ?DESIREDITEMS ?NUMDEMANDED)
+      (memberType ?ME ?ITEMCLASS)
+      (=>
+        (and
+          (instance ?H Human)
+          (instance ?ITEM ?ITEMCLASS)
+          (=>
+            (and
+              (instance ?B1 Buying)
+              (patient ?B1 ?ITEM))
+            (capability ?B1 agent ?H))
+          (desires ?H
+            (exists (?B2 ?ITEM)
+              (and
+                (instance ?B2 Buying)
+                (transactionAmount ?B2 ?CM)
+                (patient ?B2 ?ITEM)
+                (member ?ITEM ?ME)
+                (agent ?B2 ?H)))))
+         (member ?ITEM ?DESIREDITEMS)))))
+
+
+;; SupplyPressure
+(documentation SupplyPressure EnglishLanguage "In economics, 'supply pressure' refers to situations where the quantity of a good or service supplied exceeds the quantity demanded, leading to potential price decreases and market adjustments to restore equilibrium.")
+(termFormat EnglishLanguage SupplyPressure "supply pressure")
+(termFormat EnglishLanguage SupplyPressure "loose")
+(instance SupplyPressure Attribute)
+
+(=>
+  (attribute ?M SupplyPressure)
+  (exists (?S ?D)
+    (and
+      (instance ?M MarketEconomics)
+      (equal ?S (SupplyFn ?M))
+      (equal ?D (DemandFn ?M))
+      (greaterThan ?S ?D))))
+
+;; DemandPressure
+(documentation DemandPressure EnglishLanguage "In economics, 'demand pressure' or 'demand-pull inflation' refers to a situation where increased demand for goods and services outpaces the economy's supply, leading to rising prices and inflation")
+(termFormat EnglishLanguage DemandPressure "demand pressure")
+(termFormat EnglishLanguage DemandPressure "demand-pull inflation")
+(termFormat EnglishLanguage DemandPressure "tight")
+(instance DemandPressure Attribute)
+
+(=>
+  (attribute ?M DemandPressure)
+  (and
+    (instance ?M MarketEconomics)
+    (equal ?S (SupplyFn ?M))
+    (equal ?D (DemandFn ?M))
+    (greaterThan ?D ?S)))
+
+
+;; EquilibriumEconomics
+(documentation EquilibriumEconomics EnglishLanguage "In economics, equilibrium refers to the situation where the economy's supply is equal to the demand")
+(termFormat EnglishLanguage EquilibriumEconomics "equilibrium")
+(instance EquilibriumEconomics Attribute)
+
+(=>
+  (attribute ?M EquilibriumEconomics)
+  (exists (?S ?D)
+    (and
+      (instance ?M MarketEconomics)
+      (equal ?S (SupplyFn ?M))
+      (equal ?D (DemandFn ?M))
+      (approximateValue ?D ?S))))
+
+
+;; equilibriumPrice
+(documentation equilibriumPriceFn EnglishLanguage "In economics, the equilibrium price is the price where the quantity of a good or service demanded by consumers equals the quantity supplied by producers, creating a stable market state. This is also known as the 'market-clearing price'.")
+(termFormat EnglishLanguage equilibriumPriceFn "equilibrium price")
+(termFormat EnglishLanguage equilibriumPriceFn "market-clearing price")
+(format EnglishLanguage equilibriumPriceFn "the equilibrium price of %1 on the %2")
+(format EnglishLanguage equilibriumPriceFn "the market-clearing price of %1 on the %2")
+(instance equilibriumPriceFn BinaryFunction)
+
+(domainSubclass equilibriumPriceFn 1 Object)
+(domain equilibriumPriceFn 2 MarketEconomics)
+(range equilibriumPriceFn CurrencyMeasure)
+
+(=>
+  (equal ?P (equilibriumPriceFn ?OBJ ?M))
+  (and
+    (instance ?M MarketEconomics)
+    (member ?OBJ ?M)
+    (attribute ?M EquilibriumEconomics)
+    (askPrice ?OBJ ?P ?AGENT)))
+
+;; service
+(documentation ServiceInEconomics EnglishLanguage "A service is an act for which a consumer, company, or government is willing to pay.")
+(termFormat EnglishLanguage ServiceInEconomics "service")
+(instance ServiceInEconomics Attribute)
+
+(=>
+  (attribute ?PROC ServiceInEconomics)
+  (exists (?S)
+    (and
+      (instance ?PROC Process)
+      (hasPurpose ?PROC
+        (and
+          (instance ?S Selling)
+          (patient ?S ?PROC))))))
+
+;; GoodsAndServices
+(documentation GoodsAndServices EnglishLanguage "Goods and services in economics.")
+(termFormat EnglishLanguage GoodsAndServices "goods and services")
+(subclass GoodsAndServices Collection)
+
+(=>
+  (instance ?GAS GoodsAndServices)
+  (and
+      (instance ?GPA GeopoliticalArea)
+      (=>
+        (and
+          (instance ?M Manufacture)
+          (result ?M ?PRODUCT)
+          (agent ?M ?MAKER)
+          (member ?MAKER (CitizenryFn ?GPA))
+          (finishesDuring (WhenFn ?M) ?Y)
+          (located ?M ?GPA))
+        (member ?PRODUCT ?GAS))
+      (=>
+        (and
+          (instance ?SERVICE Process)
+          (attribute ?SERVICE ServiceInEconomics)
+          (agent ?SERVICE ?PROVIDER)
+          (member ?PROVIDER (CitizenryFn ?GPA))
+          (finishesDuring (WhenFn ?SERVICE) ?Y)
+          (located ?SERVICE ?GPA))
+        (member ?SERVICE ?GAS))))

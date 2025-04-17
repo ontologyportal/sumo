@@ -5189,6 +5189,17 @@ drinking glasses.")
       (contains ?CUP ?STUFF))
    (instance ?STUFF Beverage))
 
+(documentation DrinkingMug EnglishLanguage "A cup with handle and usually cylindrical. Typically used in drinking coffee")
+(subclass DrinkingMug DrinkingCup)
+(termFormat EnglishLanguage DrinkingMug "mug")
+
+(=>
+  (instance ?MUG DrinkingMug)
+  (exists (?HANDLE)
+    (and
+      (instance ?HANDLE Handle)
+      (part ?HANDLE ?MUG))))
+
 (subclass SwimmingPool FluidContainer)
 (subclass SwimmingPool StationaryArtifact)
 (documentation SwimmingPool EnglishLanguage "A &%FluidContainer that is filled with &%Water
@@ -9445,6 +9456,43 @@ learning a set of skills.")
       (and
          (instance ?TRAINING EducationalProcess)
          (destination ?TRAINING ?PERSON))))
+
+(documentation ProfessionalFn EnglishLanguage "A social role that is an
+occupation")
+(termFormat EnglishLanguage ProfessionalFn "profession")
+
+(instance ProfessionalFn UnaryFunction)
+(domain ProfessionalFn 1 SocialRole)
+(range ProfessionalFn OccupationalRole)
+
+(=>
+   (equal ?A2 (ProfessionalFn ?A1))
+   (subAttribute ?A2 ?A1))
+
+
+(=>
+   (attribute ?HUMAN
+     (ProfessionalFn ?SOCIALROLE))
+   (exists (?WORKING ?PROC)
+     (and
+       (instance ?WORKING Working)
+       (agent ?WORKING ?HUMAN)
+       (subProcess ?PROC ?W)
+       (hasSkillInRole ?PROC ?SOCIALROLE ?HUMAN) )))
+
+(documentation hasSkillInRole EnglishLanguage "Similar to &%hasSkill, with the additional restriction that has the skill in a particular role") (termFormat EnglishLanguage hasSkillInRole "has skill in role")
+(format EnglishLanguage hasSkillInRole "%3 %p{has} %n{does not have} the skill to do %1 in their role as %2")
+(instance hasSkillInRole TernaryPredicate)
+(domainSubclass hasSkillInRole 1 Process)
+(domain hasSkillInRole 2 SocialRole)
+(domain hasSkillInRole 3 AutonomousAgent)
+
+(=>
+   (hasSkillInRole ?PROC ?ROLE ?AGENT)
+   (and
+     (attribute ?AGENT ?ROLE)
+     (hasSkill ?PROC ?AGENT)))
+
 
 (subclass ManualLabor Position)
 (subclass ManualLabor OccupationalRole)
@@ -17110,6 +17158,22 @@ visible to members of the audience.")
 (documentation Magnetism EnglishLanguage "Any instance of &%RadiatingElectromagnetic which
 involves the attraction of &%Iron.")
 
+(documentation MagneticField EnglishLanguage "Region around a magnet or moving charged
+particle where the force of magnetism acts.")
+(termFormat EnglishLanguage MagneticField "magnetic field")
+
+(subclass MagneticField Region)
+(partition MagneticField MagneticNorth MagneticSouth)
+
+(=>
+   (instance ?MF MagneticField)
+   (exists (?MAGNETISM)
+     (and
+       (instance ?MAGNETISM Magnetism)
+       (eventLocated ?MAGNETISM ?MF))))
+
+
+
 (subclass RadioEmission RadiatingElectromagnetic)
 (documentation RadioEmission EnglishLanguage "Any instance of &%RadiatingElectromagnetic
 where the waves have a wavelength between 5 milimeters and 30,000 meters.")
@@ -21333,9 +21397,25 @@ when they &%desires to be &%Asleep.")
         (instance ?S Sleeping)
         (agent ?S ?A)))))
 
+
+(documentation EnglishLanguage Greedy "Wanting more than is necessary")
+(termFormat EnglishLanguage Greedy "greedy")
+(subclass Greedy SubjectiveStrongNegativeAttribute)
+(subclass Greedy TraitAttribute)
+
+(=>
+  (attribute ?ORG Greedy)
+  (exists (?OBJ)
+    (and
+    (instance ?ORG Organism)
+    (instance ?OBJ Physical)
+    (desires ?ORG (possesses ?ORG ?OBJ))
+    (not
+      (modalAttribute (possesses ?ORG ?OBJ) Necessity)))))
+
 (instance Bored BiologicalAttribute)
 (documentation Tired EnglishLanguage "The &%Attribute that applies to &%Humans
-when they &%desires not to be doing somthing that they are doing now.")
+when they &%desires not to be doing something that they are doing now.")
 
 (=>
   (attribute ?A Bored)
@@ -21582,6 +21662,36 @@ harvested from &%Plants or &%Animals as food for &%DomesticAnimals.")
     (instance ?E Eating)
     (patient ?E ?F))
   (instance ?F Plant))
+
+
+(documentation Omnivore EnglishLanguage "An organism that eats both plants and animals.")
+(termFormat EnglishLanguage Omnivore "omnivore")
+(subclass Omnivore Organism)
+
+
+(=>
+  (and
+      (instance ?A Omnivore)
+      (agent ?E ?A)
+      (instance ?E Eating)
+      (patient ?E ?F))
+  (or
+    (instance ?F Plant)
+    (instance ?F Animal)
+    (instance ?F Fungus)))
+
+(documentation Fungivore EnglishLanguage "An organism that exclusively eats fungus")
+(termFormat EnglishLanguage Fungivore "fungivore")
+(subclass Fungivore Organism)
+
+(=>
+  (and
+      (instance ?A Fungivore)
+      (agent ?E ?A)
+      (instance ?E Eating)
+      (patient ?E ?F))
+  (instance ?F Fungus))
+
 
 (subclass Antelope HoofedMammal)
 (documentation Antelope EnglishLanguage "A &%HoofedMammal with long legs and backward_facing horns.
@@ -25816,6 +25926,21 @@ or a building, such as a hospital.")
       (instance ?B Birth)
       (experiencer ?B ?P)
       (date ?B ?D))))
+
+(documentation Mortal EnglishLanguage "Subject to death.")
+(termFormat EnglishLanguage Mortal "mortal")
+(subclass Mortal BiologicalAttribute)
+
+(=>
+  (attribute ?O Mortal)
+  (and
+    (instance ?O Organism)
+    (capability Death experiencer ?O)))
+
+(=>
+  (instance ?O Organism)
+  (attribute ?O Mortal))
+
 
 (documentation deathdate EnglishLanguage "(deathdate ?PERSON ?DAY) means that ?DAY is the
 &%Day on which the ?PERSON died.")
@@ -31936,6 +32061,22 @@ sense, the relation embodies a closed world assumption.")
   (not
     (subclass ?O DomesticAnimal)))
 
+(documentation Inhabitant EnglishLanguage "A person or animal that lives in or occupies a place.")
+(instance Inhabitant Organism)
+(termFormat EnglishLanguage Inhabitant "inhabitant")
+
+(=>
+  (instance ?I Inhabitant)
+  (exists (?L)
+    (and
+      (instance ?L Object)
+      (inhabits ?I ?L))))
+
+(<=>
+  (inhabits ?I ?L)
+  (instance ?I Inhabitant))
+
+
 (documentation Tiger EnglishLanguage "The tiger (Panthera tigris) is the largest
 cat species, most recognisable for their pattern of dark vertical stripes on
 reddish_orange fur with a lighter underside. The species is classified in the
@@ -32445,7 +32586,7 @@ the &%origin to the &%agent.")
         (possesses ?A ?G)))))
 ;;
 ;; Jennie 13th August 2022
-;; Revised the first arguement of measure to ?G as ?O is a class
+;; Revised the first argument of measure to ?G as ?O is a class
 (=>
   (and
     (shortage ?A ?O ?C ?T ?N)
@@ -33318,3 +33459,88 @@ first_order administrative divisons of ?COUNTRY are of the type ?TYPE.")
     (primaryGeopoliticalSubdivisionType ?AREA ?TYPE)
     (primaryGeopoliticalSubdivision ?SUBAREA ?AREA))
   (instance ?SUBAREA ?TYPE))
+
+
+
+(documentation MovingAwayFrom EnglishLanguage "A translocation where the distance between two objects at the end of the motion is greater than at the beginning.")
+(termFormat EnglishLanguage MovingAwayFrom "moving away from")
+(subclass MovingAwayFrom Translocation)
+
+(=>
+  (and
+    (instance ?MAF MovingAwayFrom)
+    (instance ?RELATIVEOBJECT Object)
+    (instance ?REFERENCEOBJECT Object)
+    (patient ?MAF ?RELATIVEOBJECT)
+    (patient ?MAF ?REFERENCEOBJECT))
+  (exists (?REFERENCEOBJECT ?BEFOREDISTANCE ?AFTERDISTANCE ?U)
+    (and
+      (instance ?BEFOREDISTANCE RealNumber)
+      (instance ?AFTERDISTANCE RealNumber)
+      (moves ?MAF ?RELATIVEOBJECT)
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?MAF))
+        (distance ?RELATIVEOBJECT ?REFERENCEOBJECT (MeasureFn ?BEFOREDISTANCE ?U)))
+      (holdsDuring
+        (EndFn
+          (WhenFn ?MAF))
+        (distance ?RELATIVEOBJECT ?REFERENCEOBJECT (MeasureFn ?AFTERDISTANCE ?U)))
+      (greaterThan ?AFTERDISTANCE ?BEFOREDISTANCE))))
+
+
+(documentation MovingTowards EnglishLanguage "A translocation where the distance between two objects at the end of the motion is less than at the beginning.")
+(termFormat EnglishLanguage MovingTowards "moving towards")
+(subclass MovingTowards Translocation)
+
+(=>
+  (and
+    (instance ?MT MovingTowards)
+    (instance ?RELATIVEOBJECT Object)
+    (instance ?REFERENCEOBJECT Object)
+    (patient ?MT ?REFERENCEOBJECT)
+    (patient ?MT ?RELATIVEOBJECT))
+  (exists (?REFERENCEOBJECT ?BEFOREDISTANCE ?AFTERDISTANCE)
+    (and
+      (instance ?BEFOREDISTANCE RealNumber)
+      (instance ?AFTERDISTANCE RealNumber)
+      (moves ?MT ?RELATIVEOBJECT)
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?MT))
+        (distance ?RELATIVEOBJECT ?REFERENCEOBJECT (MeasureFn ?BEFOREDISTANCE ?U)))
+      (holdsDuring
+        (EndFn
+          (WhenFn ?MT))
+        (distance ?RELATIVEOBJECT ?REFERENCEOBJECT (MeasureFn ?AFTERDISTANCE ?U)))
+      (greaterThan ?BEFOREDISTANCE ?AFTERDISTANCE))))
+
+(documentation Nascent EnglishLanguage "Just coming into existence");
+(termFormat EnglishLanguage Nascent "nascent")
+(subclass Nascent InternalAttribute)
+
+(=>
+  (instance ?PHYSICAL Physical)
+  (exists (?LIFESPAN ?BEGINMOMENT ?NASCENTDURATION ?NASCENT)
+    (and
+      (equal ?LIFESPAN (WhenFn ?PHYSICAL))
+      (equal ?BEGINMOMENT (BeginFn ?LIFESPAN))
+      (equal ?NASCENTDURATION (ImmediateFutureFn ?BEGINMOMENT))
+      (holdsDuring ?NASCENTDURATION
+        (attribute ?PHYSICAL ?NASCENT)))))
+
+
+(documentation Moribund EnglishLanguage "The time period just before non-existence.");
+(termFormat EnglishLanguage Moribund "moribund")
+(subclass Moribund InternalAttribute)
+
+
+(=>
+  (instance ?PHYSICAL Physical)
+  (exists (?LIFESPAN ?ENDMOMENT ?MORIBUNDDURATION ?MORIBUND)
+    (and
+      (equal ?LIFESPAN (WhenFn ?PHYSICAL))
+      (equal ?ENDMOMENT (EndFn ?LIFESPAN))
+      (equal ?MORIBUNDDURATION (ImmediatePastFn ?ENDMOMENT))
+      (holdsDuring ?MORIBUNDDURATION
+        (attribute ?PHYSICAL ?MORIBUND)))))
