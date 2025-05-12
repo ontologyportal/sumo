@@ -266,15 +266,111 @@ low-angle fire (0° to 45° elevation); and mortars are defined as being only ca
 of high-angle fire (45° to 90° elevation)[Wikipedia]")
 (termFormat EnglishLanguage Howitzer "howitzer")
 
-(instance angleOfFire TernaryRelation)
-(documentation angleOfFire EnglishLanguage "&%angleOfFire is the angle between the Horizontal 
-plane and the axial direction of the barrel of gun, morta or heavy artillery. [Wikipedia]")
+(=>
+  (instance ?G Howitzer)
+  (hasPurpose ?G
+    (exists (?S ?X)
+      (and
+        (instance ?S Shooting)
+        (instrument ?S ?G)
+        (angleOfFire ?S
+          (MeasureFn ?X AngularDegree))
+        (greaterThanOrEqualTo ?X 0)
+        (lessThanOrEqualTo ?X 90)))))
+ 
+;; MortarGun 
+    
+(=>
+  (instance ?G MortarGun)
+  (hasPurpose ?G
+    (exists (?S ?X)
+      (and
+        (instance ?S Shooting)
+        (instrument ?S ?G)
+        (angleOfFire ?S
+          (MeasureFn ?X AngularDegree))
+        (greaterThanOrEqualTo ?X 45)
+        (lessThanOrEqualTo ?X 90)))))
+
+;; ArtilleryCannon
+        
+(=>
+  (instance ?G ArtilleryCannon)
+  (hasPurpose ?G
+    (exists (?S ?X)
+      (and
+        (instance ?S Shooting)
+        (instrument ?S ?G)
+        (angleOfFire ?S
+          (MeasureFn ?X AngularDegree))
+        (greaterThanOrEqualTo ?X 0)
+        (lessThanOrEqualTo ?X 45)))))
+      
+(instance angleOfFire BinaryRelation)
+(documentation angleOfFire EnglishLanguage "&%angleOfFire is a relation linking a
+&%Shooting event with the angle between the Horizontal plane and the axial direction 
+of the barrel of gun, mortar or heavy artillery. [Wikipedia]")
 (termFormat EnglishLanguage angleOfFire "angle of fire")
-(format EnglishLanguage angleOfFire "the angle between %1 and %2 is %3")
-(domain angleOfFire 1 PlaneInSpace)
-(domain angleOfFire 2 Object)
-(domain angleOfFire 3 AngleMeasure)
-(relatedInternalConcept angleOfFire bodyAngle)
+(format EnglishLanguage angleOfFire "the angleOfFire of %1 %2 is %2")
+(domain angleOfFire 1 Shooting)
+(domain angleOfFire 2 AngleMeasure)
+
+(=>
+  (and
+    (angleOfFire ?S ?A)
+    (instrument ?S ?G)
+    (instance ?G Gun)
+    (part ?B ?G)
+    (instance ?B GunBarrel)
+    (instance ?L FiniteLineInSpace)
+    (endPointsOfLineInSpace ?P1 ?P2 ?L)
+    (objectEnds ?P1 ?P2 ?B)
+    (eventLocated ?S ?R)
+    (instance ?R GeographicArea)
+    part ?P ?R)
+  (planeAngleMeasure ?L
+    (LevelPlaneFn ?P PlanetEarth) ?A))
+    
+(instance objectEnds TernaryRelation)
+(instance objectEnds SpatialRelation)
+(documentation objectEnds EnglishLanguage "&%objectEnds specifies the two end
+points of an object.")
+(termFormat EnglishLanguage objectEnds "object ends")
+(format EnglishLanguage objectEnds "%1 and %2 are the end PointInSpace of object %3")
+(domain objectEnds 1 PointinSpace)
+(domain objectEnds 2 PointinSpace)
+(domain objectEnds 3 Object)
+(relatedInternalConcept objectEnds endPointsOfLineInSpace)
+(relatedInternalConcept objectEnds distanceOfParallelLinesInSpace)
+
+(=>
+  (and 
+    (objectEnds ?P1 ?P2 ?O)
+    (part ?P1 ?O)
+    (part ?P2 ?O))
+  (exists (?L)
+    (and
+      (instance ?L FinitLineInSpace)
+      (endPointsOfLineInSpace ?P1 ?P2 ?L))))
+            
+(instance planeAngleMeasure TernaryRelation)
+(documentation planeAngleMeasure EnglishLanguage "&%planeAngleMeasure is the angle between
+a &%LineInSpace which intersects a &%PlaneInSpace.")
+(termFormat EnglishLanguage planeAngleMeasure "plane angle measure")
+(format EnglishLanguage planeAngleMeasure "the angle between %1 and %2 is %3")
+(domain planeAngleMeasure 1 LineInSpace)
+(domain planeAngleMeasure 2 PlaneInSpace)
+(domain planeAngleMeasure 3 AngleMeasure)
+(relatedInternalConcept planeAngleMeasure bodyAngle)
+(relatedInternalConcept planeAngleMeasure LevelPlaneFn)
+
+(=>
+  (planeAngleMeasure ?L ?P ?A)
+  (exists (?D)
+    (and
+      (instance ?D PointInSpace)
+      (part ?D ?L)
+      (part ?D ?P))))
 
 ;; MIL - Milliradian
 
@@ -450,25 +546,25 @@ must share a single point or be &%parallel and not equal.")
       
 (instance LevelPlaneFn BinaryFunction)
 (instance LevelPlaneFn SpatialRelation)
-(documentation LevelPlaneFn EnglishLanguage "&%LevelPlaneFn is a Function that takes a &%Region 
-and an &%AstronomicalBody and denotes the Plane that is perpendicular to the line formed by the 
-&%Region and &%center of the &%AstronomicalBody.")
+(documentation LevelPlaneFn EnglishLanguage "&%LevelPlaneFn is a Function that takes a
+&%PointInSpace of a &%Region and an &%AstronomicalBody and denotes the Plane that is
+perpendicular to the line formed by the &%PointInSpace and &%center of the &%AstronomicalBody.")
 (termFormat EnglishLanguage LevelPlaneFn "level plane")
 (format EnglishLanguage LevelPlaneFn "the &%PlaneInSpace is perpendicular to the line formed by %1 and the 
 centre of the &%AstronomicalBody.")
-(domain LevelPlaneFn 1 Region)
+(domain LevelPlaneFn 1 PointInSpace)
 (domain LevelPlaneFn 2 AstronomicalBody)
 (range LevelPlaneFn PlaneInSpace)
 
 (=>
   (and
     (equal ?PLANE
-        (LevelPlaneFn ?R ?A))
-    (located ?R ?A))  
-  (exists (?P ?L)
+        (LevelPlaneFn ?P ?A))
+    (part ?P ?R)
+    (instance ?R Region)
+    (located ?R ?A))
+  (exists (?L)
     (and
-      (instance ?P PointInSpace)
-      (part ?P ?R)
       (instance ?L LineInSpace)    
       (endPointsOfLineInSpace ?P
         (CenterOfPlanetFn ?A) ?L)
