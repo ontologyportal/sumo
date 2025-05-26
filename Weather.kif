@@ -796,36 +796,241 @@ High pressure systems typically cause clear weather.")
 (subclass WeatherFront WeatherProcess)
 
 (documentation WeatherFront EnglishLanguage "&%WeatherFront is the class of weather 
-processes that are involve relationships between two air masses, such 
-as a high pressure weather system or a low pressure system.")
+processes that involve relationships between two air masses. A weather front is a boundary 
+separating air masses for which several characteristics differ, such as air density, wind, 
+temperature, and humidity. Disturbed and unstable weather due to these differences often 
+arises along the boundary. [Wikipedia]")
 
+(=>
+  (and
+    (instance ?W WeatherFront)
+    (instance ?F AirStream)
+    (eventLocated ?W ?F)
+    (connects ?F ?A ?B)
+    (instance ?A AirMass)
+    (instance ?B AirMass))
+  (not
+    (equal ?A ?B)))
+          
+;;
+;; Jennie Pease 22nd May 2025
+;; Air Mass added
+
+(subclass AirMass AirStream)
+(documentation AirMass EnglishLanguage "An &%AirMass,in meteorology, is a volume of air 
+defined by its temperature and humidity. Air masses cover many hundreds or thousands of 
+square miles, and adapt to the characteristics of the surface below them. Colder air 
+masses are termed polar or arctic, while warmer air masses are deemed tropical. 
+Continental and superior air masses are dry, while maritime and monsoon air masses 
+are moist. &%WeatherFronts separate air masses with different density (temperature 
+or moisture) characteristics.[Wikipedia]")
+(termFormat EnglishLanguage AirMass "air mass")
+(termFormat ChineseLanguage AirMass "雷暴")
+(termFormat ChineseTraditionalLanguage AirMass "雷暴")
+
+(=>
+  (and
+    (instance ?M AirMass)
+    (part ?A ?M)
+    (part ?B ?M)
+    (not
+      (equal ?A ?B))
+    (airTemperature ?A
+      (measureFn ?X CelsiusDegree))
+    (airTemperature ?B
+      (measureFn ?Y CelsiusDegree)))
+  (approximateValue ?X ?Y))
+  
+(=>
+  (and
+    (instance ?M AirMass)
+    (part ?A ?M)
+    (part ?B ?M)
+    (not
+      (equal ?A ?B))
+    (relativeHumidity ?A ?X)
+    (relativeHumidity ?B ?Y))
+  (approximateValue ?X ?Y))
+  
 (subclass WarmFront WeatherFront)
 
 (documentation WarmFront EnglishLanguage "&%WarmFront is the class of transitional 
 weather processes occurring between a warm air mass that is advancing 
 upon a cool air mass.")
 
+(=>
+  (and
+    (instance ?WF WarmFront)
+    (instance ?W AirMass)
+    (origin ?WF ?W)
+    (airTemperature ?W 
+      (MeasureFn ?X CelsiusDegree))
+    (instance ?C AirMass)
+    (path ?WF ?C)
+    (airTemperature ?C 
+      (MeasureFn ?Y CelsiusDegree)))
+  (greaterThan ?X ?Y))
+    
 (subclass ColdFront WeatherFront)
+(disjoint ColdFront WarmFront)
 
 (documentation ColdFront EnglishLanguage "&%ColdFront is the class of transitional 
 weather processes occurring between a cold air mass that is advancing 
-upon a warm air mass.")
+upon a warm air mass. It lies within a pronounced surface trough of low pressure.[Wikipedia]")
+
+(=>
+  (and
+    (instance ?CF ColdFront)
+    (instance ?C AirMass)
+    (origin ?CF ?C)
+    (airTemperature ?C 
+      (MeasureFn ?X CelsiusDegree))
+    (instance ?W AirMass)
+    (path ?WF ?W)
+    (airTemperature ?W 
+      (MeasureFn ?Y CelsiusDegree)))
+  (lessThan ?X ?Y))
 
 (subclass OccludedFront WeatherFront)
 
 (documentation OccludedFront EnglishLanguage "&%OccludedFront is the class of complex 
 weather transition processes in which a cold air mass overtakes a warm 
 air mass.")
-
+              
+(=>
+  (and
+    (instance ?OF OccludedFront)
+    (instance ?C AirMass)
+    (origin ?OF ?C)
+    (airTemperature ?C
+      (MeasureFn ?X CelsiusDegree))
+    (instance ?W AirMass)        
+    (airTemperature ?W
+      (MeasureFn ?Y CelsiusDegree))
+    (lessThan ?X ?Y)
+    (moves ?OF ?W))
+  (orientation ?C ?W Below))
+          
 (subclass StationaryFront WeatherFront)
 
 (documentation StationaryFront EnglishLanguage "&%StationaryFront is the class of 
-boundary areas between two air masses that are stationary, with neither 
+boundary areas between two air masses that are stationary, with neither air
 mass presently replacing the other.")
 
+(=>
+  (and
+    (instance ?SF StationaryFront)
+    (eventLocated ?SF ?F)
+    (instance ?F AirStream))
+  (holdsDuring
+    (WhenFn ?SF)
+    (not
+      (exists (?T)
+        (and
+          (subProcess ?T ?SF)
+          (instance ?T Translocation)
+          (moves ?T ?F))))))
 
 (subclass Thunderstorm Storm) 
+(documentation Thunderstorm EnglishLanguage "A &%Thunderstorm, also known as an 
+electrical storm or a lightning storm, is a storm characterized by the presence of 
+&%Lightning and its acoustic effect on the Earth's atmosphere, known as &%Thunder.
+[Wikipedia]")
+
+(=>
+  (instance ?TS Thunderstorm)
+  (holdsDuring
+    (WhenFn ?TS)
+      (exists (?L ?T)
+        (and
+          (instance ?L Lightning)
+          (subProcess ?L ?TS)
+          (instance ?T Thunder)
+          (subProcess ?T ?TS)))))
+
+(subclass Lightning WeatherProcess)
+(subclass Lightning Radiating)
+(documentation Lightning EnglishLanguage "A &%WeatherProcess which involves a significant
+release of electricity between two electrically charged regions. One or both regions are
+within the atmosphere in a &Cloud, with the second region sometimes occuring on the 
+ground. [Wikipedia] At the moment, we are modeling electricity as flowing from one region 
+to another. Another way to model it is that it is a change of electrical potential at all 
+points on the path. It would be worth revisiting this term by a specialist in Physics.")
+
+(=>
+   (instance ?L Lightning)
+   (exists (?C)
+      (and
+         (instance ?C Cloud)
+         (eventLocated ?L ?C))))
+         
+(subclass IntraCloudLightning Lightning)
+(documentation IntraCloudLightning EnglishLanguage "&%IntraCloudLightning occurs between 
+two areas of differing electic potential within a single cloud. [Wikipedia]")
+(termFormat EnglishLanguage IntraCloudLightning "intra cloud lightning")
+
+(=>
+  (and
+    (instance ?L IntraCloudLightning)
+    (instance ?C Cloud)
+    (origin ?L ?A)
+    (part ?A ?C))
+  (exists (?B)
+    (and
+      (part ?B ?C)
+      (not
+        (equal ?A ?B))
+      (destination ?L ?B))))
+
+(subclass CloudToCloudLightning Lightning)
+(documentation CloudToCloudLightning EnglishLanguage "&%CloudToCloudLightning occurs between 
+two separate clouds.[Wikipedia]")
+(termFormat EnglishLanguage CloudToCloudLightning "cloud to cloud lightning")
+
+(=>
+  (and
+    (instance ?L CloudToCloudLightning)
+    (instance ?A Cloud)
+    (origin ?L ?A)
+    (destination ?L ?B)
+    (instance ?B Cloud))
+  (not
+    (equal ?A ?B)))
+   
+(subclass LightningStrike Lightning)
+(documentation LightningStrike EnglishLanguage "&%LightningStrike is a lightning discharge 
+between a thundercloud and the ground.[Wikipedia]")
+(termFormat EnglishLanguage LightningStrike "lightning strike")
+
+(=>
+  (and
+    (instance ?L LightningStrike)
+    (instance ?A Cloud)
+    (origin ?L ?A)
+    (destination ?L ?G))
+  (instance ?G GeographicArea))
+
+(subclass Thunder WeatherProcess)
+(subclass Thunder RadiatingSound)
+(documentation Thunder EnglishLanguage "Any instance of &%RadiatingSound which is caused by
+an instance of Lightning.")
+
+(=>
+  (instance ?T Thunder)
+  (exists (?L)
+    (and
+      (instance ?L Lightning)
+      (causes ?L ?T))))
+                   
 (subclass Waterspout WeatherProcess)  
+(documentation Waterspout EnglishLanguage "A &%Waterspout,is a rotating column of air 
+that occurs over a body of water, usually appearing as a funnel-shaped cloud in contact 
+with the water and a cumuliform cloud.There are two types of waterspout, each formed 
+by distinct mechanisms. The most common type is a weak vortex known as a fair weather 
+or non-tornadic waterspout. The other less common type is simply a classic tornado 
+occurring over water rather than land, known as a tornadic supercellular, or  
+mesocyclonic waterspout, and accurately a tornado over water. [Wikipedia]")
+
 ;;---------------------------------
 
 ;; Weather- and climate_related data
