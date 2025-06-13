@@ -70,7 +70,7 @@ of &%FlowRegions that consist of air.")
   (and
     (instance ?AS AirStream)
     (part ?AIR ?AS))
-  (attribute ?AR Gas))
+  (attribute ?AIR Gas))
   
 (subclass JetStream AirStream)
 
@@ -825,8 +825,8 @@ Continental and superior air masses are dry, while maritime and monsoon air mass
 are moist. &%WeatherFronts separate air masses with different density (temperature 
 or moisture) characteristics.[Wikipedia]")
 (termFormat EnglishLanguage AirMass "air mass")
-(termFormat ChineseLanguage AirMass "雷暴")
-(termFormat ChineseTraditionalLanguage AirMass "雷暴")
+(termFormat ChineseLanguage AirMass "气团")
+(termFormat ChineseTraditionalLanguage AirMass "氣團")
 
 (=>
   (and
@@ -836,9 +836,9 @@ or moisture) characteristics.[Wikipedia]")
     (not
       (equal ?A ?B))
     (airTemperature ?A
-      (measureFn ?X CelsiusDegree))
+      (MeasureFn ?X CelsiusDegree))
     (airTemperature ?B
-      (measureFn ?Y CelsiusDegree)))
+      (MeasureFn ?Y CelsiusDegree)))
   (approximateValue ?X ?Y))
   
 (=>
@@ -886,7 +886,7 @@ upon a warm air mass. It lies within a pronounced surface trough of low pressure
     (airTemperature ?C 
       (MeasureFn ?X CelsiusDegree))
     (instance ?W AirMass)
-    (path ?WF ?W)
+    (path ?W ?W)
     (airTemperature ?W 
       (MeasureFn ?Y CelsiusDegree)))
   (lessThan ?X ?Y))
@@ -952,7 +952,7 @@ electrical storm or a lightning storm, is a storm characterized by the presence 
 (subclass Lightning Radiating)
 (documentation Lightning EnglishLanguage "A &%WeatherProcess which involves a significant
 release of electricity between two electrically charged regions. One or both regions are
-within the atmosphere in a &Cloud, with the second region sometimes occuring on the 
+within the atmosphere in a &WaterCloud, with the second region sometimes occuring on the 
 ground. [Wikipedia] At the moment, we are modeling electricity as flowing from one region 
 to another. Another way to model it is that it is a change of electrical potential at all 
 points on the path. It would be worth revisiting this term by a specialist in Physics.")
@@ -961,7 +961,7 @@ points on the path. It would be worth revisiting this term by a specialist in Ph
    (instance ?L Lightning)
    (exists (?C)
       (and
-         (instance ?C Cloud)
+         (instance ?C WaterCloud)
          (eventLocated ?L ?C))))
          
 (subclass IntraCloudLightning Lightning)
@@ -972,7 +972,7 @@ two areas of differing electic potential within a single cloud. [Wikipedia]")
 (=>
   (and
     (instance ?L IntraCloudLightning)
-    (instance ?C Cloud)
+    (instance ?C WaterCloud)
     (origin ?L ?A)
     (part ?A ?C))
   (exists (?B)
@@ -990,10 +990,10 @@ two separate clouds.[Wikipedia]")
 (=>
   (and
     (instance ?L CloudToCloudLightning)
-    (instance ?A Cloud)
+    (instance ?A WaterCloud)
     (origin ?L ?A)
     (destination ?L ?B)
-    (instance ?B Cloud))
+    (instance ?B WaterCloud))
   (not
     (equal ?A ?B)))
    
@@ -1005,7 +1005,7 @@ between a thundercloud and the ground.[Wikipedia]")
 (=>
   (and
     (instance ?L LightningStrike)
-    (instance ?A Cloud)
+    (instance ?A WaterCloud)
     (origin ?L ?A)
     (destination ?L ?G))
   (instance ?G GeographicArea))
@@ -1030,6 +1030,52 @@ by distinct mechanisms. The most common type is a weak vortex known as a fair we
 or non-tornadic waterspout. The other less common type is simply a classic tornado 
 occurring over water rather than land, known as a tornadic supercellular, or  
 mesocyclonic waterspout, and accurately a tornado over water. [Wikipedia]")
+
+(=>
+  (instance ?S Waterspout)
+  (exists (?A ?R ?C ?F ?W)
+    (and
+      (instance ?A AirStream)
+      (instance ?R Rotating)
+      (patient ?R ?A)
+      (origin ?R ?C)
+      (instance ?C WaterCloud)
+      (part ?F ?C)
+      (shape ?F Cone)
+      (eventLocated ?R ?W)
+      (instance ?W BodyOfWater)
+      (connects ?F ?W ?C))))
+      
+(subclass FairWeatherWaterspout Waterspout)  
+(documentation FairWeatherWaterspout EnglishLanguage "A &%FairWeatherWaterspout,is the 
+most common type of &%Waterspout. It is a weak vortex also known as a non-tornadic 
+waterspout. They occur in coastal waters and are associated with dark, flat-bottomed, 
+developing convective cumulus towers. Fair-weather waterspouts develop and 
+dissipate rapidly, having life cycles shorter than 20 minutes.[Wikipedia]")
+(termFormat EnglishLanguage FairWeatherWaterspout "fair weather waterspout")
+
+(=>
+  (instance ?W FairWeatherWaterspout)
+  (not
+    (exists (?T)
+      (and
+        (instance ?T Thunderstorm)
+        (causes ?T ?W)))))
+    
+
+(subclass TornadicWaterspout Waterspout)  
+(documentation TornadicWaterspout EnglishLanguage "A &%TornadicWaterspout,is a less common type
+of &%Waterspout. It is simply a classic tornado occurring over water rather than land, known 
+as a tornadic supercellular, or  mesocyclonic waterspout, and accurately a tornado over water. 
+[Wikipedia]")
+(termFormat EnglishLanguage TornadicWaterspout "tornadic waterspout")
+
+(=>
+  (and
+    (instance ?T Tornado)
+    (eventLocated ?T ?R)
+    (instance ?R BodyOfWater))  
+  (instance ?S TornadicWaterspout))
 
 ;;---------------------------------
 
@@ -1431,13 +1477,209 @@ the total amount of precipitation was ?AMOUNT.")
 (subclass Windstorm Storm) 
 (subclass StrongWind Wind)
 (subclass Sirocco Wind)
+(documentation Sirocco EnglishLanguage "&%Sirocco or scirocco is a Mediterranean 
+wind that comes from the Sahara and can reach hurricane speeds in North Africa and 
+Southern Europe, especially during the summer season. Siroccos arise from warm, dry, 
+tropical air masses that are pulled northward by low-pressure cells moving eastward 
+across the Mediterranean Sea, with the wind originating in the Arabian or Sahara 
+deserts.The hotter, drier continental air mixes with the cooler, wetter air of the 
+maritime cyclone, and the counter-clockwise circulation of the low propels the mixed 
+air across the southern coasts of Europe.The sirocco causes dusty dry conditions along 
+the northern coast of Africa, storms in the Mediterranean Sea, and warm wet weather 
+in Southern Europe. The sirocco does not affect other parts of Europe.[Wikipedia]")
+(names Sirocco "Scirocco")
+(names Sirocco "sciroccu")
+(names Sirocco "siroco")
+
+(=>
+  (and
+    (instance ?W Sirocco)
+    (eventLocated ?W ?R)
+    (origin ?W SaharaDesert))    
+  (or
+    (equal ?R MediterraneanSea)
+    (equal ?R MediterraneanRegion)))
+
 (subclass HarmattanWind Wind)
+(documentation HarmattanWind EnglishLanguage "&%HarmattanWind is a dry and dusty northeasterly 
+trade wind, which blows from the Sahara over West Africa into the Gulf of Guinea. The name is 
+related to the word haramata in the Twi language. The HarmattanWind blows during the dry season, 
+which occurs during the months with the lowest sun.On its passage over the Sahara, the Harmattan 
+picks fine dust and sand particles (between 0.5 and 10 microns). &%HarmattanWind blows in the 
+season of Harmattan, of the same name, in West Aftica that occurs between end of November and middle 
+of March.The &%HarmattanWind brings desert-like weather conditions: it lowers the humidity, 
+dissipates cloud cover, prevents rainfall formation and sometimes creates big clouds of dust which 
+can result in dust storms or sandstorms.[Wikipedia]")
+
 (subclass Khamsin Wind)
+(documentation Khamsin EnglishLanguage "&%Khamsin is a dry, hot, sandy local wind affecting Egypt 
+and the Levant. From the Arabic word for fifty, these dry, sand-filled windstorms blow sporadically 
+in Egypt typically after fifty days from the start of spring, hence the name. When the storm passes 
+over an area, lasting for several hours, it carries great quantities of sand and dust from the deserts, 
+with a speed up to 140 kilometers per hour (87 mph; 76 knots), and the humidity in that area drops 
+below 5%. [Wikipedia]")
+
 (subclass Mistral Wind)
 (subclass Ghibli Wind)
 (subclass ChinookWind Wind)
 (subclass Pampero Windstorm)
-(subclass Squall Storm)
+
+(subclass Squall Wind)
+(documentation Squall EnglishLanguage "A &%Squall is a sudden, sharp increase in 
+wind speed lasting minutes, as opposed to a wind gust, which lasts for only seconds.
+In 1962 the World Meteorological Organization (WMO) defined that to be classified as a 
+squall, the wind must increase at least 8 metres per second (29 km/h; 18 mph) and must 
+attain a top speed of at least 11 metres per second (40 km/h; 25 mph), lasting at 
+least one minute in duration.[Wikipedia]")
+
+(=>
+  (and
+    (instance ?S Squall)
+    (eventLocated ?S ?R)
+    (instance ?R GeographicArea)
+    (holdsDuring
+      (WhenFn ?S)
+      (surfaceWindSpeed ?R
+        (MeasureFn ?TOP MilesPerHour)))
+    (earlier ?T (WhenFn ?S))
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (and
+    (greaterThanOrEqualTo ?TOP 25)
+    (greaterThanOrEqualTo ?DIFF 18)))
+    
+(=>
+  (and
+    (instance ?S Squall)
+    (eventLocated ?S ?R)
+    (instance ?R GeographicArea)    
+    (duration (WhenFn ?S) 
+    (MeasureFn ?DUR MinuteDuration)))
+  (greaterThanOrEqualTo ?DUR 1))
+  
+(subclass WindGust Wind)
+(documentation WindGust EnglishLanguage "A &%WindGust is a sudden increase in the 
+wind speed. It usually lasts for less than 20 seconds, briefer than a squall, 
+which lasts minutes. A gust is followed by a lull (or slackening) in the wind speed. 
+The average value of wind speed is generally measured over a period of 2 minutes 
+before the meteorological observation according to the World Meteorological Organization.  
+It is generally reported in METAR when the peak wind speed reaches at least 16 knots 
+(30 km/h; 18 mph) and the variation in wind speed between the peaks and average wind 
+is at least 9 to 10 knots (17 to 19 km/h; 10 to 12 mph).[Wikipedia]")
+(termFormat EnglishLanguage WindGust "wind gust")
+
+(=>
+  (and
+    (instance ?G WindGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)    
+    (duration (WhenFn ?G) 
+    (MeasureFn ?DUR SecondDuration)))
+  (greaterThanOrEqualTo ?DUR 20))
+  
+(=>
+  (and
+    (instance ?G WindGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)
+    (equal      
+      (ThreeSecondGustSpeedFn ?R (WhenFn ?G))
+      (MeasureFn ?TOP MilesPerHour))
+    (earlier ?T (WhenFn ?G))
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (and
+    (greaterThanOrEqualTo ?TOP 18)
+    (greaterThanOrEqualTo ?DIFF 10)))
+    
+(=>
+  (and
+    (instance ?G WindGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)
+    (equal      
+      (ThreeSecondGustSpeedFn ?R (WhenFn ?G))
+      (MeasureFn ?TOP MilesPerHour))
+    (earlier (WhenFn ?G) ?T)
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (greaterThanOrEqualTo ?DIFF 10))
+    
+(subclass WeakGust WindGust)
+(documentation WeakGust EnglishLanguage "When the maximum speed exceeds the average speed 
+by 10 to 15 knots (19 to 28 km/h; 12 to 17 mph), the term &%WeakGust is used[Wikipedia]")
+(termFormat EnglishLanguage WeakGust "weak gust")
+
+(=>
+  (and
+    (instance ?G WeakGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)
+    (equal      
+      (ThreeSecondGustSpeedFn ?R (WhenFn ?G))
+      (MeasureFn ?TOP MilesPerHour))
+    (earlier ?T (WhenFn ?G))
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (and
+    (greaterThanOrEqualTo ?DIFF 12)
+    (lessThanOrEqualTo ?DIFF 17)))
+
+(subclass StrongGust WindGust)
+(documentation StrongGust EnglishLanguage "&%StrongGust is used when the the maximum speed 
+exceeds the average speed by 15 to 25 knots (28 to 46 km/h; 17 to 29 mph).[Wikipedia]")
+(termFormat EnglishLanguage StrongGust "strong gust")
+
+(=>
+  (and
+    (instance ?G StrongGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)
+    (equal      
+      (ThreeSecondGustSpeedFn ?R (WhenFn ?G))
+      (MeasureFn ?TOP MilesPerHour))
+    (earlier ?T (WhenFn ?G))
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (and
+    (greaterThan ?DIFF 17)
+    (lessThanOrEqualTo ?DIFF 29)))
+
+(subclass ViolentGust WindGust)
+(documentation ViolentGust EnglishLanguage "&%ViolentGust is used when the the maximum speed 
+exceeds the average speed by over 25 knots (46 km/h; 29 mph).[Wikipedia]")
+(termFormat EnglishLanguage ViolentGust "violent gust")
+
+(=>
+  (and
+    (instance ?G ViolentGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)
+    (equal      
+      (ThreeSecondGustSpeedFn ?R (WhenFn ?G))
+      (MeasureFn ?TOP MilesPerHour))
+    (earlier ?T (WhenFn ?G))
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (greaterThan ?DIFF 29))
 
 (subclass DustStorm Storm)
 (documentation DustStorm EnglishLanguage "&%DustStorms happen in &%AridClimateZones or
