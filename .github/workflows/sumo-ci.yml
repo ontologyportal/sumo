@@ -1,4 +1,4 @@
-name: SUMO CI
+name: 'SUMO CI'
 
 on:
   workflow_call:
@@ -31,14 +31,49 @@ jobs:
     env:
       # Explicitly set SIGMA_HOME
       SIGMA_HOME: /root/sigmakee-runtime
+      SIGMA_SRC: ${{ github.workspace }}/sigmakee
       ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
 
     steps:
+    - name: checkout SUMOjEdit
+      uses: actions/checkout@v4
+      with:
+        repository: 'ontologyportal/SUMOjEdit'
+        path: SUMOjEdit
+
+    - name: checkout sigmaAntlr
+      uses: actions/checkout@v4
+      with:
+        repository: 'ontologyportal/sigmaAntlr'
+        path: sigmaAntlr
+
+    - name: checkout sigmakee
+      uses: actions/checkout@v4
+      with:
+        repository: 'ontologyportal/sigmakee'
+        path: sigmakee
+
+    - name: checkout TPTP-ANTLR
+      uses: actions/checkout@v4
+      with:
+        repository: 'ontologyportal/TPTP-ANTLR'
+        path: TPTP-ANTLR
+
+    - name: checkout SigmaUtils
+      uses: actions/checkout@v4
+      with:
+        repository: 'ontologyportal/SigmaUtils'
+        path: SigmaUtils
+
     # This is how we get the latest commits to test against
     - name: checkout sumo
       uses: actions/checkout@v4
       with:
         path: sumo
+
+    - name: Build SIGMA with Ant
+      working-directory: ./SUMOjEdit
+      run: ant
 
     - name: Setup SIGMA_HOME
       run: |
@@ -46,6 +81,17 @@ jobs:
         sed -i 's|<preference name="TPTP" value="yes" \/>|<preference name="TPTP" value="no"\/>|g' $SIGMA_HOME/KBs/config.xml
         # DEBUG
         #cat $SIGMA_HOME/KBs/config.xml
+
+    - name: Run SUMOjEdit integration tests
+      working-directory: ./SUMOjEdit
+      run: ant test.integration
+
+    - name: Upload SUMOjEdit Test Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          ./SUMOjEdit/build/test/results/*
 
     - name: Produce SUMO.fof
       run: java -Xmx10g -Xss1m -cp "/root/sigmakee/*" com.articulate.sigma.trans.SUMOKBtoTPTPKB
