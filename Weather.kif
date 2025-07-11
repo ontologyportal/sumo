@@ -1,0 +1,4099 @@
+;;-------------------------------------------------------------------------
+
+;;   F. Air and Atmosphere (Moved from Geography.kif - Jennie October 2017)
+
+;;--------------------------------------------------------------------------
+;; &%altitude: Object x Object x LengthMeasure is defined in Merge.txt.
+
+;;   F. Air and atmosphere
+
+(subclass Atmosphere Region)
+(subclass Atmosphere (ExtensionFn Fluid))
+
+(documentation Atmosphere EnglishLanguage "&%Atmosphere is a &%Mixture of gases 
+surrounding any celestial object that has a gravitational field 
+strong enough to prevent the gases from escaping.") 
+
+(documentation Atmosphere ChineseLanguage "&%Atmosphere 是气体的 &%Mixture，它由任何有足够强大
+地深吸力阻止气体溢出的天体物体包围着。") 
+
+(termFormat ChineseLanguage Atmosphere "大气层")
+
+(=>
+  (instance ?AIR Atmosphere)
+  (exists (?BODY)
+    (and
+      (instance ?BODY AstronomicalBody)
+      (meetsSpatially ?AIR ?BODY))))
+
+(instance EarthsAtmosphere Atmosphere)
+(documentation EarthsAtmosphere EnglishLanguage "EarthsAtmosphere is the layer of gases, 
+a mixture of mainly oxygen and nitrogen, surrounding PlanetEarth.  See also Air.")
+
+(=>
+  (instance ?AIRSPACE AtmosphericRegion)
+  (part ?AIRSPACE EarthsAtmosphere))
+
+(=>
+  (instance ?AIR Air)
+  (piece ?AIR EarthsAtmosphere))
+
+(=>
+  (instance ?AIRSPACE AtmosphericRegion)
+  (exists (?AIR)
+    (and
+      (instance ?AIR Air)
+      (part ?AIR ?AIRSPACE))))
+
+(=>
+  (instance ?AIR Air)
+  (exists (?PART)
+    (and 
+         (instance ?PART Oxygen)
+         (part ?PART ?AIR))))
+
+(=>
+  (instance ?AIR Air)
+  (exists (?PART)
+    (and 
+         (instance ?PART Nitrogen)
+         (part ?PART ?AIR))))
+
+(subclass AirStream FlowRegion)  
+(subclass AirStream Air)
+
+(documentation AirStream EnglishLanguage "&%AirStream is the class 
+of &%FlowRegions that consist of air.")
+(documentation AirStream ChineseLanguage "气流 &%AirStream 是一类由空气组成的流动区域 &%FlowRegion.")
+
+(=>
+  (and
+    (instance ?AS AirStream)
+    (part ?AIR ?AS))
+  (attribute ?AIR Gas))
+  
+(subclass JetStream AirStream)
+
+(documentation JetStream EnglishLanguage "&%JetStream is the class of high_velocity 
+&%AirStreams that blow constantly in the upper atmosphere of some planets with constant 
+speed and direction, though their location shifts somewhat.  There are 
+four &%JetStreams in &%EarthsAtmosphere.")
+
+(subclass WindFlow AirStream)
+
+(documentation WindFlow EnglishLanguage "&%WindFlow is the class of variable &%AirStreams 
+that are in the &%EarthsAtmosphere. It is also known as air currents which are concentrated 
+areas of winds.")
+(termFormat EnglishLanguage WindFlow "wind flow")
+(termFormat ChineseLanguage WindFlow "大气气流")
+
+(=>
+  (instance ?BLOW WindFlow)
+  (located ?BLOW EarthsAtmosphere))
+
+(=>
+  (instance ?R WindFlow)
+  (exists (?WIND)
+    (and
+      (instance ?WIND Wind)
+      (eventLocated ?WIND ?R))))
+
+;; Measures of wind characteristics:
+
+(instance surfaceWindVelocity TernaryPredicate)
+(domain surfaceWindVelocity 1 Object)
+(domain surfaceWindVelocity 2 PhysicalQuantity)
+(domain surfaceWindVelocity 3 DirectionalAttribute)
+
+(documentation surfaceWindVelocity EnglishLanguage 
+"(&%surfaceWindVelocity ?PLACE ?SPEED ?TOWARD) means that the 
+surface &%Wind blowing at ?PLACE has a speed of ?SPEED and is moving 
+toward the &%DirectionalAttribute ?TOWARD.  Surface wind is found at the 
+surface of the planet, everyday wind.  Technically, &%Winds moving 
+through the atmosphere up to an altitude of 500 feet.")
+
+(=>
+  (and
+    (surfaceWindVelocity ?PLACE (SpeedFn ?DIST ?TIME) ?DIRECTION)
+    (instance ?PLACE WindFlow))
+  (exists (?BLOW)
+    (and
+      (instance ?BLOW Wind)
+      (eventPartlyLocated ?BLOW ?PLACE)
+      (measure ?BLOW (VelocityFn ?DIST ?TIME ?PLACE ?DIRECTION)))))
+
+(=>
+  (and
+    (instance ?PLACE Object)
+    (instance ?BLOW Wind)
+    (measure ?BLOW (VelocityFn ?DIST ?TIME ?PLACE ?DIRECTION)))
+  (surfaceWindVelocity ?PLACE (SpeedFn ?DIST ?TIME) ?DIRECTION))
+
+(=>
+  (surfaceWindVelocity ?PLACE ?SPEED ?DIRECTION)
+  (surfaceWindSpeed ?PLACE ?SPEED))
+
+(=>
+  (and
+    (instance ?ZEPHYR WindFlow)
+    (instance ?PLACE Object)
+    (partlyLocated ?ZEPHYR ?PLACE)
+    (elevation ?ZEPHYR 
+      (MeasureFn ?X FootLength))
+    (lessThanOrEqualTo ?X 500.0)
+    (measure ?ZEPHYR (SpeedFn ?DIST ?TIME)))
+  (surfaceWindSpeed ?PLACE (SpeedFn ?DIST ?TIME)))
+
+(=>
+  (and
+    (instance ?ZEPHYR WindFlow)
+    (instance ?PLACE Object)
+    (partlyLocated ?ZEPHYR ?PLACE)
+    (measure ?ZEPHYR (MeasureFn ?SPEED KnotUnitOfSpeed)))
+  (surfaceWindSpeed ?PLACE (MeasureFn ?SPEED KnotUnitOfSpeed)))
+   
+(instance surfaceWindDirection BinaryPredicate)
+(domain surfaceWindDirection 1 Object)
+(domain surfaceWindDirection 2 DirectionalAttribute)
+
+(documentation surfaceWindDirection EnglishLanguage 
+"(&%surfaceWindDirection ?PLACE ?DIRECTION) means that at ?PLACE 
+the wind is coming from the compass point ?DIRECTION.  For example, 
+(&%surfaceWindDirection &%SanFranciscoBay &%Northwest) means that the 
+wind in San Francisco Bay is coming from the Northwest.  The wind is 
+within 500 feet of Earth's surface.")
+
+(=>
+  (surfaceWindDirection ?PLACE ?DIR)
+  (exists (?WIND ?FROM)
+    (and
+      (instance ?WIND Wind)
+      (instance ?FROM Region)
+      (eventPartlyLocated ?WIND ?PLACE)
+      (origin ?WIND ?FROM)
+      (orientation ?FROM ?PLACE ?DIR))))
+
+(=>
+  (and
+    (surfaceWindVelocity ?PLACE ?SPEED ?DIR_TOWARD)
+    (oppositeDirection ?DIR_TOWARD ?DIR_FROM))
+  (surfaceWindDirection ?PLACE ?DIR_FROM))
+
+(=>
+  (and
+    (instance ?ZEPHYR WindFlow)
+    (measure ?ZEPHYR (VelocityFn ?DIST ?TIME ?PLACE ?DIR_TOWARD))
+    (oppositeDirection ?DIR_TOWARD ?DIR_FROM))
+  (surfaceWindDirection ?PLACE ?DIR_FROM))
+
+(instance lowAltitudeWindVelocity TernaryPredicate)
+(domain lowAltitudeWindVelocity 1 Object)
+(domain lowAltitudeWindVelocity 2 PhysicalQuantity)
+(domain lowAltitudeWindVelocity 3 DirectionalAttribute)
+
+(documentation lowAltitudeWindVelocity EnglishLanguage 
+"(&%lowAltitudeWindVelocity ?PLACE ?SPEED ?DIRECTION) means that the 
+low_altitude &%Wind blowing at ?PLACE has a speed of ?SPEED and comes 
+from the compass point ?DIRECTION.  Low_altitude wind is wind blowing 
+between 500-10,000 feet.")
+
+(instance lowAltitudeWindSpeed BinaryPredicate)
+(instance lowAltitudeWindSpeed AsymmetricRelation)
+(domain lowAltitudeWindSpeed 1 Object)
+(domain lowAltitudeWindSpeed 2 PhysicalQuantity)
+
+(documentation lowAltitudeWindSpeed EnglishLanguage 
+"(&%lowAltitudeWindSpeed ?PLACE ?RATE) means that the &%Wind blowing 
+between 500-10,000 feet at ?PLACE has a speed of ?RATE. &%Wind speed 
+may be expressed in knots (&%KnotUnitOfSpeed) or as any distance per 
+time unit (using (&%SpeedFn ?DISTANCE ?TIME)).")
+
+(=>
+  (lowAltitudeWindVelocity ?PLACE ?SPEED ?DIRECTION)
+  (lowAltitudeWindSpeed ?PLACE ?SPEED))
+
+(instance mediumAltitudeWindVelocity TernaryPredicate)
+(domain mediumAltitudeWindVelocity 1 Object)
+(domain mediumAltitudeWindVelocity 2 PhysicalQuantity)
+(domain mediumAltitudeWindVelocity 3 DirectionalAttribute)
+
+(documentation mediumAltitudeWindVelocity EnglishLanguage 
+"(&%mediumAltitudeWindVelocity ?PLACE ?SPEED ?TOWARD) means that the 
+&%Wind blowing between 10,000-25,000 feet at ?PLACE has a speed of 
+?SPEED and is moving toward the &%DirectionalAttribute ?TOWARD.")
+
+(instance mediumAltitudeWindSpeed BinaryPredicate)
+(instance mediumAltitudeWindSpeed AsymmetricRelation)
+(domain mediumAltitudeWindSpeed 1 Object)
+(domain mediumAltitudeWindSpeed 2 ConstantQuantity)
+
+(documentation mediumAltitudeWindSpeed EnglishLanguage 
+"(&%mediumAltitudeWindSpeed ?PLACE ?RATE) means that the &%Wind 
+blowing between 10,000-25,000 feet at ?PLACE has a speed of ?RATE.")
+
+(=>
+  (mediumAltitudeWindVelocity ?PLACE ?SPEED ?DIRECTION)
+  (mediumAltitudeWindSpeed ?PLACE ?SPEED))
+
+(instance highAltitudeWindVelocity TernaryPredicate)
+(domain highAltitudeWindVelocity 1 Object)
+(domain highAltitudeWindVelocity 2 PhysicalQuantity)
+(domain highAltitudeWindVelocity 3 DirectionalAttribute)
+
+(documentation highAltitudeWindVelocity EnglishLanguage 
+"(&%highAltitudeWindVelocity ?PLACE ?SPEED ?TOWARD) means that the 
+&%Wind blowing above 25,000 feet at ?PLACE has a speed of ?SPEED 
+and is moving toward the &%DirectionalAttribute ?TOWARD.")
+
+(instance highAltitudeWindSpeed BinaryPredicate)
+(instance highAltitudeWindSpeed AsymmetricRelation)
+(domain highAltitudeWindSpeed 1 Object)
+(domain highAltitudeWindSpeed 2 ConstantQuantity)
+
+(documentation highAltitudeWindSpeed EnglishLanguage 
+"(&%highAltitudeWindSpeed ?PLACE ?RATE) means that the &%Wind 
+blowing above 25,000 feet at ?PLACE has a speed of ?RATE.")
+
+(=>
+  (highAltitudeWindVelocity ?PLACE ?SPEED ?DIRECTION)
+  (highAltitudeWindSpeed ?PLACE ?SPEED))
+
+(instance Upwind PositionalAttribute)
+(subAttribute Upwind Upstream)
+
+(documentation Upwind EnglishLanguage 
+"&%Upwind is a &%PositionalAttribute that indicates relative position 
+upwind (windward) with respect to the direction that the &%Wind is 
+blowing.")
+
+(instance Downwind PositionalAttribute)
+(subAttribute Downwind Downstream)
+
+(documentation Downwind EnglishLanguage 
+"&%Downwind is a &%PositionalAttribute that indicates relative position 
+downwind (leeward) with respect to the direction that the &%Wind is 
+blowing.")
+
+(instance windRelativePosition BinaryPredicate)
+(instance windRelativePosition AsymmetricRelation)
+(domain windRelativePosition 1 Object)
+(domain windRelativePosition 2 Attribute)
+
+(documentation windRelativePosition EnglishLanguage 
+"(&%windRelativePosition ?OBJECT ?POSITION) means that the &%Wind blows 
+at ?OBJECT from the relative vector ?POSITION.  E.g., &%Crosswind, 
+&%Headwind, &%Tailwind.")
+
+(instance Crosswind Attribute)
+
+(documentation Crosswind EnglishLanguage "&%Crosswind is the relative attribute of a 
+&%Wind to an object when the force of the wind is applied to a lateral 
+&%side of the object.")
+
+(instance Headwind Attribute)
+
+(documentation Headwind EnglishLanguage "&%Headwind is the relative attribute of a 
+&%Wind to an object when the force of the wind is applied to the front 
+of the object (&%FrontFn).  A headwind can negatively affect the speed 
+capability of a vehicle.")
+
+(instance Tailwind Attribute)
+
+(documentation Tailwind EnglishLanguage "&%Tailwind is the relative attribute of a 
+&%Wind to an object when the force of the wind is applied to the back  
+of the object (&%BackFn).  A tailwind can positively affect the speed 
+capability of a vehicle.")
+
+(documentation windDrivenMotion EnglishLanguage "&%windDrivenMotion is an instance of
+&%BinaryPredicate. In (windDrivenMotion ?W ?WM), ?W is the &%Wind that &%causes the &%Motion
+ of an &%object located in a &%Region wherethe wind blows. ")
+(format EnglishLanguage windDrivenMotion "%1 causes %2")
+(documentation windDrivenMotion ChineseLanguage "&%windDrivenMotion (风力运动) 是一个
+&%BinaryPredicate (二元谓语) 的实例。 在(windDrivenMotion ?W ?WM), ?W 是由 &%Wind (风)所 &%causes 
+(导致)位于风在吹&%Region ()地区上某个&%object (物体)的&%Motion (运动)。")
+(format ChineseLanguage windDrivenMotion "%1 导致 %2")
+(domain windDrivenMotion 1 Wind)
+(domain windDrivenMotion 2 Motion)
+(instance windDrivenMotion BinaryPredicate)
+
+(=>
+  (windDrivenMotion ?W ?WM)
+  (causes ?W ?WM))
+
+(subclass BeaufortNumberAttribute SpeedScaleAttribute)
+(documentation BeaufortNumberAttribute EnglishLanguage "&%BeaufortNumberAttribute is the
+&%Attribute for indicating wind force, according to classifications based on observable weather 
+conditions such as movement of object presence at the location, and later
+related to wind speed ranges.")
+(documentation BeaufortNumberAttribute ChineseLanguage "&%BeaufortNumberAttribute (浦福氏凤级) 
+是表示风力的 &%Attribute (属性)， 它根据可观察的天气条件如在相关位置物体的动态，然后按强弱归类风速等级。")
+
+(=>
+  (and
+    (instance ?BN BeaufortNumberAttribute)
+    (property ?X ?BN))
+  (instance ?X Wind))
+  
+(=>
+  (and
+    (instance ?W Wind)
+    (instance ?BN BeaufortNumberAttribute)
+    (eventLocated ?W ?AREA)
+    (believes ?A 
+      (property ?W ?BN))
+    (speedScaleAttributeMinMax ?BN 
+      (MeasureFn ?MIN ?U)
+      (MeasureFn ?MAX ?U))
+    (instance ?U UnitOfMeasure))
+  (exists (?SPEED)
+    (and
+      (greaterThanOrEqualTo ?SPEED ?MIN)
+      (lessThanOrEqualTo ?SPEED ?MAX)    
+      (believes ?A    
+        (surfaceWindSpeed ?AREA 
+          (MeasureFn ?SPEED ?U))))))
+
+(documentation BeaufortNumber0 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber0 is less than 1 &%MilesPerHour (2 km/h).")
+(documentation BeaufortNumber0 ChineseLanguage "&%BeaufortNumber0 (浦氏0风级)的 预计
+&%surfaceWindSpeed (地面风速)少于1 &%MilesPerHour (每小时英里)即(2 km/h).")
+(instance BeaufortNumber0 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber0 BeaufortNumber1)
+
+(speedScaleAttributeMinMax BeaufortNumber0 (MeasureFn 0.0 MilesPerHour) (MeasureFn 1.0 MilesPerHour))
+
+(documentation BeaufortNumber1 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber1 ranges between 1 and 3 &%MilesPerHour (2-5 km/h).")
+(documentation BeaufortNumber1 ChineseLanguage "&%BeaufortNumber1 (浦氏1风级)的 预计
+&%surfaceWindSpeed (地面风速)1 到 3 &%MilesPerHour (每小时英里)即(2-5 km/h).")
+(instance BeaufortNumber1 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber1 BeaufortNumber2)
+
+(speedScaleAttributeMinMax BeaufortNumber1 (MeasureFn 1.0 MilesPerHour) (MeasureFn 3.0 MilesPerHour))
+
+(documentation BeaufortNumber2 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber2 ranges between 4 and 7 &%MilesPerHour (6 and 11 km/h).")
+(documentation BeaufortNumber2 ChineseLanguage "&%BeaufortNumber2 (浦氏2风级)的 预计
+&%surfaceWindSpeed (地面风速)4 到 7 &%MilesPerHour (每小时英里)即(6-11km/h).")
+(instance BeaufortNumber2 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber2 BeaufortNumber3)
+
+(speedScaleAttributeMinMax BeaufortNumber2 (MeasureFn 4.0 MilesPerHour) (MeasureFn 7.0 MilesPerHour))
+
+
+(documentation BeaufortNumber3 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber3 ranges between 8 and 12 &%MilesPerHour (12 and 19 km/h).")
+(documentation BeaufortNumber3 ChineseLanguage "&%BeaufortNumber3 (浦氏3风级)的 预计
+&%surfaceWindSpeed (地面风速)8 到 12 &%MilesPerHour (每小时英里)即(12-19 km/h).")
+(instance BeaufortNumber3 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber3 BeaufortNumber4)
+
+(speedScaleAttributeMinMax BeaufortNumber3 (MeasureFn 8.0 MilesPerHour) (MeasureFn 12.0 MilesPerHour))
+
+(documentation BeaufortNumber4 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber4 ranges between 13 and 18 &%MilesPerHour (20 and 28 km/h).")
+(documentation BeaufortNumber4 ChineseLanguage "&%BeaufortNumber4 (浦氏4风级)的 预计
+&%surfaceWindSpeed (地面风速)13 到 18 &%MilesPerHour (每小时英里)即(20-28 km/h).")
+(instance BeaufortNumber4 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber4 BeaufortNumber5)
+
+(speedScaleAttributeMinMax BeaufortNumber4 (MeasureFn 13.0 MilesPerHour) (MeasureFn 18.0 MilesPerHour))
+
+(documentation BeaufortNumber5 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber5 ranges between 19 and 24 &%MilesPerHour (29 and 38 km/h).")
+(documentation BeaufortNumber5 ChineseLanguage "&%BeaufortNumber5 (浦氏5风级)的 预计
+&%surfaceWindSpeed (地面风速)19 到 24 &%MilesPerHour (每小时英里)即(29-38 km/h).")
+(instance BeaufortNumber5 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber5 BeaufortNumber6)
+
+(speedScaleAttributeMinMax BeaufortNumber5 (MeasureFn 19.0 MilesPerHour) (MeasureFn 24.0 MilesPerHour))
+
+(documentation BeaufortNumber6 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber6 ranges between 25 and 31 &%MilesPerHour (39 and 49 km/h).")
+(documentation BeaufortNumber6 ChineseLanguage "&%BeaufortNumber6 (浦氏6风级)的 预计
+&%surfaceWindSpeed (地面风速)25 到 31 &%MilesPerHour (每小时英里)即(39-49 km/h).")
+(instance BeaufortNumber6 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber6 BeaufortNumber7)
+
+(speedScaleAttributeMinMax BeaufortNumber6 (MeasureFn 25.0 MilesPerHour) (MeasureFn 31.0 MilesPerHour))
+
+(documentation BeaufortNumber7 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber7 ranges between 32 and 38 &%MilesPerHour (50 and 61 km/h).")
+(documentation BeaufortNumber7 ChineseLanguage "&%BeaufortNumber7 (浦氏7风级)的 预计
+&%surfaceWindSpeed (地面风速)32 到 38 &%MilesPerHour (每小时英里)即(50-61 km/h).")
+(instance BeaufortNumber7 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber7 BeaufortNumber8)
+
+(speedScaleAttributeMinMax BeaufortNumber7 (MeasureFn 32.0 MilesPerHour) (MeasureFn 38.0 MilesPerHour))
+
+(documentation BeaufortNumber8 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber8 ranges between 39 and 46 &%MilesPerHour (62 and 74 km/h).")
+(documentation BeaufortNumber8 ChineseLanguage "&%BeaufortNumber8 (浦氏8风级)的 预计
+&%surfaceWindSpeed (地面风速)39 到 46 &%MilesPerHour (每小时英里)即(62-74 km/h).")
+(instance BeaufortNumber8 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber8 BeaufortNumber9)
+
+(speedScaleAttributeMinMax BeaufortNumber8 (MeasureFn 39.0 MilesPerHour) (MeasureFn 46.0 MilesPerHour))
+
+(documentation BeaufortNumber9 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber9 ranges between 47 and 54 &%MilesPerHour (75 and 88 km/h).")
+(documentation BeaufortNumber9 ChineseLanguage "&%BeaufortNumber9 (浦氏9风级)的 预计
+&%surfaceWindSpeed (地面风速)47 到 54 &%MilesPerHour (每小时英里)即(75-88 km/h).")
+(instance BeaufortNumber9 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber9 BeaufortNumber10)
+
+(speedScaleAttributeMinMax BeaufortNumber9 (MeasureFn 47.0 MilesPerHour) (MeasureFn 54.0 MilesPerHour))
+
+(documentation BeaufortNumber10 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber10 ranges between 55 and 63 &%MilesPerHour (89 and 102 km/h).")
+(documentation BeaufortNumber10 ChineseLanguage "&%BeaufortNumber10 (浦氏10风级)的 预计
+&%surfaceWindSpeed (地面风速)55 到 63 &%MilesPerHour (每小时英里)即(89-102 km/h).")
+(instance BeaufortNumber10 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber10 BeaufortNumber11)
+
+(speedScaleAttributeMinMax BeaufortNumber10 (MeasureFn 55.0 MilesPerHour) (MeasureFn 63.0 MilesPerHour))
+
+(documentation BeaufortNumber11 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber11 ranges between 64 and 72 &%MilesPerHour (103 and 117 km/h).")
+(documentation BeaufortNumber11 ChineseLanguage "&%BeaufortNumber11 (浦氏11风级)的 预计
+&%surfaceWindSpeed (地面风速)64 到 372&%MilesPerHour (每小时英里)即(103-117 km/h).")
+(instance BeaufortNumber11 BeaufortNumberAttribute)
+(successorAttribute BeaufortNumber11 BeaufortNumber12)
+
+(speedScaleAttributeMinMax BeaufortNumber11 (MeasureFn 64.0 MilesPerHour) (MeasureFn 72.0 MilesPerHour))
+
+
+(documentation BeaufortNumber12 EnglishLanguage "The estimated &%surfaceWindSpeed for 
+&%BeaufortNumber12 is over 73 &%MilesPerHour (118 km/h).")
+(documentation BeaufortNumber12 ChineseLanguage "&%BeaufortNumber12 (浦氏12风级)的 预计
+&%surfaceWindSpeed (地面风速) 大于73 &%MilesPerHour (每小时英里)即(118 km/h).")
+(instance BeaufortNumber12 BeaufortNumberAttribute)
+
+(=>
+  (and
+    (instance ?W Wind)
+    (instance ?BN BeaufortNumber12)
+    (eventLocated ?W ?AREA)
+    (believes ?A 
+      (property ?W ?BN)))
+  (exists (?SPEED)
+    (and
+      (greaterThan ?SPEED 73.0)
+      (believes ?A   
+        (surfaceWindSpeed ?AREA 
+          (MeasureFn ?SPEED MilesPerHour))))))
+        
+
+;;----------------------------------------------------------------------
+
+;;  G. Weather & Climate
+
+(subclass WeatherSeason WeatherProcess)
+  
+(documentation WeatherSeason EnglishLanguage "&%WeatherSeason is the class of seasonal 
+processes that are characterized by various weather patterns.  
+&%WeatherSeasons may recur on a regular annual basis, on a different 
+pattern, or irregularly.")
+
+(subclass Monsoon WeatherSeason)
+(subclass HurricaneSeason WeatherSeason)
+(subclass ElNino WeatherSeason)
+
+(documentation WeatherSystem EnglishLanguage "&%WeatherSystems are the
+movement of &%WindFlows across the &%EarthsAtmosphere. These movements
+are known as &%LowPressureWeatherSystems and &%HighPressureWeatherSystem.")
+(documentation WeatherSystem ChineseLanguage "天气系统 &%WeatherSystem 
+是在地球大气层 &%EarthsAtmosphere 上流动的大气气流 &%WindFlow，这些运动又名为
+低气压天气系统 &%LowPressureWeatherSystems 和 高气压天气系统 
+&%HighPressureWeatherSystem。")
+(subclass WeatherSystem WeatherProcess)
+
+(=>
+  (instance ?WS WeatherSystem)
+  (exists (?MOVE ?WF)
+    (and
+      (instance ?MOVE Translocation)
+      (instance ?WF WindFlow)
+      (patient ?MOVE ?WF)
+      (subProcess ?MOVE ?WS))))
+ 
+(documentation LowPressureWeatherSystem EnglishLanguage "&%LowPressureWeatherSystem is 
+the class of &%WeatherSystems characterized by &%barometricPressures of
+29.5 &%Inchmercury (998.98mbar) or less. Low pressure systems typically introduce 
+unsettled weather, frequently including storms.")
+;; the unsettled weather is covered in the axiom for Storm
+(documentation LowPressureWeatherSystem ChineseLanguage "&%LowPressureWeatherSystem
+低气压天气系统是一类天气系统 &%WeatherSystem，它的特点是大气气压 &%barometricPressures 处于
+29.5 寸水銀柱 &%Inchmercury (998.98mbar)或更低数值。低气压系统一般带来不稳定的天气， 如常伴随有风暴。")
+(subclass LowPressureWeatherSystem WeatherSystem)
+(partition LowPressureWeatherSystem HighPressureWeatherSystem)
+
+(=>
+  (and
+    (instance ?SYSTEM LowPressureWeatherSystem)
+    (instance ?AREA Region)
+    (eventLocated ?SYSTEM ?AREA))
+  (and
+    (barometricPressure ?AREA (MeasureFn ?AMOUNT InchMercury))
+    (lessThan ?AMOUNT 29.5)))
+
+(subclass CyclonicStorm LowPressureWeatherSystem)
+(subclass CyclonicStorm Storm)
+(documentation CyclonicStorm EnglishLanguage "&%CyclonicStorm is the class of 
+&%LowPressureWeatherSystems that involve a low pressure area 
+surrounded by winds rotating rapidly inwards.")
+(documentation CyclonicStorm ChineseLanguage "&%CyclonicStorm 气旋风暴属于一类
+低气压气象系统 &%LowPressureWeatherSystem， 它涉及风向由快速向内旋转的
+一处低气压区。")
+
+(=>
+  (instance ?CS CyclonicStorm)
+  (exists (?CM)
+    (and
+      (instance ?CM CentripetalMotion)
+      (subProcess ?CM ?CS))))
+
+(=>
+  (and
+    (instance ?CS CyclonicStorm)
+    (instance ?AS AirStream)
+    (eventLocated ?CS ?AS))
+  (shape ?AS Cylinder))
+
+; need to define a function to find the centroid of a region, then
+; define the EyeOfCyclone and radiusOfMaximumWind
+; Jennie 9th March 2021
+
+(subclass EyeOfCyclone AirStream)
+(documentation EnglishLanguage EyeOfCyclone "&%EyeOfCyclone is a calm area
+extending from the &Centroid of the &%FlowRegion of a well_developed matured
+&%TropicalCyclone. The &%approximateDiameter of a typical &%EyeOfCyclone ranges
+between 19 to 40 &%Miles.")
+;(documentation ChineseLanguage EyeOfCyclone "")
+(termFormat EnglishLanguage EyeOfCyclone "eye of cyclone" )
+(termFormat ChineseLanguage EyeOfCyclone "台风风眼")
+
+(instance radiusOfMaximumWind BinaryPredicate)
+(documentation EnglishLanguage radiusOfMaximumWind "&%radiusOfMaximumWind is &%BinaryPredicate 
+which states a &%FlowRegion to be within the the radius of maximum wind of a &%CyclonicStorm.
+In (radiusOfMaximumWind ?CS ?REGION) ?REGION is located withing the radius of maximum wind (RMW) 
+of a &%CyclonicStorm ?CS.")
+;(documentation ChineseLanguage radiusOfMaximumWind "")
+(termFormat EnglishLanguage radiusOfMaximumWind "radius of maximum wind")
+(termFormat ChineseLanguage radiusOfMaximumWind "最大风速半径")
+(domain radiusOfMaximumWind 1 CyclonicStorm)
+(domain radiusOfMaximumWind 2 FlowRegion)
+(format EnglishLanguage radiusOfMaximumWind "%2 is within the &%radiusOfMaximumWind of %1")
+(format ChineseLanguage radiusOfMaximumWind "%2 在%1 的最大风速半径内")
+
+(subclass TropicalCyclonicSystem CyclonicStorm) 
+(documentation TropicalCyclonicSystem EnglishLanguage "&%TropicalCyclonicSystem is the class of 
+&%CyclonicStorms that originates in the &%Tropics and typically have rotational winds of strong 
+force (> 25 mph) or higher.The whole system typically moving forward at 10-15 mph, 
+but it can also stay quasistationary, or travel as fast as 40 mph.
+https://www.metoffice.gov.uk/research/weather/tropical_cyclones/facts")
+(documentation TropicalCyclonicSystem ChineseLanguage "&%TropicalCyclonicSystem (热带气旋系统)
+是&%CyclonicStorm (气旋风暴)的一类，它在热带（&%Tropics）产生，风向朝气旋中心，向内旋转，风速一般达强风
+(>25 mph)程度或更高的风速。整个系统通常以每小时10-15英里 （10-15 mph）向前移动，可是有时候也会
+保持停留不动，或是移动速度快达每小时40英里 （40 mph)。
+https://www.metoffice.gov.uk/research/weather/tropical_cyclones/facts")
+(termFormat EnglishLanguage TropicalCyclonicSystem "tropical cyclonic system")
+(termFormat ChineseLanguage TropicalCyclonicSystem "热带氣旋系统")
+
+(=>
+  (instance ?STORM TropicalCyclonicSystem)
+  (exists (?PLACE)
+    (and
+      (instance ?PLACE GeographicArea)
+      (geographicSubregion ?PLACE Tropics)
+      (origin ?STORM ?PLACE))))
+
+(=>
+  (and
+    (instance ?TC TropicalCyclonicSystem)
+    (origin ?TC ?SEA)
+    (or
+      (instance ?SEA NorthAtlanticOcean)
+      (instance ?SEA PacificOcean)
+      (instance ?SEA IndianOcean)))
+  (not
+    (exists (?AREA ?DIR ?NUM ?LONG)
+      (and
+        (located ?AREA ?SEA)
+        (instance ?DIR DirectionalAttribute)
+        (objectGeographicCoordinates ?AREA
+          (LatitudeFn ?DIR
+            (MeasureFn ?NUM AngularDegree)) ?LONG)
+        (or
+          (equal ?DIR North)
+          (equal ?DIR South))
+        (lessThan ?NUM 5.0)))))
+      
+(subclass TropicalDepression TropicalCyclonicSystem)                 
+(documentation TropicalDepression EnglishLanguage "A &%TropicalDepression
+is the weakest form of &%TropicalCyclonicSystem. It has 1-minute sustained winds
+of upto 38 &%MilesPerHour according to the National Hurrican Center(NHC),Joint 
+Typhoon Warning Center (JTWC) and the Central Pacific Hurricane Center (CPHC).")
+(documentation TropicalDepression ChineseLanguage "热带低气压(&%TropicalDepression)
+是等级形态最弱的热带氣旋系统(&%TropicalCyclonicSystem), 根据美國的國家颶風中心(NHC)、
+夏威夷州的中太平洋颶風中心(CPHC)和聯合颱風警報中心的标准，它的一分钟平均风速可达
+每小时38英里（&%MilesPerHour ）。")
+(termFormat EnglishLanguage TropicalDepression "tropical depression")
+(termFormat ChineseLanguage TropicalDepression "热带低气压")
+
+(=>
+  (instance ?TD TropicalDepression)
+  (exists (?PLACE ?WIND)
+    (and
+      (instance ?PLACE GeographicArea)
+      (eventLocated ?TD ?PLACE)
+      (equal 
+        (MeasureFn ?WIND MilesPerHour)
+        (Mean1MinuteWindSpeedFn ?PLACE
+          (WhenFn ?TD)))
+      (lessThanOrEqualTo ?WIND 38.0))))
+        
+(subclass TropicalCyclone TropicalCyclonicSystem)    
+(documentation TropicalCyclone EnglishLanguage "&%TropicalCyclone is a generic term
+for &%TropicalCyclonicSystems with 1-minute sustained winds of 44 &%MilesPerHour 
+(mph)or higher.")
+(documentation TropicalCyclone ChineseLanguage "&%TropicalCyclone 热带气旋是
+热带氣旋系统的一个统称，它的一分钟平均风速一般达每小时44英里（&%MilesPerHour）或更高的风速。")
+(termFormat EnglishLanguage TropicalCyclone "tropical cyclone")
+(termFormat ChineseLanguage TropicalCyclone "热带气旋")
+
+(=>
+  (instance ?TC TropicalCyclone)
+  (exists (?PLACE ?WIND)
+    (and
+      (instance ?PLACE GeographicArea)
+      (eventLocated ?TC ?PLACE)
+      (equal 
+        (MeasureFn ?WIND MilesPerHour)
+        (Mean1MinuteWindSpeedFn ?PLACE
+          (WhenFn ?TC)))
+      (greaterThanOrEqualTo ?WIND 44.0))))
+
+(=>
+  (and
+    (instance ?TC TropicalCyclone)
+    (destination ?TC ?DEST)
+    (instance ?DEST GeographicArea))
+  (not
+    (exists (?L ?SL ?X)
+      (and
+        (instance ?L LandArea)
+        (instance ?SL Shoreline)
+        (located ?DEST ?L)
+        (distance ?L ?SL 
+          (MeasureFn ?X Mile))
+        (greaterThan ?X 200.0)))))
+
+(subclass TropicalStorm TropicalCyclonicSystem)
+(documentation TropicalStorm EnglishLanguage "&%TropicalStorm is a &%TropicalCyclonicSystem
+with 1-minute sustained winds ranging between 39 and 72 &%MilesPerHour.")
+(documentation TropicalStorm ChineseLanguage "热带风暴(&%TropicalStorm)是一分钟平均风速
+在每小时39和74英里(&%MilesPerHour)之间的热带氣旋系统(&%TropicalCyclonicSystem)。")
+(termFormat EnglishLanguage TropicalStorm "tropical storm")
+(termFormat ChineseLanguage TropicalStorm "热带风暴")
+
+(=>
+  (instance ?TS TropicalStorm)
+  (exists (?PLACE ?WIND)
+    (and
+      (instance ?PLACE GeographicArea)
+      (eventLocated ?TS ?PLACE)
+      (equal 
+        (MeasureFn ?WIND MilesPerHour)
+        (Mean1MinuteWindSpeedFn ?PLACE
+          (WhenFn ?TS)))
+      (greaterThanOrEqualTo ?WIND 39.0)
+      (lessThanOrEqualTo ?WIND 74.0))))
+        
+(documentation Hurricane EnglishLanguage "&%Hurricanes are &%TropicalCyclones formed in 
+&%NortheasternPacificOcean or &%NorthAtlanticOcean with &%Mean1MinuteWindSpeedFn 
+(1-minute sustained winds)equal to or over 74 &%MilesPerHour.They are classified into 5 categories
+based on the &%SSHWSAttribute (Saffir_Simpson hurricane wind scale).")
+(documentation Hurricane ChineseLanguage "颶風(&%Hurricane)是在东北太平洋(&%NortheasternPacificOcean)
+或北大西洋(&%NorthAtlanticOcean)形成、1分钟平均地面风速(&%Mean1MinuteWindSpeedFn) 达到或高于每小时74英里
+(&%MilesPerHour)的热带气旋(&%TropicalCyclone)。按照萨菲尔辛普森飓风风力等级(&%SSHWSAttribute)可分为五个等级。")
+(subclass Hurricane TropicalCyclonicSystem) 
+(termFormat EnglishLanguage Hurricane "hurricane")
+(termFormat ChineseLanguage Hurricane "颶風")
+
+(=>
+  (instance ?H Hurricane)
+  (exists (?TC ?PLACE ?WIND)
+    (and
+      (instance ?TC TropicalCyclone)
+      (instance ?PLACE GeographicArea)
+      (eventLocated ?TC ?PLACE)
+      (equal 
+        (MeasureFn ?WIND MilesPerHour)
+        (Mean1MinuteWindSpeedFn ?PLACE
+          (WhenFn ?TC)))
+      (greaterThanOrEqualTo ?WIND 74.0))))
+
+(=>
+  (and
+    (instance ?H Hurricane)
+    (eventLocated ?H ?P)
+    (instance ?P GeographicArea)
+    (or
+      (located ?P ?SEA)
+      (meetsSpatially ?P ?SEA)))
+  (or
+    (equal ?SEA NorthwesternPacificOcean)
+    (equal ?SEA NorthAtlanticOcean)))
+    
+(documentation Typhoon EnglishLanguage "&%Typhoons are &%TropicalCyclones with 
+&%Mean10MinutesWindSpeedFn (10-minute sustained winds) equal to or over 64 &%MilesPerHour
+formed in &%NorthwesternPacificOcean.")
+(documentation Typhoon ChineseLanguage "颱風（&%Typhoon）是10分钟平均地面风速(&%Mean10MinutesWindSpeedFn) 
+达到或高于每小时64 英里(&%MilesPerHour)在西北太平洋(&%NorthwesternPacificOcean)的热带气旋(&%TropicalCyclone)。")
+(subclass Typhoon TropicalCyclonicSystem)
+(termFormat EnglishLanguage Typhoon "typhoon")
+(termFormat ChineseLanguage Typhoon "颱風")
+
+(=>
+  (instance ?T Typhoon)
+   (exists (?TC ?PLACE ?WIND)
+     (and
+       (instance ?TC TropicalCyclone)
+       (instance ?PLACE GeographicArea)
+       (eventLocated ?TC ?PLACE)
+       (equal 
+         (MeasureFn ?WIND MilesPerHour)
+         (Mean10MinutesWindSpeedFn ?PLACE
+           (WhenFn ?TC)))
+       (greaterThanOrEqualTo ?WIND 64.0))))
+
+(=>
+  (and
+    (instance ?T Typhoon)
+    (eventLocated ?T ?P)
+    (instance ?P GeographicArea))
+  (or
+    (located ?P NortheasternPacificOcean)
+    (meetsSpatially ?P NortheasternPacificOcean)))
+         
+(subclass HighPressureWeatherSystem WeatherSystem)
+
+(documentation HighPressureWeatherSystem EnglishLanguage "&%HighPressureWeatherSystem is 
+the class of weather systems characterized by high &%barometricPressures.  
+High pressure systems typically cause clear weather.")
+
+(=>
+  (and
+    (instance ?SYSTEM HighPressureWeatherSystem)
+    (eventLocated ?SYSTEM ?AREA))
+  (and
+    (barometricPressure ?AREA (MeasureFn ?AMOUNT InchMercury))
+    (greaterThan ?AMOUNT 30.2)))
+
+(subclass StormSystem WeatherProcess)
+
+(subclass WeatherFront WeatherProcess)
+
+(documentation WeatherFront EnglishLanguage "&%WeatherFront is the class of weather 
+processes that involve relationships between two air masses. A weather front is a boundary 
+separating air masses for which several characteristics differ, such as air density, wind, 
+temperature, and humidity. Disturbed and unstable weather due to these differences often 
+arises along the boundary. [Wikipedia]")
+
+(=>
+  (and
+    (instance ?W WeatherFront)
+    (instance ?F AirStream)
+    (eventLocated ?W ?F)
+    (connects ?F ?A ?B)
+    (instance ?A AirMass)
+    (instance ?B AirMass))
+  (not
+    (equal ?A ?B)))
+          
+;;
+;; Jennie Pease 22nd May 2025
+;; Air Mass added
+
+(subclass AirMass AirStream)
+(documentation AirMass EnglishLanguage "An &%AirMass,in meteorology, is a volume of air 
+defined by its temperature and humidity. Air masses cover many hundreds or thousands of 
+square miles, and adapt to the characteristics of the surface below them. Colder air 
+masses are termed polar or arctic, while warmer air masses are deemed tropical. 
+Continental and superior air masses are dry, while maritime and monsoon air masses 
+are moist. &%WeatherFronts separate air masses with different density (temperature 
+or moisture) characteristics.[Wikipedia]")
+(termFormat EnglishLanguage AirMass "air mass")
+(termFormat ChineseLanguage AirMass "气团")
+(termFormat ChineseTraditionalLanguage AirMass "氣團")
+
+(=>
+  (and
+    (instance ?M AirMass)
+    (part ?A ?M)
+    (part ?B ?M)
+    (not
+      (equal ?A ?B))
+    (airTemperature ?A
+      (MeasureFn ?X CelsiusDegree))
+    (airTemperature ?B
+      (MeasureFn ?Y CelsiusDegree)))
+  (approximateValue ?X ?Y))
+  
+(=>
+  (and
+    (instance ?M AirMass)
+    (part ?A ?M)
+    (part ?B ?M)
+    (not
+      (equal ?A ?B))
+    (relativeHumidity ?A ?X)
+    (relativeHumidity ?B ?Y))
+  (approximateValue ?X ?Y))
+  
+(subclass WarmFront WeatherFront)
+
+(documentation WarmFront EnglishLanguage "&%WarmFront is the class of transitional 
+weather processes occurring between a warm air mass that is advancing 
+upon a cool air mass.")
+
+(=>
+  (and
+    (instance ?WF WarmFront)
+    (instance ?W AirMass)
+    (origin ?WF ?W)
+    (airTemperature ?W 
+      (MeasureFn ?X CelsiusDegree))
+    (instance ?C AirMass)
+    (path ?WF ?C)
+    (airTemperature ?C 
+      (MeasureFn ?Y CelsiusDegree)))
+  (greaterThan ?X ?Y))
+    
+(subclass ColdFront WeatherFront)
+(disjoint ColdFront WarmFront)
+
+(documentation ColdFront EnglishLanguage "&%ColdFront is the class of transitional 
+weather processes occurring between a cold air mass that is advancing 
+upon a warm air mass. It lies within a pronounced surface trough of low pressure.[Wikipedia]")
+
+(=>
+  (and
+    (instance ?CF ColdFront)
+    (instance ?C AirMass)
+    (origin ?CF ?C)
+    (airTemperature ?C 
+      (MeasureFn ?X CelsiusDegree))
+    (instance ?W AirMass)
+    (path ?W ?W)
+    (airTemperature ?W 
+      (MeasureFn ?Y CelsiusDegree)))
+  (lessThan ?X ?Y))
+
+(subclass OccludedFront WeatherFront)
+
+(documentation OccludedFront EnglishLanguage "&%OccludedFront is the class of complex 
+weather transition processes in which a cold air mass overtakes a warm 
+air mass.")
+              
+(=>
+  (and
+    (instance ?OF OccludedFront)
+    (instance ?C AirMass)
+    (origin ?OF ?C)
+    (airTemperature ?C
+      (MeasureFn ?X CelsiusDegree))
+    (instance ?W AirMass)        
+    (airTemperature ?W
+      (MeasureFn ?Y CelsiusDegree))
+    (lessThan ?X ?Y)
+    (moves ?OF ?W))
+  (orientation ?C ?W Below))
+          
+(subclass StationaryFront WeatherFront)
+
+(documentation StationaryFront EnglishLanguage "&%StationaryFront is the class of 
+boundary areas between two air masses that are stationary, with neither air
+mass presently replacing the other.")
+
+(=>
+  (and
+    (instance ?SF StationaryFront)
+    (eventLocated ?SF ?F)
+    (instance ?F AirStream))
+  (holdsDuring
+    (WhenFn ?SF)
+    (not
+      (exists (?T)
+        (and
+          (subProcess ?T ?SF)
+          (instance ?T Translocation)
+          (moves ?T ?F))))))
+
+(subclass Thunderstorm Storm) 
+(documentation Thunderstorm EnglishLanguage "A &%Thunderstorm, also known as an 
+electrical storm or a lightning storm, is a storm characterized by the presence of 
+&%Lightning and its acoustic effect on the Earth's atmosphere, known as &%Thunder.
+[Wikipedia]")
+
+(=>
+  (instance ?TS Thunderstorm)
+  (holdsDuring
+    (WhenFn ?TS)
+      (exists (?L ?T)
+        (and
+          (instance ?L Lightning)
+          (subProcess ?L ?TS)
+          (instance ?T Thunder)
+          (subProcess ?T ?TS)))))
+
+(subclass Lightning WeatherProcess)
+(subclass Lightning Radiating)
+(documentation Lightning EnglishLanguage "A &%WeatherProcess which involves a significant
+release of electricity between two electrically charged regions. One or both regions are
+within the atmosphere in a &WaterCloud, with the second region sometimes occuring on the 
+ground. [Wikipedia] At the moment, we are modeling electricity as flowing from one region 
+to another. Another way to model it is that it is a change of electrical potential at all 
+points on the path. It would be worth revisiting this term by a specialist in Physics.")
+
+(=>
+   (instance ?L Lightning)
+   (exists (?C)
+      (and
+         (instance ?C WaterCloud)
+         (eventLocated ?L ?C))))
+         
+(subclass IntraCloudLightning Lightning)
+(documentation IntraCloudLightning EnglishLanguage "&%IntraCloudLightning occurs between 
+two areas of differing electic potential within a single cloud. [Wikipedia]")
+(termFormat EnglishLanguage IntraCloudLightning "intra cloud lightning")
+
+(=>
+  (and
+    (instance ?L IntraCloudLightning)
+    (instance ?C WaterCloud)
+    (origin ?L ?A)
+    (part ?A ?C))
+  (exists (?B)
+    (and
+      (part ?B ?C)
+      (not
+        (equal ?A ?B))
+      (destination ?L ?B))))
+
+(subclass CloudToCloudLightning Lightning)
+(documentation CloudToCloudLightning EnglishLanguage "&%CloudToCloudLightning occurs between 
+two separate clouds.[Wikipedia]")
+(termFormat EnglishLanguage CloudToCloudLightning "cloud to cloud lightning")
+
+(=>
+  (and
+    (instance ?L CloudToCloudLightning)
+    (instance ?A WaterCloud)
+    (origin ?L ?A)
+    (destination ?L ?B)
+    (instance ?B WaterCloud))
+  (not
+    (equal ?A ?B)))
+   
+(subclass LightningStrike Lightning)
+(documentation LightningStrike EnglishLanguage "&%LightningStrike is a lightning discharge 
+between a thundercloud and the ground.[Wikipedia]")
+(termFormat EnglishLanguage LightningStrike "lightning strike")
+
+(=>
+  (and
+    (instance ?L LightningStrike)
+    (instance ?A WaterCloud)
+    (origin ?L ?A)
+    (destination ?L ?G))
+  (instance ?G GeographicArea))
+
+(subclass Thunder WeatherProcess)
+(subclass Thunder RadiatingSound)
+(documentation Thunder EnglishLanguage "Any instance of &%RadiatingSound which is caused by
+an instance of Lightning.")
+
+(=>
+  (instance ?T Thunder)
+  (exists (?L)
+    (and
+      (instance ?L Lightning)
+      (causes ?L ?T))))
+                   
+(subclass Waterspout WeatherProcess)  
+(documentation Waterspout EnglishLanguage "A &%Waterspout,is a rotating column of air 
+that occurs over a body of water, usually appearing as a funnel-shaped cloud in contact 
+with the water and a cumuliform cloud.There are two types of waterspout, each formed 
+by distinct mechanisms. The most common type is a weak vortex known as a fair weather 
+or non-tornadic waterspout. The other less common type is simply a classic tornado 
+occurring over water rather than land, known as a tornadic supercellular, or  
+mesocyclonic waterspout, and accurately a tornado over water. [Wikipedia]")
+
+(=>
+  (instance ?S Waterspout)
+  (exists (?A ?R ?C ?F ?W)
+    (and
+      (instance ?A AirStream)
+      (instance ?R Rotating)
+      (patient ?R ?A)
+      (origin ?R ?C)
+      (instance ?C WaterCloud)
+      (part ?F ?C)
+      (shape ?F Cone)
+      (eventLocated ?R ?W)
+      (instance ?W BodyOfWater)
+      (connects ?F ?W ?C))))
+      
+(subclass FairWeatherWaterspout Waterspout)  
+(documentation FairWeatherWaterspout EnglishLanguage "A &%FairWeatherWaterspout,is the 
+most common type of &%Waterspout. It is a weak vortex also known as a non-tornadic 
+waterspout. They occur in coastal waters and are associated with dark, flat-bottomed, 
+developing convective cumulus towers. Fair-weather waterspouts develop and 
+dissipate rapidly, having life cycles shorter than 20 minutes.[Wikipedia]")
+(termFormat EnglishLanguage FairWeatherWaterspout "fair weather waterspout")
+
+(=>
+  (instance ?W FairWeatherWaterspout)
+  (not
+    (exists (?T)
+      (and
+        (instance ?T Thunderstorm)
+        (causes ?T ?W)))))
+    
+
+(subclass TornadicWaterspout Waterspout)  
+(documentation TornadicWaterspout EnglishLanguage "A &%TornadicWaterspout,is a less common type
+of &%Waterspout. It is simply a classic tornado occurring over water rather than land, known 
+as a tornadic supercellular, or  mesocyclonic waterspout, and accurately a tornado over water. 
+[Wikipedia]")
+(termFormat EnglishLanguage TornadicWaterspout "tornadic waterspout")
+
+(=>
+  (and
+    (instance ?T Tornado)
+    (eventLocated ?T ?R)
+    (instance ?R BodyOfWater))  
+  (instance ?S TornadicWaterspout))
+
+;;---------------------------------
+
+;; Weather- and climate_related data
+
+(instance daylightHoursInterval TernaryPredicate)
+(domain daylightHoursInterval 1 Region)
+(domainSubclass daylightHoursInterval 2 Day)
+(domain daylightHoursInterval 3 TimeInterval)
+
+(documentation daylightHoursInterval EnglishLanguage 
+"(&%daylightHoursInterval ?PLACE ?DAY ?INTERVAL) means that in the 
+&%Region ?PLACE, on the &%Day indicated by ?DAY, there is daylight 
+during the &%TimeInterval ?INTERVAL.")
+
+(instance daylightHoursTotal TernaryPredicate)
+(domain daylightHoursTotal 1 Region)
+(domainSubclass daylightHoursTotal 2 Day)
+(domain daylightHoursTotal 3 TimeDuration)
+
+(documentation daylightHoursTotal EnglishLanguage 
+"(&%daylightHoursTotal ?PLACE ?DAY ?TIME) means that in the &%Region 
+?PLACE, on the &%Day indicated by ?DAY, there is daylight for a 
+total &%TimeDuration ?LENGTH.")
+
+(instance cloudCoverFraction BinaryPredicate)
+(domain cloudCoverFraction 1 Region)
+(domain cloudCoverFraction 2 NonnegativeRealNumber)
+
+(documentation cloudCoverFraction EnglishLanguage "(&%cloudCoverFraction ?AREA ?AMOUNT) 
+means that in the &%Region ?AREA, the fraction ?AMOUNT of the sky is 
+covered with clouds.")
+
+(subclass ClearWeather WeatherProcess)
+
+(documentation ClearWeather EnglishLanguage "&%ClearWeather represents a condition 
+in which less than 30% of the sky is covered with clouds.")
+
+(=>
+  (and
+    (instance ?AREA GeographicArea)
+    (instance ?WEATHER ClearWeather)
+    (eventLocated ?WEATHER ?AREA))
+  (exists (?FRACTION)
+    (and
+      (cloudCoverFraction ?AREA ?FRACTION)
+      (lessThan ?FRACTION 0.3))))
+
+(=>
+  (and
+    (instance ?AREA GeographicArea)
+    (instance ?WEATHER ClearWeather)
+    (eventLocated ?WEATHER ?AREA)
+    (cloudCoverFraction ?AREA ?FRACTION))
+  (lessThan ?FRACTION 0.3))
+
+(subclass PartlyCloudyWeather WeatherProcess)
+
+(documentation PartlyCloudyWeather EnglishLanguage "&%PartlyCloudyWeather 
+represents a condition in which between 30% and 70% of the 
+sky is covered with clouds.")
+
+(=>
+  (and
+    (instance ?AREA GeographicArea)
+    (instance ?WEATHER PartlyCloudyWeather)
+    (eventLocated ?WEATHER ?AREA))
+  (exists (?FRACTION)
+    (and
+      (cloudCoverFraction ?AREA ?FRACTION)
+      (greaterThanOrEqualTo ?FRACTION 0.3)
+      (lessThanOrEqualTo ?FRACTION 0.7))))
+
+(=>
+  (and
+    (instance ?AREA GeographicArea)
+    (instance ?WEATHER PartlyCloudyWeather)
+    (eventLocated ?WEATHER ?AREA)
+    (cloudCoverFraction ?AREA ?FRACTION))
+  (and
+    (greaterThanOrEqualTo ?FRACTION 0.3)
+    (lessThanOrEqualTo ?FRACTION 0.7)))
+
+(subclass OvercastWeather WeatherProcess)
+
+(documentation OvercastWeather EnglishLanguage "&%OvercastWeather represents
+ a condition in which more than 70% of the sky is covered 
+with clouds.")
+
+(=>
+  (and
+    (instance ?AREA GeographicArea)
+    (instance ?WEATHER OvercastWeather)
+    (eventLocated ?WEATHER ?AREA))
+  (exists (?FRACTION)
+    (and
+      (cloudCoverFraction ?AREA ?FRACTION)
+      (greaterThan ?FRACTION 0.7))))
+
+(=>
+  (and
+    (instance ?AREA GeographicArea)
+    (instance ?WEATHER OvercastWeather)
+    (eventLocated ?WEATHER ?AREA)
+    (cloudCoverFraction ?AREA ?FRACTION))
+  (greaterThan ?FRACTION 0.7))
+
+(instance overcastDaysInPeriod TernaryPredicate)
+(domain overcastDaysInPeriod 1 GeographicArea)
+(domain overcastDaysInPeriod 2 TimeInterval)
+(domain overcastDaysInPeriod 3 NonnegativeRealNumber)
+
+(documentation overcastDaysInPeriod EnglishLanguage 
+"(&%overcastDaysInPeriod ?AREA ?PERIOD ?NUMBER) means that during the 
+time ?PERIOD, the &%GeographicArea ?AREA experienced ?NUMBER of 
+&%OvercastWeather days.")
+
+;; KJN: Moving this to MILO to remove dependencies
+;;(instance airTemperature BinaryPredicate)
+;;(instance airTemperature AsymmetricRelation)
+;;(domain airTemperature 1 Object)
+;;(domain airTemperature 2 TemperatureMeasure)
+;;(subrelation airTemperature measure)
+;;(documentation airTemperature EnglishLanguage 
+;;"(&%airTemperature ?AREA ?TEMP) means that the temperature of the 
+;;air at ?AREA is ?TEMP.  Temperature may be expressed in units of 
+;;&%TemperatureMeasure, including &%CelsiusDegree and &%FahrenheitDegree, 
+;;among others.")
+
+(instance seaSurfaceTemperature BinaryPredicate)
+(instance seaSurfaceTemperature AsymmetricRelation)
+(domain seaSurfaceTemperature 1 WaterArea)
+(domain seaSurfaceTemperature 2 ConstantQuantity)
+
+(documentation seaSurfaceTemperature EnglishLanguage 
+"(&%seaSurfaceTemperature ?AREA ?TEMP) means that the 
+temperature of the sea surface at ?AREA is ?TEMP.  
+Temperature may be expressed in some &%UnitOfTemperature, 
+including &%CelsiusDegree and &%FahrenheitDegree, among others.")
+
+(instance averageTemperatureForPeriod TernaryPredicate)
+(domain averageTemperatureForPeriod 1 GeographicArea)
+(domain averageTemperatureForPeriod 2 TimeInterval)
+(domain averageTemperatureForPeriod 3 TemperatureMeasure)
+
+(documentation averageTemperatureForPeriod EnglishLanguage 
+"(&%averageTemperatureForPeriod ?PLACE ?PERIOD ?AMOUNT) means that 
+at the &%GeographicArea ?PLACE, and during the &%TimeInterval 
+?PERIOD, the average daily temperature was ?AMOUNT.  Temperature 
+may be expressed in some &%UnitOfTemperature, including 
+&%CelsiusDegree and &%FahrenheitDegree, among others.")
+
+(instance highestTemperatureForPeriod TernaryPredicate)
+(domain highestTemperatureForPeriod 1 GeographicArea)
+(domain highestTemperatureForPeriod 2 TimeInterval)
+(domain highestTemperatureForPeriod 3 TemperatureMeasure)
+
+(documentation highestTemperatureForPeriod EnglishLanguage 
+"(&%highestTemperatureForPeriod ?PLACE ?PERIOD ?AMOUNT) means that 
+at the &%GeographicArea ?PLACE, during the &%TimeInterval ?PERIOD, 
+the highest temperature was ?AMOUNT.  Temperature may be expressed 
+in some &%UnitOfTemperature, including &%CelsiusDegree and 
+&%FahrenheitDegree, among others.")
+
+(instance lowestTemperatureForPeriod TernaryPredicate)
+(domain lowestTemperatureForPeriod 1 GeographicArea)
+(domain lowestTemperatureForPeriod 2 TimeInterval)
+(domain lowestTemperatureForPeriod 3 TemperatureMeasure)
+
+(documentation lowestTemperatureForPeriod EnglishLanguage 
+"(&%lowestTemperatureForPeriod ?PLACE ?PERIOD ?AMOUNT) means that 
+at the &%GeographicArea ?PLACE, during the &%TimeInterval ?PERIOD, 
+the highest temperature was ?AMOUNT.  Temperature may be expressed 
+in some &%UnitOfTemperature, including &%CelsiusDegree and 
+&%FahrenheitDegree, among others.")
+
+;;---------------------------------
+
+(instance relativeHumidity BinaryPredicate)
+(domain relativeHumidity 1 Object)
+(domain relativeHumidity 2 NonnegativeRealNumber)
+
+(documentation relativeHumidity EnglishLanguage "(&%relativeHumidity ?AREA ?AMOUNT) 
+means that the amount of moisture in the air at ?AREA is ?AMOUNT.  
+Relative humidity expresses the amount of moisture as a percentage, 
+or ratio, between the actual moisture saturation of the air compared 
+to the potential moisture saturation of the air.  At full (potential) 
+saturation, precipitation would occur.")
+
+(=>
+  (relativeHumidity ?PLACE 1.0)
+  (exists (?FALLING)
+    (and
+      (instance ?FALLING Precipitation)
+      (eventLocated ?FALLING ?PLACE))))
+
+; Raining - added a new axiom (23 August 2017)
+
+(subclass Raining Precipitation)
+
+(documentation Raining EnglishLanguage "&%Raining is a &%Precipitation &%Process 
+in which &%Water falls in a &%Liquid state. The size of an raindrop is between 0.1-9 
+&%Millimeter in &%approximateDiameter. ")
+
+(documentation Raining ChineseLanguage "&%Raining 是一种 &%Precipitation &%Process， 当中
+&%Water 以 &%Liquid 状态下坠，雨点的 &%approximateDiameter 介乎 0.1-9 &%Millmeter。")
+
+(termFormat ChineseLanguage Raining "降雨")
+
+(=>
+  (instance ?PROCESS Raining)
+  (precipitationState ?PROCESS Liquid))
+
+(=>
+  (instance ?RAIN Raining)
+  (exists (?CLTN ?R ?CLASS)
+    (and
+      (instance ?CLTN Collection)
+      (instance ?R Water)
+      (instance ?R LiquidDrop)
+      (instance ?R ?CLASS
+      (member ?R ?CLTN)
+      (objectTransferred ?RAIN ?CLTN)
+      (defaultMinimumSphereRadius ?CLASS
+        (MeasureFn 0.1 Millimeter))
+      (defaultMaximumSphereRadius ?CLASS
+        (MeasureFn 9.0 Millimeter))))))
+               
+; FreezingRain - revised Jennie 6th October 2017
+
+(subclass FreezingRain Precipitation)
+
+(documentation FreezingRain EnglishLanguage "&%FreezingRain occurs when &%Raindrops go 
+through the &%Process of &%Supercooling at a few hundred &%Meters above a 
+&%GeographicArea, then undergo &freezing on contact with &%Objects on the ground to 
+become &%Solid.")
+
+(documentation FreezingRain ChineseLanguage "&%FreezingRain 出现在当 &%Raindrop 在离
+&%GeographicArea 几百多 &%Meter 高时经过 &%Supercooling 的 &%Process，然后落地和地面的物体接触，
+&freezing 成 &Solid。")
+
+(termFormat ChineseLanguage FreezingRain "冻雨")
+
+(=>
+  (instance ?PROCESS FreezingRain)
+  (precipitationState ?PROCESS Liquid))
+
+(=>
+  (and
+    (instance ?PROCESS FreezingRain)
+    (patient ?PROCESS ?STUFF)
+    (instance ?STUFF Water))
+  (holdsDuring (ImmediateFutureFn (WhenFn ?PROCESS)) (attribute ?STUFF Solid)))
+  
+; HeavyRaining - added axiom and documentation (24 August 2017)
+
+(documentation HeavyRaining EnglishLanguage "&%HeavyRaining is &%rainfallIntensity between
+10-50 &%Millimeter per &%HourDuration.")
+(documentation HeavyRaining ChineseLanguage "&%HeavyRaining 是降雨量介乎于每小时10-50 
+&%Millimeter 之间。")
+
+(termFormat ChineseLanguage HeavyRaining "大降雨")
+
+(subclass HeavyRaining Raining)
+
+(=>
+  (instance ?HR HeavyRaining)
+  (holdsDuring
+    (WhenFn ?HR)
+    (exists (?AREA ?NUM)
+      (and
+        (instance ?AREA Region)
+        (eventLocated ?HR ?AREA)
+        (rainfallIntensity ?AREA 
+          (WhenFn ?HR)
+          (PerFn
+            (MeasureFn ?NUM Millimeter)
+            (MeasureFn 1 HourDuration)))
+        (greaterThan ?NUM 10.0)
+        (greaterThan 50.0 ?NUM)))))
+
+; Snowing (2 August 2017 Jennie)
+
+(documentation Snowing EnglishLanguage "&%Snowing is a &%Precipitation &%Process 
+in which &%Water falls in a &%Solid state, as &%MonoCrystalline &%Ice.")
+
+(documentation Snowing ChineseLanguage "&%Snowing 是一种 &%Precipitation &%Process， 当中
+&%Water 以 &%Solid 状态的 &%MonoCrystalline &%Ice下坠。")
+
+(termFormat ChineseLanguage Snowing "降雪")
+
+(subclass Snowing Precipitation)
+
+(=>
+  (instance ?PROCESS Snowing)
+  (precipitationState ?PROCESS Solid))
+  
+(=>
+  (instance ?SNOW Snowing)
+  (exists (?CLTN ?I)
+    (and
+      (instance ?CLTN Collection)
+      (instance ?I Ice)
+      (attribute ?I MonoCrystalline)
+      (member ?I ?CLTN)
+      (objectTransferred ?SNOW ?CLTN))))
+
+(subclass Sleeting Precipitation)
+(documentation Sleeting EnglishLanguage "&%Sleeting is a form of &%Precipitation composed 
+of &%Rain and partly melted &%Snow.")
+(documentation Sleeting ChineseLanguage "&%Sleeting 一种 &%Rain 夹着部分融化了的 &%Snow 的 
+&%Precipitation。")
+(termFormat ChineseLanguage Sleeting "雨夹雪")
+
+(=>
+  (instance ?PROCESS Sleeting)
+  (exists (?STUFF ?R ?S ?MELT)
+    (and
+      (instance ?STUFF Collection)
+      (objectTransferred ?PROCESS ?STUFF)
+      (instance ?R Raindrop)
+      (instance ?S Snowflake)
+      (member ?R ?STUFF)
+      (member ?S ?STUFF) 
+      (instance ?MELT Melting)
+      (subProcess ?MELT ?PROCESS)
+      (patient ?MELT ?S))))
+
+; Hailing revised 1st October 2017 Jennie
+
+(subclass Hailing Precipitation)
+(documentation Hailing EnglishLanguage "&%Hailing is a form of &%Precipitation &%Process 
+in which &%Water falls in a &%Solid state.")
+(documentation Hailing ChineseLanguage "&%Hailing 是一种 &%Precipitation 的 &%Process，当中 
+&%Water 以 &%Solid 状态落下。")
+
+(=>
+  (instance ?PROCESS Hailing)
+  (precipitationState ?PROCESS Solid))
+
+(instance precipitationState BinaryPredicate)
+(instance precipitationState AsymmetricRelation)
+(domain precipitationState 1 WeatherProcess)
+(domain precipitationState 2 PhysicalState)
+(documentation precipitationState EnglishLanguage 
+"(&%precipitationState ?EVENT ?STATE) means that in the &%Precipitation 
+?EVENT, the stuff falling is in the &%PhysicalState ?STATE (e.g., 
+&%Liquid or &%Solid ice).")
+
+(=>
+  (precipitationState ?EVENT ?STATE)
+  (exists (?STUFF)
+    (and
+      (instance ?STUFF Water)
+      (patient ?EVENT ?STUFF)
+      (attribute ?STUFF ?STATE))))
+
+(instance precipitationRate BinaryPredicate)
+(instance precipitationRate AsymmetricRelation)
+(domain precipitationRate 1 Precipitation)
+(domain precipitationRate 2 FunctionQuantity)
+(documentation precipitationRate EnglishLanguage 
+"(&%precipitationRate ?EVENT ?RATE) means that in the 
+&%Precipitation ?EVENT, the precipitation falls at a rate 
+of ?RATE.")
+
+(instance precipitationAmount BinaryPredicate)
+(instance precipitationAmount AsymmetricRelation)
+(domain precipitationAmount 1 Precipitation)
+(domain precipitationAmount 2 ConstantQuantity) 
+(documentation precipitationAmount EnglishLanguage 
+"(&%precipitationAmount ?EVENT ?AMOUNT) means that in the 
+&%Precipitation process ?EVENT, the quantity of precipitation 
+that fell was ?AMOUNT.")
+
+(instance averagePrecipitationForPeriod TernaryPredicate)
+(domain averagePrecipitationForPeriod 1 GeographicArea)
+(domain averagePrecipitationForPeriod 2 TimeDuration)
+(domain averagePrecipitationForPeriod 3 ConstantQuantity)
+(documentation averagePrecipitationForPeriod EnglishLanguage 
+"(&%averagePrecipitationForPeriod ?PLACE ?PERIOD ?AMOUNT) means 
+that at the &%GeographicArea ?PLACE, and during the &%TimeDuration 
+?PERIOD, the average daily precipitation was ?AMOUNT.")
+
+(instance totalPrecipitationForPeriod TernaryPredicate)
+(domain totalPrecipitationForPeriod 1 GeographicArea)
+(domain totalPrecipitationForPeriod 2 TimeDuration)
+(domain totalPrecipitationForPeriod 3 ConstantQuantity)
+(documentation totalPrecipitationForPeriod EnglishLanguage 
+"(&%totalPrecipitationForPeriod ?PLACE ?PERIOD ?AMOUNT) means that 
+at the &%GeographicArea ?PLACE, and during the &%TimeDuration ?PERIOD, 
+the total amount of precipitation was ?AMOUNT.")
+
+;;------------------------------------------------------------------------
+
+;;  I. Natural Disasters (covered in CIA World Fact Book)
+
+(subclass Wind WeatherProcess)
+(subclass Windstorm Storm) 
+(subclass StrongWind Wind)
+(documentation StrongWind EnglishLanguage "&%StrongWind consists of damaging winds, 
+often originating from thunderstorms, that are classified as exceeding 58 mph. [FEMA, USA]")
+
+(=>
+  (and
+    (instance ?W StrongWind)
+    (eventLocated ?W ?A)
+    (instance ?A GeographicArea) 
+    (surfaceWindSpeed ?A
+      (MeasureFn ?X MilesPerHour)))
+  (greaterThan ?X 58))
+   
+(=>
+  (instance ?W StrongWind)
+  (modalAttribute
+    (exists (?S)
+      (and
+        (instance ?S Storm)
+        (causes ?S ?W))) Likely))
+        
+(=>
+  (instance ?W StrongWind)
+  (holdsDuring
+    (WhenFn ?W)
+    (exists (?A)
+      (and
+        (instance ?A GeographicArea)
+        (eventLocated ?W ?A)
+        (hazardous ?W ?A)))))
+  
+(subclass Sirocco Wind)
+(documentation Sirocco EnglishLanguage "&%Sirocco or scirocco is a Mediterranean 
+wind that comes from the Sahara and can reach hurricane speeds in North Africa and 
+Southern Europe, especially during the summer season. Siroccos arise from warm, dry, 
+tropical air masses that are pulled northward by low-pressure cells moving eastward 
+across the Mediterranean Sea, with the wind originating in the Arabian or Sahara 
+deserts.The hotter, drier continental air mixes with the cooler, wetter air of the 
+maritime cyclone, and the counter-clockwise circulation of the low propels the mixed 
+air across the southern coasts of Europe.The sirocco causes dusty dry conditions along 
+the northern coast of Africa, storms in the Mediterranean Sea, and warm wet weather 
+in Southern Europe. The sirocco does not affect other parts of Europe.[Wikipedia]")
+(names Sirocco "Scirocco")
+(names Sirocco "sciroccu")
+(names Sirocco "siroco")
+(names Sirocco "Ghibli")
+(relatedInternalConcept Sirocco Khamsin)
+
+(=>
+  (and
+    (instance ?W Sirocco)
+    (eventLocated ?W ?R)
+    (origin ?W SaharaDesert))    
+  (or
+    (equal ?R MediterraneanSea)
+    (equal ?R MediterraneanRegion)))
+    
+(=>
+  (instance ?W Sirocco)
+  (property ?W Dry))
+
+(subclass HarmattanWind Wind)
+(documentation HarmattanWind EnglishLanguage "&%HarmattanWind is a dry and dusty northeasterly 
+trade wind, which blows from the Sahara over West Africa into the Gulf of Guinea. The name is 
+related to the word haramata in the Twi language. The HarmattanWind blows during the dry season, 
+which occurs during the months with the lowest sun. On its passage over the Sahara, the Harmattan 
+picks fine dust and sand particles (between 0.5 and 10 microns). &%HarmattanWind blows in the 
+season of Harmattan, of the same name, in West Aftica that occurs between end of November and middle 
+of March.The &%HarmattanWind brings desert-like weather conditions: it lowers the humidity, 
+dissipates cloud cover, prevents rainfall formation and sometimes creates big clouds of dust which 
+can result in dust storms or sandstorms.[Wikipedia]")
+
+(=>
+  (and    
+    (instance ?W HarmattanWind)
+    (eventLocated ?W WesternAfrica)
+    (origin ?W SaharaDesert)
+    (destination ?W GulfOfGuinea)
+    (located ?W ?LOC))
+  (holdsDuring
+    (WhenFn ?W)
+    (surfaceWindDirection ?LOC Northeast)))
+
+(=> 
+  (instance ?W HarmattanWind)
+  (property ?W Dry))
+  
+(=>
+  (instance ?W HarmattanWind)
+  (modalAttribute
+    (exists (?D)
+      (and
+        (instance ?D DustStorm)
+        (causes ?W ?D))) Possibility))
+
+(subclass HarmattanSeason TimeInterval)
+(documentation HarmattanSeason EnglishLanguage "&%HarmattanSeason is a season in West Africa that occurs between 
+the end of November and the middle of March. This season differs from winter because it is characterized by 
+cold, dry, dust-laden wind, and also wide fluctuations in the ambient temperatures of the day and night. 
+[Wikipedia]")
+(termFormat EnglishLanguage HarmattanSeason "Harmattan season")
+
+(=>
+  (instance ?H HarmattanSeason)
+  (located ?H WesternAfrica))
+
+(=>
+  (instance ?H HarmattanSeason)
+  (modalAttribute
+    (exists (?W)
+      (and
+        (instance ?W HarmattanWind)
+        (during
+          (WhenFn ?W) ?H))) Likely))
+
+(=>
+  (instance ?H HarmattanSeason)
+  (exists (?Y1 ?Y2)
+    (and
+      (instance ?Y1 Year)
+      (instance ?Y2 Year)
+      (meetsTemporally ?Y1 ?Y2)
+      (during
+        (BeginFn ?H)
+        (MonthFn November ?Y1))
+      (during
+        (EndFn ?H)
+        (MonthFn March ?Y2)))))
+                
+(subclass Khamsin Wind)
+(documentation Khamsin EnglishLanguage "&%Khamsin is a dry, hot, sandy local wind affecting Egypt 
+and the Levant. From the Arabic word for fifty, these dry, sand-filled windstorms blow sporadically 
+in Egypt typically after fifty days from the start of spring, hence the name. When the storm passes 
+over an area, lasting for several hours, it carries great quantities of sand and dust from the deserts, 
+with a speed up to 140 kilometers per hour (87 mph; 76 knots), and the humidity in that area drops 
+below 5%. [Wikipedia]")
+
+(=>
+  (and
+    (instance ?W Khamsin)
+    (eventLocated ?W ?A))
+  (or
+    (equal ?A Egypt)
+    (equal ?A LevantRegion)))
+
+(=>
+  (instance ?W Khamsin)
+  (property ?W Dry))
+ 
+(=>
+  (instance ?W Khamsin)
+  (modalAttribute
+    (exists (?D)
+      (and
+        (instance ?D DustStorm)
+        (causes ?W ?D))) Possibility))   
+
+(subclass Mistral Wind)
+(documentation Mistral EnglishLanguage "The &%Mistral is a strong, cold, northwesterly wind that 
+blows from southern France into the Gulf of Lion in the northern Mediterranean.[Wikipedia]")
+
+(=>
+  (and
+    (instance ?W Mistral)
+    (eventLocated ?W ?A) 
+    (instance ?A  GeographicArea)
+    (origin ?W SouthernFrance)
+    (destination ?W GulfOfLion))
+  (and
+    (geographicSubregion ?A MediterraneanRegion)
+    (orientation ?A MediterraneanSea North)
+    (geographicSubregion ?A SoutheasternEurope)))
+   
+(=>
+  (and
+    (instance ?W Mistral)    
+    (eventLocated ?W ?A))
+  (holdsDuring
+    (WhenFn ?W)
+      (surfaceWindDirection ?A Northwest)))
+
+(subclass ChinookWind Wind)
+(documentation ChinookWind EnglishLanguage "&%ChinookWinds, or simply Chinooks, are two types of 
+prevailing warm, generally westerly winds in western North America: Coastal Chinooks and 
+interior Chinooks. The coastal Chinooks were the original term, used along the northwest coast, 
+and the term in the interior of North America is later and derives from the coastal term.
+[Wikipedia]")
+
+(=>
+  (instance ?W ChinookWind)
+  (eventLocated ?W WesternNorthAmerica))
+  
+(=>
+  (and
+    (instance ?W ChinookWind)    
+    (eventLocated ?W ?A))
+  (holdsDuring
+    (WhenFn ?W)
+      (surfaceWindDirection ?A West)))
+      
+(subclass CoastalChinookWind ChinookWind)
+(documentation CoastalChinookWind EnglishLanguage "&%CoastalChinookWinds are persistent seasonal, wet, 
+southwesterly winds blowing in from the ocean. Along the Pacific Northwest coast, they deliver 
+tremendous amounts of moisture both as rain along the coast and snow in the coastal mountains, 
+that sustain the characteristic temperate rainforests and climate of the Pacific Northwest.[Wikipedia]")
+(termFormat EnglishLanguage CoastalChinookWind "coastal chinook wind")
+
+(=>
+  (and
+    (instance ?W CoastalChinookWind)    
+    (eventLocated ?W ?A))
+  (holdsDuring
+    (WhenFn ?W)
+      (surfaceWindDirection ?A West)))
+  
+(=>
+  (and
+    (instance ?W CoastalChinookWind)
+    (eventLocated ?W PacificNorthwest)
+    (origin ?W PacificOcean))
+  (orientation PacificOcean PacificNorthwest Upwind))
+  
+(=>
+  (instance ?W CoastalChinookWind)
+  (holdsDuring
+    (WhenFn ?W)
+    (exists (?P)
+      (and
+        (instance ?P Precipitation)
+        (subProcess ?P ?W)))))
+     
+(subclass InteriorChinookWind ChinookWind)
+(subclass InteriorChinookWind FohnWind)
+(documentation InteriorChinookWind EnglishLanguage "&%InteriorChinookWinds are occasional warm, dry föhn 
+winds blowing down the eastern sides of interior mountain ranges.[Wikipedia]")
+(termFormat EnglishLanguage InteriorChinookWind "interior chinook wind")
+
+(=>
+  (and
+    (instance ?W InteriorChinookWind)
+    (eventLocated ?W ?A)
+    (geographicSubregion ?A WesternNorthAmerica)
+    (instance ?M MountainRange))
+  (orientation ?A ?M East))
+  
+(subclass FohnWind Wind)
+(documentation FohnWind EnglishLanguage "A &%FohnWind is a type of dry, relatively warm downslope wind 
+in the lee of a mountain range. It is a rain shadow wind that results from the subsequent adiabatic warming 
+of air that has dropped most of its moisture on windward slopes. As a consequence of the different adiabatic 
+lapse rates of moist and dry air, the air on the leeward slopes becomes warmer than equivalent elevations 
+on the windward slopes.[Wikipedia]")
+(termFormat EnglishLanguage FohnWind "Fohn wind")
+(names FohnWind "Föhn")
+(names FohnWind "Foehn")
+
+(=>
+  (and
+    (instance ?W FohnWind)
+    (path ?W ?P)
+    (origin ?W ?H)
+    (destination ?W ?L)
+    (beforeOnPath ?H ?L ?P ?W))
+  (orientation ?L ?H Downhill))
+    
+(=>
+  (and
+    (instance ?W FohnWind)
+    (eventLocated ?W ?A)
+    (instance ?A GeographicArea)
+    (instance ?M MountainRange))
+  (orientation ?A ?M Downwind))
+
+(=>
+  (instance ?W FohnWind)
+  (property ?W Dry))
+
+(subclass ZondaWind FohnWind)
+(documentation ZondaWind EnglishLanguage "&%ZondaWind  is a regional term for the foehn 
+wind that often occurs on the eastern slope of the Andes, in Argentina.[Wikipedia]")
+(termFormat EnglishLanguage ZondaWind "Zonda wind")
+
+(=>
+  (and
+    (instance ?W ZondaWind)
+    (eventLocated ?W ?A)
+    (geographicSubregion ?A Argentina))
+  (orientation ?A AndesMountains East))
+  
+(subclass PuelcheWind Wind)
+(documentation PuelcheWind EnglishLanguage "&%PuelcheWind is a dry foehn-like eastern 
+wind that occurs in south-central Chile. The wind owns its name from the Puelche people 
+who inhabited the eastern slopes of the Andes.[Wikipedia]")
+(termFormat EnglishLanguage PuelcheWind "Puelche wind")
+
+(=>
+  (and
+    (instance ?W PuelcheWind)    
+    (eventLocated ?W ?A)
+    (geographicSubregion ?A Chile)
+    (orientation ?A SantiagoChile South))
+  (holdsDuring
+    (WhenFn ?W)
+      (surfaceWindDirection ?A East)))
+      
+(subclass Pampero Windstorm)
+(documentation Pampero EnglishLanguage "The &%Pampero is a burst of cold polar air 
+from the west, southwest, or south on the pampas in the south of Brazil, Argentina, 
+Uruguay, Paraguay and Bolivia. This wind (often violently) picks up during the passage 
+of a cold front of an active low passing by. It takes the form of a squall line and 
+there is a marked drop in temperature after its passage. The Pampero is most common 
+in winter in the Southern Hemisphere (principally between May and August).[Wikipedia]")
+(names Pampero "Minuano")
+
+(=>
+  (and
+    (instance ?W Pampero)
+    (eventLocated ?W ?A)
+    (instance ?A Pampa))
+  (or
+    (geographicSubregion ?A Argentina)
+    (geographicSubregion ?A Brazil)
+    (geographicSubregion ?A Bolivia)
+    (geographicSubregion ?A Paraguay)
+    (geographicSubregion ?A Uruguay)))
+    
+(=>
+  (instance ?W Pampero)
+  (holdsDuring
+    (WhenFn ?W)
+    (exists (?S)
+      (and
+        (instance ?S Squall)
+        (subProcess ?S ?W)))))
+
+(subclass Squall Wind)
+(documentation Squall EnglishLanguage "A &%Squall is a sudden, sharp increase in 
+wind speed lasting minutes, as opposed to a wind gust, which lasts for only seconds.
+In 1962 the World Meteorological Organization (WMO) defined that to be classified as a 
+squall, the wind must increase at least 8 metres per second (29 km/h; 18 mph) and must 
+attain a top speed of at least 11 metres per second (40 km/h; 25 mph), lasting at 
+least one minute in duration.[Wikipedia]")
+
+(=>
+  (and
+    (instance ?S Squall)
+    (eventLocated ?S ?R)
+    (instance ?R GeographicArea)
+    (holdsDuring
+      (WhenFn ?S)
+      (surfaceWindSpeed ?R
+        (MeasureFn ?TOP MilesPerHour)))
+    (earlier ?T (WhenFn ?S))
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (and
+    (greaterThanOrEqualTo ?TOP 25)
+    (greaterThanOrEqualTo ?DIFF 18)))
+    
+(=>
+  (and
+    (instance ?S Squall)
+    (eventLocated ?S ?R)
+    (instance ?R GeographicArea)    
+    (duration (WhenFn ?S) 
+    (MeasureFn ?DUR MinuteDuration)))
+  (greaterThanOrEqualTo ?DUR 1))
+  
+(subclass WindGust Wind)
+(documentation WindGust EnglishLanguage "A &%WindGust is a sudden increase in the 
+wind speed. It usually lasts for less than 20 seconds, briefer than a squall, 
+which lasts minutes. A gust is followed by a lull (or slackening) in the wind speed. 
+The average value of wind speed is generally measured over a period of 2 minutes 
+before the meteorological observation according to the World Meteorological Organization.  
+It is generally reported in METAR when the peak wind speed reaches at least 16 knots 
+(30 km/h; 18 mph) and the variation in wind speed between the peaks and average wind 
+is at least 9 to 10 knots (17 to 19 km/h; 10 to 12 mph).[Wikipedia]")
+(termFormat EnglishLanguage WindGust "wind gust")
+
+(=>
+  (and
+    (instance ?G WindGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)    
+    (duration (WhenFn ?G) 
+    (MeasureFn ?DUR SecondDuration)))
+  (greaterThanOrEqualTo ?DUR 20))
+  
+(=>
+  (and
+    (instance ?G WindGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)
+    (equal      
+      (ThreeSecondGustSpeedFn ?R (WhenFn ?G))
+      (MeasureFn ?TOP MilesPerHour))
+    (earlier ?T (WhenFn ?G))
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (and
+    (greaterThanOrEqualTo ?TOP 18)
+    (greaterThanOrEqualTo ?DIFF 10)))
+    
+(=>
+  (and
+    (instance ?G WindGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)
+    (equal      
+      (ThreeSecondGustSpeedFn ?R (WhenFn ?G))
+      (MeasureFn ?TOP MilesPerHour))
+    (earlier (WhenFn ?G) ?T)
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (greaterThanOrEqualTo ?DIFF 10))
+    
+(subclass WeakGust WindGust)
+(documentation WeakGust EnglishLanguage "When the maximum speed exceeds the average speed 
+by 10 to 15 knots (19 to 28 km/h; 12 to 17 mph), the term &%WeakGust is used[Wikipedia]")
+(termFormat EnglishLanguage WeakGust "weak gust")
+
+(=>
+  (and
+    (instance ?G WeakGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)
+    (equal      
+      (ThreeSecondGustSpeedFn ?R (WhenFn ?G))
+      (MeasureFn ?TOP MilesPerHour))
+    (earlier ?T (WhenFn ?G))
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (and
+    (greaterThanOrEqualTo ?DIFF 12)
+    (lessThanOrEqualTo ?DIFF 17)))
+
+(subclass StrongGust WindGust)
+(documentation StrongGust EnglishLanguage "&%StrongGust is used when the the maximum speed 
+exceeds the average speed by 15 to 25 knots (28 to 46 km/h; 17 to 29 mph).[Wikipedia]")
+(termFormat EnglishLanguage StrongGust "strong gust")
+
+(=>
+  (and
+    (instance ?G StrongGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)
+    (equal      
+      (ThreeSecondGustSpeedFn ?R (WhenFn ?G))
+      (MeasureFn ?TOP MilesPerHour))
+    (earlier ?T (WhenFn ?G))
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (and
+    (greaterThan ?DIFF 17)
+    (lessThanOrEqualTo ?DIFF 29)))
+
+(subclass ViolentGust WindGust)
+(documentation ViolentGust EnglishLanguage "&%ViolentGust is used when the the maximum speed 
+exceeds the average speed by over 25 knots (46 km/h; 29 mph).[Wikipedia]")
+(termFormat EnglishLanguage ViolentGust "violent gust")
+
+(=>
+  (and
+    (instance ?G ViolentGust)
+    (eventLocated ?G ?R)
+    (instance ?R GeographicArea)
+    (equal      
+      (ThreeSecondGustSpeedFn ?R (WhenFn ?G))
+      (MeasureFn ?TOP MilesPerHour))
+    (earlier ?T (WhenFn ?G))
+    (holdsDuring ?T
+      (surfaceWindSpeed ?R
+        (MeasureFn ?BASE MilesPerHour)))
+    (equal ?DIFF
+      (SubtractionFn ?TOP ?BASE)))
+  (greaterThan ?DIFF 29))
+
+(subclass DustStorm Storm)
+(documentation DustStorm EnglishLanguage "&%DustStorms happen in &%AridClimateZones or
+&%SemiaridClimateZones. They occur when a strong &%Wind carries &%ParticulateMatter or
+&%Sand from its underlying &%Dry surface and deposit it to another &%Region.")
+(documentation DustStorm ChineseLanguage "&%DustStorm 出现在 &%AridClimateZone 或
+&%SemiaridClimateZone。它发生在当强 &%Wind 捲起 &%ParticulateMatter 或从它吹过 &%Dry 地面的
+ &%Sand ，并送到另外一个 &%Region。")
+
+(=>
+  (instance ?DUSTSTORM DustStorm)
+  (or
+    (exists (?AREA1)
+      (and
+        (instance ?AREA1 GeographicArea)
+        (climateTypeInArea ?AREA1 AridClimateZone)
+        (eventLocated ?DUSTSTORM ?AREA1)))
+    (exists (?AREA2)
+      (and
+        (instance ?AREA2 GeographicArea) 
+        (climateTypeInArea ?AREA2 SemiaridClimateZone)
+        (eventLocated ?DUSTSTORM ?AREA2)))))
+        
+(=>
+  (and
+    (instance ?DUSTSTORM DustStorm)
+    (instance ?WIND Wind)
+    (subProcess ?DUSTSTORM ?WIND))
+  (exists (?TRANSLOCATE ?PM ?SAND ?A1 ?A2 ?STRONG)
+    (and
+      (instance ?A1 LandArea)
+      (eventLocated ?WIND ?A1)
+      (surfaceWindSpeed ?A1 
+        (MeasureFn ?STRONG KnotUnitOfSpeed))
+      (greaterThan ?STRONG 30.0)
+      (instance ?TRANSLOCATE Translocation)
+      (subProcess ?TRANSLOCATE ?DUSTSTORM)
+      (objectTransferred ?TRANSLOCATE ?PM)
+      (objectTransferred ?TRANSLOCATE ?SAND)
+      (instance ?PM ParticulateMatter)
+      (instance ?SAND Sand)
+      (instance ?A2 LandArea)
+      (destination ?TRANSLOCATE ?A2)
+      (not
+        (overlapsSpatially ?A1 ?A2)))))
+      
+(subclass SandStorm DustStorm)
+(documentation SandStorm EnglishLanguage "&%SandStorms are &%DustStorms in which the 
+particles are &%Sand.")
+(documentation SandStorm ChineseLanguage "&%SandStorm 是含 &%Sand 颗粒的 &%DustStorm。")
+
+(=>
+  (instance ?SS SandStorm)
+  (exists (?SAND)
+    (and
+      (instance ?SAND Sand)
+      (objectTransferred ?SS ?SAND))))
+
+(subclass Haboob DustStorm)
+(documentation Haboob EnglishLanguage "&%Haboobs are intense &%DustStorms caused by the
+downburst of a &%Thunderstorm.")
+(documentation Haboob ChineseLanguage "&%Haboobs 是由 &%Thunderstorm 强力下擊暴流造成的 &%DustStorms
+。")
+(termFormat EnglishLanguage Haboob "Haboob")
+(termFormat ChineseLanguage Haboob "雷沙暴") 
+
+(=>
+  (instance ?HABOOB Haboob)
+  (exists (?TS ?DM ?A)
+    (and
+      (instance ?TS Thunderstorm)
+      (instance ?DM MotionDownward)
+      (instance ?A Air)
+      (patient ?DM ?A)
+      (subProcess ?DM ?TS)
+      (causes ?DM ?HABOOB))))
+      
+(subclass KatabaticWind Wind)
+(documentation KatabaticWind EnglishLanguage "&%KatabaticWind is a downslope wind 
+caused by the flow of an elevated, high-density air mass into a lower-density air mass 
+below under the force of gravity. A katabatic wind originates from the difference of 
+density of two air masses located above a slope. This density difference usually comes 
+from temperature difference, even if humidity may also play a role. Schematically katabatic 
+winds can be divided into two types for which the mechanisms are slightly different: 
+the katabatic winds due to radiative cooling (the most common) and the fall winds.[Wikipedia]")
+(termFormat EnglishLanguage KatabaticWind "katabatic wind")
+(relatedInternalConcept KatabaticWind FohnWind)
+
+(=>
+  (and
+    (instance ?W KatabaticWind)
+    (path ?W ?P)
+    (origin ?W ?H)
+    (destination ?W ?L)
+    (beforeOnPath ?H ?L ?P ?W))
+  (orientation ?L ?H Downhill))
+  
+(=>
+  (and
+    (instance ?W KatabaticWind)
+    (origin ?W ?TOP)
+    (top ?TOP ?A)
+    (instance ?A SlopedArea)
+    (barometricPressure ?TOP
+      (MeasureFn ?H InchMercury))
+    (destination ?W ?BOTTOM)
+    (bottom ?BOTTIM ?A)
+    (barometricPressure ?BOTTOM
+      (MeasureFn ?L InchMercury)))
+  (holdsDuring
+    (WhenFn ?W)
+    (greaterThan ?H ?L)))
+    
+(=>
+  (instance ?W KatabaticWind)
+  (exists (?TOP ?A ?M ?AIR)
+    (and
+      (origin ?W ?TOP)
+      (top ?TOP ?A)
+      (instance ?A SlopedArea)
+      (instance ?M MotionDownward)
+      (paient ?M ?AIR)
+      (orientation ?AIR ?TOP Above)
+      (caused ?M ?W))))
+
+(subclass AnabaticWind Wind)
+(documentation AnabaticWind EnglishLanguage "&%AnabaticWind is a warm wind which blows
+up a steep slop or mountain side, driven by heating of slope through insolation. It
+typically occurs during the daytime in calm sunny weather. A hill or mountain 
+top will be radiatively warmed by the Sun which in turn heats the air just above it. 
+Air at a similar altitude over an adjacent valley or plain does not get warmed so 
+much because of the greater distance to the ground below it.[Wikipedia]")
+(termFormat EnglishLanguage AnabaticWind "anabatic wind")
+(relatedInternalConcept AnabaticWind KatabaticWind)
+
+(=>
+  (and
+    (instance ?W AnabaticWind)
+    (path ?W ?P)
+    (origin ?W ?L)
+    (destination ?W ?H)
+    (beforeOnPath ?L ?H ?P ?W))
+  (orientation ?H ?L Uphill))
+          
+(subclass MountainBreeze KatabaticWind)
+(documentation MountainBreeze EnglishLanguage "&%MountainBreeze is the most common form of
+&%katabaticWind due to radiative cooling. The slope surface cools down radiatively after 
+sunset, which cools down the air near the slope. This cooler air layer then flows down in 
+the valley. This type of katabatic is very often observed during the night in the mountains,
+especially during periods of light synoptic flow. In meteorology, a mountain breeze and a 
+valley breeze are two related, localized winds that occur one after the other on a daily cycle. 
+[Wikipedia]")
+(termFormat EnglishLanguage MountainBreeze "mountain breeze")
+(relatedInternalConcept MountainBreeze ValleyBreeze)
+
+(=>
+  (instance ?W MountainBreeze)
+  (exists (?TOP ?A ?C ?AIR ?M)
+    (and
+      (origin ?W ?TOP)
+      (top ?TOP ?A)
+      (instance ?A SlopedArea)
+      (instance ?C Cooling)
+      (patient ?C ?AIR)
+      (orientation ?AIR ?TOP Above)
+      (cause ?C ?M)
+      (instance ?M MotionDownward)
+      (subProcess ?M ?W))))
+
+(subclass ValleyBreeze AnabaticWind)
+(documentation ValleyBreeze EnglishLanguage "&%ValleyBreeze is an example of AnabaticWind 
+occuring at local scales. In meteorology, a mountain breeze and a valley breeze are two 
+related, localized winds that occur one after the other on a daily cycle. During the day, 
+the sun warms the air along the mountain slopes. This warm air rises up the mountain slopes, 
+creating a valley breeze. At nightfall, the air along the mountain slopes cools. 
+This cool air moves down the slopes into the valley, producing a mountain breeze.[Wikipedia]")
+(termFormat EnglishLanguage ValleyBreeze "valley breeze")
+
+(=>
+  (instance ?W ValleyBreeze)
+  (exists (?BOTTOM ?A ?H ?AIR ?M)
+    (and
+      (origin ?W ?BOTTOM)
+      (bottom ?BOTTOM ?A)
+      (instance ?A SlopedArea)
+      (instance ?H Heating)
+      (patient ?H ?AIR)
+      (orientation ?AIR ?BOTTOM Above)
+      (cause ?H ?M)
+      (instance ?M MotionUpward)
+      (subProcess ?M ?W)))) 
+               
+(subclass Zud WeatherProcess)
+
+;;;;;;;;;;;
+; 7th November 2019 Jennie
+; start to have termFormat in DomainEnglishFormat.kif
+; correct Chinese translation of HeavySurf
+; 16th May 2020 Jennie
+; corrected termFormat of heavysurf, added
+; defined BreakingWave and SurfZone
+; need to equate SurfZone to BreakerZone, breaker to breakingwave
+; need to define Variance, Standard deviation in order to define Significant Wave Height
+;;;;;;;;;;;
+
+(documentation BreakingWave EnglishLanguage "A &%BreakingWave occurs when water in a
+ &%WaterWave moves at different speeds as it approaches a &%SurfZone. The water
+ at the top of the wave continues as speed at the bottom of the wave slows, 
+ causing the top to 'break' and fall forward from the wave. The water at 
+ the top of the wave ceases to be part of the &%WaterWave after the water falls.")
+(documentation BreakingWave ChineseLanguage "&%BreakingWave 是当 &%WaterWave 中的水
+以不同的速度靠近 &%SurfZone 。浪顶的水以相同的速度继续前进，以浪底的水却在减速，造成浪峰破碎、并从海浪
+分离向前坠下。海浪顶部的水下坠以后不再属于该 &%WaterWave 的一部分。")
+
+(subclass BreakingWave WaterWave)
+
+(=>
+  (instance ?BREAK BreakingWave)
+  (exists (?WAVE ?WATER1 ?WATER2 ?FALL)
+    (and
+      (instance ?WAVE WaterWave)
+      (subProcess ?BREAK ?WAVE)
+      (instance ?WATER1 BodyOfWater)
+      (instance ?WATER2 BodyOfWater)
+      (patient ?WAVE ?WATER2)
+      (patient ?BREAK ?WATER1)
+      (instance ?FALL Falling)
+      (objectTransferred ?FALL ?WATER1)
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?FALL))
+        (part ?WATER1 ?WATER2))
+      (holdsDuring
+        (EndFn
+          (WhenFn ?FALL))
+        (not
+          (part ?WATER1 ?WATER2))))))
+             
+(documentation SurfZone EnglishLanguage "The &%WaterArea off the &%Shoreline where waves break.")
+(documentation SurfZone ChineseLanguage "这是海岸线对外，波浪破裂的水域。")
+
+(subclass SurfZone WaterArea)
+(=>
+  (instance ?SURF SurfZone)
+  (exists (?SL)
+    (and
+      (instance ?SL Shoreline)
+      (orientation ?SURF ?SL Adjacent))))
+
+(=>
+  (instance ?BREAK BreakingWave)
+  (exists (?SURF)
+    (and
+      (instance ?SURF SurfZone)
+    (eventLocated ?BREAK ?SURF))))
+
+(documentation RedFlagSwimmingCondition EnglishLanguage "A &%RedFlagSwimmingCondition is an &attribute
+ of a &%SurfZone when its &%SignificantWaveHeight goes above 8 &%Footlength.")
+
+(instance RedFlagSwimmingCondition RelationalAttribute)
+
+(=>
+  (and
+    (instance ?SZ SurfZone)
+    (significantWaveHeight ?SZ
+      (WhenFn ?SZ)
+      (MeasureFn ?X FootLength))
+    (greaterThan ?X 8.0))
+  (attribute ?SZ RedFlagSwimmingCondition))
+    
+(documentation waveHeight EnglishLanguage "&%waveHeight is a &%BinaryPredicate. 
+(waveHeight ?WW ?X) means that ?X is the &%LengthMeasure of the difference 
+between the &%altitude of the crest and its leading trough of the &%BodyOfWater of 
+where a ?WW (&%WaterWave) takes place.")
+(documentation waveHeight ChineseLanguage "&%waveHeight 是一个二元谓语 &%BinaryPredicate. 
+(waveHeight ?WW ?X) 的意思是 ?X 高度 (&%LengthMeasure)是水体（&%BodyOfWater）兴起 ?WW (&%WaterWave 波浪)的 
+波峰和前面波谷高度（&%altitude）的差别。")
+(domain waveHeight 1 WaterWave)
+(domain waveHeight 2 LengthMeasure)
+(instance waveHeight BinaryPredicate)
+(format EnglishLanguage waveHeight "The &%waveHeight of %1 %2.")
+
+(=>
+  (waveHeight ?WW ?X)
+  (exists (?WATER ?CREST ?TROUGH ?U)
+    (and
+       (instance ?WATER BodyOfWater)
+       (eventLocated ?WW ?WATER)
+       (part ?CREST ?WATER)
+       (part ?TROUGH ?WATER)
+       (distance ?CREST ?TROUGH ?X)
+       (not
+         (exists (?A ?AH)
+           (and
+             (part ?A ?WATER)
+             (altitude ?A ?CREST (MeasureFn ?AH ?U))
+             (greaterThan ?AH 0.0))))
+       (not
+         (exists (?B ?BH)
+           (and
+             (part ?B ?WATER)
+             (altitude ?TROUGH ?B (MeasureFn ?BH ?U))
+             (greaterThan ?BH 0.0)))))))
+
+(documentation VarianceAverageFn EnglishLanguage "A 'helper' function that supports the definition of &%VarianceFn.
+(VarianceAverageFn ?M ?L) means the sum of squared difference between each number and and the mean (?M) in the &%List ?L.")
+(documentation VarianceAverageFn ChineseLanguage "这是用于定义 &%VarianceFn 的“辅助”函数。(VarianceAverageFn ?M ?L) 的
+意思是序列(&%List) ？L内每一个数值和平均值 ?M 之差的平方的总和。")
+(domain VarianceAverageFn 1 Number)
+(domain VarianceAverageFn 2 List)
+(instance VarianceAverageFn BinaryFunction)
+
+(format EnglishLanguage VarianceAverageFn "&%VarianceAverageFn of %2 with the mean of %1")
+(range VarianceAverageFn Number)
+
+(=>
+  (and
+    (equal ?VA
+      (VarianceAverageFn ?M ?L))
+    (greaterThan
+      (ListLengthFn ?L)1))
+  (equal ?VA
+     (AdditionFn 
+       (VarianceAverageFn ?M
+         (ListOrderFn ?L 1))
+       (VarianceAverageFn ?M
+         (SubListFn 2
+           (ListLengthFn ?L)?L)))))
+
+(documentation VarianceFn EnglishLanguage "It is a &%UnaryFunction to return the variance given a &%List of numbers.
+The numerical variance computates over values in an entire population.")
+(documentation VarianceFn ChineseLanguage "这是一个 &%UnaryFunction， 他算出一个序列(&%List) 的方差。数值方差计算总体数值。")
+(domain VarianceFn 1 List)
+(instance VarianceFn UnaryFunction)
+(format EnglishLanguage VarianceFn "The &%VarianceFn %1")
+(range VarianceFn Number)
+
+(=>
+  (and
+    (equal ?V
+      (VarianceFn ?L))
+    (equal ?M
+      (AverageFn ?L)))
+  (equal ?V
+    (DivisionFn
+      (VarianceAverageFn ?M ?L)
+      (ListLengthFn ?L ))))
+     
+(=>
+  (and
+    (equal ?VA
+      (VarianceAverageFn ?M ?L))
+    (equal 1
+      (ListLengthFn ?L)))
+  (equal ?VA
+    (MultiplicationFn
+      (SubtractionFn ?M
+        (ListOrderFn ?L 1))
+      (SubtractionFn ?M
+        (ListOrderFn ?L 1)))))
+
+(documentation StandardDeviationFn EnglishLanguage "It is a &%UnaryFunction to return the standard deviation of a &%List of numbers. Standard
+deviation measures the amount of variation or dispersion of the numbers in the list. It is the &%SquareRootFn of the variance of the list.")
+(documentation StandardDeviationFn ChineseLanguage "这是一个 &%UnaryFunction，它计算出一个 &%List 内的数值的标准偏差。标准偏差量度 &%List 内数值的
+偏差或弥散度，是该序列方差值的 &%SquareRootFn。")
+(domain StandardDeviationFn 1 List)
+(instance StandardDeviationFn UnaryFunction)
+(format EnglishLanguage StandardDeviationFn "The &%StandardDeviationFn of %1")
+(range StandardDeviationFn Number)
+
+(<=>
+  (equal ?SD
+    (StandardDeviationFn ?L))
+  (equal ?SD
+    (SquareRootFn 
+      (VarianceFn ?L))))
+
+(documentation significantWaveHeight EnglishLanguage " &%significantWaveHeight is a &%TernaryPredicate.
+(significantWaveHeight ?WA ?TIME ?SWH) ?SWH is a &%LengthMeasure used to describe the average wave height,
+ from trough to crest, of the highest third the waves for a ?WA (&%WaterArea) for a ?TIME (&%TimeInterval). 
+ It is defined as four times the standard deviation of the height of all waves.")
+(documentation significantWaveHeight ChineseLanguage "有效波高 (&%significantWaveHeight)是一个三元谓词(&%TernaryPredicate)。
+(significantWaveHeight ?WA ?TIME ?SWH) ?SWH 是形容在一段时间?TIME (&%TimeInterval)
+一个水域内?WA (&%WaterArea)，所有波浪中，从波峰到波谷平均波高最高的三分之一波浪波高的的长度单位 (&%LengthMeasure)。
+它定义为所有波高标准偏差的四倍。")
+
+(domain significantWaveHeight 1 WaterArea)
+(domain significantWaveHeight 2 TimePosition)
+(domain significantWaveHeight 3 LengthMeasure)
+(instance significantWaveHeight TernaryPredicate)
+(format EnglishLanguage significantWaveHeight "&%significantWaveHeight in %1
+during %2 is %3.")
+
+(=>
+  (and
+    (instance ?WW WaterWave)
+    (waveHeight ?WW ?WH))
+  (exists (?LIST ?WA ?U ?SWH)
+    (and
+      (inList ?WH ?LIST)
+      (instance ?WA WaterArea)
+      (eventLocated ?WW ?WA)
+      (instance ?U UnitOfLength)
+      (significantWaveHeight ?WA
+        (WhenFn ?WW) 
+        (MeasureFn ?SWH ?U))
+      (equal ?SWH
+        (MultiplicationFn 4.0
+          (StandardDeviationFn ?LIST))))))
+                
+(documentation HeavySurf EnglishLanguage "&%HeavySurf is when the &%significantWaveHeight 
+of the &%WaterWaves over a &%SurfZone is greater than 13 &%FootLength or 4 &%Meter.")
+(documentation HeavySurf ChineseLanguage "&%HeavySurf 是当碎波带 (&%SurfZone) 出现海浪
+( &%WaterWave)有效波高 (&%significantWaveHeight) 高于 13 &%FootLength 或 4 &%Meter
+的情况。")
+(subclass HeavySurf WeatherProcess)
+(subclass HeavySurf WaterMotion)
+
+(=>
+  (instance ?HS HeavySurf)
+  (exists (?SZ ?SWH)
+    (and
+      (instance ?SZ SurfZone)
+      (eventLocated ?HS ?SZ)
+      (significantWaveHeight ?SZ
+        (WhenFn ?HS)
+        (MeasureFn ?SWH FootLength))
+      (greaterThanOrEqualTo ?SWH 13.0))))
+      
+(=>
+  (instance ?HS HeavySurf)
+  (holdsDuring 
+    (WhenFn ?HS)
+    (exists (?SZ ?WW)
+      (and
+        (instance ?SZ SurfZone)
+        (instance ?WW WaterWave)
+        (subProcess ?WW ?HS)
+        (eventLocated ?WW ?SZ)))))
+
+(=>
+  (and
+    (instance ?HS HeavySurf)
+    (instance ?PLACE WaterArea)
+    (eventLocated ?HS ?PLACE))
+  (exists (?SWIM ?A)
+    (and
+      (instance ?SWIM Swimming)
+      (instance ?A Human)
+      (agent ?SWIM ?A)
+      (eventLocated ?SWIM ?PLACE)
+      (holdsDuring
+        (WhenFn ?HS)
+        (hazardous ?HS ?A)))))
+        
+; extra definitions for flooding which situated in Mid_level ontology.kif
+; to say that "Flooding occurs when an area of land that is unlikely
+; to be submerged in water is covered by water.
+
+(=>
+  (and
+    (instance ?F Flooding)
+    (instance ?L LandArea)
+    (eventLocated ?F ?L)
+    (instance ?T TimePoint)
+    (before ?T (WhenFn ?F)))
+  (modalAttribute 
+    (holdsDuring ?T
+      (instance ?L SubmergedLandArea))
+    Unlikely))
+
+(documentation CoastalFlooding EnglishLanguage "&%CoastalFlooding is a &%Flooding that
+occurs at &%Seacoast.")
+(documentation CoastalFlooding ChineseLanguage "沿海洪水 (&%CoastalFlooding)是出现在海岸
+(&%Seacoast)的洪水(&%Flooding)。")
+(subclass CoastalFlooding Flooding)
+
+(=>
+  (instance ?CF CoastalFlooding)
+  (exists (?AREA)
+    (and
+      (instance ?AREA Seacoast)
+      (eventLocated ?CF ?AREA))))
+
+(documentation FlashFlooding EnglishLanguage "&%FlashFlooding are floods that take
+fewer than 6 hours from when the flow of water which causes the &%Flooding has appeared
+till the onset of the flood itself.")
+(documentation FlashFlooding ChineseLanguage "山洪暴发(&%FlashFlooding)是在导致洪涝(&%Flooding)
+的水流出现6个小时内发生的洪水。")
+(subclass FlashFlooding Flooding)
+
+(=>
+  (instance ?FLOOD FlashFlooding)
+  (exists (?WATER ?HOUR)
+    (and
+      (instance ?WATER WaterMotion)
+      (causes ?WATER ?FLOOD)
+      (meetsTemporally
+        (WhenFn ?WATER)
+        (WhenFn ?FLOOD))
+      (duration
+        (WhenFn ?WATER) 
+        (MeasureFn ?HOUR HourDuration))
+      (lessThan ?HOUR 6.0))))
+
+(documentation Tornado EnglishLanguage "A &%Tornado is a rapidly rotating column of &%Air which
+extends from the &%Cloud base of a cumulonimbus to the ground.")
+(documentation Tornado ChineseLanguage "&%Tornado 是一团从积雨云底部延伸到地面，
+快速旋转的空气 &%Air。")
+(subclass Tornado Storm)
+(subclass Tornado CyclonicStorm)
+
+(=>
+  (and
+    (instance ?T Tornado)
+    (instance ?R Rotating)
+    (instance ?A Air)
+    (instance ?TRAN Translocation)
+    (subProcess ?R ?T)
+    (subProcess ?TRAN ?R)
+    (patient ?TRAN ?A)
+    (direction ?TRAN Horizontal))   
+  (exists (?G ?FUNNEL ?TOP ?BOTTOM ?C ?BASE)
+    (and
+      (instance ?G GeographicArea)
+      (eventLocated ?T ?G)
+      (part ?FUNNEL ?A)
+      (attribute ?FUNNEL ConeSegment)
+      (top ?TOP ?FUNNEL)
+      (bottom ?BOTTOM ?FUNNEL)
+      (instance ?C Cloud)
+      (bottom ?BASE ?C)
+      (meetsSpatially ?TOP ?BASE)
+      (meetsSpatially ?BOTTOM ?G))))
+
+(documentation MaxValueFn EnglishLanguage "(&%MaxValueFn ?LIST) returns the maximum
+value of all the numbers in a &%List.")
+(documentation MaxValueFn ChineseLanguage "(&%MaxValueFn ?LIST) 得出一个串列 (&%List)
+所有数值中的最大值。")
+(format EnglishLanguage MaxValueFn "The maximum value of the %1")
+(format ChineseLanguage MaxValueFn "%1串列中的最大值 ")
+
+(domain MaxValueFn 1 List)
+(instance MaxValueFn UnaryFunction)
+(range MaxValueFn Number)
+
+(=>
+  (equal ?X
+    (MaxValueFn ?LIST))
+  (not
+    (exists (?Y)
+      (and
+        (inList ?Y ?LIST)
+        (greaterThan ?Y ?X)))))
+ 
+(documentation MilesPerHour EnglishLanguage "&%MilesPerHour is a unit for
+measuring speed, expressed in the number of &%Miles travelled in a one &%HourDuration.")
+(documentation MilesPerHour ChineseLanguage "&%MilesPerHour是一个速度计量单位，
+表示每小時(&%HourDuration)经过的英里(&%Mile)距离。")
+(names "mph" MilesPerHour)
+(instance MilesPerHour FunctionQuantity)
+(instance MilesPerHour CompositeUnitOfMeasure)
+
+(<=>
+  (equal ?SPEED
+    (MeasureFn ?NUM MilesPerHour))
+  (equal ?SPEED
+    (SpeedFn
+      (MeasureFn ?NUM Mile)
+      (MeasureFn 1 HourDuration))))
+ 
+(documentation MeasuringList EnglishLanguage "&%MeasuringList is a sequence of
+&%Measuring &%Processes arranged in a &%List.")
+(documentation MeasuringList ChineseLanguage "&%MeasuringList 是一系列，在一个串列
+（&%List）上的量度 &%Measuring 过程 &%Processe。")
+(subclass MeasuringList List)
+
+(=>
+  (and
+    (instance ?LIST MeasuringList)
+    (inList ?M ?LIST))
+  (instance ?M Measuring))
+
+(documentation SurfaceWindSpeedMeasuring EnglishLanguage "SurfaceWindSpeedMeasuring is
+a &%subclass of &%Measuring. It measures the &%WindFlow over a &%GeographicArea at a 
+0.25 &SecondDuration intervals. The &%instrument used is set to locate at 10 metres 
+(33 feet) above the Earth's surface as recommended by the World Meteorological Organisation.")
+(documentation SurfaceWindSpeedMeasuring ChineseLanguage "SurfaceWindSpeedMeasuring 是（量度）
+&%Measuring 的（子类别） &%subclass。它量度一个（地区） &%GeographicArea &%WindFlow 的速度，以
+0.25 &SecondDuration 秒的时间间隔进行。用于量度的（仪器）&%instrument 由世界气象组织规定设在地球表面
+10米(33英尺)上高度的位置。")
+(subclass SurfaceWindSpeedMeasuring Measuring)
+
+(=>
+  (instance ?M SurfaceWindSpeedMeasuring)
+  (exists (?PLACE ?TOOL)
+    (and
+      (instance ?PLACE GeographicArea)
+      (instance ?TOOL Device)
+      (eventLocated ?M ?PLACE)
+      (instrument ?M ?TOOL)
+      (holdsDuring (WhenFn ?M)
+        (elevation ?TOOL
+          (MeasureFn 10.0 Meter))))))
+
+(documentation MeasuringSurfaceWindSpeedList EnglishLanguage "&%MeasuringSurfaceWindSpeedList
+contains a sequence of &%SurfaceWindSpeedMeasuring over a &%GeographicArea.")
+(documentation MeasuringSurfaceWindSpeedList ChineseLanguage "&%MeasuringSurfaceWindSpeedList
+包含在一个（地区） &%GeographicArea 进行一系列的（地面风速量度） &%SurfaceWindSpeedMeasuring。")
+(subclass MeasuringSurfaceWindSpeedList  MeasuringList)
+
+(=>
+  (and
+    (instance ?LIST MeasuringSurfaceWindSpeedList)
+    (inList ?M ?LIST))    
+  (instance ?M SurfaceWindSpeedMeasuring))
+
+(documentation locationMeasuringList EnglishLanguage " &%locationMeasuringList is a 
+&%BinaryRelation which associates a &%MeasuringList with where
+the &%measuring takes place.(locationMeasuringList ?LIST ?PLACE) means that 
+the &%List ?LIST is located at ?PLACE.")
+(documentation locationMeasuringList ChineseLanguage " &%locationMeasuringList 是一个
+联系 &%MeasuringList 和（量度过程） &%measuring 发生位置的（二元关系） &%BinaryRelation。
+(locationMeasuringList ?LIST ?PLACE) 的意思是串列 （&%List） ?LIST 位于 ?PLACE。")
+(format EnglishLanguage locationMeasuringList "The &%eventLocated for %1 is %2")
+(format ChineseLanguage locationMeasuringList "%1 在 %2 （发生） &%eventLocated")
+(domain locationMeasuringList 1 MeasuringList)
+(domain locationMeasuringList 2 GeographicArea)
+(instance locationMeasuringList BinaryPredicate)
+
+(=>
+  (and
+    (locationMeasuringList ?LIST ?PLACE)
+    (inList ?M ?LIST))
+  (and
+    (instance ?M Measuring)
+    (eventLocated ?M ?PLACE)))
+    
+(documentation MeasuringResultList EnglishLanguage "&%MeasuringResultList is a &%List
+of &%Quantity containing the &results corresponding to a sequence of &%Measuring 
+&Processes.")
+(documentation MeasuringResultList ChineseLanguage "&%MeasuringResultList 是一个（多少）
+&%Quantity 的（串列）&%List，它包含相关一连串（量度过程）&%Measuring &Processe 的结果 &results。")
+(subclass MeasuringResultList List)
+
+(=>
+  (and
+    (instance ?LIST MeasuringResultList)
+    (inList ?R ?LIST))
+  (instance ?R PhysicalQuantity))
+
+(documentation measuringResult EnglishLanguage "&%measuringResult is a &%Binaryrelation
+which associates a sequence of &%Measuring &%Processes from the &%MeasuringList
+with the sequence of &%results from its corresponding &%MeasuringResultList.
+(measruingResult ?MLIST ?RLIST) means that the &%List ?RLIST is the &%result
+of the &%List of &%Measuring ?MLIST.")
+(format EnglishLanguage measuringResult "%2 is the &%result of %1")
+(documentation measuringResult ChineseLanguage "&%measuringResult 是一个
+联系 &%MeasuringList 上一系列的（量度过程）&%Measuring &%Processe 和它相关，在
+&%MeasuringResultList 上的一系列（结果） &%results 的（二元关系）&%Binaryrelation。
+(measruingResult ?MLIST ?RLIST)的意思是（串列）&%List ?RLIST 是 （量度串列）
+&%Measuring &%List ?MLIST 的（结果） &%result。")
+(format ChineseLanguage measuringResult "%2 是 %1 的（结果） &%result")
+(domain measuringResult 1 MeasuringList)
+(domain measuringResult 2 MeasuringResultList)
+(instance measuringResult BinaryPredicate)
+      
+(=>
+  (and
+    (measuringResult ?MLIST ?RLIST)
+    (equal ?M (ListOrderFn ?MLIST ?N))
+    (equal ?R (ListOrderFn ?RLIST ?N)))
+  (result ?M ?R))
+
+(documentation NumberList EnglishLanguage "&%NumberList is a &%List
+of &%Numbers.")
+(documentation NumberList ChineseLanguage "&%NumberList 是一个（数字） &%Number
+（串列） &%List。")
+(subclass NumberList List)
+
+(=>
+  (and
+    (instance ?LIST NumberList)
+    (inList ?NUM ?LIST))
+  (instance ?NUM Number))
+  
+(documentation PhysicalQuantityToNumberFn EnglishLanguage "(&%PhysicalQuantityToNumberFn ?QLIST)
+converts the &%PhysicalQuantities in a &%MeasuringResultList (?QLIST) to another list
+of corresponding &%Numbers in exactly the same order sequence.")
+(format EnglishLanguage PhysicalQuantityToNumberFn "&%PhysicalQuantityToNumberFn returns the numberic 
+values of a list of %1")
+(documentation PhysicalQuantityToNumberFn ChineseLanguage "(&%PhysicalQuantityToNumberFn ?QLIST)
+把 &%MeasuringResultList (?QLIST) 的（物理量）&%PhysicalQuantities 转换成另一个顺序相同的相关（数字串列）
+&%Number &%List。")
+(format ChineseLanguage PhysicalQuantityToNumberFn "&%PhysicalQuantityToNumberFn 得出一个串列的数字值是 %1")
+(domain PhysicalQuantityToNumberFn 1 MeasuringResultList)
+(instance PhysicalQuantityToNumberFn UnaryFunction)
+(range PhysicalQuantityToNumberFn NumberList)
+
+(=>
+  (and
+    (equal ?NLIST
+      (PhysicalQuantityToNumberFn ?QLIST))        
+    (equal ?QUANT (ListOrderFn ?QLIST ?N))
+    (equal ?NUM (ListOrderFn ?NLIST ?N)))
+  (equal
+    (MeasureFn ?NUM ?UNIT) ?QUANT))
+
+(documentation EnglishLanguage measuringListInterval "&%measuringListInterval is a 
+&%BinaryRelation. (measuringListInterval ?LIST ?DUR) ?DUR is the &%TimeDuration 
+for each &%Measuring &%Process contained in the ?LIST,
+&%MeasuringList, takes from when it begins till when it ends.")
+(format EnglishLanguage measuringListInterval "The &%Measuring for list %1 occurs at %2 interval.")
+(documentation ChineseLanguage measuringListInterval "&%measuringListInterval 是一个（二元关系）
+&%BinaryRelation。(measuringListInterval ?LIST ?DUR) ?DUR 是串列 ?LIST (&%MeasuringList) 上每个（量度过程）
+&%Measuring &%Process 从开始到结束的(持续时间) &%TimeDuration。")
+(format ChineseLanguage measuringListInterval "（量度） &%Measuring 串列 %1 在 %2 的时间间隔发生")
+(domain measuringListInterval 1 MeasuringList)
+(domain measuringListInterval 2 TimeDuration)
+(instance measuringListInterval BinaryPredicate)
+
+(=>
+  (and
+    (measuringListInterval ?LIST ?DUR)
+    (inList ?M ?LIST))
+  (duration (WhenFn ?M) ?DUR))
+
+(documentation EnglishLanguage measuringListDuration "&%measuringListDuration is a 
+&%BinaryRelation. (measuringListDuration ?LIST ?DURATION) ?DURATION is the &%TimeDuration for 
+all the &%Measuring &%Process contained in ?LIST, &%MeasuringList, take to finish.")
+(format EnglishLanguage measuringListDuration "The &%Measuring for list %1 takes %2.")
+(documentation ChineseLanguage measuringListDuration "&%measuringListDuration 是一个
+（二元关系）&%BinaryRelation。 (measuringListDuration ?LIST ?DURATION) ?DURATION 是串列 ?LIST 
+(&%MeasuringList) 上所有（量度过程）&%Measuring &%Processes 从开始到结束的(持续时间) &%TimeDuration。")
+(format ChineseLanguage measuringListDuration "（量度）&%Measuring 串列 list %1 持续了%2 那么久的时间")
+(domain measuringListDuration 1 MeasuringList)
+(domain measuringListDuration 2 TimeDuration)
+(instance measuringListDuration BinaryPredicate)
+
+(=>
+  (measuringListDuration ?LIST ?DURATION)
+  (exists (?T)
+    (and
+      (equal ?T
+        (TimeIntervalFn
+          (BeginFn (WhenFn (FirstFn ?LIST)))
+          (EndFn (WhenFn (LastFn ?LIST)))))
+      (duration ?T ?DURATION))))
+                       
+(documentation Mean3SecondWindSpeedFn EnglishLanguage "(&%Mean3SecondWindSpeedFn ?PLACE 
+?TIME) returns a &%FunctionQuantity which is the average value of a &%List of 12 instantaneous 
+of &%surfaceWindSpeed measurements, each taken at 0.25 &%Second intervals, over a 3 &%Second 
+&%TimeDuration for ?PLACE at ?TIME, standardised to reflect the winds at 10 metres 
+(33 feet) above the Earth's surface.")
+(format EnglishLanguage Mean3SecondWindSpeedFn "&%Mean3SecondWindSpeedFn for %2 in region %1")
+(documentation Mean3SecondWindSpeedFn ChineseLanguage "(&%Mean3SecondWindSpeedFn ?PLACE 
+?TIME) 得出一個 &%FunctionQuantity， 它是在?PLACE 地方，划一表示在地球表面10米(33 英尺)上高度位置，
+某时 ?TIME，（持续时间）&%TimeDuration 长3 &%Second 秒、共12个每 0.25 &%Second 秒时间
+间隔量度的即时（地面风速）&%surfaceWindSpeed（串列）&List上的平均值。")
+(format ChineseLanguage Mean3SecondWindSpeedFn "%1地区在%2时段的 &%Mean3SecondWindSpeedFn")
+(domain Mean3SecondWindSpeedFn 1 GeographicArea)
+(domain Mean3SecondWindSpeedFn 2 TimeInterval)
+(range Mean3SecondWindSpeedFn FunctionQuantity)
+(instance Mean3SecondWindSpeedFn BinaryFunction)
+
+(=>
+  (equal ?SPEED
+    (Mean3SecondWindSpeedFn ?PLACE ?TIME))
+  (holdsDuring ?TIME
+    (exists (?MLIST ?RLIST ?NLIST ?UNIT)
+      (and
+        (instance ?MLIST MeasuringSurfaceWindSpeedList)
+        (locationMeasuringList ?MLIST ?PLACE)
+        (measuringListInterval ?MLIST
+          (MeasureFn 0.25 SecondDuration))
+        (measuringListDuration ?MLIST
+          (MeasureFn 3 SecondDuration))
+        (equal 12 (ListLengthFn ?MLIST))      
+        (measuringResult ?MLIST ?RLIST)
+        (equal ?NLIST
+          (PhysicalQuantityToNumberFn ?RLIST))
+        (equal ?SPEED 
+          (MeasureFn (AverageFn ?NLIST) ?UNIT))))))
+
+(documentation ConsecutiveTimeIntervalList EnglishLanguage "&%ConsecutiveTimeIntervalList 
+is a sequence of continuous &%TimeIntervals in a &%List.")
+(documentation ConsecutiveTimeIntervalList ChineseLanguage "&%ConsecutiveTimeIntervalList 
+是 &%List (表列) 一系列连续的&%TimeIntervals(时间间隔) 。")
+(subclass ConsecutiveTimeIntervalList List)
+
+(=>
+  (and
+    (instance ?LIST ConsecutiveTimeIntervalList)
+    (inList ?TIME ?LIST))
+  (instance ?Time TimeInterval))
+
+(=>
+  (and
+    (instance ?LIST ConsecutiveTimeIntervalList)
+    (equal ?T1
+      (ListOrderFn ?LIST ?N))
+    (equal ?T2
+      (ListOrderFn ?LIST (AdditionFn ?N 1))))
+  (equal
+    (BeginFn ?T2)
+    (EndFn ?T1)))
+
+(documentation TimeIntervalListFn EnglishLanguage "&%TimeIntervalListFn is a &%BinaryFunction
+which takes a &%TimeInterval and &%TimeDuration, then denotes a sequence of continuous time
+intervals in a &%List, known as &%ConsecutiveTimeIntervalList.")
+(format EnglishLanguage TimeIntervalListFn "&%ConsecutiveTimeIntervalList for
+at %1 at %2 is contained in &%TimeIntervalListFn")
+(documentation TimeIntervalListFn ChineseLanguage "&%TimeIntervalListFn 是一个 &%BinaryFunction，
+它接受一个 &%TimeInterval 和一个 &%TimeDuration, 然后以表列(&%List)形式把一连串连续的时间间隔
+呈现出来，为连续时间间隔表列(&%ConsecutiveTimeIntervalList)。")
+(format ChineseLanguage TimeIntervalListFn "%1 的 %2 &%ConsecutiveTimeIntervalList 
+是在 &%TimeIntervalListFn(时间间隔表列函数)")
+(domain TimeIntervalListFn 1 TimeInterval)
+(domain TimeIntervalListFn 2 TimeDuration)
+(range TimeIntervalListFn ConsecutiveTimeIntervalList)
+(instance TimeIntervalListFn BinaryFunction)
+
+(=>
+  (instance ?LIST ConsecutiveTimeIntervalList)
+  (equal ?LIST
+      (TimeIntervalListFn ?TIME ?DUR)))
+
+(=>
+  (and
+    (inList ?INT ?LIST)
+    (equal ?LIST
+      (TimeIntervalListFn ?TIME ?DUR)))
+  (equal
+    (BeginFn ?TIME)
+    (BeginFn (FirstFn ?LIST))))
+
+(=>
+  (and
+    (inList ?INT ?LIST)
+    (equal ?LIST
+      (TimeIntervalListFn ?TIME ?DUR)))
+  (duration ?INT ?DUR))
+
+(documentation Mean3SecondWindSpeedListFn EnglishLanguage "&%Mean3SecondWindSpeedListFn is a 
+helper function for calculating the 3 second gust speed in the &%ThreeSecondGustSpeedFn. It returns
+a &%List of running 3-second average wind speeds which are &%FunctionQuantity(ies) occurring in a 
+&%GeographicArea over a &%TimeInterval. The &%TimeDuration of the time interval is 2 &%MinuteDuration.")
+(format EnglishLanguage Mean3SecondWindSpeedListFn "&%Mean3SecondWindSpeedListFn ending at %2 in region %1")
+(documentation Mean3SecondWindSpeedListFn ChineseLanguage "&%Mean3SecondWindSpeedListFn (平均3秒风速表列)
+是一个辅助函数，用于计算 &%ThreeSecondGustSpeedFn 的三秒阵风风速。它算出一个&%List(表列)的累积
+3秒平均风速，这些风速是在一段&%TimeDuration(时间间隔)，发生在一处 &%GeographicArea(地理地区)的
+ &%FunctionQuantity(功能数量)。这个时间间隔的 &%TimeDuration (持续时间)为2 &%MinuteDuration(分钟长)。")
+(format ChineseLanguage Mean3SecondWindSpeedListFn "在 %2 时间结束以前， 发生在区域 %1 的
+&%Mean3SecondWindSpeedListFn (平均3秒风速表列)")
+(domain Mean3SecondWindSpeedListFn 1 GeographicArea)
+(domain Mean3SecondWindSpeedListFn 2 TimeInterval)
+(range Mean3SecondWindSpeedListFn List)
+(instance Mean3SecondWindSpeedListFn BinaryFunction)
+    
+(=>
+  (and
+    (equal ?SPEEDLIST
+      (Mean3SecondWindSpeedListFn ?PLACE ?TIME))
+    (inList ?SPEED ?SPEEDLIST))
+  (instance ?SPEED FunctionQuantity))
+    
+(=>
+  (and
+    (equal ?SPEEDLIST
+      (Mean3SecondWindSpeedListFn ?PLACE ?TIME))
+    (inList ?SPEED ?SPEEDLIST))
+  (exists (?TIMELIST ?INT)
+    (and
+      (equal ?TIMELIST
+        (TimeIntervalListFn ?TIME
+          (MeasureFn 3 SecondDuration)))
+      (inList ?INT ?TIMELIST)
+      (equal ?SPEED
+        (Mean3SecondWindSpeedFn ?PLACE ?INT))))) 
+          
+(=>  
+  (equal ?SPEEDLIST
+    (Mean3SecondWindSpeedListFn ?PLACE ?TIME))
+  (duration ?TIME
+    (MeasureFn 2 MinuteDuration)))
+
+(documentation ThreeSecondGustSpeedFn EnglishLanguage "(&%ThreeSecondGustSpeedFn ?PLACE ?TIME) 
+returns the highest running 3-second average wind speed recorded at ?PLACE in the 2 minutes
+&%TimeInterval ?TIME.")
+(format EnglishLanguage ThreeSecondGustSpeedFn "&%ThreeSecondSpeedGustFn ending at %2 in %1")
+(documentation ThreeSecondGustSpeedFn ChineseLanguage "(&%ThreeSecondGustSpeedFn ?PLACE ?TIME) 
+得出于 ?TIME 2 分钟&%TimeInterval(时间间隔)， 在?PLACE 所录得的最高累积3秒平均风速。")
+(format ChineseLanguage ThreeSecondGustSpeedFn "在 %2 时间结束以前， 发生在区域 %1 的
+&%ThreeSecondGustSpeedFn (3秒阵风风速)")
+(domain ThreeSecondGustSpeedFn 1 GeographicArea)
+(domain ThreeSecondGustSpeedFn 2 TimeInterval)
+(range ThreeSecondGustSpeedFn FunctionQuantity)
+(instance ThreeSecondGustSpeedFn BinaryFunction)
+
+(=>
+  (equal ?SPEED
+    (ThreeSecondGustSpeedFn ?PLACE ?TIME))
+  (exists (?SPEEDLIST ?NLIST ?UNIT)
+    (and
+      (equal ?SPEEDLIST
+        (Mean3SecondWindSpeedListFn ?PLACE ?TIME))  
+      (equal ?NLIST
+        (PhysicalQuantityToNumberFn ?SPEEDLIST))        
+      (equal ?SPEED 
+        (MeasureFn (MaxValueFn ?NLIST) ?UNIT)))))
+        
+(documentation SpeedScaleAttribute EnglishLanguage "&%SpeedScaleAttribute is a class of 
+&%Attributes for indicating the speed of a &%Motion")
+(documentation SpeedScaleAttribute ChineseLanguage "&%SpeedScaleAttribute (时速级数属性)
+是用于表达 %Motion (运动) 的速度一个 &%Attribute (属性)类别。 ")
+(subclass SpeedScaleAttribute RelationalAttribute)
+
+(=>
+  (and
+    (instance ?ATTR SpeedScaleAttribute)
+    (property ?X ?ATTR))
+  (instance ?X Motion))
+
+(documentation TornadoDamage EnglishLanguage "&%TornadoDamage is the class of &%Objects, 
+that are damaged by &%Tornados.")
+(termFormat EnglishLanguage TornadoDamage "tornado damage")
+(documentation TornadoDamage ChineseLanguage "&%TornadoDamage（龙卷风损害）是一个受 &%Tornados 
+（龙卷风）损害的 &%Object （物质）类别。")
+(termFormat ChineseLanguage TornadoDamage "龙卷风损害")
+(subclass TornadoDamage Object)
+
+(=>
+  (instance ?TD TornadoDamage)
+  (exists (?T ?D)
+    (and
+      (instance ?T Tornado)
+      (instance ?D Damaging)
+      (causes ?T ?D)
+      (patient ?D ?TD))))
+       
+(documentation EFScaleAttribute EnglishLanguage "&%EFScaleAttribute is short for the Enhanced 
+Fujita Scale. It is the &%Attribute for indicating the intensity of a &%Tornado according to a 
+set of 3-second gusts wind estimates based on damage it caused. The lightest tornados(EFO) 
+have wind gusts ranging between 65 to 85 mph,and the severest &%Tornades (EF5) 
+&%GreaterThan 200 mph.")
+(documentation EFScaleAttribute ChineseLanguage "&%EFScaleAttribute 是改良藤田级数的简称。这是根据一系列龙卷风所造成的损害，
+估计首灾区的3秒阵风风速来表示一个 &%Tornado (龙卷风)的强度。级数最低的龙卷风为 EFO，它的阵风风速估计在 65 
+到 85 mph 之间， 而最强级别的 &%Tornades 是 EF5，阵风大于 &%GreaterThan 200 mph。")
+
+(subclass EFScaleAttribute SpeedScaleAttribute)
+
+(=>
+  (and
+    (instance ?EF EFScaleAttribute)
+    (property ?T ?EF))
+  (instance ?T Tornado))
+
+(=>
+  (and
+    (instance ?T Tornado)
+    (instance ?EF EFScaleAttribute)
+    (eventLocated ?T ?AREA)
+    (believes ?A
+      (property ?T ?EF))
+    (speedScaleAttributeMinMax ?EF 
+      (MeasureFn ?MIN MilesPerHour)
+      (MeasureFn ?MAX MilesPerHour)))
+  (exists (?GUST)
+    (and
+      (greaterThanOrEqualTo ?GUST ?MIN)
+      (lessThanOrEqualTo ?GUST ?MAX)   
+      (believes ?A
+        (equal 
+          (MeasureFn ?GUST MilesPerHour)
+          (ThreeSecondGustSpeedFn ?AREA
+            (WhenFn ?T)))))))
+
+(documentation speedScaleAttributeMinMax EnglishLanguage " &%speedScaleAttributeMinMax is a 
+&%TernaryRelation which specifies the range of speeds for a speed scale attribute. 
+(speedScaleAttributeMinMax ?ATTR ?MIN ?MAX) where ?ATTR is an instance of &%SpeedScaleAttribute and
+?MIN is the minimum speed and ?MAX is the maximum speed. ")
+(format EnglishLanguage speedScaleAttributeMinMax "%2 and %3 are the min and max speed of %1")
+(documentation speedScaleAttributeMinMax ChineseLanguage " &%speedScaleAttributeMinMax (时速级数属性最低最高)
+是一个 &%TernaryRelation，它为一个时速级数属性设定一个范畴。在(speedScaleAttributeMinMax ?ATTR ?MIN ?MAX) 里， 
+?ATTR  &%SpeedScaleAttribute (时速级数属性)的一个例子，?MIN 是最低速度 the minimum speed 而 ?MAX 是最高速度。")
+(format ChineseLanguage speedScaleAttributeMinMax  "%1 的最低和最高是 %2 和 %3")
+(domain speedScaleAttributeMinMax 1 SpeedScaleAttribute)
+(domain speedScaleAttributeMinMax 2 FunctionQuantity)
+(domain speedScaleAttributeMinMax 3 FunctionQuantity)
+(instance speedScaleAttributeMinMax TernaryPredicate)
+
+(=>
+  (and
+    (speedScaleAttributeMinMax ?ATTR 
+      (MeasureFn ?MIN ?U)
+      (MeasureFn ?MAX ?U))
+    (instance ?U UnitOfMeasure))
+  (exists (?X ?SPEED)
+    (and
+      (instance ?X Motion)
+      (property ?X ?ATTR)
+      (measure ?X 
+        (MeasureFn ?SPEED ?U))
+      (greaterThanOrEqualTo ?SPEED ?MIN)
+      (lessThanOrEqualTo ?SPEED ?MAX))))
+            
+(documentation EF0 EnglishLanguage "The estimated &%ThreeSecondGustSpeedFn for 
+a &%Tornado of &%EFScaleAttribute &%EF0 ranges between 65 and 85mph (105 and 137km/h).")
+(documentation EF0 ChineseLanguage "&%EFScale(改良藤田级数)&%EF0 的龙卷风估计三秒阵风风速在
+65 到 85mph (105 到 137km/h)之间。")
+(instance EF0 EFScaleAttribute)
+(successorAttribute EF0 EF1)
+(speedScaleAttributeMinMax EF0 (MeasureFn 65.0 MilesPerHour) (MeasureFn 85.0 MilesPerHour))
+
+(documentation EF1 EnglishLanguage "The estimated &%ThreeSecondGustSpeedFn for 
+a &%Tornado of &%EFScaleAttribute &%EF1 ranges between 86 and 110mph (138 and 177km/h).")
+(documentation EF1 ChineseLanguage "&%EFScale(改良藤田级数)&%EF1 的龙卷风估计三秒阵风风速在
+86 到 110mph (138 到 177km/h)之间。")
+(instance EF1 EFScaleAttribute)
+(successorAttribute EF1 EF2)
+(speedScaleAttributeMinMax EF1 (MeasureFn 86.0 MilesPerHour) (MeasureFn 110.0 MilesPerHour))
+
+(documentation EF2 EnglishLanguage "The estimated &%ThreeSecondGustSpeedFn for 
+a &%Tornado of &%EFScaleAttribute &%EF2 ranges between 111 and 135mph (178 and 217km/h).")
+(documentation EF2 ChineseLanguage "&%EFScale(改良藤田级数)&%EF2 的龙卷风估计三秒阵风风速在
+111 到 135mph (178 到 217km/h)之间。")
+(instance EF2 EFScaleAttribute)
+(successorAttribute EF2 EF3)
+(speedScaleAttributeMinMax EF2 (MeasureFn 111.0 MilesPerHour) (MeasureFn 135.0 MilesPerHour))
+
+(documentation EF3 EnglishLanguage "The estimated &%ThreeSecondGustSpeedFn for a 
+&%Tornado of &%EFScaleAttribute &%EF3 ranges between 136 and 165mph (218 and 266km/h).")
+(documentation EF3 ChineseLanguage "&%EFScale(改良藤田级数)&%EF3 的龙卷风估计三秒阵风风速在
+136 到 136mph (218 到 266km/h)之间。")
+(instance EF3 EFScaleAttribute)
+(successorAttribute EF3 EF4)
+(speedScaleAttributeMinMax EF3 (MeasureFn 136.0 MilesPerHour) (MeasureFn 165.0 MilesPerHour))
+
+(documentation EF4 EnglishLanguage "The estimated &%ThreeSecondGustSpeedFn for a 
+&%Tornado of &%EFScaleAttribute &%EF4 ranges between 136 and 200mph (267 and 322km/h).")
+(documentation EF4 ChineseLanguage "&%EFScale(改良藤田级数)&%EF4 的龙卷风估计三秒阵风风速在
+166 到 200mph (267 到 322km/h)之间。")
+(instance EF4 EFScaleAttribute)
+(successorAttribute EF4 EF5)
+(speedScaleAttributeMinMax EF4 (MeasureFn 166.0 MilesPerHour) (MeasureFn 200.0 MilesPerHour))
+
+(documentation EF5 EnglishLanguage "The estimated &%ThreeSecondGustSpeedFn for a 
+&%Tornado of &%EFScaleAttribute &%EF5 is greater than 200mph (322km/h).")
+(documentation EF5 ChineseLanguage "&%EFScale(改良藤田级数)&%EF5 的龙卷风估计三秒阵风风速大于
+200mph (322km/h)。")
+(instance EF5 EFScaleAttribute)
+
+(=>
+  (and
+    (instance ?T Tornado)
+    (instance ?EF EF5)
+    (eventLocated ?T ?AREA)
+    (believes ?A
+      (property ?T ?EF)))
+  (exists (?GUST)
+    (and
+      (greaterThan ?GUST 200.0)
+      (believes ?A
+        (equal 
+          (MeasureFn ?GUST MilesPerHour) 
+          (ThreeSecondGustSpeedFn ?AREA
+            (WhenFn ?T)))))))     
+
+(documentation Mean10MinutesWindSpeedFn EnglishLanguage "(&%Mean10MinutesWindSpeedFn ?PLACE 
+?TIME) returns a &%FunctionQuantity which is the average value of a &%List of 120 instantaneous 
+of &%surfaceWindSpeed measurements, each taken at 5 &%Second intervals, over a 10 &%Minutes 
+&%TimeDuration for ?PLACE at ?TIME, standardised to reflect the winds at 10 metres 
+(33 feet) above the Earth's surface.")
+(format EnglishLanguage Mean10MinutesWindSpeedFn "&%Mean10MinutesWindSpeedFn for %2 in region %1")
+(documentation Mean10MinutesWindSpeedFn ChineseLanguage "(&%Mean10MinutesWindSpeedFn ?PLACE 
+?TIME) 得出一個 &%FunctionQuantity， 它是在?PLACE 地方，划一表示在地球表面10米(33 英尺)上高度位置，
+某时 ?TIME，（持续时间）&%TimeDuration 长10 &%Minutes 分钟、共120个每 5 &%Second 秒时间
+间隔量度的即时（地面风速）&%surfaceWindSpeed（串列）&List上的平均值。")
+(format ChineseLanguage Mean10MinutesWindSpeedFn "%1地区在%2时段的 &%Mean10MinutesWindSpeedFn")
+(domain Mean10MinutesWindSpeedFn 1 GeographicArea)
+(domain Mean10MinutesWindSpeedFn 2 TimeInterval)
+(range Mean10MinutesWindSpeedFn FunctionQuantity)
+(instance Mean10MinutesWindSpeedFn BinaryFunction)
+
+(=>
+  (equal ?SPEED
+    (Mean10MinutesWindSpeedFn ?PLACE ?TIME))
+  (holdsDuring ?TIME
+    (exists (?MLIST ?RLIST ?NLIST ?UNIT)
+      (and
+        (instance ?MLIST MeasuringSurfaceWindSpeedList)
+        (locationMeasuringList ?MLIST ?PLACE)
+        (measuringListInterval ?MLIST
+          (MeasureFn 5 SecondDuration))
+        (measuringListDuration ?MLIST
+          (MeasureFn 10 MinuteDuration))
+        (equal 120 (ListLengthFn ?MLIST))      
+        (measuringResult ?MLIST ?RLIST)
+        (equal ?NLIST
+          (PhysicalQuantityToNumberFn ?RLIST))
+        (equal ?SPEED 
+          (MeasureFn (AverageFn ?NLIST) ?UNIT))))))
+
+(documentation Mean3MinutesWindSpeedFn EnglishLanguage "(&%Mean3MinutesWindSpeedFn ?PLACE 
+?TIME) returns a &%FunctionQuantity which is the average value of a &%List of 36 instantaneous 
+of &%surfaceWindSpeed measurements, each taken at 5 &%Second intervals, over a 3 &%Minutes 
+&%TimeDuration for ?PLACE at ?TIME, standardised to reflect the winds at 10 metres 
+(33 feet) above the Earth's surface.")
+(format EnglishLanguage Mean3MinutesWindSpeedFn "&%Mean3MinutesWindSpeedFn for %2 in region %1")
+(documentation Mean3MinutesWindSpeedFn ChineseLanguage "(&%Mean3MinutesWindSpeedFn ?PLACE 
+?TIME) 得出一個 &%FunctionQuantity， 它是在?PLACE 地方，划一表示在地球表面10米(33 英尺)上高度位置，
+某时 ?TIME，（持续时间）&%TimeDuration 长3 &%Minutes 分钟、共36个每 5 &%Second 秒时间
+间隔量度的即时（地面风速）&%surfaceWindSpeed（串列）&List上的平均值。")
+(format ChineseLanguage Mean3MinutesWindSpeedFn "%1地区在%2时段的 &%Mean3MinutesWindSpeedFn")
+(domain Mean3MinutesWindSpeedFn 1 GeographicArea)
+(domain Mean3MinutesWindSpeedFn 2 TimeInterval)
+(range Mean3MinutesWindSpeedFn FunctionQuantity)
+(instance Mean3MinutesWindSpeedFn BinaryFunction)
+
+(=>
+  (equal ?SPEED
+    (Mean3MinutesWindSpeedFn ?PLACE ?TIME))
+  (holdsDuring ?TIME
+    (exists (?MLIST ?RLIST ?NLIST ?UNIT)
+      (and
+        (instance ?MLIST MeasuringSurfaceWindSpeedList)
+        (locationMeasuringList ?MLIST ?PLACE)
+        (measuringListInterval ?MLIST
+          (MeasureFn 5 SecondDuration))
+        (measuringListDuration ?MLIST
+          (MeasureFn 2 MinuteDuration))
+        (equal 36 (ListLengthFn ?MLIST))      
+        (measuringResult ?MLIST ?RLIST)
+        (equal ?NLIST
+          (PhysicalQuantityToNumberFn ?RLIST))
+        (equal ?SPEED 
+          (MeasureFn (AverageFn ?NLIST) ?UNIT))))))
+          
+(documentation Mean2MinutesWindSpeedFn EnglishLanguage "(&%Mean2MinutesWindSpeedFn ?PLACE 
+?TIME) returns a &%FunctionQuantity which is the average value of a &%List of 24 instantaneous 
+of &%surfaceWindSpeed measurements, each taken at 5 &%Second intervals, over a 2 &%Minutes 
+&%TimeDuration for ?PLACE at ?TIME, standardised to reflect the winds at 10 metres 
+(33 feet) above the Earth's surface.")
+(format EnglishLanguage Mean2MinutesWindSpeedFn "&%Mean2MinutesWindSpeedFn for %2 in region %1")
+(documentation Mean2MinutesWindSpeedFn ChineseLanguage "(&%Mean2MinutesWindSpeedFn ?PLACE 
+?TIME) 得出一個 &%FunctionQuantity， 它是在?PLACE 地方，划一表示在地球表面10米(33 英尺)上高度位置，
+某时 ?TIME，（持续时间）&%TimeDuration 长2 &%Minutes 分钟、共24个每 5 &%Second 秒时间
+间隔量度的即时（地面风速）&%surfaceWindSpeed（串列）&List上的平均值。")
+(format ChineseLanguage Mean2MinutesWindSpeedFn "%1地区在%2时段的 &%Mean2MinutesWindSpeedFn")
+(domain Mean2MinutesWindSpeedFn 1 GeographicArea)
+(domain Mean2MinutesWindSpeedFn 2 TimeInterval)
+(range Mean2MinutesWindSpeedFn FunctionQuantity)
+(instance Mean2MinutesWindSpeedFn BinaryFunction)
+
+(=>
+  (equal ?SPEED
+    (Mean2MinutesWindSpeedFn ?PLACE ?TIME))
+  (holdsDuring ?TIME
+    (exists (?MLIST ?RLIST ?NLIST ?UNIT)
+      (and
+        (instance ?MLIST MeasuringSurfaceWindSpeedList)
+        (locationMeasuringList ?MLIST ?PLACE)
+        (measuringListInterval ?MLIST
+          (MeasureFn 5 SecondDuration))
+        (measuringListDuration ?MLIST
+          (MeasureFn 2 MinuteDuration))
+        (equal 24 (ListLengthFn ?MLIST))      
+        (measuringResult ?MLIST ?RLIST)
+        (equal ?NLIST
+          (PhysicalQuantityToNumberFn ?RLIST))
+        (equal ?SPEED 
+          (MeasureFn (AverageFn ?NLIST) ?UNIT))))))
+
+(documentation Mean1MinuteWindSpeedFn EnglishLanguage "(&%Mean1MinuteWindSpeedFn ?PLACE 
+?TIME) returns a &%FunctionQuantity which is the average value of a &%List of 12 instantaneous 
+of &%surfaceWindSpeed measurements, each taken at 5 &%Second intervals, over a 1 &%Minutes 
+&%TimeDuration for ?PLACE at ?TIME, standardised to reflect the winds at 10 metres 
+(33 feet) above the Earth's surface.")
+(format EnglishLanguage Mean1MinuteWindSpeedFn "&%Mean1MinuteWindSpeedFn for %2 in region %1")
+(documentation Mean1MinuteWindSpeedFn ChineseLanguage "(&%Mean1MinuteWindSpeedFn ?PLACE 
+?TIME) 得出一個 &%FunctionQuantity， 它是在?PLACE 地方，划一表示在地球表面10米(33 英尺)上高度位置，
+某时 ?TIME，（持续时间）&%TimeDuration 长1 &%Minutes 分钟、共12个每 5 &%Second 秒时间
+间隔量度的即时（地面风速）&%surfaceWindSpeed（串列）&List上的平均值。")
+(format ChineseLanguage Mean1MinuteWindSpeedFn "%1地区在%2时段的 &%Mean1MinuteWindSpeedFn")
+(domain Mean1MinuteWindSpeedFn 1 GeographicArea)
+(domain Mean1MinuteWindSpeedFn 2 TimeInterval)
+(range  Mean1MinuteWindSpeedFn FunctionQuantity)
+(instance Mean1MinuteWindSpeedFn BinaryFunction)
+
+(=>
+  (equal ?SPEED
+    (Mean1MinuteWindSpeedFn ?PLACE ?TIME))
+  (holdsDuring ?TIME
+    (exists (?MLIST ?RLIST ?NLIST ?UNIT)
+      (and
+        (instance ?MLIST MeasuringSurfaceWindSpeedList)
+        (locationMeasuringList ?MLIST ?PLACE)
+        (measuringListInterval ?MLIST
+          (MeasureFn 5 SecondDuration))
+        (measuringListDuration ?MLIST
+          (MeasureFn 1 MinuteDuration))
+        (equal 12 (ListLengthFn ?MLIST))      
+        (measuringResult ?MLIST ?RLIST)
+        (equal ?NLIST
+          (PhysicalQuantityToNumberFn ?RLIST))
+        (equal ?SPEED 
+          (MeasureFn (AverageFn ?NLIST) ?UNIT))))))
+
+(documentation SSHWSAttribute EnglishLanguage "&%SSHWSAttribute is short for the 
+Saffir_Simpson hurricane wind scale. It is the &%Attribute for rating the intensity 
+of a &%Hurricane based on the highest wind speed averaged over a one_minute interval 
+10 m above the surface (&%Mean1MinuteWindSpeedFn).")
+(documentation SSHWSAttribute ChineseLanguage "&%SSHWSAttribute 是萨菲尔辛普森飓风风力等级
+的缩写。这是以距离地面10米高，最高的一分钟平均风速(&%Mean1MinuteWindSpeedFn)
+用来评估一个台风（&%Hurricane）强弱程度的属性 （&%Attribute）。")
+(termFormat EnglishLanguage SSHWSAttribute "SSHWS attribute")
+(termFormat EnglishLanguage SSHWSAttribute "Saffir Simpson Hurrican wind scale")
+(termFormat ChineseLanguage SSHWSAttribute "萨菲尔辛普森飓风风力等级")
+(subclass SSHWSAttribute SpeedScaleAttribute)
+
+(=>
+  (and
+    (instance ?SS SSHWSAttribute)
+    (property ?H ?SS))
+  (instance ?H Hurricane))
+
+(=>
+  (and
+    (instance ?H Hurricane)
+    (instance ?SS SSHWSAttribute)
+    (eventLocated ?H ?AREA)
+    (believes ?A
+      (property ?H ?SS))
+    (speedScaleAttributeMinMax ?SS 
+      (MeasureFn ?MIN ?U)
+      (MeasureFn ?MAX ?U))
+    (instance ?U UnitOfMeasure))
+  (exists (?WIND)
+    (and
+      (greaterThanOrEqualTo ?WIND ?MIN)
+      (lessThanOrEqualTo ?WIND ?MAX)
+      (believes ?A
+        (equal 
+          (MeasureFn ?WIND ?U)
+          (Mean1MinuteWindSpeedFn ?AREA
+            (WhenFn ?H)))))))
+
+(documentation SSHWS1 EnglishLanguage "The estimated highest &%Mean1MinuteWindSpeedFn 
+(one_minute sustained winds) for a &%Hurricane of SSHWSAttribute SSHWS1 ranges between 
+74 and 95 mph (119-153 km/h).")
+(documentation SSHWS1 ChineseLanguage "萨菲尔辛普森飓风1 (SSHWS1)级别的台风(&%Hurricane)
+估计它的一分钟平均风速 (&%Mean1MinuteWindSpeedFn) 在 74 到 95 mph（119-153 km/h）。")
+(termFormat EnglishLanguage SSHWS1 "SSHWS1")
+(termFormat ChineseLanguage SSHWS1 "萨菲尔辛普森飓风1")
+(instance SSHWS1 SSHWSAttribute)
+(successorAttribute SSHWS1 SSHWS2)
+
+(speedScaleAttributeMinMax SSHWS1 (MeasureFn 74.0 MilesPerHour) (MeasureFn 95.0 MilesPerHour))
+
+(documentation SSHWS2 EnglishLanguage "The estimated highest &%Mean1MinuteWindSpeedFn 
+(one_minute sustained winds) for a &%Hurricane of SSHWSAttribute SSHWS2 ranges between 
+96 and 110 mph (154-177 km/h).")
+(documentation SSHWS2 ChineseLanguage "萨菲尔辛普森飓风2 (SSHWS2)级别的台风(&%Hurricane)
+估计它的一分钟平均风速 (&%Mean1MinuteWindSpeedFn) 在 96 到 110 mph（154-177 km/h）。")
+(termFormat EnglishLanguage SSHWS2 "SSHWS2")
+(termFormat ChineseLanguage SSHWS2 "萨菲尔辛普森飓风2")
+(instance SSHWS2 SSHWSAttribute)
+(successorAttribute SSHWS2 SSHWS3)
+
+(speedScaleAttributeMinMax SSHWS2 (MeasureFn 96.0 MilesPerHour) (MeasureFn 110.0 MilesPerHour))
+
+(documentation SSHWS3 EnglishLanguage "The estimated highest &%Mean1MinuteWindSpeedFn 
+(one_minute sustained winds) for a &%Hurricane of SSHWSAttribute SSHWS3 ranges between 
+111 and 129 mph (178-208 km/h).")
+(documentation SSHWS3 ChineseLanguage "萨菲尔辛普森飓风3 (SSHWS3)级别的台风(&%Hurricane)
+估计它的一分钟平均风速 (&%Mean1MinuteWindSpeedFn) 在 111 到 129 mph（178-208 km/h）。")
+(termFormat EnglishLanguage SSHWS3 "SSHWS3")
+(termFormat ChineseLanguage SSHWS3 "萨菲尔辛普森飓风3")
+(instance SSHWS3 SSHWSAttribute)
+(successorAttribute SSHWS3 SSHWS4)
+
+(speedScaleAttributeMinMax SSHWS3 (MeasureFn 111.0 MilesPerHour) (MeasureFn 129.0 MilesPerHour))
+
+(documentation SSHWS4 EnglishLanguage "The estimated highest &%Mean1MinuteWindSpeedFn 
+(one_minute sustained winds) for a &%Hurricane of SSHWSAttribute SSHWS4 ranges between 
+130 and 156 mph (209-251 km/h).")
+(documentation SSHWS4 ChineseLanguage "萨菲尔辛普森飓风4 (SSHWS4)级别的台风(&%Hurricane)
+估计它的一分钟平均风速 (&%Mean1MinuteWindSpeedFn) 在 130 到 156 mph（209-251 km/h）。")
+(termFormat EnglishLanguage SSHWS4 "SSHWS4")
+(termFormat ChineseLanguage SSHWS4 "萨菲尔辛普森飓风4")
+(instance SSHWS4 SSHWSAttribute)
+(successorAttribute SSHWS4 SSHWS5)
+
+(speedScaleAttributeMinMax SSHWS4 (MeasureFn 130.0 MilesPerHour) (MeasureFn 156.0 MilesPerHour))
+
+(documentation SSHWS5 EnglishLanguage "The estimated highest &%Mean1MinuteWindSpeedFn 
+(one_minute sustained winds) for a &%Hurricane of SSHWSAttribute SSHWS5 is greater than 
+157 mph (252 km/h).")
+(documentation SSHWS5 ChineseLanguage "萨菲尔辛普森飓风5 (SSHWS5)级别的台风(&%Hurricane)
+估计它的一分钟平均风速 (&%Mean1MinuteWindSpeedFn) 大于 157 mph(252 km/h）。")
+(termFormat EnglishLanguage SSHWS5 "SSHWS5")
+(termFormat ChineseLanguage SSHWS5 "萨菲尔辛普森飓风5")
+(instance SSHWS5 SSHWSAttribute)
+
+(=>
+  (and
+    (instance ?H Hurricane)
+    (instance ?SS SSHWS5)
+    (eventLocated ?H ?AREA)
+    (believes ?A
+      (property ?H ?SS)))
+  (exists (?WIND)
+    (and
+      (greaterThan ?WIND 157.0)
+      (believes ?A
+        (equal 
+          (MeasureFn ?WIND MilesPerHour)
+          (Mean1MinuteWindSpeedFn ?AREA
+            (WhenFn ?H)))))))
+                                     
+(subclass Tsunami WeatherProcess)
+
+(documentation Tsunami EnglishLanguage "&%Tsunami is the class of highly destructive 
+ocean waves caused by offshore seismic processes.")
+
+;; (subclass Hurricane TropicalCyclone) Hurricane = Typhoon = TropicalCyclone
+
+(subclass Drought WeatherProcess)
+(documentation Drought EnglishLanguage "&%Drought is the subclass of &%WeatherProcess 
+that represents long periods without precipitation, which is damaging 
+to crops, livestock, and human life.")
+
+(=>
+  (and
+    (instance ?DRYSPELL Drought)
+    (eventLocated ?DRYSPELL ?AREA))
+  (not
+    (exists (?RAIN ?PLACE)
+      (and
+        (instance ?RAIN Raining)
+        (instance ?PLACE Region)
+        (eventLocated ?RAIN ?PLACE)
+        (overlapsSpatially ?PLACE ?AREA)
+        (overlapsTemporally ?RAIN ?DRYSPELL)))))
+
+(subclass Desertification WeatherProcess)
+;	Jennie September 2019
+(documentation Desertification EnglishLanguage "&%Desertification is the 
+&%Process by which fertile land becomes desert.")
+(documentation Desertification ChineseLanguage "&%Desertification 是肥沃土地变成沙漠的
+&%Process。")
+(termFormat ChineseLanguage Desertification "荒漠化")
+
+(=>
+  (and
+    (instance ?DESERTIFICATION Desertification)
+    (eventLocated ?DESERTIFICATION ?AREA))
+  (exists (?A1 ?A2)
+    (and
+      (instance ?A1 ArableLand)
+      (instance ?A2 Desert)
+      (holdsDuring
+        (BeginFn (WhenFn ?DESERTIFICATION))
+        (overlapsSpatially ?AREA ?A1))
+      (holdsDuring
+        (EndFn (WhenFn ?DESERTIFICATION))
+        (overlapsSpatially ?AREA ?A2)))))
+        
+(documentation Icing EnglishLanguage "&%Icing is the process by which &%Ice is deposited 
+on a %Solid object in polycrystalline form.")
+(documentation Icing ChineseLanguage "&%Icing 是当 &%Ice 在 &%Solid 物体上凝结成多晶体。 ")
+(termFormat ChineseLanguage Icing "大气结冰")
+(subclass Icing WeatherProcess)
+(subclass Icing Freezing)
+
+(=>
+  (instance ?ICING Icing)
+  (exists (?ICE ?OBJ)
+    (and
+      (instance ?ICE Ice)
+      (attribute ?ICE PolyCrystalline)
+      (patient ?ICING ?ICE)
+      (instance ?OBJ Object)
+      (attribute ?OBJ Solid)
+      (destination ?ICING ?OBJ)
+      (meetsSpatially ?ICE ?OBJ))))
+
+; 1 Fogging (2 August 2017 Jennie)
+
+(documentation Fogging EnglishLanguage "&%Fogging is &%Water droplets or &%Ice &%Crystal 
+suspended in the &%EarthAtmosphere, &%causes &%visibilityInMeteorology to be reduced to 
+less than 1,000 &%Meter.")
+(documentation Fogging ChineseLanguage "&%Fogging 是悬浮在 &%EarthAtmosphere 的 &%Water 小滴
+或 &%Ice &%Crystal，它 &%causes &%visibilityInMeteorology 下降至少于 1,000 &%Meter.")
+(subclass Fogging WeatherProcess)
+(termFormat EnglishLanguage Fogging "fog")
+(termFormat ChineseLanguage Fogging "雾")
+
+(=>
+  (and
+    (instance ?FOG Fogging)
+    (eventLocated ?FOG ?AREA)    
+    (instance ?AREA GeographicArea)
+    (instance ?AIR AtmosphericRegion)
+    (orientation ?AIR ?AREA Above)
+    (instance ?A Aerosal)
+    (locatedAtTime ?A
+      (WhenFn ?FOG) ?AIR)   
+    (visibilityInMeteorology ?AREA
+      (WhenFn ?FOG)
+      (MeasureFn ?VISIBILITY Meter)))
+  (lessThan ?VISIBILITY 1000.0))
+
+; AtmosphericHazing 2 August 2017 Jennie
+
+(documentation AtmosphericHazing EnglishLanguage "&%AtomsphericHazing is a
+&%WeatherProcess in which the atmosphere of the area is obscured by fine
+suspended particles of less than 1 &%Millmeter, causing a reduction in
+&%visibilityInMeteorology to be between 2 to 5 kilometres. [text courtesy
+wikipedia]")
+(documentation AtmosphericHazing ChineseLanguage "&%AtomsphericHazing 是
+&%， 它是当一个地方的大气被少于 1 &%Millimeter 的悬浮微颗粒遮盖，导致
+&%VisibilityInMeteorology 下降于2 到5公里。")
+(subclass AtmosphericHazing WeatherProcess)
+(termFormat EnglishLanguage AtmosphericHazing "atmospheric hazing")
+(termFormat ChineseLanguage AtmosphericHazing "阴霾")
+
+(=>
+  (and
+    (instance ?HAZE AtmosphericHazing)
+    (eventLocated ?HAZE ?AREA)    
+    (instance ?AREA GeographicArea)
+    (instance ?AIR AtmosphericRegion)
+    (orientation ?AIR ?AREA Above)
+    (locatedAtTime ?PARTICULATE
+      (WhenFn ?HAZE) ?AIR) 
+    (visibilityInMeteorology ?AREA
+      (WhenFn ?HAZE)
+      (MeasureFn ?VISIBILITY Kilometer)))
+  (and
+      (greaterThan ?VISIBILITY 2.0)
+      (lessThan ?VISIBILITY 5.0)))
+
+(documentation BadAirQuality EnglishLanguage "When there is &%AtmosphericHazing or
+&%DustStorm in a &%GeographicArea, the place is likely to suffer from
+&%BadAirQuality.")
+(documentation BadAirQuality ChineseLanguage "在阴霾 &%AtmosphericHazing和沙尘暴&%DustStorm 
+发生的地方 &%GeographicArea, 当地的空气多会是差的&%BadAirQuality。")
+
+(instance BadAirQuality RelationalAttribute)
+
+(=>
+  (and
+    (instance ?HAZE AtmosphericHazing)
+    (instance ?PLACE GeographicArea)
+    (eventLocated ?HAZE ?PLACE))
+  (holdsDuring
+    (WhenFn ?HAZE)
+    (modalAttribute
+      (attribute ?PLACE BadAirQuality) Likely)))
+
+(=>
+  (and
+    (instance ?DUST DustStorm)
+    (instance ?PLACE GeographicArea)
+    (eventLocated ?DUST ?PLACE))
+  (holdsDuring
+    (WhenFn ?DUST)
+      (modalAttribute
+        (attribute ?PLACE BadAirQuality) Likely)))
+
+(documentation Blizzard EnglishLanguage "A &%Blizzard is a &%Snowing with 
+&%surfaceWindSpeed of over 35 &%KnotUnitOfSpeed for a sustained &%duration of at least 3 
+&%HourDuration. The strong &%Wind results in blowing &%Snow causing the %Region affected 
+to have &%visibilityInMeteorology reduced to less than 400 &%Meter. ")
+(documentation Blizzard ChineseLanguage " &%Blizzard 是在地面风速超过35 &%KnotUnitOfSpeed，伴随
+着连续 3 &%HourDuration 以上的 &%Snowing，强风把飘 &%Snow 吹起导致受影响的 %Region 的 
+&%visibilityInMeteorology 降至少于 400 &%Meter。")
+(subclass Blizzard Storm)
+(termFormat ChineseLanguage Blizzard "暴风雪")
+
+(=>
+  (instance ?BLIZZARD Blizzard)
+  (exists (?PROCESS)
+    (and
+      (instance ?PROCESS Snowing)
+      (subProcess ?PROCESS ?BLIZZARD))))
+
+(=>
+  (instance ?PROCESS Blizzard)
+  (holdsDuring
+    (WhenFn ?PROCESS)
+    (exists (?AREA ?GALE ?DURATION)
+      (and
+        (instance ?AREA GeographicArea)
+        (eventLocated ?PROCESS ?AREA)    
+        (surfaceWindSpeed ?AREA
+          (MeasureFn ?GALE KnotUnitOfSpeed))
+        (greaterThan ?GALE 35.0)
+        (duration (WhenFn ?PROCESS) 
+          (MeasureFn ?DURATION HourDuration))
+        (greaterThan ?DURATION 3)))))
+      
+(=>
+  (instance ?PROCESS Blizzard)
+  (exists (?AREA ?DIST)
+    (and
+      (instance ?AREA GeographicArea)
+      (eventLocated ?PROCESS ?AREA)
+      (visibilityInMeteorology ?AREA
+        (WhenFn ?PROCESS)
+        (MeasureFn ?DIST Meter))
+      (lessThan ?DIST 400.0))))
+
+
+;---------------------------
+;
+; New Weather terms (Jennie 2017)
+;
+;---------------------------
+; 1 StandardAmbientTemperaturePressure (New)
+
+(documentation StandardAmbientTemperaturePressure EnglishLanguage "This is an &%Attribute 
+that refers to the standard ambient temperature and pressure (SATP) of place, which is at 
+the temperature of 298.15 &%KelvinDegree (25 &%CelsiusDegree, 77 &%FahrenheitDegree) and 
+the absolute pressure of exactly 100 kPa (750.06 mmHg, 29.530 &%InchMercury), established 
+by the International Union of Pure and Applied Chemistry (IUPAC). 
+&%StandardAmbientTemperaturePressure is a standard set of conditions for experimental 
+measurements to be established to allow comparisons to be made between different sets of 
+data. [text courtesy Wikipedia]")
+(documentation StandardAmbientTemperaturePressure ChineseLanguage "这是指一个地方的拥有标准的
+环境温度和气压(标准状况)(SATP)的 &%Attribute。所指的气温是 298.15 &%KelvinDegree (25 
+&%CelsiusDegree,77 &%FahrenheitDegree)和绝对气压恰恰是100 kPa (750.06 mmHg, 29.530 
+&%InchMercury)。这是由国际纯化学和应用化学联合会制定的(IUPAC)。
+&%StandardAmbientTemperaturePressure 是为了容许比较拥有不同数据组别而建立的一套量度实验结果的标准
+条件。[翻译自维基百科]")
+(termFormat EnglishLanguage StandardAmbientTemperaturePressure "standard ambient 
+temperature and pressure")
+(termFormat ChineseLanguage StandardAmbientTemperaturePressure "标准状况")
+(instance StandardAmbientTemperaturePressure Attribute)
+
+(<=>
+  (and
+    (instance ?X Region)
+    (holdsDuring ?T
+      (property ?X StandardAmbientTemperaturePressure)))
+  (holdsDuring ?T
+    (and
+      (airTemperature ?X
+        (MeasureFn 298.15 KelvinDegree))
+      (barometricPressure ?X
+        (MeasureFn 29.530 InchMercury)))))
+        
+; 2 visibilityInMeteorology (new)
+(documentation visibilityInMeteorology EnglishLanguage "&%visibilityInMeteorology is a
+&%TernaryPredicate. (visibilityInMeteorology ?R ?T ?L) means that for ?R a region over?T a period of Time,
+?L is the greatest &%Horizontal &%distance 
+an &%agent can observe 1. a black object during &%DayTime; or 2. &%RadiatingVisibleLight of 1,000 &%Candelas 
+during &%NightTime. Visibility during &%DayTime can also be called the meteorological optical range (MOR)")
+(documentation visibilityInMeteorology ChineseLanguage "&%visibilityInMeteorology 是一个 
+&%TernaryPredicate。(visibilityInMeteorology ?R ?T ?L)的意思是在?T 某时某地 ?R，?L 是一个 &%agent 能看见最远 &%Horizontal 
+&%distance：在 1. &%DayTime 是黑色物体；或是在 2. &%NightTime 是 1,000 &%Candelas 的 
+&%RadiatingVisibleLight。&%DayTime 的能见度可以用气象光学范围(MOR)来代表。" )
+(domain visibilityInMeteorology 1 Region)
+(domain visibilityInMeteorology 2 TimePosition)
+(domain visibilityInMeteorology 3 LengthMeasure)
+(instance visibilityInMeteorology TernaryPredicate)
+(termFormat EnglishLanguage visibilityInMeteorology "visibility in meteorology")
+(termFormat ChineseLanguage visibilityInMeteorology "气象学能见度")
+
+(=>
+  (and
+    (visibilityInMeteorology ?Area ?Time 
+      (MeasureFn ?Distance ?U))
+    (instance ?U UnitOfMeasure))
+  (not
+    (exists (?Observe ?A ?B ?D2)
+      (and
+        (instance ?Observe Looking)
+        (agent ?Observe ?A)
+        (patient ?Observe ?B)
+        (orientation ?A ?B Horizontal)
+        (during 
+          (WhenFn ?Observe) ?Time)
+        (eventLocated ?Observe ?Area)
+        (distance ?A ?B 
+          (MeasureFn ?D2 ?U))
+        (greaterThan ?D2 ?Distance)))))
+
+(=>
+  (and
+    (visibilityInMeteorology ?Area ?Time 
+      (MeasureFn ?Distance ?U))
+    (instance ?U UnitOfMeasure)
+    (instance ?Time DayTime)
+    (instance ?Observe Looking) 
+    (instance ?B Object)
+    (color ?B Black)
+    (agent ?Observe ?A)
+    (patient ?Observe ?B)
+    (orientation ?A ?B Horizontal)
+    (eventLocated ?Observe ?Area)
+    (during 
+      (WhenFn ?Observe) ?Time)
+    (instance ?B Object))
+  (exists (?D2)
+    (and
+      (distance ?A ?B 
+        (MeasureFn ?D2 ?U))
+    (greaterThan ?Distance ?D2))))
+
+(=>
+  (and
+    (visibilityInMeteorology ?Area ?Time 
+      (MeasureFn ?Distance ?U))
+    (instance ?U UnitOfMeasure)
+    (instance ?Time NightTime)
+    (instance ?Observe Looking)
+    (instance ?B Region)
+    (attribute ?B Illuminated)
+    (measure ?B (MeasureFn 1000.0 Candela))
+    (agent ?Observe ?A)
+    (patient ?Observe ?B)
+    (orientation ?A ?B Horizontal)
+    (eventLocated ?Observe ?Area)
+    (during 
+      (WhenFn ?Observe) ?Time)
+    (instance ?B Object))
+  (exists (?D2)
+    (and
+      (distance ?A ?B 
+        (MeasureFn ?D2 ?U))
+      (greaterThan ?Distance ?D2))))
+    
+; 3 Frosting (New)
+(documentation Frosting EnglishLanguage "&%Frosting is the &%Process by which a coating or 
+deposit of &%Ice &%Crystals form on the surface of &%Solid &%Objects.")
+(documentation Frosting ChineseLanguage "&%Frosting 是 &%Ice &%Crystal 褂在 &%Solid &%Object 
+或积聚的 &%Process。")
+(subclass Frosting Deposition)
+(subclass Frosting WeatherProcess)
+(termFormat ChineseLanguage Frosting "霜")
+(termFormat EnglishLanguage Frosting "frosting")
+
+(=>
+  (instance ?FROST Frosting)
+  (exists (?ICE ?OBJ)
+    (and
+      (instance ?ICE Ice)
+      (attribute ?ICE MonoCrystalline)
+      (patient ?FROST ?ICE)
+      (instance ?OBJ Object)
+      (attribute ?OBJ Solid)
+      (destination ?FROST ?OBJ)
+      (meetsSpatially ?FROST ?OBJ))))
+      
+; 4 Drizzling - New (24 August 2007 Jennie)
+(documentation Drizzling EnglishLanguage "&%Drizzling is a &%subclass of &%Raining when  
+the raindrops are less than or equal 0.5 &%Millimeter in &%approximateDiameter.")
+(documentation Drizzling ChineseLanguage "&%Drizzling 是 &%Raining 的 &%subclass, 它是当雨点
+的 &%approximateDiameter 小于或等于 0.5 &%Millimeter。")
+(termFormat EnglishLanguage Drizzling "drizzling")
+(termFormat ChineseLanguage Drizzling "毛毛雨")
+(subclass Drizzling Raining)
+
+(=>
+  (instance ?DRIZZLE Drizzling) 
+  (exists (?CLTN ?R ?SIZE)
+    (and
+      (instance ?CLTN Collection)
+      (instance ?R Water)
+      (instance ?R LiquidDrop)
+      (member ?R ?CLTN)
+      (objectTransferred ?DRIZZLE ?CLTN)
+      (approximateDiameter ?R
+        (MeasureFn ?SIZE Millimeter))
+      (modalAttribute
+        (lessThanOrEqualTo ?SIZE 0.5) Likely))))
+
+; 5 rainfallIntensity - New ( 27th August 2017 Jennie)
+(documentation rainfallIntensity EnglishLanguage "&%rainfallIntensity is a 
+&%TernaryPredicate. It is the rate of &%Raining in a &%Region over a 
+&%TimeInterval.")
+(documentation rainfallIntensity ChineseLanguage "&%rainfallIntensity 是一个 
+&%TernaryPredicate。它是 &%Raining 在一处 &%GeographicArea 在一段 &%TimeInterval 的频率。")
+(termFormat EnglishLanguage rainfallIntensity "rainfall intensity")
+(termFormat ChineseLanguage rainfallIntensity "降雨强度")
+(domain rainfallIntensity 1 GeographicArea)
+(domain rainfallIntensity 2 TimeInterval)
+(domain rainfallIntensity 3 FunctionQuantity)
+(instance rainfallIntensity TernaryPredicate)
+
+(=>
+  (rainfallIntensity ?AREA ?TIME ?RATE)
+  (exists (?RAIN ?CLTN ?R ?BUCKET ?TOP ?BOTTOM ?RAINFALL)
+    (and 
+      (instance ?RAIN Raining)
+      (eventLocated ?RAIN ?AREA)
+      (during (WhenFn ?RAIN) ?TIME)    
+      (instance ?CLTN Collection)      
+      (objectTransferred ?RAIN ?CLTN)
+      (instance ?R Water)   
+      (member ?R ?CLTN)
+      (instance ?BUCKET Container)
+      (bottom ?BOTTOM ?BUCKET)          
+      (attribute ?BOTTOM Flat)
+      (located ?BUCKET ?AREA)
+      (holdsDuring
+        (BeginFn ?TIME)
+        (attribute ?BUCKET ContainerEmpty))
+      (holdsDuring 
+        (EndFn ?TIME)
+        (and
+          (located ?CLTN ?BUCKET)
+          (top ?TOP ?CLTN)
+          (depth ?TOP ?BOTTOM ?RAINFALL)
+          (equal ?RAINFALL
+            (MultiplicationFn ?TIME ?RATE)))))))
+
+; 6 RainShowering -  Jennie (26 August 2017)
+(documentation RainShowering EnglishLanguage "A &%RainShowering is a short period of 
+&%Raining.")
+(documentation RainShowering ChineseLanguage "&%RainShowering 是短时间的 &%Raining.")
+(termFormat EnglishLanguage RainShowering "rain showering")
+(termFormat ChineseLanguage RainShowering "骤雨")
+(subclass RainShowering Raining)
+
+(=>
+  (instance ?SHOWER RainShowering)
+  (holdsDuring
+    (WhenFn ?SHOWER)
+    (exists (?RAIN1 ?RAIN2 ?AREA)
+      (and
+        (instance ?RAIN1 Raining)
+        (instance ?RAIN2 Raining)
+        (instance ?AREA Region)
+        (subProcess ?RAIN1 ?SHOWER)
+        (subProcess ?RAIN2 ?SHOWER)
+        (eventLocated ?RAIN1 ?AREA)
+        (eventLocated ?RAIN2 ?AREA)
+        (not
+          (overlapsTemporally (WhenFn ?RAIN1) (WhenFn ?RAIN2)))))))
+
+; 7 Storm - new 30th September 2017
+(documentation Storm EnglishLanguage "&%Storms occurs in an area where its &%Atmosphere is 
+dominated by a &%LowPressureWeatherSystem with &%Air moving in &%MotionUpward.Surface 
+&%Wind of over 30 &%KnotUnitOfSpeed and or &%Precipitation are &%Likely associated with
+&%Storms.")
+(documentation Storm ChineseLanguage "&%Storm 发生于由 &%LowPressureWeatherSystem 的 
+&%Atmosphere 占领的地区，里面的 &%Air 的流动方向是 &%MotionUpward。地面 &%Wind 速 &%Likely 
+高于30 &%KnotUnitOfSpeed 并或伴有 &%Precipitation。")
+(subclass Storm WeatherProcess)
+(termFormat EnglishLanguage Storm "storm")
+(termFormat ChineseLanguage Storm "风暴")
+
+(=>
+  (instance ?STORM  Storm)
+  (holdsDuring
+    (WhenFn ?STORM)
+      (modalAttribute
+          (exists (?P ?AREA)
+            (and
+              (instance ?P Precipitation)
+              (instance ?AREA GeographicArea)
+              (eventLocated ?P ?AREA)
+              (subProcess ?P ?STORM))) Likely)))
+         
+(=>
+  (instance ?STORM  Storm)
+  (holdsDuring
+    (WhenFn ?STORM)
+    (exists (?AREA ?STRONG)
+      (and
+        (instance ?AREA GeographicArea)
+        (surfaceWindSpeed ?AREA
+          (MeasureFn ?STRONG KnotUnitOfSpeed))
+        (greaterThan ?STRONG 30.0)))))
+
+(=>
+  (instance ?STORM  Storm)
+  (holdsDuring
+    (WhenFn ?STORM)
+    (exists (?LOW ?AREA ?AIR ?RISE)
+      (and
+        (instance ?LOW LowPressureWeatherSystem)
+        (instance ?AREA Region)
+        (eventLocated ?LOW ?AREA)
+        (instance ?AIR Air)        
+        (instance ?RISE MotionUpward)
+        (patient ?RISE ?AIR)
+        (eventLocated ?RISE ?AREA)
+        (subProcess ?RISE ?LOW)))))
+
+; 8 Snowstorm 30 Sept 2017 Jennie
+(documentation Snowstorm EnglishLanguage "A &%Snowstorm is &%Snowing at the 
+&%snowfallIntensity of more than 5 &%Centimeter per &%HourDuration.")
+(documentation Snowstorm ChineseLanguage " &%Snowstorm 是 每 &%HourDuration 超过 5 
+&%Centimeter &%snowfallIntensity 的 &%Snowing。")
+(subclass Snowstorm Storm)
+(termFormat EnglishLanguage Snowstorm "snow storm")
+(termFormat ChineseLanguage Snowstorm "雪暴")
+
+(=>
+  (instance ?SNOWSTORM Snowstorm)
+  (holdsDuring
+    (WhenFn ?SNOWSTORM)
+    (exists (?SNOW ?AREA ?NUM)
+      (and
+        (instance ?SNOW Snowing)
+        (instance ?AREA GeographicArea)
+        (eventLocated ?SNOW ?AREA)
+        (subProcess ?SNOW ?SNOWSTORM)
+        (snowfallIntensity ?AREA 
+          (WhenFn ?SNOW)
+          (PerFn
+            (MeasureFn ?NUM Centimeter)
+            (MeasureFn 1 HourDuration)))
+        (greaterThan ?NUM 5.0)))))
+
+; 9 Rain 1st October 2017 Jennie
+(documentation Rain EnglishLanguage "&%Rain refers to the &%Water resulting from 
+&%Raining.")
+(documentation Rain ChineseLanguage "&%Rain 是 &%Raining 而来的 &%Water。")
+(termFormat EnglishLanguage Rain "rain")
+(termFormat ChineseLanguage Rain "雨水")
+(subclass Rain Water)
+
+(=>
+  (instance ?PROCESS Raining)
+  (exists (?RAIN)
+    (and
+      (instance ?RAIN Rain)
+      (objectTransferred ?PROCESS ?RAIN))))
+
+; 10 Raindrop 1st October 2017 Jennie
+(documentation Raindrop EnglishLanguage "A &%Raindrop is one &%LiquidDrop from the 
+&%Collection of &%Rain.")
+(documentation Raindrop ChineseLanguage "一滴 &%Raindrop 是指 &%Rain &%Collection 里的一滴
+&%LiquidDrop。")
+(termFormat EnglishLanguage Raindrop "rain drop")
+(termFormat ChineseLanguage Raindrop "雨点")
+(subclass Raindrop LiquidDrop)
+
+(=>
+  (instance ?DROP Raindrop)
+  (exists (?RAIN)
+    (and
+      (instance ?RAIN Rain)
+      (instance ?RAIN Collection)
+      (member ?DROP ?RAIN))))
+
+; 11 Snow 1st October 2017 Jennie
+(documentation Snow EnglishLanguage "&%Snow refers to the &%Substance resulting from 
+&%Snowing.")
+(documentation Snow ChineseLanguage "&%Snow 是 &%Snowing 而来的 &%Substance。")
+(termFormat EnglishLanguage Snow "snow")
+(termFormat ChineseLanguage Snow "雪")
+(subclass Snow Ice)
+
+(=>
+  (instance ?PROCESS Snowing)
+  (exists (?SNOW)
+    (and
+      (instance ?SNOW Snow)
+      (objectTransferred ?PROCESS ?SNOW))))
+
+; 12 Snowflake 1st October 2017 Jennie
+(documentation Snowflake EnglishLanguage "A &%Snowflake is one &%Ice &%Crystal from the 
+&%Collection of &%Snow.")
+(documentation Snowflake ChineseLanguage "一片 &%Snowflake 是指 &%Snow &%Collection 里的一片
+&%Ice &%Crystal。")
+(termFormat EnglishLanguage Snowflake "snowflake")
+(termFormat ChineseLanguage Snowflake "雪花")
+(subclass Snowflake Crystal)
+
+(=>
+  (instance ?S Snowflake)
+  (exists (?SNOW)
+    (and
+      (instance ?SNOW Snow)
+      (instance ?SNOW Collection)
+      (member ?S ?SNOW))))
+
+; 13 snowfallIntensity 1st October 2017 Jennie
+(documentation snowfallIntensity EnglishLanguage "&%snowfallIntensity is a 
+&%TernaryPredicate. It is the rate of &%Snowing in a &%GeographicArea over a 
+&%TimeInterval.")
+(documentation snowfallIntensity ChineseLanguage "&%snowfallIntensity 是一个 
+&%TernaryPredicate。它是 &%Snowing 在一处 &%GeographicArea 在一段 &%TimeInterval 的频率。")
+
+(termFormat EnglishLanguage snowfallIntensity "snowfall intensity")
+(termFormat ChineseLanguage snowfallIntensity "降雪强度")
+(domain snowfallIntensity 1 GeographicArea)
+(domain snowfallIntensity 2 TimeInterval)
+(domain snowfallIntensity 3 FunctionQuantity)
+(instance snowfallIntensity TernaryPredicate)
+
+(=>
+  (snowfallIntensity ?AREA ?TIME ?RATE)
+  (exists (?PROCESS ?STUFF ?BOARD ?TOP ?BOTTOM ?SNOWFALL)
+    (and 
+      (instance ?PROCESS Snowing)
+      (eventLocated ?PROCESS ?AREA)
+      (during (WhenFn ?PROCESS) ?TIME)
+      (instance ?STUFF Snow)      
+      (objectTransferred ?PROCESS ?STUFF)
+      (instance ?BOARD BoardOrBlock)
+      (bottom ?BOTTOM ?BOARD)          
+      (attribute ?BOTTOM Flat)
+      (located ?BOARD ?AREA)
+      (holdsDuring
+        (BeginFn ?TIME)
+        (not
+          (exists (?X)
+            (and
+              (instance ?X Object)
+              (located ?X ?BOARD)))))
+      (holdsDuring 
+        (EndFn ?TIME)
+        (and
+          (located ?STUFF ?BOARD)
+          (top ?TOP ?STUFF)
+          (depth ?TOP ?BOTTOM ?SNOWFALL)
+          (equal ?SNOWFALL
+            (MultiplicationFn ?TIME ?RATE)))))))
+
+; 14 Hailstone 1st October 2017 Jennie
+(documentation Hailstone EnglishLanguage "A &%Hailstone is a round &%Ice &%Crystal 
+resulting from &%Hailing. Its &%approximateDiameter ranges between 0.5 &%Centimeter to 
+15 &%Centimeter. ")
+(documentation Hailstone ChineseLanguage "&%Hailstone 是 &%Hailing 时落下园形的 &%Ice 
+&%Crystal，它的 &%approximateDiameter 介乎0.5 &%Centimeter 与15 &%Centimeter 之间。")
+(termFormat EnglishLanguage Hailstone "hailstone")
+(termFormat ChineseLanguage Hailstone "冰雹")
+(subclass Hailstone Ice)
+
+(=>
+  (instance ?STUFF Hailstone)
+  (exists (?PROCESS ?CLTN)
+    (and
+      (instance ?PROCESS Hailing)
+      (instance ?CLTN Collection)
+      (objectTransferred ?PROCESS ?CLTN)
+      (member ?STUFF ?CLTN))))
+
+(=>
+  (instance ?STUFF Hailstone)
+  (exists (?CLASS)
+    (and
+      (instance ?STUFF ?CLASS)
+      (defaultMinimumSphereRadius ?CLASS (MeasureFn 0.5 Centimeter))
+      (defaultMaximumSphereRadius ?CLASS (MeasureFn 15.0 Centimeter)))))
+
+(instance airQualityIndex BinaryPredicate)
+(domain airQualityIndex 1 GeographicArea)
+(domain airQualityIndex 2 Integer)
+(documentation airQualityIndex EnglishLanguage "The U.S. AQI is EPA’s index for reporting air quality.
+The components of this metric are: ground_level ozone, particle pollution (also known as particulate
+matter, including PM2.5 and PM10), carbon monoxide, sulfur dioxide and nitrogen dioxide.
+See https://www.airnow.gov/aqi/aqi_basics/")
+(termFormat EnglishLanguage airQualityIndex "air quality index")
+(format EnglishLanguage airQualityIndex "the &%air &%quality &%index of %1 is %2")
+
+(subclass AirQualityAQIAttribute Attribute)
+(documentation AirQualityAQIAttribute EnglishLanguage "&%Attributes that partition the &%airQualityIndex
+values according to https://www.airnow.gov/aqi/aqi_basics/.")
+(termFormat EnglishLanguage AirQualityAQIAttribute "AQI air quality")
+
+(instance GoodAQIAirQuality AirQualityAQIAttribute)
+(documentation GoodAQIAirQuality EnglishLanguage "An AQI of 0-50. Air quality is satisfactory,
+and air pollution poses little or no risk.")
+(termFormat EnglishLanguage GoodAQIAirQuality "good AQI air quality")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (attribute ?L GoodAQIAirQuality)
+      (airQualityIndex ?L ?I)))
+  (lessThanOrEqualTo ?I 50))
+
+(instance ModerateAQIAirQuality AirQualityAQIAttribute)
+(documentation ModerateAQIAirQuality EnglishLanguage "An AQI of 51-100. Air quality is
+acceptable. However, there may be a risk for some people, particularly those who are
+unusually sensitive to air pollution.")
+(termFormat EnglishLanguage ModerateAQIAirQuality "moderate AQI air quality")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (attribute ?L ModerateAQIAirQuality)
+      (airQualityIndex ?L ?I)))
+  (and
+    (lessThanOrEqualTo ?I 100)
+    (greaterThanOrEqualTo ?I 51)))
+
+(instance UnhealthyForSensitiveAQIAirQuality AirQualityAQIAttribute)
+(documentation UnhealthyForSensitiveAQIAirQuality EnglishLanguage "An AQI of 101-150. Members of
+sensitive groups may experience health effects. The general public is less likely to be affected.")
+(termFormat EnglishLanguage UnhealthyForSensitiveAQIAirQuality "unhealthy for sensitive groups AQI air quality")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (attribute ?L UnhealthyForSensitiveAQIAirQuality)
+      (airQualityIndex ?L ?I)))
+  (and
+    (lessThanOrEqualTo ?I 150)
+    (greaterThanOrEqualTo ?I 101)))
+
+(instance UnhealthyAQIAirQuality AirQualityAQIAttribute)
+(documentation UnhealthyAQIAirQuality EnglishLanguage "An AQI of 151-200. Some members of the
+general public may experience health effects; members of sensitive groups may experience more serious health effects.")
+(termFormat EnglishLanguage UnhealthyAQIAirQuality "unhealthy AQI air quality")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (attribute ?L UnhealthyAQIAirQuality)
+      (airQualityIndex ?L ?I)))
+  (and
+    (lessThanOrEqualTo ?I 200)
+    (greaterThanOrEqualTo ?I 151)))
+
+(instance VeryUnhealthyAQIAirQuality AirQualityAQIAttribute)
+(documentation VeryUnhealthyAQIAirQuality EnglishLanguage "An AQI of 201-300.
+Health alert: The risk of health effects is increased for everyone.")
+(termFormat EnglishLanguage VeryUnhealthyAQIAirQuality "very unhealthy AQI air quality")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (attribute ?L UnhealthyAQIAirQuality)
+      (airQualityIndex ?L ?I)))
+  (and
+    (lessThanOrEqualTo ?I 300)
+    (greaterThanOrEqualTo ?I 201)))
+
+(instance HazardousAQIAirQuality AirQualityAQIAttribute)
+(documentation HazardousAQIAirQuality EnglishLanguage "An AQI of >301.
+Health alert: The risk of health effects is increased for everyone.")
+(termFormat EnglishLanguage HazardousAQIAirQuality "hazardous AQI air quality")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (attribute ?L HazardousAQIAirQuality)
+      (airQualityIndex ?L ?I)))
+  (greaterThanOrEqualTo ?I 301))
+
+(subclass WeatherAssessment  Report)
+(documentation WeatherAssessment EnglishLanguage "A &%WeatherAssessment is a &%Report made
+based on someone's believes in a &%WeatherProcess occured in the immediate past.")
+(relatedInternalConcept WeatherAssessment weatherThreat)
+
+(=>
+  (instance ?WA WeatherAssessment)
+  (containsFormula ?WA
+    (exists (?R ?A ?WP)
+      (and
+        (instance ?R Reasoning)
+        (instance ?A CognitiveAgent)
+        (agent ?R ?A)
+        (instance ?WP WeatherProcess)
+        (patient ?R ?WP)
+        (result ?R ?WA)
+        (earlier (WhenFn ?WP) (WhenFn ?WA))))))
+     
+(subclass WeatherForecast  FactualText)
+(documentation WeatherForecast EnglishLanguage "A &%WeatherForecast is a &%FactualText made by
+someone who &%believes a &%WeatherProcess will occur.")
+(relatedInternalConcept WeatherForecast WeatherAssessment)
+(relatedInternalConcept WeatherForecast weatherThreat)
+
+(=>
+  (instance ?WF WeatherForecast)
+  (containsInformation ?WF
+    (exists (?A)
+      (believes ?A
+        (exists (?WP)
+          (and
+            (instance ?WP WeatherProcess)           
+            (during
+              (ImmediateFutureFn (WhenFn ?WF))
+              (WhenFn ?WP))))))))
+
+(instance weatherThreat  QuaternaryPredicate)
+(documentation weatherThreat EnglishLanguage "A &%weatherThreat is a &%Relation linking 4 arguments. 
+(weatherThreat ?WP ?P ?A ?TI) means it is believed that an instance of a class of &%WeatherProcess 
+?WP will occur in &%GeographicArea ?A during &%TimeInterval ?TI and it is not desirable to a GroupOfPeople 
+that it happens.")
+(domainSubclass weatherThreat 1 WeatherProcess)
+(domain weatherThreat 2 GroupOfPeople)
+(domain weatherThreat 3 GeographicArea)
+(domain weatherThreat 4 TimeInterval)
+
+(=>
+  (weatherThreat ?CLASS ?G ?A ?TI)
+  (exists (?M)
+    (believes ?M
+      (exists (?I)
+        (and
+          (member ?I ?G)
+          (holdsDuring ?TI
+            (exists (?WP)
+              (and
+                (instance ?WP ?CLASS)
+                (eventLocated ?WP ?A))))
+          (not
+            (desires ?I ?WP)))))))
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
