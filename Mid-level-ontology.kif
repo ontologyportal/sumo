@@ -5259,17 +5259,11 @@ intersecting it.")
 (=>
   (and
     (tangent ?LINE ?CIRCLE)
-    (sideOfFigure ?CURVE ?CIRCLE))
-  (exists (?POINT1)
-    (and
-      (pointOfFigure ?POINT1 ?LINE)
-      (pointOfFigure ?POINT1 ?CURVE)
-      (forall (?POINT2)
-        (=>
-          (and
-            (pointOfFigure ?POINT2 ?LINE)
-            (pointOfFigure ?POINT2 ?CURVE))
-            (equal ?POINT1 ?POINT2))))))
+    (pointOfFigure ?POINT1 ?LINE)
+    (pointOfFigure ?POINT1 ?CIRCLE)
+    (pointOfFigure ?POINT2 ?LINE)
+    (pointOfFigure ?POINT2 ?CIRCLE))
+  (equal ?POINT1 ?POINT2))
 
 (subclass TwoDimensionalObject Object)
 (documentation TwoDimensionalObject EnglishLanguage "A real-world physical object
@@ -5927,12 +5921,13 @@ single &%GeometricPoint, known as the center of the &%Sphere.")
 (=>
   (and
     (attribute ?OBJ ?SPHERE)
+    (pointOfFigure ?PT1 ?OBJ)
+    (pointOfFigure ?PT2 ?OBJ)
     (instance ?SPHERE Sphere))
-  (exists (?CENTER ?DIST)
-    (forall (?PT)
-      (=>
-        (pointOfFigure ?PT ?OBJ)
-        (geometricDistance ?PT ?CENTER ?DIST)))))
+  (exists (?CENTER)
+    (and
+      (geometricDistance ?PT1 ?CENTER ?DIST)
+      (geometricDistance ?PT2 ?CENTER ?DIST))))
 
 (subclass Bubble CorpuscularObject)
 (documentation Bubble EnglishLanguage "A globe which has a &%Liquid surface and which contains
@@ -6241,14 +6236,15 @@ like &%Cotton and that is intended to be worn on the &%Foot.")
 are designed to be worn together.")
 
 (=>
-   (and
-      (instance ?SUIT ClothingSuit)
-      (member ?ITEM1 ?SUIT)
-      (holdsDuring ?TIME (wears ?PERSON ?ITEM1)))
-   (forall (?ITEM2)
-      (=>
-         (member ?ITEM2 ?SUIT)
-         (holdsDuring ?TIME (wears ?PERSON ?ITEM2)))))
+  (and
+    (instance ?SUIT ClothingSuit)
+    (member ?ITEM1 ?SUIT)
+    (member ?ITEM2 ?SUIT)
+    (holdsDuring ?TIME
+      (wears ?PERSON ?ITEM1)))
+  (hasPurpose ?ITEM2
+    (holdsDuring ?TIME
+      (wears ?PERSON ?ITEM2))))
 
 ;;
 ;; Jennie Pease 16th September 2022
@@ -6256,7 +6252,7 @@ are designed to be worn together.")
 
 (subclass Pajamas Clothing)
 (documentation Pajamas EnglishLanguage "&%Pajamas are loose-fitting &%Clothing worn for &Sleeping or &%StayingStill (lounging). There are a body top and
-a bottom. The bottom is usualy in the form of trousers.")
+a bottom. The bottom is usually in the form of trousers.")
 
 (=>
   (instance ?PJ Pajamas)
@@ -8632,39 +8628,38 @@ the descendants of ?PERSON, i.e. the &%Group consisting of ?OFFSPRING who
 satisfy the following formula:  (&%ancestor ?OFFSPRING ?PERSON).")
 
 (=>
-   (and
-      (instance ?PERSON Human)
-      (equal (DescendantsFn ?PERSON) ?DESCENDANTS))
-   (forall (?MEMBER)
-      (<=>
-         (member ?MEMBER ?DESCENDANTS)
-         (ancestor ?MEMBER ?PERSON))))
+  (and
+    (instance ?PERSON Human)
+    (equal
+      (DescendantsFn ?PERSON) ?DESCENDANTS)
+    (member ?MEMBER ?DESCENDANTS))
+  (ancestor ?MEMBER ?PERSON))
 
 (subclass GroupOfAnimals Group)
 (documentation GroupOfAnimals EnglishLanguage "Any &%Group which contains exclusively
 non-human &%members.")
 
 (=>
-   (instance ?GROUP GroupOfAnimals)
-   (forall (?MEMBER)
-      (=>
-         (member ?MEMBER ?GROUP)
-         (and
-            (instance ?MEMBER Animal)
-            (not (instance ?MEMBER Human))))))
+  (and
+    (instance ?GROUP GroupOfAnimals)
+    (member ?MEMBER ?GROUP))
+  (and
+    (instance ?MEMBER Animal)
+    (not
+      (instance ?MEMBER Human))))
 
 (subclass Brood GroupOfAnimals)
 (documentation Brood EnglishLanguage "A &%GroupOfAnimals that are all born at the same time
 and to the same parents.")
 
 (=>
-   (instance ?BROOD Brood)
-   (forall (?MEMBER1 ?MEMBER2)
-      (=>
-         (and
-            (member ?MEMBER1 ?BROOD)
-            (member ?MEMBER2 ?BROOD))
-         (sibling ?MEMBER1 ?MEMBER2))))
+  (and
+    (instance ?BROOD Brood)
+    (member ?MEMBER1 ?BROOD)
+    (member ?MEMBER2 ?BROOD))
+  (sibling ?MEMBER1 ?MEMBER2))
+
+;; AP - actually, approximately the same time.  Needs fixing
 
 (=>
    (instance ?BROOD Brood)
@@ -10298,15 +10293,10 @@ describe the relative location of one object or region to another
 region.")
 
 (=>
-   (instance ?INSIDE Inside)
-   (exists (?OBJECT)
-     (forall (?THING)
-       (=>
-         (located ?THING ?INSIDE)
-         (exists (?PART)
-           (and
-             (interiorPart ?PART ?OBJECT)
-             (located ?THING ?PART)))))))
+  (orientation ?THING ?O Inside)
+  (and
+    (interiorPart ?PART ?O)
+    (located ?THING ?PART)))
 
 (instance Outside PositionalAttribute)
 (contraryAttribute Inside Outside)
@@ -10322,10 +10312,15 @@ region. ")
   (orientation ?OBJ ?REGION Inside)
   (instance ?REGION Region))
 
-(<=>
+(=>
   (orientation ?OBJ ?REGION Outside)
   (not
     (partlyLocated ?OBJ ?REGION)))
+
+(=>
+  (not
+    (partlyLocated ?OBJ ?REGION))
+  (orientation ?OBJ ?REGION Outside))
 
 (=>
   (part ?OBJ ?REGION)
@@ -10765,11 +10760,10 @@ mass of &%Tissue.  Note that this class covers both malignant (i.e. cancerous)
 and benign tumors.")
 
 (=>
-   (instance ?TUMOR Tumor)
-   (forall (?PART)
-      (=>
-         (part ?PART ?TUMOR)
-         (instance ?PART Tissue))))
+  (and
+    (instance ?TUMOR Tumor)
+    (part ?PART ?TUMOR))
+  (instance ?PART Tissue))
 
 (subclass Tendon Tissue)
 (subclass Tendon AnimalSubstance)
@@ -14262,14 +14256,11 @@ is lower than all other parts of the &%Face.")
   (and
     (instance ?CHIN Chin)
     (instance ?FACE Face)
-    (part ?CHIN ?FACE))
-  (forall (?PART)
-    (=>
-      (and
-        (part ?PART ?FACE)
-        (not
-          (part ?PART ?CHIN)))
-      (orientation ?PART ?CHIN Below))))
+    (part ?CHIN ?FACE)
+    (part ?PART ?FACE)
+    (not
+      (part ?PART ?CHIN)))
+  (orientation ?PART ?CHIN Below))
 
 (partition Expressing Gesture ExpressingInLanguage)
 (disjointDecomposition Expressing ExpressingApproval ExpressingDisapproval)
@@ -14669,10 +14660,9 @@ is a camera and the &%result is a &%Photograph.")
     (MeasureFn
       (DivisionFn ?NUMBER 16.0) PoundMass)))
 
-(forall (?NUMBER)
-  (equal
-    (MeasureFn ?NUMBER OunceMass)
-    (MeasureFn (DivisionFn ?NUMBER 16.0) PoundMass)))
+(equal
+  (MeasureFn ?NUMBER OunceMass)
+  (MeasureFn (DivisionFn ?NUMBER 16.0) PoundMass))
 
 
 ;;========================================================================================
@@ -15511,11 +15501,10 @@ It follows that all subpropositions of the &%Contract is &%Legal.")
 (contraryAttribute NakedPromise Contract)
 
 (=>
-  (property ?AGREEMENT Contract)
-  (forall (?X)
-    (=>
-      (subProposition ?X ?AGREEMENT)
-      (modalAttribute ?X Legal))))
+  (and
+    (property ?AGREEMENT Contract)
+    (subProposition ?X ?AGREEMENT))
+  (modalAttribute ?X Legal))
 
 (=>
   (and
@@ -17352,20 +17341,17 @@ of an audience.")
 as part of the realization of a single &%FictionalText.")
 
 (=>
-   (instance ?CAST DramaticCast)
-   (exists (?TEXT ?PROP ?PROC)
-      (and
-         (instance ?TEXT FictionalText)
-         (containsInformation ?TEXT ?PROP)
-         (realization ?PROC ?PROP)
-         (forall (?MEMBER)
-            (=>
-               (member ?MEMBER ?CAST)
-               (exists (?SUB)
-                  (and
-                     (instance ?SUB DramaticActing)
-                     (agent ?SUB ?MEMBER)
-                     (subProcess ?SUB ?PROC))))))))
+  (and
+    (instance ?CAST DramaticCast)
+    (member ?MEMBER ?CAST))
+  (exists (?TEXT ?PROP ?PROC ?SUB)
+    (and
+      (instance ?TEXT FictionalText)
+      (containsInformation ?TEXT ?PROP)
+      (realization ?PROC ?PROP)
+      (instance ?SUB DramaticActing)
+      (agent ?SUB ?MEMBER)
+      (subProcess ?SUB ?PROC))))
 
 (subclass SocialParty Meeting)
 (subclass SocialParty RecreationOrExercise)
@@ -21261,14 +21247,13 @@ the opposing teams.  For another example, if ?CONTEST is a &%Battle, then
 are both part of the same &%Nation.")
 
 (=>
-   (instance ?WAR CivilWar)
-   (exists (?NATION)
-      (and
-         (instance ?NATION Nation)
-         (forall (?AGENT)
-            (=>
-               (contestParticipant ?WAR ?AGENT)
-               (geopoliticalSubdivision ?AGENT ?NATION))))))
+  (and
+    (instance ?WAR CivilWar)
+    (contestParticipant ?WAR ?AGENT))
+  (exists (?NATION)
+    (and
+      (instance ?NATION Nation)
+      (geopoliticalSubdivision ?AGENT ?NATION))))
 
 (subclass Debating Contest)
 (subclass Debating LinguisticCommunication)
@@ -21283,12 +21268,15 @@ correct and/or that the views of the other participants are incorrect.")
 maximize his self-interest in a &%Promise that marks the end of the &%Contest.")
 
 (=>
-   (instance ?NEGOTIATE Negotiating)
-   (hasPurpose ?NEGOTIATE (exists (?COMMIT)
-                             (and
-                                (instance ?COMMIT Committing)
-                                (subProcess ?COMMIT ?NEGOTIATE)
-                                (finishes (WhenFn ?COMMIT) (WhenFn ?NEGOTIATE))))))
+  (instance ?NEGOTIATE Negotiating)
+  (hasPurpose ?NEGOTIATE
+    (exists (?COMMIT)
+      (and
+        (instance ?COMMIT Committing)
+        (subProcess ?COMMIT ?NEGOTIATE)
+        (finishes
+          (WhenFn ?COMMIT)
+          (WhenFn ?NEGOTIATE))))))
 
 (subclass BusinessCompetition Contest)
 (documentation BusinessCompetition EnglishLanguage "Any &%Contest where the &%contestParticipants
@@ -27905,11 +27893,10 @@ collection of objects &%meetsSpatially with all sides of another object")
 (termFormat EnglishLanguage Surrounded "surrounded")
 
 (=>
-  (orientation ?OBJ1 ?OBJ2 Surrounded)
-  (forall (?X)
-    (=>
-      (side ?X ?OBJ1)
-      (meetsSpatially ?X ?OBJ2))))
+  (and
+    (orientation ?OBJ1 ?OBJ2 Surrounded)
+    (side ?X ?OBJ1))
+  (meetsSpatially ?X ?OBJ2))
 
 (subclass Courtyard StationaryArtifact)
 (documentation Courtyard EnglishLanguage "&%Courtyard is an unroofed area wholly or
@@ -28405,18 +28392,14 @@ that has greater than 10 &%BuildingLevel")
 (termFormat EnglishLanguage HighRise "high rise")
 
 (=>
-  (instance ?X HighRise)
-  (exists (?LEVELS ?NUM)
-    (and
-      (instance ?LEVELS Collection)
-      (forall (?FLR)
-        (=>
-          (and
-            (instance ?FLR BuildingLevel)
-            (part ?FLR ?X))
-          (member ?FLR ?LEVELS)))
-      (memberCount ?LEVELS ?NUM)
-      (greaterThanOrEqualTo ?NUM 10))))
+  (and
+    (instance ?X HighRise)
+    (memberType ?LEVELS BuildingLevel)
+    (part ?FLR ?X)
+    (member ?FLR ?LEVELS)
+    (instance ?LEVELS Collection)
+    (memberCount ?LEVELS ?NUM))
+  (greaterThanOrEqualTo ?NUM 10))
 
 (subclass Soaking Wetting)
 (documentation Soaking EnglishLanguage "&%Soaking refers to the process of &%Wetting
