@@ -494,6 +494,25 @@ Ranges overlap the southern end of the Klamath Mountains for approximately 80 mi
 ;; impliment of RCC-8
 ;;
 
+(instance connectedRegions BinaryPredicate)
+(instance connectedRegions SpatialRelation)
+(instance connectedRegions ReflexiveRelation)
+(instance connectedRegions SymmetricRelation)
+(domain connectedRegions 1 Region)
+(domain connectedRegions 2 Region)
+(relatedInternalConcept connectedRegions connected)
+(format EnglishLanguage connectedRegions "%1 and %2 are &%connectedRegions")
+(documentation connectedRegions EnglishLanguage "(connectedRegions ?R1 ?R2) means that ?R1
+and ?R2 are &%connected.")
+(termFormat EnglishLanguage connectedRegions "connected regions")
+
+(=>
+  (and
+    (instance ?R1 Region)
+    (instance ?R2 Region)
+    (connected ?R1 ?R2))
+  (connectedRegions ?R1 ?R2))
+
 (subclass RCC8Relation SpatialRelation)
 (documentation RCC8Relation EnglishLanguage "The &%RCC8Relation is intended to serve for qualitative 
 spatial representation and reasoning. RCC abstractly describes regions (in Euclidean space, or in a 
@@ -517,6 +536,11 @@ shares no point.")
 (format EnglishLanguage disconnected "%1 and %2 are &%disconnected")
 (names disconnected "DC")
 
+(=>
+  (disconnected ?A ?B)
+  (not
+    (connectedRegions ?A ?B)))
+
 (instance externallyConnected RCC8Relation)
 (instance externallyConnected SymmetricRelation)
 (documentation externallyConnected EnglishLanguage "&%externallyConnected is a &%RCC8Relation.
@@ -528,6 +552,13 @@ touch at the boundary but don’t overlap.")
 (relatedInternalConcept externallyConnected meetsSpatially)
 (format EnglishLanguage externallyConnected "%1 and %2 are &%externallyConnected")
 (names externallyConnected "EC")
+
+(=>
+  (and
+    (instance ?A Region)
+    (instance ?B Region)
+    (meetsSpatially ?A ?B))
+  (externallyConnected ?A ?B))
 
 (instance partiallyOverlapping RCC8Relation)
 (instance partiallyOverlapping SymmetricRelation)
@@ -541,6 +572,13 @@ share some, but not all, interior points.")
 (format EnglishLanguage partiallyOverlapping "%1 is &%partiallyOverlapping with %2")
 (names partiallyOverlapping "PO")
 
+(=>
+  (and
+    (instance ?A Region)
+    (instance ?B Region)
+    (overlappsSpatially ?A ?B))   
+  (partiallyOverlapping ?A ?B))
+
 (instance equalRegions RCC8Relation)
 (instance equalRegions SymmetricRelation)
 (documentation equalRegions EnglishLanguage "&%equalRegions is a &%RCC8Relation.
@@ -551,6 +589,10 @@ are identical regions.")
 (domain equalRegions 2 Region)
 (format EnglishLanguage equalRegions "%1 and %2 are &%equalRegions")
 (names equalRegions "EQ")
+
+(=>
+  (equalRegions ?A ?B)
+  (equal ?A ?B))
 
 (instance tangentialProperPart RCC8Relation)
 (instance tangentialProperPart AsymmetricRelation)
@@ -564,6 +606,21 @@ specified.That is (tangentialProperPart ?B ?A).")
 (relatedInternalConcept tangentialProperPart contains)
 (format EnglishLanguage tangentialProperPart "%1 is a &%tangentialProperPart of %2")
 (names tangentialProperPart "TPP")
+
+(=>
+  (and
+    (instance ?A Region)
+    (instance ?B Region)
+    (contains ?B ?A)
+    (orientation ?A ?B Inside)    
+    (tangentialProperPart ?A ?B))
+  (exists (?X ?Y)
+    (and
+      (instance ?X PointInSpace)
+      (superficialPart ?X ?B)
+      (instance ?Y PointInSpace)
+      (superficialPart ?Y ?A)
+      (meetsSpatially ?X ?Y))))
                                
 (=>
   (and
@@ -584,6 +641,22 @@ specified.That is (nonTangentialProperPart ?B ?A).")
 (domain nonTangentialProperPart 1 Region)
 (domain nonTangentialProperPart 2 Region)
 (format EnglishLanguage nonTangentialProperPart "%1 is a &%nonTangentialProperPart of %2")
+
+(=>
+  (and
+    (instance ?A Region)
+    (instance ?B Region)
+    (contains ?B ?A)
+    (orientation ?A ?B Inside)    
+    (nonTangentialProperPart ?A ?B))
+  (exists (?X ?Y)
+    (and
+      (instance ?X PointInSpace)
+      (superficialPart ?X ?B)
+      (instance ?Y PointInSpace)
+      (superficialPart ?Y ?A)
+      (not
+        (meetsSpatially ?X ?Y)))))
 
 (=>
   (and
@@ -4876,7 +4949,7 @@ others, a slope.")
         (MeasureFn ?height2 ?U))
       (greaterThan ?height1 ?height2))))
 
-;     (successorAttributeClosure ?height2 ?height1) ;; needed?
+; (successorAttributeClosure ?height2 ?height1) ;; needed?
 ; deleted the above line because ?height2 and ?height1 are not Attributes
 
 (subclass Cliff SlopedArea)
