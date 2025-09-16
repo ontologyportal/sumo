@@ -634,7 +634,7 @@ that &%Month of the &%Year.")
 (format EnglishLanguage MeanMonthSSTFn "&%MeanMonthSSTFn for %2 in region %1")
 (domain MeanMonthSSTFn 1 WaterArea)
 (domainSubclass MeanMonthSSTFn 2 Month)
-(domain MeanMonthSSTFn 3 Integer)
+(domain MeanMonthSSTFn 3 Year)
 (range  MeanMonthSSTFn TemperatureMeasure)
 
 (=>
@@ -653,7 +653,7 @@ calculate the monthly mean SST by &%MeanMonthSSTFn using &%AverageFn or other te
 (format EnglishLanguage DailyTempListFn "The &%List of daily temperature for month %2 in year %3 for &%GeographicArea %1")
 (domain DailyTempListFn 1 GeographicArea)
 (domainSubclass DailyTempListFn 2 Month)
-(domain DailyTempListFn 3 Integer)
+(domain DailyTempListFn 3 Year)
 (range DailyTempListFn List)
 
 (=>
@@ -662,15 +662,15 @@ calculate the monthly mean SST by &%MeanMonthSSTFn using &%AverageFn or other te
     (inList ?T ?L)
     (equal ?DAYS
       (NumberOfDaysInMonthFn ?M ?Y)))
-  (exists (?D ?DAY)
+  (exists (?D ?DAY ?YEAR)
     (and
       (lessThanOrEqualTo ?D ?DAYS)
       (equal ?T 
         (DailyTempFn ?W ?DAY))
+      (instance ?Y ?YEAR)
       (instance ?DAY
         (DayFn ?D 
-          (MonthFn ?M 
-            (YearFn ?Y)))))))
+          (MonthFn ?M ?YEAR))))))
              
 (instance NumberOfDaysInMonthFn BinaryFunction)
 (documentation NumberOfDaysInMonthFn EnglishLanguage "(&%NumberOfDaysInMonthFn ?MONTH ?YEAR) 
@@ -680,7 +680,7 @@ It uses &%duration to relate the number previous stated in the axiom repositiory
 (termFormat EnglishLanguage NumberOfDaysInMonthFn "number of days in the month") 
 (format EnglishLanguage NumberOfDaysInMonthFn "Number of days in month %1 and year %2")
 (domainSubclass NumberOfDaysInMonthFn 1 Month)
-(domain NumberOfDaysInMonthFn 2 Integer)
+(domain NumberOfDaysInMonthFn 2 Year)
 (range NumberOfDaysInMonthFn NonnegativeInteger)
 
 (=>
@@ -690,7 +690,8 @@ It uses &%duration to relate the number previous stated in the axiom repositiory
       (NumberOfDaysInMonthFn ?M ?Y))
     (not
       (equal ?M February))
-    (instance ?MONTH (MonthFn ?M (YearFn ?Y))))
+    (instance ?Y ?YEAR)
+    (instance ?MONTH (MonthFn ?M ?YEAR)))
   (duration ?MONTH
     (MeasureFn ?I DayDuration)))
 
@@ -700,10 +701,9 @@ It uses &%duration to relate the number previous stated in the axiom repositiory
     (equal ?I 
       (NumberOfDaysInMonthFn ?M ?Y))
     (equal ?M February)
-    (instance ?YEAR (YearFn ?Y))
     (instance ?LP LeapYear)
     (not
-      (equal ?YEAR ?LP)))
+      (equal ?Y ?LP)))
   (equal ?I 28))
     
 (=>
@@ -712,9 +712,8 @@ It uses &%duration to relate the number previous stated in the axiom repositiory
     (equal ?I 
       (NumberOfDaysInMonthFn ?M ?Y))
     (equal ?M February)
-    (instance ?YEAR (YearFn ?Y))
     (instance ?LP LeapYear)
-    (equal ?YEAR ?LP))
+    (equal ?Y ?LP))
   (equal ?I 29))  
     
 (instance DailyTempFn BinaryFunction)
@@ -763,30 +762,31 @@ December 2024 January 2025).")
 (termFormat EnglishLanguage previousMonthYear "previous month of") 
 (format EnglishLanguage previousMonthYear "the previous month of %3 in year %4 is %1 %2")
 (domainSubclass previousMonthYear 1 Month)
-(domain previousMonthYear 2 Integer)
+(domain previousMonthYear 2 Year)
 (domainSubclass previousMonthYear 3 Month)
-(domain previousMonthYear 4 Integer)
+(domain previousMonthYear 4 Year)
 
 (=>
   (and
     (previousMonthYear ?M1 ?Y1 ?M2 ?Y2)
     (not
-      (equal ?M2 January))
-    (successorClass ?M1 ?M2))
-  (equal
-    (YearFn ?Y1)
-    (YearFn ?Y2)))
-
+      (equal ?M2 January)))
+  (and
+    (successorClass ?M1 ?M2)
+    (equal ?Y1 ?Y2)))
+    
 (=>
   (and
     (previousMonthYear ?M1 ?Y1 ?M2 ?Y2)
+    (instance ?Y2
+      (YearFn ?I))
     (equal ?M2
-      (MonthFn January (YearFn ?Y2)))
-    (equal ?M1 December))
-  (equal
-    (YearFn ?Y1)
-    (YearFn
-      (SubtractionFn ?Y2 1))))
+      (MonthFn January (YearFn ?I))))
+  (and
+    (equal ?M1 December)
+    (instance ?Y1
+      (YearFn
+        (SubtractionFn ?I 1)))))
    
 (instance ThreeMonthsRunningMeanSSTFn TernaryFunction)
 (documentation ThreeMonthsRunningMeanSSTFn EnglishLanguage "(&%ThreeMonthsRunningMeanSSTFn 
@@ -799,7 +799,7 @@ temperature")
 %2 year %3 in region %1")
 (domain ThreeMonthsRunningMeanSSTFn 1 WaterArea)
 (domainSubclass ThreeMonthsRunningMeanSSTFn 2 Month)
-(domain ThreeMonthsRunningMeanSSTFn 3 Integer)
+(domain ThreeMonthsRunningMeanSSTFn 3 Year)
 (range ThreeMonthsRunningMeanSSTFn TemperatureMeasure)
 
 (=>
@@ -832,21 +832,23 @@ temperature for month")
 %2 in year %3 of region %1")
 (domain ThirtyYearAverageSSTForMonthFn 1 WaterArea)
 (domainSubclass ThirtyYearAverageSSTForMonthFn 2 Month)
-(domain ThirtyYearAverageSSTForMonthFn 3 Integer)
+(domain ThirtyYearAverageSSTForMonthFn 3 Year)
 (range ThirtyYearAverageSSTForMonthFn TemperatureMeasure)
 
 (=>
   (and
     (equal ?TEMP
-      (ThirtyYearAverageSSTForMonthFn ?W ?M ?Y))        
-    (equal ?I
-      (SubtractionFn ?Y ?N))
+      (ThirtyYearAverageSSTForMonthFn ?W ?M ?Y))
+    (instance ?Y
+      (YearFn ?I))     
+    (equal ?YEAR
+      (SubtractionFn ?I ?N))
     (greaterThanOrEqualTo ?N 0)
     (lessThan ?N 30)
     (instance ?U UnitOfTemperature)
     (equal 
       (MeasureFn ?X ?U)
-        (MeanMonthSSTFn ?W ?M ?I))
+        (MeanMonthSSTFn ?W ?M ?YEAR))
     (inList ?X ?L))
   (equal ?TEMP
     (MeasureFn
