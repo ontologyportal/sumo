@@ -1,0 +1,111 @@
+; Agent Smith enters Area 51 on April 1, 2025.
+
+(instance AgentSmith Human)
+(instance Area51 Facility)
+
+(exists (?E)
+  (and
+    (instance ?E Entering)
+    (agent ?E AgentSmith)
+    (destination ?E Area51)
+    (during 
+      (WhenFn ?E)
+      (DayFn 1 (MonthFn April (YearFn 2025))))))
+      
+; Agent Smith works for the MIB unit.
+
+(instance MIBUnit Organization)
+(employs AgentSmith MIBUnit)
+
+; The MIB unit is part of the US Federal Government. 
+
+(equal USGovernment (GovernmentFn UnitedStates)
+(subOrganization MIBUnit USGovernment)
+
+; The US government obliges Agent Smith not to enter Area 51.
+
+(confersObligation 
+  (not 
+    (exists (?E)
+      (and
+        (instance ?E Entering)
+        (agent ?E AgentSmith)
+        (destination ?E Area51))))
+  USGovernment AgentSmith)
+  
+; Agents that violate their obligations have a US government disciplinary hearing.
+
+(=>
+  (and
+    (confersObligation ?F USGovernment ?A)
+    (not ?F))
+  (exists (?H)
+    (and
+      (instance ?H LegalAction)
+      (plaintiff ?H USGovernment)
+      (defendant ?H ?A))))
+
+; Agents that violate their obligations are fired after a US government disciplinary hearing.
+
+(=>
+  (and
+    (confersObligation ?F USGovernment ?A)
+    (not ?F)
+    (instance ?H LegalAction)
+    (plaintiff ?H USGovernment)
+    (defendant ?H ?A))
+  (exists (?FIRE)
+    (and
+      (instance ?FIRE TerminatingEmployment)
+      (earlier 
+        (WhenFn ?H) 
+        (WhenFn ?FIRE))
+      (patient ?FIRE ?A))))
+    
+; People employed by an org that fires them are not employed by the org after then.
+; This is a simplification since they could be rehired.
+      
+(=>
+  (and
+    (instance ?FIRE TerminatingEmployment)
+    (agent ?FIRE ?ORG)
+    (holdsDuring 
+      (PastFn
+        (WhenFn ?FIRE))
+      (employs ?ORG ?A))
+    (suffers ?FIRE ?A))
+  (holdsDuring  
+    (FutureFn 
+      (WhenFn ?FIRE))
+    (not     
+      (employs ?ORG ?A))))
+       
+; Agent Smith is brought before a US government disciplinary hearing in June 2025.
+
+(exists (?H)
+  (and
+    (instance ?H LegalAction)
+    (plaintiff ?H USGovernment)
+    (defendant ?H ?A)
+    (during 
+      (WhenFn ?H) 
+      (MonthFn June (YearFn 2025)))))
+      
+; A person employed by an organization is employed by its parent organization at least at
+; the same time.
+
+(=>
+  (and
+    (holdsDuring ?T
+      (employs ?ORG ?A))
+    (subOrganization ?ORG ?SUPER))
+  (holdsDuring ?T
+    (employs ?SUPER ?A)))
+    
+; Does Agent Smith work for the MIB unit in July 2025?
+
+(holdsDuring
+  (MonthFn July 
+    (YearFn 2025))
+  (employs MIBUnit AgentSmith))
+  
