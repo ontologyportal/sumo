@@ -19,7 +19,7 @@
 ;;---------------------------------------------------------------------------------------------------------
 ;; dependancy file Transportation.kif; TransportDetail.kif
 ;;
-;; BEGIN FILE
+;; BEGIN FILE        (attribute ?D Repairable)
 ;;
 ;; Taxiway moved to Transportation.kif              
 ;; Apron moved to Transportation.kif
@@ -48,16 +48,184 @@
                                                                                                       
 ;; MTBF
 (instance MTBFFn UnaryFunction)
-(documentation MTBFFn EnglishLanguage "(&%MTBFFn ?D) denotes the mean time between faiures of 
-the &%Device in &%HourDuration. Mean time between failures (MTBF) is the predicted
-elapsed time between inherent failures of a mechanical or electronic system during 
-normal system operation. It can be calculated as the arithmetic mean (average) between failures of a
-system. The term is used for &%Repairable systems while &%meanTimeToFailure (MTTF) denotes the 
-time to failure for a non-repairable system. [Wikipedia]")
-(format EnglishLanguage MTBFFn "%1 of &%HourDuration")
+(documentation MTBFFn EnglishLanguage "(&%MTBFFn ?D) denotes the mean time between failures of 
+the &%CLASS of &%Device ?D in &%HourDuration. Mean time between failures (MTBF) is often used to predict
+the likely working time of a mechanical or electronic system during normal system operation. It can be 
+calculated as the arithmetic mean (average) between failures of a system. MTBF = Total Operating 
+Time/Number of Failures.  The term is used for &%Repairable systems while &%meanTimeToFailure (MTTF) 
+denotes the time to failure for a non-repairable system. [Wikipedia]Note that the argument for MTBFFn 
+is a &%Class of &%Device.")
+(format EnglishLanguage MTBFFn "The MTBF of %1")
 (termFormat EnglishLanguage MTBFFn "mean time between failures")
-(domain MTBFFn 1 Device)
-(range MTBFFn TimeDuration)
+(domainSubclass MTBFFn 1 Device)
+(range MTBFFn HourDuration)
+(relatedInternalConcept MTBFFn MTBFInstanceFn)
+
+(=>
+  (and
+    (equal 
+      (MeasureFn ?H HourDuration)
+      (MTBFFn ?CLASS))
+    (instance ?D ?CLASS))
+  (equal ?H
+    (DivisionFn
+      (AdditionFn 
+        (ListSumFn
+          (PhysicalQuantityToNumberFn
+            (DeviceUpTimeDurationListFn ?D)))
+        (ListSumFn
+          (PhysicalQuantityToNumberFn
+            (DevicePlannedDownTimeDurationListFn ?D))))
+      (ListLengthFn
+        (DeviceFailTimeDurationListFn ?D)))))
+        
+(subclass DeviceUpTimeDurationListFn UnaryFunction)
+(documentation DeviceUpTimeDurationListFn EnglishLanguage "&%DeviceUpTimeDurationListFn ?DEVICE) 
+denotes all the &%deviceUpTime in a &%List in &%HourDuration. The list can be used to calculate the Mean time
+between failure of the device.")   
+(format EnglishLanguage DeviceUpTimeDurationListFn "The &%deviceUpTime &%duration for %1 is")
+(termFormat EnglishLanguage DeviceUpTimeDurationListFn "device up duration list")     
+(domain DeviceUpTimeDurationListFn 1 Device)
+(range DeviceUpTimeDurationListFn MeasuringResultList)
+(relatedInternalConcept DeviceUpTimeDurationListFn DevicePlannedDownTimeDurationListFn)
+
+(=>
+  (and
+    (instance ?D Device)
+    (deviceUpTime ?D ?UP)
+    (duration ?UP (MeasureFn ?X HourDuration))
+    (inList
+      (MeasureFn ?X HourDuration) ?L))
+  (equal ?L          
+      (DeviceUpTimeDurationListFn ?D)))
+      
+(subclass DevicePlannedDownTimeDurationListFn UnaryFunction)
+(documentation DevicePlannedDownTimeDurationListFn EnglishLanguage "&%DevicePlannedDownTimeDurationListFn ?DEVICE) 
+denotes all the &%devicePlannedDownTime in a &%List in &%HourDuration. The list can be used to calculate the Mean time
+between failure of the device.")   
+(format EnglishLanguage DevicePlannedDownTimeDurationListFn "The &%deviceUpTime &%duration for %1 is")
+(termFormat EnglishLanguage DevicePlannedDownTimeDurationListFn "device up duration list")     
+(domain DevicePlannedDownTimeDurationListFn 1 Device)
+(range DevicePlannedDownTimeDurationListFn MeasuringResultList)
+
+(=>
+  (and
+    (instance ?D Device)
+    (devicePlannedDownTime ?D ?PLAN)
+    (duration ?PLAN (MeasureFn ?X HourDuration))
+    (inList
+      (MeasureFn ?X HourDuration) ?L))
+  (equal ?L          
+      (DevicePlannedDownTimeDurationListFn ?D)))
+      
+(subclass DeviceFailTimeDurationListFn UnaryFunction)
+(documentation DevicePlannedDownTimeDurationListFn EnglishLanguage "&%DeviceFailTimeDurationListFn ?DEVICE) 
+denotes all the &%deviceFailTime in a &%List in &%HourDuration. The list can be used to calculate the Mean time
+between failure of the device.")   
+(format EnglishLanguage DeviceFailTimeDurationListFn "The &%deviceFailTime &%duration for %1 is")
+(termFormat EnglishLanguage DeviceFailTimeDurationListFn "device up duration list")     
+(domain DeviceFailTimeDurationListFn 1 Device)
+(range DeviceFailTimeDurationListFn MeasuringResultList)
+(relatedInternalConcept DeviceFailTimeDurationListFn DevicePlannedDownTimeDurationListFn)
+
+(=>
+  (and
+    (instance ?D Device)
+    (deviceFailTime ?D ?FAIL)
+    (duration ?FAIL (MeasureFn ?X HourDuration))
+    (attribute ?D Repairable)
+    (inList
+      (MeasureFn ?X HourDuration) ?L))
+  (equal ?L          
+      (DeviceFailTimeDurationListFn ?D)))
+    
+(instance deviceUpTime BinaryPredicate)
+(documentation deviceUpTime EnglishLanguage "(&%deviceUpTime ?DEVICE ?TIME) means that
+?TIME &%TimeInterval is when the &%Device is in operation.")   
+(format EnglishLanguage deviceUpTime "Device %1 is in operation during &%TimeInterval %2")
+(termFormat EnglishLanguage deviceUpTime "device up time")     
+(domain deviceUpTime 1 Device)
+(domain deviceUpTime 2 TimeInterval)
+(relatedInternalConcept deviceUpTime deviceDownTime)
+(relatedInternalConcept deviceUpTime deviceFailTime)
+
+(=>
+  (and
+    (deviceUpTime ?D ?T)
+    (instance ?D ?CLASS))
+  (exists (?P)
+    (and
+      (instance ?P
+        (OperatingFn ?CLASS))
+      (equal ?T
+        (WhenFn ?P)) 
+      (holdsDuring ?T
+        (attribute ?D DeviceOn))      
+      (instrument ?P ?D))))
+
+(instance deviceDownTime BinaryPredicate)
+(documentation deviceDownTime EnglishLanguage "(&%deviceDownTime ?DEVICE ?TIME) means that
+?TIME &%TimeInterval is when &%Device is not in operation.")   
+(format EnglishLanguage deviceDownTime "Device %1 is not in operation during &%TimeInterval %2")
+(termFormat EnglishLanguage deviceDownTime "device down time")     
+(domain deviceDownTime 1 Device)
+(domain deviceDownTime 2 TimeInterval)
+(relatedInternalConcept deviceDownTime deviceFailTime)     
+
+(=>
+  (and
+    (deviceDownTime ?D ?T)
+    (instance ?D ?CLASS))
+  (and
+    (holdsDuring ?T
+      (attribute ?D DeviceOff))
+    (not
+      (exists (?P)
+        (and
+          (instance ?P
+            (OperatingFn ?CLASS))
+          (during
+            (WhenFn ?P) ?T)
+          (instrument ?P ?D))))))
+
+(subrelation devicePlannedDownTime deviceDownTime)
+(documentation deviceFailTime EnglishLanguage "(&%devicePlannedDownTime ?DEVICE ?TIME) means that the 
+?TIME &%TimeInterval is when &%Device is in a &%DeviceOff state but is not &%DeviceDamaged state.")   
+(format EnglishLanguage devicePlannedDownTime "device %1 is scheduled to be in &%DeviceOff during &%TimeInterval %2")
+(termFormat EnglishLanguage devicePlannedDownTime "device planned down time")     
+(domain devicePlannedDownTime 1 Device)
+(domain devicePlannedDownTime 2 TimeInterval)
+(disjointRelation devicePlannedDownTime deviceFailTime)
+
+(=>
+  (devicePlannedDownTime ?D ?T)  
+  (holdsDuring ?T
+    (and
+      (attribute ?D DeviceOff)
+      (not
+        (attribute ?D DeviceDamaged)))))
+
+(subrelation deviceFailTime deviceDownTime)
+(documentation deviceFailTime EnglishLanguage "(&%deviceFailTime ?DEVICE ?TIME) means that the 
+?TIME &%TimeInterval is when &%Device is &%DeviceInFailure state.")   
+(format EnglishLanguage deviceFailTime "device %1 is in a failure state during &%TimeInterval %2")
+(termFormat EnglishLanguage deviceFailTime "device fail time")     
+(domain deviceFailTime 1 Device)
+(domain deviceFailTime 2 TimeInterval)
+
+(=>
+  (deviceFailTime ?D ?F)  
+  (holdsDuring ?F
+    (attribute ?D DeviceDamaged))) 
+
+(instance MTBFInstanceFn UnaryFunction)
+(documentation MTBFInstanceFn EnglishLanguage "&%MTBFInstanceFn denotes the mean time between Failure 
+of a single device, ie an (&%Instance of ?D &%Deive) while &%MTBFFn denotes the MTBF of a &%Class of 
+devices. Note that the argument for MTBFInstanceFn is an &%instance.")
+(format EnglishLanguage MTBFInstanceFn "The MTBF of %1 is &%HourDuration")
+(termFormat EnglishLanguage MTBFInstanceFn "mean time between failures")
+(domain MTBFInstanceFn 1 Device)
+(range MTBFInstanceFn TimeDuration)
 
 ;(instance meanTimeToFailure BinaryPredicate)
 ;(documentation meanTimeToFailure EnglishLanguage "&%meanTimeToFailure (MTTF) is the predicted
@@ -171,7 +339,7 @@ on its left side when viewed from the Southern Hemisphere of the Earth.[Wikipedi
 (successorAttribute FullMoon WaningGibbous)
 
 (=>
-  (attribute Earthsmoon FullMoon)
+  (attribute EarthsMoon FullMoon)
   (moonLitPortion 1 FullMoon))
 
 (=>
@@ -184,7 +352,7 @@ on its left side when viewed from the Southern Hemisphere of the Earth.[Wikipedi
         (instance ?M ReflectingLight)
         (origin ?M EarthsMoon)
         (causes ?S ?M)
-        (instance ?S SunLight)
+        (instance ?S Sunlight)
         (destination ?M PlanetEarth)
         (during ?T (WhenFn ?M))
         (measure ?M
