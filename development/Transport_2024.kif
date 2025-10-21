@@ -52,21 +52,41 @@
 the &%CLASS of &%Device ?D in &%HourDuration. Mean time between failures (MTBF) is often used to predict
 the likely working time of a mechanical or electronic system during normal system operation. It can be 
 calculated as the arithmetic mean (average) between failures of a system. MTBF = Total Operating 
-Time/Number of Failures.  The term is used for &%Repairable systems while &%meanTimeToFailure (MTTF) 
-denotes the time to failure for a non-repairable system. [Wikipedia]Note that the argument for MTBFFn 
+Time / Number of Failures.  The term is used for &%Repairable systems while &%meanTimeToFailure (MTTF) 
+denotes the time to failure for a non-repairable system. [Wikipedia] Note that the argument for MTBFFn 
 is a &%Class of &%Device.")
 (format EnglishLanguage MTBFFn "The MTBF of %1")
 (termFormat EnglishLanguage MTBFFn "mean time between failures")
 (domainSubclass MTBFFn 1 Device)
 (range MTBFFn HourDuration)
-(relatedInternalConcept MTBFFn MTBFInstanceFn)
+(relatedInternalConcept MTBFFn MTBFInstanceFn) 
 
 (=>
   (and
     (equal 
       (MeasureFn ?H HourDuration)
       (MTBFFn ?CLASS))
-    (instance ?D ?CLASS))
+    (instance ?D ?CLASS)
+    (equal
+      (MeasureFn ?X HourDuration)
+      (MTBFInstanceFn ?D))
+    (inList ?X ?L))
+  (equal ?H
+    (AverageFn ?L)))
+
+(instance MTBFInstanceFn UnaryFunction)
+(documentation MTBFInstanceFn EnglishLanguage "&%MTBFInstanceFn denotes the mean time between Failure 
+of a single device, ie an (&%Instance of ?D &%Deive) while &%MTBFFn denotes the MTBF of a &%Class of 
+devices. Note that the argument for MTBFInstanceFn is an &%instance.")
+(format EnglishLanguage MTBFInstanceFn "The MTBF of %1 is &%HourDuration")
+(termFormat EnglishLanguage MTBFInstanceFn "mean time between failures")
+(domain MTBFInstanceFn 1 Device)
+(range MTBFInstanceFn HourDuration)
+
+(=>
+  (equal 
+    (MeasureFn ?H HourDuration)
+    (MTBFInstanceFn ?D))
   (equal ?H
     (DivisionFn
       (AdditionFn 
@@ -218,21 +238,55 @@ between failure of the device.")
   (holdsDuring ?F
     (attribute ?D DeviceDamaged))) 
 
-(instance MTBFInstanceFn UnaryFunction)
-(documentation MTBFInstanceFn EnglishLanguage "&%MTBFInstanceFn denotes the mean time between Failure 
-of a single device, ie an (&%Instance of ?D &%Deive) while &%MTBFFn denotes the MTBF of a &%Class of 
-devices. Note that the argument for MTBFInstanceFn is an &%instance.")
-(format EnglishLanguage MTBFInstanceFn "The MTBF of %1 is &%HourDuration")
-(termFormat EnglishLanguage MTBFInstanceFn "mean time between failures")
-(domain MTBFInstanceFn 1 Device)
-(range MTBFInstanceFn TimeDuration)
+(instance MTTFFn UnaryFunction)
+(documentation MTTFFn EnglishLanguage "(&%MTTFFn ?CLASS), mean time to failures is the predicted
+elapsed time, based on statistics of its past performance, when a &%NonRepairable &%Device 
+or component is replaced after a failure during normal system operation. [Wikipedia] Note 
+that the argument for MTTFFn is a &%Class of the &%Device. For an instance of &%Device use
+(TimeToFailureFn ?D). ")
+(termFormat EnglishLanguage MTTFFn "mttf")
+(termFormat EnglishLanguage MTTFFn "mean time to failures")
+(format EnglishLanguage MTTFFn "The MTTF of %1")
+(domainSubclass MTTFFn 1 Device)
+(range MTTFFn HourDuration)
+(relatedInternalConcept MTBFFn MTTFFn)
 
-;(instance meanTimeToFailure BinaryPredicate)
-;(documentation meanTimeToFailure EnglishLanguage "&%meanTimeToFailure (MTTF) is the predicted
-;elapsed time when a &%NonRepairable &%Device or component is replaced after a failure 
-;during normal system operation. [Wikipedia]")
-;(termFormat EnglishLanguage meanTimeToFailure "mttf")
-;(termFormat EnglishLanguage meanTimeToFailure "mean time to failure")
+(=>
+  (and
+    (equal 
+      (MeasureFn ?X HourDuration)
+      (MTTFFn ?CLASS))
+    (instance ?D ?CLASS)
+    (equal
+      (MeasureFn ?Y HourDuration)
+      (TimeToFailureFn ?D))
+    (inList ?Y ?L))
+  (equal ?X
+    (AverageFn ?L)))
+
+(instance TimeToFailureFn UnaryFunction)
+(documentation TimeToFailureFn EnglishLanguage "&%TimeToFailureFn denotes the time to failure 
+of a single device, ie an (&%Instance of ?D &%Deive) while &%MTTFFn denotes the mean time to failure 
+of a &%Class of devices. Note that the argument for TimeToFailureFn is an &%instance.")
+(format EnglishLanguage TimeToFailureFn "The time to failure of %1 is &%HourDuration")
+(termFormat EnglishLanguage TimeToFailureFn "time to failure")
+(domain TimeToFailureFn 1 Device)
+(range TimeToFailureFn HourDuration)
+(relatedInternalConcept TimeToFailureFn MTBFInstanceFn) 
+
+(=>
+  (and
+    (equal 
+      (MeasureFn ?X HourDuration)
+      (TimeToFailureFn ?D))
+    (attribute ?D NonRepairable)
+    (deviceFailTime ?D ?F)
+    (deviceUpTime ?D ?U))
+  (duration 
+    (TimeIntervalFn
+      (BeginFn ?U)
+      (BeginFn ?F))
+    (MeasureFn ?X HourDuration)))
                
 ;;
 ;; start line 238 14 Nov
@@ -265,9 +319,11 @@ the &%Moon's directly sunlit portion as viewed from &%PlanetEarth. [Wikipedia]")
 (=>
   (and
     (instance ?P MoonPhase)
-    (attribute EarthsMoon ?P)
-    (moonLitPortion 1 ?P))
-  (instance ?P FullMoon))
+    (attribute EarthsMoon ?P)   
+    (holdsDuring ?T
+      (moonLitPortion 1 ?P)))
+  (holdsDuring ?T
+    (instance ?P FullMoon)))
           
 (instance moonLitPortion BinaryRelation)
 (documentation moonLitPortion EnglishLanguage "&%moonLitPortion is a &%BinaryRelaiton that relates
@@ -277,8 +333,7 @@ For example(moonLitPortion 1 FullMoon).")
 (format EnglishLanguage moonLitPortion "%2 has the sun lit ratio of %1")
 (domain moonLitPortion 1 RealNumber)
 (domain moonLitPortion 2 MoonPhase)
-        
-        
+                
 (instance NewMoon MoonPhase)
 (documentation NewMoon EnglishLanguage "&%NewMoon occurs when the illuminated portion of the moon is 
 completely in the shade of &%PlanetEarth.[Wikipedia]")
@@ -289,8 +344,10 @@ completely in the shade of &%PlanetEarth.[Wikipedia]")
   (and
     (instance ?P MoonPhase)
     (attribute EarthsMoon ?P)
-    (moonLitPortion 0 ?P))
-  (instance ?P NewMoon))
+    (holdsDuring ?T
+      (moonLitPortion 0 ?P)))
+  (holdsDuring ?T
+    (instance ?P NewMoon)))
 
 (instance WaxingCrescent MoonPhase)
 (documentation WaxingCrescent EnglishLanguage "&%WaxingCrescent occurs when the illuminated portion of 
@@ -300,10 +357,12 @@ on its left side when viewed from the Southern Hemisphere of the Earth.[Wikipedi
 (successorAttribute WaxingCrescent FirstQuarterMoon)
 
 (=>
-  (moonLitPortion ?I WaxingCrescent)
-  (and
-    (greaterThan ?I 0)
-    (lessThanOrEqualTo ?I 0.5)))
+  (holdsDuring ?T 
+    (moonLitPortion ?I WaxingCrescent))
+  (holdsDuring ?T
+    (and
+      (greaterThan ?I 0)
+      (lessThanOrEqualTo ?I 0.5))))
 
 (instance FirstQuarterMoon MoonPhase)
 (documentation FirstQuarterMoon EnglishLanguage "&%FirstQuarterMoon occurs when the illuminated portion 
@@ -316,8 +375,10 @@ on its left side when viewed from the Southern Hemisphere of the Earth.[Wikipedi
   (and
     (instance ?P MoonPhase)
     (attribute EarthsMoon ?P)
-    (moonLitPortion 0.51 ?P))
-  (instance ?P FirstQuarterMoon))
+    (holdsDuring ?T
+      (moonLitPortion 0.51 ?P)))
+  (holdsDuring ?T
+    (instance ?P FirstQuarterMoon)))
 
 (instance WaxingGibbous MoonPhase)
 (documentation WaxingGibbous EnglishLanguage "&%WaxingGibbous occurs when the illuminated portion of the 
@@ -327,10 +388,12 @@ on its left side when viewed from the Southern Hemisphere of the Earth.[Wikipedi
 (successorAttribute WaxingGibbous FullMoon)
 
 (=>
-  (moonLitPortion ?I WaxingGibbous)
-  (and
-    (greaterThan ?I 0.5)
-    (lessThan ?I 1)))
+  (holdsDuring ?T
+    (moonLitPortion ?I WaxingGibbous))
+  (holdsDuring ?T
+    (and
+      (greaterThan ?I 0.5)
+      (lessThan ?I 1))))
 
 (instance FullMoon MoonPhase)
 (documentation FullMoon EnglishLanguage "&%FullMoon occurs when the illuminated portion of the moon is 
@@ -339,13 +402,16 @@ on its left side when viewed from the Southern Hemisphere of the Earth.[Wikipedi
 (successorAttribute FullMoon WaningGibbous)
 
 (=>
-  (attribute EarthsMoon FullMoon)
-  (moonLitPortion 1 FullMoon))
+  (holdsDuring ?T
+    (attribute EarthsMoon FullMoon))
+  (holdsDuring ?T
+    (moonLitPortion 1 FullMoon)))
 
 (=>
-  (and
-    (attribute EarthsMoon FullMoon)
-    (moonLitPortion ?I FullMoon))
+  (holdsDuring ?T
+    (and
+      (attribute EarthsMoon FullMoon)
+      (moonLitPortion ?I FullMoon)))
   (holdsDuring ?T
     (exists (?M ?S ?X)
       (and
@@ -369,10 +435,12 @@ Earth; on its right side when viewed from the Southern Hemisphere of the Earth.[
 (successorAttribute WaningGibbous LastQuarterMoon)
 
 (=>
-  (moonLitPortion ?I WaningGibbous)
-  (and
-    (greaterThan ?I 0.5)
-    (lessThan ?I 1)))
+  (holdsDuring ?T
+    (moonLitPortion ?I WaningGibbous))
+  (holdsDuring ?T
+    (and
+      (greaterThan ?I 0.5)
+      (lessThan ?I 1))))
 
 (instance LastQuarterMoon MoonPhase)
 (documentation LastQuarterMoon EnglishLanguage "&%LastQuarterMoon occurs when the illuminated portion of the 
@@ -385,8 +453,10 @@ on its right side when viewed from the Southern Hemisphere of the Earth.[Wikiped
   (and
     (instance ?P MoonPhase)
     (attribute EarthsMoon ?P)
-    (moonLitPortion 0.51 ?P))
-  (instance ?P LastQuarterMoon))
+    (holdsDuring ?T
+      (moonLitPortion 0.51 ?P)))
+  (holdsDuring ?T
+    (instance ?P LastQuarterMoon)))
 
 (instance WaningCrescent MoonPhase)
 (documentation WaningCrescent EnglishLanguage "&%WaningCrescent occurs when the illuminated portion 
@@ -396,10 +466,12 @@ Earth; on its right side when viewed from the Southern Hemisphere of the Earth.[
 (successorAttribute WaningCrescent NewMoon)
 
 (=>
-  (moonLitPortion ?I WaningCrescent)
-  (and
-    (greaterThan ?I 0)
-    (lessThanOrEqualTo ?I 0.5)))
+  (holdsDuring ?T
+    (moonLitPortion ?I WaningCrescent))
+  (holdsDuring ?T
+    (and
+      (greaterThan ?I 0)
+      (lessThanOrEqualTo ?I 0.5))))
 
 ;;
 ;; resourceConsumption moved to MILO
