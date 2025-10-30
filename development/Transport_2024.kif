@@ -103,7 +103,7 @@ devices. Note that the argument for MTBFInstanceFn is an &%instance.")
 (documentation DeviceUpTimeDurationListFn EnglishLanguage "&%DeviceUpTimeDurationListFn ?DEVICE) 
 denotes all the &%deviceUpTime in a &%List in &%HourDuration. The list can be used to calculate the Mean time
 between failure of the device.")   
-(format EnglishLanguage DeviceUpTimeDurationListFn "The &%deviceUpTime &%duration for %1 is")
+(format EnglishLanguage DeviceUpTimeDurationListFn "The &%List of &%deviceUpTime &%duration for %1 is")
 (termFormat EnglishLanguage DeviceUpTimeDurationListFn "device up duration list")     
 (domain DeviceUpTimeDurationListFn 1 Device)
 (range DeviceUpTimeDurationListFn MeasuringResultList)
@@ -123,7 +123,7 @@ between failure of the device.")
 (documentation DevicePlannedDownTimeDurationListFn EnglishLanguage "&%DevicePlannedDownTimeDurationListFn ?DEVICE) 
 denotes all the &%devicePlannedDownTime in a &%List in &%HourDuration. The list can be used to calculate the Mean time
 between failure of the device.")   
-(format EnglishLanguage DevicePlannedDownTimeDurationListFn "The &%deviceUpTime &%duration for %1 is")
+(format EnglishLanguage DevicePlannedDownTimeDurationListFn "The &%List of &%deviceUpTime &%duration for %1 is")
 (termFormat EnglishLanguage DevicePlannedDownTimeDurationListFn "device up duration list")     
 (domain DevicePlannedDownTimeDurationListFn 1 Device)
 (range DevicePlannedDownTimeDurationListFn MeasuringResultList)
@@ -142,7 +142,7 @@ between failure of the device.")
 (documentation DevicePlannedDownTimeDurationListFn EnglishLanguage "&%DeviceFailTimeDurationListFn ?DEVICE) 
 denotes all the &%deviceFailTime in a &%List in &%HourDuration. The list can be used to calculate the Mean time
 between failure of the device.")   
-(format EnglishLanguage DeviceFailTimeDurationListFn "The &%deviceFailTime &%duration for %1 is")
+(format EnglishLanguage DeviceFailTimeDurationListFn "The &%List of &%deviceFailTime &%duration for %1 is")
 (termFormat EnglishLanguage DeviceFailTimeDurationListFn "device up duration list")     
 (domain DeviceFailTimeDurationListFn 1 Device)
 (range DeviceFailTimeDurationListFn MeasuringResultList)
@@ -250,6 +250,7 @@ that the argument for MTTFFn is a &%Class of the &%Device. For an instance of &%
 (domainSubclass MTTFFn 1 Device)
 (range MTTFFn HourDuration)
 (relatedInternalConcept MTBFFn MTTFFn)
+(relatedInternalConcept MTTRepairFn MTTFFn)
 
 (=>
   (and
@@ -281,12 +282,161 @@ of a &%Class of devices. Note that the argument for TimeToFailureFn is an &%inst
       (TimeToFailureFn ?D))
     (attribute ?D NonRepairable)
     (deviceFailTime ?D ?F)
-    (deviceUpTime ?D ?U))
+    (deviceUpTime ?D ?U)
+    (earlier ?U ?F))
   (duration 
     (TimeIntervalFn
       (BeginFn ?U)
       (BeginFn ?F))
     (MeasureFn ?X HourDuration)))
+    
+(instance MTTRepairFn UnaryFunction)
+(documentation MTTRepairFn EnglishLanguage "(&%MTTRepairFn ?D) denotes the mean time to repair of 
+the &%CLASS of &%Device ?D in &%HourDuration. Mean time to repair (MTTR) is a basic measure of the 
+maintainability of repairable items. It represents the average time required to repair a failed component 
+or device.[Wikipedia]Note that the argument for MTTRepairFn is a &%Class of &%Device.")
+(format EnglishLanguage MTTRepairFn "The MTTRepairFn of %1")
+(termFormat EnglishLanguage MTTRepairFn "mean time to repair")
+(domainSubclass MTTRepairFn 1 Device)
+(range MTTRepairFn HourDuration)
+(relatedInternalConcept MTTRepairFn MTTRepairInstanceFn)
+(relatedInternalConcept MTBFFn MTTRepairFn) 
+
+(=>
+  (and
+    (equal 
+      (MeasureFn ?H HourDuration)
+      (MTTRepairFn ?CLASS))
+    (instance ?D ?CLASS)
+    (equal
+      (MeasureFn ?X HourDuration)
+      (MTTRepairInstanceFn ?D))
+    (inList ?X ?L))
+  (equal ?H
+    (AverageFn ?L)))
+    
+(instance MTTRepairInstanceFn UnaryFunction)
+(documentation MTTRepairInstanceFn EnglishLanguage "&%MTTRepairInstanceFn denotes the time to repair 
+of a single device, ie an (&%Instance of ?D &%Deive) while &%MTTRepairFn denotes the mean time to repair 
+of a &%Class of devices. Expressed mathematically, it is the total corrective maintenance time for failures 
+divided by the total number of corrective maintenance actions for failures during a given period of time.
+[wikipedia] Note that the argument for MTTRepairInstanceFn is an &%instance.")
+(format EnglishLanguage MTTRepairInstanceFn "The time to repair of %1 is &%HourDuration")
+(termFormat EnglishLanguage MTTRepairInstanceFn "time to repair")
+(domain MTTRepairInstanceFn 1 Device)
+(range MTTRepairInstanceFn HourDuration)
+(relatedInternalConcept TimeToFailureFn MTTRepairInstanceFn) 
+
+(=>
+  (equal 
+    (MeasureFn ?X HourDuration)
+    (MTTRepairInstanceFn ?D))
+  (attribute ?D Repairable))
+    
+(=>
+  (equal 
+    (MeasureFn ?X HourDuration)
+    (MTTRepairInstanceFn ?D))
+  (equal ?X
+    (DivisionFn
+      (ListSumFn
+        (PhysicalQuantityToNumberFn
+          (DeviceFailTimeDurationListFn ?D)))
+      (ListLengthFn
+        (DeviceFailTimeDurationListFn ?D)))))
+          
+(instance TimeToRecoveryFn UnaryFunction)
+(documentation TimeToRecoveryFn EnglishLanguage "&%TimeToRecoveryFn denotes the time to recovery 
+of a device for an instance of failure. It is used to calculate the &%MTTRecoveryInstanceFn for
+an Instance of &%Device. To get the mean time to recovery of a &%Class of the device, one should 
+use the &%Function (&%MTTRecoveryFn ?CLASS). Note that the argument for TimeToFailureFn is an 
+&%instance.")
+(format EnglishLanguage TimeToRecoveryFn "The time to recovery of %1 is &%HourDuration")
+(termFormat EnglishLanguage TimeToRecoveryFn "time to recovery")
+(domain TimeToRecoveryFn 1 Device)
+(range TimeToRecoveryFn HourDuration)
+(relatedInternalConcept TimeToFailureFn TimeToRecoveryFn) 
+
+(=>
+  (and
+    (equal 
+      (MeasureFn ?X HourDuration)
+      (TimeToRecoveryFn ?D))
+    (deviceFailTime ?D ?F)
+    (deviceUpTime ?D ?U)
+    (earlier ?F ?U))
+  (duration 
+    (TimeIntervalFn
+      (BeginFn ?F)
+      (BeginFn ?U))
+    (MeasureFn ?X HourDuration)))
+    
+(subclass TimeToRecoveryDurationListFn UnaryFunction)
+(documentation TimeToRecoveryDurationListFn EnglishLanguage "&%TimeToRecoveryDurationListFn ?DEVICE) 
+denotes all the time to recovery duration in a &%List in &%HourDuration. The list can be used to calculate 
+the Mean time to recovery of the device.")   
+(format EnglishLanguage TimeToRecoveryDurationListFn "The list of time to recovery &%duration for %1 is")
+(termFormat EnglishLanguage TimeToRecoveryDurationListFn "device time to recovery list")     
+(domain TimeToRecoveryDurationListFn 1 Device)
+(range TimeToRecoveryDurationListFn MeasuringResultList)
+(relatedInternalConcept DeviceFailTimeDurationListFn TimeToRecoveryDurationListFn)
+
+(=>
+  (and
+    (instance ?D Device)
+    (inList
+      (TimeToRecoveryFn ?D ) ?L))
+  (equal ?L          
+    (TimeToRecoveryDurationListFn ?D)))
+      
+(instance MTTRecoveryFn UnaryFunction)
+(documentation MTTRecoveryFn EnglishLanguage "(&%MTTRecoveryFn ?D) denotes the mean time to recovery of 
+the &%CLASS of &%Device ?D in &%HourDuration, either by repairing or replacing the device. 
+Note that the argument for &%MTTRecoveryFn is a &%Class of &%Device.")
+(format EnglishLanguage MTTRecoveryFn "The MTTRecoveryFn of %1")
+(termFormat EnglishLanguage MTTRecoveryFn "mean time to recovery")
+(domainSubclass MTTRecoveryFn 1 Device)
+(range MTTRecoveryFn HourDuration)
+(relatedInternalConcept MTTRepairFn MTTRecoveryFn)
+(relatedInternalConcept MTBFFn MTTRecoveryFn) 
+
+(=>
+  (and
+    (equal 
+      (MeasureFn ?H HourDuration)
+      (MTTRecoveryFn ?CLASS))
+    (instance ?D ?CLASS)
+    (equal
+      (MeasureFn ?X HourDuration)
+      (MTTRecoveryInstanceFn ?D))
+    (inList ?X ?L))
+  (equal ?H
+    (AverageFn ?L)))
+      
+(instance MTTRecoveryInstanceFn UnaryFunction)
+(documentation MTTRecoveryInstanceFn EnglishLanguage "&%MTTRecoveryInstanceFn denotes the time to recovery 
+of a single device, ie an (&%Instance of ?D &%Deive) while &%MTTRecoveryFn denotes the mean time to recovery 
+of a &%Class of devices. Mean time to recovery is the average time that a device will take to recover from 
+any failure. Expressed mathematically, it is the total time between a failure and its next &%deviceUpTime 
+divided by the total number of recoveries from failures during a given period of time. [Wikipedia]
+Note that the argument for MTTRepairInstanceFn is an &%instance.")
+(format EnglishLanguage MTTRecoveryInstanceFn "The time to repair of %1 is &%HourDuration")
+(termFormat EnglishLanguage MTTRecoveryInstanceFn "time to repair")
+(domain MTTRecoveryInstanceFn 1 Device)
+(range MTTRecoveryInstanceFn HourDuration)
+(relatedInternalConcept MTTRecoveryInstanceFn MTTRepairInstanceFn) 
+
+(=>
+  (equal 
+    (MeasureFn ?X HourDuration)
+    (MTTRecoveryInstanceFn ?D))
+  (equal ?X
+    (DivisionFn
+      (ListSumFn
+        (PhysicalQuantityToNumberFn
+        (TimeToRecoveryDurationListFn ?D)))
+      (ListLengthFn
+        (TimeToRecoveryDurationListFn ?D)))))  
                
 ;;
 ;; start line 238 14 Nov
