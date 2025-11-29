@@ -13443,41 +13443,33 @@ thalamus that serves to regulate &%AutonomicProcesses.")
          (instance ?HEAD Head)
          (part ?EYE ?HEAD))))
 
-(subclass Pupil HoleRegion)
-(documentation Pupil EnglishLanguage "The opening of the &%Eye that
-lets light pass from the &%Cornea through the &%Eye to the &%Retina.")
-(termFormat EnglishLanguage Pupil "pupil")
+(subclass EyePupil HoleRegion)
+(subclass EyePupil Eyeball)
+(documentation EyePupil EnglishLanguage "The opening of the &%Eyeball that
+lets light pass from the &%Cornea through the &%Eyeball to the &%Retina.")
+(termFormat EnglishLanguage EyePupil "eye pupil")
 
 (=>
-  (instance ?P Pupil)
+  (instance ?P EyePupil)
   (exists (?I)
     (and
-      (instance ?I Eye)
+      (instance ?I Eyeball)
       (equal ?I
         (HoleHostFn ?P)))))
 
 (subclass Cornea BodyPart)
-(initialPart Cornea Eye)
-(documentation Cornea EnglishLanguage "TThe biological lens of the &%Eye
-that focuses light on the &%Retina.")
+(initialPart Cornea Eyeball)
+(documentation Cornea EnglishLanguage "The biological lens of the &%Eye
+that focuses light on the &%Retina.It is the transparent front part of the 
+&%Eyeball which covers the &%Iris, &%EyePupil and anterior chamber.[Wikipedia]")
 (termFormat EnglishLanguage Cornea "cornea")
 
-(subclass Ear Organ)
-(subclass Ear AnimalAnatomicalStructure)
-(documentation Ear EnglishLanguage "The &%Organ of &%Hearing.")
-
 (=>
-   (instance ?EAR Ear)
-   (capability Hearing instrument ?EAR))
+  (instance ?C Cornea)
+  (attribute ?C Transparent))
 
-(=>
-   (instance ?EAR Ear)
-   (exists (?HEAD)
-      (and
-         (instance ?HEAD Head)
-         (part ?EAR ?HEAD))))
-
-(subclass Eyelid Skin)
+(subclass Eyelid BodyPart)
+(initialPart EyeLid Eye)
 (documentation Eyelid EnglishLanguage "Folds of &%Skin that can be manipulated to
 cover or uncover &%Eyes.")
 
@@ -13500,17 +13492,103 @@ cover or uncover &%Eyes.")
         (part ?EYE ?P)
         (part ?E ?P)))))
 
+(subclass UpperEyelid Eyelid)
+(documentation UpperEyelid EnglishLanguage "&%UpperEyelid is the &%Above the &%LowerEyelid.")
+(termFormat EnglishLanguage UpperEyelid "upper eye lid")
+(disjoint UpperEyelid LowerEyelid)
+
+(=>
+  (and
+    (instance ?U UpperEyelid)
+    (instance ?L LowerEyelid)
+    (instance ?E Eye)
+    (part ?U ?E)
+    (part ?L ?E))
+  (orientation ?U ?L Above))
+
+(subclass LowerEyelid Eyelid)
+(documentation LowerEyelid EnglishLanguage "&%LowerEyelid sits &%below the &%UpperEyelid.")
+(termFormat EnglishLanguage LowerEyelid "lower eye lid")
+
+(initialPart Eyesocket Eye)
+(subclass Eyesocket HoleRegion)
+(documentation Eyesocket EnglishLanguage "The &%HoleRegion in the &%Skull which encloses 
+an eyeball with its surronding muscles.")
+(termFormat EnglishLanguage Eyesocket "eye socket")
+
+(=>
+  (instance ?E Eyesocket)
+  (exists (?S)
+    (and
+      (instance ?S Skull)
+      (equal ?S
+        (HoleHostFn ?E)))))
+
+(subclass Eyeball BodyPart)
+(documentation Eyeball EnglishLanguage "The round &%part of the eye of a vertebrate, within 
+the &%eyelids and &%Eyesocket. In mammals it is typically a firm, mobile, spherical structure 
+enclosed by the sclera and the cornea.[Oxford Dictionary]")
+(termFormat EnglishLanguage Eyeball "eye ball")
+(initialPart Eyeball Eye)
+
+(=>
+  (instance ?B Eyeball)
+  (exists (?S ?L1 ?L2)
+    (and
+      (instance ?S Eyesocket)
+      (properlyFills ?B ?S)
+      (instance ?L1 UpperEyelid)
+      (instance ?L2 LowerEyelid)   
+      (covers ?L1 ?B))))
+
+(subclass Sclera BodyPart)
+(documentation Sclera EnglishLanguage "&%Sclera is the white outer layer of the eyeball. At
+the front of the eye it is continuous with the &%Cornea")
+(termFormat EnglishLanguage Sclera "sclera")
+(initialPart Sclera Eyeball)
+
+(=>
+  (and
+    (instance ?R Region)
+    (equal ?R
+      (OuterBoundaryFn ?B))
+    (instance ?B Eyeball))
+  (exists (?C ?S)
+    (and
+      (part ?C ?R)
+      (instance ?C Cornea)
+      (part ?S ?R)
+      (instance ?S Sclera)
+      (meetSpatially ?C ?S)
+      (equal ?C
+        (FrontFn ?B)))))
+                     
 (subclass EyeIris Organ)
-(documentation EyeIris EnglishLanguage "The iris is a thin, circular structure in the &%Eye, responsible for
-controlling the diameter and size of the &%Pupils.")
+(documentation EyeIris EnglishLanguage "The iris is a thin, circular structure in the &%Eye, 
+responsible for controlling the diameter and size of the &%Pupils.")
 
 (=>
   (instance ?I EyeIris)
   (exists (?E)
       (and
-          (instance ?E Eye)
+          (instance ?E Eyeball)
           (part ?I ?E))))
 
+(subclass Ear Organ)
+(subclass Ear AnimalAnatomicalStructure)
+(documentation Ear EnglishLanguage "The &%Organ of &%Hearing.")
+
+(=>
+   (instance ?EAR Ear)
+   (capability Hearing instrument ?EAR))
+
+(=>
+   (instance ?EAR Ear)
+   (exists (?HEAD)
+      (and
+         (instance ?HEAD Head)
+         (part ?EAR ?HEAD))))
+          
 (subclass Nose Organ)
 (subclass Nose AnimalAnatomicalStructure)
 (documentation Nose EnglishLanguage "The &%Organ of &%Smelling.")
@@ -21594,35 +21672,310 @@ to a &%Standing position.")
 	(attribute ?AGENT Standing))))
 
 (subclass EyeMotion BodyMotion)
-(documentation EyeMotion EnglishLanguage "Any &%Motion where a patient is the agent's
-own &%Eyelid or &%Eyelids.")
+(documentation EyeMotion EnglishLanguage "&%EyeMotion includes the voluntary or involuntary 
+movement of the eyes. Eye movement can be classified according to two systems: (1) the involvement 
+of one or both eyes; involving one eye they may be classified as duction, and both eyes either 
+version, if moving in the same direction, or vergence, if moving in opposite directions.(2)
+fixational, gaze-stabilizing, or gaze-shifting. Gaze-stabilising movement may include the 
+vestibulo-ocular reflex and optokinetic reflex, and gaze-shifting mechanisms as saccades 
+and pursuit movements.[wikipedia]")
+
+(subclass PursuitMovement EyeMotion)
+(documentation PursuitMovement EnglishLanguage "&%PursuitMovement or smooth pursuit is the 
+movement the eyes make while tracking an object's movement, so that its moving image can 
+remain maintained on the fovea.[wikipedia]")
+(termFormat EnglishLanguage PursuitMovement "pursuit movement")
+
+(subclass Saccades EyeMotion)
+(documentation Saccades EnglishLanguage "&%Saccades are the rapid movement of eyes that is 
+used while scanning a visual scene.During each saccade the eyes move as fast as they can 
+and the speed cannot be consciously controlled in between the fixations. One of the main uses 
+for saccades is to scan a greater area with the high-resolution fovea of the eye.[wikipedia]")
+(termFormat EnglishLanguage Saccades "saccades")
+
+(subclass VergenceMovement EyeMotion)
+(documentation VergenceMovement EnglishLanguage "&%VergenceMovement or convergence is the 
+movement of both eyes to make sure that the image of the object being looked at falls on 
+the corresponding spot on both retinas. This type of movement helps in the depth 
+perception of objects.[wikipedia]")
+(termFormat EnglishLanguage VergenceMovement "vergence movement")
+
+(subclass Pair Collection)
+(documentation Pair EnglishLanguage "A &%Collection with two members that are not equal and
+there are no other member.")
+(termFormat EnglishLanguage Pair "pair")
 
 (=>
   (and
-    (instance ?EM EyeMotion)
-    (agent ?EM ?A))
-  (exists (?E)
+    (instance ?P Pair)
+    (member ?A ?P)
+    (member ?B ?P)
+    (not
+      (equal ?A ?B)))
+  (not
+    (exists (?C)
+      (member ?C ?P))))
+      
+(subclass BothEyes Pair)
+(documentation BothEyes EnglishLanguage "A &%Pair of &%Eyes, one on the &%Right side, the
+other on the &%Left side.")
+(termFormat EnglishLanguage BothEyes "both eyes")
+
+(=>
+  (and
+    (instance ?E BothEyes)
+    (member ?R ?E)
+    (member ?L ?E))
+  (and
+    (instance ?R
+      (BodySideFn Right Eye))
+    (instance ?L
+      (BodySideFn Left Eye))))
+
+(subclass OpeningBothEyes BodyMotion)
+(subclass OpeningBothEyes Opening)
+(subclass OpeningBothEyes FacialExpression)
+(disjoint OpeningBothEyes ClosingBothEyes)
+(documentation OpeningBothEyes EnglishLanguage "This &%Process specifies that both
+the left and right eye open together.")
+
+(=>
+  (and
+    (instance ?O OpeningBothEyes)
+    (patient ?O ?E)
+    (instance ?E BothEyes))
+  (exists (?L ?R ?A ?B)
     (and
-      (instance ?E Eyelid)
-      (part ?E ?A)
-      (patient ?EM ?E))))
+      (member ?L ?E)
+      (member ?R ?E)
+      (instance ?A OpeningEye)
+      (instance ?B OpeningEye)
+      (subProcess ?A ?O)
+      (subProcess ?B ?O)
+      (patient ?A ?L)
+      (patient ?B ?R)
+      (not
+        (equal ?A ?B))
+      (cooccur ?A ?B))))
+      
+(subclass ClosingBothEyes BodyMotion)
+(subclass ClosingBothEyes Closing)
+(subclass ClosingBothEyes FacialExpression)
+(documentation ClosingBothEyes EnglishLanguage "This &%Process specifies that both
+left and right eye close together.")
 
-(subclass OpeningEyes EyeMotion)
-(subclass OpeningEyes Opening)
-(disjoint OpeningEyes ClosingEyes)
-(documentation OpeningEyes EnglishLanguage "The &%BodyMotion of relaxing the eye lids so that
-the corneas are exposed to light.")
+(=>
+  (and
+    (instance ?C ClosingBothEyes)
+    (patient ?C ?E)
+    (instance ?E BothEyes))
+  (exists (?L ?R ?A ?B)
+    (and
+      (member ?L ?E)
+      (member ?R ?E)
+      (instance ?A ClosingEye)
+      (instance ?B ClosingEye)
+      (subProcess ?A ?C)
+      (subProcess ?B ?C)
+      (patient ?A ?L)
+      (patient ?B ?R)
+      (not
+        (equal ?A ?B))
+      (cooccur ?A ?B))))
+      
+(subclass Blinking ClosingBothEyes)
+(documentation Blinking EnglishLanguage "&Blinking is a bodily function; it is a semi-autonomic 
+rapid closing of the &%Eyelid of both eyes. A single blink is determined by the forceful closing 
+of the eyelid. There are three types of Blinking: &%SpontaneousBlinking, &%ReflexBlinking and 
+&%VoluntaryBlinking.[Wikipedia]")
+(termFormat EnglishLanguage Blinking "blinking")
 
-(subclass ClosingEyes EyeMotion)
-(subclass ClosingEyes Closing)
-(documentation ClosingEyes EnglishLanguage "The &%EyeMotion of tensing the eye lids so that
-the corneas are not exposed to light.")
+(=>
+  (and
+    (instance ?B Blinking)
+    (patient ?B ?E)
+    (instance ?E BothEyes))
+  (exists (?T)
+    (and
+      (holdsDuring ?T
+        (attribute ?E Closed))
+      (during
+        (WhenFn ?B) ?T)
+      (holdsDuring
+        (ImmediatePastFn
+          (WhenFn ?B))
+        (attribute ?E Open))
+      (holdsDuring
+        (ImmediateFutureFn
+          (WhenFn ?B))
+        (attribute ?E Open)))))
+    
+(subclass SpontaneousBlinking Blinking)
+(subclass SpontaneousBlinking AutonomicProcess)
+(documentation SpontaneousBlinking EnglishLanguage "&SpontaneousBlinking is done without external 
+stimuli and internal effort. This type of blinking is conducted in the pre-motor brain stem and 
+happens without conscious effort, like breathing and digestion.[Wikipedia]")
+(termFormat EnglishLanguage SpontaneousBlinking "spontaneous blinking")
 
-(subclass Winking ClosingEyes)
-(subclass Winking Gesture)
-(documentation Winking EnglishLanguage "Any instance of &%ClosingEyes which is intended to
-express something to someone else.")
+(subclass ReflexBlinking Blinking)
+(documentation ReflexBlinking EnglishLanguage "&ReflexBlinking occurs in response to an external 
+stimulus, such as contact with the cornea or objects that appear rapidly in front of the eye. A 
+reflex blink is not necessarily a conscious blink either; however it does happen faster than a 
+spontaneous blink. Reflex blink may occur in response to tactile stimuli (e.g., corneal, eyelash, 
+skin of eyelid, contact with eyebrow), optical stimuli (e.g. dazzle reflex,or menace reflex) or 
+auditory stimuli (e.g., menace reflex).[Wikipedia]")
+(termFormat EnglishLanguage ReflexBlinking "reflex blinking")
 
+(subclass VoluntaryBlinking Blinking)
+(subclass VoluntaryBlinking IntentionalProcess)
+(documentation VoluntaryBlinking EnglishLanguage "A &VoluntaryBlinking is a conscious blink, with 
+the use of all three divisions of the orbicularis oculi muscle.[Wikipedia]")
+(termFormat EnglishLanguage VoluntaryBlinking "voluntary blinking")
+
+(subclass OpeningEye BodyMotion)
+(subclass OpeningEye Opening)
+(subclass OpeningEye FacialExpression)
+(disjoint OpeningEye OpeningOneEye)
+(documentation OpeningEye EnglishLanguage "The &%BodyMotion of relaxing the upper eye lid so that
+the corneas are exposed to light.The eye was closed before it is opened.")
+      
+(=>
+  (and
+    (instance ?O OpeningEye)
+    (patient ?O ?E)
+    (instance ?E Eye))
+  (exists (?T)
+    (and
+      (holdsDuring ?T
+        (attribute ?E Open))
+      (during
+        (WhenFn ?O) ?T)
+      (holdsDuring
+        (ImmediatePastFn
+          (WhenFn ?O))
+        (attribute ?E Closed)))))
+
+(=>
+  (and
+    (instance ?O OpeningEye)
+    (patient ?O ?E)
+    (instance ?E Eye))
+  (exists (?R ?L ?U ?C)
+    (and
+      (instance ?R MuscleRelaxing)
+      (patient ?R ?L)
+      (instance ?U UpperEyelid)
+      (part ?L ?E)
+      (during (WhenFn ?R) (WhenFn ?O))
+      (causes ?R ?U)
+      (instance ?U Uncovering)
+      (patient ?U ?C)
+      (instance ?C Cornea)
+      (part ?C ?E)
+      (subProcess ?R ?O))))
+                 
+(=>
+  (and
+    (instance ?O OpeningEye)
+    (agent ?O ?H)
+    (instance ?H Human)
+    (not
+      (attribute ?H Blind)))
+  (exists (?S ?R)
+    (and
+      (instance ?S Seeing)
+      (agent ?S ?H)
+      (patient ?S ?R)
+      (instance ?R RadiatingVisibleLight)
+      (during
+        (WhenFn ?S)
+        (WhenFn ?O)))))
+        
+(subclass ClosingEye BodyMotion)
+(subclass ClosingEye Closing)
+(subclass ClosingEye FacialExpression)
+(documentation ClosingEye EnglishLanguage "The &%BodyMotion of tensing the eye lids so that
+the corneas are not exposed to light, i.e.&%LowerEyelid meets with &%UpperEyelid spacially ")
+(disjoint ClosingEye OpeningEye)
+
+(=>
+  (and
+    (instance ?C ClosingEye)
+    (patient ?C ?E))
+  (exists (?U ?L ?T)
+    (and
+      (instance ?U UpperEyelid)
+      (instance ?L LowerEyelid)
+      (part ?U ?E)
+      (part ?L ?E)
+      (holdsDuring ?T
+        (meetsSpatially ?U ?L))
+      (during ?T (WhenFn ?C)))))
+      
+(=>
+  (and
+    (instance ?C ClosingEye)
+    (patient ?C ?E)
+    (instance ?E Eye))
+  (exists (?T)
+    (and
+      (holdsDuring ?T
+        (attribute ?E Closed))
+      (during
+        (WhenFn ?C) ?T)
+      (holdsDuring
+        (ImmediatePastFn
+          (WhenFn ?C))
+        (attribute ?E Open)))))
+
+(=>
+  (and
+    (instance ?O ClosingEye)
+    (patient ?O ?E)
+    (instance ?E Eye))
+  (exists (?M ?U ?C ?CC)
+    (and
+      (instance ?M MuscularContraction)
+      (patient ?M ?U)
+      (instance ?U UpperEyelid)
+      (part ?U ?E)
+      (during (WhenFn ?M) (WhenFn ?O))
+      (causes ?M ?C)
+      (instance ?C Covering)
+      (patient ?C ?CC)
+      (instance ?CC Cornea)
+      (part ?CC ?E)
+      (subProcess ?C ?O))))
+
+(subclass Winking ClosingEye)
+(subclass Winking IntentionalProcess)
+(subclass Winking FacialExpression)
+(documentation Winking EnglishLanguage "&%Closing only one eye for a brief moment to convey a 
+message or as a form of flirtation or acknowledgement.")
+(=>
+  (and
+    (instance ?B Winking)
+    (patient ?B ?E)
+    (or
+      (instance ?E
+        (BodySideFn Left Eye))
+      (instance ?E
+        (BodySideFn Right Eye))))      
+  (exists (?T)
+    (and
+      (holdsDuring ?T
+        (attribute ?E Closed))
+      (during
+        (WhenFn ?B) ?T)
+      (holdsDuring
+        (ImmediatePastFn
+          (WhenFn ?B))
+        (attribute ?E Open))
+      (holdsDuring
+        (ImmediateFutureFn
+          (WhenFn ?B))
+        (attribute ?E Open)))))
+        
 (subclass Shrugging BodyMotion)
 (subclass Shrugging Gesture)
 (documentation Shrugging EnglishLanguage "Moving the &%Shoulders in such a way that the motion
