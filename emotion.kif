@@ -797,11 +797,11 @@ muscle relax.[wikipedia] ")
    
 (subclass PupillaryResponse PhysiologicProcess)
 (subclass PupillaryResponse QuantityChange)
-(documentation PupillaryResponse EnglishLanguage "Pupillary response is a 
+(documentation PupillaryResponse EnglishLanguage "&%PupillaryResponse is a 
 physiological response that varies the size of the pupil between 1.5 mm and 
 8 mm in diameter,via the optic and oculomotor cranial nerve.[Wikipedia]")
 (termFormat EnglishLanguage PupillaryResponse "pupillary response")
-(disjoint PupilsDilation PupilsConstriction)
+(partition PupillaryResponse PupilsConstriction PupilsDilation)
 
 (=>
   (and
@@ -816,8 +816,31 @@ physiological response that varies the size of the pupil between 1.5 mm and
   (and
     (greaterThanOrEqualTo ?X 1.5)
     (lessThanOrEqualTo ?X 8)))
-  
-(partition PupillaryResponse PupilsConstriction PupilsDilation)
+
+(subclass PupillaryLightReflex PupillaryResponse)
+(subclass PupillaryLightReflex AutonomicProcess)
+(documentation PupillaryLightReflex EnglishLanguage "&%PupillaryLightReflex or 
+Photopupilary reflex is a reflex that controls the diameter of the &EyePupil, 
+in response to the intensity of light that falls on the retinal ganglion cells 
+of the retina in the back of the eye, thereby assisting the adaptation of vision 
+to various level of lightness/darkness. A greater intensity of the light causes
+the pupil to constrict; whereas a lower intensity of light causes the pupil to
+dilate. Thus the pupillary light reflex regualtes the intensity of the light 
+entering the eye. Light shone into one eye will cause both pupils to constrict.
+[Wikipedia]")
+(termFormat EnglishLanguage PupillaryLightReflex "pupillary light reflex")  
+(termFormat EnglishLanguage PupillaryLightReflex "photopupillary reflex") 
+
+(=>
+  (and
+    (instance ?R PupillaryLightReflex)
+    (patient ?R ?P)
+    (instance ?P BothEyePupils))
+  (exists (?L)
+    (and
+      (instance ?L RadiatingVisibleLight)
+      (patient ?L ?P)
+      (causes ?L ?R))))
   
 (subclass PupilsConstriction PupillaryResponse)
 (documentation PupilsConstriction EnglishLanguage "&%PupilsConstriction 
@@ -826,6 +849,7 @@ physiological response that varies the size of the pupil between 1.5 mm and
  contracts, and also to an extent when the radial muscle relaxes.[wikipedia] ")
 (termFormat EnglishLanguage PupilsConstriction "constricted pupils")
 (termFormat EnglishLanguage PupilsConstriction "miosis")
+(disjoint PupilsDilation PupilsConstriction)
 
 (=>
   (and
@@ -874,6 +898,121 @@ and left pupils of the eyes.")
     (instance ?R
       (BodySideFn Right EyePupil))))
       
+(subclass Anisocoria DiseaseOrSyndrome)
+(documentation Anisocoria EnglishLanguage "&%Anisocoria a condition 
+characterized by an unequal size of the eyes' pupils. Affecting up to 20% 
+of the population, anisocoria is often entirely harmless, but can be a 
+sign of more serious medical problems.It is defined by a diameter difference 
+of 0.4 mm or more between the sizes of the pupils of the eyes.[Wikipedia]")
+(termFormat Anisocoria EnglishLanguage "anisocoria")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (attribute ?H ?A)    
+      (instance ?H Human)
+      (instance ?A Anisocoria)
+      (part ?P ?H)
+      (instance ?R PupillaryResponse)
+      (patient ?R ?P)
+      (instance ?P BothEyePupils)
+      (equal
+        (DiffPupilSizeFn ?P)
+        (MeasureFn ?Z Millimeter))))
+  (greaterThan ?Z 0.4))
+        
+(instance PhysiologicalAnisocoria Anisocoria)
+(documentation PhysiologicalAnisocoria EnglishLanguage "About 20% of the population has a 
+slight difference in pupil size, which is know as &%PhysiologicalAnisocoria. In 
+this condition, the difference between pupils is usually less than 1mm. [Wikipedia]")
+(termFormat PhysiologicalAnisocoria EnglishLanguage " Physiological anisocoria")
+
+(=>
+  (and
+    (attribute ?H PhysiologicalAnisocoria)
+    (instance ?H Human)
+    (part ?P ?H)
+    (instance ?P BothEyePupils)
+    (equal
+      (MeasureFn ?Z Millimeter)
+      (DiffPupilSizeFn ?P)))
+  (lessThan ?Z 1))
+
+(instance MechanicalAnisocoria Anisocoria)
+(documentation MechanicalAnisocoria EnglishLanguage "Occasionally, previous trauma, eye 
+surgery, or inflammation (uveitis, angle closure glaucoma) can lead to adhesions between 
+the iris and the lens. [Wikipedia]")
+(termFormat MechanicalAnisocoria EnglishLanguage " mechanical anisocoria")
+
+(=>
+  (holdsDuring ?T
+    (and
+      (attribute ?H TraumaticBrainInjury)
+      (instance ?H Human)))
+  (modalAttribute
+    (and
+      (during ?T
+        (ImmediateFutureFn ?T))
+      (attribute ?H MechanicalAnisocoria)) Possibility))
+
+(=>
+  (and
+    (instance ?I Inflammation)
+    (patient ?I ?E)
+    (instance ?E Eyeball)
+    (part ?E ?H)
+    (instance ?H Human))
+  (modalAttribute
+    (and
+      (during (WhenFn ?I) (ImmediateFutureFn (WhenFn ?I)))
+      (attribute ?H  MechanicalAnisocoria)) Possibility))
+
+(=>
+  (and
+    (instance ?S Surgery)
+    (patient ?S ?E)
+    (instance ?E Eyeball)
+    (part ?E ?H)
+    (instance ?H Human))
+  (modalAttribute
+    (holdsDuring
+      (ImmediateFutureFn (WhenFn ?S))
+      (attribute ?H MechanicalAnisocoria)) Possibility))
+      
+(instance DiffPupilSizeFn UnaryFunction)
+(documentation DiffPupilSizeFn EnglishLanguage "(&%DiffPupilSizeFn ?PUPILS) denotes the 
+difference between pupils of a human in &%Millimeter")
+(termForamt EnglishLanguage DiffPupilSizeFn "diffence in pupil size")
+(format EnglishLanguage DiffPupilSizeFn "The difference in size of %1 is")
+(domain DiffPupilSizeFn 1 BothEyePupils)
+(range DiffPupilSizeFn LengthMeasure)
+
+(=>
+  (and
+    (instance ?P BothEyePupils)
+    (member ?L ?P)
+    (member ?R ?P)
+    (approximateDiameter ?L (MeasureFn ?X Millimeter))
+    (approximateDiameter ?R (MeasureFn ?Y Millimeter))
+    (equal ?Z
+      (SubtractionFn ?X ?Y)))
+  (equal
+    (MeasureFn ?Z Millimeter)
+    (DiffPupilSizeFn ?P)))
+
+(=>
+  (equal
+    (MeasureFn ?Z Millimeter)
+    (DiffPupilSizeFn ?P))
+  (exists (?L ?R ?X ?Y)
+    (and
+      (member ?L ?P)
+      (member ?R ?P)
+      (approximateDiameter ?L (MeasureFn ?X Millimeter))
+      (approximateDiameter ?R (MeasureFn ?Y Millimeter))
+      (equal ?Z
+        (SubtractionFn ?X ?Y)))))
+
 (subclass EyeMuscle Muscle)
 (documentation EyeMuscle EnglishLanguage "&%EyeMuscles are muscles contained in
 the eyes.")
