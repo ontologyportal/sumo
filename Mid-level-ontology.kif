@@ -856,7 +856,7 @@ is something that is deemed undesirable by the &%destination of the
       (patient ?THREATEN ?PROP)
       (destination ?THREATEN ?DEST))
   (not (desires ?DEST ?PROP)))
-
+  
 (subclass Punishing RegulatoryProcess)
 (documentation Punishing EnglishLanguage "A &%RegulatoryProcess where the agent does
 something to the &%destination that the &%agent knows is undesirable
@@ -8545,13 +8545,36 @@ actions.")
 (documentation fears EnglishLanguage "(&%fears ?AGENT ?FORMULA) means
 that ?AGENT fears that the proposition ?FORMULA will be true,
 i.e. he/she believes that it will come to pass in the future and that
-it will be undesirable for ?AGENT.")
+it will be undesirable for ?AGENT and may be &%Damaging to the agent.")
 
 (=>
    (fears ?AGENT ?FORMULA)
    (not
-     (desires ?AGENT ?FORMULA)))
+     (hopes ?AGENT ?FORMULA)))
+     
+(=>
+  (holdsDuring ?T
+    (fears ?A
+      (exists (?P)
+        (instance ?P Physical))))
+ (believes ?A
+   (modalAttribute
+     (holdsDuring
+       (ImmediateFutureFn ?T)
+         (exists (?D)
+           (and
+             (instance ?D Damaging)
+             (patient ?D ?A)
+             (or
+               (origin ?D ?P)
+               (causes ?P ?D))))) Likely)))
 
+(=>
+  (fears ?A ?F)
+  (not
+    (desires ?A
+       (truth ?F True))))
+                     
 (subrelation hopes expects)
 (domain hopes 1 CognitiveAgent)
 (domain hopes 2 Formula)
@@ -19994,16 +20017,37 @@ while one is &%Asleep.")
 
 (subclass Frightening PsychologicalProcess)
 (documentation Frightening EnglishLanguage "Any &%PsychologicalProcess where the &%patient
-comes to feel &%Anxiety.")
+comes to feel &%Fear.")
 
 (=>
    (and
       (instance ?FRIGHTEN Frightening)
       (experiencer ?FRIGHTEN ?AGENT))
    (and
-      (holdsDuring (BeginFn (WhenFn ?FRIGHTEN)) (not (attribute ?AGENT Anxiety)))
-      (holdsDuring (EndFn (WhenFn ?FRIGHTEN)) (attribute ?AGENT Anxiety))))
+      (holdsDuring (BeginFn (WhenFn ?FRIGHTEN)) (not (attribute ?AGENT Fear)))
+      (holdsDuring (EndFn (WhenFn ?FRIGHTEN)) (attribute ?AGENT Fear))))
 
+(=>
+  (holdsDuring ?T
+    (attribute ?A Fear))
+  (exists (?F)
+    (and
+      (instance ?F Frightening)
+      (experiencer ?F ?A)
+      (during (WhenFn ?F) ?T))))
+      
+(=>
+  (and
+    (instance ?F Frightening)
+    (experiencer ?F ?A))
+  (and 
+    (fears ?A
+      (exists (?P)
+        (instance ?P Physical)))
+    (or
+      (origin ?F ?P)
+      (causes ?P ?F))))
+      
 (subclass Execution Killing)
 (documentation Execution EnglishLanguage "&%Killing of a &%Human by a &%Government for
 the commission of a &%CriminalAction.")
@@ -21063,21 +21107,45 @@ sorrow or unease.")
 (documentation Excitement EnglishLanguage "The state of being happy about a state of
 affairs that might occur in the future.")
 
-(subAttribute Anxiety Unhappiness)
-(documentation Anxiety EnglishLanguage "The state of being worried, troubled or uneasy.")
+(documentation Anxiety EnglishLanguage "A negative, aversive emotion
+provoked by the prospect of future threat. Distinguished from fear since
+it is triggered by a distal threat whereas fear is triggered by an
+immediate threat. Often gradual and long_lasting, whereas fear usually
+has sudden onset and offset. [Source: OCEAS]")
+(instance Anxiety EmotionalState)
+(relatedInternalConcept Anxiety Fear)
+(relatedInternalConcept Anxiety Worry)
 
 (=>
-   (attribute ?PERSON Anxiety)
-   (exists (?PROP)
-      (fears ?PERSON ?PROP)))
+   (holdsDuring ?T
+     (attribute ?PERSON Anxiety))
+   (believes ?PERSON
+     (holdsDuring
+       (ImmediateFutureFn ?T)
+       (exists (?PROP)
+         (fears ?PERSON ?PROP)))))
+(=>
+  (attribute ?A Anxiety)
+  (attribute ?A Unhappiness))
 
-(subAttribute Anger Unhappiness)
-(documentation Anger EnglishLanguage "The state of being wrathful, irate or indignant.")
+(instance Anger EmotionalState)
+(documentation Anger EnglishLanguage "Anger is a negative emotion,
+characterised by feelings of unpleasantness and high arousal, in the
+form of antagonistic feelings and action tendencies. [Source: OCEAS]")
+(termFormat GermanLanguage Anger "wut")
+(termFormat SpanishLanguage Anger "ira")
+(utterance EnglishLanguage Anger "angry")
+(termFormat EnglishLanguage Anger "anger")
+(termFormat FrenchLanguage Anger "colère")
 
 (=>
-   (attribute ?PERSON Anger)
+   (attribute ?PERSON Anger)    
    (exists (?PROP)
       (disapproves ?PERSON ?PROP)))
+      
+(=>
+  (attribute ?A Anger)
+  (attribute ?A Unhappiness))
 
 (subclass Pain PathologicProcess)
 (documentation Pain EnglishLanguage "A physical sensation of discomfort which can vary widely
@@ -21095,8 +21163,14 @@ in intensity.")
       (located ?E ?H))))
 
 (instance Surprise EmotionalState)
-(documentation Surprise EnglishLanguage "The &%EmotionalState that one experiences when something
-unexpected and of significance occurs.")
+(documentation Surprise EnglishLanguage "Surprise is a neutral emotion caused by encountering 
+unexpected events of all kinds. May be experienced as negative if the surprising event is evaluated as
+negative, or positive if the surprising event is evaluated as positive.
+[Source: OCEAS]")
+(termFormat SpanishLanguage Surprise "sorpresa")
+(termFormat EnglishLanguage Surprise "surprise")
+(termFormat GermanLanguage Surprise "Überraschung")
+(utterance EnglishLanguage Surprise "surprised")
 
 (=>
    (holdsDuring ?TIME (attribute ?AGENT Surprise))

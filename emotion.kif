@@ -754,47 +754,7 @@ a positive sentiment.")
   (holdsDuring ?T
     (exists (?O)
       (interestedIn ?A ?O))))
-    
-(subclass PupilsDilation PhysiologicalResponseToEmotionalState)
-(subclass PupilsDilation PupillaryResponse)
-(documentation PupilsDilation EnglishLanguage "&%PupilsDilation 
-is the widening of the pupil. Dilation of the pupil occurs when the 
-smooth cells of the radial muscle, controlled by the sympathetic nervous 
-system (SNS), contract, and also when the cells of the iris sphincter 
-muscle relax.[wikipedia] ")
-(termFormat EnglishLanguage PupilsDilation "dilated pupils")
-
-(=>
-  (and
-    (instance ?D PupilsDilation)
-     (patient ?D ?P)
-     (instance ?P BothEyePupils)
-     (holdsDuring
-       (BeginFn (WhenFn ?D))
-       (approximateDiameter ?P (MeasureFn ?X Millimeter)))
-     (holdsDuring
-       (EndFn (WhenFn ?D))
-       (approximateDiameter ?P (MeasureFn ?Y Millimeter))))
-  (greaterThan ?Y ?X))
-            
-(=>
-  (and
-    (instance ?D PupilsDilation)
-    (patient ?D ?P)
-    (instance ?P BothEyePupils))
-  (exists (?IDM ?ISM ?C ?R)
-    (and
-      (instance ?IDM IrisDilatorMuscle)
-      (instance ?ISM IrisSphincterMuscle)
-      (part ?IDM ?P)
-      (part ?ISM ?P)
-      (instance ?C MuscularContraction)
-      (subProcess ?C ?D)
-      (patient ?C ?IDM)
-      (instance ?R MuscleRelaxing)
-      (patient ?R ?ISM)
-      (subProcess ?R ?D))))
-   
+       
 (subclass PupillaryResponse PhysiologicProcess)
 (subclass PupillaryResponse QuantityChange)
 (documentation PupillaryResponse EnglishLanguage "&%PupillaryResponse is a 
@@ -841,7 +801,115 @@ entering the eye. Light shone into one eye will cause both pupils to constrict.
       (instance ?L RadiatingVisibleLight)
       (patient ?L ?P)
       (causes ?L ?R))))
-  
+
+(subclass PupilsDilation PhysiologicalResponseToEmotionalState)
+(subclass PupilsDilation PupillaryResponse)
+(documentation PupilsDilation EnglishLanguage "&%PupilsDilation 
+is the widening of the pupil. Dilation of the pupil occurs when the 
+smooth cells of the radial muscle, controlled by the sympathetic nervous 
+system (SNS), contract, and also when the cells of the iris sphincter 
+muscle relax.[wikipedia] ")
+(termFormat EnglishLanguage PupilsDilation "dilated pupils")
+(actionTendency Fear PupilsDilation)
+(actionTendency Love PupilsDilation)
+(actionTendency Anxiety PupilsDilation)
+(actionTendency Surprise PupilsDilation)
+
+(=>
+  (and
+    (instance ?D PupilsDilation)
+     (patient ?D ?P)
+     (instance ?P BothEyePupils)
+     (holdsDuring
+       (BeginFn (WhenFn ?D))
+       (approximateDiameter ?P (MeasureFn ?X Millimeter)))
+     (holdsDuring
+       (EndFn (WhenFn ?D))
+       (approximateDiameter ?P (MeasureFn ?Y Millimeter))))
+  (greaterThan ?Y ?X))
+            
+(=>
+  (and
+    (instance ?D PupilsDilation)
+    (patient ?D ?P)
+    (instance ?P BothEyePupils))
+  (exists (?IDM ?ISM ?C ?R)
+    (and
+      (instance ?IDM IrisDilatorMuscle)
+      (instance ?ISM IrisSphincterMuscle)
+      (part ?IDM ?P)
+      (part ?ISM ?P)
+      (instance ?C MuscularContraction)
+      (subProcess ?C ?D)
+      (patient ?C ?IDM)
+      (instance ?R MuscleRelaxing)
+      (patient ?R ?ISM)
+      (subProcess ?R ?D))))
+      
+(subclass Mydriasis PupilsDilation)
+(subclass Mydriasis PathologicProcess)
+(documentation Mydriasis EnglishLanguage "&%Mydriasis is kind of 
+&%PupilsDilation that has a non-physiological cause,inclding disease, trauma,
+or the use of certain types of drugs. It may also be of unknown cause. A 
+mydriatic pupil will remain excessively large even in a bright environment. 
+[wikipedia] ")
+(termFormat EnglishLanguage Mydriasis "mydriasis")
+
+(=>
+  (and
+    (instance ?M Mydriasis)
+    (patient ?M ?P)
+    (instance ?P BothEyePupils)
+    (instance ?L RadiatingVisibleLight)
+    (patient ?L ?P)
+    (holdsDuring (BeginFn (WhenFn ?L))
+      (approximateDiameter ?P (MeasureFn ?A Millimeter)))
+    (holdsDuring (EndFn (WhenFn ?L))
+      (approximateDiameter ?P (MeasureFn ?B Millimeter))))
+  (not
+    (lessThan ?B ?A)))
+
+(=>
+  (and
+    (instance ?M Mydriasis)
+    (patient ?M ?P)
+    (instance ?P BothEyePupils))
+  (holdsDuring (WhenFn ?M)
+    (not
+      (exists (?L)
+        (and
+          (instance ?L PupillaryLightReflex)
+          (patient ?L ?P))))))
+        
+(=>
+  (and
+    (patient ?I ?B)
+    (instance ?B Brain)
+    (or
+      (instance ?I Stroke)
+      (instance ?I Injuring)
+      (instance ?I Seizure))
+    (experiencer ?I ?H)
+    (part ?B ?H))
+  (modalAttribute
+    (exists (?M)
+      (and
+        (instance ?M Mydriasis)
+        (experiencer ?M ?H)
+        (causes ?I ?M))) Possibility))
+
+(=>
+  (holdsDuring ?T
+    (and
+      (attribute ?H Drugged)
+      (instance ?H Human)))
+  (modalAttribute
+    (exists (?M)
+      (and
+        (instance ?M Mydriasis)
+        (patient ?M ?H)
+        (during (WhenFn ?M) ?T))) Possibility))
+        
 (subclass PupilsConstriction PupillaryResponse)
 (documentation PupilsConstriction EnglishLanguage "&%PupilsConstriction 
  is the narrowing of the pupil. Constriction of the pupil occurs when the 
@@ -850,6 +918,9 @@ entering the eye. Light shone into one eye will cause both pupils to constrict.
 (termFormat EnglishLanguage PupilsConstriction "constricted pupils")
 (termFormat EnglishLanguage PupilsConstriction "miosis")
 (disjoint PupilsDilation PupilsConstriction)
+(actionTendency Anger PupilsConstriction)
+(actionTendency Disgust PupilsConstriction)
+
 
 (=>
   (and
@@ -881,6 +952,68 @@ entering the eye. Light shone into one eye will cause both pupils to constrict.
       (instance ?R MuscleRelaxing)
       (patient ?R ?IDM)
       (subProcess ?R ?C))))
+      
+(subclass Miosis PupilsConstriction)
+(subclass Miosis PathologicProcess)
+(documentation Miosis EnglishLanguage "&%Miosis is excessive 
+constriction of the pupil.The opposite condition, mydriasis.[wikipedia] ")
+(termFormat EnglishLanguage Miosis "miosis")
+(disjoint Miosis Mydriasis)
+
+(=>
+  (and
+    (instance ?M Miosis)
+    (patient ?M ?P)
+    (instance ?P BothEyePupils)
+    (instance ?L RadiatingVisibleLight)
+    (patient ?L ?P)
+    (holdsDuring (BeginFn (WhenFn ?L))
+      (approximateDiameter ?P (MeasureFn ?A Millimeter)))
+    (holdsDuring (EndFn (WhenFn ?L))
+      (approximateDiameter ?P (MeasureFn ?B Millimeter))))
+  (not
+    (greaterThan ?B ?A)))
+
+(=>
+  (and
+    (instance ?M Miosis)
+    (patient ?M ?P)
+    (instance ?P BothEyePupils))
+  (holdsDuring (WhenFn ?M)
+    (not
+      (exists (?L)
+        (and
+          (instance ?L PupillaryLightReflex)
+          (patient ?L ?P))))))
+        
+(=>
+  (and
+    (patient ?I ?B)
+    (instance ?B Brain)
+    (or
+      (instance ?I Stroke)
+      (instance ?I Injuring)
+      (instance ?I Seizure))
+    (experiencer ?I ?H)
+    (part ?B ?H))
+  (modalAttribute
+    (exists (?M)
+      (and
+        (instance ?M Miosis)
+        (experiencer ?M ?H)
+        (causes ?I ?M))) Possibility))
+
+(=>
+  (holdsDuring ?T
+    (and
+      (attribute ?H Drugged)
+      (instance ?H Human)))
+  (modalAttribute
+    (exists (?M)
+      (and
+        (instance ?M Miosis)
+        (patient ?M ?H)
+        (during (WhenFn ?M) ?T))) Possibility))
 
 (subclass BothEyePupils Pair)
 (documentation BothEyePupils EnglishLanguage "&%BothEyePupils are the right
@@ -982,7 +1115,7 @@ the iris and the lens. [Wikipedia]")
 (instance DiffPupilSizeFn UnaryFunction)
 (documentation DiffPupilSizeFn EnglishLanguage "(&%DiffPupilSizeFn ?PUPILS) denotes the 
 difference between pupils of a human in &%Millimeter")
-(termForamt EnglishLanguage DiffPupilSizeFn "diffence in pupil size")
+(termFormat EnglishLanguage DiffPupilSizeFn "diffence in pupil size")
 (format EnglishLanguage DiffPupilSizeFn "The difference in size of %1 is")
 (domain DiffPupilSizeFn 1 BothEyePupils)
 (range DiffPupilSizeFn LengthMeasure)
@@ -1012,13 +1145,7 @@ difference between pupils of a human in &%Millimeter")
       (approximateDiameter ?R (MeasureFn ?Y Millimeter))
       (equal ?Z
         (SubtractionFn ?X ?Y)))))
-
-(subclass EyeMuscle Muscle)
-(documentation EyeMuscle EnglishLanguage "&%EyeMuscles are muscles contained in
-the eyes.")
-(termFormat EnglishLanguage EyeMuscle "eye muscle")
-(initialPart EyeMuscle Eye)
-
+        
 (subclass IrisDilatorMuscle EyeMuscle)
 (documentation IrisDilatorMuscle EnglishLanguage "&%IrisDilatorMuscle is a smooth 
 muscle of the eye, running radially in the iris and therefore fit as a dilator.[Wikipedia]")
@@ -1155,7 +1282,7 @@ done is the focus. [Wikipedia]")
             (agent ?P ?A)
             (meetsTemporally
               (WhenFn ?P) ?T))))
-      (disapproves ?G ?P))))
+      (dislikes ?G ?A))))
    
 (utterance EnglishLanguage Disgust "disgusted")
 (termFormat FrenchLanguage Disgust "dégoût")
@@ -1234,24 +1361,9 @@ inactivity (&apos;do nothing&apos; action tendencies). [Source: OCEAS]")
 (subAttribute Rage Anger)
 (termFormat EnglishLanguage Rage "rage")
 
-(termFormat SpanishLanguage Surprise "sorpresa")
-(termFormat EnglishLanguage Surprise "surprise")
-(documentation Surprise EnglishLanguage "Surprise is a neutral emotion
-caused by encountering unexpected events of all kinds. May be
-experienced as negative if the surprising event is evaluated as
-negative, or positive if the surprising event is evaluated as positive.
-[Source: OCEAS]")
-(termFormat GermanLanguage Surprise "Überraschung")
-(instance Surprise EmotionalState)
-(utterance EnglishLanguage Surprise "surprised")
-
 (termFormat EnglishLanguage Expectant "anticipative")
 (instance Expectant EmotionalState)
 (termFormat EnglishLanguage Expectant "expectant")
-
-(instance Concern EmotionalState)
-(termFormat EnglishLanguage Concern "concern")
-(utterance EnglishLanguage Concern "concerned")
 
 (termFormat EnglishLanguage Irritation "irritation")
 (utterance EnglishLanguage Irritation "irritated")
@@ -1293,16 +1405,6 @@ prospect of a desirable event. [Source: OCEAS]")
 the appraisal of one&apos;s positive social worth, a signal that one is
 likely to be socially accepted. [Source: OCEAS]")
 
-(termFormat SpanishLanguage Anger "ira")
-(documentation Anger EnglishLanguage "Anger is a negative emotion,
-characterised by feelings of unpleasantness and high arousal, in the
-form of antagonistic feelings and action tendencies. [Source: OCEAS]")
-(termFormat GermanLanguage Anger "wut")
-(instance Anger EmotionalState)
-(utterance EnglishLanguage Anger "angry")
-(termFormat EnglishLanguage Anger "anger")
-(termFormat FrenchLanguage Anger "colère")
-
 (termFormat EnglishLanguage Elation "elation")
 (utterance EnglishLanguage Elation "elated")
 (subAttribute Elation Happiness)
@@ -1325,13 +1427,16 @@ embarrassed one's actions must be revealed to others.[Wikipedia]")
     (member ?A ?G)
     (holdsDuring ?T
       (attribute ?A Embarrassment)))
-  (exists (?P)
-    (and
+  (disapproves ?A 
+    (exists (?P ?S)
+      (and
       (instance ?P Process)
       (agent ?P ?A)
-      (disapproves ?G ?P)
+      (instance ?S Seeing)
+      (patient ?S ?P)
+      (agent ?S ?G)
       (meetsTemporally
-        (WhenFn ?P) ?T))))
+        (WhenFn ?P) ?T)))))
     
 (subAttribute PassionateLove Love)
 (utterance EnglishLanguage PassionateLove "passionately loving")
@@ -1352,9 +1457,86 @@ through that person&apos;s death. [Source: OCEAS]")
 (utterance EnglishLanguage InspirationEmotion "inspired")
 
 (instance Worry EmotionalState)
+(documentation Worry EnglishLanguage "As an emotion, &%Worry is experienced 
+from &%Anxiety or &%Concern about a real or imagined issue, often personal 
+issues such as health or finances, or external broader issues such as 
+environmental pollution, social structure or technological change.[Wikipedia]")
 (termFormat EnglishLanguage Worry "worry")
 (utterance EnglishLanguage Worry "worried")
+(relatedInternalConcept Worry Concern)
 
+(=>
+  (holdsDuring ?T
+    (attribute ?A Worry))
+  (exists (?W)
+    (and
+      (instance ?W Worrying)
+      (agent ?W ?A)
+      (during (WhenFn ?W) ?T))))
+
+(subclass Worrying PsychologicalProcess)
+(documentation Worrying EnglishLanguage "&%Worrying is a category of perseverative 
+cognition, i.e.,a continuous thinking about negative events in the past or in the future.
+[Wikipedia] It is a specific though about a potential problem or future event.")
+(termFormat EnglishLanguage Worrying "worrying")
+
+(=>
+  (and
+    (instance ?W Worrying)
+    (experiencer ?W ?A)
+    (instance ?A Human))
+  (exists (?T)
+    (and
+      (instance ?T Thinking)
+      (agent ?T ?A)
+      (patient ?T ?F)
+      (instance ?F Formula)
+      (fears ?A ?F)
+      (causes ?T ?W))))
+ 
+(=>
+  (and
+    (instance ?W Worrying)
+    (experiencer ?W ?A)
+    (instance ?A Human)
+    (subProcess ?W ?T)
+    (instance ?T Thinking)
+    (agent ?T ?A)
+    (patient ?T ?F)
+    (instance ?F Formula))
+  (fears ?A ?F))
+
+(=>
+  (and
+    (instance ?W Worrying)
+    (experiencer ?W ?A)
+    (instance ?A Human))
+  (fears ?A
+    (holdsDuring (ImmediateFutureFn (WhenFn ?W))
+      (exists (?F)
+        (and
+          (instance ?F Formula)
+          (patient ?W ?F)
+          (Truth ?F True))))))
+         
+(instance Concern EmotionalState)
+(documentation Concern EnglishLanguage "&%Concern is the recognition of a future outcome 
+that could be troubling, without necessarily having fear in the outcome.[Wikipedia]")
+(termFormat EnglishLanguage Concern "concern")
+(utterance EnglishLanguage Concern "concerned")
+
+(=>
+  (holdsDuring ?T
+    (attribute ?A Concern))
+  (holdsDuring
+    (ImmediateFutureFn ?T)
+    (exists (?X)
+      (and
+        (not
+          (desires ?A ?X))
+        (not
+          (fears ?A ?X))))))
+  
 (termFormat EnglishLanguage Compassion "compassion")
 (termFormat SpanishLanguage Compassion "compasión")
 (documentation Compassion EnglishLanguage "Compassion involves feeling for another 
@@ -1381,7 +1563,9 @@ is the desire to alleviate another's suffering.[Wikipedia]")
 motivates attempts to cope with events that provide threats to the
 survival or well_being of organisms. Characterised by feelings of threat
 and impending doom, and by an urge to get out of the situation. [Source:
-OCEAS]")
+OCEAS]Anxiety is different from fear in that fear is defined as the emotional 
+response to a present threat, whereas anxiety is the anticipation of a future 
+one.[Wikipedia]")
 (instance Fear EmotionalState)
 (termFormat SpanishLanguage Fear "miedo")
 (termFormat FrenchLanguage Fear "peur")
@@ -1390,17 +1574,9 @@ OCEAS]")
 (termFormat EnglishLanguage Fear "angst")
 
 (=>
-  (holdsDuring ?T 
-    (attribute ?A Fear))
-  (believes ?A
-    (modalAttribute
-      (exists (?P)
-        (and
-          (not
-            (wants ?A ?P))
-          (before ?T
-            (WhenFn ?P))))
-      Likely)))
+  (attribute ?PERSON Fear)
+  (exists (?PROP)
+    (fears ?PERSON ?PROP)))
 
 (termFormat FrenchLanguage Hate "haine")
 (termFormat GermanLanguage Hate "hass")
@@ -1559,10 +1735,40 @@ from expelling tears as a result of some eye irritation or dysfunction.")
 (termFormat EnglishLanguage Euphoria "euphoria")
 (subAttribute Euphoria Happiness)
 
+(utterance EnglishLanguage Horror "horrified")
+(documentation Horror EnglishLanguage "&%Horror is the feeling of revulsion 
+that usually follows a frightening sight, sound, or otherwise experience.[Wikipedia]")
+(termFormat EnglishLanguage Horror "horror")
+(subAttribute Horror Fear)
+(subAttribute Horror Disgust)
+
+(=>
+  (holdsDuring ?T
+    (attribute ?A Horror))
+  (exists (?X ?F)
+    (and
+      (dislikes ?A ?X)
+      (instance ?F Frightening)
+      (origin ?F ?X)
+      (experiencer ?F ?A)
+      (during ?T (WhenFn ?F)))))
+      
 (utterance EnglishLanguage Terror "terrified")
+(documentation Terror EnglishLanguage "&%Terror is usually described as the feeling of 
+dread and anticipation that precedes the horrifying experience.[Wikipedia]")
 (termFormat EnglishLanguage Terror "terror")
 (subAttribute Terror Fear)
 
+(=>
+  (holdsDuring ?T
+    (attribute ?A Terror))
+  (fears ?A
+    (exists (?F)
+      (and
+        (instance ?F Frightening)
+        (experiencer ?F ?A)
+        (eariler ?T (WhenFn ?F))))))
+        
 (utterance EnglishLanguage Boredom "bored")
 (instance Boredom EmotionalState)
 (termFormat EnglishLanguage Boredom "boredom")
@@ -1613,14 +1819,22 @@ People don't desire to be bored.")
 (termFormat FrenchLanguage Anxiety "anxiété")
 (termFormat SpanishLanguage Anxiety "ansiedad")
 (utterance EnglishLanguage Anxiety "anxious")
-(documentation Anxiety EnglishLanguage "A negative, aversive emotion
-provoked by the prospect of future threat. Distinguished from fear since
-it is triggered by a distal threat whereas fear is triggered by an
-immediate threat. Often gradual and long_lasting, whereas fear usually
-has sudden onset and offset. [Source: OCEAS]")
-(instance Anxiety EmotionalState)
 (termFormat GermanLanguage Anxiety "besorgnis")
 (termFormat EnglishLanguage Anxiety "anxiety")
+
+
+(=>
+  (holdsDuring ?T 
+    (attribute ?A Anxiety))
+  (believes ?A
+    (modalAttribute
+      (exists (?P)
+        (and
+          (not
+            (wants ?A ?P))
+          (before ?T
+            (WhenFn ?P))))
+      Likely)))
 
 (termFormat EnglishLanguage EmotionalStress "stress")
 (instance EmotionalStress EmotionalState)
