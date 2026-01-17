@@ -3174,8 +3174,242 @@ includes jet airplanes and propeller planes, but not gliders.")
 (subclass GliderPlane Aircraft)
 (subclass GliderPlane UnpoweredVehicle)
 
+;;
+;; pitch, roll and yaw
+;; Jennie Pease January 2026
+;;
+
+(instance centerOfMass BinaryPredicate)
+(subrelation centerOfMass part)
+(documentation centerOfMass EnglishLanguage "In physics, the %centerOfMass of a 
+distribution of mass in space (sometimes referred to as the barycenter or balance 
+point) is the unique point at any given time where the weighted relative position 
+of the distributed mass sums to zero. For a rigid body containing its center of 
+mass, this is the point to which a force may be applied to cause a linear 
+acceleration without an angular acceleration. In the case of a single rigid body, 
+the center of mass is fixed in relation to the body, and if the body has uniform 
+density, it will be located at the centroid. [Wikipedia]")
+(termFormat EnglishLanguage centerOfMass "center of mass")
+(format EnglishLanguage centerOfMass "%1 is the &%centerOfMass of %2")
+(domain centerOfMass 1 SelfConnectedObject)
+(domain centerOfMass 2 SelfConnectedObject)
+
+(subclass AxisOfAnObject BinaryPredicate)
+(documentation AxisOfAnObject EnglishLanguage "&%AxisOfAnObject is the &%Class 
+of &%Predicates relating the &%Object and its axis which is a &%LineInSpace
+along it rotates. In (verticalAxis ?L ?O) ?L is the &%LineInSpace of &%Object 
+?O. For example, an &%Aircraft is free to rotate around three axes that are 
+perpendicular to each other and intersect at its center of gravity.[Wikipedia]")
+(termFormat EnglishLanguage AxisOfAnObject "axis of an object")
+
+(instance verticalAxis AxisOfAnObject)
+(instance verticalAxis PartialValuedRelation)
+(documentation verticalAxis EnglishLanguage "&%verticalAxis has its origin at the center 
+of gravity and is directed towards the bottom of the &%Aircraft, perpendicular to the 
+wings and to the fuselage reference line. Motion about this axis is called &%yaw.[Wikipedia]")
+(termFormat EnglishLanguage verticalAxis "vertical axis")
+(format EnglishLanguage verticalAxis "%1 is the &%verticalAxis of %2")
+(domain verticalAxis 1 LineInSpace)
+(domain verticalAxis 2 Object)
+(relatedInternalConcept verticalAxis longitudinalAxis)
+
+(=>
+  (and
+    (verticalAxis ?V ?O)
+    (instance ?O Aircraft)
+    (top ?T ?O)
+    (bottom ?B ?O)
+    (centerOfMass ?C ?O)
+    (part ?T ?V)
+    (part ?B ?V)
+    (part ?C ?V))
+  (between ?C ?T ?B))
+    
+(instance longitudinalAxis AxisOfAnObject)
+(instance longitudinalAxis PartialValuedRelation)
+(documentation longitudinalAxis EnglishLanguage "&%longitudinalAxis is an axis drawn through the 
+body of the vehicle from tail to nose corresponding to the normal direction of flight, or the direction the 
+pilot faces, similar to a ship's waterline.The rotation about this axis is called &%roll.[Wikipedia]")
+(termFormat EnglishLanguage longitudinalAxis "longitudinal axis")
+(format EnglishLanguage longitudinalAxis "%1 is the &%longitudinalAxis of %2")
+(domain longitudinalAxis 1 LineInSpace)
+(domain longitudinalAxis 2 Object)
+(relatedInternalConcept transverseAxis longitudinalAxis)
 
 
+(=>
+  (and
+    (longitudinalAxis ?V ?O)
+    (instance ?O Aircraft)
+    (equal ?F (FrontFn ?O))
+    (equal ?B (BackFn ?O))
+    (centerOfMass ?C ?O)
+    (part ?F ?V)
+    (part ?B ?V)
+    (part ?C ?V))
+  (between ?C ?F ?B))
+
+(instance transverseAxis AxisOfAnObject)
+(instance transverseAxis PartialValuedRelation)
+(documentation transverseAxis EnglishLanguage "&%transverseAxis or lateral axis passes through an 
+&%Aircraft from wingtip to wingtip. It is an axis running from the pilot's left to right in piloted 
+aircraft,Rotation about this axis is called &%pitch.[Wikipedia]")
+(termFormat EnglishLanguage transverseAxis "transverse axis")
+(format EnglishLanguage transverseAxis "%1 is the &%transverseAxis of %2")
+(domain transverseAxis 1 LineInSpace)
+(domain transverseAxis 2 Object)
+(relatedInternalConcept transverseAxis verticalAxis)
+
+
+(=>
+  (and
+    (transverseAxis ?V ?O)
+    (instance ?O Aircraft)
+    (side ?L ?O)
+    (side ?R ?O)
+    (orientation ?L ?R Left)
+    (orientation ?R ?L Right)
+    (centerOfMass ?C ?O)
+    (part ?L ?V)
+    (part ?R ?V)
+    (part ?C ?V))
+  (between ?C ?L ?R))
+  
+(instance rotationalAxis CaseRole)
+(instance rotationalAxis PartialValuedRelation)
+(documentation rotationalAxis EnglishLanguage "&%rotationalAxis relates a &%Rotating with the
+ axis it rotates about. The axis is a &%LineInSpace. (rotationalAxis ?R ?A)")
+(termFormat EnglishLanguage rotationalAxis "rotationalAxis")
+(format EnglishLanguage rotationalAxis "%2 is the axis of %1")
+(domain rotationalAxis 1 Rotating)
+(domain rotationalAxis 2 LineInSpace)
+
+(subclass RotationalMotion BinaryPredicate)
+(documentation RotationalMotion EnglishLanguage "The &%Class of &%BinaryPredicate relating 
+the &%Vehicle to its axis of rotation and degree of &%Rotaton. They includes &%pitch, &%roll 
+and &%yaw.")
+(termFormat EnglishLanguage RotationalMotion "rotational motion")
+
+(instance pitch RotationalMotion)
+(instance pitch PartialValuedRelation)
+(documentation pitch EnglishLanguage "&%pitch is the rotation about the &%TransverseAxis. It
+changes the vertical direction that an &%Aircraft's nose is pointing. Elevators are the primary
+flight control surfaces used to control the pitch. It is measured as &%planeAngleMeasure 
+between the vehicle's &%longitudinalAxis and its tangential &%LevelPlaneFn with the earth.[Wikipedia]")
+(termFormat EnglishLanguage pitch "pitch")
+(format EnglishLanguage pitch "%1 is heading at %2 degree from its level of plane axis.")
+(domain pitch 1 Vehicle)
+(domain pitch 2 AngleMeasure)
+(relatedInternalConcept pitch yaw)
+
+(=>
+  (and
+    (instance ?V Aircraft)
+    (instance ?R Rotating)
+    (patient ?R ?V)
+    (rotationalAxis ?R ?A)
+    (transverseAxis ?A ?V)
+    (holdsDuring (BeginFn (WhenFn ?R))
+      (pitch ?V ?X))
+    (holdsDuring (EndFn (WhenFn ?R))
+      (pitch ?V ?Y)))
+  (not
+    (equal ?X ?V)))
+
+(=>
+  (and
+    (pitch ?V (MeasureFn ?X AngularDegree))
+    (instance ?V Aircraft))
+  (exists (?A ?B)
+    (and
+      (longitudinalAxis ?A ?V)
+      (centerOfMass ?B ?V)
+      (planeAngleMeasure ?A
+        (LevelPlaneFn ?B PlanetEarth)
+        (MeasureFn ?X AngularDegree)))))
+
+(instance yaw RotationalMotion)
+(instance yaw TotalValuedRelation)
+(documentation yaw EnglishLanguage "&%yaw is the rotation around the &%verticalAxis.Yaw changes 
+the direction the aircraft's nose is pointing. A positive yawing motion moves the nose of the 
+aircraft to the right. It is primarily controlled by the rudder. Ailerons also have a secondary 
+effect on yaw as the wing with more lift experiences more drag.It is measured as &%planeAngleMeasure 
+between the vehicle's &%longitudinalAxis and the &%path it's travelling.[Wikipedia]")
+(termFormat EnglishLanguage yaw "yaw")
+(format EnglishLanguage yaw "%1 is heading at %2 of its &%longitudinalAxis.")
+(domain yaw 1 Vehicle)
+(domain yaw 2 AngleMeasure)
+(relatedInternalConcept roll yaw)
+
+
+(=>
+  (and
+    (instance ?V Aircraft)
+    (instance ?R Rotating)
+    (patient ?R ?V)
+    (rotationalAxis ?R ?A)
+    (verticalAxis ?A ?V)
+    (holdsDuring (BeginFn (WhenFn ?R))
+      (yaw ?V ?X))
+    (holdsDuring (EndFn (WhenFn ?R))
+      (yaw ?V ?Y)))
+  (not
+    (equal ?X ?V)))
+
+(=>
+  (and
+    (yaw ?V (MeasureFn ?X AngularDegree))
+    (instance ?V Aircraft))
+  (exists (?A ?T ?P)
+    (and
+      (longitudinalAxis ?A ?V)
+      (instance ?T Translocation)
+      (patient ?T ?V)
+      (path ?T ?P)
+      (planeAngleMeasure ?A ?P
+        (MeasureFn ?X AngularDegree)))))
+
+(instance roll RotationalMotion)
+(instance roll TotalValuedRelation)
+(documentation roll EnglishLanguage "&%roll is the rotation around the &%longitudinalAxis.
+A positive rolling motion lifts the left wing and lowers the right wing. The pilot rolls 
+by increasing the lift on one wing and decreasing it on the other. This changes the bank 
+angle.The ailerons are the primary control of roll. The rudder also has a secondary effect 
+on roll.It is measured as &%planeAngleMeasure between the vehicle's &%transverseAxis 
+and its tangential &%LevelPlaneFn with the earth.[Wikipedia]")
+(termFormat EnglishLanguage roll "roll")
+(format EnglishLanguage roll "%1 is rolling at %2 of its &%longitudinalAxis.")
+(domain roll 1 Vehicle)
+(domain roll 2 AngleMeasure)
+(relatedInternalConcept pitch roll)
+
+
+(=>
+  (and
+    (instance ?V Aircraft)
+    (instance ?R Rotating)
+    (patient ?R ?V)
+    (rotationalAxis ?R ?A)
+    (longitudinalAxis ?A ?V)
+    (holdsDuring (BeginFn (WhenFn ?R))
+      (roll ?V ?X))
+    (holdsDuring (EndFn (WhenFn ?R))
+      (roll ?V ?Y)))
+  (not
+    (equal ?X ?V)))
+
+(=>
+  (and
+    (roll ?V (MeasureFn ?X AngularDegree))
+    (instance ?V Aircraft))
+  (exists (?A ?B)
+    (and
+      (transverseAxis ?A ?V)
+      (centerOfMass ?B ?V)
+      (planeAngleMeasure ?A
+        (LevelPlaneFn ?B PlanetEarth)
+        (MeasureFn ?X AngularDegree)))))
+       
 ;;---------------------------------------------------------------------
 ;;	D. Trafficability
 
