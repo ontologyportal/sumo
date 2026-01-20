@@ -2085,7 +2085,6 @@ of complete revolutions in one plane of motion for a given object.")
 (documentation RotationFn EnglishLanguage "A &%Function that maps an instance
 of &%Rotating to the speed of the rotation.")
 (domain RotationFn 1 Rotating)
-(domain RotationFn 2 TimeDuration)
 (range RotationFn FunctionQuantity)
 
 (subclass CVJoint MechanicalJoint)
@@ -2106,15 +2105,22 @@ also other kinds.")
     (instance ?R2 Rotating)
     (patient ?R2 ?SH2)
     (causes ?R1 ?R2)
+    (equal
+      (WhenFn ?R1)
+      (WhenFn ?R2))
     (instance ?CV CVJoint)
-    (connectedEngineeringComponents ?R1 ?CV)
-    (connectedEngineeringComponents ?R2 ?CV)
+    (connectedEngineeringComponents ?SH1 ?CV)
+    (connectedEngineeringComponents ?SH2 ?CV)
     (holdsDuring 
       (WhenFn ?R1)
-      (equal ?SH1 (RotationFn ?N ?T))))
+      (equal
+        (MeasureFn ?N RevolutionsPerMinute)
+        (RotationFn ?R1))))
   (holdsDuring 
     (WhenFn ?R2)
-    (equal ?SH2 (RotationFn ?N ?T))))
+    (equal
+      (MeasureFn ?N RevolutionsPerMinute)
+      (RotationFn ?R2))))
 
 (subclass EngineCoolingSystem PhysicalSystem)
 (termFormat EnglishLanguage EngineCoolingSystem "engine cooling system")
@@ -2328,40 +2334,47 @@ to be translated ultimately to different speeds of the &%Driveshaft (within
 the power and maximum RPM capabilities of the &%Engine).")
 
 (=>
-  (instance ?AT AutomobileTransmission)
-  (hasPurpose ?AT
-    (exists (?C ?D ?A ?R1 ?N1 ?R2 ?R3 ?R4 ?N2 ?N3)
-      (and
-        (instance ?C Crankshaft)
-        (instance ?D Driveshaft)
-        (instance ?A Automobile)
-        (part ?D ?A)
-        (part ?AT ?A)
-        (part ?C ?A)
-        (connectedEngineeringComponents ?C ?AT)
-        (connectedEngineeringComponents ?D ?AT)
-        (instance ?R1 Rotating)
-        (instance ?R2 Rotating)        
-        (instance ?R3 Rotating)
-        (instance ?R4 Rotating)
-        (patient ?R1 ?C)
-        (patient ?R2 ?C)
-        (patient ?R3 ?D)
-        (patient ?R4 ?D)
-        (causes ?R1 ?R3)
-        (causes ?R2 ?R4)
-        (not
-          (equal ?R1 ?R2))
-        (holdsDuring ?R1
-          (measure ?C (RotationFn ?N1 MinuteDuration)))
-        (holdsDuring ?R2
-          (measure ?C (RotationFn ?N1 MinuteDuration))) 
-        (holdsDuring ?R3
-          (measure ?D (RotationFn ?N2 MinuteDuration))) 
-        (holdsDuring ?R4
-          (measure ?D (RotationFn ?N3 MinuteDuration))) 
-        (not
-          (equal ?N2 ?N3))))))
+  (and
+    (instance ?AT AutomobileTransmission)
+    (instance ?C Crankshaft)
+    (instance ?D Driveshaft)
+    (instance ?A Automobile)
+    (part ?D ?A)
+    (part ?AT ?A)
+    (part ?C ?A)
+    (connectedEngineeringComponents ?C ?AT)
+    (connectedEngineeringComponents ?D ?AT)
+    (instance ?G1 Gear)
+    (instance ?G2 Gear)
+    (part ?G1 ?AT)
+    (part ?G2 ?AT)
+    (instance ?CR1 Rotating)
+    (instance ?CR2 Rotating)
+    (instance ?GR1 Rotating)
+    (instance ?GR2 Rotating)
+    (instance ?DR1 Rotating)
+    (instance ?DR2 Rotating)
+    (moves ?CR1 ?C)
+    (moves ?CR2 ?C)
+    (moves ?GR1 ?G1)
+    (moves ?GR2 ?G2)
+    (moves ?DR1 ?D)
+    (moves ?DR2 ?D)
+    (causes ?CR1 ?GR1)
+    (causes ?GR1 ?DR1)
+    (causes ?CR2 ?GR2)
+    (causes ?GR2 ?DR2)
+    (not
+      (equal ?CR1 ?CR2))
+    (not
+      (equal ?G1 ?G2))
+    (equal (MeasureFn ?NR1 RevolutionsPerMinute) (RotationFn ?CR1))
+    (equal (MeasureFn ?NR2 RevolutionsPerMinute) (RotationFn ?CR2))
+    (equal (MeasureFn ?ND1 RevolutionsPerMinute) (RotationFn ?DR1))
+    (equal (MeasureFn ?ND2 RevolutionsPerMinute) (RotationFn ?DR2))
+    (equal ?NR1 ?NR2))
+  (not
+    (equal ?ND1 ?ND2)))
 
 (subclass ElectricTransmission Transfer)
 (subclass ElectricTransmission RadiatingElectromagnetic)
@@ -2568,22 +2581,26 @@ depressed.")
 
 (=>
   (and
-    (engineIdleSpeed ?E (RotationFn 
-      (MeasureFn ?N1 MilesPerHour) ?M))
+    (engineIdleSpeed ?E
+      (MeasureFn ?RI RevolutionsPerMinute))
     (instance ?A Automobile)
-    (instance ?P GasPedal)
+    (instance ?GP GasPedal)
     (instance ?P Pushing)
     (destination ?P ?GP)
     (part ?E ?A)
     (part ?GP ?A)
     (instance ?C Crankshaft)
+    (instance ?R1 Rotating)
+    (moves ?R1 ?C)
+    (during
+      (WhenFn ?R1)
+      (WhenFn ?P))
     (part ?C ?E)
-    (holdsDuring 
-      (WhenFn ?P)
-      (measure ?C (RotationFn 
-        (MeasureFn ?N2 MilesPerHour) ?M))))
+    (equal
+      (MeasureFn ?RA RevolutionsPerMinute)
+      (RotationFn ?R1)))
   (modalAttribute
-    (greaterThan ?N2 ?N1)
+    (greaterThan ?RA ?RI)
     Likely))
 
 (subclass AutomobileExhaustSystem PhysicalSystem)
