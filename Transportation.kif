@@ -3209,7 +3209,7 @@ between the vehicle's &%longitudinalAxis and its tangential &%LevelPlaneFn with 
     (holdsDuring (EndFn (WhenFn ?R))
       (pitch ?V ?Y)))
   (not
-    (equal ?X ?V)))
+    (equal ?X ?Y)))
 
 (=>
   (and
@@ -3249,7 +3249,7 @@ between the vehicle's &%longitudinalAxis and the &%path it's travelling.[Wikiped
     (holdsDuring (EndFn (WhenFn ?R))
       (yaw ?V ?Y)))
   (not
-    (equal ?X ?V)))
+    (equal ?X ?Y)))
 
 (=>
   (and
@@ -3291,7 +3291,7 @@ and its tangential &%LevelPlaneFn with the earth.[Wikipedia]")
     (holdsDuring (EndFn (WhenFn ?R))
       (roll ?V ?Y)))
   (not
-    (equal ?X ?V)))
+    (equal ?X ?Y)))
 
 (=>
   (and
@@ -3304,8 +3304,14 @@ and its tangential &%LevelPlaneFn with the earth.[Wikipedia]")
       (planeAngleMeasure ?A
         (LevelPlaneFn ?B PlanetEarth)
         (MeasureFn ?X AngularDegree)))))
-        
-(subclass FlightWing Device)
+
+(subclass AirFoil Device)
+(documentation AirFoil EnglishLanguage "An &%AirFoil or aerofoil (British English) 
+is a streamlined body that is capable of generating significantly more lift than drag.
+&%FlightWings, sails and propeller blades are examples of airfoils. [Wikipedia]")
+(termFormat Englishlanguage AirFoil "airfoil")
+                        
+(subclass FlightWing AirFoil)
 (documentation FlightWing EnglishLanguage "A &%FlightWing is a structure which 
 produces both lift and drag while moving through air. Wings are defined by two 
 shape characteristics, an airfoil section and a planform. Wing efficiency is 
@@ -3313,7 +3319,7 @@ expressed as lift-to-drag ratio, which compares the benefit of lift with the
 air resistance of a given wing shape, as it flies. Aerodynamics includes the 
 study of wing performance in air.[Wikipedia]")
 (termFormat Englishlanguage FlightWing "flight wing")
-
+(initiallyContainsPart FlightWing Airplane)
 
 (subclass FlightControlSurfaces Device)
 (documentation FlightControlSurfaces EnglishLanguage "Flight control surfaces are 
@@ -3331,9 +3337,9 @@ spoiler, flaps, and slats on the wings.[Wikipedia]")
     (part ?C ?F)
     (instance ?F Aircraft))
   (hasPurpose ?C
-    (exists (?R ?X)
+    (exists (?R ?X ?A)
       (and
-        (instance ?R Rotation)
+        (instance ?R Rotating)
         (moves ?R ?F)
         (rotationalAxis ?R ?X)
         (instance ?A AxisOfAnObject)
@@ -3356,7 +3362,113 @@ returns the bank angle to zero to fly straight.[Wikipedia]")
 (termFormat Englishlanguage Aileron "aileron")
 (partTypes Aileron FlightWing)
 
+(=>
+  (instance ?A Aileron)
+  (exists (?P ?B)
+    (and
+      (instance ?P Pair)
+      (member ?A ?P)
+      (member ?B ?P)
+      (not
+        (equal ?A ?B))
+      (orientation ?A ?B Horizontal))))
 
+(=>
+  (and
+    (instance ?A Aileron)
+    (member ?A ?P)
+    (instance ?P Pair)
+    (member ?B ?P)
+    (not
+      (equal ?A ?B)))
+  (exists (?W)
+    (and
+      (instance ?W Flightwing)
+      (located ?A ?W)
+      (located ?B ?W)
+      (orientation ?A ?B Left)
+      (orientation ?B ?A Right))))
+
+(=>
+  (and
+    (instance ?P Pair)
+    (part ?P ?F)
+    (instance ?F Airplane)
+    (memberType ?P Aileron)
+    (member ?LA ?P)
+    (instance ?M1 Motion)
+    (moves ?M1 ?LA)
+    (direction ?M1 ?DIR1)  
+    (member ?RA ?P)
+    (instance ?M2 Motion)
+    (not
+      (equal ?M1 ?M2))
+    (moves ?M2 ?RA)
+    (direction ?M2 ?DIR2)
+    (not
+      (exists (?L)
+        (and
+          (instance ?L Landing)
+          (patient ?L ?F)))))
+  (oppositeDirection ?DIR1 ?DIR2))
+
+(=>
+  (and
+    (instance ?F Flying)
+    (patient ?F ?P)
+    (instance ?P Airplane)
+    (part ?LW ?P)
+    (instance ?LW FlightWing)
+    (side ?LW ?P)
+    (orientation ?LW ?P Left)
+    (instance ?LA Aileron)
+    (located ?LA ?LW)      
+    (instance ?U MotionUpward)
+    (moves ?U ?LA))
+  (holdsDuring (WhenFn ?U)
+    (exists (?D)
+      (and
+        (instance ?D MotionDownward)
+        (moves ?D ?LW)
+        (causes ?U ?D)))))
+        
+(=>
+  (and
+    (instance ?F Flying)
+    (patient ?F ?P)
+    (instance ?P Airplane)
+    (part ?RW ?P)
+    (instance ?RW FlightWing)
+    (side ?RW ?P)
+    (orientation ?RW ?P Right)
+    (instance ?RA Aileron)
+    (located ?RA ?RW)      
+    (instance ?D MotionDownward)
+    (moves ?D ?RA))
+  (holdsDuring (WhenFn ?D)
+    (exists (?U)
+      (and
+        (instance ?U MotionUpward)
+        (moves ?U ?RW)
+        (causes ?D ?U)))))
+
+(subclass TailPlane AirFoil)
+(documentation TailPlane EnglishLanguage "A &%TailPlane, also known as a horizontal 
+stabiliser, is a small lifting surface located on the tail (empennage) behind the 
+main lifting surfaces of a fixed-wing aircraft.The tailplane comprises the tail-mounted 
+fixed horizontal stabiliser and movable elevator. [Wikipedia]")
+(termFormat Englishlanguage TailPlane "tail plane")
+(names "horizontal stabiliser" TailPlane)
+(typicallyContainsPart TailPlane Airplane)
+
+(=>
+  (and
+    (instance ?T TailPlane)
+    (part ?T ?P)
+    (instance ?P Airplane))
+  (part ?T
+    (BackFn ?P)))
+    
 (subclass FlightElevator FlightControlSurfaces)
 (documentation FlightElevator EnglishLanguage "The &%FlightElevatoris a moveable 
 part of the horizontal stabilizer, hinged to the back of the fixed part of the 
@@ -3367,15 +3479,171 @@ to pitch up. This makes the wings fly at a higher angle of attack, which generat
 more lift and more drag. Centering the stick returns the elevators to neutral 
 and stops the change of pitch.[Wikipedia]")
 (termFormat Englishlanguage FlightElevator "flight elevator")
+(partTypes FlightElevator TailPlane)
 
-(subclass Rudder FlightControlSurfaces)
-(documentation Rudder EnglishLanguage "The &%Rudder is typically mounted on the 
-trailing edge of the vertical stabilizer, part of the empennage. When the pilot 
-pushes the left pedal, the rudder deflects left. Pushing the right pedal causes 
+(=>
+  (instance ?E FlightElevator)
+  (exists (?P ?F)
+    (and
+      (instance ?P Pair)
+      (member ?E ?P)
+      (member ?F ?P)
+      (not
+        (equal ?E ?F))
+      (orientation ?E ?F Horizontal))))
+
+(=>
+  (and
+    (instance ?E FlightElevator)
+    (member ?E ?P)
+    (instance ?P Pair)
+    (member ?F ?P)
+    (not
+      (equal ?E ?F)))
+  (exists (?T)
+    (and
+      (instance ?T TailPlane)
+      (located ?E ?T)
+      (located ?F ?T)
+      (orientation ?E ?F Left)
+      (orientation ?F ?E Right))))
+        
+(=>
+  (and
+    (instance ?P Pair)
+    (part ?P ?F)
+    (instance ?F Airplane)
+    (memberType ?P FlightElevator)
+    (member ?LE ?P)
+    (instance ?M1 Motion)
+    (moves ?M1 ?LE)
+    (direction ?M1 ?DIR1)  
+    (member ?RE ?P)
+    (instance ?M2 Motion)
+    (not
+      (equal ?M1 ?M2))
+    (moves ?M2 ?RE)
+    (direction ?M2 ?DIR2))
+  (equal ?DIR1 ?DIR2))
+  
+(=>
+  (and
+    (instance ?P Pair)
+    (part ?P ?F)
+    (instance ?F Airplane)
+    (memberType ?P FlightElevator)
+    (member ?E ?P)
+    (instance ?M MotionUpward)
+    (moves ?M ?E)
+    (holdsDuring (BeginFn (WhenFn ?M))
+      (pitch ?F (MeasureFn ?X AngularDegree)))
+    (holdsDuring (EndFn (WhenFn ?M))
+      (pitch ?F (MeasureFn ?Y AngularDegree))))
+  (greaterThan ?X ?Y))
+      
+(=>
+  (and
+    (instance ?P Pair)
+    (part ?P ?F)
+    (instance ?F Airplane)
+    (memberType ?P FlightElevator)
+    (member ?E ?P)
+    (instance ?M MotionDownward)
+    (moves ?M ?E)
+    (holdsDuring (BeginFn (WhenFn ?M))
+      (pitch ?F (MeasureFn ?X AngularDegree)))
+    (holdsDuring (EndFn (WhenFn ?M))
+      (pitch ?F (MeasureFn ?Y AngularDegree))))
+  (lessThan ?X ?Y))
+   
+(=>
+  (and
+    (instance ?P Pair)
+    (part ?P ?F)
+    (instance ?F Airplane)
+    (memberType ?P FlightElevator)
+    (member ?E ?P)
+    (holdsDuring ?T
+       (pitch ?F (MeasureFn 0 AngularDegree))))
+ (holdsDuring ?T
+   (not
+     (exists (?M)
+       (and
+         (moves ?M ?E)
+         (or
+           (instance ?M MotionUpward)
+           (instance ?M MotionDownward)))))))
+
+(=>
+  (and
+    (roll ?P (MeasureFn 0 AngularDegree))
+    (instance ?P Airplane)
+    (part ?A ?P)
+    (instance ?A Aileron))
+  (not
+    (exists (?M)
+      (and
+        (instance ?M Motion)
+        (moves ?M ?A)))))
+          
+(subclass VerticalStabilizer AirFoil)
+(documentation VerticalStabilizer EnglishLanguage "The &%VerticalStabilizeror or 
+tail fin is the static part of the vertical tail of an aircraft.The vertical tail 
+of an aircraft typically consists of a fixed vertical stabilizer or fin on which 
+a movable rudder is mounted.[Wikipedia]")
+(termFormat Englishlanguage VerticalStabilizer "vertical stabilizer")
+(typicallyContainsPart VerticalStabilizer Airplane)
+
+(=>
+  (and
+    (instance ?V VerticalStabilizer)
+    (part ?V ?P)
+    (instance ?P Airplane))
+  (orientation ?V
+    (BackFn ?P) Vertical))
+           
+(subclass Rudder Device)
+(documentation Rudder EnglishLanguage "A &%Rudder is a primary control surface 
+used to steer a ship, boat, submarine, hovercraft, airship, or other vehicle that 
+moves through a fluid medium (usually air or water). [Wikipedia]")
+(termFormat Englishlanguage Rudder "rudder")
+                      
+(subclass FlightRudder Rudder)           
+(subclass FlightRudder FlightControlSurfaces)
+(documentation FlightRudder EnglishLanguage "The &%FlightRudder is typically mounted 
+on the trailing edge of the vertical stabilizer, part of the empennage. When the 
+pilot pushes the left pedal, the rudder deflects left. Pushing the right pedal causes 
 the rudder to deflect right. Deflecting the rudder right pushes the tail left 
 and causes the nose to yaw to the right. Centering the rudder pedals returns 
 the rudder to neutral and stops the yaw.[Wikipedia]")
-(termFormat Englishlanguage Rudder "rudder")
+(termFormat Englishlanguage FlightRudder "flight rudder")
+(partTypes FlightRudder VerticalStabilizer)
+
+(=>
+  (and
+    (instance ?M Motion)
+    (moves ?M ?R)
+    (instance ?R FlightRudder)
+    (part ?R ?P)
+    (instance ?P Airplane)
+    (direction ?M Right))
+  (exists (?X)
+    (and
+      (yaw ?P (MeasureFn ?X AngularDegree))
+      (greaterThan ?X 0))))
+
+(=>
+  (and
+    (instance ?M Motion)
+    (moves ?M ?R)
+    (instance ?R FlightRudder)
+    (part ?R ?P)
+    (instance ?P Airplane)
+    (direction ?M Left))
+  (exists (?X)
+    (and
+      (yaw ?P (MeasureFn ?X AngularDegree))
+      (lessThan ?X 0))))
 
 ;;---------------------------------------------------------------------
 ;;	D. Trafficability
