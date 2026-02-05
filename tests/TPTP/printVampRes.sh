@@ -2,6 +2,7 @@ declare -A SUMO
 declare -A MILO
 declare -A ALL
 declare -A TERR
+declare -A NONE
 
 print_results() {
         prefix=$(echo $1 | sed -nr "s/([^0-9]+)([0-9]+)([^\.]+)(\..*)/\1/p")
@@ -34,20 +35,23 @@ print_results() {
         elif [[ $fils == *"S"* ]] ; then
                 SUMO["$prefix$number"]=$value    
                 #echo "sumo: $prefix$number \t$value"                                 
+        else 
+                NONE["$prefix$number"]=$value    
+                #echo "sumo: $prefix$number \t$value"   
         fi
 }
 
-for FILE in *.tff.vout
+for FILE in results/*.tff.vout
 do
         print_results $FILE
 done
 
-for FILE in *.tptp.vout
+for FILE in results/*.tptp.vout
 do
         print_results $FILE
 done
           
-for FILE in *.thf.vout
+for FILE in results/*.thf.vout
 do
         print_results $FILE
 done       
@@ -58,7 +62,7 @@ echo -e "Problem\t SUMO\t MILO\t Terrain\t All"
 
 for key in ${keys[@]}
 do
-        echo -e "$key \t ${SUMO[$key]} \t ${MILO[$key]} \t ${TERR[$key]} \t ${ALL[$key]}"
+        echo -e "$key \t ${NONE[$key]} \t ${SUMO[$key]} \t ${MILO[$key]} \t ${TERR[$key]} \t ${ALL[$key]}"
 done
         
   
