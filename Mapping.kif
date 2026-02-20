@@ -1,0 +1,69 @@
+(subclass Mapping Abstract)
+(documentation Mapping EnglishLanguage "An index is a pairing which maps a unique 'key' entity to some 'value' entity")
+
+(subclass KeyValue Abstract)
+(documentation KeyValue EnglishLanguage "A single entry which contains a key and its mapped value in the context of a particular mapping")
+
+(instance KVFn BinaryFunction)
+(domain KVFn 1 Entity)
+(domain KVFn 2 Entity)
+(range KVFn KeyValue)
+(documentation KVFn EnglishLanguage "A function that takes two values, a key and a value and return the mapped pair for use in constructing a mapping")
+(=>
+    (equal (KVFn ?A ?B) (KVFn ?C ?D))
+    (and
+        (equal ?A ?C)
+        (equal ?B ?D)))
+(=>
+    (not (equal (KVFn ?A ?B) (KVFn ?C ?D)))
+    (or
+        (not (equal ?A ?C))
+        (not (equal ?B ?D))))
+
+(instance MappingFn Function)
+(instance MappingFn VariableArityRelation)
+(domain MappingFn 1 KeyValue)
+(range MappingFn Mapping)
+(documentation MappingFn EnglishLanguage "A Function that takes any number of key-values pairs and returns a mapping in which those keys are now correlated to those values. Within a map, no key can map to different values")
+
+;; Not sure I need this because the rule at the bottom al
+; (=>
+;     (instance ?M Mapping)
+;     (forall (?K1 ?K2)
+;         (=>
+;             (equal ?K1 ?K2)
+;             (equal (MappingIndexFn ?M ?K1) (MappingIndexFn ?M ?K2)))))
+
+(instance MappingIndexFn BinaryFunction)
+(instance MappingIndexFn PartialValuedFunction)
+(domain MappingIndexFn 1 Mapping)
+(domain MappingIndexFn 2 Entity)
+(range MappingIndexFn Entity)
+(documentation MappingIndexFn EnglishLanguage "(MappingIndexFn ?MAPPING ?SYMBOL) denotes the item that is mapped to the key which corresponds to ?SYMBOL in the Mapping ?MAPPING. For example, (MappingIndexFn (MappingFn (KVFn \"One\" 1) (KVFn \"Two\" 2)) \"One\") would return the value 1.")
+
+(=>
+    (and
+        (instance ?M Mapping)
+        (equal (MappingFn @ROW) ?M)
+        (inList (ListFn @ROW) (KVFn ?K ?V)))
+    (eq (MappingIndexFn ?M ?K) ?V))
+
+(instance mappedKeys BinaryPredicate)
+(domain mappedKey 1 Mapping)
+(domain mappedKey 2 Set)
+(documentation mappedKey EnglishLanguage "(mappedKey ?MAPPING ?SET) denotes that the set of entities represented by ?SET is a subset of the set of Entities comprising the keys of a given ?MAPPING.")
+(=>
+    (and
+        (instance ?M Mapping)
+        (equal (MappingFn @ROW1) ?M)
+        (inList (ListFn @ROW1) ?K)
+        (mappedKeys ?M ?SK))
+    (element ?K ?SK))
+
+; Two mappings are equivalent if they contain the same keys and those keys correspond to the same values
+(=>
+    (and 
+        (instance ?M1 Mapping)
+        (instance ?M2 Mapping)
+        (equal ?M1 ?M2))
+    (equal (MappingIndexFn ?M1 ?K) (MappingIndexFn ?M2 ?K)))
