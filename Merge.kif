@@ -1836,10 +1836,22 @@ a subclass of the class of the argument having the attribute")
     (AttrFn ?CLASS ?ATTR)))
 
 (subclass InternalAttribute Attribute)
-
 (documentation InternalAttribute EnglishLanguage "Any &%Attribute of an &%Entity that is
 an internal property of the &%Entity, e.g. its shape, its color, its fragility,
 etc.")
+
+(instance DeviceNormal InternalAttribute)
+(documentation DeviceNormal EnglishLanguage "An &%Attribute stating that
+the &%Device has not be subject to &%Damaging, at least not without a
+&%Repairing, and can function as to its intended &%hasPurpose.")
+
+(instance DeviceDamaged InternalAttribute)
+(contraryAttribute DeviceDamaged DeviceNormal)
+(documentation DeviceDamaged EnglishLanguage "An &%Attribute stating that
+the &%Device has been subjected to a &%Damaging, and has not had a subsequent
+succesful &%Repairing, and cannot function as to its intended &%hasPurpose.
+Note that this does not include cosmetic damage that does not change the
+function of the &%Object.")
 
 (subclass PhysicalAttribute InternalAttribute)
 
@@ -10349,6 +10361,8 @@ particular &%Organ or &%Tissue.")
 
 (subclass Birth OrganismProcess)
 
+(subclass Birth Removing)
+
 (documentation Birth EnglishLanguage "The &%Process of being born.")
 
 ;; NS: We need to provide more explanation of the intended meaning of
@@ -10403,19 +10417,34 @@ particular &%Organ or &%Tissue.")
 is made available to an &%Animal.  This covers processes of inhalation,
 exhalation, and alternations between the two.")
 
+;;
+;; Consumption
+;;
+(subclass Consuming Decreasing)
+(documentation Consuming EnglishLanguage "&%Consuming is a process that uses up of a resource. The
+relation &%resource specifies the decrease in quantity of the &%Object consumed but it doesn't
+say that the &%Consuming &%Process &%causes the decrease.")
+(termFormat EnglishLanguage Consuming "consuming")
+
+(=>
+  (instance ?C Consuming)
+  (exists (?O ?D)
+    (and
+      (patient ?C ?O)
+      (instance ?O Object)
+      (resource ?C ?O)
+      (subProcess ?D ?C)
+      (instance ?D Decreasing)
+      (patient ?D ?O)
+      (causes ?C ?D))))
+
+
+(subclass Ingesting Consuming)
 (subclass Ingesting OrganismProcess)
 (subclass Ingesting Transfer)
 
 (documentation Ingesting EnglishLanguage "The &%Process by which food or
 &%Medicine is taken into an &%Animal.")
-
-(=>
-   (and
-      (instance ?ACT Ingesting)
-      (resource ?ACT ?F))
-   (or
-     (instance ?F (FoodForFn Organism))
-     (instance ?F Medicine)))
 
 (subclass Eating Ingesting)
 
@@ -11518,13 +11547,6 @@ transferred is a letter or package.")
       (holdsDuring
         (ImmediateFutureFn ?P)
         (located ?OBJ ?D)))))
-
-(=>
-  (and
-    (instance ?T Transfer)
-    (objectTransferred ?T ?O)
-    (orientation ?O2 ?O Inside))
-  (objectTransferred ?T ?O2))
 
 (=>
   (and
@@ -13266,6 +13288,7 @@ attends, i.e. is a member of the audience, of the performance event ?DEMO.")
 
 (subclass Gesture Communication)
 (subclass Gesture BodyMotion)
+(subclass Gesture Expressing)
 (documentation Gesture EnglishLanguage "Any &%BodyMotion, e.g. a hand wave, a nod of the
 head, a smile, which is also an instance of &%Communication.")
 
@@ -15025,10 +15048,6 @@ categories, viz. steroid hormones and peptide hormones.")
          (instrument ?PROCESS ?GLAND)
          (result ?PROCESS ?HORMONE))))
 
-(subclass Blood BodySubstance)
-(documentation Blood EnglishLanguage "A fluid present in &%Animals that transports
-&%Nutrients to and waste products away from various &%BodyParts.")
-
 (instance FoodForFn UnaryFunction)
 (domainSubclass FoodForFn 1 Organism)
 (rangeSubclass FoodForFn SelfConnectedObject)
@@ -15150,19 +15169,6 @@ to small components of complex &%Organs.")
 pairs and returns the part that is on the given side of the body, for example (BodyPartFn Right Lung) or
 (BodyPartFn Left Arm).")
 (format EnglishLanguage BodySideFn "the %1 %2")
-
-(=>
-  (and
-    (instance ?A Animal)
-    (instance ?P
-      (BodySideFn ?S ?BPC))
-    (contraryAttribute ?S ?SO)
-    (attribute ?A Healthy))
-  (exists (?PO)
-    (and
-      (instance ?PO
-        (BodySideFn ?SO ?BPC))
-      (orientation ?P ?PO ?S))))
 
 (=>
   (instance ?X (BodySideFn ?S ?P))
@@ -15415,10 +15421,6 @@ fat cells.")
 (documentation NervousTissue EnglishLanguage "The type of &%Tissue that makes
 up &%NerveCells.")
 (termFormat EnglishLanguage NervousTissue "nervous tissue")
-
-(=>
-  (instance ?NC NerveCell)
-  (material NervousTissue ?NC))
   
 (subclass Noun Word)
 (partition Word Noun Verb Adjective Adverb ParticleWord)
@@ -15582,6 +15584,12 @@ the text.")
    (believes ?AGENT ?CONTENT))
 
 (subclass FictionalText Text)
+
+(subclass NarrativeText Text)
+(subclass FictionalText NarrativeText)
+(documentation NarrativeText EnglishLanguage "Any &%Text that tells a story, whether true
+or false.")
+
 (documentation FictionalText EnglishLanguage "The class of &%Texts that purport to
 be largely a product of the author's imagination, i.e. the author
 does not believe that most of the content conveyed by the text is
@@ -15945,7 +15953,24 @@ inhabited by members of the same &%SocialUnit.  &%Houses are distinguished
 from temporary housing like hotels and multi-family dwellings like condominium
 and apartment buildings.")
 
+(subclass ContactSite Object)
+(documentation ContactSite EnglishLanguage "A &%ContactSite is an
+&%Object, typically a &%Place or a &%Residence or a
+&%CommunicationDevice such as a &%Telephone, that has some kind
+of address identifier and can serve as a point of contact for a
+&%Human or &%Organization.")
+(termFormat EnglishLanguage ContactSite "contact site")
+
+(subclass PostalPlace StationaryArtifact)
+(subclass PostalPlace LocalizablePlace)
+(subclass PostalPlace ContactSite)
+(documentation PostalPlace EnglishLanguage "A &%PostalPlace is
+any &%LocalizablePlace that can have a postal address, and to
+which hardcopy mail (letters, packages, etc.) can be delivered.")
+(termFormat EnglishLanguage PostalPlace "postal place")
+
 (subclass Residence StationaryArtifact)
+(subclass Residence PostalPlace)
 (disjointDecomposition Residence PermanentResidence TemporaryResidence)
 (documentation Residence EnglishLanguage "A &%Building or part of a &%Building which
 provides some accomodation for sleeping.")
@@ -16008,7 +16033,22 @@ intended to be the &%home of a single &%SocialUnit.  This class covers
             (member ?AGENT1 ?UNIT)
             (member ?AGENT2 ?UNIT)))))))
 
+(subclass VisualContentBearingObject ContentBearingObject)
+(subclass VisualContentBearingObject VisualContentBearingPhysical)
+(documentation VisualContentBearingObject
+EnglishLanguage "Instances of &%VisualContentBearingObject are
+&%ContentBearingObjects that are intended to convey meaning as
+the result of being seen.")
+
+(subclass VisualContentBearingPhysical ContentBearingPhysical)
+(documentation VisualContentBearingPhysical EnglishLanguage
+"Instances of &%VisualContentBearingPhysical are
+&%ContentBearingPhysicals that are intended to convey
+meaning as the result of being seen.")
+
+(subclass ArtWork VisualContentBearingObject)
 (subclass ArtWork Artifact)
+
 (documentation ArtWork EnglishLanguage "&%Artifacts that are created primarily for
 aesthetic appreciation.  Note that this &%Class does not include
 most examples of architecture, which belong under &%StationaryArtifact.")
@@ -16152,6 +16192,15 @@ serve as an &%instrument in a specific subclass of &%Process.")
           (instance ?INST ?PROC)
           (instrument ?INST ?DEVICE))))))
 
+(subclass Explosion Radiating)
+(documentation Explosion EnglishLanguage "Any sudden and massive release of energy that is
+the product of a chemical reaction.")
+
+(subclass ExplosiveDevice Device)
+(documentation ExplosiveDevice EnglishLanguage "A &%Device whose purpose is to explode.  Note
+that &%ExplosiveDevice is not a subclass of &%Weapon, since explosives can be
+used in demolition work and in fireworks displays, for example.")
+
 (subclass MusicalInstrument Device)
 (documentation MusicalInstrument EnglishLanguage "A &%Device which is manipulated by a
 &%Human and whose purpose is &%MakingMusic.")
@@ -16235,6 +16284,10 @@ the places inhabited by &%Humans/&%Animals.")
         (instance ?D Damaging)
 	(instrument ?D ?WEAPON)
         (patient ?D ?PATIENT)))))
+
+(subclass Bomb Weapon)
+(subclass Bomb ExplosiveDevice)
+(documentation Bomb EnglishLanguage "A weapon that explodes in order to cause damage.")
 
 (subclass Machine Device)
 (documentation Machine EnglishLanguage "&%Machines are &%Devices that that have a
@@ -17349,10 +17402,6 @@ contact.")
    (located ?OBJ1 ?OBJ2))
 
 (=>
-   (orientation ?OBJ1 ?OBJ2 Inside)
-   (located ?OBJ1 ?OBJ2))
-
-(=>
    (orientation ?OBJ1 ?OBJ2 On)
    (not
       (orientation ?OBJ2 ?OBJ1 On)))
@@ -18053,6 +18102,13 @@ point ?POINT.")
       (pointOfFigure ?POINT ?FIGURE2)))
 
 (instance parallel BinaryPredicate)
+
+(instance StraightLine OneDimensionalFigure)
+(documentation StraightLine EnglishLanguage "A &%StraightLine is a &%OneDimensionalFigure with
+no width, depth, or curvature. It may be embedded in a two or three dimenional &%GeometricFigure.
+[Wikipedia]")
+(termFormat EnglishLanguage StraightLine "straight line")
+
 (domain parallel 1 StraightLine)
 (domain parallel 2 StraightLine)
 (documentation parallel EnglishLanguage "(&%parallel ?LINE1 ?LINE2) means that the
@@ -18081,29 +18137,6 @@ that the two-dimensional geometric angle ?ANGLE has ?MEASURE.")
 that the two-dimensional geometric angle formed by ?O1 and ?O2 has ?MEASURE.")
 (termFormat EnglishLanguage relativeAngle "relative angle")
 (format EnglishLanguage relativeAngle "the relative &%angle between %1 and %2 is %3")
-
-(=>
-  (and
-    (instance ?L1 Object)
-    (attribute ?L1 LongAndThin)
-    (instance ?L2 Object)
-    (attribute ?L2 LongAndThin)
-    (connected ?L1 ?L2)
-    (not
-      (equal ?L1 ?L2)))
-  (exists (?M)
-    (relativeAngle ?L1 ?L2 ?M)))
-
-(=>
-  (relativeAngle ?L1 ?L2 ?M)
-  (and
-    (instance ?L1 Object)
-    (attribute ?L1 LongAndThin)
-    (instance ?L2 Object)
-    (attribute ?L2 LongAndThin)
-    (connected ?L1 ?L2)
-    (not
-      (equal ?L1 ?L2))))
 
 ; arccos((n3^2-n1^2-n2^2)/2*n1*n2)
 (=>
@@ -18146,10 +18179,6 @@ the other end.")
 (termFormat EnglishLanguage physicalEnd "physical end")
 (subrelation physicalEnd part)
 
-(=>
-  (physicalEnd ?P1 ?O)
-  (attribute ?O LongAndThin))
- 
 (=>
   (and
     (physicalEnd ?P1 ?O)
@@ -18686,12 +18715,26 @@ of the relation and the third argument is the likely value.")
 
 (instance subclass ClosedWorldPredicate)
 
+(subclass OrganismRemains OrganicObject)
+(documentation OrganismRemains EnglishLanguage "An
+&%instance of &%OrganismRemains is &%Dead matter of a
+formerly &%Living &%Organism: &%Plant, &%Animal, or
+&%Microorganism.  An &%instance of &%OrganismRemains might
+or might not be recognizable as the remains of a particular
+kind or species of organism, depending on the cause of the
+&%Organism's &%Death (heart failure, stroke, roadkill,
+dismemberment, etc.), the elapsed time since death, the
+speed of decomposition, and any post-mortem processing of
+the dead organism (embalming, cremation, mummification,
+boiling, consumption as food, etc.).")
+
 (instance DeadFn UnaryFunction)
 (domainSubclass DeadFn 1 OrganicObject)
 (rangeSubclass DeadFn OrganismRemains)
 (documentation DeadFn EnglishLanguage "(&%DeadFn ?ORGCLASS)
 denotes the &%Class of all remains that were once part
 of &%Living &%Organisms of the type ?ORGCLASS.")
+
 
 ;; END FILE
 

@@ -24,20 +24,7 @@
 ;; Ogunquit, Maine, October 17-19, 2001.  See also http://www.ontologyportal.org
 ;;
 ;; started editing Jennie Pease 2022
-
-(subclass OrganismRemains OrganicObject)
-(documentation OrganismRemains EnglishLanguage "An
-&%instance of &%OrganismRemains is &%Dead matter of a
-formerly &%Living &%Organism: &%Plant, &%Animal, or
-&%Microorganism.  An &%instance of &%OrganismRemains might
-or might not be recognizable as the remains of a particular
-kind or species of organism, depending on the cause of the
-&%Organism's &%Death (heart failure, stroke, roadkill,
-dismemberment, etc.), the elapsed time since death, the
-speed of decomposition, and any post-mortem processing of
-the dead organism (embalming, cremation, mummification,
-boiling, consumption as food, etc.).")
-
+ 
 (=>
   (instance ?X OrganismRemains)
   (holdsDuring (WhenFn ?X) (attribute ?X Dead)))
@@ -3295,6 +3282,33 @@ is markedly longer in one dimension than in the other two.")
       (lessThan ?H1 (MultiplicationFn 3.0 ?HF))
       (lessThan ?H2 (MultiplicationFn 3.0 ?HF)))))
 
+(=>
+  (and
+    (instance ?L1 Object)
+    (attribute ?L1 LongAndThin)
+    (instance ?L2 Object)
+    (attribute ?L2 LongAndThin)
+    (connected ?L1 ?L2)
+    (not
+      (equal ?L1 ?L2)))
+  (exists (?M)
+    (relativeAngle ?L1 ?L2 ?M)))
+
+(=>
+  (relativeAngle ?L1 ?L2 ?M)
+  (and
+    (instance ?L1 Object)
+    (attribute ?L1 LongAndThin)
+    (instance ?L2 Object)
+    (attribute ?L2 LongAndThin)
+    (connected ?L1 ?L2)
+    (not
+      (equal ?L1 ?L2))))
+
+(=>
+  (physicalEnd ?P1 ?O)
+  (attribute ?O LongAndThin))
+
 (instance LevelShape ShapeAttribute)
 (documentation LevelShape EnglishLanguage "The &%ShapeAttribute of &%Objects where no
 part of the top of the &%Object is higher than any other part of the
@@ -5252,12 +5266,6 @@ decorative or productive purposes.")
   (hasPurpose ?V
     (exists (?OBJ)
       (covers ?V ?OBJ))))
-
-(instance StraightLine OneDimensionalFigure)
-(documentation StraightLine EnglishLanguage "A &%StraightLine is a &%OneDimensionalFigure with
-no width, depth, or curvature. It may be embedded in a two or three dimenional &%GeometricFigure.
-[Wikipedia]")
-(termFormat EnglishLanguage StraightLine "straight line")
 
 (subAttribute TangentLine  StraightLine)
 (documentation TangentLine EnglishLanguage "A &%TangentLine touches a curve or curved surface at
@@ -10335,6 +10343,17 @@ describe the relative location of one object or region to another
 region.")
 
 (=>
+  (and
+    (instance ?T Transfer)
+    (objectTransferred ?T ?O)
+    (orientation ?O2 ?O Inside))
+  (objectTransferred ?T ?O2))
+
+(=>
+   (orientation ?OBJ1 ?OBJ2 Inside)
+   (located ?OBJ1 ?OBJ2))
+
+(=>
   (orientation ?THING ?O Inside)
   (and
     (interiorPart ?PART ?O)
@@ -10608,6 +10627,14 @@ therapeutic effect under certain conditions.")
     (and
       (instance ?P TherapeuticProcess)
       (resource ?P ?M))))
+
+(=>
+   (and
+      (instance ?ACT Ingesting)
+      (resource ?ACT ?F))
+   (or
+     (instance ?F (FoodForFn Organism))
+     (instance ?F Medicine)))
 
 (subclass Pill Medicine)
 (documentation Pill EnglishLanguage "A &%Medicine in &%Solid form, intended to be
@@ -11513,6 +11540,11 @@ Mitochondria generate most of the cell's supply of
 (termFormat EnglishLanguage Mitochondrion "mitochondria")
 (secretesSubstance Mitochondrion AdenosineTriphosphate)
 
+(subclass Blood SolMixture)
+(subclass Blood BodySubstance)
+(documentation Blood EnglishLanguage "A fluid present in &%Animals that transports
+&%Nutrients to and waste products away from various &%BodyParts.")
+
 (subclass BloodCell SomaticCell)
 (subclass BloodCell AnimalAnatomicalStructure)
 (documentation BloodCell EnglishLanguage "A &%Cell that is normally present in &%Blood.")
@@ -12120,6 +12152,10 @@ undergoing &%MuscularContract and then a &%MuscleRelaxing to pump
 (subclass NerveCell SomaticCell)
 (subclass NerveCell AnimalAnatomicalStructure)
 (documentation NerveCell EnglishLanguage "The &%Cells that make up a &%NervousSystem.")
+
+(=>
+  (instance ?NC NerveCell)
+  (material NervousTissue ?NC))
 
 (=>
   (instance ?N NerveCell)
@@ -14421,7 +14457,6 @@ is lower than all other parts of the &%Face.")
   (orientation ?PART ?CHIN Below))
 
 (partition Expressing Gesture ExpressingInLanguage)
-(subclass Gesture Expressing)
 (disjointDecomposition Expressing ExpressingApproval ExpressingDisapproval)
 
 (subclass ExpressingApproval Expressing)
@@ -16403,6 +16438,7 @@ is sent to others in celebration of a &%Holiday.")
 (subclass HistoricalAccount FactualText)
 (documentation HistoricalAccount EnglishLanguage "A &%FactualAccount that describes
 significant events that occurred in the past.")
+(partition NarrativeText FictionalText HistoricalAccount)
 
 (=>
    (instance ?ACCOUNT HistoricalAccount)
@@ -16440,12 +16476,6 @@ country, etc.")
 (subclass Dictionary ReferenceBook)
 (documentation Dictionary EnglishLanguage "A &%ReferenceBook which specifies the meanings
 of the &%Words of a &%Language.")
-
-(subclass NarrativeText Text)
-(partition NarrativeText FictionalText HistoricalAccount)
-(subclass FictionalText NarrativeText)
-(documentation NarrativeText EnglishLanguage "Any &%Text that tells a story, whether true
-or false.")
 
 (subclass ShortStory FictionalText)
 (subclass ShortStory Article)
@@ -17365,10 +17395,6 @@ radio or television receiver).")
 (=>
    (instance ?ANTENNA Antenna)
    (capability RadioEmission instrument ?ANTENNA))
-
-(subclass Explosion Radiating)
-(documentation Explosion EnglishLanguage "Any sudden and massive release of energy that is
-the product of a chemical reaction.")
 
 (=>
    (instance ?EXPLOSION Explosion)
@@ -18826,28 +18852,6 @@ in which an object go out of a &%Region. It is the opposite of &%Entering.")
       (greaterThan ?L1 ?L2))))
 
 ;;
-;; Consumption
-;;
-(subclass Consuming Decreasing)
-(subclass Ingesting Consuming)
-(documentation Consuming EnglishLanguage "&%Consuming is a process that uses up of a resource. The
-relation &%resource specifies the decrease in quantity of the &%Object consumed but it doesn't
-say that the &%Consuming &%Process &%causes the decrease.")
-(termFormat EnglishLanguage Consuming "consuming")
-
-(=>
-  (instance ?C Consuming)
-  (exists (?O ?D)
-    (and
-      (patient ?C ?O)
-      (instance ?O Object)
-      (resource ?C ?O)
-      (subProcess ?D ?C)
-      (instance ?D Decreasing)
-      (patient ?D ?O)
-      (causes ?C ?D))))
-
-;;
 ;; From Transport_2024.kif
 ;;
 
@@ -19724,11 +19728,6 @@ and helicopters.")
       (and
         (instance ?O MilitaryOrganization)
         (uses ?A ?O)))))
-
-(subclass ExplosiveDevice Device)
-(documentation ExplosiveDevice EnglishLanguage "A &%Device whose purpose is to explode.  Note
-that &%ExplosiveDevice is not a subclass of &%Weapon, since explosives can be
-used in demolition work and in fireworks displays, for example.")
 
 (=>
   (instance ?ED ExplosiveDevice)
@@ -23982,7 +23981,6 @@ and &%AloeveraGel are examples.")
 continuous &%Liquid medium. Examples of Sol includes &%Blood &%Paint.")
 (subclass SolMixture Colloid)
 (subclass SolMixture LiquidMixture)
-(subclass Blood SolMixture)
 
 ;; Moved Flour to Food.kif JP 20230511
 
@@ -24196,10 +24194,6 @@ on fire in order to destroy it or its contents.")
 (subclass Bombing Destruction)
 (documentation Bombing EnglishLanguage "An act of &%Destruction where the thing destroyed
 is destroyed by means of an explosive device.")
-
-(subclass Bomb Weapon)
-(subclass Bomb ExplosiveDevice)
-(documentation Bomb EnglishLanguage "A weapon that explodes in order to cause damage.")
 
 (=>
   (instance ?X Bombing)
@@ -26376,8 +26370,6 @@ individual &%Organism. [from Wikipedia]")
       (instance ?Z Zygote)
       (result ?F ?Z))))
 
-(subclass Birth Removing)
-
 (=>
   (instance ?B Birth)
   (exists (?M ?BABY)
@@ -26937,14 +26929,6 @@ perhaps uniquely under some circumstances.")
 
 (subclass PlaceAddress PlaceID)
 
-(subclass ContactSite Object)
-(documentation ContactSite EnglishLanguage "A &%ContactSite is an
-&%Object, typically a &%Place or a &%Residence or a
-&%CommunicationDevice such as a &%Telephone, that has some kind
-of address identifier and can serve as a point of contact for a
-&%Human or &%Organization.")
-(termFormat EnglishLanguage ContactSite "contact site")
-
 (subclass TelephonyDevice ContactSite)
 (subclass TelephonyDevice CommunicationDevice)
 (subclass TelephonyDevice ElectricDevice)
@@ -26972,16 +26956,7 @@ is a canonical name for the &%GeographicArea ?PLACE")
   (canonicalPlaceName ?PLACE ?LANG ?STR)
   (names ?STR ?PLACE))
 
-(subclass PostalPlace StationaryArtifact)
-(subclass PostalPlace LocalizablePlace)
-(subclass PostalPlace ContactSite)
-(documentation PostalPlace EnglishLanguage "A &%PostalPlace is
-any &%LocalizablePlace that can have a postal address, and to
-which hardcopy mail (letters, packages, etc.) can be delivered.")
-(termFormat EnglishLanguage PostalPlace "postal place")
-
 (subclass MilitaryInstallation PostalPlace)
-(subclass Residence PostalPlace)
 (subclass PlaceOfCommerce PostalPlace)
 
 (instance siteForContact AsymmetricRelation)
@@ -28856,25 +28831,11 @@ be lowered and the foot can be rasied to allow the sitter to recline in it.")
         (instance ?INCLINE Inclining)
         (patient ?INCLINE ?X))) Possibility))
 
-(subclass VisualContentBearingPhysical ContentBearingPhysical)
-(documentation VisualContentBearingPhysical EnglishLanguage
-"Instances of &%VisualContentBearingPhysical are
-&%ContentBearingPhysicals that are intended to convey
-meaning as the result of being seen.")
-
-(subclass VisualContentBearingObject ContentBearingObject)
-(subclass VisualContentBearingObject VisualContentBearingPhysical)
-(documentation VisualContentBearingObject
-EnglishLanguage "Instances of &%VisualContentBearingObject are
-&%ContentBearingObjects that are intended to convey meaning as
-the result of being seen.")
-
 (subclass Image VisualContentBearingObject)
 (documentation Image EnglishLanguage "Instances of &%Image are
 &%VisualContentBearingObjects that convey their meaning primarily
 in non-textual form.")
 (termFormat EnglishLanguage Image "image")
-(subclass ArtWork VisualContentBearingObject)
 
 (subclass MultimediaProjector MediaSystem)
 (documentation MultimediaProjector EnglishLanguage "&%MultimediaProjector is a type
@@ -32080,11 +32041,6 @@ a &%Vehicle, rather than a &%StationaryObject.")
 
 (typicalPart VehicleDoor Automobile)
 
-(instance DeviceNormal InternalAttribute)
-(documentation DeviceNormal EnglishLanguage "An &%Attribute stating that
-the &%Device has not be subject to &%Damaging, at least not without a
-&%Repairing, and can function as to its intended &%hasPurpose.")
-
 (=>
   (attribute ?D DeviceNormal)
   (not
@@ -32104,14 +32060,6 @@ the &%Device has not be subject to &%Damaging, at least not without a
     (attribute ?D DeviceNormal)
     (hasPurpose ?D ?F))
   (modalAttribute ?F Possibility))
-
-(instance DeviceDamaged InternalAttribute)
-(contraryAttribute DeviceDamaged DeviceNormal)
-(documentation DeviceDamaged EnglishLanguage "An &%Attribute stating that
-the &%Device has been subjected to a &%Damaging, and has not had a subsequent
-succesful &%Repairing, and cannot function as to its intended &%hasPurpose.
-Note that this does not include cosmetic damage that does not change the
-function of the &%Object.")
 
 (=>
   (attribute ?D DeviceDamaged)
@@ -32973,6 +32921,19 @@ for an &%AutonomousAgent or any macroscopic-level motion for an &%Object")
       (and
         (instance ?Y DiseaseOrSyndrome)
         (attribute ?X ?Y)))))
+
+(=>
+  (and
+    (instance ?A Animal)
+    (instance ?P
+      (BodySideFn ?S ?BPC))
+    (contraryAttribute ?S ?SO)
+    (attribute ?A Healthy))
+  (exists (?PO)
+    (and
+      (instance ?PO
+        (BodySideFn ?SO ?BPC))
+      (orientation ?P ?PO ?S))))
 
 (instance Harmless RelationalAttribute)
 (documentation Harmless EnglishLanguage "An &%Attribute stating that the &%Process did not cause harm -
