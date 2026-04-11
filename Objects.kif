@@ -1,0 +1,581 @@
+;; Objects.kif:  everyday physical object definitions
+;; author: jdev-02
+;;
+;; Purpose: Extends SUMO with household and everyday object terms absent
+;; from Merge.kif / Mid-level-ontology.kif. Motivated by computer vision
+;; pipeline use: SUMO terms serve as candidate class labels for CLIP-based
+;; classifiers, giving the label set consistent ontological structure
+;; and ability to run the synset mapping to more terms we can run inference
+;; on.
+
+(subclass Tine Object)
+(termFormat EnglishLanguage Tine "tine")
+(documentation Tine EnglishLanguage "A &%Tine is a pointed prong or sharp projection,
+typically one of several on a larger structure.  &%Tines appear on
+both artificial implements such as a &%Fork and on biological
+structures such as the antlers of a &%Moose or deer.  Each &%Tine
+is a &%component of the structure it belongs to.")
+
+(=> (instance ?T Tine) (attribute ?T LongAndThin))
+
+(=>
+  (instance ?T Tine)
+  (exists (?O)
+    (and
+      (instance ?O Object)
+      (component ?T ?O))))
+
+(capability Poking instrument Tine)
+
+(increasesLikelihood
+  (and
+    (instance ?T Tine)
+    (instance ?OBJ Object))
+  (orientation ?OBJ ?T On))
+
+(increasesLikelihood
+  (and
+    (instance ?T1 Tine)
+    (instance ?O Object)
+    (component ?T1 ?O))
+  (exists (?T2)
+    (and
+      (instance ?T2 Tine)
+      (component ?T2 ?O)
+      (not (equal ?T1 ?T2)))))
+
+
+;; Bowls hold contents passively; subclass of Container rather than
+;; Tableware to distinguish from active-transfer implements like Spoon.
+
+(subclass Bowl Container)
+(subclass Bowl Dish)
+(termFormat EnglishLanguage Bowl "bowl")
+(documentation Bowl EnglishLanguage "A &%Bowl is a concave &%Container
+and &%Dish used to hold food, liquids, or other substances.
+Distinguished from a flat &%Plate by its deep concave interior, and
+from a generic &%Dish by its rounded open-topped shape suited for
+liquids and semi-solids.  A &%Bowl holds contents passively rather
+than actively transferring them like a &%Spoon or &%Fork.")
+
+(=>
+  (and
+    (instance ?BOWL Bowl)
+    (instance ?OBJ Object)
+    (contains ?BOWL ?OBJ)
+    (located ?BOWL ?PLACE))
+  (located ?OBJ ?PLACE))
+
+(=>
+  (instance ?BOWL Bowl)
+  (hasPurpose ?BOWL
+    (exists (?FOOD ?EAT)
+      (and
+        (instance ?FOOD Object)
+        (contains ?BOWL ?FOOD)
+        (instance ?EAT Eating)
+        (patient ?EAT ?FOOD)))))
+
+(increasesLikelihood
+  (instance ?B Bowl)
+  (or
+    (material Glass ?B)
+    (material Wood ?B)
+    (material Metal ?B)))
+
+(=> (instance ?B Bowl) (attribute ?B Concave))
+
+(increasesLikelihood
+  (instance ?B Bowl)
+  (exists (?FOOD)
+    (and
+      (instance ?FOOD Food)
+      (contains ?B ?FOOD)
+      (attribute ?FOOD WarmTemperature))))
+
+(increasesLikelihood
+  (instance ?B Bowl)
+  (exists (?FOOD)
+    (and
+      (instance ?FOOD Food)
+      (contains ?B ?FOOD)
+      (attribute ?FOOD HotTemperature))))
+
+(capability Eating instrument Bowl)
+
+
+(subclass Spoon Tableware)
+(termFormat EnglishLanguage Spoon "spoon")
+(documentation Spoon EnglishLanguage "A &%Spoon is a &%Tableware implement consisting
+of a shallow concave bowl attached to a handle, used to scoop and
+transfer food or liquid from below.  Distinguished from a &%Fork,
+which pierces food from above with pointed &%Tines.  A &%Spoon
+translocates food by scooping, while a &%Fork translocates by
+spearing.")
+
+;; when a spoon is instrument of eating, the patient is food
+
+(=>
+  (and
+    (instance ?SP Spoon)
+    (instance ?EAT Eating)
+    (instrument ?EAT ?SP))
+  (exists (?FOOD)
+    (and
+      (instance ?FOOD Object)
+      (patient ?EAT ?FOOD))))
+
+(=>
+  (instance ?SP Spoon)
+  (hasPurpose ?SP
+    (exists (?EAT)
+      (and
+        (instance ?EAT Eating)
+        (instrument ?EAT ?SP)))))
+
+;; eating with a spoon typically involves translocation of food
+;; from container to mouth
+
+(increasesLikelihood
+  (and
+    (instance ?SP Spoon)
+    (instance ?EAT Eating)
+    (instrument ?EAT ?SP))
+  (exists (?MOVE ?FOOD)
+    (and
+      (instance ?MOVE Translocation)
+      (instance ?FOOD Object)
+      (patient ?MOVE ?FOOD)
+      (patient ?EAT ?FOOD))))
+
+(increasesLikelihood
+  (instance ?SP Spoon)
+  (or
+    (material Metal ?SP)
+    (material Wood ?SP)
+    (material Plastic ?SP)))
+
+(=> (instance ?SP Spoon) (attribute ?SP Concave))
+
+(=> (instance ?SP Spoon) (exists (?H) (and (instance ?H Handle) (part ?H ?SP))))
+
+(capability Eating instrument Spoon)
+
+
+;; Knife already exists in SUMO; Scissors are distinct because they
+;; require two opposing blades acting in concert.
+
+(subclass Scissors CuttingDevice)
+(subclass Scissors HandTool)
+(termFormat EnglishLanguage Scissors "scissors")
+(documentation Scissors EnglishLanguage "A &%CuttingDevice consisting
+of two blades joined at a pivot point and operated by a handle on
+each blade, so that opening and closing the handles drives the blades
+across each other to cut material. Unlike a &%Knife, which cuts by
+drawing a single blade across a surface, scissors cut by the shearing
+action of two opposing blades. &%Scissors are used to cut paper,
+fabric, hair, and other thin materials.")
+
+(=>
+  (and
+    (instance ?SCIS Scissors)
+    (instance ?CUT Cutting)
+    (instrument ?CUT ?SCIS))
+  (exists (?OBJ)
+    (and
+      (instance ?OBJ Object)
+      (patient ?CUT ?OBJ))))
+
+(=>
+  (instance ?SCIS Scissors)
+  (hasPurpose ?SCIS
+    (exists (?CUT)
+      (and
+        (instance ?CUT Cutting)
+        (instrument ?CUT ?SCIS)))))
+
+(increasesLikelihood
+  (instance ?S Scissors)
+  (material Metal ?S))
+
+(=> (instance ?S Scissors) (attribute ?S Rigid))
+
+(=> (instance ?S Scissors) (exists (?H) (and (instance ?H Handle) (part ?H ?S))))
+
+(increasesLikelihood
+  (and
+    (instance ?S Scissors)
+    (instance ?C Cutting)
+    (instrument ?C ?S))
+  (exists (?P)
+    (and
+      (patient ?C ?P)
+      (or
+        (instance ?P Paper)
+        (instance ?P Fabric)))))
+
+(capability Cutting instrument Scissors)
+
+
+;; Not in Merge.kif or Dining.kif.
+
+(subclass Fork Tableware)
+(termFormat EnglishLanguage Fork "fork")
+(documentation Fork EnglishLanguage "A &%Fork is a &%Tableware implement with a
+handle and multiple pointed &%Tines used to spear, hold, and lift food
+during eating.  Distinguished from a &%Spoon, which scoops food from
+below with a concave bowl: a &%Fork pierces food from above with its
+&%Tines.  Both are instruments of &%Eating but use different mechanisms
+of food transfer.")
+
+(=>
+  (and
+    (instance ?FK Fork)
+    (instance ?EAT Eating)
+    (instrument ?EAT ?FK))
+  (exists (?FOOD)
+    (and
+      (instance ?FOOD Object)
+      (patient ?EAT ?FOOD))))
+
+(=>
+  (instance ?FK Fork)
+  (hasPurpose ?FK
+    (exists (?EAT)
+      (and
+        (instance ?EAT Eating)
+        (instrument ?EAT ?FK)))))
+
+;; connects Fork to the Tine term defined above
+
+(=>
+  (instance ?F Fork)
+  (exists (?T)
+    (and
+      (instance ?T Tine)
+      (component ?T ?F))))
+
+(=> (instance ?F Fork) (exists (?H) (and (instance ?H Handle) (part ?H ?F))))
+
+(increasesLikelihood
+  (instance ?F Fork)
+  (or
+    (material Metal ?F)
+    (material Wood ?F)
+    (material Plastic ?F)))
+
+(capability Eating instrument Fork)
+
+
+(subclass Plate Tableware)
+(subclass Plate Dish)
+(termFormat EnglishLanguage Plate "plate")
+(documentation Plate EnglishLanguage "A flat or shallow &%Tableware dish
+used for serving or eating food.  &%Plates are characterized by a broad
+flat surface with a slightly raised rim, designed to present food for
+individual consumption.  Unlike a &%Bowl, which has a deep concave
+interior for holding liquids, a plate is predominantly flat.")
+
+(=>
+  (and
+    (instance ?PL Plate)
+    (instance ?EAT Eating)
+    (instrument ?EAT ?PL))
+  (exists (?FOOD)
+    (and
+      (instance ?FOOD Object)
+      (patient ?EAT ?FOOD))))
+
+(=>
+  (instance ?PL Plate)
+  (hasPurpose ?PL
+    (exists (?EAT)
+      (and
+        (instance ?EAT Eating)
+        (instrument ?EAT ?PL)))))
+
+(increasesLikelihood
+  (instance ?PL Plate)
+  (or
+    (material Glass ?PL)
+    (material Plastic ?PL)))
+
+(=> (instance ?P Plate) (attribute ?P Flat))
+
+(capability Eating instrument Plate)
+
+
+(subclass DiningCup DrinkingCup)
+(termFormat EnglishLanguage DiningCup "cup")
+(documentation DiningCup EnglishLanguage "A &%DiningCup is a &%DrinkingCup, i.e. an
+open &%FluidContainer intended to serve a &%Beverage to a single
+person.  Distinguished from a &%DrinkingMug by not requiring a handle.
+Distinguished from a &%Bowl by its taller, narrower profile and
+primary use for beverages rather than food.")
+
+(=>
+  (and
+    (instance ?CUP DiningCup)
+    (instance ?OBJ Object)
+    (contains ?CUP ?OBJ)
+    (located ?CUP ?PLACE))
+  (located ?OBJ ?PLACE))
+
+(=>
+  (instance ?CUP DiningCup)
+  (hasPurpose ?CUP
+    (exists (?DRINK)
+      (and
+        (instance ?DRINK Drinking)
+        (instrument ?DRINK ?CUP)))))
+
+(increasesLikelihood
+  (instance ?C DiningCup)
+  (or
+    (material Glass ?C)
+    (material Plastic ?C)
+    (material Metal ?C)))
+
+(capability Drinking instrument DiningCup)
+
+
+(subclass Vase Container)
+(subclass Vase ArtWork)
+(termFormat EnglishLanguage Vase "vase")
+(documentation Vase EnglishLanguage "A &%Vase is a &%Container, typically tall and
+narrow, used to hold cut flowers or serve as an ornamental object.
+A &%Vase is distinguished from other containers by its decorative
+purpose and its characteristic tall, narrow profile with an
+opening at the top.")
+
+(=>
+  (and
+    (instance ?V Vase)
+    (instance ?OBJ Object)
+    (contains ?V ?OBJ)
+    (located ?V ?PLACE))
+  (located ?OBJ ?PLACE))
+
+(increasesLikelihood
+  (instance ?V Vase)
+  (exists (?FLOWER)
+    (and
+      (instance ?FLOWER FloweringPlant)
+      (contains ?V ?FLOWER))))
+
+(increasesLikelihood
+  (instance ?V Vase)
+  (material Glass ?V))
+
+
+(subclass Bucket Container)
+(termFormat EnglishLanguage Bucket "bucket")
+(documentation Bucket EnglishLanguage "A &%Bucket is an open-topped cylindrical
+&%Container with a semicircular carrying handle, used for transporting
+liquids, sand, or other materials.  A &%Bucket is distinguished from a
+&%Bowl by its taller profile, carrying handle, and typical use in
+transporting rather than serving.")
+
+(=>
+  (and
+    (instance ?BK Bucket)
+    (instance ?MOVE Translocation)
+    (instrument ?MOVE ?BK))
+  (exists (?OBJ)
+    (and
+      (instance ?OBJ Object)
+      (patient ?MOVE ?OBJ))))
+
+(=>
+  (instance ?BK Bucket)
+  (hasPurpose ?BK
+    (exists (?MOVE)
+      (and
+        (instance ?MOVE Translocation)
+        (instrument ?MOVE ?BK)))))
+
+(increasesLikelihood
+  (instance ?BK Bucket)
+  (or
+    (material Metal ?BK)
+    (material Plastic ?BK)))
+
+(=>
+  (instance ?BK Bucket)
+  (exists (?H)
+    (and
+      (instance ?H Handle)
+      (part ?H ?BK))))
+
+(capability Translocation instrument Bucket)
+
+
+(subclass Backpack Container)
+(termFormat EnglishLanguage Backpack "backpack")
+(documentation Backpack EnglishLanguage "A &%Backpack is a &%Container designed to be
+carried on the back via shoulder straps.  A &%Backpack distributes the
+weight of its contents across the wearer's shoulders and back,
+allowing hands-free transport of belongings during walking, hiking,
+or commuting.")
+
+(=>
+  (and
+    (instance ?BP Backpack)
+    (instance ?MOVE Translocation)
+    (agent ?MOVE ?PERSON)
+    (instrument ?MOVE ?BP))
+  (located ?BP ?PERSON))
+
+(=>
+  (instance ?BP Backpack)
+  (hasPurpose ?BP
+    (exists (?MOVE)
+      (and
+        (instance ?MOVE Translocation)
+        (instrument ?MOVE ?BP)))))
+
+(increasesLikelihood
+  (instance ?BP Backpack)
+  (material Fabric ?BP))
+
+(capability Translocation instrument Backpack)
+
+
+(subclass Umbrella Device)
+(termFormat EnglishLanguage Umbrella "umbrella")
+(documentation Umbrella EnglishLanguage "An &%Umbrella is a &%Device consisting of a
+collapsible canopy supported by a central shaft and radiating ribs,
+used for protection from rain or sunlight.  An &%Umbrella is held by
+hand and positioned above the user to shield them from precipitation
+or solar radiation.")
+
+(=>
+  (and
+    (instance ?UMB Umbrella)
+    (instance ?WALK Translocation)
+    (agent ?WALK ?PERSON)
+    (instrument ?WALK ?UMB))
+  (located ?UMB ?PERSON))
+
+;; purpose modeled as orientation (held above a person) rather than
+;; as instrument of a process, since an umbrella shields passively
+
+(=>
+  (instance ?UMB Umbrella)
+  (hasPurpose ?UMB
+    (exists (?PERSON)
+      (and
+        (instance ?PERSON Animal)
+        (orientation ?UMB ?PERSON Above)))))
+
+(increasesLikelihood
+  (instance ?UMB Umbrella)
+  (material Fabric ?UMB))
+
+
+(subclass Shovel Device)
+(subclass Shovel HandTool)
+(termFormat EnglishLanguage Shovel "shovel")
+(documentation Shovel EnglishLanguage "A &%Shovel is a hand-operated &%Device with a
+broad flat or concave blade attached to a long handle, used for digging
+into and moving loose material such as soil, sand, snow, or gravel.
+Distinguished from a spade by its wider, more concave blade shape.")
+
+(=>
+  (and
+    (instance ?SH Shovel)
+    (instance ?DIG IntentionalProcess)
+    (instrument ?DIG ?SH))
+  (exists (?MAT)
+    (and
+      (instance ?MAT Object)
+      (patient ?DIG ?MAT))))
+
+(=>
+  (instance ?SH Shovel)
+  (hasPurpose ?SH
+    (exists (?DIG)
+      (and
+        (instance ?DIG Digging)
+        (instrument ?DIG ?SH)))))
+
+(increasesLikelihood
+  (instance ?SH Shovel)
+  (and
+    (material Metal ?SH)
+    (material Wood ?SH)))
+
+(=> (instance ?SH Shovel) (attribute ?SH Rigid))
+
+(=> (instance ?SH Shovel) (exists (?H) (and (instance ?H Handle) (part ?H ?SH))))
+
+(capability Digging instrument Shovel)
+
+
+(subclass Pliers Device)
+(subclass Pliers HandTool)
+(termFormat EnglishLanguage Pliers "pliers")
+(documentation Pliers EnglishLanguage "&%Pliers are a hand-operated &%Device
+consisting of two hinged arms with flat or serrated jaws, used for
+gripping, bending, or cutting wire and other materials.  &%Pliers
+function by applying mechanical advantage through the pivot point
+to multiply the user's grip strength.")
+
+(=>
+  (and
+    (instance ?PL Pliers)
+    (instance ?PROC IntentionalProcess)
+    (instrument ?PROC ?PL))
+  (exists (?OBJ)
+    (and
+      (instance ?OBJ Object)
+      (patient ?PROC ?OBJ))))
+
+(=>
+  (instance ?PL Pliers)
+  (hasPurpose ?PL
+    (exists (?PROC)
+      (and
+        (instance ?PROC IntentionalProcess)
+        (instrument ?PROC ?PL)))))
+
+(increasesLikelihood
+  (instance ?PL Pliers)
+  (material Metal ?PL))
+
+(=> (instance ?PL Pliers) (attribute ?PL Rigid))
+
+
+(subclass Rake Device)
+(subclass Rake HandTool)
+(termFormat EnglishLanguage Rake "rake")
+(documentation Rake EnglishLanguage "A &%Rake is a &%Device consisting of a long
+handle with a head of projecting tines or teeth, used for gathering
+leaves, grass clippings, hay, or other loose material, and for
+smoothing soil.  Distinguished from a &%Shovel, which scoops and
+lifts material, a &%Rake gathers by dragging across a surface.")
+
+(=>
+  (instance ?R Rake)
+  (exists (?T)
+    (and
+      (instance ?T Tine)
+      (component ?T ?R))))
+
+(=> (instance ?RK Rake) (exists (?H) (and (instance ?H Handle) (part ?H ?RK))))
+
+(=>
+  (instance ?R Rake)
+  (hasPurpose ?R
+    (exists (?MOVE ?MAT)
+      (and
+        (instance ?MOVE Translocation)
+        (instrument ?MOVE ?R)
+        (instance ?MAT Object)
+        (patient ?MOVE ?MAT)))))
+
+(increasesLikelihood
+  (instance ?RK Rake)
+  (and
+    (material Metal ?RK)
+    (material Wood ?RK)))
