@@ -1374,12 +1374,12 @@ a &%Device that allows another &%Device to access and use the &%Internet")
 (termFormat EnglishLanguage InternetAccessPoint "internet access point")
 
 (=>
-  (and
-    (instance ?AP InternetAccessPoint)
-    (instance ?DEVICE Device))
-  (holdsDuring
-    (WhenFn (connectedEngineeringComponents ?DEVICE ?AP))
-    (engineeringSubcomponent ?DEVICE Internet)))
+  (instance ?AP InternetAccessPoint)
+  (hasPurpose ?AP
+    (exists (?DEVICE)
+      (and
+        (connectedEngineeringComponents ?DEVICE ?AP)
+        (engineeringSubcomponent ?DEVICE Internet)))))
 
 (subclass Modem InternetAccessPoint)
 (documentation Modem EnglishLanguage "&%Modem is a device used by computers to
@@ -1566,27 +1566,27 @@ that the ?ATTR type of &%Meal is available at ?TIME according to ?PLAN")
 ;; there is a guest staying in that room, there is a meal available at the stated
 ;; time intervals for that guest to consume (if he wants to) 
 
-(=>
-  (and
-    (offers ?HOTEL ?MP)
-    (instance ?MP MealPlan)
-    (includedMeal ?MP ?ATTR)
-    (attribute ?HOTEL TravelerAccommodation)
-    (guest ?GUEST ?HOTEL)
-    (buys ?GUEST ?HOTEL ?MP))
-  (holdsDuring
-    (WhenFn (guest ?GUEST ?HOTEL))
-    (exists (?TI)
-      (holdsDuring ?TI
-        (exists (?MEAL)
-          (and
-            (attribute ?MEAL ?ATTR)
-            (hasPurpose ?MEAL
-              (exists (?E)
-                (and
-                  (instance ?E Eating)
-                  (agent ?E ?GUEST)
-                  (patient ?E ?MEAL))))))))))
+;(=>
+;  (and
+;    (offers ?HOTEL ?MP)
+;    (instance ?MP MealPlan)
+;    (includedMeal ?MP ?ATTR)
+;    (attribute ?HOTEL TravelerAccommodation)
+;    (guest ?GUEST ?HOTEL)
+;    (buys ?GUEST ?HOTEL ?MP))
+;  (holdsDuring
+;    (WhenFn (guest ?GUEST ?HOTEL))
+;    (exists (?TI)
+;      (holdsDuring ?TI
+;        (exists (?MEAL)
+;          (and
+;            (attribute ?MEAL ?ATTR)
+;            (hasPurpose ?MEAL
+;              (exists (?E)
+;                (and
+;                  (instance ?E Eating)
+;                  (agent ?E ?GUEST)
+;                  (patient ?E ?MEAL))))))))))
 
 (subclass FullBoard MealPlan)
 (documentation FullBoard EnglishLanguage "&%FullBoard is an arrangement in which a
@@ -1802,7 +1802,10 @@ washing, drying, and (possibly) ironing articles of clothing")
       (subProcess ?WASH ?SVC)
       (instance ?WASH Washing)
       (patient ?WASH ?CLOTHES)
-      (result ?WASH (attribute ?CLOTHES Clean))
+      (holdsDuring
+        (ImmediateFutureFn
+          (WhenFn ?WASH))
+        (attribute ?CLOTHES Clean))
       (subProcess ?DRY ?SVC)
       (instance ?DRY Drying)
       (patient ?DRY ?CLOTHES)
@@ -1827,7 +1830,10 @@ cleaning of &%Clothing using some chemical solvent instead of water")
       (instance ?CHEM ChemicalProduct)
       (instrument ?SVC ?CHEM)
       (patient ?SVC ?CLOTHES)
-      (result ?SVC (attribute ?CLOTHES Clean)))))
+      (holdsDuring
+        (ImmediateFutureFn
+          (WhenFn ?SVC))
+        (attribute ?CLOTHES Clean)))))
             
 (subclass ValetLaundryService LaundryService)
 (documentation ValetLaundryService EnglishLanguage "&%ValetLaundryService refers to an
@@ -2502,13 +2508,13 @@ that indicates how &%Smoking is or is not allowed within a certain location")
     (instance ?POLICY SmokingPolicy)
     (policyLocationCoverage ?POLICY ?LOC))
   (or
-    (containsInformation ?POLICY
+    (containsFormula ?POLICY
       (modalAttribute
         (exists (?SMOKE1)
           (and
             (instance ?SMOKE1 Smoking)
             (located ?SMOKE1 ?LOC))) Permission))
-    (containsInformation ?POLICY
+    (containsFormula ?POLICY
       (modalAttribute
         (exists (?SMOKE2)
           (and
@@ -2525,13 +2531,13 @@ is allowed or not in the premises")
     (instance ?POLICY PetPolicy)
     (policyLocationCoverage ?POLICY ?LOC))
   (or
-    (containsInformation ?POLICY 
+    (containsFormula ?POLICY
       (modalAttribute
         (exists (?PET1)
           (and
             (instance ?PET1 DomesticAnimal)
             (located ?PET1 ?LOC))) Permission))
-    (containsInformation ?POLICY 
+    (containsFormula ?POLICY
       (modalAttribute
         (exists (?PET2)
           (and
@@ -2549,13 +2555,13 @@ is allowed or not in an establishment")
     (policyOwner ?AGENT ?POLICY)
     (policyLocationCoverage ?POLICY ?LOC))
   (or
-    (containsInformation ?POLICY
+    (containsFormula ?POLICY
       (modalAttribute
         (exists (?CUST1)
           (and
             (customer ?CUST1 ?AGENT)
             (instance ?CUST1 HumanChild))) Possibility))
-    (containsInformation ?POLICY
+    (containsFormula ?POLICY
       (not
         (modalAttribute
           (exists (?CUST2)
@@ -2662,72 +2668,72 @@ amount of &%RoomCleaning that is done in a &%TravelerAccommodation")
 that &%RoomCleaning is done at least once a day for the duration of a &%guest stay")
 (termFormat EnglishLanguage DailyHousekeepingPolicy "daily housekeeping")
 
-(=>
-  (and
-    (instance ?POLICY DailyHousekeepingPolicy)
-    (policyOwner ?AGENT ?POLICY))
-  (modalAttribute
-    (exists (?GUEST ?ROOM ?STAY)
-      (and 
-        (guest ?GUEST ?AGENT)
-        (stays ?GUEST ?ROOM)
-        (equal ?STAY (WhenFn (stays ?GUEST ?ROOM)))
-        (holdsDuring ?STAY
-          (forall (?DAY)
-            (=>
-              (and
-                (instance ?DAY Day)
-                (during ?DAY ?STAY))
-              (exists (?RC)
-                (and
-                  (instance ?RC RoomCleaningService)
-                  (patient ?RC ?ROOM)
-                  (during ?RC ?DAY)))))))) Likely))
+;(=>
+;  (and
+;    (instance ?POLICY DailyHousekeepingPolicy)
+;    (policyOwner ?AGENT ?POLICY))
+;  (modalAttribute
+;    (exists (?GUEST ?ROOM ?STAY)
+;      (and
+;        (guest ?GUEST ?AGENT)
+;        (stays ?GUEST ?ROOM)
+;        (equal ?STAY (WhenFn (stays ?GUEST ?ROOM)))
+;        (holdsDuring ?STAY
+;          (forall (?DAY)
+;            (=>
+;              (and
+;                (instance ?DAY Day)
+;                (during ?DAY ?STAY))
+;              (exists (?RC)
+;                (and
+;                  (instance ?RC RoomCleaningService)
+;                  (patient ?RC ?ROOM)
+;                  (during ?RC ?DAY)))))))) Likely))
       
 (subclass NoHousekeepingPolicy HousekeepingPolicy)
 (documentation NoHousekeepingPolicy EnglishLanguage "&%NoHousekeepingPolicy means that
 &%RoomCleaning is not done for the duration of a &%guest stay at a &%TravelerAccommodation")
 (termFormat EnglishLanguage NoHousekeepingPolicy "no housekeeping")        
 
-(=>
-  (and
-    (instance ?POLICY NoHousekeepingPolicy)
-    (policyOwner ?AGENT ?POLICY)
-    (attribute ?AGENT TravelerAccommodation))
-  (modalAttribute
-    (exists (?GUEST ?ROOM)
-      (and
-        (guest ?GUEST ?AGENT)
-        (holdsDuring
-          (WhenFn 
-            (stays ?GUEST ?ROOM))
-          (not
-            (exists (?CLEAN)
-              (and
-                (instance ?CLEAN RoomCleaningService)
-                (patient ?CLEAN ?ROOM))))))) Likely))
+;(=>
+;  (and
+;    (instance ?POLICY NoHousekeepingPolicy)
+;    (policyOwner ?AGENT ?POLICY)
+;    (attribute ?AGENT TravelerAccommodation))
+;  (modalAttribute
+;    (exists (?GUEST ?ROOM)
+;      (and
+;        (guest ?GUEST ?AGENT)
+;        (holdsDuring
+;          (WhenFn
+;            (stays ?GUEST ?ROOM))
+;          (not
+;            (exists (?CLEAN)
+;              (and
+;                (instance ?CLEAN RoomCleaningService)
+;                (patient ?CLEAN ?ROOM))))))) Likely))
 
 (subclass WithHousekeepingPolicy HousekeepingPolicy)
 (documentation WithHousekeepingPolicy EnglishLanguage "&%WithHousekeepingPolicy means that
 &%RoomCleaning is not done for the duration of a &%guest stay at a &%TravelerAccommodation")
 (termFormat EnglishLanguage WithHousekeepingPolicy "with housekeeping")        
 
-(=>
-  (and
-    (instance ?POLICY WithHousekeepingPolicy)
-    (policyOwner ?AGENT ?POLICY)
-    (attribute ?AGENT TravelerAccommodation))
-  (modalAttribute
-    (exists (?GUEST ?ROOM)
-      (and
-        (guest ?GUEST ?AGENT)
-        (holdsDuring
-          (WhenFn 
-            (stays ?GUEST ?ROOM))
-          (exists (?CLEAN)
-            (and
-              (instance ?CLEAN RoomCleaningService)
-              (patient ?CLEAN ?ROOM)))))) Likely))      
+;(=>
+;  (and
+;    (instance ?POLICY WithHousekeepingPolicy)
+;    (policyOwner ?AGENT ?POLICY)
+;    (attribute ?AGENT TravelerAccommodation))
+;  (modalAttribute
+;    (exists (?GUEST ?ROOM)
+;      (and
+;        (guest ?GUEST ?AGENT)
+;        (holdsDuring
+;          (WhenFn
+;            (stays ?GUEST ?ROOM))
+;          (exists (?CLEAN)
+;            (and
+;              (instance ?CLEAN RoomCleaningService)
+;              (patient ?CLEAN ?ROOM)))))) Likely))
         
 ;; ---------------------------------------------------------------------------------
 ;; HotelPackages
