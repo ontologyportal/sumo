@@ -814,6 +814,12 @@ by a &%Human which involves his/her vocal cords.")
 are achieved by means of &%Texts that are mailed between the persons
 communicating with one another.")
 
+(subclass Correspondence Document)
+(documentation Correspondence EnglishLanguage "Instances of &%Correspondence are &%Documents that 
+typically are sent from a specific sending &%AutonomousAgent to at least one receiving 
+&%AutonomousAgent, and typically adhere to formatting conventions motivated, in part, by the 
+practical concern of ensuring reliable message transmission and understanding in a given medium: 
+email messages, FAX messages, personal letters, business letters, etc.")
 (=>
   (instance ?C Corresponding)
   (exists (?M ?T)
@@ -2170,10 +2176,6 @@ Mechanical energy can be produced by burning fuel in an &%Engine.")
 (documentation Wax EnglishLanguage "Any &%Substance of high molecular weight that resembles
 beeswax.")
 
-(subclass LiquefiedPetroleumGas FossilFuel)
-(documentation LiquefiedPetroleumGas EnglishLanguage "&%LiquefiedPetroleumGas is a
-compressed hydrocarbon gas.")
-
 (subclass Gasoline FossilFuel)
 (subclass Gasoline Solution)
 (documentation Gasoline EnglishLanguage "&%Gasoline is the subclass of
@@ -2193,6 +2195,53 @@ nor dissipates, but only transfers energy between its two ports.")
 (documentation Engine EnglishLanguage "Engine is a subclass of &%Transducer.  &%Engines
 are devices for converting some form of energy resource into mechanical
 power.")
+
+(documentation InternalCombustionEngine EnglishLanguage "The internal combustion 
+engine is an engine in which the combustion of a fuel (normally a fossil fuel) 
+occurs with an oxidizer (usually air) in a combustion chamber. In an internal 
+combustion engine, the expansion of the high_temperature and high -pressure 
+gases produced by combustion apply direct force to some component of the engine. 
+This force is applied typically to pistons, turbine blades, or a nozzle. This 
+force moves the component over a distance, transforming chemical energy into 
+useful mechanical energy. 
+  The term internal combustion engine usually refers to an engine in which 
+combustion is intermittent, such as the more familiar four_stroke and two_stroke 
+piston engines, along with variants, such as the six_stroke piston engine and 
+the Wankel rotary engine. A second class of internal combustion engines use 
+continuous combustion: gas turbines, jet engines and most rocket engines, each 
+of which are internal combustion engines on the same principle as previously 
+described.
+  The internal combustion engine (or ICE) is quite different from external 
+combustion engines, such as steam or Stirling engines, in which the energy is 
+delivered to a working fluid not consisting of, mixed with, or contaminated by 
+combustion products. [from Wikipedia]")
+
+(=>
+  (instance ?I InternalCombustionEngine)
+  (hasPurpose ?I
+    (exists (?F ?C)
+      (and
+        (instance ?F Fuel)
+        (instance ?C Combustion)
+        (instrument ?C ?I)
+        (resource ?C ?F)))))
+
+(=>
+  (instance ?I InternalCombustionEngine)
+  (hasPurpose ?I
+    (exists (?C ?M ?P)
+      (and
+        (instance ?C Combustion)
+        (instance ?M Motion)
+        (part ?P ?I)
+        (patient ?M ?P)))))
+
+(=>
+  (instance ?C Combustion)
+  (exists (?O)
+    (and
+      (instance ?O Oxygen)
+      (resource ?C ?O))))
 
 ;;
 ;; Jennie August 2022
@@ -2450,6 +2499,30 @@ releases some object, often food or drink, to the customer.")
         (instance ?C Currency)
         (patient ?T ?P)
         (instance ?P Product)))))
+
+(subclass PreparedFood Food)
+(subclass PreparedFood Mixture)
+(documentation PreparedFood EnglishLanguage "&%PreparedFood refers to anything that
+undergoes some process intended to result in an object that has &%Nutrient which can be
+ingested by &%Human, normally metabolized into energy and body tissue.")
+(termFormat EnglishLanguage PreparedFood "food")
+
+(=>
+  (instance ?X PreparedFood)
+  (instance ?X (FoodForFn Human)))
+
+(=>
+  (instance ?X PreparedFood)
+  (exists (?PROC)
+    (and
+      (instance ?PROC IntentionalProcess)
+      (result ?PROC ?X))))
+
+(subclass Beverage PreparedFood)
+(subclass Beverage Colloid)
+(documentation Beverage EnglishLanguage "Any food, excluding water that is ingested by &%Drinking.
+Note that this class is disjoint &%Meat and &%FruitOrVegetable.")
+(disjoint Meat Beverage)
 
 (=>
   (and
@@ -3681,6 +3754,11 @@ well as painting one's kitchen, for example.")
 (subclass WatercolorPaint Paint)
 (documentation WatercolorPaint EnglishLanguage "Any &%Paint which is a water-based &%Solution.")
 
+(subclass FreshWater Water)
+(documentation FreshWater EnglishLanguage "&%FreshWater is the subclass of &%Water
+that has low soluble mineral content.  See also &%DrinkingWater.")
+(roomTempState FreshWater Liquid)
+
 (=>
   (instance ?P WatercolorPaint)
   (exists (?W)
@@ -3885,6 +3963,21 @@ a &%Vehicle.")
   (instance ?W SteeringWheel)
   (capability DirectionChange instrument ?W))
 
+(subclass Brake Device)
+(termFormat EnglishLanguage Brake "brake")
+(documentation Brake EnglishLanguage "Any device that is designed to slow and stop
+the &%Motion of an object.  This include brakes on wheeled vehicles as well as 
+rock climbing equipment that uses friction to slow decent when rappelling.")
+
+(=>
+  (instance ?B Brake)
+  (hasPurpose ?B
+    (exists (?D)
+      (and 
+        (instance ?D Decelerating)
+        (instrument ?D ?B)))))
+
+(subclass VehicleBrake Brake)
 (subclass VehicleBrake VehicleController)
 (documentation VehicleBrake EnglishLanguage "A &%VehicleController which is capable of stopping
 the motion of a &%Vehicle.")
@@ -4021,6 +4114,25 @@ be paired with two &%VehicleWheels to rotate and move a &%RoadVehicle.")
       (instance ?A Axle)
       (component ?A ?V)
       (connected ?W ?A))))
+
+(subclass Compressing Motion)
+(termFormat EnglishLanguage Compressing "compressing")
+(documentation Compressing EnglishLanguage "Forcing some &%SelfConnectedObject
+into a smaller space than at the beginning of the action.")
+
+(=>
+  (and
+    (instance ?SCO SelfConnectedObject)
+    (instance ?C Compressing)
+    (patient ?C ?SCO)
+    (holdsDuring 
+      (ImmediatePastFn (WhenFn ?C))
+      (measure ?SCO (MeasureFn ?N1 ?V)))
+    (instance ?V UnitOfVolume)
+    (holdsDuring 
+      (ImmediateFutureFn (WhenFn ?C))
+      (measure ?SCO (MeasureFn ?N2 ?V))))
+  (greaterThan ?N1 ?N2))
 
 (documentation Paper EnglishLanguage "Paper is a flat sheet
 of fibers, usually produced by spreading a wet solution of
@@ -4750,43 +4862,6 @@ upper deck and lower deck of small boats with a cabin.")
 two things together by means of a movable part which can be tightened
 or loosened.")
 
-(subclass WasherForBolt Device)
-(termFormat EnglishLanguage WasherForBolt "washer")
-
-(documentation WasherForBolt EnglishLanguage "A thin plate made of a durable
-material in the shape of a &%Circle with a &%HoleRegion in it, designed to isolate an
-object fixed by a &%Bolt from the head of the bolt or from contact with a
-&%MechanicalNut.")
-
-(=>
-    (instance ?W WasherForBolt)
-    (hasPurpose ?W
-        (exists (?O1 ?O2)
-            (and
-                (instance ?O1 CorpuscularObject)
-                (instance ?O2 AttachingDevice)
-                (meetsSpatially ?O1 ?W)
-                (contains ?W ?O2)))))
-
-(=>
-  (instance ?W WasherForBolt)
-  (attribute ?W RingTorus))
-
-(=>
-  (instance ?W WasherForBolt)
-  (hasPurpose ?W
-    (exists (?B)
-      (and
-        (instance ?B Bolt)
-        (contains ?W ?B)))))
-
-(=>
-  (instance ?W WasherForBolt)
-  (exists (?H)
-    (and
-      (instance ?H HoleRegion)
-      (equal ?W (HoleHostFn ?H)))))
-
 (subclass Holder Device)
 (documentation Holder EnglishLanguage "A large class of &%Devices whose purpose is to hold
 something else, i.e. be the &%instrument of a &%Keeping.")
@@ -5128,20 +5203,6 @@ i.e. to be in instrument in an act of &%Confining.")
       (and
         (instance ?C Confining)
         (instrument ?C ?T)))))
-
-(subclass LivestockPen TrapOrCage)
-(documentation LivestockPen EnglishLanguage "A &%TrapOrCage designed for &%Confining &%Livestock.")
-(termFormat EnglishLanguage LivestockPen "pen")
-
-(=>
-  (instance ?T LivestockPen)
-  (hasPurpose ?T
-    (exists (?C ?L)
-      (and
-        (instance ?L Livestock)
-        (instance ?C Confining)
-        (instrument ?C ?T)
-        (patient ?C ?L)))))
 
 (subclass Envelope Container)
 (documentation Envelope EnglishLanguage "A sealable &%Container for one or more pieces of
@@ -5502,6 +5563,7 @@ all &%GeometricPoints that make up the &%Cylinder are equidistant from a
       (MeasureFn ?N AngularDegree)))
   (greaterThan ?N 90.0))
 
+(instance RightAngle PositionalAttribute)
 (instance RightAngle TwoDimensionalAngle)
 (documentation RightAngle EnglishLanguage "Any &%TwoDimensionalAngle that has the
 &%angularMeasure of 90 &%AngularDegrees.")
@@ -6286,6 +6348,29 @@ are designed to be worn together.")
 (subclass Pajamas Clothing)
 (documentation Pajamas EnglishLanguage "&%Pajamas are loose-fitting &%Clothing worn for &Sleeping or &%StayingStill (lounging). There are a body top and
 a bottom. The bottom is usually in the form of trousers.")
+
+(subclass EmotionalBodilyMovementBehavior EmotionalBehavioralProcess)
+(subclass EmotionalBodilyMovementBehavior BodyMotion)
+(termFormat EnglishLanguage EmotionalBodilyMovementBehavior "emotional
+bodily movement behavior")
+
+(termFormat EnglishLanguage StayingStill "staying still")
+(documentation StayingStill EnglishLanguage "A bodily movement behavior
+which involves remaining still. Note that a passenger on a train could
+be &%StayingStill and yet still experiencing a change in location.")
+(subclass StayingStill EmotionalBodilyMovementBehavior)
+
+(=>
+  (and
+    (instance ?SS StayingStill)
+    (experiencer ?SS ?A))
+  (not
+    (exists (?B ?T)
+      (and
+        (instance ?B BodyMotion)
+        (instance ?T Translocation)
+        (causes ?B ?T)
+        (agent ?B ?A)))))
 
 (=>
   (instance ?PJ Pajamas)
@@ -7336,36 +7421,6 @@ to an organic impairment of the &%NervousSystem.")
 (documentation Psychosis EnglishLanguage "Any &%PsychologicalDysfunction which is the
 result of an organic impairment of the &%NervousSystem.")
 
-(subclass Depression PsychologicalDysfunction)
-
-(documentation Depression EnglishLanguage "Depression is a state of
-low mood and aversion to activity. Classified medically as a mental
-and behavioral disorder, the experience of depression affects a
-person's thoughts, behavior, motivation, feelings, and sense of
-well-being. The core symptom of depression is said to be anhedonia,
-which refers to loss of interest or a loss of feeling of pleasure in
-certain activities that usually bring joy to people. Depressed mood
-is a symptom of some mood disorders such as major depressive disorder
-or dysthymia; it is a normal temporary reaction to life events,
-such as the loss of a loved one; and it is also a symptom of some
-physical diseases and a side effect of some drugs and medical
-treatments. It may feature sadness, difficulty in thinking and
-concentration and a significant increase or decrease in appetite and
-time spent sleeping. People experiencing depression may have feelings
-of dejection, hopelessness and suicidal thoughts. It can either be
-short term or long term.[from Wikipedia]")
-(termFormat EnglishLanguage Depression "depression")
-(termFormat EnglishLanguage Depression "depressed")
-
-(=>
-  (holdsDuring ?T
-    (attribute ?H Depression))
-  (modalAttribute
-    (holdsDuring ?T
-      (not
-        (attribute ?H Happiness)))
-    Likely))
-
 (instance SexualDysfunction DiseaseOrSyndrome)
 (documentation  SexualDysfunction EnglishLanguage "An either
 physical or psychological inability to engage in &%Mating.")
@@ -7830,6 +7885,10 @@ intended to be moved around.[Wikipedia]")
 This term is still under development in the sense that it is yet to be decided whether it is a
 class or an attribute. Does putting up a fence make a region a new region or change the attribute
 of an existing region?")
+
+(subclass Barrier StationaryArtifact)
+(documentation Barrier EnglishLanguage "WN: a structure or object that impedes free
+movement")
 
 (=>
   (and
@@ -8340,25 +8399,6 @@ for the payment of a premium or premiums.")
   (instance ?I InsuranceCompany)
   (exists (?C)
     (insured ?C ?I)))
-
-(subclass HealthInsuranceCompany InsuranceCompany)
-(documentation HealthInsuranceCompany EnglishLanguage "A &%Business that insures &%Agents
-against health care costs for the payment of a premium or premiums.")
-
-(=>
-  (and
-    (instance ?I HealthInsuranceCompany)
-    (customer ?I ?C))
-  (hasPurposeForAgent ?I ?C
-    (exists (?D ?P)
-      (and
-        (or
-          (instance ?D DiagnosticProcess)
-          (instance ?D TherapeuticProcess))
-        (experiencer ?D ?C)
-        (instance ?P Payment)
-        (agent ?P ?I)
-        (refers ?P ?D)))))
 
 (subclass TransportationCompany Business)
 (documentation TransportationCompany EnglishLanguage "A &%Business whose services
@@ -9973,6 +10013,13 @@ is believed to be closely associated with various cardiological disorders.")
 
 (subclass ChemicalAcid CompoundSubstance)
 (disjoint ChemicalAcid ChemicalBase)
+(subclass ChemicalAcid Substance)
+(termFormat EnglishLanguage ChemicalAcid "acid")
+(documentation ChemicalAcid EnglishLanguage "Acids are substances which increase 
+the concentration of hydronium ions (H3O+) in solution, substances which 
+can act as a proton donor, and substances which are electron_pair acceptors.
+This is a restrictive definition combining the 'Arrhenius definition',
+the 'Brønsted_Lowry definition' and the 'Lewis definition' [adapted from Wikipedia]")
 (documentation ChemicalAcid EnglishLanguage "A bitter &%CompoundSubstance that is capable of
 reacting with a &%ChemicalBase and forming a &%ChemicalSalt.")
 
@@ -10477,12 +10524,6 @@ the ASTM D1037.[Wikipedia]")
           (MeasureFn 5.64 Millimeter))
         (measure ?P (MeasureFn ?X PoundForce)))) Likely))
 
-(equal (JankaHardnessFn AspenTree) (MeasureFn 350 PoundForce))
-(equal (JankaHardnessFn PoplarTree) (MeasureFn 540 PoundForce))
-(equal (JankaHardnessFn RedOakTree) (MeasureFn 1290 PoundForce))
-(equal (JankaHardnessFn BeechTree) (MeasureFn 1300 PoundForce))
-(equal (JankaHardnessFn WhiteOakTree) (MeasureFn 1360 PoundForce))
-
 ;;
 ;; Mohs Scale for substance
 ;;
@@ -10505,11 +10546,13 @@ not by fluorite, its hardness on the Mohs scale would be between 4 and 5. [Wikip
 
 (equal 10 (MohsScaleFn Diamond))
 (equal 5.5 (MohsScaleFn Glass))
-(equal 4 (MohsScaleFn IronOre))
 (equal 3 (MohsScaleFn Brass))
-(equal 2.5 (MohsScaleFn ZincOre))
-(equal 1.5 (MohsScaleFn LeadOre))
-(equal 1 (MohsScaleFn Talc))
+
+(instance SquareMillimeter UnitOfArea)
+(documentation SquareMillimeter EnglishLanguage "&%SquareMillimeter represents a &%UnitOfMeasure
+equal to one square &%Millimeter.")
+(termFormat EnglishLanguage SquareMillimeter "square millimeter")
+(equal SquareMillimeter (SquareUnitFn Millimeter))
 
 ;;
 ;; Vickers Hardness Scale
@@ -10734,19 +10777,6 @@ function or activity in the &%Brain or &%SpinalCord.")
 (documentation Depressant EnglishLanguage "Any &%BiologicallyActiveSubstance which has
 the effect of depressing the central nervous system, i.e. decreasing
 function or activity in the &%Brain or &%SpinalCord.")
-
-(subclass Opium BiologicallyActiveSubstance)
-(subclass Opium PlantSubstance)
-(documentation Opium EnglishLanguage "A substance harvested from the seed capsules of the
-opium poppy that contains various powerful alkaloids.")
-(subclass Opium Depressant)
-
-(=>
-  (instance ?O Opium)
-  (exists (?A)
-    (and
-      (instance ?A Alkaloid)
-      (part ?A ?O))))
 
 (subclass HerbaceousPlant FloweringPlant)
 (disjoint HerbaceousPlant WoodyPlant)
@@ -10991,31 +11021,6 @@ either a thorn, a spine or a prinkle. They are rigid parts of a &%Plant with sha
         (instance ?P Pain)
         (experiencer ?P ?A))) Possibility))
 
-(subclass PlantAreole PlantAnatomicalStructure)
-(subclass PlantAreole Organ)
-(documentation PlantAreole EnglishLanguage "In botany, &%PlantAreoles are bumps on
-&%Cactus from which clusters of spines grow.")
-
-(=>
-  (instance ?AREOLE PlantAreole)
-  (attribute ?AREOLE Concave))
-
-(=>
-  (instance ?AREOLE PlantAreole)
-  (exists (?CAC)
-    (and
-      (instance ?CAC Cactus)
-      (part ?AREOLE ?CAC))))
-
-(=>
-  (instance ?AREOLE PlantAreole)
-  (exists (?CAC ?SPINE)
-    (and
-       (instance ?CAC Cactus)
-       (instance ?SPINE PlantSpinoseStructure)
-       (part ?SPINE Cactus)
-       (overlapsSpatially ?SPINE ?AREOLE))))
-
 (subclass Antibody Protein)
 (documentation Antibody EnglishLanguage "An immunoglobulin which is produced by the body
 and which has the ability to neutralize &%Antigens.")
@@ -11080,27 +11085,6 @@ instances of &%Parasite.")
     (and
       (instance ?D ParasiticDisease)
       (medicine ?AVM ?D))))
-
-(subclass Antidepressant BiologicallyActiveSubstance)
-(documentation Antidepressant EnglishLanguage "A &%medicine to combat
-&%Depression.")
-(medicine Antidepressant Depression)
-(termFormat EnglishLanguage Antidepressant "antidepressant")
-(termFormat EnglishLanguage Antidepressant "anti-depressant")
-
-(=>
-  (instance ?AP Antidepressant)
-  (hasPurpose ?AP
-    (exists (?I ?H)
-      (and
-        (instance ?I Ingesting)
-        (objectTransferred ?I ?AP)
-        (agent ?AP ?H)
-        (holdsDuring
-          (FutureFn
-            (WhenFn ?I))
-          (not
-            (attribute ?H Depression)))))))
 
 (subclass Antipsychotic Medicine)
 (documentation Antipsychotic EnglishLanguage "A &%Medicine which
@@ -12266,7 +12250,6 @@ under normal circumstances.")
 ;; Milk milk is raw milk
 
 (subclass Milk LiquidBodySubstance)
-(relatedInternalConcept Milk ProcessedMilk)
 (documentation Milk EnglishLanguage "A nutritious &%BodySubstance produced by &%Mammals
 that has evolved to provide nourishment for their offspring duringtheir initial period
  of life. [Wikipedia] For the 'milk that we drink day-to-day, one should refers to &%ProcessMilk under
@@ -12423,6 +12406,18 @@ of &%Animals.")
          (part ?SKIN ?ANIMAL)
          (instance ?ANIMAL Animal)
          (overlapsSpatially ?SKIN ?SURFACE))))
+
+(subclass Star AstronomicalBody)
+(documentation Star EnglishLanguage
+"&%Star is the class of hot gaseous astronomical bodies.")
+
+(instance Sol Star)
+(documentation Sol EnglishLanguage "&%Sol is the nearest &%Star to &%PlanetEarth and
+the focus of its &%SolarSystem.")
+
+(=>
+  (instance ?L Sunlight)
+  (origin ?L Sol))
 
 (subclass Sunburn OrganOrTissueProcess)
 (documentation Sunburn EnglishLanguage "A &%Damaging of the &%Skin due
@@ -12655,7 +12650,13 @@ includes the rib cage of an &%Animal, surrounding the &%Heart and
       (part ?C ?T)
       (part ?T ?A))))
 
+(subclass ThoraxBone Bone)
+(termFormat EnglishLanguage ThoraxBone "thorax bone")
+(documentation ThoraxBone EnglishLanguage "thorax bone")
+(initialPart ThoraxBone Torso)
+
 (subclass RibBone Bone)
+(subclass RibBone ThoraxBone)
 (documentation RibBone EnglishLanguage "One of the &%Collection of &%Bones
 that form the &%Chest of an &%Animal, surrounding the &%Heart and
 &%Lungs.")
@@ -13893,6 +13894,24 @@ for the &%Eye.")
       (instrument ?P ?TG)
       (result ?P ?T))))
 
+(subclass Lubricant Substance)
+(termFormat EnglishLanguage Lubricant "lubricant")
+(documentation Lubricant EnglishLanguage "Any &%Substance that reduces &%Friction
+between two objects that are in contact and move with respect to one another.  Note
+that this does not include &%CorpuscularObjects like &%BallBearings.")
+
+(subclass Lubricating Putting)
+(termFormat EnglishLanguage Lubricating "lubricating")
+(documentation Lubricating EnglishLanguage "&%Putting a &%Lubricant on some
+&%Object with the purpose to reduce &%Friction when that part moves against another.")
+
+(=>
+  (instance ?LP Lubricating)
+  (exists (?L)
+    (and
+      (instance ?L Lubricant)
+      (objectTransferred ?LP ?L))))
+
 (=>
   (instance ?T TearSubstance)
   (hasPurpose ?T
@@ -14123,6 +14142,8 @@ Caterpillars are typically voracious feeders and many of them are among the most
 ;; Jennie Pease 21st October 2022
 ;; revised axioms to fix inconsistent variable type for ?C
 ;;
+
+(subclass Butterfly Insect)
 
 (=>
   (instance ?C Caterpillar)
@@ -14517,60 +14538,6 @@ to the benefit of the person congratulated.")
       (agent ?C ?A)
       (wants ?A ?P)
       (refers ?C ?P))))
-
-(subclass FacialExpression Gesture)
-(documentation FacialExpression EnglishLanguage "Any &%Gesture whose &%instrument is the &%Face.")
-
-(=>
-  (and
-    (instance ?EXPRESS FacialExpression)
-    (agent ?EXPRESS ?AGENT))
-  (exists (?FACE)
-    (and
-      (part ?FACE ?AGENT)
-      (instance ?FACE Face)
-      (instrument ?EXPRESS ?FACE))))
-
-(subclass Smiling FacialExpression)
-(documentation Smiling EnglishLanguage "Spreading the lips in such a way as to convey
-happiness.")
-
-(=>
-   (and
-      (instance ?SMILE Smiling)
-      (agent ?SMILE ?AGENT))
-   (holdsDuring (WhenFn ?SMILE) (attribute ?AGENT Happiness)))
-
-(subclass Frowning FacialExpression)
-(documentation Frowning EnglishLanguage "Furrowing the forehead in such a way as to convey
-unhappiness.")
-
-(=>
-   (and
-      (instance ?FROWN Frowning)
-      (agent ?FROWN ?AGENT))
-   (holdsDuring (WhenFn ?FROWN) (attribute ?AGENT Unhappiness)))
-
-(subclass Laughing Vocalizing)
-(subclass Laughing FacialExpression)
-(documentation Laughing EnglishLanguage "Expressing happiness by &%Vocalizing in a
-certain way.")
-
-(=>
-   (instance ?LAUGH Laughing)
-   (exists (?SMILE)
-      (and
-         (instance ?SMILE Smiling)
-         (subProcess ?SMILE ?LAUGH))))
-
-(subclass Weeping FacialExpression)
-(documentation Weeping EnglishLanguage "&%Expressing unhappiness by shedding tears.")
-
-(=>
-   (and
-      (instance ?WEEP Weeping)
-      (agent ?WEEP ?AGENT))
-   (holdsDuring (WhenFn ?WEEP) (attribute ?AGENT Unhappiness)))
 
 (subclass Nodding Gesture)
 (documentation Nodding EnglishLanguage "Moving the &%Head up and down or side to side
@@ -16522,34 +16489,6 @@ as &%DramaticActing.")
       (realization ?ACT ?OPERA))
    (instance ?ACT MakingMusic))
 
-(instance FrenchLanguage SpokenHumanLanguage)
-(instance FrenchLanguage NaturalLanguage)
-(documentation FrenchLanguage EnglishLanguage "A &%Romance language that is the official language
-of France and Belgium, and is widely spoken in Africa.")
-
-(instance GermanLanguage SpokenHumanLanguage)
-(instance GermanLanguage NaturalLanguage)
-(documentation GermanLanguage EnglishLanguage "A &%Germanic language that is spoken primarily in
-Germany and Austria.")
-
-(instance GreekLanguage SpokenHumanLanguage)
-(instance GreekLanguage NaturalLanguage)
-(documentation GreekLanguage EnglishLanguage "An Indo-European language that is spoken in &%Greece.")
-
-(instance LatinLanguage SpokenHumanLanguage)
-(instance LatinLanguage NaturalLanguage)
-(documentation LatinLanguage EnglishLanguage "A &%Language that was spoken in ancient &%Rome and
-is still the official language of the &%Vatican.")
-
-(instance RussianLanguage SpokenHumanLanguage)
-(instance RussianLanguage NaturalLanguage)
-(documentation RussianLanguage EnglishLanguage "A Slavic language that is spoken in &%Russia.")
-
-(instance SpanishLanguage SpokenHumanLanguage)
-(instance SpanishLanguage NaturalLanguage)
-(documentation SpanishLanguage EnglishLanguage "A &%Romance language that is the official language
-of Spain, Mexico, and many Central and South American countries.")
-
 (<=>
   (attribute ?H LiteracyAttribute)
   (and
@@ -16823,6 +16762,7 @@ distinguish doors from gates.")
          (instance ?WAY Doorway))))
 
 (subclass Hinge EngineeringComponent)
+(subclass Hinge MechanicalJoint)
 (documentation Hinge EnglishLanguage "An &%EngineeringComponent that connects one thing to
 another in such a way that they can move relative to one another.")
 
@@ -16835,6 +16775,29 @@ another in such a way that they can move relative to one another.")
 	 (or
 	   (capability Rotating patient ?OBJ1)
 	   (capability Rotating patient ?OBJ2))))))
+
+(subclass MechanicalJoint EngineeringComponent)
+(termFormat EnglishLanguage MechanicalJoint "mechanical joint")
+(documentation MechanicalJoint EnglishLanguage "A &%Device that links two parts of a &%PhysicalSystem and
+allows them to move in relation to one another.  Examples include &%Hinges, drawer slides and &%BallJoints.")
+
+(=>  
+  (instance ?MJ MechanicalJoint)
+  (hasPurpose ?MJ
+    (exists (?S ?P1 ?P2 ?M)
+      (and
+        (instance ?M Motion)
+        (instance ?S PhysicalSystem)
+        (instance ?P1 EngineeringComponent)
+        (instance ?P2 EngineeringComponent)
+        (part ?P1 PhysicalSystem)
+        (part ?MJ PhysicalSystem)
+        (part ?P2 PhysicalSystem)
+        (not
+          (patient ?M ?P1))
+        (patient ?M ?P2)
+        (connectedEngineeringComponents ?P1 ?MJ)
+        (connectedEngineeringComponents ?P2 ?MJ)))))
 
 (subclass Doorway StationaryArtifact)
 (documentation Doorway EnglishLanguage "A &%StationaryArtifact consisting of a frame that
@@ -18025,25 +17988,6 @@ wants to be &%Asleep.")
     (holdsDuring
       (ImmediateFutureFn ?T)
       (attribute ?H Asleep))))
-
-(subclass Insomnia PathologicProcess)
-(documentation Insomnia EnglishLanguage "A physiological or psychological
-inability to get enough time &%Sleeping for wellbeing.")
-(termFormat EnglishLanguage Insomnia "insomnia")
-
-(=>
-  (and
-    (instance ?I Insomnia)
-    (experiencer ?I ?H))
-  (exists (?S ?D ?D2)
-    (and
-      (instance ?S Sleeping)
-      (experiencer ?S ?H)
-      (duration (WhenFn ?S) ?D)
-      (desires ?H
-        (and
-          (duration (WhenFn ?S) ?D2)
-          (greaterThan ?D2 ?D))))))
 
 (subclass GainingConsciousness PsychologicalProcess)
 (documentation GainingConsciousness EnglishLanguage "The process of transitioning from a state
@@ -20131,53 +20075,6 @@ contained information can not be decoded again.")
     (instance ?M Memorizing)
     (patient ?M ?T))
   (instance ?T Text))
-
-(subclass Imagining PsychologicalProcess)
-(documentation Imagining EnglishLanguage "Forming a mental picture of something which
-is not present.")
-
-(subclass Dreaming Imagining)
-(disjoint Dreaming IntentionalProcess)
-(documentation Dreaming EnglishLanguage "A &%Process of producing metal images which occurs
-while one is &%Asleep.")
-
-(=>
-   (and
-      (instance ?DREAM Dreaming)
-      (experiencer ?DREAM ?AGENT))
-   (holdsDuring (WhenFn ?DREAM) (attribute ?AGENT Asleep)))
-
-(subclass Frightening PsychologicalProcess)
-(documentation Frightening EnglishLanguage "Any &%PsychologicalProcess where the &%patient
-comes to feel &%Fear.")
-
-(=>
-   (and
-      (instance ?FRIGHTEN Frightening)
-      (experiencer ?FRIGHTEN ?AGENT))
-   (and
-      (holdsDuring (BeginFn (WhenFn ?FRIGHTEN)) (not (attribute ?AGENT Fear)))
-      (holdsDuring (EndFn (WhenFn ?FRIGHTEN)) (attribute ?AGENT Fear))))
-
-(=>
-  (holdsDuring ?T
-    (attribute ?A Fear))
-  (exists (?F)
-    (and
-      (instance ?F Frightening)
-      (experiencer ?F ?A)
-      (during (WhenFn ?F) ?T))))
-      
-(=>
-  (and
-    (instance ?F Frightening)
-    (experiencer ?F ?A))
-  (and 
-    (fears ?A
-      (instance ?P Physical))
-    (or
-      (origin ?F ?P)
-      (causes ?P ?F))))
       
 (subclass Execution Killing)
 (documentation Execution EnglishLanguage "&%Killing of a &%Human by a &%Government for
@@ -20438,6 +20335,20 @@ patient (entity guided) is a &%Musician or a &%MusicalGroup.")
     (holdsDuring
       (WhenFn ?CONDUCT)
       (attribute ?PATIENT ?M))))
+
+(subclass ArtisticOccupation SkilledOccupation)
+(documentation ArtisticOccupation EnglishLanguage "People in design, education, arts, music and entertainment, whose economic function is to create new ideas, new technology and/ or creative content. [Will be merged with EntertainmentProfession in in Mid_level_ontology.kif using the name ArtisticOccupation, msvarny]")
+
+(subclass Musician ArtisticOccupation)
+(documentation Musician EnglishLanguage "A Musician is someone who is capable of giving a &%MusicalPerformance.
+This includes amateurs and others who don't formally make a living at the activity
+or choose it as a profession.")
+
+(=>
+  (and
+    (attribute ?X ?M)
+    (instance ?M Musician))
+  (hasSkill MusicalPerformance ?X))
 
 (subclass OrchestralConducting MusicalConducting)
 (documentation OrchestralConducting EnglishLanguage "&%OrchestralConducting is a type
@@ -20711,6 +20622,21 @@ who has completed at least one year and less than two years at the school.")
         (student ?H ?ORG))
       (greaterThanOrEqualTo ?T 1)
       (lessThan ?T 2))))
+
+(subclass Laughing Vocalizing)
+(subclass Laughing FacialExpression)
+(subclass Laughing EmotionalBehavioralProcess)
+(documentation Laughing EnglishLanguage "Expressing happiness by &%Vocalizing in a
+certain way.")
+(documentation Smiling EnglishLanguage "Spreading the lips in such a way as to convey
+happiness.")
+
+(=>
+   (instance ?LAUGH Laughing)
+   (exists (?SMILE)
+      (and
+         (instance ?SMILE Smiling)
+         (subProcess ?SMILE ?LAUGH))))
 
 (subclass CollegeStudentPosition Position)
 (documentation CollegeStudentPosition EnglishLanguage "Any &%Position at a &%PostSecondarySchool
@@ -21208,76 +21134,6 @@ such as &%Adjectives, &%Articles, &%Pronouns, or &%Verbs.")
 (domain nounGender 1 Noun)
 (domain nounGender 2 NaturalLanguage)
 (domain nounGender 3 GrammaticalGender)
-
-(instance Happiness EmotionalState)
-(documentation Happiness EnglishLanguage "The state of being happy, experiencing pleasure,
-joy or contentment.  Note that this &%Attribute covers both active enjoyment,
-as well as the emotional state of simply being free from anxiety or fear.")
-
-(=>
-  (attribute ?PERSON Happiness)
-  (not
-    (exists (?PROP)
-      (fears ?PERSON ?PROP))))
-
-(subAttribute Satisfaction Happiness)
-(documentation Satisfaction EnglishLanguage "The state of being happy about a state of
-affairs that occurred in the past.  In cases where that state of affairs
-is the product of one's own doing, this is known as pride.")
-
-(subAttribute Tranquility Happiness)
-(contraryAttribute Tranquility Anxiety)
-(documentation Tranquility EnglishLanguage "The state of being free from &%Anxiety.")
-
-(instance Unhappiness EmotionalState)
-(contraryAttribute Unhappiness Happiness)
-(documentation Unhappiness EnglishLanguage "The state of being unhappy, experiencing pain,
-sorrow or unease.")
-
-(subAttribute Excitement Happiness)
-(documentation Excitement EnglishLanguage "The state of being happy about a state of
-affairs that might occur in the future.")
-
-(documentation Anxiety EnglishLanguage "A negative, aversive emotion
-provoked by the prospect of future threat. Distinguished from fear since
-it is triggered by a distal threat whereas fear is triggered by an
-immediate threat. Often gradual and long_lasting, whereas fear usually
-has sudden onset and offset. [Source: OCEAS]")
-(instance Anxiety EmotionalState)
-(relatedInternalConcept Anxiety Fear)
-(relatedInternalConcept Anxiety Worry)
-
-;;(=>
-;;   (holdsDuring ?T
-;;     (attribute ?PERSON Anxiety))
-;;   (believes ?PERSON
-;;     (holdsDuring
-;;       (ImmediateFutureFn ?T)
-;;       (exists (?PROP)
-;;         (fears ?PERSON ?PROP)))))
-
-(=>
-  (attribute ?A Anxiety)
-  (attribute ?A Unhappiness))
-
-(instance Anger EmotionalState)
-(documentation Anger EnglishLanguage "Anger is a negative emotion,
-characterised by feelings of unpleasantness and high arousal, in the
-form of antagonistic feelings and action tendencies. [Source: OCEAS]")
-(termFormat GermanLanguage Anger "wut")
-(termFormat SpanishLanguage Anger "ira")
-(utterance EnglishLanguage Anger "angry")
-(termFormat EnglishLanguage Anger "anger")
-(termFormat FrenchLanguage Anger "colère")
-
-(=>
-   (attribute ?PERSON Anger)    
-   (exists (?PROP)
-      (disapproves ?PERSON ?PROP)))
-      
-(=>
-  (attribute ?A Anger)
-  (attribute ?A Unhappiness))
 
 (subclass Pain PathologicProcess)
 (documentation Pain EnglishLanguage "A physical sensation of discomfort which can vary widely
@@ -21785,7 +21641,7 @@ when they &%desires to be &%Asleep.")
         (agent ?S ?A)))))
 
 
-(documentation EnglishLanguage Greedy "Wanting more than is necessary")
+(documentation Greedy EnglishLanguage "Wanting more than is necessary")
 (termFormat EnglishLanguage Greedy "greedy")
 (subclass Greedy SubjectiveStrongNegativeAttribute)
 (subclass Greedy TraitAttribute)
@@ -21987,10 +21843,52 @@ other on the &%Left side.")
       (BodySideFn Right Eye))
     (instance ?L
       (BodySideFn Left Eye))))
-      
+
+(subclass FacialExpression Gesture)
+(subclass FacialExpression EmotionalBehavioralProcess)
+(documentation FacialExpression EnglishLanguage "Any &%Gesture whose &%instrument is the &%Face.")
+
+(=>
+  (and
+    (instance ?EXPRESS FacialExpression)
+    (agent ?EXPRESS ?AGENT))
+  (exists (?FACE)
+    (and
+      (part ?FACE ?AGENT)
+      (instance ?FACE Face)
+      (instrument ?EXPRESS ?FACE))))
+
+(documentation EmotionalBehavioralProcess EnglishLanguage "An emotional
+behavioral process is the behavior of the organism in response to the
+appraisal, which includes the characteristic facial expressions for
+particular emotion types.")
+(documentation EmotionalBehavioralProcess EnglishLanguage "This branch
+is still very much under construction and will be worked on in
+collaboration with the Behavior Ontology (George Gkoutos).")
+(termFormat EnglishLanguage EmotionalBehavioralProcess "emotional
+behavioral process")
+(subclass EmotionalBehavioralProcess PsychologicalProcess)
+
+(=>
+  (and
+    (instance ?EBP EmotionalBehavioralProcess)
+    (agent ?EBP ?A))
+  (exists (?FE)
+    (and
+      (instance ?FE FacialExpression)
+      (agent ?FE ?A)
+      (causes ?EBP ?FE))))
+
+(subclass OpeningBothEyes FacialExpression)
+(subclass ClosingBothEyes FacialExpression)
+(subclass OpeningEye FacialExpression)
+(subclass ClosingEye FacialExpression)
+(subclass Winking FacialExpression)
+
+(subclass OpeningEye FacialExpression)
+
 (subclass OpeningBothEyes BodyMotion)
 (subclass OpeningBothEyes Opening)
-(subclass OpeningBothEyes FacialExpression)
 (disjoint OpeningBothEyes ClosingBothEyes)
 (documentation OpeningBothEyes EnglishLanguage "This &%Process specifies that both
 the left and right eye open together.")
@@ -22016,7 +21914,6 @@ the left and right eye open together.")
       
 (subclass ClosingBothEyes BodyMotion)
 (subclass ClosingBothEyes Closing)
-(subclass ClosingBothEyes FacialExpression)
 (documentation ClosingBothEyes EnglishLanguage "This &%Process specifies that both
 left and right eye close together.")
 
@@ -22090,7 +21987,6 @@ the use of all three divisions of the orbicularis oculi muscle.[Wikipedia]")
 
 (subclass OpeningEye BodyMotion)
 (subclass OpeningEye Opening)
-(subclass OpeningEye FacialExpression)
 (disjoint OpeningEye OpeningOneEye)
 (documentation OpeningEye EnglishLanguage "The &%BodyMotion of relaxing the upper eye lid so that
 the corneas are exposed to light.The eye was closed before it is opened.")
@@ -22149,7 +22045,6 @@ the corneas are exposed to light.The eye was closed before it is opened.")
         
 (subclass ClosingEye BodyMotion)
 (subclass ClosingEye Closing)
-(subclass ClosingEye FacialExpression)
 (documentation ClosingEye EnglishLanguage "The &%BodyMotion of tensing the eye lids so that
 the corneas are not exposed to light, i.e.&%LowerEyelid meets with &%UpperEyelid spacially ")
 (disjoint ClosingEye OpeningEye)
@@ -22202,35 +22097,6 @@ the corneas are not exposed to light, i.e.&%LowerEyelid meets with &%UpperEyelid
       (instance ?CC Cornea)
       (part ?CC ?E)
       (subProcess ?C ?O))))
-
-(subclass Winking ClosingEye)
-(subclass Winking IntentionalProcess)
-(subclass Winking FacialExpression)
-(documentation Winking EnglishLanguage "&%Closing only one eye for a brief moment to convey a 
-message or as a form of flirtation or acknowledgement.")
-(=>
-  (and
-    (instance ?B Winking)
-    (patient ?B ?E)
-    (or
-      (instance ?E
-        (BodySideFn Left Eye))
-      (instance ?E
-        (BodySideFn Right Eye))))      
-  (exists (?T)
-    (and
-      (holdsDuring ?T
-        (attribute ?E Closed))
-      (during
-        (WhenFn ?B) ?T)
-      (holdsDuring
-        (ImmediatePastFn
-          (WhenFn ?B))
-        (attribute ?E Open))
-      (holdsDuring
-        (ImmediateFutureFn
-          (WhenFn ?B))
-        (attribute ?E Open)))))
         
 (subclass Shrugging BodyMotion)
 (subclass Shrugging Gesture)
@@ -22584,10 +22450,7 @@ Melinae (and thus Mustelidae), but recent genetic evidence[1] indicates these ar
 of the skunk family, placing them in the taxonomic family Mephitidae. [courtesy Wikipedia]")
 
 (defaultMeasure Badger (MeasureFn 20.0 PoundMass))
-(habitatOfOrganism Badger NorthAmerica)
 (habitatOfOrganism Badger Europe)
-(habitatOfOrganism Badger Asia)
-(habitatOfOrganism Badger Africa)
 
 (subclass Bear Carnivore)
 (documentation Badger EnglishLanguage "Bears are carnivoran mammals of the family Ursidae. They are
@@ -22599,10 +22462,7 @@ legs, long snouts, small rounded ears, shaggy hair, plantigrade paws with five n
 and short tails. [courtesy Wikipedia]")
 
 (defaultMeasure Bear (MeasureFn 500.0 PoundMass))
-(habitatOfOrganism Bear NorthAmerica)
 (habitatOfOrganism Bear Europe)
-(habitatOfOrganism Bear Asia)
-(habitatOfOrganism Bear SouthAmerica)
 
 (subclass Kangaroo Marsupial)
 (documentation Kangaroo EnglishLanguage "The kangaroo is a marsupial from the family Macropodidae
@@ -22621,8 +22481,6 @@ camelid, widely used as a meat and pack animal by Andean cultures since the Pre-
 era. [courtesy Wikipedia]")
 
 (defaultMeasure Llama (MeasureFn 18.0 PoundMass))
-(habitatOfOrganism Llama SouthAmerica)
-(habitatOfOrganism Llama NorthAmerica)
 
 (subclass Skunk Mammal)
 (documentation Skunk EnglishLanguage "The llama (Lama glama) is a domesticated South American
@@ -22630,8 +22488,6 @@ camelid, widely used as a meat and pack animal by Andean cultures since the Pre-
 era. [courtesy Wikipedia]")
 
 (defaultMeasure Skunk (MeasureFn 5.0 PoundMass))
-(habitatOfOrganism Skunk SouthAmerica)
-(habitatOfOrganism Skunk NorthAmerica)
 
 (subclass Feather AnimalAnatomicalStructure)
 (subclass Feather BodyPart)
@@ -23442,43 +23298,6 @@ the individual, as does &%Psychology.")
 (&%MathematicalMethod) and statistical methods to assess risk in the insurance (&%InsuranceCompany) and finance
 (&%FinancialCompany) industries.")
 
-(subclass Archeology FieldOfStudy)
-(documentation Archeology EnglishLanguage "Archeology is a &%FieldOfStudy, its &%Arguments are refering to &%earlier
-discoverings of old &%Objects burried &%below the &%surface of &%LandArea or a &%BodyOfWater. Note that the minimal
-age of the &%Object is set arbitrarily.")
-
-(=>
-  (and
-    (instance ?X Argument)
-    (instance ?R Reasoning)
-    (instance ?A Archeology)
-    (subProposition ?X ?A)
-    (realization ?R ?X))
-  (exists (?D ?S ?O ?T ?W ?L)
-    (and
-      (instance ?D Discovering)
-      (instance ?O Object)
-      (patient ?D ?O)
-      (refers ?R ?D)
-      (earlier
-        (WhenFn ?D)
-        (WhenFn ?R))
-      (age ?O
-        (MeasureFn ?T YearDuration))
-      (greaterThan ?T 50)
-      (holdsDuring
-        (ImmediatePastFn
-          (WhenFn ?D))
-        (or
-          (and
-            (surface ?S ?W)
-            (instance ?W BodyOfWater)
-            (orientation ?O ?S Below))
-          (and
-            (surface ?S ?L)
-            (instance ?L LandArea)
-            (orientation ?O ?S Below)))))))
-
 (subclass Architecture FieldOfStudy)
 (documentation Architecture EnglishLanguage "The &%FieldOfStudy of designing &%Buildings, i.e.
 creating &%Blueprints for &%Buildings.")
@@ -23770,27 +23589,6 @@ an &%Animal.")
         (not
           (located ?O ?A))))))
 
-(subclass Blushing AutonomicProcess)
-(documentation Blushing EnglishLanguage "The process of turning red in response to a
-stimulus which has a deep emotional effect.")
-
-(=>
-  (and
-    (instance ?B Blushing)
-    (experiencer ?B ?A))
-  (exists (?T1 ?T2 ?S1 ?S2)
-    (and
-      (instance ?S1 EmotionalState)
-      (instance ?S2 EmotionalState)
-      (not
-        (equal ?S1 ?S2))
-      (holdsDuring ?T1
-        (attribute ?A ?S1))
-      (holdsDuring ?T2
-        (attribute ?A ?S2))
-      (starts (WhenFn ?B) ?T2)
-      (finishes (WhenFn ?B) ?T1))))
-
 (subclass Aborting Removing)
 (documentation Aborting EnglishLanguage "&%Removing a human fetus from a &%Pregnant woman
 in such a way that the fetus cannot survive.")
@@ -23904,6 +23702,40 @@ closed in an &%Object.")
 ;; Removed the class of LiquidFood and SolidFood JP 20230511
 ;; Moved CookedAttribute and RawAttribute to Food.kif
 
+(documentation SolubilityAttribute EnglishLanguage "&%SolubilityAttribute is a &subclass
+of &%InternalAttributes. It describes the property of a &%Solid, &%Liquid or &%Gas
+&%Substance to say whether it can dissolve in another &%Substance of either &%Solid,
+&%Liquid or &%Gas
+state.")
+(documentation SolubilityAttribute ChineseLanguage "&%SolubilityAttribute 是
+&%InternalAttribute 的 &subclass。 它表示一种 &%Solid、 &%Liquid 或 &%Gas &%Substance 是否能够
+溶解于另外一种 &%Solid、 &%Liquid 或 &%Gas 态 &%Substance 中。")
+(termFormat EnglishLanguage SolubilityAttribute "solubility attribute")
+(termFormat ChineseLanguage SolubilityAttribute "可溶性")
+(subclass SolubilityAttribute InternalAttribute)
+
+(documentation Insoluble EnglishLanguage "If a &Substance has the &%SolubilityAttribute of
+being &%Insoluble, then it cannot be combined with another &%Substance to become a
+solution mixture.")
+(documentation Insoluble ChineseLanguage "如果一种 &Substance 有 &%Insoluble
+&%SolubilityAttribute 的话，那么它就不能和另外一个 &%Substance 结合成为一种均匀混合物。")
+(termFormat EnglishLanguage Insoluble "insoluble")
+(termFormat ChineseLanguage Insoluble "不可溶的")
+(subclass Insoluble SolubilityAttribute)
+
+(=>
+  (and
+    (instance ?X Substance)
+    (attribute ?X Insoluble))
+  (not
+    (modalAttribute
+      (exists (?Y ?Z)
+        (and
+          (instance ?Y Substance)
+          (instance ?Z Solution)
+          (piece ?X ?Z)
+          (piece ?Y ?Z)))
+       Possibility)))
 
 (documentation Colloid EnglishLanguage "A &%Colloid is a &%Mixture in which
 microscopically dispersed &%Insoluble particles, between 0.95 and 977 &%Nanometers in
@@ -25176,6 +25008,46 @@ an ontology typically includes multiple taxonomies.")
       (instance ?TAX Taxonomy)
       (abstractPart ?TAX ?ONT))))
 
+(instance typicallyContainsTemporalPart BinaryPredicate)
+(instance typicallyContainsTemporalPart TemporalRelation)
+(relatedInternalConcept typicallyContainsTemporalPart typicallyContainsPart)
+(relatedInternalConcept typicallyContainsTemporalPart temporalPart)
+
+(format EnglishLanguage typicallyContainsTemporalPart "a %2 typically contains a %1")
+(documentation typicallyContainsTemporalPart EnglishLanguage "An instance of the second argument typically 
+contains an instance of the first argument.  This is a 
+class_level relation roughly corresponding to &%part.  Note that this does 
+not imply that such parts typically have such wholes.") 
+(domainSubclass typicallyContainsTemporalPart 1 Process)
+(domainSubclass typicallyContainsTemporalPart 2 Process)
+
+(=>
+  (typicallyContainsTemporalPart ?PART ?WHOLE)
+  (exists (?X ?Y)
+    (and      
+      (instance ?X ?WHOLE)
+      (instance ?Y ?PART)
+      (temporalPart ?Y ?X)))) 
+
+(=>
+  (and
+    (typicallyContainsTemporalPart ?PART ?WHOLE)
+    (instance ?Y ?WHOLE)
+    (equal ?PARTPROB
+      (ProbabilityFn
+        (exists (?X1)
+          (and
+            (instance ?X1 ?PART)
+            (temporalPart ?X1 ?Y)))))
+    (equal ?NOTPARTPROB
+      (ProbabilityFn
+        (not
+          (exists (?X2)
+            (and
+              (instance ?X2 ?PART)
+              (temporalPart ?X2 ?Y)))))))
+  (greaterThan ?PARTPROB ?NOTPARTPROB))
+
 (domainSubclass typicalAction 1 Process)
 (domainSubclass typicalAction 2 AutonomousAgent)
 (instance typicalAction BinaryPredicate)
@@ -26128,44 +26000,6 @@ is &%parts of an instance of ?WHOLE_TYPE.")
     (and
       (instance ?WHOLE ?WHOLETYPE)
       (part ?PART ?WHOLE))))
-
-(subclass CausingHappiness Process)
-(documentation CausingHappiness EnglishLanguage "Any &%Process whose result is that the
-patient of the process is happy.")
-
-(=>
-  (and
-    (instance ?C CausingHappiness)
-    (patient ?C ?P))
-  (and
-    (holdsDuring
-      (BeginFn (WhenFn ?C))
-    (not
-      (attribute ?P Happiness)))
-    (holdsDuring
-      (EndFn (WhenFn ?C))
-    (attribute ?P Happiness))))
-
-(subclass CausingPain CausingUnhappiness)
-(documentation CausingPain EnglishLanguage "Any &%Process whose result is that the
-patient of the process is in &%Pain.")
-
-(subclass CausingUnhappiness Process)
-(documentation CausingUnhappiness EnglishLanguage "Any &%Process whose result is that the
-patient of the process is unhappy.")
-
-(=>
-  (and
-    (instance ?C CausingUnhappiness)
-    (patient ?C ?P))
-  (and
-    (holdsDuring
-      (BeginFn (WhenFn ?C))
-    (not
-      (attribute ?P Unhappiness)))
-    (holdsDuring
-      (EndFn (WhenFn ?C))
-    (attribute ?P Unhappiness))))
 
 (subclass Lengthening Increasing)
 (documentation Lengthening EnglishLanguage "&%Increasing the length of something.")
@@ -27431,6 +27265,44 @@ is a &%Telephone that connects to the telephone network by
 sending and receiving radio transmissions, rather than via a
 cord, and so is portable.")
 
+(instance orbits BinaryPredicate)
+(instance orbits AsymmetricRelation)
+(domain orbits 1 Object)
+(domain orbits 2 AstronomicalBody)
+(documentation orbits EnglishLanguage "(&%orbits ?SATELLITE ?FOCUS) means that the &%Object
+?SATELLITE revolves around the &%AstronomicalBody ?FOCUS.")
+
+(subclass Satellite AstronomicalBody)
+(documentation Satellite EnglishLanguage "&%Satellite is the collection of bodies that
+revolve around some  astronomical body, e.g., planets around a star.
+This class includes both artificial and &%NaturalSatellites.")
+(=>
+  (instance ?SAT Satellite)
+  (exists (?BODY)
+    (and
+      (instance ?BODY AstronomicalBody)
+      (orbits ?SAT ?BODY))))
+
+(subclass ArtificialSatellite Satellite)
+(subclass ArtificialSatellite EngineeringComponent)
+(termFormat EnglishLanguage ArtificialSatellite "satellite")
+(documentation ArtificialSatellite EnglishLanguage "An &%ArtificialSatellite is a &%Device
+that orbits the earth in space and performs various functions such as
+aiding in communication, photographing the earth's surface, and others.")
+
+(subclass CommunicationSatellite ArtificialSatellite)
+(subclass CommunicationSatellite CommunicationDevice)
+(termFormat EnglishLanguage CommunicationSatellite "communications satellite")
+(documentation CommunicationSatellite EnglishLanguage "A &%CommunicationSatellite is an
+&%ArtificialSatellite that serves as one &%engineeringSubcomponent of a 
+&%CommunicationSystem.")
+(=>
+	(instance ?SAT CommunicationSatellite)
+	(exists (?SYSTEM)
+		(and
+			(instance ?SYSTEM CommunicationSystem)
+			(engineeringSubcomponent ?SAT ?SYSTEM))))
+
 (subclass SatellitePhone ReceiverDevice)
 (subclass SatellitePhone Telephone)
 (documentation SatellitePhone EnglishLanguage "A mobile &%Telephone that
@@ -27644,23 +27516,6 @@ a heated &%Device is used to smooth something")
 used by &%Humans for relaxation with jets used to create water currents to massage the
 body")
 (termFormat EnglishLanguage WhirlpoolTub "whirlpool tub")
-
-(=>
-  (instance ?TUB WhirlpoolTub)
-  (exists (?VALVE)
-    (and
-      (instance ?VALVE PressureControlValve)
-      (part ?VALVE ?TUB)
-      (hasPurpose ?VALVE
-        (exists (?WATER ?CREATION ?MOTION)
-          (and
-            (instance ?WATER Water)
-            (located ?WATER ?TUB)
-            (instance ?CREATION Creation)
-            (instrument ?CREATION ?VALVE)
-            (result ?CREATION ?MOTION)
-            (instance ?MOTION Motion)
-            (located ?MOTION ?WATER)))))))
 
 (subclass HotTub WhirlpoolTub)
 (documentation HotTub EnglishLanguage "&%HotTub refers to a &%WhirlpoolTub that is
@@ -29023,6 +28878,47 @@ or &%Paragraph typically would not.")
         (instance ?COMM Communication)
         (instrument ?COMM ?DOC)))))
 
+(subclass DataDisplayDevice CommunicationDevice)
+(subclass Sign DataDisplayDevice)
+(documentation DataDisplayDevice EnglishLanguage "An &%instance of
+&%DataDisplayDevice is a &%Device intended to be used to display data
+information in some visual form (e.g., &%Images or visible
+&%LinguisticExpressions).")
+
+(subclass HardcopyDocument VisualContentBearingObject)
+(subclass HardcopyDocument DataDisplayDevice)
+(subclass HardcopyDocument DataStorageDevice)
+(subclass HardcopyDocument Document)
+(documentation HardcopyDocument EnglishLanguage "An
+&%instance of &%HardcopyDocument is a tangible (solid,
+touchable) &%Document, which typically has a number of
+printed sheets as &%components.")
+
+(=>
+  (instance ?BOOK HardcopyDocument)
+  (exists (?SHEET)
+    (and
+      (component ?SHEET ?BOOK)
+      (instance ?SHEET PrintedSheet))))
+
+(documentation PrintedSheet EnglishLanguage "An &%instance
+of &%PrintedSheet is a piece of flat material such as paper,
+vellum, or plastic on which some &%Image or
+&%LinguisticExpression has been written, printed, embossed,
+or otherwise deposited.")
+
+;; TO DO: Generalize (subclass PrintedSheet Paper) to a
+;; proper treatment of something like *WritingSurface.
+
+(subclass PrintedSheet VisualContentBearingObject)
+(subclass PrintedSheet DataDisplayDevice)
+(subclass PrintedSheet DataStorageDevice)
+
+(=>
+  (instance ?OBJ PrintedSheet)
+  (shape ?OBJ Flat))
+
+(subclass Book HardcopyDocument)
 (subclass Book Document)
 (documentation Book EnglishLanguage "A &%Document that has pages and is bound.")
 
@@ -29822,12 +29718,24 @@ adopted and enforced by ?&%Organization")
       (agent ?CREATE ?AGENT)
       (result ?CREATE ?POLICY))))
 
-(instance conventionalLongName BinaryPredicate)
+(instance fullName BinaryPredicate)
+(instance fullName AsymmetricRelation)
+(domain fullName 1 SymbolicString)
+(domain fullName 2 Entity)
+(subrelation fullName names)
+(documentation fullName EnglishLanguage "(&%fullName ?STRING
+?OBJ) means that ?STRING is a (more or less) complete name for
+?OBJ, having all of the &%parts (fields, name components)
+possible for ?OBJ's name.  The &%parts of ?STRING, if any, may be
+in conventional order, or in indexed (for alphabetic sorting)
+order.  Examples: George W. Bush, The White House, The United
+Kingdom of Great Britain and Northern Ireland.")
+(subrelation conventionalLongName fullName)
 
+(instance conventionalLongName BinaryPredicate)
 (documentation conventionalLongName EnglishLanguage "(&%conventionalLongName ?NAME ?THING)
 means that the string ?NAME is the long form of the name conventionally
 used for ?THING.")
-
 (domain conventionalLongName 1 SymbolicString)
 (domain conventionalLongName 2 Entity)
 (termFormat EnglishLanguage conventionalLongName "official name" )
@@ -32042,8 +31950,6 @@ a &%Vehicle, rather than a &%StationaryObject.")
     (capability Opening patient ?VD)
     (capability Closing patient ?VD)))
 
-(typicalPart VehicleDoor Automobile)
-
 (=>
   (attribute ?D DeviceNormal)
   (not
@@ -32172,20 +32078,11 @@ designed to be tranferred easily by a &%Human from one location to another.")
 (documentation Laptop EnglishLanguage "A &%PortableComputer that includes
 a standard sized &%ComputerKeyboard.")
 
-(initiallyContainsPart ComputerKeyboard Laptop)
 (initiallyContainsPart ComputerScreen Laptop)
 
 (subclass TabletComputer PortableComputer)
 (documentation TabletComputer EnglishLanguage "A &%PortableComputer lacking
 a physical &%ComputerKeyboard, but having a touch-sensitive screen.")
-
-(=>
-  (instance ?T TabletComputer)
-  (not
-    (exists (?K)
-      (and
-        (instance ?K ComputerKeyboard)
-        (part ?K ?T)))))
 
 (=>
   (instance ?T TabletComputer)
@@ -32388,6 +32285,10 @@ before ?OBJ2 on the path ?PATH with respect to a particular &%Transfer &%Process
     (beforeOnPath ?O1 ?O2 ?PATH ?T)
     (beforeOnPath ?O2 ?O3 ?PATH ?T)))
 
+(instance Upstream PositionalAttribute)
+(instance Downstream PositionalAttribute)
+(oppositeDirection Upstream Downstream)
+
 (=>
   (orientation ?O1 ?O2 Upstream)
   (exists (?T ?L ?P)
@@ -32410,6 +32311,14 @@ before ?OBJ2 on the path ?PATH with respect to a particular &%Transfer &%Process
       (beforeOnPath ?O2 ?O1 ?P ?T)
       (destination ?T ?O1))))
 
+
+(instance Upwind PositionalAttribute)
+(subAttribute Upwind Upstream)
+(documentation Upwind EnglishLanguage 
+"&%Upwind is a &%PositionalAttribute that indicates relative position 
+upwind (windward) with respect to the direction that the &%Wind is 
+blowing.")
+
 (=>
   (orientation ?O1 ?O2 Upwind)
   (exists (?T ?L ?P)
@@ -32420,6 +32329,13 @@ before ?OBJ2 on the path ?PATH with respect to a particular &%Transfer &%Process
       (origin ?T ?O1)
       (beforeOnPath ?O1 ?O2 ?P ?T)
       (destination ?T ?O2))))
+
+(instance Downwind PositionalAttribute)
+(subAttribute Downwind Downstream)
+(documentation Downwind EnglishLanguage 
+"&%Downwind is a &%PositionalAttribute that indicates relative position 
+downwind (leeward) with respect to the direction that the &%Wind is 
+blowing.")
 
 (=>
   (orientation ?O1 ?O2 Downwind)
@@ -32660,7 +32576,6 @@ a &%Quantity which &%refers to the &%Process &%Class.")
                 (eventLocated ?P2 ?L)))))))))
 
 (subclass DisplacementHullWaterVehicle WaterVehicle)
-(disjoint DisplacementHullWaterVehicle PlaningHullWaterVehicle)
 (documentation DisplacementHullWaterVehicle EnglishLanguage "DisplacementHullWaterVehicle is
 a subclass of &%WaterVehicle with hulls designed to move water aside as they
 move through the water.  Contrast with &%PlaningHullWaterVehicle.")
@@ -33018,7 +32933,6 @@ cat after the tiger. [Wikipedia]")
 
 (subclass Lion Feline)
 (defaultMaximumMeasure Lion (MeasureFn 600.0 PoundMass))
-(habitatOfOrganism Lion Africa)
 (habitatOfOrganism Lion India)
 (property Lion VulnerableSpecies)
 (termFormat EnglishLanguage Lion "lion")
@@ -33076,7 +32990,6 @@ places on Earth, has caused significant conflicts with humans. [Wikipedia]")
 
 (subclass Tiger Feline)
 (property Tiger EndangeredSpecies)
-(habitatOfOrganism Tiger Asia)
 (termFormat EnglishLanguage Tiger "tiger")
 
 (documentation Rhinoceros EnglishLanguage "A rhinoceros, often abbreviated to
@@ -33096,8 +33009,6 @@ food. [Wikipedia]")
 
 (subclass Rhinoceros Mammal)
 (property Rhinoceros EndangeredSpecies)
-(habitatOfOrganism Rhinoceros Asia)
-(habitatOfOrganism Rhinoceros Africa)
 (defaultMaximumMeasure Rhinoceros (MeasureFn 2200.0 PoundMass))
 (termFormat EnglishLanguage Rhinoceros "rhinoceros")
 
@@ -33113,10 +33024,6 @@ parrots is in South America and Australasia. [Wikipedia]")
 (subclass Parrot Bird)
 (defaultMaximumMeasure Parrot (MeasureFn 9.0 PoundMass))
 (defaultMinimumMeasure Parrot (MeasureFn 0.4 Ounce))
-(habitatOfOrganism Parrot Asia)
-(habitatOfOrganism Parrot Africa)
-(habitatOfOrganism Parrot NorthAmerica)
-(habitatOfOrganism Parrot SouthAmerica)
 (habitatOfOrganism Parrot Australia)
 (property Parrot LeastConcernSpecies)
 (termFormat EnglishLanguage Parrot "parrot")
@@ -33167,7 +33074,6 @@ behaviorally diverse of all invertebrates. [Wikipedia]")
 (defaultMeasure Octopus (MeasureFn 33.0 PoundMass))
 (property Octopus LeastConcernSpecies)
 (subclass Octopus Mollusk)
-(meatOfAnimal OctopusMeat Octopus)
 (termFormat EnglishLanguage Octopus "octopus")
 
 (documentation Reindeer EnglishLanguage "The reindeer (Rangifer tarandus), also
@@ -33190,9 +33096,8 @@ deliver gifts to children on Christmas Eve. [Wikipedia]")
 (property Reindeer VulnerableSpecies)
 (subclass Reindeer Deer)
 (habitatOfOrganism Reindeer Europe)
-(habitatOfOrganism Reindeer Asia)
-(habitatOfOrganism Reindeer NorthAmerica)
 (termFormat EnglishLanguage Reindeer "reindeer")
+(subclass Reindeer HoofedMammal)
 
 (documentation Crocodile EnglishLanguage "Crocodiles (subfamily Crocodylinae) or
 true crocodiles are large aquatic reptiles that live throughout the tropics in
@@ -33208,11 +33113,7 @@ and fossil Crocodylomorpha. [Wikipedia]")
 (property Crocodile LeastConcernSpecies)
 (subclass Crocodile Reptile)
 (habitatOfOrganism Crocodile Europe)
-(habitatOfOrganism Crocodile Asia)
-(habitatOfOrganism Crocodile NorthAmerica)
-(habitatOfOrganism Crocodile Africa)
 (habitatOfOrganism Crocodile Australia)
-(habitatOfOrganism Crocodile SouthAmerica)
 (termFormat EnglishLanguage Crocodile "crocodile")
 
 (documentation Cheetah EnglishLanguage "The cheetah (Acinonyx jubatus)
@@ -33231,8 +33132,6 @@ coat is uniformly covered with nearly 2,000 solid black spots. [Wikipedia]")
 (defaultMeasure Cheetah (MeasureFn 150.0 PoundMass))
 (property Cheetah VulnerableSpecies)
 (subclass Cheetah Feline)
-(habitatOfOrganism Cheetah Asia)
-(habitatOfOrganism Cheetah Africa)
 (termFormat EnglishLanguage Cheetah "cheetah")
 
 (documentation Ferret EnglishLanguage "The ferret (Mustela putorius furo) is the
@@ -33320,33 +33219,6 @@ their &%birthplace or where the &%Residence they &%inhabit is &%located.")
         (agent ?P ?H)
         (overlapsTemporally ?T (WhenFn ?P))))))
 
-(instance Dieting RelationalAttribute)
-(documentation Dieting EnglishLanguage "A state of reducing one's normal or desired intake of &%Food.")
-(termFormat EnglishLanguage Dieting "dieting")
-
-(=>
-  (and
-    (holdsDuring ?T1
-      (attribute ?H Dieting))
-    (holdsDuring ?T2
-      (not
-        (attribute ?H Dieting)))
-    (instance ?M1 Meal)
-    (instance ?E1 Eating)
-    (agent ?E1 ?H)
-    (resource ?E1 ?M1)
-    (during (WhenFn ?E1) ?T1)
-    (measure ?M1 (MeasureFn ?C1 Calorie))
-    (instance ?M2 Meal)
-    (instance ?E2 Eating)
-    (agent ?E2 ?H)
-    (resource ?E2 ?M2)
-    (during (WhenFn ?E2) ?T2)
-    (measure ?M2 (MeasureFn ?C2 Calorie)))
-  (modalAttribute
-    (greaterThan ?C2 ?C1)
-    Likely))
-
 (instance firstInstanceCreated BinaryPredicate)
 (documentation firstInstanceCreated EnglishLanguage "The time when the first instance of the
 given class was created. Note that this can refer to Processes as well as Objects.")
@@ -33391,37 +33263,6 @@ where the purpose of the job is to prevent &%Injuring to another
                     (holdsDuring ?T2
                       (patient ?P ?H))))))))))))
 
-(instance FlightSteward ServicePosition)
-(instance FlightSteward SafetyPosition)
-(documentation FlightSteward EnglishLanguage "A job on an %&Airplane
-where the worker takes care of the passengers, proving safety briefings
-and refreshments.")
-(termFormat EnglishLanguage FlightSteward "flight steward")
-
-(=>
-  (holdsDuring ?T
-    (attribute ?X FlightSteward))
-  (holdsDuring ?T
-    (exists (?P)
-      (and
-        (instance ?P Airplane)
-        (located ?X ?P)))))
-
-(=>
-  (holdsDuring ?T
-    (attribute ?X FlightSteward))
-  (hasPurpose ?X
-    (holdsDuring ?T
-      (exists (?P)
-        (and
-          (instance ?P Airplane)
-          (not
-            (exists (?G)
-              (and
-                (instance ?G Guiding)
-                (agent ?G ?X)
-                (instrument ?G ?P)))))))))
-
 (instance passenger CaseRole)
 (subrelation passenger objectTransferred)
 (domain passenger 1 Transfer)
@@ -33462,14 +33303,20 @@ Some carabiners have locking gates, or wire gates, or bent gates.")
   (instance ?C Carabiner)
   (material Metal ?C))
 
+(instance RingTorus ShapeAttribute)
+(termFormat EnglishLanguage RingTorus "ring torus")
+(documentation RingTorus EnglishLanguage "Informally, the shape of a donut.
+More formally, the shape described by the edge of an oval when its center
+follows a oval path perpendicular to the plane of the first oval, and when
+the axis of the moving oval in the plane of the fixed oval is smaller than 
+the shorter axis of the fixed oval.")
+
 (=>
-  (instance ?C Carabiner)
-  (exists (?H ?S)
+  (attribute ?X RingTorus)
+  (exists (?H)
     (and
-      (instance ?H Hinge)
-      (part ?H ?C)
-      (instance ?S Spring)
-      (part ?S ?C))))
+      (instance ?H HoleRegion)
+      (equal ?X (HoleHostFn ?H)))))
 
 (=>
   (and
@@ -33501,21 +33348,32 @@ Some carabiners have locking gates, or wire gates, or bent gates.")
     (not
       (attribute ?C RingTorus))))
 
-(subclass ClimbingCarabiner Carabiner)
-(subclass ClimbingCarabiner SafetyDevice)
-(documentation ClimbingCarabiner EnglishLanguage "A &%Carabiner that has the purpose
-of and is certified for use as protection in rock climbing.")
+(subclass SafetyDevice Device)
+(termFormat EnglishLanguage SafetyDevice "safety device")
+(documentation SafetyDevice EnglishLanguage "Any &%Device that is designed to 
+prevent (or lessen the likelihood of) the &%Injuring of a &%Human.")
 
 (=>
-  (instance ?CC ClimbingCarabiner)
-  (hasPurpose ?CC
-    (exists (?RC)
-      (and
-        (instance ?RC RockClimbing)
-        (instrument ?RC ?CC)))))
+    (instance ?X SafetyDevice)
+    (hasPurpose ?X
+        (exists (?P ?H ?I ?T)
+            (and
+                (instance ?H Human)
+                (instance ?P Process)
+                (patient ?P ?H)
+                (instrument ?P ?X)
+                (prevents ?P 
+                  (KappaFn ?I
+                    (and
+                      (instance ?I Injuring)
+                      (=>
+                        (holdsDuring ?T
+                          (experiencer ?I ?H))
+                        (not
+                          (holdsDuring ?T
+                            (patient ?P ?H)))))))))))
 
 (subclass UncertifiedCarabiner Carabiner)
-(disjoint UncertifiedCarabiner ClimbingCarabiner)
 
 (subclass Rope String)
 (documentation Rope EnglishLanguage "Any &%String that is a &%Collection of
@@ -33714,18 +33572,6 @@ what is being measured.")
 
 (termFormat EnglishLanguage DefaultMeasure "default measure")
 
-(instance Length MeasurementAttribute)
-(documentation Length EnglishLanguage "As with &%length,
-this is the measure of an &%Object along its longest span.")
-(termFormat EnglishLanguage Length "length")
-
-(=>
-  (and
-    (memberMeasure ?S Length ?Q)
-    (instance ?S Class)
-    (instance ?O ?S))
-  (length ?O ?Q))
-
 (=>
   (and
     (memberMeasure ?S ?M ?Q)
@@ -33897,90 +33743,20 @@ its center and point on the circle.")
     (instance ?O ?S))
   (totalArea ?O ?Q))
 
-(instance VoltageRatingPrimary MeasurementAttribute)
-
-(documentation VoltageRatingPrimary EnglishLanguage "&%VoltageRatingPrimary is
-the primary rating voltage of an &%ElectricalTransformer. It is the power the
-transfrmer can pass on its receiving side (input).")
-
-(termFormat EnglishLanguage VoltageRatingPrimary "Primary Voltage Rating")
-
-(=>
-  (and
-    (memberMeasure ?S ?M ?Q)
-    (instance ?S Set)
-    (element ?O ?S))
-  (voltageRatingPrimary ?O ?Q))
+(subclass ElectricTransmission Transfer)
+(subclass ElectricTransmission RadiatingElectromagnetic)
+(termFormat EnglishLanguage ElectricTransmission "electric transmission")
+(documentation ElectricTransmission EnglishLanguage "The movement of a
+electric potential (modeled as a &%Substance) from one point to another
+necessarily through a conductive medium (although the degree of 
+conductivity may be quite low, as in &%Lightning through &%Air).")
 
 (=>
-  (and
-    (memberMeasure ?S VoltageRatingPrimary ?Q)
-    (instance ?S Class)
-    (instance ?O ?S))
-  (voltageRatingPrimary ?O ?Q))
-
-(instance voltageRatingPrimary BinaryPredicate)
-(domain voltageRatingPrimary 1 ElectricalTransformer)
-(domain voltageRatingPrimary 2 FunctionQuantity)
-(documentation voltageRatingPrimary EnglishLanguage "&%voltageRatingPrimary is a
-&%PrimaryPredicate which maps the &%MeasurementAttribute, &%VoltageRatingPrimary of
-an &%ElectricTransmission to a value of &%FunctionQuantity it
-can receive (input).")
-(format EnglishLanguage voltageRatingPrimary "the &%FunctionQuantity of %1 is %2")
-(termFormat EnglishLanguage voltageRatingPrimary "primary voltage rating")
-
-(=>
-  (voltageRatingPrimary ?O ?Q)
-  (exists (?P ?EC ?P ?E)
+  (instance ?EC ElectricTransmission)
+  (exists (?E)
     (and
-      (part ?P ?O)
-      (instance ?EC ElectricTransmission)
-      (destination ?EC ?P)
-      (objectTransferred ?EC ?E)
       (instance ?E Electricity)
-      (measure ?E ?Q))))
-
-(instance VoltageRatingSecondary MeasurementAttribute)
-
-(documentation VoltageRatingSecondary EnglishLanguage "&%VoltageRatingSecondary
-is the secondary rating voltage of an &%ElectricalTransformer. It is the power the transformer
-can pass on its distributing side (output).")
-
-(termFormat EnglishLanguage VoltageRatingSecondary "Secondary Voltage Rating")
-
-(=>
-  (and
-    (memberMeasure ?S ?M ?Q)
-    (instance ?S Set)
-    (element ?O ?S))
-  (voltageRatingSecondary ?O ?Q))
-
-(=>
-  (and
-    (memberMeasure ?S VoltageRatingSecondary ?Q)
-    (instance ?S Class)
-    (instance ?O ?S))
-  (voltageRatingSecondary ?O ?Q))
-
-(instance voltageRatingSecondary BinaryPredicate)
-(domain voltageRatingSecondary 1 ElectricalTransformer)
-(domain voltageRatingSecondary 2 FunctionQuantity)
-(documentation voltageRatingSecondary EnglishLanguage "&%voltageRatingSecondary is a
-&%BinaryPredicate which maps the &%MeasurementAttribute, &%VoltageRatingSecondary of
-an &%ElectricalTransformer to a value of &%FunctionQuantity it distribute (output).")
-(format EnglishLanguage voltageRatingSecondary "the &%FunctionQuantity of %1 is %2")
-(termFormat EnglishLanguage voltageRatingSecondary "seconary voltage rating")
-
-(=>
-  (voltageRatingSecondary ?O ?Q)
-  (exists (?S ?EC ?E)
-    (and
-      (part ?S ?O)
-      (instance ?EC ElectricTransmission)
-      (origin ?EC ?S)
-      (objectTransferred ?EC ?E)
-      (instance ?E Electricity)
-      (measure ?E ?Q))))
+      (objectTransferred ?EC ?E))))
 
 (instance Frequency MeasurementAttribute)
 
@@ -34008,34 +33784,6 @@ the number of time a %Process occurs in a unit of time (&%frequency).")
     (instance ?P Process)
     (agent ?P ?O))
   (frequency Process ?Q))
-
-(instance transformerCapacity BinaryPredicate)
-(termFormat EnglishLanguage transformerCapacity "transformer capacity")
-(format EnglishLanguage transformerCapacity "the &%capacity of %1 is %2")
-(domain transformerCapacity 1 ElectricalTransformer)
-(domain transformerCapacity 2 FunctionQuantity)
-
-(instance TransformerCapacity MeasurementAttribute)
-
-(documentation TransformerCapacity EnglishLanguage "As with
-&%transformerCapacity, the capacity of an &%ElectricalTransformer is the maximum
-power it can receive and distribute.")
-
-(termFormat EnglishLanguage TransformerCapacity "Transformer Capacity")
-
-(=>
-  (and
-    (memberMeasure ?S ?M ?Q)
-    (instance ?S Set)
-    (element ?O ?S))
-  (transformerCapacity ?O ?Q))
-
-(=>
-  (and
-    (memberMeasure ?S TransformerCapacity ?Q)
-    (instance ?S Class)
-    (instance ?O ?S))
-  (transformerCapacity ?O ?Q))
 
 (instance allowableValue TernaryPredicate)
 (domain allowableValue 1 Object)
@@ -34071,12 +33819,8 @@ must be consistent with that type specification.")
     (equal ?OC ?DC)
     (subclass ?OC ?DC)))
 
-(roomTempState LiquefiedPetroleumGas Gas)
 (roomTempState Gasoline Liquid)
 (roomTempState DieselFuel Liquid)
-(roomTempState Coal Solid)
-(roomTempState BrownCoal Solid)
-(roomTempState Charcoal Solid)
 (roomTempState Wax Solid)
 (roomTempState Wicker Solid)
 (roomTempState PlantWicker Solid)
@@ -34085,46 +33829,13 @@ must be consistent with that type specification.")
 (roomTempState Detergent Liquid)
 (roomTempState Powder Solid)
 (roomTempState Fallout Solid)
-(roomTempState Flour Solid)
 (roomTempState Rock Solid)
-(roomTempState Marble Solid)
-(roomTempState Stone Solid)
-(roomTempState Pebble Solid)
-(roomTempState Cobble Solid)
-(roomTempState Boulder Solid)
 (roomTempState Beverage Liquid)
 (roomTempState Milk Liquid)
-(roomTempState Cream Liquid)
-(roomTempState Tea Liquid)
 (roomTempState AlcoholicBeverage Liquid)
 (roomTempState Wine Liquid)
-(roomTempState Champagne Liquid)
 (roomTempState DistilledAlcoholicBeverage Liquid)
-(roomTempState Aperitif Liquid)
-(roomTempState Campari Liquid)
-(roomTempState Liqueur Liquid)
-(roomTempState Amaretto Liquid)
-(roomTempState Baileys Liquid)
-(roomTempState Chambord Liquid)
-(roomTempState Cointreau Liquid)
-(roomTempState Kahlua Liquid)
-(roomTempState GrandMarnier Liquid)
-(roomTempState Schnapps Liquid)
-(roomTempState Rum Liquid)
-(roomTempState Bacardi Liquid)
-(roomTempState Tequila Liquid)
-(roomTempState PatronTequilla Liquid)
-(roomTempState Vodka Liquid)
-(roomTempState Absolut Liquid)
-(roomTempState Stolichnoya Liquid)
-(roomTempState Whiskey Liquid)
-(roomTempState JamesonsWhiskey Liquid)
-(roomTempState Brandy Liquid)
 (roomTempState Beer Liquid)
-(roomTempState Espresso Liquid)
-(roomTempState Soda Liquid)
-(roomTempState CocaCola Liquid)
-(roomTempState NaturalMagnet Solid)
 (roomTempState Hydrogen Gas)
 (roomTempState Helium Gas)
 (roomTempState Lithium Solid)
@@ -34236,64 +33947,39 @@ must be consistent with that type specification.")
 (roomTempState Alcohol Liquid)
 (roomTempState Aldosterone Liquid)
 (roomTempState Alkaloid Liquid)
-(roomTempState Alumina Solid)
 (roomTempState AminoAcid Liquid)
-(roomTempState Amphetamine Solid)
-(roomTempState Asbestos Solid)
 (roomTempState Atropine Liquid)
 (roomTempState Bacitracin Liquid)
-(roomTempState Barite Solid)
 (roomTempState Batrachotoxin Solid)
-(roomTempState Bauxite Solid)
 (roomTempState BotulinumToxin Solid)
 (roomTempState BZGas Gas)
 (roomTempState Caffeine Solid)
 (roomTempState Cannabis Solid)
-(roomTempState CarbonDioxide Gas)
 (roomTempState ChemicalAcid Liquid)
 (roomTempState ChemicalBase Liquid)
 (roomTempState ChemicalSalt Solid)
 (roomTempState ChlorineGas Gas)
-(roomTempState Chlorofluorocarbon Gas)
 (roomTempState Chloropicrin Gas)
 (roomTempState ChokingAgent Gas)
 (roomTempState Cholesterol Liquid)
-(roomTempState Chromite Solid)
 (roomTempState Ciprofloxacin Solid)
-(roomTempState Cocaine Solid)
 (roomTempState Colloid Liquid)
 (roomTempState Conotoxin Solid)
-(roomTempState CopperOre Solid)
 (roomTempState Cortisol Liquid)
-(roomTempState CSGas Gas)
-(roomTempState DDT Liquid)
-(roomTempState Defoliant Liquid)
 (roomTempState Dimercaprol Solid)
 (roomTempState Diphosgene Gas)
-(roomTempState Dough Solid)
-(roomTempState Doxycycline Solid)
 (roomTempState EpsilonToxin Solid)
 (roomTempState Ethanol Liquid)
-(roomTempState Exhaust Gas)
-(roomTempState Freon12 Gas)
-(roomTempState FreshWater Liquid)
 (roomTempState GasMixture Gas)
-(roomTempState Gemstone Solid)
 (roomTempState GF Liquid)
 (roomTempState Glass Liquid)
 (roomTempState Glue Liquid)
-(roomTempState Gravel Solid)
-(roomTempState GreenhouseGas Gas)
-(roomTempState GroundWater Liquid)
 (roomTempState GSeriesNerveAgent Liquid)
 (roomTempState GunPowder Solid)
 (roomTempState Hashish Gas)
 (roomTempState Heroin Gas)
 (roomTempState Humus Solid)
-(roomTempState HydraulicFluid Liquid)
-(roomTempState IronOre Solid)
 (roomTempState Keflex Liquid)
-(roomTempState LeadOre Solid)
 (roomTempState LiquidMixture Liquid)
 (roomTempState Marijuana Solid)
 (roomTempState MetallicAlloy Solid)
@@ -34302,24 +33988,12 @@ must be consistent with that type specification.")
 (roomTempState Mineral Solid)
 (roomTempState MoodStabilizer Solid)
 (roomTempState Mycotoxin Solid)
-(roomTempState NaturalGas Gas)
-(roomTempState NickelOre Solid)
-(roomTempState NitricOxide Gas)
-(roomTempState NitrogenDioxide Gas)
-(roomTempState Opium Solid)
-(roomTempState ParticulateMatter Solid)
 (roomTempState Penicillin Solid)
 (roomTempState Phosgene Gas)
-(roomTempState Phosphate Solid)
-(roomTempState PhosphoricAcid Liquid)
 (roomTempState Pill Solid)
 (roomTempState Plastic Solid)
-(roomTempState DrinkingWater Liquid)
-(roomTempState Potash Solid)
 (roomTempState ProtonPumpInhibitor Liquid)
 (roomTempState PyridostigmineBromide Liquid)
-(roomTempState Rain Liquid)
-(roomTempState Remdesivir Liquid)
 (roomTempState RicinToxin Solid)
 (roomTempState Rubber Solid)
 (roomTempState Sarin Gas)
@@ -34333,13 +34007,9 @@ must be consistent with that type specification.")
 (roomTempState Steroid Liquid)
 (roomTempState StimulantDrug Liquid)
 (roomTempState Stimulant Liquid)
-(roomTempState SulfuricAcid Liquid)
-(roomTempState SulphurDioxide Gas)
 (roomTempState Tabun Solid)
-(roomTempState Talc Solid)
 (roomTempState Tetrodotoxin Solid)
 (roomTempState ThyroidStimulatingHormone Liquid)
-(roomTempState Timber Solid)
 (roomTempState TopicalAntibiotic Liquid)
 (roomTempState Urea Solid)
 (roomTempState Vaccine Liquid)
@@ -34347,7 +34017,6 @@ must be consistent with that type specification.")
 (roomTempState VSeriesNerveAgent Gas)
 (roomTempState VX Gas)
 (roomTempState Water Liquid)
-(roomTempState ZincOre Solid)
 
 (domain roomTempState 2 PhysicalState)
 (domainSubclass roomTempState 1 Substance)
@@ -34619,6 +34288,18 @@ devices. Note that the argument for MTBFInstanceFn is an &%instance.")
             (DevicePlannedDownTimeDurationListFn ?D))))
       (ListLengthFn
         (DeviceFailTimeDurationListFn ?D)))))
+
+(documentation MeasuringResultList EnglishLanguage "&%MeasuringResultList is a &%List
+of &%Quantity containing the &results corresponding to a sequence of &%Measuring 
+&Processes.")
+(documentation MeasuringResultList ChineseLanguage "&%MeasuringResultList 是一个（多少）
+&%Quantity 的（串列）&%List，它包含相关一连串（量度过程）&%Measuring &Processe 的结果 &results。")
+(subclass MeasuringResultList List)
+
+
+(documentation NumberList EnglishLanguage "&%NumberList is a &%List of &%Numbers.")
+(documentation NumberList ChineseLanguage "&%NumberList 是一个（数字） &%Number （串列） &%List。")
+(subclass NumberList List)
 
 (documentation PhysicalQuantityToNumberFn EnglishLanguage "(&%PhysicalQuantityToNumberFn ?QLIST)
 converts the &%PhysicalQuantities in a &%MeasuringResultList (?QLIST) to another list
