@@ -1,0 +1,2238 @@
+;; Animals.kif - animal species definitions
+;; author: jdev-02
+;;
+;; Purpose: Extends SUMO with species-level terms absent from Merge.kif.
+;; Motivated by computer vision pipeline use: SUMO terms serve as
+;; candidate class labels for CLIP-based classifiers, giving the
+;; label set a consistent ontological structure with is-a reasoning.
+
+;; Nocturnal / Diurnal activity pattern attributes
+
+(instance Nocturnal BiologicalAttribute)
+(termFormat EnglishLanguage Nocturnal "nocturnal")
+(documentation Nocturnal EnglishLanguage "A &%BiologicalAttribute
+of an &%Organism indicating that it is primarily active during
+&%NightTime hours and rests during the &%DayTime.")
+
+(increasesLikelihood
+  (and
+    (attribute ?O Nocturnal)
+    (instance ?O Organism))
+  (exists (?DAY)
+    (and
+      (instance ?DAY DayTime)
+      (holdsDuring ?DAY
+        (attribute ?O Asleep)))))
+
+(increasesLikelihood
+  (and
+    (attribute ?O Nocturnal)
+    (instance ?O Organism))
+  (exists (?NIGHT)
+    (and
+      (instance ?NIGHT NightTime)
+      (holdsDuring ?NIGHT
+        (attribute ?O Awake)))))
+
+;;circadian disruption is associated with health problems
+;;would have to do quite the detailed modeling of that condition with lots of potential or increasesLikelihood
+
+
+(=>
+  (and
+    (instance ?H Human)
+    (attribute ?H Nocturnal))
+  (not (attribute ?H Healthy)))
+
+(increasesLikelihood
+  (and
+    (attribute ?O Nocturnal)
+    (instance ?O Organism)
+    (instance ?H Hunting)
+    (agent ?H ?O))
+  (exists (?NIGHT)
+    (and
+      (instance ?NIGHT NightTime)
+      (during (WhenFn ?H) ?NIGHT))))
+
+(instance Diurnal BiologicalAttribute)
+(termFormat EnglishLanguage Diurnal "diurnal")
+(documentation Diurnal EnglishLanguage "A &%BiologicalAttribute
+of an &%Organism indicating that it is primarily active during
+&%DayTime hours and rests at &%NightTime.")
+
+(contraryAttribute Nocturnal Diurnal)
+
+(increasesLikelihood
+  (and
+    (attribute ?O Diurnal)
+    (instance ?O Organism))
+  (exists (?DAY)
+    (and
+      (instance ?DAY DayTime)
+      (holdsDuring ?DAY
+        (attribute ?O Awake)))))
+
+(increasesLikelihood
+  (and
+    (attribute ?O Diurnal)
+    (instance ?O Organism))
+  (exists (?NIGHT)
+    (and
+      (instance ?NIGHT NightTime)
+      (holdsDuring ?NIGHT
+        (attribute ?O Asleep)))))
+
+(increasesLikelihood
+  (and
+    (attribute ?O Diurnal)
+    (instance ?O Organism)
+    (instance ?H Hunting)
+    (agent ?H ?O))
+  (exists (?DAY)
+    (and
+      (instance ?DAY DayTime)
+      (during (WhenFn ?H) ?DAY))))
+
+;; active-period mismatch reduces interaction likelihood
+
+(decreasesLikelihood
+  (and
+    (attribute ?O1 Nocturnal)
+    (attribute ?O2 Diurnal)
+    (instance ?O1 Organism)
+    (instance ?O2 Organism)
+    (not (equal ?O1 ?O2)))
+  (exists (?PROC)
+    (and
+      (instance ?PROC IntentionalProcess)
+      (agent ?PROC ?O1)
+      (patient ?PROC ?O2))))
+
+
+;; Migratory / Sedentary behavioral attributes
+
+(instance Migratory BiologicalAttribute)
+(termFormat EnglishLanguage Migratory "migratory")
+(documentation Migratory EnglishLanguage "A &%BiologicalAttribute
+of an &%Organism that periodically moves between distinct
+&%GeographicAreas, typically in response to seasonal changes.
+&%Migratory organisms inhabit different regions at different
+&%SeasonOfYear intervals.")
+
+(instance Sedentary BiologicalAttribute)
+(termFormat EnglishLanguage Sedentary "sedentary")
+(documentation Sedentary EnglishLanguage "A &%BiologicalAttribute
+of an &%Organism that remains in one &%GeographicArea throughout
+the year rather than migrating between regions.")
+
+(contraryAttribute Migratory Sedentary)
+
+(increasesLikelihood
+  (and
+    (attribute ?O Migratory)
+    (instance ?O Organism))
+  (exists (?R1 ?R2)
+    (and
+      (instance ?R1 GeographicArea)
+      (instance ?R2 GeographicArea)
+      (not (equal ?R1 ?R2))
+      (inhabits ?O ?R1)
+      (inhabits ?O ?R2))))
+
+(increasesLikelihood
+  (and
+    (attribute ?O Migratory)
+    (instance ?O Organism)
+    (instance ?MOVE Translocation)
+    (agent ?MOVE ?O))
+  (exists (?S)
+    (and
+      (instance ?S SeasonOfYear)
+      (during (WhenFn ?MOVE) ?S))))
+
+
+;; Solitary / Social behavioral attributes
+
+(instance Solitary BiologicalAttribute)
+(termFormat EnglishLanguage Solitary "solitary")
+(documentation Solitary EnglishLanguage "A &%BiologicalAttribute
+of an &%Organism that typically lives and operates alone rather
+than in social groups.  Distinct from &%LoneWolf, which is a
+&%SocialRole that can be adopted by any &%AutonomousAgent.
+&%Solitary is an intrinsic biological disposition.")
+
+(instance Social BiologicalAttribute)
+(termFormat EnglishLanguage Social "social")
+(documentation Social EnglishLanguage "A &%BiologicalAttribute
+of an &%Organism that typically lives in &%Groups with other
+members of its species.")
+
+(contraryAttribute Solitary Social)
+
+(decreasesLikelihood
+  (and
+    (attribute ?O Solitary)
+    (instance ?O Organism))
+  (exists (?G)
+    (and
+      (instance ?G Group)
+      (member ?O ?G))))
+
+(increasesLikelihood
+  (and
+    (attribute ?O Social)
+    (instance ?O Organism))
+  (exists (?G ?OTHER)
+    (and
+      (instance ?G Group)
+      (member ?O ?G)
+      (member ?OTHER ?G)
+      (not (equal ?O ?OTHER)))))
+
+
+;; Oviparous / Viviparous reproductive attributes
+
+(instance Oviparous BiologicalAttribute)
+(termFormat EnglishLanguage Oviparous "oviparous")
+(documentation Oviparous EnglishLanguage "A &%BiologicalAttribute
+of an &%Organism that reproduces by laying &%Eggs.  Most &%Birds,
+&%Reptiles, &%Fish, and &%Insects are oviparous.")
+
+(instance Viviparous BiologicalAttribute)
+(termFormat EnglishLanguage Viviparous "viviparous")
+(documentation Viviparous EnglishLanguage "A &%BiologicalAttribute
+of an &%Organism that gives &%Birth to live young rather than
+laying &%Eggs.  Most &%Mammals are viviparous.")
+
+(contraryAttribute Oviparous Viviparous)
+
+(=>
+  (and
+    (attribute ?O Oviparous)
+    (instance ?O Organism)
+    (instance ?R Reproduction)
+    (agent ?R ?O))
+  (exists (?E)
+    (and
+      (instance ?E Egg)
+      (result ?R ?E))))
+
+(=>
+  (and
+    (attribute ?O Viviparous)
+    (instance ?O Organism)
+    (instance ?R Reproduction)
+    (agent ?R ?O))
+  (exists (?B)
+    (and
+      (instance ?B Birth)
+      (agent ?B ?O))))
+
+
+;; Color attributes used below are defined in Mid-level-ontology.kif:
+;; Brown, Green, Pink (SecondaryColor), GrayColor (SecondaryColor), OrangeColor (SecondaryColor)
+;; Note: SUMO uses GrayColor (not Gray, which is a radiation unit) and OrangeColor (not Orange).
+
+
+;; Venomous biological attribute
+
+(instance Venomous BiologicalAttribute)
+(termFormat EnglishLanguage Venomous "venomous")
+(documentation Venomous EnglishLanguage "A &%BiologicalAttribute
+of an &%Organism indicating that it produces &%Toxin, a
+&%BiologicallyActiveSubstance capable of causing harm.  The
+attribute is intrinsic to the organism's biochemistry, not
+dependent on any specific event of envenomation.")
+
+(=>
+  (and
+    (attribute ?O Venomous)
+    (instance ?O Organism))
+  (exists (?T)
+    (and
+      (instance ?T Toxin)
+      (part ?T ?O))))
+
+;; envenomation through intentional contact constitutes Poisoning
+
+(increasesLikelihood
+  (and
+    (attribute ?V Venomous)
+    (instance ?PROC IntentionalProcess)
+    (agent ?PROC ?V)
+    (instance ?VICTIM Organism)
+    (patient ?PROC ?VICTIM))
+  (exists (?P)
+    (and
+      (instance ?P Poisoning)
+      (patient ?P ?VICTIM))))
+
+(=>
+  (and
+    (attribute ?V Venomous)
+    (instance ?V Organism)
+    (instance ?P Poisoning)
+    (exists (?PROC)
+      (and
+        (instance ?PROC IntentionalProcess)
+        (agent ?PROC ?V)
+        (patient ?PROC ?VICTIM)))
+    (patient ?P ?VICTIM))
+  (exists (?T)
+    (and
+      (instance ?T Toxin)
+      (part ?T ?V)
+      (instrument ?P ?T))))
+
+;; bridges Poisoning to TherapeuticProcess for Human patients
+
+(increasesLikelihood
+  (and
+    (instance ?P Poisoning)
+    (instance ?H Human)
+    (patient ?P ?H))
+  (exists (?TREAT)
+    (and
+      (instance ?TREAT TherapeuticProcess)
+      (patient ?TREAT ?H))))
+
+;; Climbing process
+
+(subclass Climbing BodyMotion)
+(subclass Climbing MotionUpward)
+(termFormat EnglishLanguage Climbing "climbing")
+(documentation Climbing EnglishLanguage "A &%BodyMotion that is also
+a &%MotionUpward, in which an agent moves upward on a surface by
+grasping with limbs.  This is the physical sense of climbing
+(WordNet sense 01923909), i.e. moving with difficulty by grasping
+a tree, rock face, or other vertical structure.  The metaphorical
+sense of social advancement is a &%Process, and the financial sense
+of value increase is &%Increasing, both already in SUMO.")
+
+(=>
+  (and
+    (instance ?C Climbing)
+    (agent ?C ?A)
+    (origin ?C ?START)
+    (destination ?C ?END))
+  (orientation ?END ?START Above))
+
+(=>
+  (and
+    (instance ?C Climbing)
+    (agent ?C ?A))
+  (exists (?SURFACE)
+    (and
+      (instance ?SURFACE Object)
+      (connected ?A ?SURFACE))))
+
+;; Echolocation process
+
+(subclass Echolocation Vocalizing)
+(termFormat EnglishLanguage Echolocation "echolocation")
+(documentation Echolocation EnglishLanguage "A form of &%Vocalizing
+in which an &%Organism emits sound waves and perceives their echoes
+to detect objects, navigate, or locate prey.  Used by dolphins,
+bats, and some other species as a primary means of spatial
+orientation.")
+
+(=>
+  (and
+    (instance ?E Echolocation)
+    (agent ?E ?O)
+    (instance ?T Translocation)
+    (agent ?T ?O)
+    (subProcess ?E ?T))
+  (exists (?P ?OBJ)
+    (and
+      (instance ?P Perception)
+      (experiencer ?P ?O)
+      (instance ?OBJ Object)
+      (patient ?P ?OBJ))))
+
+;; echolocation during hunting locates the prey
+
+(=>
+  (and
+    (instance ?E Echolocation)
+    (agent ?E ?O)
+    (instance ?H Hunting)
+    (agent ?H ?O)
+    (subProcess ?E ?H)
+    (patient ?H ?PREY))
+  (exists (?P)
+    (and
+      (instance ?P Perception)
+      (experiencer ?P ?O)
+      (patient ?P ?PREY))))
+
+;; LoneWolf social role
+
+(instance LoneWolf SocialRole)
+(termFormat EnglishLanguage LoneWolf "lone wolf")
+(documentation LoneWolf EnglishLanguage "A &%SocialRole for an
+&%AutonomousAgent that operates independently outside of any
+&%Group structure.  Derived from the observed behavior of wolves
+that leave or are expelled from a pack and survive by hunting
+alone.  Applicable to any &%AutonomousAgent, not only wolves.")
+
+(=>
+  (and
+    (instance ?A AutonomousAgent)
+    (attribute ?A LoneWolf))
+  (not
+    (exists (?G)
+      (and
+        (instance ?G Group)
+        (member ?A ?G)))))
+
+(=>
+  (and
+    (attribute ?A LoneWolf)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?A))
+  (not
+    (exists (?OTHER)
+      (and
+        (agent ?HUNT ?OTHER)
+        (not (equal ?A ?OTHER))))))
+
+
+;; ============================================================
+;; Zoo
+;; ============================================================
+
+(subclass Zoo Facility)
+(subclass Zoo Park)
+(termFormat EnglishLanguage Zoo "zoo")
+(documentation Zoo EnglishLanguage "A &%Facility and &%Park where
+&%Animals are kept for public exhibition, education, and conservation.
+Animals in a &%Zoo are displaced from their indigenous
+&%GeographicArea and housed in enclosures that model aspects of
+their natural habitat.  A &%Zoo is maintained by an &%Organization.")
+
+(=>
+  (instance ?Z Zoo)
+  (exists (?ORG)
+    (and
+      (instance ?ORG Organization)
+      (possesses ?ORG ?Z))))
+
+(increasesLikelihood
+  (and
+    (instance ?Z Zoo)
+    (instance ?A Animal)
+    (located ?A ?Z))
+  (instance ?A DomesticAnimal))
+
+(=>
+  (and
+    (instance ?Z Zoo)
+    (instance ?A Animal)
+    (located ?A ?Z))
+  (exists (?REGION)
+    (and
+      (instance ?REGION GeographicArea)
+      (not (equal ?REGION ?Z))
+      (inhabits ?A ?REGION))))
+
+(increasesLikelihood
+  (and
+    (instance ?Z Zoo)
+    (instance ?A Animal)
+    (located ?A ?Z))
+  (exists (?EDU)
+    (and
+      (instance ?EDU EducationalProcess)
+      (patient ?EDU ?A))))
+
+
+;; ============================================================
+;; Typical height and weight ranges
+;; ============================================================
+;;
+;; Height and weight vary by individual, sex, age, and population.
+;; All measurements use increasesLikelihood to reflect that these
+;; are typical ranges, not absolute constraints.
+
+(increasesLikelihood
+  (instance ?G Giraffe)
+  (exists (?H)
+    (and
+      (height ?G ?H)
+      (greaterThan ?H (MeasureFn 5 Meter)))))
+
+(increasesLikelihood
+  (instance ?E Elephant)
+  (exists (?H)
+    (and
+      (height ?E ?H)
+      (greaterThan ?H (MeasureFn 2.5 Meter)))))
+
+(increasesLikelihood
+  (instance ?OS Ostrich)
+  (exists (?H)
+    (and
+      (height ?OS ?H)
+      (greaterThan ?H (MeasureFn 2 Meter)))))
+
+(increasesLikelihood
+  (instance ?G Gorilla)
+  (exists (?H)
+    (and
+      (height ?G ?H)
+      (greaterThan ?H (MeasureFn 1.4 Meter)))))
+
+(increasesLikelihood
+  (instance ?W Whale)
+  (exists (?W2)
+    (and
+      (weight ?W ?W2)
+      (greaterThan ?W2 (MeasureFn 1000 Kilogram)))))
+
+(increasesLikelihood
+  (instance ?SH Seahorse)
+  (exists (?H)
+    (and
+      (height ?SH ?H)
+      (lessThan ?H (MeasureFn 0.3 Meter)))))
+
+(increasesLikelihood
+  (instance ?SP Spider)
+  (exists (?H)
+    (and
+      (height ?SP ?H)
+      (lessThan ?H (MeasureFn 0.1 Meter)))))
+
+(increasesLikelihood
+  (instance ?C Capybara)
+  (exists (?W2)
+    (and
+      (weight ?C ?W2)
+      (greaterThan ?W2 (MeasureFn 35 Kilogram)))))
+
+(increasesLikelihood
+  (instance ?M Moose)
+  (exists (?W2)
+    (and
+      (weight ?M ?W2)
+      (greaterThan ?W2 (MeasureFn 400 Kilogram)))))
+
+(increasesLikelihood
+  (instance ?BI Bison)
+  (exists (?W2)
+    (and
+      (weight ?BI ?W2)
+      (greaterThan ?W2 (MeasureFn 500 Kilogram)))))
+
+
+;; ============================================================
+;; Sex dimorphism
+;; ============================================================
+
+;; Male Moose have antlers (Horn), females typically do not
+
+(increasesLikelihood
+  (and
+    (instance ?M Moose)
+    (attribute ?M Male))
+  (exists (?H)
+    (and
+      (instance ?H Horn)
+      (part ?H ?M))))
+
+(decreasesLikelihood
+  (and
+    (instance ?M Moose)
+    (attribute ?M Female))
+  (exists (?H)
+    (and
+      (instance ?H Horn)
+      (part ?H ?M))))
+
+;; Male Gorillas are typically larger than females
+
+(increasesLikelihood
+  (and
+    (instance ?G Gorilla)
+    (attribute ?G Male))
+  (exists (?H)
+    (and
+      (height ?G ?H)
+      (greaterThan ?H (MeasureFn 1.7 Meter)))))
+
+(increasesLikelihood
+  (and
+    (instance ?G Gorilla)
+    (attribute ?G Female))
+  (exists (?H)
+    (and
+      (height ?G ?H)
+      (lessThan ?H (MeasureFn 1.5 Meter)))))
+
+;; Male Seahorse carries fertilized eggs (unique reproductive role)
+
+(=>
+  (and
+    (instance ?SH Seahorse)
+    (attribute ?SH Male)
+    (instance ?R Reproduction)
+    (agent ?R ?SH))
+  (exists (?E)
+    (and
+      (instance ?E Egg)
+      (located ?E ?SH))))
+
+;; Male Goats typically have Horns, females may or may not
+
+(=>
+  (and
+    (instance ?GT Goat)
+    (attribute ?GT Male))
+  (exists (?H)
+    (and
+      (instance ?H Horn)
+      (part ?H ?GT))))
+
+(increasesLikelihood
+  (and
+    (instance ?GT Goat)
+    (attribute ?GT Female))
+  (exists (?H)
+    (and
+      (instance ?H Horn)
+      (part ?H ?GT))))
+
+
+;; ============================================================
+;; ANATOMICAL AND STRUCTURAL ASSERTIONS
+;; ============================================================
+
+(typicalPart Feather Bird)
+(typicalPart Horn Goat)
+(typicalPart AnimalShell Turtle)
+(typicalPart Horn Moose)
+
+
+;; ============================================================
+;; Capybara
+;; ============================================================
+;;
+;; Largest living rodent; semi-aquatic species relevant for
+;; habitat reasoning.
+
+(subclass Capybara Rodent)
+(subclass Capybara Herbivore)
+(termFormat EnglishLanguage Capybara "capybara")
+(documentation Capybara EnglishLanguage "A &%Rodent of the species
+Hydrochoerus hydrochaeris, native to South America.  The largest
+living rodent, &%Capybaras are semi-aquatic &%Herbivores that
+inhabit areas near rivers, lakes, and wetlands.")
+
+(=>
+  (instance ?C Capybara)
+  (exists (?WATER ?LAND)
+    (and
+      (instance ?WATER WaterArea)
+      (instance ?LAND LandArea)
+      (inhabits ?C ?WATER)
+      (inhabits ?C ?LAND))))
+
+(=>
+  (instance ?C Capybara)
+  (exists (?R ?W)
+    (and
+      (instance ?R GeographicArea)
+      (instance ?W WaterArea)
+      (part ?W ?R)
+      (inhabits ?C ?R))))
+
+(=> (instance ?C Capybara) (attribute ?C Viviparous))
+
+(increasesLikelihood
+  (instance ?C Capybara)
+  (attribute ?C Brown))
+
+(capability Swimming agent Capybara)
+
+
+;; ============================================================
+;; Wolf
+;; ============================================================
+;;
+;; Canis lupus, wild ancestor of DomesticDog.
+
+(subclass Wolf Canine)
+(termFormat EnglishLanguage Wolf "wolf")
+(documentation Wolf EnglishLanguage "A wild &%Canine of the species
+Canis lupus and the direct ancestor of the &%DomesticDog.  Wolves
+are apex predators that live and hunt cooperatively in organized
+social groups called packs.  They are the largest wild members
+of the family Canidae.")
+
+;; cooperative pack hunting
+
+(increasesLikelihood
+  (and
+    (instance ?W Wolf)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?W))
+  (exists (?OTHER ?PACK)
+    (and
+      (instance ?OTHER Wolf)
+      (not (equal ?W ?OTHER))
+      (agent ?HUNT ?OTHER)
+      (instance ?PACK Group)
+      (member ?W ?PACK)
+      (member ?OTHER ?PACK))))
+
+(=>
+  (and
+    (instance ?W Wolf)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?W))
+  (exists (?PREY)
+    (and
+      (instance ?PREY Animal)
+      (patient ?HUNT ?PREY))))
+
+(increasesLikelihood (instance ?W Wolf) (attribute ?W Social))
+(=> (instance ?W Wolf) (attribute ?W Viviparous))
+
+(increasesLikelihood
+  (instance ?W Wolf)
+  (attribute ?W GrayColor))
+
+(capability Hunting agent Wolf)
+
+
+;; ============================================================
+;; Dolphin
+;; ============================================================
+;;
+;; Cetacean aquatic mammal using echolocation for navigation
+;; and hunting.
+
+(subclass Dolphin AquaticMammal)
+(termFormat EnglishLanguage Dolphin "dolphin")
+(documentation Dolphin EnglishLanguage "An &%AquaticMammal of the
+order Cetacea, closely related to &%Whale.  Dolphins are highly
+intelligent social mammals that navigate and locate prey via
+&%Echolocation, i.e. sequences of high-frequency vocalizations.
+Despite living entirely in water, dolphins breathe air and must
+surface periodically to respire.")
+
+;; air-breathing distinguishes cetaceans from fish
+
+(=>
+  (instance ?D Dolphin)
+  (exists (?B)
+    (and
+      (instance ?B Breathing)
+      (agent ?B ?D))))
+
+(increasesLikelihood
+  (and
+    (instance ?D Dolphin)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?D))
+  (exists (?ECHO)
+    (and
+      (instance ?ECHO Echolocation)
+      (agent ?ECHO ?D)
+      (subProcess ?ECHO ?HUNT))))
+
+(=>
+  (instance ?D Dolphin)
+  (exists (?W)
+    (and
+      (instance ?W WaterArea)
+      (inhabits ?D ?W))))
+
+(=>
+  (instance ?D Dolphin)
+  (exists (?GROUP ?OTHER)
+    (and
+      (instance ?GROUP Group)
+      (member ?D ?GROUP)
+      (member ?OTHER ?GROUP)
+      (instance ?OTHER Dolphin)
+      (not (equal ?D ?OTHER)))))
+
+(=> (instance ?D Dolphin) (attribute ?D Social))
+(=> (instance ?D Dolphin) (attribute ?D Viviparous))
+
+(increasesLikelihood
+  (instance ?D Dolphin)
+  (attribute ?D GrayColor))
+
+(capability Echolocation agent Dolphin)
+
+
+;; ============================================================
+;; Whale
+;; ============================================================
+;;
+;; Largest class of animals. Fully aquatic but air-breathing.
+;; Includes blue whale, humpback, sperm whale.
+
+(subclass Whale AquaticMammal)
+(termFormat EnglishLanguage Whale "whale")
+(documentation Whale EnglishLanguage "An &%AquaticMammal of the
+order Cetacea.  Whales are the largest animals on Earth.  They
+are fully aquatic yet breathe air, surfacing periodically to
+exhale and inhale through a blowhole.  Includes blue whales,
+humpback whales, and sperm whales.")
+
+(=>
+  (instance ?W Whale)
+  (exists (?B)
+    (and
+      (instance ?B Breathing)
+      (agent ?B ?W))))
+
+(=>
+  (instance ?W Whale)
+  (exists (?WA)
+    (and
+      (instance ?WA WaterArea)
+      (inhabits ?W ?WA))))
+
+(increasesLikelihood (instance ?W Whale) (attribute ?W Migratory))
+(=> (instance ?W Whale) (attribute ?W Viviparous))
+
+(increasesLikelihood
+  (instance ?W Whale)
+  (attribute ?W GrayColor))
+
+(capability Swimming agent Whale)
+
+
+;; ============================================================
+;; Frog
+;; ============================================================
+;;
+
+(subclass Frog Amphibian)
+(termFormat EnglishLanguage Frog "frog")
+(documentation Frog EnglishLanguage "An &%Amphibian of the order
+Anura.  Frogs hatch as fully aquatic larvae and undergo
+metamorphosis into four-limbed semi-terrestrial adults.  Adult
+frogs inhabit both water and land areas, returning to water
+to reproduce.  Frogs are ectothermic and regulate body
+temperature via the environment.")
+
+(increasesLikelihood
+  (instance ?F Frog)
+  (exists (?WATER ?LAND)
+    (and
+      (instance ?WATER WaterArea)
+      (instance ?LAND LandArea)
+      (inhabits ?F ?WATER)
+      (inhabits ?F ?LAND))))
+
+(increasesLikelihood
+  (and
+  (instance ?F Frog)
+    (instance ?R Reproduction)
+    (agent ?R ?F))
+  (exists (?W)
+    (and
+      (instance ?W WaterArea)
+      (located ?R ?W))))
+
+(=> (instance ?F Frog) (attribute ?F Oviparous))
+
+(increasesLikelihood
+  (instance ?F Frog)
+  (attribute ?F Green))
+
+(capability Swimming agent Frog)
+
+
+;; ============================================================
+;; Turtle
+;; ============================================================
+;;
+
+;; (subclass Turtle Reptile) -- already defined in Economy.kif
+(termFormat EnglishLanguage Turtle "turtle")
+(documentation Turtle EnglishLanguage "A &%Reptile of the order
+Testudines, distinguished by a bony or cartilaginous &%AnimalShell
+fused to the animal's spine and ribcage.  The shell is a permanent
+anatomical structure and the turtle cannot be separated from it.
+Turtles include fully aquatic, semi-aquatic, and terrestrial
+species and are among the longest-lived vertebrates.")
+
+(=>
+  (instance ?T Turtle)
+  (exists (?SHELL)
+    (and
+      (instance ?SHELL AnimalShell)
+      (part ?SHELL ?T))))
+
+;; shell is permanently fused; removal is impossible
+
+(=>
+  (and
+    (instance ?T Turtle)
+    (instance ?SHELL AnimalShell)
+    (part ?SHELL ?T))
+  (not
+    (exists (?R)
+      (and
+        (instance ?R Removing)
+        (patient ?R ?SHELL)))))
+
+(=> (instance ?T Turtle) (attribute ?T Oviparous))
+
+(=> (instance ?T Turtle) (attribute ?T Polychromatic))
+
+(increasesLikelihood
+  (instance ?T Turtle)
+  (attribute ?T Green))
+
+(increasesLikelihood
+  (instance ?T Turtle)
+  (attribute ?T Brown))
+
+(increasesLikelihood
+  (instance ?T Turtle)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?T ?AREA))))
+
+(increasesLikelihood
+  (instance ?T Turtle)
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (inhabits ?T ?WATER))))
+
+(capability Swimming agent Turtle)
+
+
+;; ============================================================
+;; Shark
+;; ============================================================
+;;
+
+(subclass Shark Fish)
+(subclass Shark Carnivore)
+(termFormat EnglishLanguage Shark "shark")
+(documentation Shark EnglishLanguage "A cartilaginous &%Fish of the
+class Chondrichthyes and an apex marine predator.  Sharks are
+&%Carnivores that primarily prey on fish, marine mammals, and
+other aquatic animals.  Unlike bony fish, sharks have a skeleton
+composed entirely of cartilage.")
+
+(=>
+  (instance ?S Shark)
+  (exists (?W)
+    (and
+      (instance ?W WaterArea)
+      (inhabits ?S ?W))))
+
+(=>
+  (and
+    (instance ?S Shark)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?S))
+  (exists (?PREY ?WATER)
+    (and
+      (instance ?PREY Animal)
+      (patient ?HUNT ?PREY)
+      (instance ?WATER WaterArea)
+      (inhabits ?PREY ?WATER))))
+
+(increasesLikelihood
+  (instance ?S Shark)
+  (attribute ?S Oviparous))
+
+(increasesLikelihood
+  (instance ?S Shark)
+  (attribute ?S GrayColor))
+
+(capability Swimming agent Shark)
+
+
+;; ============================================================
+;; Eagle
+;; ============================================================
+;;
+(subclass Eagle Raptor)
+(termFormat EnglishLanguage Eagle "eagle")
+(documentation Eagle EnglishLanguage "A large &%Bird of prey
+(raptor) characterized by keen binocular vision, powerful talons,
+and a hooked beak adapted for hunting.  Eagles hunt by soaring
+at altitude to spot prey visually, then diving at speed.
+Includes the bald eagle, golden eagle, and harpy eagle.")
+
+(=>
+  (and
+    (instance ?E Eagle)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?E))
+  (exists (?PREY)
+    (and
+      (instance ?PREY Animal)
+      (patient ?HUNT ?PREY))))
+
+(=> (instance ?E Eagle) (attribute ?E Oviparous))
+
+(increasesLikelihood
+  (instance ?E Eagle)
+  (attribute ?E Brown))
+
+(capability Flying agent Eagle)
+
+
+;; ============================================================
+;; Butterfly
+;; ============================================================
+;;
+;; Adult winged stage of Lepidopteran insects. Transitions
+;; from caterpillar to chrysalis to butterfly.
+
+;; (subclass Butterfly Insect) -- already defined in Food.kif
+(termFormat EnglishLanguage Butterfly "butterfly")
+(documentation Butterfly EnglishLanguage "An &%Insect of the order
+Lepidoptera in its adult, winged stage.  &%Butterflies are the
+adult form reached after metamorphosis from a larval &%Caterpillar
+stage through a pupal chrysalis stage.  Butterflies are
+distinguished from moths by &%Diurnal activity and club-tipped
+antennae.  They play a key role in plant pollination.")
+
+(=>
+  (instance ?B Butterfly)
+  (exists (?FLT)
+    (and
+      (instance ?FLT Flying)
+      (agent ?FLT ?B))))
+
+(=>
+  (instance ?B Butterfly)
+  (attribute ?B Diurnal))
+
+;; pollination: visiting flowering plants increases reproduction likelihood
+
+(increasesLikelihood
+  (and
+    (instance ?B Butterfly)
+    (instance ?MOVE Translocation)
+    (agent ?MOVE ?B)
+        (instance ?PLANT FloweringPlant)
+    (destination ?MOVE ?PLANT))
+  (exists (?R)
+    (and
+      (instance ?R Reproduction)
+      (agent ?R ?PLANT))))
+
+(=> (instance ?B Butterfly) (attribute ?B Oviparous))
+
+(=> (instance ?B Butterfly) (attribute ?B Polychromatic))
+
+(capability Flying agent Butterfly)
+
+
+;; ============================================================
+;; Gorilla
+;; ============================================================
+;;
+;; Largest living great ape. Ground-dwelling, primarily herbivorous.
+;; Lives in stable social groups (troops) with a dominant silverback.
+
+(subclass Gorilla Ape)
+(subclass Gorilla Herbivore)
+(termFormat EnglishLanguage Gorilla "gorilla")
+(documentation Gorilla EnglishLanguage "An &%Ape of the genus
+Gorilla, native to the forests of central sub-Saharan Africa.
+Gorillas are the largest living primates.  They are primarily
+&%Herbivores, subsisting on leaves, stems, and fruit.  Gorillas
+live in stable social groups called troops, led by a dominant
+adult male (silverback).")
+
+(=>
+  (instance ?G Gorilla)
+  (exists (?TROOP ?OTHER)
+    (and
+      (instance ?TROOP Group)
+      (member ?G ?TROOP)
+      (member ?OTHER ?TROOP)
+      (instance ?OTHER Gorilla)
+      (not (equal ?G ?OTHER)))))
+
+(=>
+    (instance ?G Gorilla)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?G ?AREA))))
+
+(=> (instance ?G Gorilla) (attribute ?G Social))
+(=> (instance ?G Gorilla) (attribute ?G Viviparous))
+
+(increasesLikelihood
+  (instance ?G Gorilla)
+  (attribute ?G Black))
+
+(capability Climbing agent Gorilla)
+
+
+;; ============================================================
+;; Raptor
+;; ============================================================
+;;
+;; Intermediate class for birds of prey: eagles, hawks, falcons,
+;; owls. Distinguished by keen binocular vision, strong talons,
+;; and a hooked beak. Raptors hunt from the air.
+
+(subclass Raptor Bird)
+(subclass Raptor Carnivore)
+(termFormat EnglishLanguage Raptor "raptor")
+(documentation Raptor EnglishLanguage "A &%Bird of prey characterized
+by keen binocular vision, powerful talons, and a hooked beak adapted
+for seizing and killing prey.  Raptors hunt by soaring or hovering
+at altitude to spot prey visually, then diving or striking at speed.
+Includes eagles, hawks, falcons, and owls.  Also called a bird of
+prey.")
+
+;; aerial hunting: flight is a subprocess of every raptor hunt
+
+(increasesLikelihood
+  (and
+    (instance ?R Raptor)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?R))
+  (exists (?FLT)
+    (and
+      (instance ?FLT Flying)
+      (agent ?FLT ?R)
+      (subProcess ?FLT ?HUNT))))
+
+(capability Seeing experiencer Raptor)
+
+(increasesLikelihood
+  (and
+    (instance ?R Raptor)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?R))
+  (exists (?SEE)
+    (and
+      (instance ?SEE Seeing)
+      (experiencer ?SEE ?R)
+      (subProcess ?SEE ?HUNT))))
+
+
+;; ============================================================
+;; Hawk
+;; ============================================================
+;;
+;; Diurnal raptor of genera Accipiter and Buteo. Smaller and more
+;; agile than eagles; hunts birds and small mammals.
+
+(subclass Hawk Raptor)
+(termFormat EnglishLanguage Hawk "hawk")
+(documentation Hawk EnglishLanguage "A &%Raptor of the genera
+Accipiter and Buteo, smaller and more agile than &%Eagles.  Hawks
+are &%Diurnal hunters that prey on birds, rodents, and small mammals.
+They hunt by soaring or perching at altitude, then diving at speed
+to strike prey.  Hawks are among the most widespread raptors,
+found on every continent except Antarctica.")
+
+(increasesLikelihood
+  (and
+    (instance ?H Hawk)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?H))
+  (exists (?PREY)
+    (and
+      (patient ?HUNT ?PREY)
+      (or
+        (instance ?PREY Bird)
+        (instance ?PREY Rodent)))))
+
+(=>
+  (instance ?H Hawk)
+  (attribute ?H Diurnal))
+
+(=> (instance ?H Hawk) (attribute ?H Oviparous))
+
+(increasesLikelihood
+  (instance ?H Hawk)
+  (attribute ?H Brown))
+
+(capability Flying agent Hawk)
+
+
+;; ============================================================
+;; Penguin
+;; ============================================================
+;;
+;; Flightless aquatic bird of order Sphenisciformes. Wings evolved
+;; into flippers; highly adapted for swimming but cannot fly.
+
+(subclass Penguin Bird)
+(subclass Penguin Carnivore)
+(termFormat EnglishLanguage Penguin "penguin")
+(documentation Penguin EnglishLanguage "A flightless &%Bird of the
+order Sphenisciformes, native primarily to the Southern Hemisphere.
+&%Penguins have wings evolved into flippers, making them highly
+adapted swimmers but incapable of flight.  They inhabit cold marine
+environments, hunting fish, squid, and krill underwater.  Despite
+living at sea, penguins are air-breathing and return to land to breed.")
+
+(increasesLikelihood
+  (and
+    (instance ?P Penguin)
+    (instance ?MOVE Translocation)
+    (agent ?MOVE ?P))
+  (exists (?SWIM)
+    (and
+      (instance ?SWIM Swimming)
+      (agent ?SWIM ?P)
+      (subProcess ?SWIM ?MOVE))))
+
+(=>
+  (instance ?P Penguin)
+  (not
+    (exists (?FLY)
+      (and
+        (instance ?FLY Flying)
+        (agent ?FLY ?P)))))
+
+(=>
+  (instance ?P Penguin)
+  (exists (?B)
+    (and
+      (instance ?B Breathing)
+      (agent ?B ?P))))
+
+(capability Swimming agent Penguin)
+
+(=>
+  (and
+    (instance ?P Penguin)
+    (instance ?R Reproduction)
+    (agent ?R ?P))
+  (exists (?LAND)
+    (and
+      (instance ?LAND LandArea)
+      (located ?R ?LAND))))
+
+(=> (instance ?P Penguin) (attribute ?P Oviparous))
+
+(=> (instance ?P Penguin) (attribute ?P Polychromatic))
+
+(increasesLikelihood
+  (instance ?P Penguin)
+  (attribute ?P Black))
+
+(increasesLikelihood
+  (instance ?P Penguin)
+  (attribute ?P White))
+
+
+;; ============================================================
+;; WadingBird
+;; ============================================================
+;;
+;; Intermediate class for long-legged birds that forage in shallow
+;; water: herons, egrets, flamingos, storks, ibises, spoonbills.
+
+(subclass WadingBird Bird)
+(termFormat EnglishLanguage WadingBird "wading bird")
+(documentation WadingBird EnglishLanguage "A &%Bird characterized
+by long legs adapted for wading in shallow water while foraging.
+Wading birds inhabit wetlands, marshes, estuaries, and shorelines.
+They forage by standing or walking slowly through shallow water to
+locate and capture prey or filter food from the water column.
+Includes herons, egrets, flamingos, storks, and ibises.")
+
+(=>
+  (instance ?WB WadingBird)
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (inhabits ?WB ?WATER))))
+
+(capability Walking agent WadingBird)
+
+(increasesLikelihood
+  (and
+    (instance ?WB WadingBird)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?WB))
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (located ?HUNT ?WATER))))
+
+
+;; ============================================================
+;; Flamingo
+;; ============================================================
+;;
+;; Pink wading bird of family Phoenicopteridae. Filter feeder
+;; that stands in shallow saline water to sieve food.
+
+(subclass Flamingo WadingBird)
+(termFormat EnglishLanguage Flamingo "flamingo")
+(documentation Flamingo EnglishLanguage "A &%WadingBird of the
+family Phoenicopteridae, recognized by its distinctive pink plumage
+and long curved neck.  Flamingos are filter feeders that stand in
+shallow saline or alkaline water, using a specialized inverted beak
+to sieve algae, brine shrimp, and small invertebrates from the water
+column.  Pink coloration derives from carotenoid pigments in their
+diet.")
+
+;; filter feeding occurs while standing in water
+
+(=>
+  (and
+    (instance ?FL Flamingo)
+    (instance ?EAT Eating)
+    (agent ?EAT ?FL))
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (inhabits ?FL ?WATER))))
+
+(=> (instance ?FL Flamingo) (attribute ?FL Oviparous))
+
+(increasesLikelihood
+  (instance ?FL Flamingo)
+  (attribute ?FL Pink))
+
+(capability Flying agent Flamingo)
+
+
+;; ============================================================
+;; Heron
+;; ============================================================
+;;
+;; Patient ambush-hunting wading bird of family Ardeidae. Stands
+;; motionless in shallow water until fish come within strike range.
+
+(subclass Heron WadingBird)
+(subclass Heron Carnivore)
+(termFormat EnglishLanguage Heron "heron")
+(documentation Heron EnglishLanguage "A &%WadingBird of the family
+Ardeidae, characterized by a long neck, long legs, and a dagger-like
+beak adapted for spearing fish.  Herons are patient ambush predators:
+they stand motionless in shallow water until fish approach within
+striking distance, then strike with a rapid extension of the neck.
+Includes the great blue heron, grey heron, and night heron.")
+
+;; ambush hunting from within shallow water
+
+(=>
+  (and
+    (instance ?HE Heron)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?HE))
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (inhabits ?HE ?WATER))))
+
+(=> (instance ?HE Heron) (attribute ?HE Oviparous))
+
+(increasesLikelihood
+  (instance ?HE Heron)
+  (attribute ?HE GrayColor))
+
+(capability Hunting agent Heron)
+
+
+;; ============================================================
+;; Passerine
+;; ============================================================
+;;
+;; Perching birds: order Passeriformes, the largest bird order
+;; (over half of all bird species). Includes sparrows, crows,
+;; finches, robins, warblers, and most songbirds.
+
+(subclass Passerine Bird)
+(termFormat EnglishLanguage Passerine "passerine")
+(documentation Passerine EnglishLanguage "A &%Bird of the order
+Passeriformes, the largest avian order comprising over half of all
+living bird species.  Passerines are perching birds, distinguished
+by a foot with three forward-facing toes and one rear-facing toe
+that automatically grips branches when the bird lands.  Most
+passerines are also songbirds, producing complex vocalizations.
+Includes crows, sparrows, finches, swallows, and warblers.")
+
+(=>
+  (instance ?PA Passerine)
+  (exists (?VOC)
+    (and
+      (instance ?VOC Vocalizing)
+      (agent ?VOC ?PA))))
+
+(capability Vocalizing agent Passerine)
+
+(increasesLikelihood
+  (instance ?PA Passerine)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?PA ?AREA))))
+
+
+;; ============================================================
+;; Crow
+;; ============================================================
+;;
+;; Highly intelligent corvid passerine of genus Corvus. Social,
+;; omnivorous, and capable of tool use and problem solving.
+
+(subclass Crow Passerine)
+(subclass Crow Omnivore)
+(termFormat EnglishLanguage Crow "crow")
+(documentation Crow EnglishLanguage "A &%Passerine of the genus
+Corvus, family Corvidae.  Crows are among the most intelligent
+birds, capable of tool use, problem solving, and recognizing
+individual human faces.  They are &%Omnivores and highly social,
+living in family groups and communal roosts.  Crows are found on
+every continent except Antarctica and South America.")
+
+(=>
+  (instance ?CR Crow)
+  (exists (?GROUP ?OTHER)
+    (and
+      (instance ?GROUP Group)
+      (member ?CR ?GROUP)
+      (member ?OTHER ?GROUP)
+      (instance ?OTHER Crow)
+      (not (equal ?CR ?OTHER)))))
+
+(capability Making agent Crow)
+
+(=> (instance ?CR Crow) (attribute ?CR Social))
+(=> (instance ?CR Crow) (attribute ?CR Oviparous))
+
+(increasesLikelihood
+  (instance ?CR Crow)
+  (attribute ?CR Black))
+
+
+;; ============================================================
+;; Sparrow
+;; ============================================================
+;;
+;; Small seed-eating passerine. Family Passeridae (Old World) or
+;; Emberizidae (New World). Among the most abundant wild birds.
+
+(subclass Sparrow Passerine)
+(subclass Sparrow Omnivore)
+(termFormat EnglishLanguage Sparrow "sparrow")
+(documentation Sparrow EnglishLanguage "A small &%Passerine of the
+families Passeridae and Emberizidae.  Sparrows are seed-eating birds
+found on every inhabited continent and among the most numerous wild
+birds.  They thrive in diverse habitats from forests and grasslands
+to urban environments, subsisting primarily on seeds, grains, and
+small invertebrates.  Classified as &%Omnivores because they consume
+both plant material and animal prey.")
+
+(=>
+    (instance ?SP Sparrow)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?SP ?AREA))))
+
+(=> (instance ?SP Sparrow) (attribute ?SP Oviparous))
+
+(increasesLikelihood
+  (instance ?SP Sparrow)
+  (attribute ?SP Brown))
+
+(capability Flying agent Sparrow)
+
+
+;; ============================================================
+;; Leopard
+;; ============================================================
+;;
+;; Large spotted feline of sub-Saharan Africa and Asia. Solitary
+;; nocturnal ambush predator; most widespread of the big cats.
+
+(subclass Leopard Feline)
+(termFormat EnglishLanguage Leopard "leopard")
+(documentation Leopard EnglishLanguage "A large &%Feline of the
+species Panthera pardus, native to sub-Saharan Africa and Asia.
+Leopards are solitary, &%Nocturnal ambush predators distinguished by
+their spotted coat of rosette markings.  They are the most widespread
+of the large wild cats and are capable of climbing trees, often
+hauling kills into the canopy to keep prey away from scavengers.")
+
+;; solitary hunter: no other leopard co-hunts
+
+(=>
+  (and
+    (instance ?L Leopard)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?L))
+  (not
+    (exists (?OTHER)
+      (and
+        (instance ?OTHER Leopard)
+        (agent ?HUNT ?OTHER)
+        (not (equal ?L ?OTHER))))))
+
+(=>
+  (instance ?L Leopard)
+  (attribute ?L Nocturnal))
+
+(capability Climbing agent Leopard)
+
+(=>
+  (instance ?L Leopard)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?L ?AREA))))
+
+(=> (instance ?L Leopard) (attribute ?L Solitary))
+(=> (instance ?L Leopard) (attribute ?L Viviparous))
+
+(=> (instance ?L Leopard) (attribute ?L Polychromatic))
+
+(increasesLikelihood
+  (instance ?L Leopard)
+  (attribute ?L Yellow))
+
+
+;; ============================================================
+;; Beaver
+;; ============================================================
+;;
+;; Semi-aquatic rodent of genus Castor. Ecosystem engineer: builds
+;; dams that create ponds and alter local hydrology.
+
+(subclass Beaver Rodent)
+(subclass Beaver Herbivore)
+(termFormat EnglishLanguage Beaver "beaver")
+(documentation Beaver EnglishLanguage "A semi-aquatic &%Rodent of
+the genus Castor, native to North America and Eurasia.  Beavers are
+notable ecosystem engineers: they fell trees and construct dams
+across streams, creating ponds that fundamentally alter local
+hydrology and habitat.  Beavers are &%Herbivores, subsisting on
+bark, leaves, and aquatic plants.")
+
+(=>
+    (instance ?BV Beaver)
+  (exists (?R ?W)
+    (and
+      (instance ?R GeographicArea)
+      (instance ?W WaterArea)
+      (part ?W ?R)
+      (inhabits ?BV ?R))))
+
+(capability Making agent Beaver)
+
+(=> (instance ?BV Beaver) (attribute ?BV Viviparous))
+
+(increasesLikelihood
+  (instance ?BV Beaver)
+  (attribute ?BV Brown))
+
+
+;; ============================================================
+;; Lizard
+;; ============================================================
+;;
+;; Scaled reptile of order Squamata (suborder Lacertilia). Largest
+;; reptile order by species count. Ectothermic, regulating body
+;; temperature behaviorally by moving between warm and cool areas.
+
+(subclass Lizard Reptile)
+(subclass Lizard Carnivore)
+(termFormat EnglishLanguage Lizard "lizard")
+(documentation Lizard EnglishLanguage "A &%Reptile of the order
+Squamata, suborder Lacertilia.  Lizards are the most species-rich
+reptile group.  They are ectothermic, regulating body temperature
+by basking in sunlight or moving to shade rather than generating
+metabolic heat.  Most lizards are carnivorous or insectivorous.
+Distinguished from snakes by the presence of four limbs in most
+species.")
+
+(=>
+  (instance ?LZ Lizard)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?LZ ?AREA))))
+
+(increasesLikelihood (instance ?LZ Lizard) (attribute ?LZ Oviparous))
+
+(increasesLikelihood
+  (instance ?LZ Lizard)
+  (attribute ?LZ Green))
+
+(capability Ambulating agent Lizard)
+
+
+;; ============================================================
+;; Goat
+;; ============================================================
+;;
+;; Domesticated and wild hoofed mammal of genus Capra. Herbivore
+;; adapted to mountainous and arid terrain; early domesticated species.
+
+;; (subclass Goat HoofedMammal) -- already defined in Economy.kif
+(subclass Goat Herbivore)
+(termFormat EnglishLanguage Goat "goat")
+(documentation Goat EnglishLanguage "A &%HoofedMammal of the genus
+Capra, including both wild species and the domesticated goat Capra
+aegagrus hircus.  Goats are &%Herbivores adapted to mountainous and
+arid terrain.  They were among the first animals domesticated by
+humans, kept for milk, meat, fiber, and skin.  Goats are highly
+agile climbers capable of scaling steep rocky terrain.")
+
+(=>
+  (instance ?GT Goat)
+  (exists (?AREA)
+  (and
+      (instance ?AREA LandArea)
+      (inhabits ?GT ?AREA))))
+
+(increasesLikelihood
+    (instance ?GT Goat)
+  (instance ?GT DomesticAnimal))
+
+(=> (instance ?GT Goat) (attribute ?GT Viviparous))
+
+(capability Climbing agent Goat)
+
+(increasesLikelihood
+  (instance ?GT Goat)
+  (attribute ?GT White))
+
+
+;; ============================================================
+;; Giraffe
+;; ============================================================
+;;
+;; Tallest living terrestrial animal. African hoofed mammal.
+
+(subclass Giraffe HoofedMammal)
+(subclass Giraffe Herbivore)
+(termFormat EnglishLanguage Giraffe "giraffe")
+(documentation Giraffe EnglishLanguage "A &%HoofedMammal of the genus
+Giraffa, native to sub-Saharan Africa.  Giraffes are the tallest
+living terrestrial animals, with an extremely elongated neck adapted
+for browsing foliage in tall trees.  They are &%Herbivores, feeding
+primarily on leaves and shoots of acacia and other trees.")
+
+(=>
+  (instance ?GR Giraffe)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?GR ?AREA))))
+
+(=> (instance ?GR Giraffe) (attribute ?GR Viviparous))
+
+(=> (instance ?GR Giraffe) (attribute ?GR Polychromatic))
+
+(increasesLikelihood
+  (instance ?GR Giraffe)
+  (attribute ?GR Yellow))
+
+(increasesLikelihood
+  (instance ?GR Giraffe)
+  (attribute ?GR Brown))
+
+(capability Ambulating agent Giraffe)
+
+
+;; ============================================================
+;; Hippopotamus
+;; ============================================================
+;;
+;; Large semi-aquatic African mammal. Third-largest land animal.
+
+(subclass Hippopotamus HoofedMammal)
+(subclass Hippopotamus Herbivore)
+(termFormat EnglishLanguage Hippopotamus "hippopotamus")
+(documentation Hippopotamus EnglishLanguage "A large semi-aquatic
+&%HoofedMammal of the family Hippopotamidae, native to sub-Saharan
+Africa.  Hippopotamuses spend much of the day submerged in rivers
+and lakes, emerging at night to graze.  They are among the largest
+land animals and are &%Herbivores that feed on grasses.")
+
+(=>
+  (instance ?H Hippopotamus)
+  (exists (?R ?W)
+    (and
+      (instance ?R GeographicArea)
+      (instance ?W WaterArea)
+      (part ?W ?R)
+      (inhabits ?H ?R))))
+
+(=>
+  (instance ?H Hippopotamus)
+  (attribute ?H Nocturnal))
+
+(capability Swimming agent Hippopotamus)
+
+(=> (instance ?H Hippopotamus) (attribute ?H Viviparous))
+
+(increasesLikelihood
+  (instance ?H Hippopotamus)
+  (attribute ?H GrayColor))
+
+
+;; ============================================================
+;; Zebra
+;; ============================================================
+;;
+;; Striped African equid.
+
+(subclass Zebra HoofedMammal)
+(subclass Zebra Herbivore)
+(termFormat EnglishLanguage Zebra "zebra")
+(documentation Zebra EnglishLanguage "A &%HoofedMammal of the genus
+Equus, native to sub-Saharan Africa.  Zebras are distinguished by
+their black-and-white striped coat, which is unique to each
+individual.  They are &%Herbivores that live in social herds on
+grasslands and savannas.")
+
+(=>
+  (instance ?Z Zebra)
+  (exists (?HERD ?OTHER)
+    (and
+      (instance ?HERD Group)
+      (member ?Z ?HERD)
+      (member ?OTHER ?HERD)
+      (instance ?OTHER Zebra)
+      (not (equal ?Z ?OTHER)))))
+
+(=>
+  (instance ?Z Zebra)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?Z ?AREA))))
+
+(=> (instance ?Z Zebra) (attribute ?Z Social))
+(=> (instance ?Z Zebra) (attribute ?Z Viviparous))
+
+(=> (instance ?Z Zebra) (attribute ?Z Polychromatic))
+
+(increasesLikelihood
+  (instance ?Z Zebra)
+  (attribute ?Z Black))
+
+(increasesLikelihood
+  (instance ?Z Zebra)
+  (attribute ?Z White))
+
+(capability Ambulating agent Zebra)
+
+
+;; ============================================================
+;; Moose
+;; ============================================================
+;;
+;; Largest member of the deer family. Inhabits boreal forests.
+
+(subclass Moose HoofedMammal)
+(subclass Moose Herbivore)
+(termFormat EnglishLanguage Moose "moose")
+(documentation Moose EnglishLanguage "A &%HoofedMammal of the species
+Alces alces, the largest extant member of the deer family.  Moose
+inhabit boreal and temperate forests across North America, Europe,
+and Asia.  They are &%Herbivores that browse on leaves, bark, and
+aquatic vegetation.  Adult males bear large palmate antlers that
+are shed and regrown annually.")
+
+(=>
+  (instance ?M Moose)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?M ?AREA))))
+
+;; palmate antlers have Tine projections (cf. Objects.kif)
+
+(=>
+  (and
+    (instance ?M Moose)
+    (instance ?H Horn)
+    (part ?H ?M))
+  (exists (?T)
+    (and
+      (instance ?T Tine)
+      (component ?T ?H))))
+
+(=> (instance ?M Moose) (attribute ?M Viviparous))
+
+(increasesLikelihood
+  (instance ?M Moose)
+  (attribute ?M Brown))
+
+(capability Swimming agent Moose)
+
+
+;; ============================================================
+;; Bison
+;; ============================================================
+;;
+;; Large bovid of North America and Europe. Herd animal.
+
+(subclass Bison HoofedMammal)
+(subclass Bison Herbivore)
+(termFormat EnglishLanguage Bison "bison")
+(documentation Bison EnglishLanguage "A &%HoofedMammal of the genus
+Bison, including the American bison and the European wisent.  Bison
+are among the largest land animals in North America and Europe.
+They are &%Herbivores that graze on grasses and sedges, living in
+large herds on plains and grasslands.")
+
+(=>
+  (instance ?BI Bison)
+  (exists (?HERD ?OTHER)
+    (and
+      (instance ?HERD Group)
+      (member ?BI ?HERD)
+      (member ?OTHER ?HERD)
+      (instance ?OTHER Bison)
+      (not (equal ?BI ?OTHER)))))
+
+(=>
+  (instance ?BI Bison)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?BI ?AREA))))
+
+(=> (instance ?BI Bison) (attribute ?BI Social))
+(=> (instance ?BI Bison) (attribute ?BI Viviparous))
+
+(increasesLikelihood
+  (instance ?BI Bison)
+  (attribute ?BI Brown))
+
+(capability Ambulating agent Bison)
+
+
+;; ============================================================
+;; Salamander
+;; ============================================================
+;;
+;; Tailed amphibian of order Urodela. Moist-skinned, often
+;; associated with damp habitats.
+
+(subclass Salamander Amphibian)
+(subclass Salamander Carnivore)
+(termFormat EnglishLanguage Salamander "salamander")
+(documentation Salamander EnglishLanguage "An &%Amphibian of the
+order Urodela, distinguished from &%Frogs by the retention of a
+tail throughout life.  Salamanders have moist, permeable skin and
+most species inhabit damp environments near streams, forests, or
+underground.  They are &%Carnivores, feeding on insects and other
+small invertebrates.")
+
+(increasesLikelihood
+  (instance ?SAL Salamander)
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (inhabits ?SAL ?WATER))))
+
+(=> (instance ?SAL Salamander) (attribute ?SAL Oviparous))
+
+(increasesLikelihood
+  (instance ?SAL Salamander)
+  (attribute ?SAL Black))
+
+(capability Swimming agent Salamander)
+
+
+;; ============================================================
+;; Chameleon
+;; ============================================================
+;;
+;; Lizard known for color-changing ability.
+
+(subclass Chameleon Reptile)
+(subclass Chameleon Carnivore)
+(termFormat EnglishLanguage Chameleon "chameleon")
+(documentation Chameleon EnglishLanguage "A &%Reptile of the family
+Chamaeleonidae, distinguished by the ability to change skin color,
+independently rotating eyes, and a projectile tongue used to
+capture insect prey.  Chameleons are primarily arboreal, inhabiting
+tropical and subtropical forests, and are found mainly in Africa
+and Madagascar.")
+
+(=>
+  (instance ?CH Chameleon)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?CH ?AREA))))
+
+(capability Climbing agent Chameleon)
+
+(=> (instance ?CH Chameleon) (attribute ?CH Solitary))
+(=> (instance ?CH Chameleon) (attribute ?CH Oviparous))
+
+(increasesLikelihood
+  (instance ?CH Chameleon)
+  (attribute ?CH Green))
+
+(increasesLikelihood
+  (instance ?CH Chameleon)
+  (exists (?C1 ?C2)
+    (and
+      (instance ?C1 ColorAttribute)
+      (instance ?C2 ColorAttribute)
+      (not (equal ?C1 ?C2))
+      (attribute ?CH ?C1))))
+
+
+;; ============================================================
+;; Cobra
+;; ============================================================
+;;
+;; Venomous snake of family Elapidae. Characterized by an
+;; expandable hood.
+
+(subclass Cobra Reptile)
+(subclass Cobra Carnivore)
+(termFormat EnglishLanguage Cobra "cobra")
+(documentation Cobra EnglishLanguage "A &%Venomous &%Reptile of the
+family Elapidae, characterized by an expandable hood formed by
+elongated cervical ribs.  Cobras are found in Africa and Asia.
+They are &%Carnivores that prey on rodents, birds, and other
+reptiles.  The king cobra is the longest venomous snake in
+the world.")
+
+(=>
+  (instance ?CO Cobra)
+  (attribute ?CO Venomous))
+
+(=>
+  (instance ?CO Cobra)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?CO ?AREA))))
+
+;; attacks on humans are defensive, not predatory
+
+(increasesLikelihood
+  (and
+    (instance ?CO Cobra)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?CO))
+  (exists (?PREY)
+    (and
+      (patient ?HUNT ?PREY)
+      (or
+        (instance ?PREY Rodent)
+        (instance ?PREY Bird)
+        (instance ?PREY Reptile)))))
+
+(=> (instance ?CO Cobra) (attribute ?CO Oviparous))
+
+(increasesLikelihood
+  (instance ?CO Cobra)
+  (attribute ?CO Black))
+
+(increasesLikelihood
+  (instance ?CO Cobra)
+  (attribute ?CO Brown))
+
+(capability Hunting agent Cobra)
+
+
+;; ============================================================
+;; Falcon
+;; ============================================================
+;;
+;; Raptor of family Falconidae. Known for extreme speed in
+;; diving flight.
+
+(subclass Falcon Raptor)
+(termFormat EnglishLanguage Falcon "falcon")
+(documentation Falcon EnglishLanguage "A &%Raptor of the family
+Falconidae, characterized by long pointed wings and exceptional
+speed in diving flight (stooping).  The peregrine falcon is the
+fastest animal on Earth, reaching speeds over 300 km/h in a
+dive.  Falcons hunt birds and small mammals, capturing prey
+in flight.")
+
+(increasesLikelihood
+  (and
+    (instance ?FC Falcon)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?FC))
+  (exists (?PREY)
+    (and
+      (patient ?HUNT ?PREY)
+      (or
+        (instance ?PREY Bird)
+        (instance ?PREY Mammal)))))
+
+(=>
+  (instance ?FC Falcon)
+  (attribute ?FC Diurnal))
+
+(=> (instance ?FC Falcon) (attribute ?FC Oviparous))
+
+(=> (instance ?FC Falcon) (attribute ?FC Polychromatic))
+
+(increasesLikelihood
+  (instance ?FC Falcon)
+  (attribute ?FC GrayColor))
+
+(increasesLikelihood
+  (instance ?FC Falcon)
+  (attribute ?FC Brown))
+
+(capability Flying agent Falcon)
+
+
+;; ============================================================
+;; Swan
+;; ============================================================
+;;
+;; Large water bird of family Anatidae. Characterized by a long
+;; neck and graceful swimming.
+
+(subclass Swan Bird)
+(subclass Swan Herbivore)
+(termFormat EnglishLanguage Swan "swan")
+(documentation Swan EnglishLanguage "A large &%Bird of the family
+Anatidae, characterized by a long curved neck, large body, and
+graceful swimming.  Swans are among the largest flying birds.
+They inhabit lakes, rivers, and coastal waters, feeding on
+aquatic vegetation.  Swans form long-lasting pair bonds.")
+
+(=>
+  (instance ?SW Swan)
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (inhabits ?SW ?WATER))))
+
+(capability Swimming agent Swan)
+
+(increasesLikelihood (instance ?SW Swan) (attribute ?SW Migratory))
+(=> (instance ?SW Swan) (attribute ?SW Oviparous))
+
+(increasesLikelihood
+  (instance ?SW Swan)
+  (attribute ?SW White))
+
+
+;; ============================================================
+;; Pelican
+;; ============================================================
+;;
+;; Large water bird with a distinctive throat pouch for catching
+;; fish.
+
+(subclass Pelican Bird)
+(subclass Pelican Carnivore)
+(termFormat EnglishLanguage Pelican "pelican")
+(documentation Pelican EnglishLanguage "A large &%Bird of the family
+Pelecanidae, characterized by a long beak with a large extensible
+throat pouch used for catching fish.  Pelicans inhabit lakes,
+rivers, and coastal waters worldwide.  They are social birds that
+often fish and nest cooperatively.")
+
+(=>
+  (and
+    (instance ?PEL Pelican)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?PEL))
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (inhabits ?PEL ?WATER))))
+
+(=>
+  (instance ?PEL Pelican)
+  (exists (?GROUP ?OTHER)
+    (and
+      (instance ?GROUP Group)
+      (member ?PEL ?GROUP)
+      (member ?OTHER ?GROUP)
+      (instance ?OTHER Pelican)
+      (not (equal ?PEL ?OTHER)))))
+
+(=> (instance ?PEL Pelican) (attribute ?PEL Social))
+(=> (instance ?PEL Pelican) (attribute ?PEL Oviparous))
+
+(increasesLikelihood
+  (instance ?PEL Pelican)
+  (attribute ?PEL White))
+
+(capability Swimming agent Pelican)
+
+
+;; ============================================================
+;; Ostrich
+;; ============================================================
+;;
+;; Largest living bird. Flightless, native to Africa.
+
+(subclass Ostrich Bird)
+(termFormat EnglishLanguage Ostrich "ostrich")
+(documentation Ostrich EnglishLanguage "A large flightless &%Bird
+of the species Struthio camelus, native to Africa.  The ostrich
+is the largest living bird, standing up to 2.7 meters tall.  Like
+&%Penguins, ostriches are incapable of flight, but compensate with
+exceptional running speed, reaching up to 70 km/h.  Ostriches
+inhabit savannas and open grasslands.")
+
+(=>
+  (instance ?OS Ostrich)
+  (not
+    (exists (?FLY)
+      (and
+        (instance ?FLY Flying)
+        (agent ?FLY ?OS)))))
+
+(=>
+  (instance ?OS Ostrich)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?OS ?AREA))))
+
+(=> (instance ?OS Ostrich) (attribute ?OS Oviparous))
+
+(=> (instance ?OS Ostrich) (attribute ?OS Polychromatic))
+
+(capability Ambulating agent Ostrich)
+
+(increasesLikelihood
+  (instance ?OS Ostrich)
+  (attribute ?OS Black))
+
+(increasesLikelihood
+  (instance ?OS Ostrich)
+  (attribute ?OS White))
+
+
+;; ============================================================
+;; Woodpecker
+;; ============================================================
+;;
+;; Bird that pecks into tree bark to find insects.
+
+(subclass Woodpecker Bird)
+(subclass Woodpecker Carnivore)
+(termFormat EnglishLanguage Woodpecker "woodpecker")
+(documentation Woodpecker EnglishLanguage "A &%Bird of the family
+Picidae, characterized by a strong chisel-shaped beak used to
+peck into tree bark to extract insects.  Woodpeckers have
+specialized skull structures that absorb the impact of repeated
+pecking.  They are found on every continent except Australia
+and Antarctica.")
+
+(=>
+  (instance ?WP Woodpecker)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?WP ?AREA))))
+
+(=> (instance ?WP Woodpecker) (attribute ?WP Oviparous))
+
+(=> (instance ?WP Woodpecker) (attribute ?WP Polychromatic))
+
+(increasesLikelihood
+  (instance ?WP Woodpecker)
+  (attribute ?WP Black))
+
+(increasesLikelihood
+  (instance ?WP Woodpecker)
+  (attribute ?WP White))
+
+(increasesLikelihood
+  (instance ?WP Woodpecker)
+  (attribute ?WP Red))
+
+(capability Making agent Woodpecker)
+
+
+;; ============================================================
+;; Spider
+;; ============================================================
+;;
+;; Eight-legged arachnid. Most species produce silk webs.
+
+(subclass Spider Arachnid)
+(termFormat EnglishLanguage Spider "spider")
+(documentation Spider EnglishLanguage "An &%Arachnid of the order
+Araneae, characterized by eight legs, a two-part body (cephalothorax
+and abdomen), and in most species the ability to produce silk.
+Spiders are predators that capture prey using webs, ambush, or
+active hunting.  They are found on every continent except Antarctica
+and are among the most diverse orders of arachnids.")
+
+(=>
+  (instance ?SPD Spider)
+  (exists (?AREA)
+    (and
+      (instance ?AREA LandArea)
+      (inhabits ?SPD ?AREA))))
+
+(=>
+  (and
+    (instance ?SPD Spider)
+    (instance ?HUNT Hunting)
+    (agent ?HUNT ?SPD))
+  (exists (?PREY)
+    (and
+      (instance ?PREY Animal)
+      (patient ?HUNT ?PREY))))
+
+(capability Making agent Spider)
+
+(=> (instance ?SPD Spider) (attribute ?SPD Solitary))
+(=> (instance ?SPD Spider) (attribute ?SPD Oviparous))
+
+(increasesLikelihood
+  (instance ?SPD Spider)
+  (attribute ?SPD Black))
+
+
+;; ============================================================
+;; Seahorse
+;; ============================================================
+;;
+;; Small marine fish with a horse-like head and prehensile tail.
+
+(subclass Seahorse Fish)
+(termFormat EnglishLanguage Seahorse "seahorse")
+(documentation Seahorse EnglishLanguage "A small marine &%Fish of
+the genus Hippocampus, characterized by an upright body posture,
+a horse-like head, and a prehensile tail used for anchoring to
+seagrass and coral.  Seahorses are poor swimmers relative to
+other fish.  Uniquely among vertebrates, the male seahorse
+carries fertilized eggs in a brood pouch until they hatch.")
+
+(=>
+  (instance ?SH Seahorse)
+  (exists (?WATER)
+    (and
+      (instance ?WATER WaterArea)
+      (inhabits ?SH ?WATER))))
+
+(=> (instance ?SH Seahorse) (attribute ?SH Oviparous))
+
+(increasesLikelihood
+  (instance ?SH Seahorse)
+  (attribute ?SH Yellow))
+
+(capability Swimming agent Seahorse)
