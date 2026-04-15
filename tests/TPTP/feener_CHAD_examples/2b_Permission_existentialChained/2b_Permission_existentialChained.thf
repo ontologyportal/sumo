@@ -1,0 +1,202 @@
+% CF 
+% 2b_Permission_existentialChained.thf
+% (Hypothesis: I think that permissions should not be chained, from an 
+% intuitive standpoint, so System D should work instead of T. To make 
+% this happen, using existential conjecture)
+
+% Option A: Meets permission 
+% Results under System ...
+% K (0, distribution)   : timeout
+% D (1, serial)         : timeout
+% D4                    : ref <--- Incorrectly behaves like Obligation 
+% T (2, reflexive)      : ref
+% B (3, r and symmetric): ref 
+% S4 (r and trans)      : ref
+% S5 (r and Euclid)     : ref 
+% Summary: As expected, D timed out, protecting it from the wrong 
+% conclusion, while D4  got a refutation (which is incorrect for 
+% Obligation) and T got a refutation (which is incorrect) 
+
+% Option B: Does not meet permission 
+% Results under System ...
+% K (0, distribution)   : timeout 
+% D (1, serial)         : timeout
+% D4                    : timeout
+% T (2, reflexive)      : timeout
+% B (3, r and symmetric): timeout
+% S4 (r and trans)      : timeout
+% S5 (r and Euclid)     : timeout
+% Summary: as expected and correct 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Pre-System Setup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+thf(worlds_tp,type, w: $tType).
+thf(cw_tp,type, cw: w).
+thf(modals_tp,type, m: $tType).
+thf(obligation_tp,type, s__Obligation: m).
+thf(permission_tp, type, s__Permission: m).     % Using this one 
+thf(prohibition_tp, type, s__Prohibition: m).
+thf(accreln1_tp,type, accreln1: m > w > w > $o ).
+thf(accreln2_tp,type, accreln2: m > $i > w > w > $o ).
+thf(accreln3_tp,type, accreln3: m > $i > $i > w > w > $o ).
+
+% For later: accreln3 and other deontic attributes will need their own system-blocks! 
+
+%%%%%%%%%%%%%%%%%%%%%% Systems: Under Permission %%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 0. K: distribution
+% [Nothing to implement] 
+
+% 1. D: serial 
+thf(serial_permission, axiom,
+  ![W1:w]: ?[W2:w]:
+    (accreln1 @ s__Permission @ W1 @ W2)).
+
+% 2. T: reflexive
+%thf(reflexive_permission, axiom,
+%  ![W:w]:(
+%    (accreln1 @ s__Permission @ W @ W))).
+
+% 3. B: symmetric (if W1 accesses W2 then W2 accesses W1)
+% NOTE: B is done with T 
+%thf(symmetric_permission, axiom,
+%  ![W1: w, W2: w] :
+%    ((accreln1 @ s__Permission @ W1 @ W2) 
+%      => (accreln1 @ s__Permission @ W2 @ W1))).
+
+% 4. S4: transitive (if W1->W2 and W2->W3 then W1->W3)
+% NOTE: S4 is usually T + transitive; enable reflexive_obligation and this transitive axiom
+thf(transitive_permission, axiom,
+  ![W1: w, W2: w, W3: w] :
+    (((accreln1 @ s__Permission @ W1 @ W2) &
+      (accreln1 @ s__Permission @ W2 @ W3))
+     => (accreln1 @ s__Permission @ W1 @ W3))).
+
+% 5. S5: Euclidean (if W1->W2 and W1->W3 then W2->W3)
+% NOTE: S5 is commonly given as T + Euclidean; enable reflexive_obligation and this euclid axiom
+%thf(euclid_permission, axiom,
+%  ![W1: w, W2: w, W3: w] :
+%    (((accreln1 @ s__Permission @ W1 @ W2) &
+%      (accreln1 @ s__Permission @ W1 @ W3))
+%     => (accreln1 @ s__Permission @ W2 @ W3))).
+
+      
+%%%%%%%%%%%%%%%%%%%%%%%%%%% End: Systems-O %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%"If Bill has a drivers license, permitted to park in lot.
+% If Bill parks in the parking lot, it is permitted that he be reimbursed.
+% Bill has a drivers license.
+% Therefore, Bill is permitted to be reimbursed."
+
+% Relations:
+thf(instance_t, type, s__instance:($i > $i > $o)).
+thf(agent_t, type, s__agent:($i > $i > w > $o)).
+thf(patient_t, type, s__patient: ($i > $i > w > $o)).
+thf(destination_t, type, s__destination: ($i > $i > w > $o)).
+thf(located_t, type, s__located: ($i > $i > w > $o)).
+thf(possesses_t, type, s__possesses: ($i > $i > w > $o)).
+
+% Terms:
+thf(driverslicense_t, type, s__DriversLicense: $i).
+thf(parking_t, type, s__Parking: $i).
+thf(automobile_t, type, s__Automobile: $i).
+thf(parkinglot_t, type, s__ParkingLot: $i).
+thf(human_t, type, s__Human: $i).
+thf(reimbursement_t, type, s__Reimbursement: $i).
+
+% Globals: "Bill is a human"
+thf(bill_t, type, s__Bill: $i).
+thf(bill_is_human, axiom,
+  (s__instance @ s__Bill @ s__Human)). 
+  
+% Distinctness:
+thf(dist_driverslicense_parking,       axiom, ~(s__DriversLicense = s__Parking)).
+thf(dist_driverslicense_automobile,    axiom, ~(s__DriversLicense = s__Automobile)).
+thf(dist_driverslicense_parkinglot,    axiom, ~(s__DriversLicense = s__ParkingLot)).
+thf(dist_driverslicense_human,         axiom, ~(s__DriversLicense = s__Human)).
+thf(dist_driverslicense_reimbursement, axiom, ~(s__DriversLicense = s__Reimbursement)).
+thf(dist_parking_automobile,           axiom, ~(s__Parking = s__Automobile)).
+thf(dist_parking_parkinglot,           axiom, ~(s__Parking = s__ParkingLot)).
+thf(dist_parking_human,                axiom, ~(s__Parking = s__Human)).
+thf(dist_parking_reimbursement,        axiom, ~(s__Parking = s__Reimbursement)).
+thf(dist_automobile_parkinglot,        axiom, ~(s__Automobile = s__ParkingLot)).
+thf(dist_automobile_human,             axiom, ~(s__Automobile = s__Human)).
+thf(dist_automobile_reimbursement,     axiom, ~(s__Automobile = s__Reimbursement)).
+thf(dist_parkinglot_human,             axiom, ~(s__ParkingLot = s__Human)).
+thf(dist_parkinglot_reimbursement,     axiom, ~(s__ParkingLot = s__Reimbursement)).
+thf(dist_human_reimbursement,          axiom, ~(s__Human = s__Reimbursement)).
+
+% Permission 1: "If Bill has drivers license, permitted to park in lot"
+% (=> 
+%   (and
+%     (instance ?DL DriversLicense)
+%     (possesses Bill ?DL))
+%   (modalAttribute 
+%     (exists (?PARK ?LOT)
+%       (and 
+%         (instance ?PARK Parking)
+%         (instance ?LOT ParkingLot)
+%         (agent ?PARK Bill)
+%         (located ?PARK ?LOT))) Permission))
+thf(permission1_to_park, axiom,
+  ![W1:w, W2: w] : 
+  ( ![DL: $i] : (( 
+      (s__instance @ DL @ s__DriversLicense) & 
+      (s__possesses @ s__Bill @ DL @ W1)) => (
+          (accreln1 @ s__Permission @ W1 @ W2) => 
+            ( ?[PARK: $i, LOT: $i] : (
+              (s__instance @ PARK @ s__Parking) & 
+              (s__instance @ LOT @ s__ParkingLot) & 
+              (s__agent @ PARK @ s__Bill @ W2) &
+              (s__located @ PARK @ LOT @ W2))))))).
+
+% Permission 2: "If Bill parks in the lot, Bill is permitted to be reimbursed"
+% (=> 
+%   (and
+%      (instance ?PARK Parking)
+%      (instance ?LOT ParkingLot)
+%      (agent ?PARK Bill)
+%      (located ?PARK ?LOT))
+%   (modalAttribute 
+%     (exists (?REIM)
+%       (and 
+%         (instance ?REIM Reimbursement)
+%         (destination ?REIM Bill))) Permission))
+thf(permission2_to_reimburse, axiom,
+  ![W1:w, W2: w] : 
+  ( ![PARK: $i, LOT: $i] : ((
+      (s__instance @ PARK @ s__Parking) &
+      (s__instance @ LOT @ s__ParkingLot) &
+      (s__agent @ PARK @ s__Bill @ W1) &
+      (s__located @ PARK @ LOT @ W1)) => (
+          (accreln1 @ s__Permission @ W1 @ W2) =>
+            ( ?[REIM: $i] : (
+              (s__instance @ REIM @ s__Reimbursement) &
+              (s__destination @ REIM @ s__Bill @ W2) )))))).
+
+% Option A: "Bill has drivers license"
+% (exists (?DL)
+%   (and 
+%     (instance ?DL DriversLicense)
+%     (possesses Bill ?DL)))
+thf(fact_has_license, axiom,
+  ?[DL: $i]: (
+    ((s__instance @ DL @ s__DriversLicense) & 
+    (s__possesses @ s__Bill @ DL @ cw)))).
+      
+% Option B: No license 
+% (not (exists (?DL)
+%   (and 
+%     (instance ?DL DriversLicense)
+%     (possesses Bill ?DL))))
+%thf(fact_no_license, axiom,
+%  ~?[DL: $i]: (
+%    ((s__instance @ DL @ s__DriversLicense) & 
+%    (s__possesses @ s__Bill @ DL @ cw)))).
+
+% Conjecture: "Therefore, Bill is permitted to get reimbursed"
+% NOTE: This is a conjunction, not an implication (that would be trivial)
+thf(conjecture_is_permitted, conjecture,
+  ?[Wx:w]:
+    ( (accreln1 @ s__Permission @ cw @ Wx) &
+      ?[REIM:$i]:
+           ( (s__instance @ REIM @ s__Reimbursement) &
+             (s__destination @ REIM @ s__Bill @ Wx) ))).

@@ -1,0 +1,185 @@
+% CF
+% 3a_Forbiddance_chained.thf
+
+% Option A: Bill breaks prohibition 
+% Results under System ...
+% K (0, distribution)   : timeout
+% D (1, serial)         : timeout
+% D4                    : timeout
+% T (2, reflexive)      : ref 
+% B (3, r and symmetric): ref 
+% S4 (r and trans)      : ref 
+% S5 (r and Euclid)     : ref 
+% Summary: This is as expected (still unable to make D refute)
+% Also, unable to make D4 refute here 
+
+% Option B: Does not break prohibition 
+% Results under System ...
+% K (0, distribution)   : timeout 
+% D (1, serial)         : timeout 
+% D4                    : timeout
+% T (2, reflexive)      : timeout 
+% B (3, r and symmetric): timeout 
+% S4 (r and trans)      : timeout 
+% S5 (r and Euclid)     : timeout 
+% Summary: Expected and correct output
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Pre-System Setup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+thf(worlds_tp,type, w: $tType).
+thf(cw_tp,type, cw: w).
+thf(modals_tp,type, m: $tType).
+%thf(obligation_tp,type, s__Obligation: m).
+%thf(permission_tp, type, s__Permission: m).
+thf(prohibition_tp, type, s__Prohibition: m).      % Using only this modality
+thf(accreln1_tp,type, accreln1: m > w > w > $o ).
+thf(accreln2_tp,type, accreln2: m > $i > w > w > $o ).
+thf(accreln3_tp,type, accreln3: m > $i > $i > w > w > $o ).
+
+% For later: accreln3 and other deontic attributes will need their own system-blocks! 
+
+%%%%%%%%%%%%%%%%%%%%%% Systems: Under Prohibition %%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 0. K: distribution
+% [Nothing to implement] 
+
+% 1. D: serial 
+thf(serial_prohibition, axiom,
+  ![W1:w]: ?[W2:w]:
+    (accreln1 @ s__Prohibition @ W1 @ W2)).
+
+% 2. T: reflexive
+%thf(reflexive_prohibition, axiom,
+%  ![W:w]:(
+%    (accreln1 @ s__Prohibition @ W @ W))).
+
+% 3. B: symmetric (if W1 accesses W2 then W2 accesses W1)
+% NOTE: B is done with T 
+%thf(symmetric_prohibition, axiom,
+%  ![W1: w, W2: w] :
+%    ((accreln1 @ s__Prohibition @ W1 @ W2) 
+%      => (accreln1 @ s__Prohibition @ W2 @ W1))).
+
+% 4. S4: transitive (if W1->W2 and W2->W3 then W1->W3)
+% NOTE: S4 is usually T + transitive; enable reflexive_obligation and this transitive axiom
+thf(transitive_prohibition, axiom,
+  ![W1: w, W2: w, W3: w] :
+    (((accreln1 @ s__Prohibition @ W1 @ W2) &
+      (accreln1 @ s__Prohibition @ W2 @ W3))
+     => (accreln1 @ s__Prohibition @ W1 @ W3))).
+
+% 5. S5: Euclidean (if W1->W2 and W1->W3 then W2->W3)
+% NOTE: S5 is commonly given as T + Euclidean; enable reflexive_obligation and this euclid axiom
+%thf(euclid_prohibition, axiom,
+%  ![W1: w, W2: w, W3: w] :
+%    (((accreln1 @ s__Prohibition @ W1 @ W2) &
+%      (accreln1 @ s__Prohibition @ W1 @ W3))
+%     => (accreln1 @ s__Prohibition @ W2 @ W3))).
+
+      
+%%%%%%%%%%%%%%%%%%%%%%%%%%% End: Systems under O %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Relations: 
+thf(instance_t, type, s__instance:($i > $i > $o)).
+thf(agent_t, type, s__agent:($i > $i > w > $o)).
+thf(patient_t, type, s__patient: ($i > $i > w > $o)).
+thf(origin_t, type, s__origin: ($i > $i > w > $o)).
+thf(destination_t, type, s__destination: ($i > $i > w > $o)).
+thf(located_t, type, s__located: ($i > $i > w > $o)).
+
+% Terms: 
+thf(officebuilding_t, type, s__OfficeBuilding: $i).
+thf(homegarage_t, type, s__HomeGarage: $i).
+thf(businesstrip_t, type, s__BusinessTrip: $i).
+thf(smoking_t, type, s__Smoking: $i).
+
+% Distinctness: 
+thf(dist_officebuilding_homegarage,   axiom, ~(s__OfficeBuilding = s__HomeGarage)).
+thf(dist_officebuilding_businesstrip, axiom, ~(s__OfficeBuilding = s__BusinessTrip)).
+thf(dist_officebuilding_smoking,      axiom, ~(s__OfficeBuilding = s__Smoking)).
+thf(dist_homegarage_businesstrip,     axiom, ~(s__HomeGarage = s__BusinessTrip)).
+thf(dist_homegarage_smoking,          axiom, ~(s__HomeGarage = s__Smoking)).
+thf(dist_businesstrip_smoking,        axiom, ~(s__BusinessTrip = s__Smoking)).
+
+% Globals: 
+thf(bill_t, type, s__Bill: $i).
+thf(bill_always_human, axiom, (
+  s__instance @ s__Bill @ s__Human)).
+
+% Prohibition 1: "If Bill is at the office, prohibited to smoke"
+% (=> 
+%   (and 
+%     (instance ?OB OfficeBuilding)
+%     (located Bill ?OB))
+%   (modalAttribute
+%     (exists (?SMOK)
+%       (and
+%         (instance ?SMOK Smoking)
+%         (located ?SMOK ?OB)
+%         (agent ?SMOK Bill))) Prohibition))
+thf(prohibition1_smoking_in_office, axiom,
+  ![W1:w, W2:w]:
+  ( ![OB: $i] : (( 
+      (s__instance @ OB @ s__OfficeBuilding) & 
+      (s__located @ s__Bill @ OB @ W1)) => (
+          (accreln1 @ s__Prohibition @ W1 @ W2) => 
+            ( ?[SMOK: $i] : (
+              (s__instance @ SMOK @ s__Smoking) & 
+              (s__located @ SMOK @ OB @ W2) & 
+              (s__agent @ SMOK @ s__Bill @ W2))))))).
+             
+% Prohibition 2: "If Bill smokes at the office, prohibited from going on 
+% business trip"
+% (=> 
+%   (and
+%     (instance ?SMOK Smoking)
+%     (instance ?OB OfficeBuilding)
+%     (agent ?SMOK Bill)
+%     (located ?SMOK ?OB))
+%   (modalAttribute 
+%     (exists (?BT)
+%       (and
+%         (instance ?BT BusinessTrip)
+%         (agent ?BT Bill))) Prohibition))
+thf(prohibition2_business_trip, axiom, 
+  ![W1:w, W2:w] : (
+    ![SMOK: $i, OB: $i]: ((
+      (s__instance @ SMOK @ s__Smoking) & 
+      (s__instance @ OB @ s__OfficeBuilding) & 
+      (s__agent @ SMOK @ s__Bill @ W1) & 
+      (s__located @ SMOK @ OB @ W1)) => ( 
+        (accreln1 @ s__Prohibition @ W1 @ W2) =>
+          (?[BT: $i] : (
+            (s__instance @ BT @ s__BusinessTrip) & 
+            (s__agent @ BT @ s__Bill @ W2))))))).
+
+% Option A: "Bill is at the office"
+% (exists (?OB)
+%   (and 
+%     (instance ?OB OfficeBuilding)
+%     (located Bill ?OB)))
+thf(fact_bill_at_office, axiom,
+  ?[OB:$i]:
+    ( (s__instance @ OB @ s__OfficeBuilding) &
+      (s__located @ s__Bill @ OB @ cw) )).
+
+% Option B: "Bill is in his garage"
+% (exists (?HG)
+%   (and 
+%     (instance ?HG HomeGarage)
+%     (located Bill ?HG)))
+%thf(fact_bill_at_home_garage, axiom,
+%  ?[HG:$i]:
+%    ( (s__instance @ HG @ s__HomeGarage) &
+%      (s__located @ s__Bill @ HG @ cw) )).
+
+% Conjecture: "Therefore, Bill may not go on business trip"
+% (modalAttribute 
+%   (exists (?BT)
+%     (and 
+%       (instance ?BT BusinessTrip)
+%       (agent ?BT Bill))) Prohibition)
+thf(conjecture_not_go_on_trip, conjecture,
+  ![Wx:w]: (
+    (accreln1 @ s__Prohibition @ cw @ Wx) => (
+      ?[BT: $i] : (
+        (s__instance @ BT @ s__BusinessTrip) & 
+        (s__agent @ BT @ s__Bill @ Wx))))).
