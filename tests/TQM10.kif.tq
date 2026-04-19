@@ -1,0 +1,270 @@
+; Area51 Problem - modal obligation
+
+; content from SUMO - needed when using tinySUMO
+
+(instance employs BinaryPredicate)
+(domain employs 1 AutonomousAgent)
+(domain employs 2 Human)
+(instance subOrganization BinaryPredicate)
+(domain subOrganization 1 Organization)
+(domain subOrganization 2 Organization)
+(instance suffers BinaryPredicate)
+(domain suffers 1 Process)
+(domain suffers 2 AutonomousAgent)
+(instance PastFn UnaryFunction)
+(domain PastFn 1 TimePosition)
+(range PastFn TimeInterval)
+(instance FutureFn UnaryFunction)
+(domain FutureFn 1 TimePosition)
+(range FutureFn TimeInterval)
+(instance GovernmentFn UnaryFunction)
+(domain GovernmentFn 1 GeographicArea)
+(range GovernmentFn Organization)
+(subclass Entering Process)
+(subclass April TimeInteral)
+(instance DayFn BinaryFunction)
+(domain DayFn 1 Integer)
+(domain DayFn 2 TimeInterval)
+(range DayFn TimeInterval)
+(instance MonthFn BinaryFunction)
+(domainSubclass MonthFn 1 TimeInterval)
+(domain MonthFn 2 TimeInterval)
+(range MonthFn TimeInterval)
+(instance YearFn BinaryFunction)
+(domainSubclass YearFn 1 Integer)
+(range YearFn TimeInterval)
+(instance plaintiff BinaryPredicate)
+(domain plaintiff 1 Process)
+(domain plaintiff 2 AutonomousAgent)
+(instance defendant BinaryPredicate)
+(domain defendant 1 Process)
+(domain defendant 2 AutonomousAgent)
+
+; Agent Smith enters Area 51 on April 1, 2025.
+
+(instance AgentSmith Human)
+(instance Area51 GeographicArea)
+
+
+;thf(smithEnters,axiom,
+;  (![E:$i,W:w]:(
+;    ((instance @ E @ entering) &
+;     (agent @ E @ agentSmith @ W) &
+;     (destination @ E @ area51 @ W) &
+;     (during @
+;       (whenFn @ E @ W) @
+;       (dayFn @ n1 @ (monthFn @ april @ (yearFn @ n2025)))))))).
+      
+(and
+  (instance ?E Entering) 
+  (agent ?E AgentSmith) 
+  (destination ?E Area51) 
+  (during 
+    (WhenFn ?E ?W) 
+    (DayFn 1 (MonthFn April (YearFn 2025)))))
+             
+; Agent Smith works for the MIB unit.
+
+;thf(mibOrg,axiom,
+;  (instance @ mIBUnit @ organization)).
+  
+(instance MIBUnit Organization)
+  
+;thf(agentMIB,axiom,
+;  (![W:w]:
+;    (employs @ agentSmith @ mIBUnit @ W))).
+
+(employs AgentSmith MIBUnit)
+
+;thf(empSuper,axiom,
+;  (![W:w,A:$i,S:$i,O:$i]:(
+;    ((employs @ A @ O @ W) &
+;      (subOrganization @ O @ S @ W)) =>
+;      (employs @ A @ S @ W)))).
+      
+(=> 
+  (and
+    (employs ?A ?O) 
+    (subOrganization ?O ?S)) 
+  (employs ?A ?S))
+      
+; The MIB unit is part of the US Federal Government. 
+
+;thf(govUS,axiom,
+;  (uSGovernment = (governmentFn @ unitedStates))).
+  
+(instance USGovernment Organization)
+(instance UnitedStates Organization)  
+(equal USGovernment (GovernmentFn UnitedStates))
+  
+;thf(subUS,axiom,
+;  (![W:w]:
+;    (subOrganization @ mIBUnit @ (governmentFn @ unitedStates) @ W))).
+
+(subOrganization MIBUnit (GovernmentFn UnitedStates))
+
+; The US government obliges its employees not to enter Area 51.
+
+;thf(confObSmth,axiom,
+;  (![W:w,W2:w,EMP:$i]:(
+;     (employs @ EMP @ uSGovernment @ W) =>   
+;       ((accreln2 @ confersObligation @ uSGovernment @ EMP @ W @ W2) => 
+;         (~(?[E:$i]:(
+;            ((instance @ E @ entering) &
+;             (agent @ E @ EMP @ W2) &
+;             (destination @ E @ area51 @ W2))))))))).
+
+(=>
+  (employs ?EMP USGovernment)
+  (confersObligation USGovernment ?EMP
+    (exists (?E)
+      (and
+        (instance ?E Entering) 
+        (agent ?E ?EMP) 
+        (destination ?E Area51)))))
+             
+
+; Agents that violate their obligations have a US government disciplinary hearing.
+
+;thf(notObDisc,axiom,
+;  (![W:w,W2:w,F:w>$o,A:$i]:(
+;    (((accreln2 @ confersObligation @ uSGovernment @ A @ W @ W2) => (F @ W2)) &
+;     (~(F @ W))) =>
+;       (?[H:$i]:(
+;         ((instance @ H @ legalAction) &
+;          (plaintiff @ H @ uSGovernment @ W) &
+;          (defendant @ H @ A @ W))))))).
+
+(=>
+  (and
+    (confersObligation USGovernment ?A ?F)
+    (not ?F)) 
+  (exists (?H)
+    (and
+      (instance ?H LegalAction) 
+      (plaintiff ?H USGovernment)
+      (defendant ?H ?A))))
+          
+; Agents that violate their obligations are fired after a US government disciplinary hearing.
+
+;thf(notObFire,axiom,
+;  (![W:w,W2:w,F:w>$o,A:$i,H:$i]:(
+;    (((accreln2 @ confersObligation @ uSGovernment @ A @ W @ W2) => (F @ W2)) &
+;     (~(F @ W)) &
+;      (instance @ H @ legalAction) &
+;      (plaintiff @ H @ (governmentFn @ unitedStates) @ W) &
+;      (defendant @ H @ A @ W)) =>
+;    (?[FIRE:$i]:(
+;      ((instance @ FIRE @ terminatingEmployment) &
+;       (earlier @
+;         (whenFn @ H @ W) @
+;         (whenFn @ FIRE @ W)) &
+;       (suffers @ FIRE @ A @ W))))))).
+    
+(=>
+  (and
+    (confersObligation USGovernment ?A ?F)
+    (not ?F) 
+    (instance ?H LegalAction) 
+    (plaintiff ?H USGovernment)
+    (defendant ?H ?A))
+    (exists (?FIRE)
+      (and
+        (instance ?FIRE TerminatingEmployment) 
+        (earlier 
+          (WhenFn ?H) 
+          (WhenFn ?FIRE)) 
+        (suffers ?FIRE ?A))))
+                 
+; People employed by an org that fires them are not employed by the org after then.
+; (This is a simplification since they could be rehired.)
+  
+;thf(fireNotEmployed,axiom,      
+;  (![W:w,W2:w,FIRE:$i,ORG:$i,A:$i]:(
+;    ((instance @ FIRE @ terminatingEmployment) &
+;     (agent @ FIRE @ ORG @ W) &
+;     ((accreln @ holdsDuring @ (pastFn @ (whenFn @ FIRE @ W)) @ W @ W2) => 
+;       (employs @ ORG @ A @ W2)) &
+;     (suffers @ FIRE @ A @ W)) =>
+;       ((accreln @ holdsDuring @ (futureFn @ (whenFn @ FIRE @ W)) @ W @ W2) =>
+;        (~(employs @ ORG @A @ W2)))))).
+       
+(=>
+  (and
+    (instance ?FIRE TerminatingEmployment) 
+    (agent ?FIRE ?ORG) 
+    (holdsDuring 
+      (PastFn 
+        (WhenFn ?FIRE))
+      (employs ?ORG ?A))
+    (suffers ?FIRE ?A)) 
+  (holdsDuring 
+    (FutureFn 
+      (WhenFn ?FIRE))
+    (not 
+      (employs ?ORG ?A))))
+               
+; Agent Smith is brought before a US government disciplinary hearing in June 2025.
+; formula notObFire should conclude this
+
+;thf(smithDisc,axiom,
+;  (?[H:$i]:
+;    (![W:w,A:$i]:
+;      ((instance @ H @ legalAction) &
+;       (plaintiff @ H @ (governmentFn @ unitedStates) @ W) &
+;       (defendant @ H @ agentSmith @ W) &
+;       (during @ 
+;         (whenFn @ H @ W) @
+;         (monthFn @ june @ (yearFn @ n2025))))))).
+      
+      
+; A person employed by an organization is employed by its parent organization at least at
+; the same time.
+
+;thf(empParentOrg,axiom,
+;  ![W:w,W2:w,ORG:$i,SUPER:$i,T:$i,A:$i]:(
+;    (((accreln @ holdsDuring @ T @ W @ W2) => 
+;        (employs @ ORG @ A @ W2)) &
+;     (subOrganization @ ORG @ SUPER @ W)) =>
+;       ((accreln @ holdsDuring @ T @ W @ W2) => 
+;         (employs @ SUPER @ A @ W2)))).
+    
+(=>
+  (and
+    (holdsDuring ?T 
+      (employs ?ORG ?A)) 
+    (subOrganization ?ORG ?SUPER))
+  (holdsDuring ?T 
+    (employs ?SUPER ?A)))
+             
+    
+; Does Agent Smith work for the MIB unit in July 2025?
+
+;thf(conj,conjecture,
+;  ![W:w]:(
+;    ((accreln @ holdsDuring @ (MonthFn July (YearFn 2025)) @ cw @ W) => 
+;      (employs @ mIBUnit @ agentSmith @ W)))).
+  
+; Does Agent Smith get disciplined?
+  
+;thf(conj,conjecture,  % works
+;  ?[D:$i]:(
+;    ((instance @ D @ legalAction) & 
+;     (defendant @ D @ agentSmith @ cw)))).  
+ 
+; Does Agent Smith get fired?
+     
+;thf(conj,conjecture,  % works
+;  ?[D:$i]:(
+;    ((instance @ D @ terminatingEmployment) & 
+;     (suffers @ D @ agentSmith @ cw)))).
+     
+;thf(conj,question,  % works with E to give binding, works but question ignored by Vampire
+;  ?[D:$i]:(
+;    ((instance @ D @ terminatingEmployment) & 
+;     (suffers @ D @ agentSmith @ cw)))).
+          
+; query: 
+; (exists (?D) (and (instance ?D TerminatingEmployment) (suffers ?D AgentSmith)))
+; thf(conj,conjecture,(?[D:$i]:((s__instance @ D @ s__TerminatingEmployment) & (s__suffers @ D @ s__AgentSmith @ cw)))).
+
