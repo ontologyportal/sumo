@@ -1332,6 +1332,8 @@ archipelagos, have &%parts which are not &%connected with one
 another.")
 
 (subclass Collection Physical)
+
+
 (disjoint Collection SelfConnectedObject)
 
 (documentation Collection EnglishLanguage "Collections have &%members
@@ -1365,13 +1367,29 @@ the relationship of member to the flock.")
 (documentation subCollection EnglishLanguage "(&%subCollection ?COLL1 ?COLL2) means that
 the &%Collection ?COLL1 is a proper part of the &%Collection ?COLL2.")
 
-
 (<=>
   (subCollection ?COLL1 ?COLL2)
   (forall (?MEMBER)
     (=>
       (member ?MEMBER ?COLL1)
       (member ?MEMBER ?COLL2))))
+
+
+(subclass CollectionOfObjects Collection)
+(documentation CollectionOfObjects EnglishLanguage "a Collectionsthat has
+&%Objects as &%members.")
+
+(=>
+  (instance ?COLL CollectionOfObjects)
+  (memberType ?COLL Object))
+
+(subclass CollectionOfProcesses Collection)
+(documentation CollectionOfProcesses EnglishLanguage "a Collectionsthat has
+&%Processes as &%members.")
+
+(=>
+  (instance ?COLL CollectionOfProcesses)
+  (memberType ?COLL Process))
 
 (subclass ContentBearingPhysical Physical)
 
@@ -7791,19 +7809,21 @@ produced by the intersection of a &%Cone with a &%ClosedTwoDimensionalFigure.")
 (instance radius BinaryPredicate)
 (instance radius SingleValuedRelation)
 (instance radius TotalValuedRelation)
-(domain radius 1 Circle)
+(domain radius 1 ClosedTwoDimensionalFigure)
 (domain radius 2 LengthMeasure)
 
 (documentation radius EnglishLanguage "(&%radius ?CIRCLE ?LENGTH) means that the radius of
 the &%Circle ?CIRCLE has a length of ?LENGTH.")
 
 (=>
-   (radius ?CIRCLE ?RADIUS)
-   (exists (?POINT)
-      (forall (?PART)
-         (=>
-            (pointOfFigure ?PART ?CIRCLE)
-            (geometricDistance ?PART ?POINT ?RADIUS)))))
+  (and
+    (radius ?CIRCLE ?RADIUS)
+    (pointOfFigure ?POINT ?CIRCLE))
+  (exists (?CENTER)
+    (and
+      (equal ?CENTER 
+        (CenterOfCircleFn ?CIRCLE))
+      (geometricDistance ?CENTER ?POINT ?RADIUS))))
             
 (=>
   (radius ?CIRCLE ?RADIUS)
@@ -11076,7 +11096,7 @@ set of goals or objectives.")
 (subclass Designing ContentDevelopment)
 
 (documentation Designing EnglishLanguage "The spatial analogue of &%Planning. &%Designing
-a &%Collection of &%Objects involves determining a placement of the &%Objects
+a &%CollectionOfObjects involves determining a placement of the &%Objects
 with respect to one another and perhaps other &%Objects as well, in order to
 satisfy a particular purpose.")
 
@@ -11086,13 +11106,18 @@ satisfy a particular purpose.")
 a &%Text, i.e. understanding the &%Text.")
 
 (=>
-   (and
-      (instance ?INTERPRET Interpreting)
-      (agent ?INTERPRET ?AGENT)
-      (patient ?INTERPRET ?CONTENT)
-      (instance ?CONTENT ContentBearingObject))
-   (exists (?PROP)
-      (holdsDuring (EndFn (WhenFn ?INTERPRET)) (believes ?AGENT (containsInformation ?CONTENT ?PROP)))))
+  (and
+    (instance ?INTERPRET Interpreting)
+    (agent ?INTERPRET ?AGENT)
+    (patient ?INTERPRET ?CONTENT)
+    (instance ?CONTENT ContentBearingObject))
+  (exists
+    (?PROP)
+    (holdsDuring
+      (EndFn
+        (WhenFn ?INTERPRET))
+      (believes ?AGENT
+        (containsInformation ?CONTENT ?PROP)))))
 
 (subclass QuantityChange InternalChange)
 (partition QuantityChange Increasing Decreasing)
@@ -12401,7 +12426,7 @@ a state of affairs which might be realized in the future.")
 (=>
    (and
       (instance ?PREDICT Predicting)
-      (containsProposition ?PREDICT ?FORMULA))
+      (containsFormula ?PREDICT ?FORMULA))
    (exists (?TIME)
       (and
          (holdsDuring ?TIME ?FORMULA)
@@ -12415,7 +12440,7 @@ which was previously acquired.")
 (=>
    (and
       (instance ?REMEMBER Remembering)
-      (containsProposition ?REMEMBER ?FORMULA))
+      (containsFormula ?REMEMBER ?FORMULA))
    (exists (?TIME)
       (and
          (holdsDuring ?TIME ?FORMULA)
@@ -16546,9 +16571,9 @@ goods or services to customers for a profit.")
         (instance ?SELL CommercialService)
         (agent ?SELL ?ORG)))))
 
-(subclass Group Collection)
+(subclass Group CollectionOfObjects)
 (subclass Group AutonomousAgent)
-(documentation Group EnglishLanguage "A &%Collection of &%Agents, e.g. a flock
+(documentation Group EnglishLanguage "A &%CollectionOfObjects of &%Agents, e.g. a flock
 of sheep, a herd of goats, or the local Boy Scout troop.")
 
 (=>
@@ -16941,7 +16966,7 @@ both the Shell Oil Corporation and the accounting department at Shell
 would both be instances of &%Organization.  Note too that the
 existence of an &%Organization is dependent on the existence of at
 least one &%member (since &%Organization is a subclass of
-&%Collection).  Accordingly, in cases of purely legal organizations, a
+&%CollectionOfObjects).  Accordingly, in cases of purely legal organizations, a
 fictitious &%member should be assumed.")
 
 (=>
