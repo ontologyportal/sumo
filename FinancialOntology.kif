@@ -677,15 +677,16 @@ date on which the amount of Money ?AMOUNT of a particular ?ACCOUNT is due and pa
   (and
     (amountDue ?Account ?Amount ?DueDate)
     (accountHolder ?Account ?Agent))
-  (holdsObligation (KappaFn ?Payment
-    (and
-      (instance ?Payment Payment)
-      (transactionAmount ?Payment ?Amount)
-      (or
-        (destination ?Payment (CurrencyFn ?Account))
-        (origin ?Payment (CurrencyFn ?Account)))
-      (date ?Payment ?Date)
-      (beforeOrEqual (EndFn ?Date) (BeginFn ?DueDate)))) ?Agent))
+  (holdsObligation ?Agent
+    (KappaFn ?Payment
+      (and
+        (instance ?Payment Payment)
+        (transactionAmount ?Payment ?Amount)
+        (or
+          (destination ?Payment (CurrencyFn ?Account))
+          (origin ?Payment (CurrencyFn ?Account)))
+        (date ?Payment ?Date)
+        (beforeOrEqual (EndFn ?Date) (BeginFn ?DueDate))))))
 
 ;; Balances and payments    
 
@@ -1264,8 +1265,9 @@ bonds or cash, and can be immediate or deferred until retirement.")
     (agreementPeriod ?Account ?Period)
     (interestEarned ?Account ?Interest ?Period)
     (equal ?Total (AdditionFn ?Principal ?Interest)))
-  (holdsObligation (KappaFn  ?Payment  
-    (transactionAmount ?Payment ?Total)) ?Agent))
+  (holdsObligation ?Agent
+    (KappaFn  ?Payment
+      (transactionAmount ?Payment ?Total))))
 
 (subclass CreditCardAccount CreditAccount)
 (documentation CreditCardAccount EnglishLanguage "A type of &%CreditAccount which uses a &%CreditCard for 
@@ -1313,8 +1315,9 @@ at some future point(s) in time.")
     (agreementPeriod ?Account ?Period)
     (interestEarned ?Account ?Interest ?Period)
     (equal ?Total (AdditionFn ?Principal ?Interest)))
-  (holdsObligation (KappaFn ?Payment  
-    (transactionAmount ?Payment ?Total)) ?Agent))
+  (holdsObligation ?Agent
+    (KappaFn ?Payment
+      (transactionAmount ?Payment ?Total))))
 
 (subrelation lender partyToAgreement)
 (instance lender BinaryPredicate)
@@ -1450,11 +1453,12 @@ when refinancing or a major cash flow event is anticipated.")
     (maturityDate ?Loan ?Date)
     (totalBalance ?Loan ?Amount)
     (borrower ?Loan ?Agent))
-  (holdsObligation (KappaFn ?Payment
-    (and
-      (date ?Payment ?Date)
-      (transactionAmount ?Payment ?Amount)
-      (destination ?Payment (CurrencyFn ?Loan)))) ?Agent))
+  (holdsObligation ?Agent
+    (KappaFn ?Payment
+      (and
+        (date ?Payment ?Date)
+        (transactionAmount ?Payment ?Amount)
+        (destination ?Payment (CurrencyFn ?Loan))))))
 
 (documentation Call EnglishLanguage "Exercising a &%CallOption.")
 (subclass Call FinancialTransaction)
@@ -1470,15 +1474,14 @@ when refinancing or a major cash flow event is anticipated.")
     (instance ?Call Call)
     (agent ?Call ?Lender)
     (patient ?Call ?Loan))
-  (holdsObligation 
+  (holdsObligation ?Borrower
     (KappaFn ?Payment
       (and
         (destination ?Payment ?Lender)
         (time ?Payment
           (ImmediateFutureFn
             (WhenFn ?Call)))
-        (transactionAmount ?Payment ?Amount))) 
-    ?Borrower))
+        (transactionAmount ?Payment ?Amount)))))
 
 (subclass Refinancing FinancialTransaction)
 (documentation Refinancing EnglishLanguage "Paying off an existing loan with the proceeds from a new loan, using 
@@ -2025,10 +2028,11 @@ is to realize an instance of ?Transaction where ?Security is the patient of ?Tra
     (attribute ?Broker Broker)
     (partyToAgreement ?Order ?Broker)
     (orderFor ?Order ?TransactionType ?Shares))
-  (holdsObligation (KappaFn ?Transaction
-       (and
+  (holdsObligation ?Broker
+    (KappaFn ?Transaction
+      (and
         (instance ?Transaction ?TransactionType)
-        (patient ?Transaction ?Shares))) ?Broker))
+        (patient ?Transaction ?Shares)))))
 
 (subAttribute LimitOrder FinancialOrder)
 (documentation LimitOrder EnglishLanguage "LimitOrder is an order to a &%Broker  to buy a specified quantity 
@@ -2059,15 +2063,14 @@ to be paid.  If ?Order is a sell order, then ?Money specifies the minimum price 
     (askPrice ?Object 
       (MeasureFn ?Price ?U) ?Time)
     (lessThanOrEqualTo ?Price ?LimitPrice))
-  (holdsObligation 
+  (holdsObligation ?Broker
     (KappaFn ?Buy
       (and
         (instance ?Buy Buying)
         (patient ?Buy ?Object)
         (measure ?Object ?Quantity)
         (equal (WhenFn ?Buy) ?BuyingTime)
-        (overlapsTemporally ?Time ?BuyingTime))) 
-    ?Broker))
+        (overlapsTemporally ?Time ?BuyingTime)))))
 
 (=>  
   (and
@@ -2082,15 +2085,14 @@ to be paid.  If ?Order is a sell order, then ?Money specifies the minimum price 
       (MeasureFn ?Price ?U) ?Time)
     (instance ?U UnitOfCurrency)
     (greaterThanOrEqualTo ?Price ?LimitPrice))
-  (holdsObligation 
+  (holdsObligation ?Broker
     (KappaFn ?Sell 
       (and
         (instance ?Sell Selling)
         (patient ?Sell ?Object)
         (measure ?Object ?Quantity)
         (equal (WhenFn ?Sell) ?SellingTime)
-        (overlapsTemporally ?SellingTime ?Time))) 
-     ?Broker))
+        (overlapsTemporally ?SellingTime ?Time)))))
 
 (instance Broker Position)
 (documentation Broker EnglishLanguage "An individual or firm which acts as an intermediary between 
