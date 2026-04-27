@@ -10755,6 +10755,7 @@ purpose for the &%AutonomousAgent who performs it.")
    (holdsDuring (WhenFn ?PROC) (attribute ?HUMAN Awake)))
 
 (subclass IntentionalPsychologicalProcess IntentionalProcess)
+(subclass IntentionalPsychologicalProcess ContentBearingProcess)
 (subclass IntentionalPsychologicalProcess PsychologicalProcess)
 
 (documentation IntentionalPsychologicalProcess EnglishLanguage "An &%IntentionalProcess
@@ -10837,15 +10838,16 @@ becoming a &%member of an &%Organization.")
 ?AGENT ?BELIEF)) means (and (&%holdDuring ?T1 (&%believes
 ?AGENT (&%holdsDuring ?T2 ?BELIEF))) (&%earlier ?T1 ?T2)).")
 
-(=>
-  (holdsDuring ?T1
-    (expects ?AGENT ?FORMULA))
-  (exists (?T2)
-    (and
-      (holdsDuring ?T1
-        (believes ?AGENT
-          (holdsDuring ?T2 ?FORMULA)))
-      (earlier ?T1 ?T2))))
+; TODO: Modals.java should but isn't makeing ?Formula w>$o
+;(=>
+;  (holdsDuring ?T1
+;    (expects ?AGENT ?FORMULA))
+;  (exists (?T2)
+;    (and
+;      (holdsDuring ?T1
+;        (believes ?AGENT
+;          (holdsDuring ?T2 ?FORMULA)))
+;      (earlier ?T1 ?T2))))
 
 (subclass Hiring OrganizationalProcess)
 (documentation Hiring EnglishLanguage "The &%OrganizationalProcess of
@@ -12221,13 +12223,20 @@ acquisition of information.")
    (instance ?AGENT CognitiveAgent))
 
 (=>
-   (and
-      (instance ?LEARN Learning)
-      (agent ?LEARN ?AGENT)
-      (patient ?LEARN ?PROP))
-   (and
-      (holdsDuring (BeginFn (WhenFn ?LEARN)) (not (knows ?AGENT ?PROP)))
-      (holdsDuring (EndFn (WhenFn ?LEARN)) (knows ?AGENT ?PROP))))
+  (and
+    (instance ?LEARN Learning)
+    (agent ?LEARN ?AGENT)
+    (containsFormula ?LEARN ?FORM))
+  (and
+    (holdsDuring
+      (BeginFn
+        (WhenFn ?LEARN))
+      (not
+        (knows ?AGENT ?FORM)))
+    (holdsDuring
+      (EndFn
+        (WhenFn ?LEARN))
+      (knows ?AGENT ?FORM))))
 
 (subclass Discovering IntentionalPsychologicalProcess)
 (documentation Discovering EnglishLanguage "Finding something that was sought.  Note that
@@ -12370,7 +12379,7 @@ him/her.")
   (and
     (instance ?JUDGE Judging)
     (agent ?JUDGE ?AGENT)
-    (result ?JUDGE ?P))
+    (containsFormula ?JUDGE ?P))
   (and
     (holdsDuring
       (BeginFn
@@ -13200,8 +13209,7 @@ an animal or animals are pursued and sometimes captured and/or killed.")
           (instance ?PROC Confining)
           (instance ?PROC Killing))))))
 
-;(subclass Investigating IntentionalPsychologicalProcess)
-(subclass Investigating IntentionalProcess)
+(subclass Investigating IntentionalPsychologicalProcess)
 (documentation Investigating EnglishLanguage "The class of
 &%IntentionalPsychologicalProcesses where the &%agent attempts to obtain information
 (i.e. a &%Proposition denoted by a &%Formula).")
@@ -13221,11 +13229,11 @@ an animal or animals are pursued and sometimes captured and/or killed.")
       (holdsDuring
         (PastFn ?INV)
           (not
-            (knows ?AGENT ?PROP)))
+            (knows ?AGENT ?F)))
       (hasPurpose ?INV
         (holdsDuring
           (FutureFn ?INV)
-          (knows ?AGENT ?PROP))))))
+          (knows ?AGENT ?F))))))
 
 ;(=>
 ;  (and
@@ -13433,10 +13441,11 @@ some truth.For example, John claimed that the moon is made of green cheese.")
    (and
       (instance ?STATE Stating)
       (agent ?STATE ?AGENT)
-      (patient ?STATE ?FORMULA)
-      (instance ?FORMULA Formula))
-   (holdsDuring (WhenFn ?STATE) (believes ?AGENT ?FORMULA)))
-
+      (containsFormula ?STATE ?FORMULA))
+   (holdsDuring 
+     (WhenFn ?STATE) 
+     (believes ?AGENT ?FORMULA)))
+ 
 (subclass Disagreeing Stating)
 (documentation Disagreeing EnglishLanguage "A &%Stating in which two &%Agents have
 contradictory statements.  This is distinguished from &%Arguing in
@@ -13535,12 +13544,13 @@ effect a &%Transaction of some sort).")
 effect an institutional alteration when performed by competent authority.
 Some examples are nominating, marrying, and excommunicating.")
 
-(=>
-   (instance ?DECLARE Declaring)
-   (exists (?PROP ?NORM)
-      (or
-         (confersNorm ?DECLARE ?NORM ?PROP)
-         (deprivesNorm ?DECLARE ?NORM ?PROP))))
+; TODO: get Modals to generate type m correctly for ?NORM
+;(=>
+;   (instance ?DECLARE Declaring)
+;   (exists (?PROP ?NORM)
+;      (or
+;         (confersNorm ?DECLARE ?NORM ?PROP)
+;         (deprivesNorm ?DECLARE ?NORM ?PROP))))
 
 (subclass Naming Declaring)
 (documentation Naming EnglishLanguage "The &%Process of assigning a name to someone or
@@ -15908,12 +15918,13 @@ on the holder of the &%Certificate.  Note that the right or obligation
 need not be a legal one, as in the case of an academic diploma that grants
 certain privileges in the professional world.")
 
-(=>
-   (instance ?DOC Certificate)
-   (exists (?PROP ?NORM)
-      (or
-         (confersNorm ?DOC ?NORM ?PROP)
-         (deprivesNorm ?DOC ?NORM ?PROP))))
+; TODO: have Modals.java generate the right type m for ?NORM
+;(=>
+;   (instance ?DOC Certificate)
+;   (exists (?PROP ?NORM)
+;      (or
+;         (confersNorm ?DOC ?NORM ?PROP)
+;         (deprivesNorm ?DOC ?NORM ?PROP))))
 
 (subclass FinancialInstrument Certificate)
 (documentation FinancialInstrument EnglishLanguage "A document having monetary value
@@ -16873,8 +16884,8 @@ Some examples include marriage, adoption, etc.")
    (exists (?DECLARE ?OBLIGATION)
       (and
          (instance ?DECLARE Declaring)
-         (confersObligation ?OBLIGATION ?AGENT1 ?DECLARE)
-         (confersObligation ?OBLIGATION ?AGENT2 ?DECLARE))))
+         (confersObligation ?DECLARE ?AGENT1 ?OBLIGATION)
+         (confersObligation ?DECLARE ?AGENT2 ?OBLIGATION))))
 
 (instance acquaintance BinaryPredicate)
 
@@ -17166,7 +17177,8 @@ a conclusion.")
    (instance ?ARGUMENT Argument)
    (exists (?PREMISES ?CONCLUSION)
       (and
-         (equal (PremisesFn ?ARGUMENT) ?PREMISES)
+         (equal 
+           (PremisesFn ?ARGUMENT) ?PREMISES)
          (conclusion ?CONCLUSION ?ARGUMENT))))
 
 (subclass DeductiveArgument Argument)
@@ -17186,8 +17198,8 @@ valid, i.e. the set of &%premises in fact &%entails the &%conclusion.")
       (conclusion ?CONCLUSION ?ARGUMENT))
    (exists (?FORMULA1 ?FORMULA2)
       (and
-         (containsInformation ?FORMULA1 ?PREMISES)
-         (containsInformation ?FORMULA2 ?CONCLUSION)
+         (containsFormula ?PREMISES ?FORMULA1)
+         (containsFormula ?CONCLUSION ?FORMULA2)
          (entails ?PREMISES ?CONCLUSION))))
 
 (subclass InvalidDeductiveArgument DeductiveArgument)
@@ -17221,19 +17233,19 @@ these cases, more likely to be true.")
 (documentation PremisesFn EnglishLanguage "(&%PremisesFn ?ARGUMENT) returns the complete
 set of &%premises of the &%Argument ?ARGUMENT.")
 
-(=>
-   (and
-      (instance ?ARGUMENT Argument)
-      (equal ?PREMISES (PremisesFn ?ARGUMENT)))
-   (<=>
-      (subProposition ?PROPOSITION ?PREMISES)
-      (premise ?ARGUMENT ?PROPOSITION)))
+;(=>
+;   (and
+;      (instance ?ARGUMENT Argument)
+;      (equal ?PREMISES (PremisesFn ?ARGUMENT)))
+;   (<=>
+;      (subProposition ?PROPOSITION ?PREMISES)
+;      (premise ?ARGUMENT ?PROPOSITION)))
 
 (instance conclusion BinaryPredicate)
 (instance conclusion SingleValuedRelation)
 (instance conclusion TotalValuedRelation)
 (domain conclusion 1 Argument)
-(domain conclusion 2 Proposition)
+(domain conclusion 2 Formula)
 (documentation conclusion EnglishLanguage "(&%conclusion ?ARGUMENT ?PROPOSITION) means
 that the &%Proposition ?PROPOSITION is the conclusion explicitly drawn from the
 &%Argument ?ARGUMENT.  Note that it may or may not be the case that ?ARGUMENT
@@ -17241,8 +17253,8 @@ that the &%Proposition ?PROPOSITION is the conclusion explicitly drawn from the
 
 (instance consistent BinaryPredicate)
 (instance consistent SymmetricRelation)
-(domain consistent 1 Proposition)
-(domain consistent 2 Proposition)
+(domain consistent 1 Formula)
+(domain consistent 2 Formula)
 (documentation consistent EnglishLanguage "(&%consistent ?PROP1 ?PROP2) means that the two
 &%Propositions ?PROP1 and ?PROP2 are consistent with one another, i.e. it
 is possible for both of them to be true at the same time.")
@@ -17644,11 +17656,12 @@ that the &%Proposition expressed by ?FORMULA has the &%NormativeAttribute
 (&%destination ?ACT Tom))) &%Obligation) means that John is obligated to give
 Tom something.")
 
-(=>
-   (and
-      (modalAttribute ?FORMULA1 ?PROP)
-      (entails ?FORMULA1 ?FORMULA2))
-   (modalAttribute ?FORMULA2 ?PROP))
+; TODO: ensure Modals.java makes ?PROP type m
+;(=>
+;   (and
+;      (modalAttribute ?FORMULA1 ?PROP)
+;      (entails ?FORMULA1 ?FORMULA2))
+;   (modalAttribute ?FORMULA2 ?PROP))
 
 (=>
     (modalAttribute ?FORMULA Permission)
