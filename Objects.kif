@@ -1,62 +1,70 @@
-;; Objects.kif:  everyday physical object definitions
-;; author: jdev-02
-;;
-;; Purpose: Extends SUMO with household and everyday object terms absent
-;; from Merge.kif / Mid-level-ontology.kif. Motivated by computer vision
-;; pipeline use: SUMO terms serve as candidate class labels for CLIP-based
-;; classifiers, giving the label set consistent ontological structure
-;; and ability to run the synset mapping to more terms we can run inference
-;; on.
-
-(subclass Tine Object)
+(subclass Tine CorpuscularObject)
 (termFormat EnglishLanguage Tine "tine")
-(documentation Tine EnglishLanguage "A &%Tine is a pointed prong or sharp projection,
-typically one of several on a larger structure.  &%Tines appear on
-both artificial implements such as a &%Fork and on biological
-structures such as the antlers of a &%Moose or deer.  Each &%Tine
-is a &%component of the structure it belongs to.")
+(documentation Tine EnglishLanguage "A &%Tine is a rigid, pointed projection that
+  extends from and is a &%component of a larger &%CorpuscularObject.  The essential nature of a
+  &%Tine is its rigidity and terminal point, which enable penetration or separation
+  upon contact.  &%Tines appear on manufactured implements such as a &%Fork (where they
+  serve to spear food) and on biological structures such as the antlers of a &%Moose
+  (where they can serve as weapons during combat).  A &%Tine is distinct from a
+  &%DigitAppendage such as a &%Finger: &%Tines are rigid and non-prehensile, while
+  &%Fingers are flexible biological structures capable of grasping and sensation.
+  Typically one of several on the parent structure.")
 
-(=> (instance ?T Tine) (attribute ?T LongAndThin))
+(=>
+  (instance ?T Tine)
+  (attribute ?T Rigid))
 
+(=>
+  (instance ?T Tine)
+  (modalAttribute
+    (attribute ?T LongAndThin) Likely))
+    
 (=>
   (instance ?T Tine)
   (exists (?O)
     (and
-      (instance ?O Object)
+      (instance ?O CorpuscularObject)
       (component ?T ?O))))
 
 (capability Poking instrument Tine)
+(capability Piercing instrument Tine)
 
-(increasesLikelihood
+(=>
   (and
     (instance ?T Tine)
-    (instance ?OBJ Object))
-  (orientation ?OBJ ?T On))
+    (instance ?F Fork)
+    (component ?T ?F))
+  (hasPurpose ?T
+    (exists (?EAT ?FOOD)
+      (and
+        (instance ?EAT Eating)
+        (instance ?FOOD Food)
+        (instrument ?EAT ?F)
+        (patient ?EAT ?FOOD)))))
 
 (increasesLikelihood
   (and
     (instance ?T1 Tine)
-    (instance ?O Object)
+    (instance ?O CorpuscularObject)
     (component ?T1 ?O))
   (exists (?T2)
     (and
       (instance ?T2 Tine)
       (component ?T2 ?O)
-      (not (equal ?T1 ?T2)))))
-
-
-;; Bowls hold contents passively; subclass of Container rather than
-;; Tableware to distinguish from active-transfer implements like Spoon.
+      (not
+        (equal ?T1 ?T2)))))
 
 (subclass Bowl Container)
 (subclass Bowl Dish)
+
 (termFormat EnglishLanguage Bowl "bowl")
 (documentation Bowl EnglishLanguage "A &%Bowl is a concave &%Container
-and &%Dish used to hold food, liquids, or other substances.
-Distinguished from a flat &%Plate by its deep concave interior, and
-from a generic &%Dish by its rounded open-topped shape suited for
-liquids and semi-solids.  A &%Bowl holds contents passively rather
-than actively transferring them like a &%Spoon or &%Fork.")
+  and &%Dish used to hold food, liquids, or other substances.
+  Distinguished from a flat &%Plate by its deep concave interior, and
+  from a generic &%Dish by its rounded open-topped shape suited for
+  liquids and semi-solids.  A &%Bowl holds contents passively rather
+  than actively transferring them like a &%Spoon or &%Fork.")
+
 
 (=>
   (and
@@ -65,7 +73,6 @@ than actively transferring them like a &%Spoon or &%Fork.")
     (contains ?BOWL ?OBJ)
     (located ?BOWL ?PLACE))
   (located ?OBJ ?PLACE))
-
 (=>
   (instance ?BOWL Bowl)
   (hasPurpose ?BOWL
@@ -76,45 +83,124 @@ than actively transferring them like a &%Spoon or &%Fork.")
         (instance ?EAT Eating)
         (patient ?EAT ?FOOD)))))
 
-(increasesLikelihood
+(=>
   (instance ?B Bowl)
-  (or
-    (material Glass ?B)
-    (material Wood ?B)
-    (material Metal ?B)))
-
-(=> (instance ?B Bowl) (attribute ?B Concave))
-
-(increasesLikelihood
+  (modalAttribute
+    (or
+      (material Ceramic ?B)
+      (material Wood ?B)
+      (material Glass ?B)
+      (material Metal ?B)
+      (material Plastic ?B)) Likely))
+(=>
   (instance ?B Bowl)
-  (exists (?FOOD)
+  (modalAttribute
+    (PorousContainer ?B) Unlikely))
+
+(=>
+  (instance ?B Bowl)
+  (attribute ?B Concave))
+
+(subclass HeatRetaining InternalChange)
+(termFormat EnglishLanguage HeatRetaining "heat retaining")
+(documentation HeatRetaining EnglishLanguage "An &%InternalChange in which an &%Object
+  maintains elevated thermal energy following prior &%Heating.  Objects capable of
+  &%HeatRetaining as patient resist heat loss due to high specific heat capacity or
+  low thermal conductivity.  Materials such as &%Ceramic and &%Metal are typical of
+  objects that undergo this process.")
+(=>
+  (and
+    (instance ?HR HeatRetaining)
+    (patient ?HR ?OBJ))
+  (exists (?H)
     (and
-      (instance ?FOOD Food)
-      (contains ?B ?FOOD)
-      (attribute ?FOOD WarmTemperature))))
+      (instance ?H Heating)
+      (patient ?H ?OBJ)
+      (before (WhenFn ?H) (WhenFn ?HR)))))
 
-(increasesLikelihood
-  (instance ?B Bowl)
-  (exists (?FOOD)
-    (and
-      (instance ?FOOD Food)
-      (contains ?B ?FOOD)
-      (attribute ?FOOD HotTemperature))))
+(=>
+  (and
+    (instance ?B Bowl)
+    (or
+      (material Ceramic ?B)
+      (material Metal ?B)))
+  (capability HeatRetaining patient ?B))
 
 (capability Eating instrument Bowl)
 
+(subclass SaladBowl Bowl)
+(termFormat EnglishLanguage SaladBowl "salad bowl")
+(documentation SaladBowl EnglishLanguage "A &%Bowl typically made of &%Wood, &%Glass,
+  or &%Ceramic used to hold and serve salad.  &%SaladBowls are characteristically
+  larger than other &%Bowls and hold room-temperature or chilled food.
+  The material is chosen for its neutral flavor and ease of tossing.")
+(=>
+  (instance ?B SaladBowl)
+  (modalAttribute
+    (or
+      (material Wood ?B)
+      (material Glass ?B)
+      (material Ceramic ?B)) Likely))
+(=>
+  (instance ?B SaladBowl)
+  (hasPurpose ?B
+    (exists (?EAT ?FOOD)
+      (and
+        (instance ?EAT Eating)
+        (instance ?FOOD PlantMatter)
+        (contains ?B ?FOOD)
+        (instrument ?EAT ?B)))))
+
+(subclass CerealBowl Bowl)
+(termFormat EnglishLanguage CerealBowl "cereal bowl")
+(documentation CerealBowl EnglishLanguage "A small to medium &%Bowl typically made of
+  &%Ceramic or &%Plastic used to hold breakfast cereal and milk.
+  &%CerealBowls are characterized by their moderate depth and capacity
+  suited for a single serving.")
+(=>
+  (instance ?B CerealBowl)
+  (modalAttribute
+    (or
+      (material Ceramic ?B)
+      (material Plastic ?B)) Likely))
+(=>
+  (instance ?B CerealBowl)
+  (hasPurpose ?B
+    (exists (?EAT ?FOOD)
+      (and
+        (instance ?EAT Eating)
+        (instance ?FOOD Food)
+        (contains ?B ?FOOD)
+        (instrument ?EAT ?B)))))
+
+(subclass DogBowl Bowl)
+(termFormat EnglishLanguage DogBowl "dog bowl")
+(documentation DogBowl EnglishLanguage "A &%Bowl made of stainless steel or &%Plastic
+  used to hold food or water for a &%Dog.  Unlike &%Bowls intended for human
+  consumption, a &%DogBowl holds &%FoodForFn(&%Dog) and is placed on the floor
+  rather than a table.")
+(=>
+  (instance ?B DogBowl)
+  (modalAttribute
+    (or
+      (material Metal ?B)
+      (material Plastic ?B)) Likely))
+(=>
+  (instance ?B DogBowl)
+  (hasPurposeForAgent ?B Dog
+    (exists (?FOOD)
+      (and
+        (instance ?FOOD (FoodForFn Dog))
+        (contains ?B ?FOOD)))))
 
 (subclass Spoon Tableware)
 (termFormat EnglishLanguage Spoon "spoon")
 (documentation Spoon EnglishLanguage "A &%Spoon is a &%Tableware implement consisting
-of a shallow concave bowl attached to a handle, used to scoop and
-transfer food or liquid from below.  Distinguished from a &%Fork,
-which pierces food from above with pointed &%Tines.  A &%Spoon
-translocates food by scooping, while a &%Fork translocates by
-spearing.")
-
-;; when a spoon is instrument of eating, the patient is food
-
+  of a shallow concave bowl attached to a handle, used to scoop and
+  transfer food or liquid from below.  Distinguished from a &%Fork,
+  which pierces food from above with pointed &%Tines.  A &%Spoon
+  translocates food by scooping, while a &%Fork translocates by
+  spearing.")
 (=>
   (and
     (instance ?SP Spoon)
@@ -122,9 +208,8 @@ spearing.")
     (instrument ?EAT ?SP))
   (exists (?FOOD)
     (and
-      (instance ?FOOD Object)
+      (instance ?FOOD Food)
       (patient ?EAT ?FOOD))))
-
 (=>
   (instance ?SP Spoon)
   (hasPurpose ?SP
@@ -132,9 +217,6 @@ spearing.")
       (and
         (instance ?EAT Eating)
         (instrument ?EAT ?SP)))))
-
-;; eating with a spoon typically involves translocation of food
-;; from container to mouth
 
 (increasesLikelihood
   (and
@@ -144,26 +226,76 @@ spearing.")
   (exists (?MOVE ?FOOD)
     (and
       (instance ?MOVE Translocation)
-      (instance ?FOOD Object)
+      (instance ?FOOD Food)
       (patient ?MOVE ?FOOD)
       (patient ?EAT ?FOOD))))
-
-(increasesLikelihood
+      
+(=>
   (instance ?SP Spoon)
-  (or
-    (material Metal ?SP)
-    (material Wood ?SP)
-    (material Plastic ?SP)))
+  (modalAttribute
+    (or
+      (material Metal ?SP)
+      (material Plastic ?SP)
+      (material Wood ?SP)) Likely))
+(=>
+  (instance ?SP Spoon)
+  (attribute ?SP Concave))
 
-(=> (instance ?SP Spoon) (attribute ?SP Concave))
-
-(=> (instance ?SP Spoon) (exists (?H) (and (instance ?H Handle) (part ?H ?SP))))
+(=>
+  (instance ?SP Spoon)
+  (exists (?H)
+    (and
+      (instance ?H Handle)
+      (part ?H ?SP))))
 
 (capability Eating instrument Spoon)
 
+(subclass Shearing Cutting)
+(termFormat EnglishLanguage Shearing "shearing")
+(documentation Shearing EnglishLanguage "A &%Cutting process in which material is
+  separated by at least two opposing blade edges moving relative to each other in
+  concert.  Unlike slicing, which draws a single blade across a surface, &%Shearing
+  requires the coordinated action of two or more blades.  &%Scissors, %PruningShears,
+  and metal shears all operate by &%Shearing.")
 
-;; Knife already exists in SUMO; Scissors are distinct because they
-;; require two opposing blades acting in concert.
+(=>
+  (instance ?SHR Shearing)
+  (exists (?I1 ?I2)
+    (and
+      (instance ?I1 CuttingDevice)
+      (instance ?I2 CuttingDevice)
+      (not
+        (equal ?I1 ?I2))
+      (instrument ?SHR ?I1)
+      (instrument ?SHR ?I2))))
+
+(=>
+  (and
+    (instance ?SHR Shearing)
+    (instrument ?SHR ?I))
+  (attribute ?I Rigid))
+
+(=>
+  (and
+    (instance ?SHR Shearing)
+    (patient ?SHR ?SHEEP)
+    (instance ?SHEEP Sheep))
+  (exists (?FIBER)
+    (and
+      (result ?SHR ?FIBER)
+      (instance ?FIBER Hair))))
+
+(=>
+  (and
+    (instance ?SHR Shearing)
+    (instrument ?SHR ?I)
+    (patient ?SHR ?P)
+    (material ?IMAT ?I)
+    (material ?PMAT ?P))
+  (greaterThan
+    (MohsScaleFn ?IMAT)
+    (MohsScaleFn ?PMAT)))
+    
 
 (subclass Scissors CuttingDevice)
 (subclass Scissors HandTool)
