@@ -1,0 +1,242 @@
+% CF 
+% 5b_O_Sanction_overFormulas.thf 
+% USAGE: "F" is possible-fact-formula, "G" is given-condition
+% This example uses an obligation and a sanction 
+
+% Option A: ref (want timeout instead!)
+% Option B: ref (with sanction1_permission_done, O-P bridge, serial_obligation)
+% Summary of findings: This is not exactly what I wanted, need work 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Pre-System Setup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+thf(worlds_tp,type, w: $tType).
+thf(cw_tp,type, cw: w).
+thf(modals_tp,type, m: $tType).
+thf(obligation_tp,type, s__Obligation: m).          % obligation modality
+thf(permission_tp, type, s__Permission: m).
+thf(prohibition_tp, type, s__Prohibition: m).
+thf(accreln1_tp,type, accreln1: m > w > w > $o ).
+thf(accreln2_tp,type, accreln2: m > $i > w > w > $o ).
+thf(accreln3_tp,type, accreln3: m > $i > $i > w > w > $o ).
+     
+%%%%%%%%%%%%%%%%%%%%%%%%%% Sanction and Bridges %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Per(F|G) & G & F -> ~Ob(S)         -- if permitted and done, no sanction
+% (=>
+%   (and 
+%     (=> G (modalAttribute F Permission)
+%     (G)
+%     (F))
+%   (not 
+%     (modalAttribute S Obligation)))
+thf(sanction1_permission_done, axiom,
+  ![W1:w, W2:w, W3:w, F: w > $o, G: w > $o, S: w > $o] : (
+    (( (G @ W1) =>
+        ( (accreln1 @ s__Permission @ W1 @ W2) &
+          (F @ W2) )) &
+      (G @ W1) &
+      (F @ W1) )
+    =>
+    ( (accreln1 @ s__Obligation @ W1 @ W3)
+      => ~(S @ W3) ))).
+
+% Ob(F|G) & G & ~F -> Ob(S)        -- if obligatory and not done, sanction
+% (=>
+%   (and 
+%     (=> G (modalAttribute F Obligation)
+%     (G)
+%     (not F))
+%   (modalAttribute S Obligation)))
+thf(sanction2_obligation_not_done, axiom, 
+  ![W1:w, W2:w, W3:w, F: w > $o, G: w > $o, S: w > $o] : (
+    (( (G @ W1) =>
+        ( (accreln1 @ s__Obligation @ W1 @ W2) &
+          (F @ W2) )) &
+      (G @ W1) &
+      ~(F @ W1) )
+    =>
+    ( (accreln1 @ s__Obligation @ W1 @ W3)
+      => (S @ W3) ))).
+
+% Pro(F|G) & G & F -> Ob(S)          -- if forbidden and done, sanction
+% (=>
+%   (and 
+%     (=> G (modalAttribute F Prohibition)
+%     (G)
+%     (F))
+%   (modalAttribute S Obligation)))
+thf(sanction3_prohibition_done, axiom, 
+  ![W1:w, W2:w, W3:w, F: w > $o, G: w > $o, S: w > $o] : (
+    (( (G @ W1) =>
+        ( (accreln1 @ s__Prohibition @ W1 @ W2) &
+          (F @ W2) )) &
+      (G @ W1) &
+      (F @ W1) )
+    =>
+    ( (accreln1 @ s__Obligation @ W1 @ W3)
+      => (S @ W3) ))).
+
+% Bridge axioms
+% Ob(x) -> Per(x)          -- if obligatory then permitted
+% (=>
+%   (modalAttribute ?F Obligation)
+%   (modalAttribute ?F Permission))
+thf(bridge1_O_P, axiom,
+  ![W1:w, W2:w]:
+    ((accreln1 @ s__Obligation @ W1 @ W2)
+     => (accreln1 @ s__Permission @ W1 @ W2))).
+
+% Ob(x) -> ~Per(~x)        -- if obligatory then not permitted to not do it
+thf(bridge2_O_neg_P, axiom,
+  ![W1:w, W2:w]:
+    ((accreln1 @ s__Obligation @ W1 @ W2)
+     => ~(accreln1 @ s__Permission @ W2 @ W1))).
+
+% Ob(x) -> Pro(~x)         -- if obligatory then forbidden to not do it
+thf(bridge3_O_F_neg, axiom,
+  ![W1:w, W2:w]:
+    ((accreln1 @ s__Obligation @ W1 @ W2)
+     => (accreln1 @ s__Prohibition @ W1 @ W2))).
+
+% Pro(x) -> Ob(~x)         -- if forbidden then obligatory to not do it
+thf(bridge4_F_O_neg, axiom,
+  ![W1:w, W2:w]:
+    ((accreln1 @ s__Prohibition @ W1 @ W2)
+     => (accreln1 @ s__Obligation @ W1 @ W2))).
+     
+%%%%%%%%%%%%%%%%%%%%%% Systems: Under Obligation %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% System D4
+thf(serial_obligation, axiom,
+  ![W1:w]: ?[W2:w]:
+    (accreln1 @ s__Obligation @ W1 @ W2)).
+thf(transitive_obligation, axiom,
+  ![W1: w, W2: w, W3: w] :
+    (((accreln1 @ s__Obligation @ W1 @ W2) &
+      (accreln1 @ s__Obligation @ W2 @ W3))
+     => (accreln1 @ s__Obligation @ W1 @ W3))).
+
+%%%%%%%%%%%%%%%%%%% End: Systems, Sanctions, and Bridges %%%%%%%%%%%%%%%%%%%
+
+% Relations: 
+thf(instance_t, type, s__instance:($i > $i > $o)).
+thf(agent_t, type, s__agent:($i > $i > w > $o)).
+thf(patient_t, type, s__patient: ($i > $i > w > $o)).
+thf(origin_t, type, s__origin: ($i > $i > w > $o)).
+thf(destination_t, type, s__destination: ($i > $i > w > $o)).
+
+% Terms: 
+thf(flying_t, type, s__Flying: $i).
+thf(human_t, type, s__Human: $i).
+thf(grocerystore_t, type, s__GroceryStore: $i).
+thf(moon_t, type, s__Moon: $i).
+thf(giving_t, type, s__Giving: $i).
+thf(paycheck_t, type, s__PayCheck: $i).
+thf(tax_t, type, s__Tax: $i).
+thf(punishing_t, type, s__Punishing: $i).
+
+% Globals: 
+thf(bill_t, type, s__Bill: $i).
+thf(bill_always_human, axiom, (
+  s__instance @ s__Bill @ s__Human)).
+
+% Distinctness: 
+thf(dist_moon_gs,       axiom, ~(s__Moon = s__GroceryStore)).
+thf(dist_moon_flying,   axiom, ~(s__Moon = s__Flying)).
+thf(dist_moon_giving,   axiom, ~(s__Moon = s__Giving)).
+thf(dist_moon_paycheck, axiom, ~(s__Moon = s__PayCheck)).
+thf(dist_moon_human,    axiom, ~(s__Moon = s__Human)).
+thf(dist_moon_tax,      axiom, ~(s__Moon = s__Tax)).
+thf(dist_gs_flying,     axiom, ~(s__GroceryStore = s__Flying)).
+thf(dist_gs_giving,     axiom, ~(s__GroceryStore = s__Giving)).
+thf(dist_gs_paycheck,   axiom, ~(s__GroceryStore = s__PayCheck)).
+thf(dist_gs_human,      axiom, ~(s__GroceryStore = s__Human)).
+thf(dist_gs_tax,        axiom, ~(s__GroceryStore = s__Tax)).
+thf(dist_flying_giving, axiom, ~(s__Flying = s__Giving)).
+thf(dist_flying_paycheck,axiom, ~(s__Flying = s__PayCheck)).
+thf(dist_flying_human,  axiom, ~(s__Flying = s__Human)).
+thf(dist_flying_tax,    axiom, ~(s__Flying = s__Tax)).
+thf(dist_giving_paycheck,axiom, ~(s__Giving = s__PayCheck)).
+thf(dist_giving_human,  axiom, ~(s__Giving = s__Human)).
+thf(dist_giving_tax,    axiom, ~(s__Giving = s__Tax)).
+thf(dist_paycheck_human, axiom, ~(s__PayCheck = s__Human)).
+thf(dist_paycheck_tax,  axiom, ~(s__PayCheck = s__Tax)).
+thf(dist_human_tax,     axiom, ~(s__Human = s__Tax)).
+% Punishing as part of a sanction: 
+thf(dist_punishing_gs,       axiom, ~(s__Punishing = s__GroceryStore)).
+thf(dist_punishing_flying,   axiom, ~(s__Punishing = s__Flying)).
+thf(dist_punishing_giving,   axiom, ~(s__Punishing = s__Giving)).
+thf(dist_punishing_paycheck, axiom, ~(s__Punishing = s__PayCheck)).
+thf(dist_punishing_human,    axiom, ~(s__Punishing = s__Human)).
+thf(dist_punishing_tax,      axiom, ~(s__Punishing = s__Tax)).
+
+% Condition G
+thf(g_pred_t, type, g_pred: w > $o).
+thf(g_is_paycheck, axiom,
+  ![W:w]: (
+    (g_pred @ W) <=>
+    ?[GIV:$i, PCH:$i]: (
+      (s__instance @ GIV @ s__Giving) &
+      (s__instance @ PCH @ s__PayCheck) &
+      (s__patient @ GIV @ PCH @ W) &
+      (s__destination @ GIV @ s__Bill @ W)))).
+
+% Action F
+thf(f_pred_t, type, f_pred: w > $o).
+thf(f_is_tax_payment, axiom,
+  ![W:w]: (
+    (f_pred @ W) <=>
+    ?[TAX:$i]: (
+      (s__instance @ TAX @ s__Tax) &
+      (s__origin @ TAX @ s__Bill @ W)))).
+
+% Sanction S
+thf(s_pred_t, type, s_pred: w > $o).
+thf(s_is_sanction, axiom,
+  ![W:w]: (
+    (s_pred @ W) <=>
+    ?[SANC:$i]: (
+      (s__instance @ SANC @ s__Punishing) &
+      (s__patient @ SANC @ s__Bill @ W)))).
+
+% Fact: "Bill earns a paycheck" 
+% (exists (?GIV ?PCH)
+%  (and 
+%    (instance ?GIV Giving) 
+%    (instance ?PCH PayCheck)
+%    (patient ?GIV ?PCH) 
+%    (destination ?GIV Bill)))
+thf(fact_earns_paycheck, axiom, 
+  ?[GIV: $i, PCH: $i]: (
+    ((s__instance @ GIV @ s__Giving) & 
+    (s__instance @ PCH @ s__PayCheck) & 
+    (s__patient @ GIV @ PCH @ cw) & 
+    (s__destination @ GIV @ s__Bill @ cw)))).
+  
+% Option A: "Bill pays his taxes"
+% (exists (?TAX) 
+%   (and 
+%     (instance ?TAX Tax)
+%     (origin ?TAX Bill)))
+thf(optA_bill_pays, axiom, (
+  ?[TAX:$i] : (
+    ((s__instance @ TAX @ s__Tax) & 
+    (s__origin @ TAX @ s__Bill @ cw))))).
+
+% Option B: "Bill does not pay his taxes"
+% (not (exists (?TAX) 
+%   (and 
+%     (instance ?TAX Tax)
+%     (origin ?TAX Bill))))
+%thf(optB_bill_does_not_pay, axiom, (
+%  ~?[TAX:$i] : (
+%    ((s__instance @ TAX @ s__Tax) & 
+%    (s__origin @ TAX @ s__Bill @ cw))))).
+    
+% Conjecture: "Therefore, Bill must be the patient of a sanction" 
+% This should:
+% Option A (pays taxes): timeout -- no violation, no sanction
+% Option B (doesn't pay): refutation -- violation triggers sanction
+thf(conjecture_sanction_holds, conjecture, (
+  ?[Wx:w]: (
+    (accreln1 @ s__Obligation @ cw @ Wx) &
+    (s_pred @ Wx) ))).

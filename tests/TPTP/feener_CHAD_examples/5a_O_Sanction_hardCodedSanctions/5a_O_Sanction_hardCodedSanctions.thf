@@ -1,0 +1,178 @@
+% CF 
+% 5a_O_Sanction_hardCodedSanctions.thf 
+% This example uses an obligation and a sanction 
+
+% Option A: Timeout
+% Option B: Refutation (via modus ponens) 
+% Summary of findings: This example is a bit trivial
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Pre-System Setup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+thf(worlds_tp,type, w: $tType).
+thf(cw_tp,type, cw: w).
+thf(modals_tp,type, m: $tType).
+thf(obligation_tp,type, s__Obligation: m).          % obligation modality
+thf(permission_tp, type, s__Permission: m).
+thf(prohibition_tp, type, s__Prohibition: m).
+thf(accreln1_tp,type, accreln1: m > w > w > $o ).
+thf(accreln2_tp,type, accreln2: m > $i > w > w > $o ).
+thf(accreln3_tp,type, accreln3: m > $i > $i > w > w > $o ).
+
+% For later: accreln3 and other deontic attributes will need their own system-blocks! 
+
+%%%%%%%%%%%%%%%%%%%%%% Systems: Under Obligation %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% System D4
+thf(serial_obligation, axiom,
+  ![W1:w]: ?[W2:w]:
+    (accreln1 @ s__Obligation @ W1 @ W2)).
+thf(transitive_obligation, axiom,
+  ![W1: w, W2: w, W3: w] :
+    (((accreln1 @ s__Obligation @ W1 @ W2) &
+      (accreln1 @ s__Obligation @ W2 @ W3))
+     => (accreln1 @ s__Obligation @ W1 @ W3))).
+
+%%%%%%%%%%%%%%%%%%%%%%%%% End: Systems under O %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Relations: 
+thf(instance_t, type, s__instance:($i > $i > $o)).
+thf(agent_t, type, s__agent:($i > $i > w > $o)).
+thf(patient_t, type, s__patient: ($i > $i > w > $o)).
+thf(origin_t, type, s__origin: ($i > $i > w > $o)).
+thf(destination_t, type, s__destination: ($i > $i > w > $o)).
+
+% Terms: 
+thf(flying_t, type, s__Flying: $i).
+thf(human_t, type, s__Human: $i).
+thf(grocerystore_t, type, s__GroceryStore: $i).
+thf(moon_t, type, s__Moon: $i).
+thf(giving_t, type, s__Giving: $i).
+thf(paycheck_t, type, s__PayCheck: $i).
+thf(tax_t, type, s__Tax: $i).
+thf(sanction_t, type, s__Sanction: $i). % Sanction is not implemented in SUMO yet
+
+% Globals: 
+thf(bill_t, type, s__Bill: $i).
+thf(bill_always_human, axiom, (
+  s__instance @ s__Bill @ s__Human)).
+
+% Distinctness: 
+thf(dist_moon_gs,       axiom, ~(s__Moon = s__GroceryStore)).
+thf(dist_moon_flying,   axiom, ~(s__Moon = s__Flying)).
+thf(dist_moon_giving,   axiom, ~(s__Moon = s__Giving)).
+thf(dist_moon_paycheck, axiom, ~(s__Moon = s__PayCheck)).
+thf(dist_moon_human,    axiom, ~(s__Moon = s__Human)).
+thf(dist_moon_tax,      axiom, ~(s__Moon = s__Tax)).
+thf(dist_gs_flying,     axiom, ~(s__GroceryStore = s__Flying)).
+thf(dist_gs_giving,     axiom, ~(s__GroceryStore = s__Giving)).
+thf(dist_gs_paycheck,   axiom, ~(s__GroceryStore = s__PayCheck)).
+thf(dist_gs_human,      axiom, ~(s__GroceryStore = s__Human)).
+thf(dist_gs_tax,        axiom, ~(s__GroceryStore = s__Tax)).
+thf(dist_flying_giving, axiom, ~(s__Flying = s__Giving)).
+thf(dist_flying_paycheck,axiom, ~(s__Flying = s__PayCheck)).
+thf(dist_flying_human,  axiom, ~(s__Flying = s__Human)).
+thf(dist_flying_tax,    axiom, ~(s__Flying = s__Tax)).
+thf(dist_giving_paycheck,axiom, ~(s__Giving = s__PayCheck)).
+thf(dist_giving_human,  axiom, ~(s__Giving = s__Human)).
+thf(dist_giving_tax,    axiom, ~(s__Giving = s__Tax)).
+thf(dist_paycheck_human, axiom, ~(s__PayCheck = s__Human)).
+thf(dist_paycheck_tax,  axiom, ~(s__PayCheck = s__Tax)).
+thf(dist_human_tax,     axiom, ~(s__Human = s__Tax)).
+% Sanctions: 
+thf(dist_sanc_gs,       axiom, ~(s__Sanction = s__GroceryStore)).
+thf(dist_sanc_flying,   axiom, ~(s__Sanction = s__Flying)).
+thf(dist_sanc_giving,   axiom, ~(s__Sanction = s__Giving)).
+thf(dist_sanc_paycheck, axiom, ~(s__Sanction = s__PayCheck)).
+thf(dist_sanc_human,    axiom, ~(s__Sanction = s__Human)).
+thf(dist_sanc_tax,      axiom, ~(s__Sanction = s__Tax)).
+
+% Obligation: "If Bill gets a paycheck, he must pay taxes"
+%(=> 
+%  (and 
+%    (instance ?GIV Giving) 
+%    (instance ?PCH PayCheck)
+%    (patient ?GIV ?PCH) 
+%    (destination ?GIV Bill))
+%  (modalAttribute 
+%    (exists (?TAX) 
+%      (and 
+%        (instance ?TAX Tax)
+%        (origin ?TAX Bill))) Obligation))
+thf(obligation1_bill_taxed, axiom,
+  ![W1:w, W2: w] : 
+  ( ![GIV: $i, PCH: $i] : (( 
+      (s__instance @ GIV @ s__Giving) & 
+      (s__instance @ PCH @ s__PayCheck) & 
+      (s__patient @ GIV @ PCH @ W1) &
+      (s__destination @ GIV @ s__Bill @ W1)) => (
+          (accreln1 @ s__Obligation @ W1 @ W2) => 
+            ( ?[TAX: $i] : (
+              (s__instance @ TAX @ s__Tax) & 
+              (s__origin @ TAX @ s__Bill @ W2))))))).
+
+% Sanction: "If Bill does not pay taxes, he must be penalized"
+%(=>
+%  (not (exists (?TAX)
+%    (and 
+%      (instance ?TAX Tax)
+%      (origin ?TAX Bill))))
+%  (modalAttribute 
+%    (exists (?SANC)
+%      (and 
+%        (instance ?SANC Sanction)
+%        (patient ?SANC Bill))) Obligation))
+thf(sanction_must_be_paid, axiom,
+  ![W1:w, W2:w] : 
+    (~?[TAX: $i] : (( 
+      (s__instance @ TAX @ s__Tax) & 
+      (s__origin @ TAX @ s__Bill @ W1)) => (
+          (accreln1 @ s__Obligation @ W1 @ W2) => 
+            ( ?[SANC: $i] : (
+              (s__instance @ SANC @ s__Sanction) & 
+              (s__patient @ SANC @ s__Bill @ W2))))))).
+
+% Fact: "Bill earns a paycheck" 
+% (exists (?GIV ?PCH)
+%  (and 
+%    (instance ?GIV Giving) 
+%    (instance ?PCH PayCheck)
+%    (patient ?GIV ?PCH) 
+%    (destination ?GIV Bill)))
+thf(fact_earns_paycheck, axiom, 
+  ?[GIV: $i, PCH: $i]: (
+    ((s__instance @ GIV @ s__Giving) & 
+    (s__instance @ PCH @ s__PayCheck) & 
+    (s__patient @ GIV @ PCH @ cw) & 
+    (s__destination @ GIV @ s__Bill @ cw)))).
+  
+% Option A: "Bill pays his taxes"
+% (exists (?TAX) 
+%   (and 
+%     (instance ?TAX Tax)
+%     (origin ?TAX Bill)))
+%thf(optA_bill_pays, axiom, (
+%  ?[TAX:$i] : (
+%    ((s__instance @ TAX @ s__Tax) & 
+%    (s__origin @ TAX @ s__Bill @ cw))))).
+
+% Option B: "Bill does not pay his taxes"
+% (not (exists (?TAX) 
+%   (and 
+%     (instance ?TAX Tax)
+%     (origin ?TAX Bill))))
+thf(optB_bill_does_not_pay, axiom, (
+  ~?[TAX:$i] : (
+    ((s__instance @ TAX @ s__Tax) & 
+    (s__origin @ TAX @ s__Bill @ cw))))).
+    
+% Conjecture: "Therefore, Bill must be the patient of a sanction" 
+% (modalAttribute 
+%   (exists (?S)
+%     (and 
+%       (instance ?S Sanction)
+%       (patient ?S Bill))) Obligation))  
+thf(conjecture_sanction_holds, conjecture, (
+  ?[Wx: w] : (
+    (accreln1 @ s__Obligation @ cw @ Wx) &
+    (?[S: $i] : (
+        (s__instance @ S @ s__Sanction) & 
+        (s__patient @ S @ s__Bill @ Wx)))))).  
