@@ -601,12 +601,13 @@
   opening at the top.")
 
 (=>
-  (and
-    (instance ?V Vase)
-    (instance ?OBJ Object)
-    (contains ?V ?OBJ)
-    (located ?V ?PLACE))
-  (located ?OBJ ?PLACE))
+  (instance ?V Vase)
+  (modalAttribute
+    (exists (?H ?W)
+      (and
+        (height ?V ?H)
+        (width ?V ?W)
+        (greaterThan ?H ?W))) Likely))
 
 (=>
   (instance ?V Vase)
@@ -620,6 +621,15 @@
   (instance ?V Vase)
   (modalAttribute
     (material Glass ?V) Likely))
+
+(=>
+  (instance ?V Vase)
+  (exists (?HOLE ?TOP)
+    (and
+      (instance ?HOLE HoleRegion)
+      (hole ?HOLE ?V)
+      (top ?TOP ?V)
+      (part ?HOLE ?TOP))))
 
 (=>
   (instance ?V Vase)
@@ -639,14 +649,26 @@
   transporting rather than serving.")
 
 (=>
-  (and
-    (instance ?BK Bucket)
-    (instance ?MOVE Translocation)
-    (instrument ?MOVE ?BK))
-  (exists (?OBJ)
+  (instance ?BK Bucket)
+  (modalAttribute (shape ?BK Cylinder) Likely))
+
+(=>
+  (instance ?BK Bucket)
+  (modalAttribute
+    (exists (?H ?W)
+      (and
+        (height ?BK ?H)
+        (width ?BK ?W)
+        (greaterThan ?H ?W))) Likely))
+
+(=>
+  (instance ?BK Bucket)
+  (exists (?HOLE ?TOP)
     (and
-      (instance ?OBJ Object)
-      (patient ?MOVE ?OBJ))))
+      (instance ?HOLE HoleRegion)
+      (hole ?HOLE ?BK)
+      (top ?TOP ?BK)
+      (part ?HOLE ?TOP))))
 
 (=>
   (instance ?BK Bucket)
@@ -668,7 +690,8 @@
   (exists (?H)
     (and
       (instance ?H Handle)
-      (part ?H ?BK))))
+      (part ?H ?BK)
+      (shape ?H Semicircle))))
 
 (capability Translocation instrument Bucket)
 
@@ -686,8 +709,20 @@
     (instance ?BP Backpack)
     (instance ?MOVE Translocation)
     (agent ?MOVE ?PERSON)
+    (instance ?PERSON Human)
     (instrument ?MOVE ?BP))
-  (located ?BP ?PERSON))
+  (exists (?BACK)
+    (and
+      (instance ?BACK HumanBack)
+      (part ?BACK ?PERSON)
+      (connected ?BP ?BACK))))
+
+(=>
+  (instance ?BP Backpack)
+  (exists (?S)
+    (and
+      (instance ?S Strap)
+      (part ?S ?BP))))
 
 (=>
   (instance ?BP Backpack)
@@ -708,10 +743,10 @@
 
 (termFormat EnglishLanguage Umbrella "umbrella")
 (documentation Umbrella EnglishLanguage "An &%Umbrella is a &%Device consisting of a
-  collapsible canopy supported by a central shaft and radiating ribs,
-  used for protection from rain or sunlight.  An &%Umbrella is held by
-  hand and positioned above the user to shield them from precipitation
-  or solar radiation.")
+  collapsible canopy supported by a central &%Rod and radiating ribs,
+  used for protection from &%Raining or &%Sunlight.  An &%Umbrella is
+  held by &%Hand and positioned &%Above the user to shield them from
+  &%Precipitation or solar radiation.")
 
 (=>
   (and
@@ -723,13 +758,48 @@
 
 (=>
   (instance ?UMB Umbrella)
+  (exists (?R)
+    (and
+      (instance ?R Rod)
+      (part ?R ?UMB))))
+
+(=>
+  (and
+    (instance ?UMB Umbrella)
+    (instance ?PROT Protecting)
+    (instrument ?PROT ?UMB))
+  (exists (?G ?H)
+    (and
+      (instance ?G Grabbing)
+      (instance ?H Hand)
+      (instrument ?G ?H)
+      (patient ?G ?UMB))))
+
+(=>
+  (and
+    (instance ?UMB Umbrella)
+    (instance ?PROT Protecting)
+    (instrument ?PROT ?UMB)
+    (patient ?PROT ?PERSON))
+  (orientation ?UMB ?PERSON Above))
+
+(=>
+  (instance ?UMB Umbrella)
   (hasPurpose ?UMB
     (exists (?PROT ?PERSON)
       (and
         (instance ?PROT Protecting)
         (instance ?PERSON Animal)
         (instrument ?PROT ?UMB)
-        (patient ?PROT ?PERSON)))))
+        (patient ?PROT ?PERSON)
+        (holdsDuring (WhenFn ?PROT)
+          (not
+            (exists (?HARM)
+              (and
+                (patient ?HARM ?PERSON)
+                (or
+                  (instance ?HARM Wetting)
+                  (instance ?HARM Sunlight))))))))))
 
 (capability Protecting instrument Umbrella)
 
@@ -743,19 +813,10 @@
 
 (termFormat EnglishLanguage Shovel "shovel")
 (documentation Shovel EnglishLanguage "A &%Shovel is a hand-operated &%Device with a
-  broad flat or concave blade attached to a long handle, used for digging
-  into and moving loose material such as soil, sand, snow, or gravel.
-  Distinguished from a spade by its wider, more concave blade shape.")
-
-(=>
-  (and
-    (instance ?SH Shovel)
-    (instance ?DIG IntentionalProcess)
-    (instrument ?DIG ?SH))
-  (exists (?MAT)
-    (and
-      (instance ?MAT Object)
-      (patient ?DIG ?MAT))))
+  broad &%Flat or &%Concave blade attached to a long &%Handle, used for
+  &%Digging into and moving loose material such as &%Soil, &%Sand, &%Snow,
+  or &%Gravel.  Distinguished from a spade by its wider, more &%Concave
+  blade shape.")
 
 (=>
   (instance ?SH Shovel)
@@ -766,9 +827,22 @@
         (instrument ?DIG ?SH)))))
 
 (=>
+  (and
+    (instance ?DIG Digging)
+    (instrument ?DIG ?SH)
+    (instance ?SH Shovel)
+    (patient ?DIG ?MAT))
+  (modalAttribute
+    (or
+      (instance ?MAT Soil)
+      (instance ?MAT Sand)
+      (instance ?MAT Snow)
+      (instance ?MAT Gravel)) Likely))
+
+(=>
   (instance ?SH Shovel)
   (modalAttribute
-    (and
+    (or
       (material Metal ?SH)
       (material Wood ?SH)) Likely))
 
@@ -782,6 +856,17 @@
     (and
       (instance ?H Handle)
       (part ?H ?SH))))
+
+(=>
+  (and
+    (instance ?DIG Digging)
+    (instrument ?DIG ?I)
+    (patient ?DIG ?P)
+    (material ?IMAT ?I)
+    (material ?PMAT ?P))
+  (greaterThan
+    (MohsScaleFn ?IMAT)
+    (MohsScaleFn ?PMAT)))
 
 (capability Digging instrument Shovel)
 
