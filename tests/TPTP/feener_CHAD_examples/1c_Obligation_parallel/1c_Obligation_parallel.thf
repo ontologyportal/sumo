@@ -1,32 +1,39 @@
 % CF 
-% 1j_Obligation_UO1_EC_counterSatisfiable.thf
-% Based on example 1G (with old optB) but with optB = ~optA. 
-% This is to go back and test to see how D4 handles on a 
-% universal Obligation on Negative option.
+% 1c_Obligation_parallel_MODUSPONENS.thf
+% NOTE: This example in effect shows how to avoid a trivial example (mainly
+% to avoid obligations that are not correctly chained, such as the second 
+% obligation being accessible from the Constant World)
+% NOTE2: The negative example shows what happens under a UNIVERSAL 
+% obligation (Systems T and up find a refutation incorrectly)
+
+% Summary of results: 
+%   OptA bypasses the systems (seen in Vampire output image) 
+%   OptB uses System T to incorrectly arrive at refutation 
 
 % Option A: Bill meets obligation 
 % Results under System ...
-% K (0, distribution)   : 
-% D (1, serial)         : 
-% D4                    : 
-% D45                   : 
-% T (2, reflexive)      : 
-% B (3, r and symmetric): 
-% S4 (r and trans)      : 
-% S5 (r and Euclid)     : 
-% Summary of findings: 
+% K (0, distribution)   : ref 
+% D (1, serial)         : ref
+% D4                    : ref
+% D45                   : ref
+% T (2, reflexive)      : ref 
+% B (3, r and symmetric): ref 
+% S4 (r and trans)      : ref 
+% S5 (r and Euclid)     : ref 
+% Summary: This means that modus ponens was used 
 
 % Option B: Does not meet obligation 
 % Results under System ...
-% K (0, distribution)   : 
-% D (1, serial)         : 
-% D4                    : 
-% D45                   : 
-% T (2, reflexive)      : 
-% B (3, r and symmetric): 
-% S4 (r and trans)      : 
-% S5 (r and Euclid)     : 
-% Summary of findings: 
+% K (0, distribution)   : timeout 
+% D (1, serial)         : timeout 
+% D4                    : timeout
+% D45                   : ref
+% T (2, reflexive)      : ref 
+% B (3, r and symmetric): ref 
+% S4 (r and trans)      : ref 
+% S5 (r and Euclid)     : ref 
+% Summary: This was due to a universal obligation always being in effect 
+% NOTE: D4 correctly protects against refutation 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% Pre-System Setup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 thf(worlds_tp,type, w: $tType).
@@ -39,14 +46,17 @@ thf(accreln1_tp,type, accreln1: m > w > w > $o ).
 thf(accreln2_tp,type, accreln2: m > $i > w > w > $o ).
 thf(accreln3_tp,type, accreln3: m > $i > $i > w > w > $o ).
 
+% For later: accreln3 and other deontic attributes will need their own system-blocks! 
+% (Don't worry about Law/LegislativeLaw/InternationalLaw)
+
 %%%%%%%%%%%%%%%%%%%%%% Systems: Under Obligation %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 0. K: distribution
 % [Nothing to implement] 
 
 % 1. D: serial 
-thf(serial_obligation, axiom,
-  ![W1:w]: ?[W2:w]:
-    (accreln1 @ s__Obligation @ W1 @ W2)).
+%thf(serial_obligation, axiom,
+%  ![W1:w]: ?[W2:w]:
+%    (accreln1 @ s__Obligation @ W1 @ W2)).
 
 % 2. T: reflexive
 %thf(reflexive_obligation, axiom,
@@ -62,11 +72,11 @@ thf(serial_obligation, axiom,
 
 % 4. S4: transitive (if W1->W2 and W2->W3 then W1->W3)
 % NOTE: S4 is usually T + transitive; enable reflexive_obligation and this transitive axiom
-thf(transitive_obligation, axiom,
-  ![W1: w, W2: w, W3: w] :
-    (((accreln1 @ s__Obligation @ W1 @ W2) &
-      (accreln1 @ s__Obligation @ W2 @ W3))
-     => (accreln1 @ s__Obligation @ W1 @ W3))).
+%thf(transitive_obligation, axiom,
+%  ![W1: w, W2: w, W3: w] :
+%    (((accreln1 @ s__Obligation @ W1 @ W2) &
+%      (accreln1 @ s__Obligation @ W2 @ W3))
+%     => (accreln1 @ s__Obligation @ W1 @ W3))).
 
 % 5. S5: Euclidean (if W1->W2 and W1->W3 then W2->W3)
 % NOTE: S5 is commonly given as T + Euclidean; enable reflexive_obligation and this euclid axiom
@@ -116,13 +126,8 @@ thf(dist_giving_human, axiom, ~(s__Giving = s__Human)).
 thf(dist_paycheck_human, axiom, ~(s__PayCheck = s__Human)).
 
 % Obligation 1: "It is obligatory for Bill to fly to the moon"
-% (modalAttribute 
-%   (exists (?FLY ?MOON)
-%     (and
-%       (instance ?FLY Flying)
-%       (instance ?MOON Moon) 
-%       (agent ?FLY Bill)
-%       (destination ?FLY ?MOON))) Obligation)
+% NOTABLE RESULT: This bypasses the fact-axiom for negative option (B) and 
+% Systems T and higher 
 thf(obligation1_bill_fly, axiom,
       ! [W1: w, W2: w] : 
         ( (accreln1 @ s__Obligation @ W1 @ W2)
@@ -159,48 +164,30 @@ thf(obligation2_must_be_paid, axiom,
               (s__instance @ G @ s__Giving) & 
               (s__instance @ P @ s__PayCheck) & 
               (s__patient @ G @ P @ W2) & 
-              (s__destination @ G @ s__Bill @ W2))))))).             
+              (s__destination @ G @ s__Bill @ W2))))))).
   
-% Option A: "Bill flies to the moon"
-% (exists (?FLY ?MOON)
-%   (and 
-%     (instance ?FLY Flying) 
-%     (instance ?MOON Moon) 
-%     (agent ?FLY Bill)
-%     (destination ?FLY ?MOON)))
-%thf(fact_flies_to_moon, axiom, (
-%  ?[FLY:$i, MOON:$i] : (
-%    ((s__instance @ FLY @ s__Flying) & 
-%    (s__instance @ MOON @ s__Moon) &
-%    (s__agent @ FLY @ s__Bill @ cw) & 
-%    (s__destination @ FLY @ MOON @ cw))))).
-
-% Option B: "Bill flies to the grocerystore"
-% (exists (?FLY ?GS) 
-%   (and 
-%     (instance ?FLY Flying) 
-%     (instance ?GS GroceryStore) 
-%     (agent ?FLY Bill)
-%     (destination ?FLY ?GS)))
-thf(fact_does_not_fly_moon, axiom, (
-  ~?[FLY:$i, MOON:$i] : (
+% Option A: "Bill flies to the moon" (TRIVIAL)
+thf(fact_flies_to_moon, axiom, (
+  ?[FLY:$i, MOON:$i] : (
     ((s__instance @ FLY @ s__Flying) & 
     (s__instance @ MOON @ s__Moon) &
     (s__agent @ FLY @ s__Bill @ cw) & 
     (s__destination @ FLY @ MOON @ cw))))).
+
+% Option B: "Bill flies to the grocerystore"
+%thf(fact_flies_to_gs, axiom, (
+%  ?[FLY:$i, GS:$i] : (
+%    ((s__instance @ FLY @ s__Flying) & 
+%    (s__instance @ GS @ s__GroceryStore) &
+%    (s__agent @ FLY @ s__Bill @ cw) & 
+%    (s__destination @ FLY @ GS @ cw))))).
     
 % Conjecture: "Therefore, Bill must get paycheck" 
-% (modalAttribute 
-%   (exists (?GIV ?PCH) 
-%    (and 
-%     (instance ?GIV Giving)
-%     (instance ?PCH PayCheck) 
-%     (patient ?GIV ?PCH)
-%     (destination ?GIV Bill))) Obligation)
+% accessibility relation added 
 thf(conjecture_he_get_paycheck, conjecture, (
-  ?[Wx: w] : (
-    (accreln1 @ s__Obligation @ cw @ Wx) & 
-    ( ?[GIV: $i, PCH: $i] : (
+  ![Wx: w] : (
+    (accreln1 @ s__Obligation @ cw @ Wx) => (
+      ?[GIV: $i, PCH: $i] : (
         (s__instance @ GIV @ s__Giving) & 
         (s__instance @ PCH @ s__PayCheck) & 
         (s__patient @ GIV @ PCH @ Wx) & 
