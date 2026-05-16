@@ -1,0 +1,140 @@
+% Simplified area 51 problem, comparing local and global worlds
+thf(worlds_tp,type,
+    w: $tType ).
+
+thf(modals_tp,type,
+    m: $tType ).
+    
+thf(holds_type,type,
+    holdsDuring: m ).
+
+thf(currentworld_tp,type,
+    cw: w ).
+            
+thf(t1,type,prosperityAct: $i).
+
+thf(t2,type,prop: $i).
+
+thf(t4,type,legislativeBill: $i).
+
+thf(t5,type,law: $i).
+
+thf(t6,type,n1998: $i).
+thf(t7,type,n1999: $i).
+thf(t8,type,n2000: $i).
+thf(t9,type,n2001: $i).
+thf(t10,type,n2002: $i).
+
+thf(t11,type,passingABill: $i).
+
+thf(t12,type,pActInfo: $i).
+
+thf(r1,type,
+    attribute: $i > $i > w > $o ).
+
+thf(r2,type,
+    succ: $i > $i > $o ).
+       
+thf(r3,type,
+    instance: $i > $i > $o ).
+          
+thf(r4,type,
+    patient: $i > $i > w > $o ).
+    
+thf(r5,type,
+    during: $i > $i > w > $o ).
+                   
+thf(r6,type,
+    whenFn: $i > w > $i ).
+         
+thf(r7,type,
+    containsInformation: $i > $i > w > $o ).
+                           
+thf(transsucc,axiom,![X:$i,Y:$i,Z:$i]:(
+  ((succ @ X @ Y) & (succ @ Y @ Z) ) =>
+    (succ @ X @ Z))).
+
+thf(succ1,axiom,
+    (succ @ n1998 @ n1999)).
+
+thf(succ2,axiom,
+    (succ @ n1999 @ n2000)).
+    
+thf(succ3,axiom,
+    (succ @ n2000 @ n2001)).
+    
+thf(succ4,axiom,
+    (succ @ n2001 @ n2002)).
+    
+thf(accreln2_tp,type,
+    accreln2: m > $i > w > w > $o ).
+
+% A law, called The Prosperity Act, was enacted in 2000. Was there a bill proposed in 2002
+% with the same propositional content? How about in 1998?
+         
+thf(pass,axiom,![W1:w,W2:w]:(
+  (accreln2 @ holdsDuring @ n2000 @ W1 @ W2) => (attribute @ prosperityAct @ law @ W2))).
+  
+thf(pass2,axiom,![W:w]:?[PB:$i]:(
+  (instance @ PB @ passingABill) &
+  (patient @ PB @ prosperityAct @ W) &
+  (during @ (whenFn @ PB @ W) @ n2000 @ W) )).
+    
+%     if something is a law one year, it's not a bill in that year
+thf(rule,axiom,![W1:w,W2:w,Y:$i,I:$i,F:$i]:(
+  (((accreln2 @ holdsDuring @ Y @ W1 @ W2) => (attribute @ I @ law @ W2)) &
+   (containsInformation @ I @ F @ W1)) =>
+  ~(?[I2:$i]:(
+      (containsInformation @ I2 @ F @ W1) &
+      ((accreln2 @ holdsDuring @ Y @ W1 @ W2) => (attribute @ I2 @ legislativeBill @ W2)))))).
+
+% if something is a law one year, it's not a bill in any subsequent year
+thf(rule2,axiom,![W1:w,W2:w,Y:$i,I:$i,F:$i]:(
+  (((accreln2 @ holdsDuring @ Y @ W1 @ W2) => (attribute @ I @ law @ W2)) &
+   (containsInformation @ I @ F @ W1)) =>
+  ~(?[I2:$i,Y2:$i]:(
+      (containsInformation @ I2 @ F @ W1) &
+      (succ @ Y @ Y2) &
+      ((accreln2 @ holdsDuring @ Y2 @ W1 @ W2) => (attribute @ I2 @ legislativeBill @ W2)))))).
+            
+% If a law is passed in one year, then there isn't a law with the same propositional
+% content that exists in a prior year            
+thf(rule3,axiom,![W1:w,W2:w,Y:$i,I2:$i,F:$i,PB:$i]:(
+  (((instance @ PB @ passingABill) &
+  (patient @ PB @ I2 @ W1) &
+  (during @ (whenFn @ PB @ W1) @ Y @ W1) )) =>
+  ~(?[I2:$i,Y2:$i]:(
+      (containsInformation @ I2 @ F @ W1) &
+      (succ @ Y2 @ Y) &
+      ((accreln2 @ holdsDuring @ Y2 @ W1 @ W2) => (attribute @ I2 @ law @ W2)))))).
+                  
+thf(act,axiom,![W:w]:
+    (containsInformation @ prosperityAct @ pActInfo @ W)).
+    
+% modal frame axiom of reflexivity    
+thf(reflex,axiom,![W1:w,A:$i,F:w>$o,T:$i]:(    
+     ((accreln2 @ holdsDuring @ T @ W1 @ W1)))).
+           
+% laws are not bills           
+thf(lawBillEx1,axiom,![W1:w,W2:w,I:$i,T:$i]:(
+  ((accreln2 @ holdsDuring @ T @ W1 @ W2) => (attribute @ I @ law @ W2)) =>
+  ~((accreln2 @ holdsDuring @ T @ W1 @ W2) => (attribute @ I @ legislativeBill @ W2)) )).
+                 
+% bills are not laws  
+thf(lawBillEx1,axiom,![W1:w,W2:w,I:$i,T:$i]:(
+  ((accreln2 @ holdsDuring @ T @ W1 @ W2) => (attribute @ I @ legislativeBill @ W2)) =>
+  ~((accreln2 @ holdsDuring @ T @ W1 @ W2) => (attribute @ I @ law @ W2)) )).                   
+                 
+% is it not the case the another bill with the same content as the prosperity bill
+% is proposed in 2002?    - works           
+%thf(conj,conjecture,~?[I3:$i,W1:w,F:$i]:(
+%  (containsInformation @ I3 @ F @ cw) &
+%  (containsInformation @ prosperityAct @ F @ cw) &
+%  ((accreln2 @ holdsDuring @ n2002 @ cw @ W1) => (attribute @ I3 @ legislativeBill @ W1)))).
+  
+% is the prosperity act content a law in 1998?  - works
+thf(conj,conjecture,~?[I3:$i,W1:w,F:$i]:(
+  (containsInformation @ I3 @ F @ cw) &
+  (containsInformation @ prosperityAct @ F @ cw) &
+  ((accreln2 @ holdsDuring @ n1998 @ cw @ W1) => (attribute @ I3 @ law @ W1)))).
+
