@@ -775,3 +775,90 @@
                     (patient ?b ?sku)))
              Likely)))
     Likely))
+
+;; ============================================================
+;; Add demand forecast to SupplyChain.kif
+;; ============================================================
+
+(instance demandForecast TernaryRelation)
+(domain demandForecast 1 CorpuscularObject)
+(domain demandForecast 2 TimeDuration)
+(domain demandForecast 3 NonnegativeRealNumber)
+(termFormat EnglishLanguage demandForecast "demand forecast")
+
+(documentation demandForecast EnglishLanguage
+  "A &%TernaryRelation mapping a &%CorpuscularObject, a forward &%TimeDuration
+   window expressed as &%MeasureFn applied to a &%PositiveInteger and
+   &%MonthDuration, and a &%NonnegativeRealNumber estimate of units expected
+   to be the patient of &%Selling events within that forward window. The
+   estimate is the quantitative output of a &%Predicting process. The value is
+   interpreted as a cumulative forecast over the full window, so it is
+   monotonically non-decreasing as the window lengthens: a 3-month forecast
+   cannot exceed the 6-month forecast for the same product. A forecast
+   exceeding &%historicalSalesVolume for the corresponding window by at least
+   half again signals an anticipated demand surge, marked &%DemandSurgeAnticipated.
+   A forecast below half of the corresponding historical volume signals an
+   anticipated demand decline, marked &%DemandDeclineAnticipated.")
+
+(=>
+  (demandForecast ?sku ?window ?est)
+  (exists (?n)
+    (and (instance ?n PositiveInteger)
+         (equal ?window (MeasureFn ?n MonthDuration)))))
+
+;; A demand forecast is the quantitative output of a Predicting process
+(=>
+  (demandForecast ?sku ?window ?est)
+  (modalAttribute
+    (exists (?p)
+      (and (instance ?p Predicting)
+           (patient ?p ?sku)))
+    Likely))
+
+;; Monotonicity for cumulative forecasts: shorter window must not exceed longer
+(=>
+  (and (demandForecast ?sku ?windowShort ?estShort)
+       (demandForecast ?sku ?windowLong ?estLong)
+       (greaterThan ?windowLong ?windowShort))
+  (lessThanOrEqualTo ?estShort ?estLong))
+
+;; Forecast exceeds historical sales by half again -> demand surge signal
+(=>
+  (and (demandForecast ?sku ?window ?est)
+       (historicalSalesVolume ?sku ?window ?actual)
+       (greaterThan ?est (MultiplicationFn ?actual 1.5)))
+  (modalAttribute (attribute ?sku DemandSurgeAnticipated) Likely))
+
+;; Forecast below half historical sales -> demand decline signal
+(=>
+  (and (demandForecast ?sku ?window ?est)
+       (historicalSalesVolume ?sku ?window ?actual)
+       (lessThan ?est (MultiplicationFn ?actual 0.5)))
+  (modalAttribute (attribute ?sku DemandDeclineAnticipated) Likely))
+
+;; Supporting terms
+
+(instance DemandSurgeAnticipated Attribute)
+(termFormat EnglishLanguage DemandSurgeAnticipated "demand surge anticipated")
+
+(documentation DemandSurgeAnticipated EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose &%demandForecast for a
+   window exceeds its &%historicalSalesVolume for the same window by at least half
+   again, indicating an anticipated rise in demand. Mutually exclusive with
+   &%DemandDeclineAnticipated.")
+
+(=>
+  (attribute ?sku DemandSurgeAnticipated)
+  (not (attribute ?sku DemandDeclineAnticipated)))
+
+(instance DemandDeclineAnticipated Attribute)
+(termFormat EnglishLanguage DemandDeclineAnticipated "demand decline anticipated")
+
+(documentation DemandDeclineAnticipated EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose &%demandForecast for a
+   window is below half of its &%historicalSalesVolume for the same window,
+   indicating an anticipated drop in demand that warrants inventory drawdown.")
+
+(=>
+  (attribute ?sku DemandDeclineAnticipated)
+  (instance ?sku CorpuscularObject))
