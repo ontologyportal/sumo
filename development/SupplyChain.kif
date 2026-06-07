@@ -642,3 +642,136 @@
            (and (instance ?d Delivering)
                 (patient ?d ?sku))))
     Likely))
+
+;; ============================================================
+;; Add minimum stock threshold and pieces past due to SupplyChain.kif
+;; ============================================================
+
+(instance minimumStockThreshold BinaryRelation)
+(domain minimumStockThreshold 1 CorpuscularObject)
+(domain minimumStockThreshold 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage minimumStockThreshold "minimum stock threshold")
+
+(documentation minimumStockThreshold EnglishLanguage
+  "The minimum recommended on-hand quantity of a &%CorpuscularObject below
+   which replenishment is recommended. The value is a &%NonnegativeRealNumber.
+   Zero is valid and indicates the product is managed without a standing buffer,
+   typically under a just-in-time regime. When &%nationalInventoryCount falls
+   below a positive threshold the product is marked &%ReorderRecommended. When
+   &%nationalInventoryCount falls to zero and this threshold is positive the
+   product is at immediate &%BackorderEvent risk, marked &%BackorderRisk.")
+
+(=>
+  (and (minimumStockThreshold ?sku ?threshold)
+       (nationalInventoryCount ?sku ?qty)
+       (lessThan ?qty ?threshold)
+       (greaterThan ?threshold 0))
+  (modalAttribute (attribute ?sku ReorderRecommended) Likely))
+
+(=>
+  (and (minimumStockThreshold ?sku ?threshold)
+       (nationalInventoryCount ?sku 0)
+       (greaterThan ?threshold 0))
+  (modalAttribute (attribute ?sku BackorderRisk) Likely))
+
+;;
+
+(instance piecesPastDue BinaryRelation)
+(domain piecesPastDue 1 CorpuscularObject)
+(domain piecesPastDue 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage piecesPastDue "pieces past due")
+
+(documentation piecesPastDue EnglishLanguage
+  "The count of units of a &%CorpuscularObject from active &%PurchaseOrder
+   instances whose committed delivery &%TimeDuration has expired without
+   fulfilment. The value is a &%NonnegativeRealNumber and a direct measure
+   of &%BackorderEvent severity: each unit counted belongs to an unfulfilled
+   &%PurchaseOrder past its committed delivery window. Zero indicates all
+   active orders are within their committed delivery window. A nonzero value
+   with zero &%nationalInventoryCount and zero &%inTransitQuantity indicates
+   no resolution path is currently in the pipeline.")
+
+(=>
+  (and (piecesPastDue ?sku ?qty)
+       (greaterThan ?qty 0))
+  (exists (?b ?po)
+    (and (instance ?b BackorderEvent)
+         (patient ?b ?sku)
+         (instance ?po PurchaseOrder)
+         (refers ?po ?sku)
+         (refers ?po ?b))))
+
+(=>
+  (and (piecesPastDue ?sku ?qty)
+       (greaterThan ?qty 0)
+       (nationalInventoryCount ?sku 0)
+       (inTransitQuantity ?sku 0))
+  (modalAttribute
+    (not (exists (?d)
+           (and (instance ?d Delivering)
+                (patient ?d ?sku))))
+    Likely))
+
+;; Deontic treatment of the past-due obligation (HOL DRAFT, for discussion).
+;; A PurchaseOrder confers on the fulfilling CognitiveAgent the obligation to
+;; bring about delivery of the product; a nonzero past-due count witnesses that
+;; such an obligation was conferred and remains unfulfilled past its window.
+;; Drafted with confersObligation per the holdsObligation / confersObligation
+;; convention in Merge.kif (C. Feener). The axiom type-checks in isolation, but is
+;; left commented pending review: its Formula argument is higher-order, the FOF
+;; checker rejects it, and the THF/LEO-III route is not yet generating for this KB.
+;; Kept here for Chad's review and for proof reps once the HOL path is green.
+;;
+;; (=>
+;;   (and (piecesPastDue ?sku ?qty)
+;;        (greaterThan ?qty 0))
+;;   (exists (?po ?agent)
+;;     (and (instance ?po PurchaseOrder)
+;;          (refers ?po ?sku)
+;;          (instance ?agent CognitiveAgent)
+;;          (confersObligation
+;;            (exists (?d)
+;;              (and (instance ?d Delivering)
+;;                   (patient ?d ?sku)))
+;;            ?po ?agent))))
+
+;; Supporting terms
+
+(instance ReorderRecommended Attribute)
+(termFormat EnglishLanguage ReorderRecommended "reorder recommended")
+
+(documentation ReorderRecommended EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose on-hand
+   &%nationalInventoryCount has fallen below its positive &%minimumStockThreshold,
+   so replenishment is recommended. The attribute is a defeasible operational
+   signal, not a hard obligation.")
+
+(=>
+  (attribute ?sku ReorderRecommended)
+  (modalAttribute
+    (exists (?threshold ?qty)
+      (and (minimumStockThreshold ?sku ?threshold)
+           (nationalInventoryCount ?sku ?qty)
+           (lessThan ?qty ?threshold)))
+    Likely))
+
+(instance BackorderRisk Attribute)
+(termFormat EnglishLanguage BackorderRisk "backorder risk")
+
+(documentation BackorderRisk EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose on-hand
+   &%nationalInventoryCount is zero while its &%minimumStockThreshold is positive,
+   so any new demand is at immediate risk of producing a &%BackorderEvent.")
+
+(=>
+  (attribute ?sku BackorderRisk)
+  (modalAttribute
+    (exists (?d)
+      (and (instance ?d Delivering)
+           (patient ?d ?sku)
+           (modalAttribute
+             (exists (?b)
+               (and (instance ?b BackorderEvent)
+                    (patient ?b ?sku)))
+             Likely)))
+    Likely))
