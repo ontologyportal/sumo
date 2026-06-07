@@ -1,0 +1,215 @@
+;; Access to and use of these products is governed by the GNU General Public
+;; License <http://www.gnu.org/copyleft/gpl.html>.
+;; By using these products, you agree to be bound by the terms
+;; of the GPL.
+
+;; We ask that people using or referencing this work cite our primary paper:
+
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In
+;; Proceedings of the 2nd International Conference on Formal Ontology in
+;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds,
+;; Ogunquit, Maine, October 17-19, 2001.  See also www.ontologyportal.org
+
+;; A domain ontology for commercial supply-chain operations: delivery,
+;; inventory, replenishment lead time, and the order-fulfilment relations that
+;; ground a neuro-symbolic backorder-prediction pipeline. Depends on Merge.kif,
+;; Mid-level-ontology.kif, and (for PerformanceMeasure) FinancialOntology.kif.
+
+;; =======================
+;; Delivering
+;; =======================
+
+(subclass Delivering Transportation)
+(termFormat EnglishLanguage Delivering "delivering")
+
+(documentation Delivering EnglishLanguage
+  "A &%Transportation in which a &%CorpuscularObject moves from a supplier or
+   distribution-centre origin to a destination. A &%Delivering is most often the
+   fulfilment of an active &%PurchaseOrder, but the class also covers transfers
+   with no purchase, such as barter exchange or the internal redistribution of
+   goods within an organization. As a &%Translocation, a &%Delivering carries its
+   &%patient from its &%origin to its &%destination over the extent of the process;
+   for a &%Delivering both the &%origin and the &%destination are instances of
+   &%GeographicArea, and the patient is the &%CorpuscularObject being shipped. The
+   in-transit state of units whose &%Delivering has begun but not terminated is
+   formalized with the in-transit terms of this series.")
+
+(=>
+  (instance ?D Delivering)
+  (exists (?P)
+    (and
+      (patient ?D ?P)
+      (instance ?P CorpuscularObject))))
+
+(=>
+  (instance ?D Delivering)
+  (exists (?O)
+    (and
+      (origin ?D ?O)
+      (instance ?O GeographicArea))))
+
+(=>
+  (instance ?D Delivering)
+  (exists (?DEST)
+    (and
+      (destination ?D ?DEST)
+      (instance ?DEST GeographicArea))))
+
+(=>
+  (instance ?D Delivering)
+  (modalAttribute
+    (exists (?PO)
+      (and
+        (instance ?PO PurchaseOrder)
+        (refers ?PO ?D))) Likely))
+
+;; =======================
+;; National Inventory Count
+;; =======================
+
+(instance nationalInventoryCount BinaryRelation)
+(domain nationalInventoryCount 1 CorpuscularObject)
+(domain nationalInventoryCount 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage nationalInventoryCount "national inventory count")
+
+(documentation nationalInventoryCount EnglishLanguage
+  "A count of product units physically available for order fulfillment,
+   scoped to a national &%GeographicArea. The count is a &%NonnegativeRealNumber.
+   Negative values indicate an ERP data-integrity failure and are not valid
+   inventory states. A value greater than zero confers the &%capability for the
+   product to be the patient of a &%Delivering process. Zero denotes either an
+   empty stock position or an unlogged entry; discrimination between these cases
+   requires contextual inference and is not resolvable at the ontological layer.")
+
+(=>
+  (and
+    (nationalInventoryCount ?SKU ?QTY)
+    (greaterThan ?QTY 0))
+  (capability Delivering patient ?SKU))
+
+;; =======================
+;; Lead Time Duration
+;; =======================
+
+(instance leadTimeDuration BinaryRelation)
+(domain leadTimeDuration 1 CorpuscularObject)
+(domain leadTimeDuration 2 TimeDuration)
+(termFormat EnglishLanguage leadTimeDuration "lead time duration")
+
+(documentation leadTimeDuration EnglishLanguage
+  "The &%TimeDuration in &%DayDuration units between order placement and
+   supplier &%Delivering for a given &%CorpuscularObject. When present,
+   the value must be a &%PositiveRealNumber: zero is physically impossible
+   for external replenishment. Absence of any asserted value is ontologically
+   valid and may reflect no &%serviceLevelAgreement from the supplier, a
+   &%LocallyStocked item where external replenishment is inapplicable, or simply
+   no &%historicalLeadTime recorded yet, as for a newly introduced product or
+   customer. Discrimination between these cases requires modal inference over
+   contextual attributes and is not resolvable at the ontological layer.")
+
+(=>
+  (leadTimeDuration ?SKU ?DUR)
+  (exists (?N)
+    (and
+      (instance ?N PositiveRealNumber)
+      (equal ?DUR
+        (MeasureFn ?N DayDuration)))))
+
+;; =======================
+;; Supporting terms for the lead-time absence explanation
+;; =======================
+
+(instance serviceLevelAgreement BinaryPredicate)
+(domain serviceLevelAgreement 1 Agreement)
+(domain serviceLevelAgreement 2 CorpuscularObject)
+(termFormat EnglishLanguage serviceLevelAgreement "service level agreement")
+
+(documentation serviceLevelAgreement EnglishLanguage
+  "(&%serviceLevelAgreement ?SLA ?PRODUCT) means the &%Agreement ?SLA specifies
+   contractual fulfilment terms, including replenishment lead time, for the
+   &%CorpuscularObject ?PRODUCT. A product covered by a service level agreement is
+   therefore likely to have a defined &%leadTimeDuration.")
+
+(=>
+  (serviceLevelAgreement ?SLA ?SKU)
+  (modalAttribute
+    (exists (?DUR)
+      (leadTimeDuration ?SKU ?DUR)) Likely))
+
+(instance contractualObligation BinaryPredicate)
+(domain contractualObligation 1 Agreement)
+(domain contractualObligation 2 CorpuscularObject)
+(termFormat EnglishLanguage contractualObligation "contractual obligation")
+
+(documentation contractualObligation EnglishLanguage
+  "(&%contractualObligation ?AGREEMENT ?PRODUCT) means the &%Agreement ?AGREEMENT
+   imposes a binding supply obligation with respect to the &%CorpuscularObject
+   ?PRODUCT. A product under a contractual obligation is likely covered by a
+   &%serviceLevelAgreement.")
+
+(=>
+  (contractualObligation ?AGR ?SKU)
+  (modalAttribute
+    (exists (?SLA)
+      (serviceLevelAgreement ?SLA ?SKU)) Likely))
+
+(instance historicalLeadTime BinaryPredicate)
+(domain historicalLeadTime 1 TimeDuration)
+(domain historicalLeadTime 2 CorpuscularObject)
+(termFormat EnglishLanguage historicalLeadTime "historical lead time")
+
+(documentation historicalLeadTime EnglishLanguage
+  "(&%historicalLeadTime ?DURATION ?PRODUCT) records an observed past
+   replenishment &%TimeDuration ?DURATION, in &%DayDuration units, for the
+   &%CorpuscularObject ?PRODUCT. A recorded duration is a &%PositiveRealNumber.")
+
+(=>
+  (historicalLeadTime ?H ?SKU)
+  (exists (?N)
+    (and
+      (instance ?N PositiveRealNumber)
+      (equal ?H
+        (MeasureFn ?N DayDuration)))))
+
+(instance LocallyStocked Attribute)
+(termFormat EnglishLanguage LocallyStocked "locally stocked")
+
+(documentation LocallyStocked EnglishLanguage
+  "An &%Attribute asserting that a &%CorpuscularObject is replenished from local
+   stock rather than external supplier &%Delivering, so external replenishment
+   lead time is inapplicable to it.")
+
+(=>
+  (attribute ?SKU LocallyStocked)
+  (modalAttribute
+    (not
+      (exists (?DUR)
+        (leadTimeDuration ?SKU ?DUR))) Likely))
+
+;; Lead-time absence: contextual explanations
+
+(=>
+  (and
+    (instance ?SKU CorpuscularObject)
+    (not
+      (exists (?DUR)
+        (leadTimeDuration ?SKU ?DUR)))
+    (not
+      (exists (?CONTRACT)
+        (contractualObligation ?CONTRACT ?SKU))))
+  (modalAttribute
+    (not
+      (exists (?SLA)
+        (serviceLevelAgreement ?SLA ?SKU))) Likely))
+
+(=>
+  (and
+    (instance ?SKU CorpuscularObject)
+    (not
+      (exists (?DUR)
+        (leadTimeDuration ?SKU ?DUR)))
+    (modalAttribute
+      (attribute ?SKU LocallyStocked) Likely))
+  (modalAttribute
+    (not
+      (capability Delivering patient ?SKU)) Likely))
