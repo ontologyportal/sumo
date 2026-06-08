@@ -213,3 +213,121 @@
   (modalAttribute
     (not
       (capability Delivering patient ?SKU)) Likely))
+
+;; ============================================================
+;; Add historical sales volume to SupplyChain.kif
+;; ============================================================
+
+(instance historicalSalesVolume TernaryRelation)
+(domain historicalSalesVolume 1 CorpuscularObject)
+(domain historicalSalesVolume 2 TimeDuration)
+(domain historicalSalesVolume 3 NonnegativeRealNumber)
+(termFormat EnglishLanguage historicalSalesVolume "historical sales volume")
+
+(documentation historicalSalesVolume EnglishLanguage
+  "A &%TernaryRelation mapping a &%CorpuscularObject (the product SKU),
+   a &%TimeDuration window expressed as &%MeasureFn applied to a
+   &%PositiveInteger and &%MonthDuration, and a &%NonnegativeRealNumber
+   count of completed &%Selling events in which the product was patient
+   within that trailing window. A &%Selling event requires an exchange of
+   &%CurrencyMeasure for a &%Physical object; partial or unfilled orders
+   do not qualify. A count of zero is ontologically valid only when the
+   customer relationship age is likely less than the window &%TimeDuration;
+   for an established account zero likely exhibits a &%DataIntegrityViolation.
+   A nonzero count confirms the product was patient of at least one
+   completed &%Delivering within the window.")
+
+(=>
+  (historicalSalesVolume ?SKU ?WINDOW ?COUNT)
+  (exists (?N)
+    (and
+      (instance ?N PositiveInteger)
+      (equal ?WINDOW
+        (MeasureFn ?N MonthDuration)))))
+
+(=>
+  (and
+    (historicalSalesVolume ?SKU ?WINDOW ?COUNT)
+    (greaterThan ?COUNT 0))
+  (exists (?SALE)
+    (and
+      (instance ?SALE Selling)
+      (patient ?SALE ?SKU))))
+
+(=>
+  (and
+    (historicalSalesVolume ?SKU ?WINDOW ?COUNT)
+    (greaterThan ?COUNT 0))
+  (exists (?DELIVERY)
+    (and
+      (instance ?DELIVERY Delivering)
+      (patient ?DELIVERY ?SKU))))
+
+(=>
+  (and
+    (historicalSalesVolume ?SKU ?WINDOW 0)
+    (modalAttribute
+      (exists (?AGE)
+        (and
+          (customerRelationshipAge ?SKU ?AGE)
+          (lessThan ?AGE ?WINDOW))) Likely))
+  (modalAttribute
+    (attribute ?SKU NewAccountException) Likely))
+
+(=>
+  (and
+    (historicalSalesVolume ?SKU ?WINDOW 0)
+    (not
+      (modalAttribute
+        (exists (?AGE)
+          (and
+            (customerRelationshipAge ?SKU ?AGE)
+            (lessThan ?AGE ?WINDOW))) Likely)))
+  (modalAttribute
+    (attribute ?SKU DataIntegrityViolation) Likely))
+
+;; Supporting terms
+
+(instance customerRelationshipAge BinaryPredicate)
+(domain customerRelationshipAge 1 CorpuscularObject)
+(domain customerRelationshipAge 2 TimeDuration)
+(termFormat EnglishLanguage customerRelationshipAge "customer relationship age")
+
+(documentation customerRelationshipAge EnglishLanguage
+  "(&%customerRelationshipAge ?PRODUCT ?DURATION) means the customer relationship
+   under which the &%CorpuscularObject ?PRODUCT is ordered has been active for the
+   &%TimeDuration ?DURATION, measured in &%DayDuration units. Used to distinguish a
+   legitimate zero &%historicalSalesVolume on a young account from a data fault.")
+
+(=>
+  (customerRelationshipAge ?SKU ?AGE)
+  (exists (?N)
+    (and
+      (instance ?N PositiveRealNumber)
+      (equal ?AGE
+        (MeasureFn ?N DayDuration)))))
+
+(instance NewAccountException Attribute)
+(termFormat EnglishLanguage NewAccountException "new account exception")
+
+(documentation NewAccountException EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose zero &%historicalSalesVolume
+   is explained by a customer relationship younger than the sales window rather than
+   by a data fault. Mutually exclusive with &%DataIntegrityViolation.")
+
+(=>
+  (attribute ?SKU NewAccountException)
+  (not
+    (attribute ?SKU DataIntegrityViolation)))
+
+(instance DataIntegrityViolation Attribute)
+(termFormat EnglishLanguage DataIntegrityViolation "data integrity violation")
+
+(documentation DataIntegrityViolation EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose recorded supply-chain data,
+   such as a zero &%historicalSalesVolume on an established account, is inconsistent
+   with its true state and requires correction.")
+
+(=>
+  (attribute ?SKU DataIntegrityViolation)
+  (instance ?SKU CorpuscularObject))
