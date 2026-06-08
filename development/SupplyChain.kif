@@ -331,3 +331,129 @@
 (=>
   (attribute ?SKU DataIntegrityViolation)
   (instance ?SKU CorpuscularObject))
+
+;; ============================================================
+;; Add supplier fulfillment rate to SupplyChain.kif
+;; ============================================================
+
+(subclass FulfillmentRate PerformanceMeasure)
+(termFormat EnglishLanguage FulfillmentRate "fulfillment rate")
+
+(documentation FulfillmentRate EnglishLanguage
+  "A &%PerformanceMeasure naming the ratio of &%Delivering events completed to
+   &%Delivering events requested for a &%CorpuscularObject over a specified
+   &%TimeDuration. The reported value, carried by &%supplierFulfillmentRate, is a
+   &%NonnegativeRealNumber bounded above by 1: zero indicates no fulfillment occurred
+   or the metric was not logged; 1 indicates complete fulfillment. Values are produced
+   by applying &%AverageFn to a &%List of per-period fill ratios across the window. A
+   value of zero where &%historicalSalesVolume is nonzero for the same &%CorpuscularObject
+   and window indicates a data logging gap. The shorter-window value relative to a
+   longer-window value signals recent performance trend direction.")
+
+(instance supplierFulfillmentRate TernaryRelation)
+(domain supplierFulfillmentRate 1 CorpuscularObject)
+(domain supplierFulfillmentRate 2 TimeDuration)
+(domain supplierFulfillmentRate 3 NonnegativeRealNumber)
+(termFormat EnglishLanguage supplierFulfillmentRate "supplier fulfillment rate")
+
+(documentation supplierFulfillmentRate EnglishLanguage
+  "(&%supplierFulfillmentRate ?PRODUCT ?WINDOW ?VALUE) holds the &%FulfillmentRate
+   ?VALUE, a &%NonnegativeRealNumber in the interval from 0 to 1, achieved for the
+   &%CorpuscularObject ?PRODUCT over the trailing &%TimeDuration ?WINDOW.")
+
+(=>
+  (supplierFulfillmentRate ?SKU ?WINDOW ?VAL)
+  (and
+    (instance ?VAL NonnegativeRealNumber)
+    (lessThanOrEqualTo ?VAL 1)))
+
+(=>
+  (supplierFulfillmentRate ?SKU ?WINDOW ?VAL)
+  (exists (?LIST)
+    (and
+      (instance ?LIST List)
+      (equal ?VAL
+        (AverageFn ?LIST)))))
+
+(=>
+  (and
+    (supplierFulfillmentRate ?SKU ?WINDOW 0)
+    (exists (?COUNT)
+      (and
+        (historicalSalesVolume ?SKU ?WINDOW ?COUNT)
+        (greaterThan ?COUNT 0))))
+  (modalAttribute
+    (dataLoggingGap ?SKU ?WINDOW) Likely))
+
+(=>
+  (and
+    (supplierFulfillmentRate ?SKU ?WINDOWSHORT 0)
+    (supplierFulfillmentRate ?SKU ?WINDOWLONG 0)
+    (greaterThan ?WINDOWLONG ?WINDOWSHORT))
+  (modalAttribute
+    (not
+      (exists (?S)
+        (and
+          (instance ?S Selling)
+          (patient ?S ?SKU)))) Likely))
+
+(=>
+  (and
+    (supplierFulfillmentRate ?SKU ?WINDOWSHORT ?VALSHORT)
+    (supplierFulfillmentRate ?SKU ?WINDOWLONG ?VALLONG)
+    (greaterThan ?WINDOWLONG ?WINDOWSHORT)
+    (lessThan ?VALSHORT ?VALLONG))
+  (modalAttribute
+    (attribute ?SKU RecentPerformanceDegradation) Likely))
+
+(=>
+  (and
+    (supplierFulfillmentRate ?SKU ?WINDOWSHORT ?VALSHORT)
+    (supplierFulfillmentRate ?SKU ?WINDOWLONG ?VALLONG)
+    (greaterThan ?WINDOWLONG ?WINDOWSHORT)
+    (greaterThan ?VALSHORT ?VALLONG))
+  (modalAttribute
+    (attribute ?SKU RecentPerformanceImprovement) Likely))
+
+;; Supporting terms
+
+(instance dataLoggingGap BinaryPredicate)
+(domain dataLoggingGap 1 CorpuscularObject)
+(domain dataLoggingGap 2 TimeDuration)
+(termFormat EnglishLanguage dataLoggingGap "data logging gap")
+
+(documentation dataLoggingGap EnglishLanguage
+  "(&%dataLoggingGap ?PRODUCT ?WINDOW) means a reported zero metric value for the
+   &%CorpuscularObject ?PRODUCT over the &%TimeDuration ?WINDOW is attributable to a
+   gap in data logging rather than to a true absence of activity.")
+
+(=>
+  (dataLoggingGap ?SKU ?WINDOW)
+  (modalAttribute
+    (attribute ?SKU DataIntegrityViolation) Likely))
+
+(instance RecentPerformanceDegradation Attribute)
+(termFormat EnglishLanguage RecentPerformanceDegradation "recent performance degradation")
+
+(documentation RecentPerformanceDegradation EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose shorter-window
+   &%supplierFulfillmentRate is below its longer-window value, indicating a recent
+   decline in supplier performance. Mutually exclusive with
+   &%RecentPerformanceImprovement.")
+
+(=>
+  (attribute ?SKU RecentPerformanceDegradation)
+  (not
+    (attribute ?SKU RecentPerformanceImprovement)))
+
+(instance RecentPerformanceImprovement Attribute)
+(termFormat EnglishLanguage RecentPerformanceImprovement "recent performance improvement")
+
+(documentation RecentPerformanceImprovement EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose shorter-window
+   &%supplierFulfillmentRate exceeds its longer-window value, indicating a recent
+   improvement in supplier performance.")
+
+(=>
+  (attribute ?SKU RecentPerformanceImprovement)
+  (instance ?SKU CorpuscularObject))
