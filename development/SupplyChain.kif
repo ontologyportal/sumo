@@ -968,3 +968,103 @@
 (=>
   (attribute ?SKU DemandDeclineAnticipated)
   (instance ?SKU CorpuscularObject))
+
+;; ============================================================
+;; Add went-on-backorder ground-truth observation to SupplyChain.kif
+;; ============================================================
+
+(instance wentOnBackorder BinaryPredicate)
+(domain wentOnBackorder 1 CorpuscularObject)
+(domain wentOnBackorder 2 TimeInterval)
+(termFormat EnglishLanguage wentOnBackorder "went on backorder")
+
+(documentation wentOnBackorder EnglishLanguage
+  "(&%wentOnBackorder ?SKU ?INTERVAL) holds when at least one &%BackorderEvent
+   instance is observed to occur for &%CorpuscularObject ?SKU during &%TimeInterval
+   ?INTERVAL. The predicate is the ground-truth observation in a supervised
+   classification task: positive when a backorder was observed. Its absence records
+   that none was observed, which the &%observationLoggingGap case distinguishes from
+   an event that occurred but went unlogged. It is distinct from
+   &%localBackorderQuantity, which measures the current count of units in a backorder
+   state, and from &%piecesPastDue, which measures the age of unfulfilled obligations.
+   A positive observation is consistent with any combination of prior inventory
+   signals. The formal axioms of this series define what configurations of those
+   signals make a positive observation likely.")
+
+;; FOF: a positive observation implies a BackorderEvent and its order occurred.
+(=>
+  (wentOnBackorder ?SKU ?INTERVAL)
+  (exists (?B ?PO)
+    (and
+      (instance ?B BackorderEvent)
+      (patient ?B ?SKU)
+      (instance ?PO PurchaseOrder)
+      (refers ?PO ?SKU)
+      (refers ?PO ?B))))
+
+;; HOL: the observed BackorderEvent holds during the interval (temporal, LEO-III route).
+(=>
+  (wentOnBackorder ?SKU ?INTERVAL)
+  (exists (?B)
+    (and
+      (instance ?B BackorderEvent)
+      (patient ?B ?SKU)
+      (holdsDuring ?INTERVAL
+        (instance ?B BackorderEvent)))))
+
+;; HOL: audit axiom. A BackorderEvent observed in the interval but not logged as
+;; wentOnBackorder indicates a gap in the observation record.
+(=>
+  (and
+    (instance ?B BackorderEvent)
+    (patient ?B ?SKU)
+    (instance ?PO PurchaseOrder)
+    (refers ?PO ?SKU)
+    (refers ?PO ?B)
+    (holdsDuring ?INTERVAL
+      (instance ?B BackorderEvent))
+    (not
+      (wentOnBackorder ?SKU ?INTERVAL)))
+  (modalAttribute
+    (observationLoggingGap ?SKU ?INTERVAL) Likely))
+
+;; A positive observation makes a nonzero current local backorder likely, not
+;; certain: the interval is historical and the current snapshot may have cleared.
+(=>
+  (and
+    (wentOnBackorder ?SKU ?INTERVAL)
+    (localBackorderQuantity ?SKU ?QTY))
+  (modalAttribute
+    (greaterThan ?QTY 0) Likely))
+
+;; A positive observation with zero on-hand and zero in-transit makes it likely no
+;; resolution was in the pipeline at observation time.
+(=>
+  (and
+    (wentOnBackorder ?SKU ?INTERVAL)
+    (nationalInventoryCount ?SKU 0)
+    (inTransitQuantity ?SKU 0))
+  (modalAttribute
+    (not
+      (exists (?D)
+        (and
+          (instance ?D Delivering)
+          (patient ?D ?SKU)))) Likely))
+
+;; Supporting terms
+
+(instance observationLoggingGap BinaryPredicate)
+(domain observationLoggingGap 1 CorpuscularObject)
+(domain observationLoggingGap 2 TimeInterval)
+(termFormat EnglishLanguage observationLoggingGap "observation logging gap")
+
+(documentation observationLoggingGap EnglishLanguage
+  "(&%observationLoggingGap ?SKU ?INTERVAL) means a &%BackorderEvent occurred for
+   the &%CorpuscularObject ?SKU during &%TimeInterval ?INTERVAL but was not recorded
+   by &%wentOnBackorder, so the ground-truth observation record is incomplete for
+   that SKU and interval.")
+
+(=>
+  (observationLoggingGap ?SKU ?INTERVAL)
+  (not
+    (wentOnBackorder ?SKU ?INTERVAL)))
