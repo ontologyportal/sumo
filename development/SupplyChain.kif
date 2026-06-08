@@ -566,3 +566,167 @@
       (and
         (instance ?B BackorderEvent)
         (patient ?B ?SKU))) Likely))
+
+;; ============================================================
+;; Add in-transit quantity and total pipeline stock to SupplyChain.kif
+;; ============================================================
+
+(instance inTransitQuantity BinaryRelation)
+(domain inTransitQuantity 1 CorpuscularObject)
+(domain inTransitQuantity 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage inTransitQuantity "in-transit quantity")
+
+(documentation inTransitQuantity EnglishLanguage
+  "The count of units of a &%CorpuscularObject currently in an active
+   &%Delivering process: the units have departed their &%origin but have not
+   yet arrived at their &%destination. In-transit units are mutually exclusive
+   with on-hand inventory counted by &%nationalInventoryCount. Total pipeline
+   stock, given by &%totalPipelineStock, equals the sum of both. A nonzero value
+   with zero &%nationalInventoryCount indicates a temporary shortage with inbound
+   resolution. Zero in-transit combined with zero &%nationalInventoryCount and a
+   zero &%historicalSalesVolume indicates the SKU has likely never been listed.
+   Zero in-transit combined with zero &%nationalInventoryCount and a nonzero
+   &%historicalSalesVolume indicates either a temporary shortage or an inactive
+   product, an ambiguity the &%SKUInactive attribute resolves.")
+
+(=>
+  (and
+    (inTransitQuantity ?SKU ?QTY)
+    (greaterThan ?QTY 0))
+  (exists (?D)
+    (and
+      (instance ?D Delivering)
+      (patient ?D ?SKU))))
+
+(=>
+  (and
+    (inTransitQuantity ?SKU 0)
+    (nationalInventoryCount ?SKU 0)
+    (historicalSalesVolume ?SKU ?WINDOW 0))
+  (modalAttribute
+    (attribute ?SKU NeverListed) Likely))
+
+(=>
+  (and
+    (inTransitQuantity ?SKU 0)
+    (nationalInventoryCount ?SKU 0)
+    (exists (?WINDOW ?COUNT)
+      (and
+        (historicalSalesVolume ?SKU ?WINDOW ?COUNT)
+        (greaterThan ?COUNT 0)))
+    (not
+      (attribute ?SKU SKUInactive)))
+  (modalAttribute
+    (attribute ?SKU TemporaryShortage) Likely))
+
+(=>
+  (and
+    (inTransitQuantity ?SKU ?QTY)
+    (greaterThan ?QTY 0)
+    (nationalInventoryCount ?SKU 0))
+  (modalAttribute
+    (attribute ?SKU TemporaryShortage) Likely))
+
+;; Total pipeline stock is the sum of the two disjoint counts
+(=>
+  (and
+    (inTransitQuantity ?SKU ?QT)
+    (nationalInventoryCount ?SKU ?QO))
+  (totalPipelineStock ?SKU
+    (AdditionFn ?QT ?QO)))
+
+;; Supporting terms
+
+(instance totalPipelineStock BinaryRelation)
+(domain totalPipelineStock 1 CorpuscularObject)
+(domain totalPipelineStock 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage totalPipelineStock "total pipeline stock")
+
+(documentation totalPipelineStock EnglishLanguage
+  "(&%totalPipelineStock ?PRODUCT ?TOTAL) holds the &%NonnegativeRealNumber
+   ?TOTAL of all units of the &%CorpuscularObject ?PRODUCT in the supply
+   pipeline, the sum of its on-hand &%nationalInventoryCount and its
+   &%inTransitQuantity. The two summands count disjoint sets of units, so the
+   total is never less than either.")
+
+(=>
+  (totalPipelineStock ?SKU ?TOTAL)
+  (exists (?QT ?QO)
+    (and
+      (inTransitQuantity ?SKU ?QT)
+      (nationalInventoryCount ?SKU ?QO)
+      (equal ?TOTAL
+        (AdditionFn ?QT ?QO)))))
+
+(=>
+  (and
+    (totalPipelineStock ?SKU ?TOTAL)
+    (inTransitQuantity ?SKU ?QT))
+  (greaterThanOrEqualTo ?TOTAL ?QT))
+
+(=>
+  (and
+    (totalPipelineStock ?SKU ?TOTAL)
+    (nationalInventoryCount ?SKU ?QO))
+  (greaterThanOrEqualTo ?TOTAL ?QO))
+
+(instance NeverListed Attribute)
+(termFormat EnglishLanguage NeverListed "never listed")
+
+(documentation NeverListed EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject for which no in-transit, on-hand,
+   or historical sales record exists, indicating the SKU has never been listed for
+   sale. Mutually exclusive with &%SKUInactive, which presupposes prior sales
+   history.")
+
+(=>
+  (attribute ?SKU NeverListed)
+  (not
+    (attribute ?SKU SKUInactive)))
+
+(=>
+  (attribute ?SKU NeverListed)
+  (not
+    (exists (?WINDOW ?COUNT)
+      (and
+        (historicalSalesVolume ?SKU ?WINDOW ?COUNT)
+        (greaterThan ?COUNT 0)))))
+
+(=>
+  (attribute ?SKU NeverListed)
+  (not
+    (attribute ?SKU TemporaryShortage)))
+
+(instance TemporaryShortage Attribute)
+(termFormat EnglishLanguage TemporaryShortage "temporary shortage")
+
+(documentation TemporaryShortage EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose on-hand
+   &%nationalInventoryCount is zero but whose &%inTransitQuantity is positive or
+   whose recent sales history is nonzero, so the zero on-hand position is a
+   transient stockout expected to resolve from the inbound pipeline rather than a
+   permanent state. Mutually exclusive with &%SKUInactive.")
+
+(=>
+  (attribute ?SKU TemporaryShortage)
+  (not
+    (attribute ?SKU SKUInactive)))
+
+(instance SKUInactive Attribute)
+(termFormat EnglishLanguage SKUInactive "SKU inactive")
+
+(documentation SKUInactive EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject that has prior &%Selling history
+   but has been withdrawn from active sale, so a zero on-hand and zero in-transit
+   position reflects deliberate discontinuation rather than a temporary stockout.
+   A product carrying this attribute is not expected to be the patient of a new
+   &%Delivering process.")
+
+(=>
+  (attribute ?SKU SKUInactive)
+  (modalAttribute
+    (not
+      (exists (?D)
+        (and
+          (instance ?D Delivering)
+          (patient ?D ?SKU)))) Likely))
