@@ -457,3 +457,112 @@
 (=>
   (attribute ?SKU RecentPerformanceImprovement)
   (instance ?SKU CorpuscularObject))
+
+;; ============================================================
+;; Add backorder event and local backorder quantity to SupplyChain.kif
+;; ============================================================
+
+(subclass BackorderEvent Process)
+(termFormat EnglishLanguage BackorderEvent "backorder event")
+
+(documentation BackorderEvent EnglishLanguage
+  "A &%Process in which an active &%PurchaseOrder for a &%CorpuscularObject cannot
+   be fulfilled because the product cannot be replenished within the committed
+   delivery &%TimeDuration: its &%leadTimeDuration exceeds, or is unknown within,
+   that window, given by &%committedDeliveryDuration. The unfulfillable product is
+   the &%patient of the &%BackorderEvent. A &%BackorderEvent is distinct from a
+   stockout: a stockout is a property of inventory, whereas a &%BackorderEvent is a
+   property of an unfulfilled &%PurchaseOrder.")
+
+(=>
+  (instance ?B BackorderEvent)
+  (exists (?SKU)
+    (and
+      (patient ?B ?SKU)
+      (instance ?SKU CorpuscularObject))))
+
+(=>
+  (instance ?B BackorderEvent)
+  (exists (?PO)
+    (and
+      (instance ?PO PurchaseOrder)
+      (refers ?PO ?B))))
+
+(=>
+  (instance ?B BackorderEvent)
+  (exists (?SKU)
+    (and
+      (patient ?B ?SKU)
+      (not
+        (exists (?LT)
+          (and
+            (leadTimeDuration ?SKU ?LT)
+            (lessThanOrEqualTo ?LT
+              (committedDeliveryDuration ?B))))))))
+
+(instance committedDeliveryDuration UnaryFunction)
+(domain committedDeliveryDuration 1 BackorderEvent)
+(range committedDeliveryDuration TimeDuration)
+(termFormat EnglishLanguage committedDeliveryDuration "committed delivery duration")
+
+(documentation committedDeliveryDuration EnglishLanguage
+  "(&%committedDeliveryDuration ?B) is the &%TimeDuration within which the
+   &%PurchaseOrder underlying the &%BackorderEvent ?B was committed to be fulfilled,
+   measured in &%DayDuration units. It is a &%PositiveRealNumber of days.")
+
+(=>
+  (instance ?B BackorderEvent)
+  (exists (?N)
+    (and
+      (instance ?N PositiveRealNumber)
+      (equal
+        (committedDeliveryDuration ?B)
+        (MeasureFn ?N DayDuration)))))
+
+(instance localBackorderQuantity BinaryRelation)
+(domain localBackorderQuantity 1 CorpuscularObject)
+(domain localBackorderQuantity 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage localBackorderQuantity "local backorder quantity")
+
+(documentation localBackorderQuantity EnglishLanguage
+  "The count of units of a &%CorpuscularObject currently in a &%BackorderEvent
+   state: demanded via active &%PurchaseOrder but unreachable within the committed
+   delivery &%TimeDuration. The value is a &%NonnegativeRealNumber. Zero indicates
+   no active backorder for this product within the delivery window. A nonzero value
+   is a predictor of future &%BackorderEvent recurrence for the same product.")
+
+(=>
+  (and
+    (localBackorderQuantity ?SKU ?QTY)
+    (greaterThan ?QTY 0))
+  (exists (?B)
+    (and
+      (instance ?B BackorderEvent)
+      (patient ?B ?SKU))))
+
+(=>
+  (and
+    (localBackorderQuantity ?SKU ?QTY)
+    (greaterThan ?QTY 0)
+    (exists (?NATQTY)
+      (and
+        (nationalInventoryCount ?SKU ?NATQTY)
+        (greaterThan ?NATQTY 0))))
+  (modalAttribute
+    (attribute ?SKU RedistributionRequired) Likely))
+
+(instance RedistributionRequired Attribute)
+(termFormat EnglishLanguage RedistributionRequired "redistribution required")
+
+(documentation RedistributionRequired EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject for which a local backorder coexists
+   with positive &%nationalInventoryCount, so the shortfall is resolvable by internal
+   redistribution rather than by supplier replenishment.")
+
+(=>
+  (attribute ?SKU RedistributionRequired)
+  (modalAttribute
+    (exists (?B)
+      (and
+        (instance ?B BackorderEvent)
+        (patient ?B ?SKU))) Likely))
