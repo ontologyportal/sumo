@@ -1,0 +1,192 @@
+% CF 
+% Forbiddance/Obligation/Permission
+% 5a_FOP_SALO_hardCoded.thf
+% Sanctions are not used here, just bridge axioms 
+% NOTE: Bridge 3 has been replaced by former 4, since it only needed 
+% "formula" replaced with "not formula" and are the same
+
+% Option A: ref (serial-O, O-P bridge, F-O bridge, optA)
+% Option B: timeout 
+% Summary: Works as expected! Success! 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Pre-System Setup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+thf(worlds_tp,type, w: $tType).
+thf(cw_tp,type, cw: w).
+thf(modals_tp,type, m: $tType).
+thf(obligation_tp,type, s__Obligation: m).          % Using both O and P
+thf(permission_tp, type, s__Permission: m).
+thf(prohibition_tp, type, s__Prohibition: m).
+thf(accreln1_tp,type, accreln1: m > w > w > $o ).
+thf(accreln2_tp,type, accreln2: m > $i > w > w > $o ).
+thf(accreln3_tp,type, accreln3: m > $i > $i > w > w > $o ).
+
+% Modality distinctness:
+thf(dist_obligation_permission, axiom,  ~(s__Obligation = s__Permission)).
+thf(dist_obligation_prohibition, axiom, ~(s__Obligation = s__Prohibition)).
+thf(dist_permission_prohibition, axiom, ~(s__Permission = s__Prohibition)).
+
+%%%%%%%%%%%%% Separate systems under Obligation and Permission %%%%%%%%%%%%%
+
+% System D4 under Obligaton: Serial and Transitive 
+thf(serial_obligation, axiom,
+  ![W1:w]: ?[W2:w]:
+    (accreln1 @ s__Obligation @ W1 @ W2)).
+thf(transitive_obligation, axiom,
+  ![W1: w, W2: w, W3: w] :
+    (((accreln1 @ s__Obligation @ W1 @ W2) &
+      (accreln1 @ s__Obligation @ W2 @ W3))
+     => (accreln1 @ s__Obligation @ W1 @ W3))).
+     
+% System D4 under Forbiddance: Serial and Transitive 
+thf(serial_forbiddance, axiom,
+  ![W1:w]: ?[W2:w]:
+    (accreln1 @ s__Prohibition @ W1 @ W2)).
+thf(transitive_forbiddance, axiom,
+  ![W1: w, W2: w, W3: w] :
+    (((accreln1 @ s__Prohibition @ W1 @ W2) &
+      (accreln1 @ s__Prohibition @ W2 @ W3))
+     => (accreln1 @ s__Prohibition @ W1 @ W3))).
+
+% System K under Permission 
+% (nothing explicit to implement)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Bridge axioms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% This first axiom does not need a negated inner formula
+% Ob(x) -> Per(x)          -- if obligatory then permitted
+% (=>
+%   (modalAttribute ?F Obligation)
+%   (modalAttribute ?F Permission))
+thf(bridge1_O_P, axiom,
+  ![W1:w, W2:w]:
+    ((accreln1 @ s__Obligation @ W1 @ W2)
+     => (accreln1 @ s__Permission @ W1 @ W2))).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%% End of Systems %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Relations:
+thf(instance_t, type, s__instance:($i > $i > $o)).
+thf(agent_t, type, s__agent:($i > $i > w > $o)).
+thf(destination_t, type, s__destination:($i > $i > w > $o)).
+thf(located_t, type, s__located:($i > $i > w > $o)).
+thf(origin_t, type, s__origin:($i > $i > w > $o)).
+
+% Terms:
+thf(officebuilding_t, type, s__OfficeBuilding: $i).
+thf(smoking_t, type, s__Smoking: $i).
+thf(paycheck_t, type, s__PayCheck: $i).
+thf(taxes_t, type, s__Tax: $i).
+thf(human_t, type, s__Human: $i).
+
+% Globals: "Bill is a human" 
+thf(bill_t, type, s__Bill: $i).
+thf(bill_is_human, axiom,
+  s__instance @ s__Bill @ s__Human).
+
+% Distinctness:
+thf(dist_officebuilding_smoking,   axiom, ~(s__OfficeBuilding = s__Smoking)).
+thf(dist_officebuilding_paycheck,  axiom, ~(s__OfficeBuilding = s__PayCheck)).
+thf(dist_officebuilding_tax,       axiom, ~(s__OfficeBuilding = s__Tax)).
+thf(dist_officebuilding_human,     axiom, ~(s__OfficeBuilding = s__Human)).
+thf(dist_smoking_paycheck,         axiom, ~(s__Smoking = s__PayCheck)).
+thf(dist_smoking_tax,              axiom, ~(s__Smoking = s__Tax)).
+thf(dist_smoking_human,            axiom, ~(s__Smoking = s__Human)).
+thf(dist_paycheck_tax,             axiom, ~(s__PayCheck = s__Tax)).
+thf(dist_paycheck_human,           axiom, ~(s__PayCheck = s__Human)).
+thf(dist_tax_human,                axiom, ~(s__Tax = s__Human)).
+
+% These bridges are hard-coded: 
+
+% HARDCODED BRIDGE 2: 
+% Not implemented in this example
+
+% HARDCODED BRIDGE 3a (formerly 3): REDUNDANT
+% Ob(~smoke|office) -> Pro(smoke|office)
+% (not needed for this example)
+
+% HARDCODED BRIDGE 3 (formerly 4): 
+% Pro(smoke|office) -> Ob(~smoke|office)
+thf(bridge3_F_O_hardcoded, axiom,
+  ![W1:w, W2:w, W3:w, OB:$i] : (
+    ( (s__instance @ OB @ s__OfficeBuilding) &
+      (s__located @ s__Bill @ OB @ W1) &
+      ( (accreln1 @ s__Prohibition @ W1 @ W2) =>
+          ?[SMOK:$i] : (
+            (s__instance @ SMOK @ s__Smoking) &
+            (s__agent @ SMOK @ s__Bill @ W2) &
+            (s__located @ SMOK @ OB @ W2))) )
+    =>
+    ( (accreln1 @ s__Obligation @ W1 @ W3) =>
+        ~?[SMOK:$i] : (
+          (s__instance @ SMOK @ s__Smoking) &
+          (s__agent @ SMOK @ s__Bill @ W3) &
+          (s__located @ SMOK @ OB @ W3)) ))).
+
+% Prohibition: "If Bill is at the office, forbidden to smoke at office"
+% (=> 
+%   (and 
+%     (instance ?OB OfficeBuilding)
+%     (located Bill ?OB))
+%   (modalAttribute
+%     (exists (?SMOK)
+%       (and
+%         (instance ?SMOK Smoking)
+%         (located ?SMOK ?OB)
+%         (agent ?SMOK Bill))) Prohibition))
+thf(prohibition1_smoking_in_office, axiom,
+  ![W1:w, W2:w]: (
+    ![OB: $i] : (( 
+      (s__instance @ OB @ s__OfficeBuilding) & 
+      (s__located @ s__Bill @ OB @ W1)) => (
+          (accreln1 @ s__Prohibition @ W1 @ W2) => 
+            ( ?[SMOK: $i] : (
+              (s__instance @ SMOK @ s__Smoking) & 
+              (s__located @ SMOK @ OB @ W2) & 
+              (s__agent @ SMOK @ s__Bill @ W2))))))).
+              
+% (bridge4 F-O converts above into an obligation)
+
+% Obligation: "... obligated NOT to smoke ..."
+% (Intermediate step)
+
+% Permission:
+% (Merged into conjecture)
+
+%%% Options: Toggle these %%% 
+
+% Option A: "Bill is at the office"
+% (exists (?OB)
+%   (and 
+%     (instance ?OB OfficeBuilding)
+%     (located Bill ?OB)))
+thf(optA_bill_at_office, axiom,
+  ?[OB:$i]:
+    ( (s__instance @ OB @ s__OfficeBuilding) &
+      (s__located @ s__Bill @ OB @ cw) )).
+
+% Option B: "Bill is NOT at the office"
+% (not (exists (?OB)
+%   (and 
+%     (instance ?OB OfficeBuilding)
+%     (located Bill ?OB))))
+%thf(optB_bill_at_office, axiom,
+%  ~?[OB:$i]:
+%    ( (s__instance @ OB @ s__OfficeBuilding) &
+%      (s__located @ s__Bill @ OB @ cw) )).
+
+% Conjecture: "Bill is permitted to NOT smoke in office"
+% (modalAttribute 
+%   (not (exists (?SMK ?OB)
+%     (and 
+%       (instance ?SMK Smoking)
+%       (instance ?OB OfficeBuilding)
+%       (agent ?SMK Bill)
+%       (located ?SMK ?OB)))) Permission)
+thf(conjecture_permitted_not_smoke, conjecture,
+  ?[Wx:w, OB:$i] : (
+    (s__instance @ OB @ s__OfficeBuilding) &
+    (accreln1 @ s__Permission @ cw @ Wx) &
+    ~?[SMOK:$i] : (
+      (s__instance @ SMOK @ s__Smoking) &
+      (s__agent @ SMOK @ s__Bill @ Wx) &
+      (s__located @ SMOK @ OB @ Wx) ))).

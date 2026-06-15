@@ -1,0 +1,179 @@
+% CF 
+% 9b_2LevelAuth_superlative.thf
+% Uses an authority hierarchy based on highEST (which will be based on SUMO)
+
+% Option A: ref (using D, optA, fact, and O1)
+% Option B: timeout
+% Summary: Works as intended, SUCCESS! 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Pre-System Setup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+thf(worlds_tp,type, w: $tType).
+thf(cw_tp,type, cw: w).
+thf(modals_tp,type, m: $tType).
+thf(obligation_tp,type, s__Obligation: m).          % obligation modality
+thf(permission_tp, type, s__Permission: m).
+thf(prohibition_tp, type, s__Prohibition: m).
+thf(confersObligation_tp, type, s__confersObligation: m).   % Testing 
+thf(accreln1_tp,type, accreln1: m > w > w > $o ).
+thf(accreln2_tp,type, accreln2: m > $i > w > w > $o ).
+thf(accreln3_tp,type, accreln3: m > $i > $i > w > w > $o ).
+
+% Authority hierarchy relation (dependent on SUMO):
+thf(highestAuth_t, type, s__highestAuth: $i > $o).
+
+%%%%%%%%%%%%%%%%%%%% Systems: Under confersObligation %%%%%%%%%%%%%%%%%%%%%
+
+% NOTE: Seriality is re-worked for accreln3 
+thf(serial_confersObligation, axiom,
+  ![W1:w, A:$i, B:$i]: (
+    (s__highestAuth @ A)
+    => ?[W2:w]: (accreln3 @ s__confersObligation @ A @ B @ W1 @ W2))).
+
+thf(transitive_confersObligation, axiom,
+  ![W1: w, W2: w, W3: w, A:$i, B:$i] :
+    (((accreln3 @ s__confersObligation @ A @ B @ W1 @ W2) &
+      (accreln3 @ s__confersObligation @ A @ B @ W2 @ W3))
+     => (accreln3 @ s__confersObligation @ A @ B @ W1 @ W3))).
+     
+%%%%%%%%%%%%%%%%%%%%%%%% End: Systems under cO %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Relations (copied all from example 8): 
+thf(instance_t, type, s__instance:($i > $i > $o)).
+thf(agent_t, type, s__agent:($i > $i > w > $o)).
+thf(patient_t, type, s__patient: ($i > $i > w > $o)).
+thf(origin_t, type, s__origin: ($i > $i > w > $o)).
+thf(destination_t, type, s__destination: ($i > $i > w > $o)).
+
+% Terms (copied all from example 8):
+thf(flying_t, type, s__Flying: $i).
+thf(human_t, type, s__Human: $i).
+thf(grocerystore_t, type, s__GroceryStore: $i).
+thf(moon_t, type, s__Moon: $i).
+thf(giving_t, type, s__Giving: $i).
+thf(paycheck_t, type, s__PayCheck: $i).
+thf(tax_t, type, s__Tax: $i).
+thf(usgovernment_t, type, s__USGovernment: $i).
+thf(california_t, type, s__California: $i).
+
+% Globals: 
+thf(bill_t, type, s__Bill: $i).
+thf(bill_always_human, axiom, (
+  s__instance @ s__Bill @ s__Human)).
+thf(usg_t, type, s__USG: $i).
+thf(usg_always_usg, axiom, (
+  s__instance @ s__USG @ s__USGovernment)).
+thf(cal_t, type, s__CAL: $i).
+thf(cal_always_cal, axiom, (
+  s__instance @ s__CAL @ s__California)).
+
+% Distinctness: 
+thf(dist_moon_usg,       axiom, ~(s__Moon = s__USGovernment)).
+thf(dist_moon_flying,    axiom, ~(s__Moon = s__Flying)).
+thf(dist_moon_giving,    axiom, ~(s__Moon = s__Giving)).
+thf(dist_moon_paycheck,  axiom, ~(s__Moon = s__PayCheck)).
+thf(dist_moon_human,     axiom, ~(s__Moon = s__Human)).
+thf(dist_moon_tax,       axiom, ~(s__Moon = s__Tax)).
+thf(dist_usg_flying,     axiom, ~(s__USGovernment = s__Flying)).
+thf(dist_usg_giving,     axiom, ~(s__USGovernment = s__Giving)).
+thf(dist_usg_paycheck,   axiom, ~(s__USGovernment = s__PayCheck)).
+thf(dist_usg_human,      axiom, ~(s__USGovernment = s__Human)).
+thf(dist_usg_tax,        axiom, ~(s__USGovernment = s__Tax)).
+thf(dist_flying_giving,  axiom, ~(s__Flying = s__Giving)).
+thf(dist_flying_paycheck,axiom, ~(s__Flying = s__PayCheck)).
+thf(dist_flying_human,   axiom, ~(s__Flying = s__Human)).
+thf(dist_flying_tax,     axiom, ~(s__Flying = s__Tax)).
+thf(dist_giving_paycheck,axiom, ~(s__Giving = s__PayCheck)).
+thf(dist_giving_human,   axiom, ~(s__Giving = s__Human)).
+thf(dist_giving_tax,     axiom, ~(s__Giving = s__Tax)).
+thf(dist_paycheck_human, axiom, ~(s__PayCheck = s__Human)).
+thf(dist_paycheck_tax,   axiom, ~(s__PayCheck = s__Tax)).
+thf(dist_human_tax,      axiom, ~(s__Human = s__Tax)).
+thf(dist_usgov_ca,       axiom, ~(s__USGovernment = s__California)).
+
+% Obligation 1 (USG): "USG confers on Bill, that if Bill gets a paycheck,
+% he must pay taxes"
+%(=>
+%  (and
+%    (instance ?GIV Giving)
+%    (instance ?PCH PayCheck)
+%    (patient ?GIV ?PCH)
+%    (destination ?GIV Bill))
+%  (confersObligation USG Bill
+%    (exists (?TAX)
+%      (and
+%        (instance ?TAX Tax)
+%        (origin ?TAX Bill)))))
+thf(obligation1_usg_bill_taxed, axiom,
+  ![W1:w, W2:w] :
+  ( ![GIV:$i, PCH:$i] : ((
+      (s__instance @ GIV @ s__Giving) &
+      (s__instance @ PCH @ s__PayCheck) &
+      (s__patient @ GIV @ PCH @ W1) &
+      (s__destination @ GIV @ s__Bill @ W1)) =>
+        ((accreln3 @ s__confersObligation @ s__USG @ s__Bill @ W1 @ W2) =>
+          ?[TAX:$i] : (
+            (s__instance @ TAX @ s__Tax) &
+            (s__origin @ TAX @ s__Bill @ W2)))))).
+
+% Obligation 2 (CA): "CA confers on Bill, that if Bill gets a paycheck,
+% he is exempt from taxes" (negates obligation 1)
+%(=>
+%  (and
+%    (instance ?GIV Giving)
+%    (instance ?PCH PayCheck)
+%    (patient ?GIV ?PCH)
+%    (destination ?GIV Bill))
+%  (confersObligation CAL Bill
+%    (not (exists (?TAX)
+%      (and
+%        (instance ?TAX Tax)
+%        (origin ?TAX Bill))))))
+thf(obligation2_ca_bill_exempt, axiom,
+  ![W1:w, W2:w] :
+  ( ![GIV:$i, PCH:$i] : ((
+      (s__instance @ GIV @ s__Giving) &
+      (s__instance @ PCH @ s__PayCheck) &
+      (s__patient @ GIV @ PCH @ W1) &
+      (s__destination @ GIV @ s__Bill @ W1)) =>
+        ((accreln3 @ s__confersObligation @ s__CAL @ s__Bill @ W1 @ W2) =>
+          ~?[TAX:$i] : (
+            (s__instance @ TAX @ s__Tax) &
+            (s__origin @ TAX @ s__Bill @ W2)))))).
+
+% Fact: Bill gets a paycheck
+%(exists (?GIV ?PCH)
+%  (and
+%    (instance ?GIV Giving)
+%    (instance ?PCH PayCheck)
+%    (patient ?GIV ?PCH)
+%    (destination ?GIV Bill)))
+thf(fact_bill_gets_paycheck, axiom, (
+  ?[GIV:$i, PCH:$i] : (
+    (s__instance @ GIV @ s__Giving) &
+    (s__instance @ PCH @ s__PayCheck) &
+    (s__patient @ GIV @ PCH @ cw) &
+    (s__destination @ GIV @ s__Bill @ cw)))).
+
+%%% OPTIONS: Toggle these %%%
+    
+% Option A: USG > CA: This should refute
+thf(optA_usg_over_ca, axiom,
+  s__highestAuth @ s__USG).
+
+% Option B: CA > USG: This should timeout, since CA confers on Bill 
+% that he must not be taxed
+%thf(optB_ca_over_usg, axiom,
+%  s__highestAuth @ s__CAL).
+
+% Conjecture: "Therefore, USG confers on Bill that he must get taxed"
+% (confersObligation USG Bill
+%   (exists (?TAX)
+%     (and
+%       (instance ?TAX Tax)
+%       (origin ?TAX Bill))))
+thf(conjecture_bill_taxed, conjecture, (
+  ?[Wx:w] : (
+    (accreln3 @ s__confersObligation @ s__USG @ s__Bill @ cw @ Wx) &
+    (?[TAX:$i] : (
+      (s__instance @ TAX @ s__Tax) &
+      (s__origin @ TAX @ s__Bill @ Wx)))))).
