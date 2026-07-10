@@ -1,57 +1,3 @@
-% CF 
-% 4f_O_then_P_BTF_existP.thf 
-% UPDATE: The Permission axiom was WRONG. It should be existential, and this 
-% has been changed and tested in examples 2d and 2e. This has been corrected 
-% here
-
-% D4 and bridge is the only that can be used (since P is sysK now)
-% Option A: ref (sysD-O, bridge, o1, o2, p, and optA)
-% Option B: timeout
-% Summary: Passes tests correctly. The only peculiarity is the lack of 
-% transitivity under O. 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% Pre-System Setup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-thf(worlds_tp,type, w: $tType).
-thf(cw_tp,type, cw: w).
-thf(modals_tp,type, m: $tType).
-thf(obligation_tp,type, s__Obligation: m).          % Using both O and P
-thf(permission_tp, type, s__Permission: m).
-thf(prohibition_tp, type, s__Prohibition: m).
-thf(accreln1_tp,type, accreln1: m > w > w > $o ).
-thf(accreln2_tp,type, accreln2: m > $i > w > w > $o ).
-thf(accreln3_tp,type, accreln3: m > $i > $i > w > w > $o ).
-
-% Modality distinctness:
-thf(dist_obligation_permission, axiom,  ~(s__Obligation = s__Permission)).
-thf(dist_obligation_prohibition, axiom, ~(s__Obligation = s__Prohibition)).
-thf(dist_permission_prohibition, axiom, ~(s__Permission = s__Prohibition)).
-
-%%%%%%%%%%%%% Separate systems under Obligation and Permission %%%%%%%%%%%%%
-
-% System D4 under Obligaton: Serial and Transitive 
-thf(serial_obligation, axiom,
-  ![W1:w]: ?[W2:w]:
-    (accreln1 @ s__Obligation @ W1 @ W2)).
-thf(transitive_obligation, axiom,
-  ![W1: w, W2: w, W3: w] :
-    (((accreln1 @ s__Obligation @ W1 @ W2) &
-      (accreln1 @ s__Obligation @ W2 @ W3))
-     => (accreln1 @ s__Obligation @ W1 @ W3))).
-
-% System K under Permission 
-    
-% O-P Axiom
-% (=>
-%   (modalAttribute ?F Obligation)
-%   (modalAttribute ?F Permission))
-thf(bridge_obligation_permission, axiom,
-  ![W1:w, W2:w]:
-    ((accreln1 @ s__Obligation @ W1 @ W2)
-     => (accreln1 @ s__Permission @ W1 @ W2))).
-    
-      
-%%%%%%%%%%%%%%%%%%%%%%%%%%% End of Systems %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 % Relations:
 thf(instance_t, type, s__instance:($i > $i > $o)). 
 thf(agent_t, type, s__agent:($i > $i > w > $o)). 
@@ -157,67 +103,43 @@ thf(obligation2_drive_to_office, axiom, (
             (s__destination @ D @ OB @ W2)))))))).
 
 % Permission: "If Bill drives to office, may park in lot" 
-% UPDATE: This is existential now! The previous were WRONG
-%(=>
-%  (and
-%    (instance ?D Driving)
-%    (instance ?OB OfficeBuilding)
-%    (agent ?D Bill)
-%    (destination ?D ?OB))
-%  (modalAttribute 
-%    (exists (?PARK ?PL)
-%      (and
-%        (instance ?PARK Keeping)
-%        (instance ?PL ParkingLot)
-%        (agent ?PARK Bill)
-%        (located ?PARK ?PL))) Permission))
-thf(permission_park_in_lot, axiom, (
-  ![W1:w, W2: w] : 
-  ( ![D: $i, OB: $i]: (
-    ((s__instance @ D @ s__Driving) & 
-    (s__instance @ OB @ s__OfficeBuilding) &
-    (s__agent @ D @ s__Bill @ W1) & 
-    (s__destination @ D @ OB @ W1)) => (
-      (accreln1 @ s__Permission @ W1 @ W2) &
-          (?[PARK: $i, PL: $i] : (
-            (s__instance @ PARK @ s__Keeping) & 
-            (s__instance @ PL @ s__ParkingLot) &
-            (s__agent @ PARK @ s__Bill @ W2) & 
-            (s__located @ PARK @ PL @ W2)))))))).
+% Removed and behavior is incorporated into conjecture 
 
 % Option A: "Bill gets a paycheck" 
 %(exists (?PC)
 %  (and
 %    (instance ?PC PayCheck)
 %    (destination ?PC Bill)))
-%thf(optionA_bill_gets_paycheck, axiom, (
-%  ?[PC: $i]: (
-%    ((s__instance @ PC @ s__PayCheck) &
-%    (s__destination @ PC @ s__Bill @ cw))))).
+thf(optionA_bill_gets_paycheck, axiom, (
+  ?[PC: $i]: (
+    ((s__instance @ PC @ s__PayCheck) &
+    (s__destination @ PC @ s__Bill @ cw))))).
 
 % Option B: "Bill doesn't" 
 %(not (exists (?PC)
 %  (and
 %    (instance ?PC PayCheck)
 %    (destination ?PC Bill))))
-thf(optionB_bill_no_paycheck, axiom, (
-  ~?[PC: $i]: (
-    ((s__instance @ PC @ s__PayCheck) &
-    (s__destination @ PC @ s__Bill @ cw))))).
-      
-% Conjecture: "Therefore, Bill may park in lot"
+%thf(optionB_bill_no_paycheck, axiom, (
+%  ~?[PC: $i]: (
+%    ((s__instance @ PC @ s__PayCheck) &
+%    (s__destination @ PC @ s__Bill @ cw))))).
+            
+% Conjecture: "Therefore, Bill must be allowed to drive to office"
 % (modalAttribute 
-%   (exists (?PARK ?PL)
-%     (and 
-%       (instance ?PARK Keeping)
-%       (instance ?PL ParkingLot)
-%       (agent ?PARK Bill)
-%       (located ?PARK ?PL))) Permission)
+%  (modalAttribute 
+%    (exists (?D ?OB) 
+%      (and 
+%        (instance ?D Driving)
+%        (instance ?OB OfficeBuilding)
+%        (agent ?D Bill)
+%        (destination ?D ?OB))) Permission) Obligation)
 thf(conjecture_is_permitted, conjecture, (
-  ?[Wx: w] : (
-    (accreln1 @ s__Permission @ cw @ Wx) & 
-      (?[PARK: $i, PL: $i] : ( 
-        (s__instance @ PARK @ s__Keeping) &
-        (s__instance @ PL @ s__ParkingLot) &
-        (s__agent @ PARK @ s__Bill @ Wx) &
-        (s__located @ PARK @ PL @ Wx)))))).
+  ?[Wi: w, Wx: w] : (
+    (accreln1 @ s__Obligation @ cw @ Wi) & 
+    (accreln1 @ s__Permission @ Wi @ Wx) & 
+      (?[D: $i, OB: $i] : (
+            (s__instance @ D @ s__Driving) & 
+            (s__instance @ OB @ s__OfficeBuilding) &
+            (s__agent @ D @ s__Bill @ Wx) & 
+            (s__destination @ D @ OB @ Wx)))))).            

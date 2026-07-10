@@ -1,0 +1,66 @@
+% CF: TFF of Chisholm: "If Smith goes, ought to tell, else ought not to" 
+% Result: Satisfiable under System K, likely due to obligations being 
+% in different worlds (so system K protects against paradox) 
+
+% Sorts and modal attribute
+tff(t1,type, m:$tType).
+tff(t2,type, w:$tType).
+tff(t3,type, s__Obligation:m).
+tff(t4,type, cw:w).
+
+% Agent and actions
+tff(t5,type, s__Smith:$i).
+tff(t6,type, s__Go:$i).
+tff(t7,type, s__Tell:$i).
+tff(t8,type, s__NotTell:$i).
+
+% Predicates
+tff(t9a,type, s__does:    ($i * $i * w) > $o).     % does(Agent, Action, World)
+tff(t9b,type, obl:        (w * $i * $i) > $o).     % obl(World, Action, Agent)
+tff(t9c,type, entails:    ($i * $i) > $o).         % action-level entailment
+tff(t10,type, accrelnP:   (m * w * w) > $o).       % accessibility under modal attribute
+
+% There exists at least one world where the obligation relation is in force
+tff(obligation_exists, axiom,
+  ? [W1:w] : accrelnP(s__Obligation,cw,W1)
+).
+
+% Primary obligation: Smith ought to go
+tff(primary_ought_go, axiom,
+  obl(cw, s__Go, s__Smith)
+).
+
+% Conditional obligation if he goes: he ought to tell (encoded two ways)
+
+% 1) As action entailment, with K-style deontic distribution
+tff(go_entails_tell, axiom,
+  entails(s__Go, s__Tell)
+).
+tff(k_distribution, axiom,
+  ! [W:w, A:$i, B:$i, Ag:$i] :
+    ( (entails(A,B) & obl(W,A,Ag)) => obl(W,B,Ag) )
+).
+
+% 2) As world-indexed conditional obligation (CTD form)
+tff(ctd_if_go_then_tell, axiom,
+  ! [W1:w] :
+    ( accrelnP(s__Obligation,cw,W1) =>
+      ( s__does(s__Smith,s__Go,W1) => obl(W1,s__Tell,s__Smith) ) )
+).
+
+% Conditional obligation if he does not go: he ought not tell
+tff(ctd_if_not_go_then_not_tell, axiom,
+  ! [W1:w] :
+    ( accrelnP(s__Obligation,cw,W1) =>
+      ( ~ s__does(s__Smith,s__Go,W1) => obl(W1,s__NotTell,s__Smith) ) )
+).
+
+% Factual violation: Smith does not go
+tff(fact_not_go, axiom,
+  ~ s__does(s__Smith,s__Go,cw)
+).
+
+% Incompatibility constraint: cannot be obliged to tell and not tell at the same world
+tff(no_conflicting_obligations, axiom,
+  ! [W:w, Ag:$i] : ~ (obl(W,s__Tell,Ag) & obl(W,s__NotTell,Ag))
+).
