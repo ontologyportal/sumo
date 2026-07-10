@@ -1,10 +1,10 @@
 % CF 
-% 9a_2LevelAuth_comparative.thf
-% Uses an authority hierarchy (which will be based on SUMO)
+% 9_2LevelAuth_superlative.thf (formerly 9B)
+% Uses an authority hierarchy based on highEST (which will be based on SUMO)
 
-% Option A: timeout
+% Option A: ref (using D, optA, fact, and O1)
 % Option B: timeout
-% Summary: The proof is too weak due to Open World Assumption in Vampire
+% Summary: Works as intended, SUCCESS! 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% Pre-System Setup %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 thf(worlds_tp,type, w: $tType).
@@ -19,24 +19,15 @@ thf(accreln2_tp,type, accreln2: m > $i > w > w > $o ).
 thf(accreln3_tp,type, accreln3: m > $i > $i > w > w > $o ).
 
 % Authority hierarchy relation (dependent on SUMO):
-thf(higherAuth_t, type, s__higherAuthority: $i > $i > $o).
-
-% If a higher authority confers any obligation on Entity from W1,
-% then no lower authority's accreln3 link on that same Entity from W1 holds
-thf(hi_mutes_lo, axiom,
-  ![W1:w, W2:w, Hi:$i, Lo:$i, Bearer:$i] : (
-    ( (s__higherAuthority @ Hi @ Lo) &
-      (accreln3 @ s__confersObligation @ Hi @ Bearer @ W1 @ W2))
-    => ~(accreln3 @ s__confersObligation @ Lo @ Bearer @ W1 @ W2))).
+thf(highestAuth_t, type, s__highestAuth: $i > $o).
 
 %%%%%%%%%%%%%%%%%%%% Systems: Under confersObligation %%%%%%%%%%%%%%%%%%%%%
 
+% NOTE: Seriality is re-worked for accreln3 
 thf(serial_confersObligation, axiom,
   ![W1:w, A:$i, B:$i]: (
-    (~?[Hi:$i]: (s__higherAuthority @ Hi @ A))
+    (s__highestAuth @ A)
     => ?[W2:w]: (accreln3 @ s__confersObligation @ A @ B @ W1 @ W2))).
-%  ![W1:w, A:$i, B:$i]: ?[W2:w]:
-%    (accreln3 @ s__confersObligation @ A @ B @ W1 @ W2)).
 
 thf(transitive_confersObligation, axiom,
   ![W1: w, W2: w, W3: w, A:$i, B:$i] :
@@ -167,12 +158,12 @@ thf(fact_bill_gets_paycheck, axiom, (
     
 % Option A: USG > CA: This should refute
 thf(optA_usg_over_ca, axiom,
-  s__higherAuthority @ s__USG @ s__CAL).
+  s__highestAuth @ s__USG).
 
 % Option B: CA > USG: This should timeout, since CA confers on Bill 
 % that he must not be taxed
 %thf(optB_ca_over_usg, axiom,
-%  s__higherAuthority @ s__CAL @ s__USG).
+%  s__highestAuth @ s__CAL).
 
 % Conjecture: "Therefore, USG confers on Bill that he must get taxed"
 % (confersObligation USG Bill

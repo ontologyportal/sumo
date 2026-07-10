@@ -1,0 +1,84 @@
+% CF: Dyadic-version of Chisholm
+% Result: Refutation 
+
+% Types
+thf(m_type,    type, m: $tType).                           % modality sort
+thf(w_type,    type, w: $tType).                           % world sort
+thf(obs_type,  type, s__Obligation: m).                    % obligation modality
+thf(cw_type,   type, cw: w).                               % actual world
+
+% Agent and actions
+thf(agent_type,   type, a: $i).
+thf(go_type,      type, go: $i).
+thf(tell_type,    type, tell: $i).
+thf(nottell_type, type, nottell: $i).
+thf(true_type,    type, true_act: $i).                     % condition that always holds
+
+% Core predicates
+thf(acc_type,     type, accrelnP: m > w > w > $o).         % accessibility under a modality
+thf(does_type,    type, does: $i > $i > w > $o).           % does @ Agent @ Action @ World
+thf(oblif_type,   type, obl_if: w > $i > $i > $i > $o).    % O(Act | Cond) at World for Agent
+thf(ent_type,     type, entails: $i > $i > $o).            % action-level entailment
+
+% System T: reflexivity under obligation modality (cw is accessible to itself)
+thf(reflexivity, axiom,
+  ! [W:w] : (accrelnP @ s__Obligation @ W @ W)
+).
+
+% Always-true condition: the "true_act" holds at every world for any agent
+thf(always_true, axiom,
+  ! [Ag:$i, W:w] : (does @ Ag @ true_act @ W)
+).
+
+% Primary obligation: O(Go | True) at cw
+thf(primary, axiom,
+  (obl_if @ cw @ true_act @ go @ a)
+).
+
+% Conditional obligations posted at all obligation-accessible worlds
+% If Go then O(Tell | Go)
+thf(ctd_go_then_tell, axiom,
+  ! [W1:w] :
+    ( (accrelnP @ s__Obligation @ cw @ W1)
+      => (obl_if @ W1 @ go @ tell @ a) )
+).
+
+% If Not-Go then O(NotTell | NotGo)
+thf(ctd_notgo_then_nottell, axiom,
+  ! [W1:w] :
+    ( (accrelnP @ s__Obligation @ cw @ W1)
+      => (obl_if @ W1 @ nottell @ nottell @ a) )
+).
+
+% Factual violation: Not-Go at cw
+thf(fact_not_go, axiom,
+  ~ (does @ a @ go @ cw)
+).
+
+% Local dyadic detachment:
+% If Cond holds at W and O(Act | Cond) at W, then detach O(Act) at W as O(Act | Act).
+thf(dyadic_detach, axiom,
+  ! [W:w, C:$i, A:$i, Ag:$i] :
+    (( (does @ Ag @ C @ W) & (obl_if @ W @ C @ A @ Ag) )
+    => (obl_if @ W @ A @ A @ Ag))
+).
+
+% Relevance-preserving distribution of primary obligation through action entailment:
+% From O(Go | True) and (Go entails Tell), infer O(Tell | True). (No global K over monadic O.)
+thf(dyadic_distribution, axiom,
+  ! [W:w, Ag:$i] :
+    (( (obl_if @ W @ true_act @ go @ Ag) & (entails @ go @ tell) )
+    => (obl_if @ W @ true_act @ tell @ Ag))
+).
+
+% Entailment: Go => Tell (used only for the distribution above)
+thf(go_entails_tell, axiom,
+  (entails @ go @ tell)
+).
+
+% Conjecture for refutation: both detached obligations hold at cw
+% Vampire will negate this and, with the axioms, derive the empty clause.
+thf(chisholm_refutation, conjecture,
+  ( (obl_if @ cw @ tell    @ tell    @ a)   % O(Tell) detached at cw
+  & (obl_if @ cw @ nottell @ nottell @ a) ) % O(NotTell) detached at cw
+).

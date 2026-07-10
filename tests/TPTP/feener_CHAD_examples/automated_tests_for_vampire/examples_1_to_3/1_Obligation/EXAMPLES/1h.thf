@@ -1,0 +1,99 @@
+% Relations: 
+thf(instance_t, type, s__instance:($i > $i > $o)).
+thf(agent_t, type, s__agent:($i > $i > w > $o)).
+thf(patient_t, type, s__patient: ($i > $i > w > $o)).
+thf(destination_t, type, s__destination: ($i > $i > w > $o)).
+
+% Terms: 
+thf(flying_t, type, s__Flying: $i).
+thf(human_t, type, s__Human: $i).
+thf(grocerystore_t, type, s__GroceryStore: $i).
+thf(moon_t, type, s__Moon: $i).
+thf(giving_t, type, s__Giving: $i).
+thf(paycheck_t, type, s__PayCheck: $i).
+
+% Globals: 
+thf(bill_t, type, s__Bill: $i).
+thf(bill_always_human, axiom, (
+  s__instance @ s__Bill @ s__Human)).
+
+% Distinctness: 
+thf(dist_moon_gs, axiom, ~(s__Moon = s__GroceryStore)).
+thf(dist_moon_flying, axiom, ~(s__Moon = s__Flying)).
+thf(dist_moon_giving, axiom, ~(s__Moon = s__Giving)).
+thf(dist_moon_paycheck, axiom, ~(s__Moon = s__PayCheck)).
+thf(dist_moon_human, axiom, ~(s__Moon = s__Human)).
+thf(dist_gs_flying, axiom, ~(s__GroceryStore = s__Flying)).
+thf(dist_gs_giving, axiom, ~(s__GroceryStore = s__Giving)).
+thf(dist_gs_paycheck, axiom, ~(s__GroceryStore = s__PayCheck)).
+thf(dist_gs_human, axiom, ~(s__GroceryStore = s__Human)).
+thf(dist_flying_giving, axiom, ~(s__Flying = s__Giving)).
+thf(dist_flying_paycheck, axiom, ~(s__Flying = s__PayCheck)).
+thf(dist_flying_human, axiom, ~(s__Flying = s__Human)).
+thf(dist_giving_paycheck, axiom, ~(s__Giving = s__PayCheck)).
+thf(dist_giving_human, axiom, ~(s__Giving = s__Human)).
+thf(dist_paycheck_human, axiom, ~(s__PayCheck = s__Human)).
+
+% Obligation 1: "It is obligatory for Bill to fly to the moon"
+% (modalAttribute 
+%   (exists (?FLY ?MOON)
+%     (and
+%       (instance ?FLY Flying)
+%       (instance ?MOON Moon) 
+%       (agent ?FLY Bill)
+%       (destination ?FLY ?MOON))) Obligation)
+thf(obligation1_bill_fly, axiom,
+      ! [W1: w, W2: w] : 
+        ( (accreln1 @ s__Obligation @ W1 @ W2)
+          => ?[FLY:$i, MOON:$i] :
+               ( (s__instance @ FLY @ s__Flying) &
+                 (s__instance @ MOON @ s__Moon) &
+                 (s__agent @ FLY @ s__Bill @ W2) &
+                 (s__destination @ FLY @ MOON @ W2) ) ) ).
+
+% Obligation 2: "If Bill flies to moon, it is obligatory he gets paycheck"
+%(=>
+%  (and 
+%    (instance ?FLY Flying) 
+%    (instance ?BILL Human) 
+%    (instance ?MOON Moon)
+%    (agent ?FLY ?BILL)
+%    (destination ?FLY ?MOON))
+%  (modalAttribute 
+%    (exists (?G ?P)
+%      (and 
+%        (instance ?G Giving)
+%        (instance ?P PayCheck)
+%        (patient ?G ?P)
+%        (destination ?G ?BILL)))))
+thf(obligation2_must_be_paid, axiom,
+  ![W1:w, W2: w] : 
+  ( ![FLY: $i, MOON: $i] : (( 
+      (s__instance @ FLY @ s__Flying) & 
+      (s__instance @ MOON @ s__Moon) & 
+      (s__agent @ FLY @ s__Bill @ W1) &
+      (s__destination @ FLY @ MOON @ W1)) => (
+          (accreln1 @ s__Obligation @ W1 @ W2) => 
+            ( ?[G: $i, P: $i] : (
+              (s__instance @ G @ s__Giving) & 
+              (s__instance @ P @ s__PayCheck) & 
+              (s__patient @ G @ P @ W2) & 
+              (s__destination @ G @ s__Bill @ W2))))))).             
+  
+    
+% Conjecture: "Therefore, Bill must get paycheck" 
+% (modalAttribute 
+%   (exists (?GIV ?PCH) 
+%    (and 
+%     (instance ?GIV Giving)
+%     (instance ?PCH PayCheck) 
+%     (patient ?GIV ?PCH)
+%     (destination ?GIV Bill))) Obligation)
+thf(conjecture_he_get_paycheck, conjecture, (
+  ![Wx: w] : (
+    (accreln1 @ s__Obligation @ cw @ Wx) => (
+      ?[GIV: $i, PCH: $i] : (
+        (s__instance @ GIV @ s__Giving) & 
+        (s__instance @ PCH @ s__PayCheck) & 
+        (s__patient @ GIV @ PCH @ Wx) & 
+        (s__destination @ GIV @ s__Bill @ Wx)))))).
