@@ -171,3 +171,96 @@ one agent's specification but not another's.")
     (instance ?AGENT AutonomousAgent)
     (bugInProgram ?BUG ?PROG ?AGENT))
   (attribute ?PROG ?BUG))
+
+;; ============================================================
+;; operationalBudget (BinaryPredicate)
+;; ============================================================
+
+(instance operationalBudget BinaryPredicate)
+(instance operationalBudget SingleValuedRelation)
+(domain operationalBudget 1 AutonomousAgent)
+(domain operationalBudget 2 CurrencyMeasure)
+(termFormat EnglishLanguage operationalBudget "operational budget")
+(format EnglishLanguage operationalBudget "%1 has an operational budget of %2")
+(documentation operationalBudget EnglishLanguage "(&%operationalBudget
+?AGENT ?BUDGET) means that ?AGENT has a total resource budget of
+?BUDGET available for cyber operations in the current operational
+period. Constrains which vulnerabilities the agent can act upon:
+for a defender, how many can be patched; for an attacker, how many
+can be exploited. Agent-relative: different agents have different
+budgets reflecting their resource endowments. Common knowledge in
+adversarial settings: an attacker targeting a defender's system and
+the defender both know the defender's operational budget, and the
+defender knows the attacker's. Non-negative: a budget cannot fall
+below zero. Single-valued: for a given agent and operational period
+there is at most one operational budget.")
+
+(=>
+  (and
+    (instance ?AGENT AutonomousAgent)
+    (operationalBudget ?AGENT ?BUDGET)
+    (measure ?BUDGET ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?SYS Physical)
+    (vulnerableSystem ?VUL ?SYS ?ATTACKER)
+    (possesses ?DEFENDER ?SYS)
+    (operationalBudget ?DEFENDER ?DBUDGET)
+    (operationalBudget ?ATTACKER ?ABUDGET))
+  (and
+    (knows ?ATTACKER (operationalBudget ?DEFENDER ?DBUDGET))
+    (knows ?DEFENDER (operationalBudget ?ATTACKER ?ABUDGET))))
+
+(exists (?A1 ?A2 ?B1 ?B2)
+  (and
+    (instance ?A1 AutonomousAgent)
+    (instance ?A2 AutonomousAgent)
+    (not (equal ?A1 ?A2))
+    (operationalBudget ?A1 ?B1)
+    (operationalBudget ?A2 ?B2)
+    (not (equal ?B1 ?B2))))
+
+;; ============================================================
+;; aggregateCyberCost (TernaryPredicate)
+;; ============================================================
+
+(instance aggregateCyberCost TernaryPredicate)
+(instance aggregateCyberCost SingleValuedRelation)
+(domain aggregateCyberCost 1 AutonomousAgent)
+(domain aggregateCyberCost 2 TimeInterval)
+(domain aggregateCyberCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage aggregateCyberCost "aggregate cyber cost")
+(format EnglishLanguage aggregateCyberCost "%1 incurred an aggregate cyber cost of %3 during %2")
+(documentation aggregateCyberCost EnglishLanguage "(&%aggregateCyberCost
+?AGENT ?T ?TOTAL) means that the sum of per-action costs over the
+cyber actions ?AGENT commits to during &%TimeInterval ?T equals
+?TOTAL. Denominated in a &%CurrencyMeasure so that heterogeneous
+inputs, tooling acquisition, compute, personnel time, patch
+development, and operational disruption, can be added on a common
+scale. Computed per candidate strategy: a distinct aggregate holds
+for each combination of agent, time interval, and set of committed
+actions. Non-negative: aggregating non-negative per-action costs
+cannot yield a negative total. Single-valued: for a given agent,
+time interval, and strategy there is at most one aggregate cyber
+cost.")
+
+(=>
+  (and
+    (instance ?AGENT AutonomousAgent)
+    (instance ?T TimeInterval)
+    (aggregateCyberCost ?AGENT ?T ?TOTAL)
+    (measure ?TOTAL ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+(exists (?AGENT ?T1 ?T2 ?TOT1 ?TOT2)
+  (and
+    (instance ?AGENT AutonomousAgent)
+    (instance ?T1 TimeInterval)
+    (instance ?T2 TimeInterval)
+    (not (equal ?T1 ?T2))
+    (aggregateCyberCost ?AGENT ?T1 ?TOT1)
+    (aggregateCyberCost ?AGENT ?T2 ?TOT2)
+    (not (equal ?TOT1 ?TOT2))))
