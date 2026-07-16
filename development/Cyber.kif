@@ -73,3 +73,101 @@ standing in &%vulnerableSystem to another.")
     (instance ?AGENT AutonomousAgent)
     (vulnerableSystem ?VUL ?SYS ?AGENT))
   (attribute ?SYS ?VUL))
+
+;; ============================================================
+;; SoftwareBug 
+;; ============================================================
+
+;; A bug is relational: it exists only with respect to some agent's
+;; specification of correct behavior.  The specifying agent is often
+;; but not always the author, it could be a standards body, a
+;; security policy, or a product owner.  The same code may be buggy
+;; from one specification's perspective but correct from another's,
+;; and may be buggy along multiple dimensions simultaneously (crash,
+;; security, performance, incorrect value, etc.).
+;;
+;; Separately, the agent who discovers a bug may differ from the
+;; agent who specified correctness (e.g., a white-hat hacker in a
+;; bug bounty program discovers bugs relative to the developer's spec).
+;;
+;; We therefore model SoftwareBug as a RelationalAttribute rather
+;; than a standalone class.  A program "has" the SoftwareBug attribute
+;; only relative to some agent's specification and some execution context.
+
+(subclass SoftwareBug RelationalAttribute)
+(termFormat EnglishLanguage SoftwareBug "software bug")
+(documentation SoftwareBug EnglishLanguage "A &%RelationalAttribute
+of a &%ComputerProgram indicating that the program contains a latent
+error relative to some &%AutonomousAgent's specification of correct
+behavior.  The specifying agent may be the program's author, a
+standards body, a security policy, or any stakeholder who defines
+what the program should do.  A &%SoftwareBug is relational because
+the same code may be correct with respect to one agent's specification
+but erroneous with respect to another's.  A program may also exhibit
+bugs along multiple dimensions simultaneously, such as crashes,
+security vulnerabilities, incorrect values, or poor performance.
+The agent who discovers a bug (see &%bugDiscoverer) need not be the
+same agent whose specification defines it as a bug.")
+
+;; rule: relational nature — the same program can be buggy with
+;; respect to one agent's specification but not another's
+
+(exists (?PROG ?BUG ?AGENT1 ?AGENT2)
+  (and
+    (instance ?PROG ComputerProgram)
+    (instance ?BUG SoftwareBug)
+    (instance ?AGENT1 AutonomousAgent)
+    (instance ?AGENT2 AutonomousAgent)
+    (not (equal ?AGENT1 ?AGENT2))
+    (bugInProgram ?BUG ?PROG ?AGENT1)
+    (not (bugInProgram ?BUG ?PROG ?AGENT2))))
+
+;; rule: multiple dimensions — a program may exhibit multiple
+;; bugs simultaneously relative to the same agent's specification
+
+(exists (?PROG ?BUG1 ?BUG2 ?AGENT)
+  (and
+    (instance ?PROG ComputerProgram)
+    (instance ?BUG1 SoftwareBug)
+    (instance ?BUG2 SoftwareBug)
+    (instance ?AGENT AutonomousAgent)
+    (not (equal ?BUG1 ?BUG2))
+    (bugInProgram ?BUG1 ?PROG ?AGENT)
+    (bugInProgram ?BUG2 ?PROG ?AGENT)))
+
+
+;; ============================================================
+;; bugInProgram : relates bug-attribute to program and agent
+;; ============================================================
+
+;; Ternary: the bug exists in a program WITH RESPECT TO a specifying
+;; agent.  The specifying agent is whoever defines correct behavior 
+;; often the author, but could be a security standard, a product spec,
+;; or a client.  This is distinct from who discovers the bug.
+
+(instance bugInProgram TernaryPredicate)
+(domain bugInProgram 1 SoftwareBug)
+(domain bugInProgram 2 ComputerProgram)
+(domain bugInProgram 3 AutonomousAgent)
+(termFormat EnglishLanguage bugInProgram "bug in program")
+(format EnglishLanguage bugInProgram "%1 is a &%bug in %2 relative to %3")
+(documentation bugInProgram EnglishLanguage "(&%bugInProgram ?BUG ?PROG ?AGENT)
+means that ?BUG is a &%SoftwareBug present in ?PROG relative to the
+specification of correct behavior held by ?AGENT.  ?AGENT is the
+specifying agent — the one whose intent or specification defines
+what the program should do.  This may be the program's author, a
+standards body, a client, or any stakeholder.  The agent who
+discovers the bug may be a different party entirely (see
+&%bugDiscoverer).  The same program may have a bug with respect to
+one agent's specification but not another's.")
+
+;; rule: if a program has a bug relative to some agent, then the
+;; program carries that bug as an attribute
+
+(=>
+  (and
+    (instance ?BUG SoftwareBug)
+    (instance ?PROG ComputerProgram)
+    (instance ?AGENT AutonomousAgent)
+    (bugInProgram ?BUG ?PROG ?AGENT))
+  (attribute ?PROG ?BUG))
