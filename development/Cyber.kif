@@ -475,3 +475,50 @@ vulnerability and agent there is at most one patch cost.")
     (patchCost ?VUL ?A1 ?C1)
     (patchCost ?VUL ?A2 ?C2)
     (not (equal ?C1 ?C2))))
+
+;; ============================================================
+;; bugDiscoverer : who found the bug
+;; ============================================================
+
+;; The discovering agent is often different from the specifying agent.
+;; Examples: a white-hat hacker discovers a bug defined relative to
+;; the developer's spec; a QA tester discovers a bug defined relative
+;; to a product requirements document, which is a potentially unique agent than the original programmer.
+
+(instance bugDiscoverer TernaryPredicate)
+(domain bugDiscoverer 1 SoftwareBug)
+(domain bugDiscoverer 2 ComputerProgram)
+(domain bugDiscoverer 3 AutonomousAgent)
+(termFormat EnglishLanguage bugDiscoverer "bug discoverer")
+(format EnglishLanguage bugDiscoverer "%3 discovered &%bug %1 in %2")
+(documentation bugDiscoverer EnglishLanguage "(&%bugDiscoverer ?BUG ?PROG ?DISCOVERER)
+means that ?DISCOVERER identified &%SoftwareBug ?BUG in ?PROG.
+The discoverer need not be the same agent whose specification
+defines the bug (see &%bugInProgram).  For example, in a bug bounty
+program, an &%EthicalHacker discovers bugs relative to the
+developer's or organization's specification of correct behavior.")
+
+;; rule: discoverer can differ from specifier
+
+(exists (?BUG ?PROG ?DISCOVERER ?SPECIFIER)
+  (and
+    (bugDiscoverer ?BUG ?PROG ?DISCOVERER)
+    (bugInProgram ?BUG ?PROG ?SPECIFIER)
+    (not (equal ?DISCOVERER ?SPECIFIER))))
+
+;; rule: latency — a bug exists before it is discovered.
+;; At the beginning of the discovery process, the bug was already present.
+
+(=>
+  (and
+    (instance ?BUG SoftwareBug)
+    (instance ?PROG ComputerProgram)
+    (bugDiscoverer ?BUG ?PROG ?DISCOVERER)
+    (bugInProgram ?BUG ?PROG ?AGENT))
+  (exists (?DISCOVER)
+    (and
+      (instance ?DISCOVER Discovering)
+      (agent ?DISCOVER ?DISCOVERER)
+      (patient ?DISCOVER ?BUG)
+      (holdsDuring (BeginFn (WhenFn ?DISCOVER))
+        (bugInProgram ?BUG ?PROG ?AGENT)))))
