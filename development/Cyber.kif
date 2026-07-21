@@ -475,3 +475,81 @@ vulnerability and agent there is at most one patch cost.")
     (patchCost ?VUL ?A1 ?C1)
     (patchCost ?VUL ?A2 ?C2)
     (not (equal ?C1 ?C2))))
+
+;; ============================================================
+;; vulnerabilityCause (BinaryPredicate)
+;; ============================================================
+
+;; SUMO's existing &%causes relation requires both arguments to be
+;; &%Process, but &%SoftwareBug and &%Vulnerability are
+;; &%RelationalAttribute, not processes, so a dedicated relation is
+;; needed to bridge them.
+
+(instance vulnerabilityCause BinaryPredicate)
+(domain vulnerabilityCause 1 Entity)
+(domain vulnerabilityCause 2 Vulnerability)
+(termFormat EnglishLanguage vulnerabilityCause "vulnerability cause")
+(format EnglishLanguage vulnerabilityCause "%1 is a &%cause of vulnerability %2")
+(documentation vulnerabilityCause EnglishLanguage "(&%vulnerabilityCause
+?CAUSE ?VUL) means that ?CAUSE, which may be a &%SoftwareBug, a
+misconfiguration, a design flaw, or any other &%Entity, gives rise to
+&%Vulnerability ?VUL.  ?CAUSE need not be a &%SoftwareBug: not every
+&%Vulnerability originates from a bug, and not every &%SoftwareBug
+gives rise to a &%Vulnerability.  &%SoftwareBug and &%Vulnerability
+are disjoint classes.")
+
+;; &%SoftwareBug and &%Vulnerability are distinct classes: no
+;; instance can be both.
+
+(disjoint SoftwareBug Vulnerability)
+
+;; rule: not every vulnerability originates from a bug (weak default
+;; passwords, misconfigurations, and design flaws are vulnerabilities
+;; with no software bug as their cause)
+
+(exists (?VUL)
+  (and
+    (instance ?VUL Vulnerability)
+    (not
+      (exists (?BUG)
+        (and
+          (instance ?BUG SoftwareBug)
+          (vulnerabilityCause ?BUG ?VUL))))))
+
+;; rule: not every bug is a vulnerability (a UI glitch is a
+;; &%SoftwareBug that causes no &%Vulnerability)
+
+(exists (?BUG ?PROG ?AGENT)
+  (and
+    (instance ?BUG SoftwareBug)
+    (bugInProgram ?BUG ?PROG ?AGENT)
+    (not
+      (exists (?VUL)
+        (and
+          (instance ?VUL Vulnerability)
+          (vulnerabilityCause ?BUG ?VUL))))))
+
+;; rule: if a bug causes a vulnerability in a program, the program
+;; carries that vulnerability as an attribute
+
+(=>
+  (and
+    (instance ?BUG SoftwareBug)
+    (instance ?PROG ComputerProgram)
+    (bugInProgram ?BUG ?PROG ?AGENT)
+    (instance ?VUL Vulnerability)
+    (vulnerabilityCause ?BUG ?VUL))
+  (attribute ?PROG ?VUL))
+
+;; rule: temporal persistence — while the cause persists as an
+;; attribute of the program, the vulnerability it gives rise to
+;; persists as an attribute of the program over that same interval
+
+(=>
+  (and
+    (instance ?PROG ComputerProgram)
+    (instance ?VUL Vulnerability)
+    (vulnerabilityCause ?CAUSE ?VUL)
+    (attribute ?PROG ?VUL)
+    (holdsDuring ?T (attribute ?PROG ?CAUSE)))
+  (holdsDuring ?T (attribute ?PROG ?VUL)))
