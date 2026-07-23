@@ -843,13 +843,9 @@ class.  In a 4D ontology, an &%Object is something whose spatiotemporal
 extent is thought of as dividing into spatial parts roughly parallel to the
 time-axis.")
 
-(=>
-  (instance ?O Object)
-  (capability Translocation origin ?O))
+(capability Translocation origin Object)
 
-(=>
-  (instance ?O Object)
-  (capability Translocation destination ?O))
+(capability Translocation destination Object)
 
 (subclass SelfConnectedObject Object)
 
@@ -1213,7 +1209,7 @@ are smaller than &%Atoms and compose &%Atoms.")
    (exists (?ATOM)
       (and
          (instance ?ATOM Atom)
-         (component ?PARTICLE ?ATOM))))
+         (part ?PARTICLE ?ATOM))))
 
 (subclass AtomicNucleus SubatomicParticle)
 (documentation AtomicNucleus EnglishLanguage "The core of the &%Atom.  It is composed of
@@ -1278,23 +1274,21 @@ dissolved in water, milk, wood, and concrete.")
    (instance ?SUBSTANCE PureSubstance))
 
     
-(subrelation ingredient material)
 (instance ingredient BinaryPredicate)
 (documentation ingredient EnglishLanguage "(&%ingredient ?ING ?S) means that ?ING 
 is a material that makes up ?S")
 (termFormat EnglishLanguage ingredient "ingredient")
 (domainSubclass ingredient 1 Substance)
-(domainSubclass ingredient 2 Substance)
+(domain ingredient 2 CorpuscularObject)
 
 (=>
   (ingredient ?ING ?S)
-  (exists (?PROC ?X ?Y)
+  (exists (?PROC ?X)
     (and
       (instance ?PROC Process)
       (instance ?X ?ING)
       (patient ?PROC ?X)
-      (instance ?Y ?S)
-      (result ?PROC ?Y))))
+      (result ?PROC ?S))))
          
 (subclass CorpuscularObject SelfConnectedObject)
 (disjoint CorpuscularObject Substance)
@@ -4941,10 +4935,10 @@ is the absolute value of the &%RealNumber ?NUMBER.")
     (instance ?NUMBER2 RealNumber))
   (or
     (and
-      (instance ?NUMBER1 NonnegativeRealNumber)
+      (greaterThanOrEqualTo ?NUMBER1 0)
       (equal ?NUMBER1 ?NUMBER2))
     (and
-      (instance ?NUMBER1 NegativeRealNumber)
+      (lessThan ?NUMBER1 0)
       (equal ?NUMBER2 (SubtractionFn 0.0 ?NUMBER1)))))
 
 (instance CeilingFn UnaryFunction)
@@ -7840,16 +7834,6 @@ produced by the intersection of a &%Cone with a &%ClosedTwoDimensionalFigure.")
 &%GeometricPoints that make up the &%Circle are equidistant from a single
 &%GeometricPoint, known as the center of the &%Circle.")
 
-(=>
-  (attribute ?C Circle)
-  (exists (?R)
-    (radius ?C ?R)))
-
-(=>
-  (attribute ?C Circle)
-  (exists (?P)
-    (equal (CenterOfCircleFn ?C) ?P)))
-
 (documentation CenterOfCircleFn EnglishLanguage "(CenterOfCircleFn ?CIRCLE) denotes the
 &%GeometricPoint that is the center of the &%Circle ?CIRCLE.")
 
@@ -7857,11 +7841,6 @@ produced by the intersection of a &%Cone with a &%ClosedTwoDimensionalFigure.")
 (instance CenterOfCircleFn TotalValuedRelation)
 (domain CenterOfCircleFn 1 ClosedTwoDimensionalFigure)
 (range CenterOfCircleFn GeometricPoint)
-
-(=>
-  (equal ?P
-    (CenterOfCircleFn ?C))
-  (attribute ?C Circle))
 
 (instance radius BinaryPredicate)
 (instance radius SingleValuedRelation)
@@ -12663,9 +12642,7 @@ of suicide the &%Organism would be the same in both cases.")
          (experiencer ?DEATH ?OBJ)
          (causes ?KILL ?DEATH))))
 
-(=>
-  (instance ?O Organism)
-  (capability Killing agent ?O))
+(capability Killing agent Organism)
 
 (=>
   (instance ?O Organism)
@@ -13234,14 +13211,14 @@ something is sought.  Some examples would be hunting, shopping, trawling, and st
       (instance ?PURSUE Pursuing)
       (agent ?PURSUE ?AGENT)
       (patient ?PURSUE ?OBJ))
-   (holdsDuring ?PURSUE (wants ?AGENT ?OBJ)))
+   (holdsDuring (WhenFn ?PURSUE) (wants ?AGENT ?OBJ)))
 
 (=>
    (and
       (instance ?PURSUE Pursuing)
       (agent ?PURSUE ?AGENT)
       (patient ?PURSUE ?OBJ))
-   (holdsDuring ?PURSUE (not (possesses ?AGENT ?OBJ))))
+   (holdsDuring (WhenFn ?PURSUE) (not (possesses ?AGENT ?OBJ))))
 
 (subclass Hunting Pursuing)
 (documentation Hunting EnglishLanguage "Hunting is the class of &%Processes in which
@@ -13825,10 +13802,7 @@ Note that the &%agent of this sensing is assumed to be an &%Animal.")
       (agent ?PERCEPT ?AGENT))
    (instance ?AGENT Animal))
 
-(=>
-   (instance ?AGENT SentientAgent)
-   (capability Perception experiencer ?AGENT))
-
+(capability Perception experiencer SentientAgent)
       
 (instance ImpairmentFn UnaryFunction)
 (documentation ImpairmentFn EnglishLanguage "A faulty or compromised
@@ -13880,10 +13854,16 @@ of some sort.")
 
 (=>
   (and
-    (instance ?SI (SenseImpairmentFn ?S))
+    (instance ?SI
+      (SenseImpairmentFn ?S))
     (experiencer ?SI ?A))
   (not
-    (capability ?S experiencer ?A)))
+    (modalAttribute
+      (exists (?PROCESS)
+        (and
+          (instance ?PROCESS ?S)
+          (experiencer ?PROCESS ?A)))
+      Possibility)))
                      
 (subclass Seeing Perception)
 (documentation Seeing EnglishLanguage "The &%subclass of &%Perception in which the
@@ -14450,9 +14430,9 @@ of a &%GeopoliticalArea may remain constant after a change in borders.")
 (=>
   (and
     (instance ?EVENT Election)
-    (agent ?EVENT ?AGENT)
     (instance ?AREA GeopoliticalArea)
-    (instance ?AGENT (GovernmentFn ?AREA)))
+    (agent ?EVENT
+      (GovernmentFn ?AREA)))
   (instance ?EVENT PoliticalProcess))
 
 (instance geopoliticalSubdivision AsymmetricRelation)
@@ -15011,23 +14991,30 @@ ancestors of &%Humans.")
 
 (subclass Human Hominid)
 (subclass Human CognitiveAgent)
-(partition Human Man Woman)
 (documentation Human EnglishLanguage "Modern man, the only remaining species of the Homo
 genus.")
 
 (subclass Man Human)
-(documentation Man EnglishLanguage "The class of &%Male &%Humans.")
+(documentation Man EnglishLanguage "The class of &%Humans having the &%Male
+&%SexAttribute.  This is an attribute-derived convenience class and is not part of a
+partition of &%Human.")
 
-(=>
-   (instance ?MAN Man)
-   (attribute ?MAN Male))
+(<=>
+   (instance ?HUMAN Man)
+   (and
+      (instance ?HUMAN Human)
+      (attribute ?HUMAN Male)))
 
 (subclass Woman Human)
-(documentation Woman EnglishLanguage "The class of &%Female &%Humans.")
+(documentation Woman EnglishLanguage "The class of &%Humans having the &%Female
+&%SexAttribute.  This is an attribute-derived convenience class and is not part of a
+partition of &%Human.")
 
-(=>
-   (instance ?WOMAN Woman)
-   (attribute ?WOMAN Female))
+(<=>
+   (instance ?HUMAN Woman)
+   (and
+      (instance ?HUMAN Human)
+      (attribute ?HUMAN Female)))
 
 (subclass Reptile ColdBloodedVertebrate)
 (documentation Reptile EnglishLanguage "A &%ColdBloodedVertebrate having an external
@@ -15135,9 +15122,7 @@ in a &%GasMixture.")
 (documentation Cloud EnglishLanguage "Any &%GasMixture that is visible, e.g. &%Smoke
 produced by a fire or clouds of water vapor in the sky.")
 
-(=>
-   (instance ?CLOUD Cloud)
-   (capability Seeing patient ?CLOUD))
+(capability BiologicalProcess experiencer Organism)
 
 (subclass Smoke Cloud)
 (documentation Smoke EnglishLanguage "A mixture of fine particles suspended in a gas that
@@ -16383,9 +16368,7 @@ used in demolition work and in fireworks displays, for example.")
 (documentation MusicalInstrument EnglishLanguage "A &%Device which is manipulated by a
 &%Human and whose purpose is &%MakingMusic.")
 
-(=>
-   (instance ?INSTRUMENT MusicalInstrument)
-   (capability MakingMusic instrument ?INSTRUMENT))
+(capability MakingMusic instrument MusicalInstrument)
 
 (subclass TransportationDevice Device)
 (documentation TransportationDevice EnglishLanguage "A &%TransportationDevice is a
