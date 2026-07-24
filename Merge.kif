@@ -1216,13 +1216,11 @@ are smaller than &%Atoms and compose &%Atoms.")
 &%Protons and &%Neutrons.")
 
 (=>
-   (instance ?NUCLEUS AtomicNucleus)
-   (exists (?NEUTRON ?PROTON)
-      (and
-         (component ?NEUTRON ?NUCLEUS)
-         (component ?PROTON ?NUCLEUS)
-         (instance ?NEUTRON Neutron)
-         (instance ?PROTON Proton))))
+  (instance ?NUCLEUS AtomicNucleus)
+  (exists (?PROTON)
+    (and
+      (instance ?PROTON Proton)
+      (part ?PROTON ?NUCLEUS))))
 
 (subclass Electron SubatomicParticle)
 
@@ -1649,8 +1647,12 @@ produce changes in the world.")
 
 (=>
   (instance ?AGENT AutonomousAgent)
-  (exists (?PROC)
-    (capability ?PROC agent ?AGENT)))
+  (modalAttribute
+    (exists (?PROC)
+      (and
+        (instance ?PROC Process)
+        (agent ?PROC ?AGENT)))
+    Possibility))
 
 (subclass SentientAgent AutonomousAgent)
 
@@ -1699,9 +1701,7 @@ actions attribute to the &%Human or &%Organization that operates it (see
 
 (disjoint ArtificialIntelligenceAgent Organization)
 
-(=>
-  (instance ?AI ArtificialIntelligenceAgent)
-  (capability Sensing agent ?AI))
+(capability Sensing agent ArtificialIntelligenceAgent)
 
 (instance LegalPersonhood RelationalAttribute)
 
@@ -4070,7 +4070,8 @@ type ?PROCESS.")
 
 (=>
   (and
-    (capability ?PROCESS ?ROLE ?OBJ)
+    (capability ?PROCESS ?ROLE ?DEVICE_CLASS)
+    (instance ?OBJ ?DEVICE_CLASS)
     (instance ?OBJ Device)
     (not
       (attribute ?OBJ DeviceDamaged)))
@@ -4078,7 +4079,8 @@ type ?PROCESS.")
     (exists (?P)
       (and
         (instance ?P ?PROCESS)
-        (?ROLE ?P ?OBJ))) Possibility))   
+        (?ROLE ?P ?OBJ)))
+    Possibility))
 
 (instance exploits BinaryPredicate)
 (domain exploits 1 Object)
@@ -4140,7 +4142,12 @@ demonstrated to some measurable degree.")
 
 (=>
   (hasSkill ?PROC ?AGENT)
-  (capability ?PROC agent ?AGENT))
+  (modalAttribute
+    (exists (?PROCESS_INSTANCE)
+      (and
+        (instance ?PROCESS_INSTANCE ?PROC)
+        (agent ?PROCESS_INSTANCE ?AGENT)))
+    Possibility))
 
 (instance confersNorm TernaryPredicate)
 (domain confersNorm 1 Entity)
@@ -7862,8 +7869,9 @@ the &%Circle ?CIRCLE has a length of ?LENGTH.")
       (geometricDistance ?CENTER ?POINT ?RADIUS))))
             
 (=>
-  (radius ?CIRCLE ?RADIUS)
-  (attribute ?CIRCLE Circle))
+  (instance ?CIRCLE Circle)
+  (exists (?RADIUS)
+    (radius ?CIRCLE ?RADIUS)))
   
 ;(subrelation diameter width) causing domain of 1st argument inconsistency
 (instance diameter BinaryPredicate)
@@ -10408,14 +10416,10 @@ parts (see &%superficialPart) of the &%HoleRegion's principal host (see
       (experiencer ?PROC ?ORG))
    (instance ?ORG Organism))
 
-(=>
-  (instance ?O Organism)
-  (not
-    (capability BiologicalProcess agent ?O)))
+(not
+  (capability BiologicalProcess agent Organism))
 
-(=>
-  (instance ?O Organism)
-  (capability BiologicalProcess experiencer ?O))
+(capability BiologicalProcess experiencer Organism)
 
 (subclass PhysiologicProcess BiologicalProcess)
 
@@ -10435,13 +10439,12 @@ which there is not conscious awareness and control.")
 particular &%Organ or &%Tissue.")
 
 (=>
-    (instance ?PROC OrganOrTissueProcess)
-    (exists (?THING)
-        (and
-            (eventLocated ?PROC ?THING)
-            (or
-                (instance ?THING Organ)
-                (instance ?THING Tissue)))))
+  (instance ?PROC OrganOrTissueProcess)
+  (exists (?THING)
+    (and
+      (eventLocated ?PROC ?THING)
+      (instance ?THING
+        (UnionFn Organ Tissue)))))
 
 (subclass OrganismProcess PhysiologicProcess)
 
@@ -10742,13 +10745,12 @@ function which affects the &%Organism being injured, it is a subclass
 of &%BiologicalProcess.")
 
 (=>
-    (instance ?POISON Poisoning)
-    (exists (?THING)
-        (and
-            (patient ?POISON ?THING)
-            (or
-                (instance ?THING Organism)
-                (instance ?THING AnatomicalStructure)))))
+  (instance ?POISON Poisoning)
+  (exists (?THING)
+    (and
+      (patient ?POISON ?THING)
+      (instance ?THING
+        (UnionFn Organism AnatomicalStructure)))))
 
 (=>
   (instance ?POISON Poisoning)
@@ -12316,9 +12318,7 @@ or category.")
 &%IntentionalPsychologicalProcesses which involve concluding, on the basis of either
 deductive or inductive evidence, that a particular &%Proposition or &%Sentence is true.")
 
-(=>
-   (instance ?AGENT CognitiveAgent)
-   (capability Reasoning agent ?AGENT))
+(capability Reasoning agent CognitiveAgent)
 
 (subclass Selecting IntentionalPsychologicalProcess)
 (documentation Selecting EnglishLanguage "The &%Class of
@@ -12483,15 +12483,17 @@ involve the recollection of prior experiences and/or of knowledge
 which was previously acquired.")
 
 (=>
-   (and
-      (instance ?REMEMBER Remembering)
-      (containsFormula ?REMEMBER ?FORMULA))
-   (exists (?TIME)
-      (and
-         (holdsDuring ?TIME ?FORMULA)
-         (or
-            (before ?TIME (WhenFn ?REMEMBER))
-            (earlier ?TIME (WhenFn ?REMEMBER))))))
+  (and
+    (instance ?REMEMBER Remembering)
+    (refers ?REMEMBER ?FORMULA)
+    (instance ?FORMULA Formula))
+  (exists (?TIME)
+    (and
+      (holdsDuring ?TIME ?FORMULA)
+      (before
+        (EndFn ?TIME)
+        (BeginFn
+          (WhenFn ?REMEMBER))))))
 
 (subclass Keeping IntentionalProcess)
 (documentation Keeping EnglishLanguage "The &%Class of &%Processes where the &%agent
@@ -12644,9 +12646,7 @@ of suicide the &%Organism would be the same in both cases.")
 
 (capability Killing agent Organism)
 
-(=>
-  (instance ?O Organism)
-  (capability Killing patient ?O))
+(capability Killing patient Organism)
 
 (subclass Poking IntentionalProcess)
 (documentation Poking EnglishLanguage "The &%Class of &%Processes where the &%agent
@@ -12911,7 +12911,12 @@ something is burning.")
 temperatures (i.e. not while a &%Plasma).")
 (=>
   (attribute ?X Flammable)
-  (capability Combustion patient ?X))
+  (modalAttribute
+    (exists (?COMBUSTION)
+      (and
+        (instance ?COMBUSTION Combustion)
+        (patient ?COMBUSTION ?X)))
+    Possibility))
 
 (subclass InternalChange Process)
 (documentation InternalChange EnglishLanguage "&%Processes which involve altering an
@@ -13344,9 +13349,7 @@ for a &%CognitiveAgent to learn the location of a &%Physical.")
          (not
             (equal ?AGENT1 ?AGENT2)))))
 
-(=>
-  (instance ?A AutonomousAgent)
-  (capability SocialInteraction agent ?A))
+(capability SocialInteraction agent AutonomousAgent)
 
 (subclass Pretending SocialInteraction)
 (documentation Pretending EnglishLanguage "Any &%SocialInteraction where a
@@ -13814,15 +13817,27 @@ Note that the &%agent of this sensing is assumed to be an &%Animal.")
 
 (=>
   (and
-    (instance ?SI (ImpairmentFn ?S))
+    (instance ?SI
+      (ImpairmentFn ?S))
     (instrument ?SI ?A))
   (exists (?A2)
     (and
-      (not 
-        (equal ?A2 ?A))
-      (capability ?S instrument ?A2)
+      (instance ?A2 Object)
       (not
-        (capability ?S instrument ?A)))))
+        (equal ?A2 ?A))
+      (modalAttribute
+        (exists (?PROCESS2)
+          (and
+            (instance ?PROCESS2 ?S)
+            (instrument ?PROCESS2 ?A2)))
+        Possibility)
+      (not
+        (modalAttribute
+          (exists (?PROCESS1)
+            (and
+              (instance ?PROCESS1 ?S)
+              (instrument ?PROCESS1 ?A)))
+          Possibility)))))
    
 (instance SenseImpairmentFn UnaryFunction)
 (documentation SenseImpairmentFn EnglishLanguage "A diminished capacity for &%Perception
@@ -13834,15 +13849,27 @@ of some sort.")
 
 (=>
   (and
-    (instance ?SI (SenseImpairmentFn ?S))
+    (instance ?SI
+      (SenseImpairmentFn ?S))
     (experiencer ?SI ?A))
   (exists (?A2)
     (and
-      (not 
-        (equal ?A2 ?A))
-      (capability ?S experiencer ?A2)
+      (instance ?A2 AutonomousAgent)
       (not
-        (capability ?S experiencer ?A)))))
+        (equal ?A2 ?A))
+      (modalAttribute
+        (exists (?SENSE2)
+          (and
+            (instance ?SENSE2 ?S)
+            (experiencer ?SENSE2 ?A2)))
+        Possibility)
+      (not
+        (modalAttribute
+          (exists (?SENSE1)
+            (and
+              (instance ?SENSE1 ?S)
+              (experiencer ?SENSE1 ?A)))
+          Possibility)))))
        
 (instance SenseInabilityFn UnaryFunction)
 (documentation SenseInabilityFn EnglishLanguage "The class of lacking capacity for &%Perception
@@ -13957,18 +13984,16 @@ by a &%Human.")
 (=>
   (and
     (instance ?SOUND RadiatingSound)
-    (agent ?SOUND ?OBJ)
+    (origin ?SOUND ?OBJ)
     (attribute ?SOUND Audible))
-  (exists (?HUMAN ?HEAR)
-    (and
-      (instance ?HUMAN Human)
-      (capability
-        (KappaFn ?HEAR
-          (and
-            (instance ?HEAR Hearing)
-            (agent ?HEAR ?HUMAN)
-            (destination ?HEAR ?HUMAN)
-            (origin ?HEAR ?OBJ))) agent ?HUMAN))))
+  (modalAttribute
+    (exists (?HUMAN ?HEAR)
+      (and
+        (instance ?HUMAN Human)
+        (instance ?HEAR Hearing)
+        (experiencer ?HEAR ?HUMAN)
+        (patient ?HEAR ?SOUND)))
+    Possibility))
 
 (subclass Listening Hearing)
 (subclass Listening IntentionalProcess)
@@ -14288,7 +14313,12 @@ heated and converted from a &%Liquid to a &%Gas.")
 
 (=>
   (attribute ?L Liquid)
-  (capability Boiling patient ?L))
+  (modalAttribute
+    (exists (?BOILING)
+      (and
+        (instance ?BOILING Boiling)
+        (patient ?BOILING ?L)))
+    Possibility))
 
 (subclass Evaporating StateChange)
 (documentation Evaporating EnglishLanguage "The &%Class of &%Processes where a &%Substance
@@ -15428,13 +15458,12 @@ berries, are not edible.")
 &%FruitOrVegetables and the skins of &%Animals.")
 
 (=>
-   (instance ?COVER BodyCovering)
-   (exists (?BODY)
-      (and
-         (superficialPart ?COVER ?BODY)
-         (or
-            (instance ?BODY Organism)
-            (instance ?BODY BodyPart)))))
+  (instance ?COVER BodyCovering)
+  (exists (?BODY)
+    (and
+      (superficialPart ?COVER ?BODY)
+      (instance ?BODY
+        (UnionFn Organism BodyPart)))))
 
 (subclass BodyJunction BodyPart)
 (documentation BodyJunction EnglishLanguage "The place where two &%BodyParts
@@ -16342,9 +16371,13 @@ the &%WearableItem item ?WI.")
 serve as an &%instrument in a specific subclass of &%Process.")
 
 (=>
-   (instance ?DEVICE Device)
-   (exists (?PROC)
-      (capability ?PROC instrument ?DEVICE)))
+  (instance ?DEVICE Device)
+  (modalAttribute
+    (exists (?PROC)
+      (and
+        (instance ?PROC Process)
+        (instrument ?PROC ?DEVICE)))
+    Possibility))
 
 (=>
   (instance ?DEVICE Device)
@@ -16375,9 +16408,7 @@ used in demolition work and in fireworks displays, for example.")
 &%Device which serves as the &%instrument in a &%Transportation &%Process which carries
 the &%patient of the &%Process from one point to another.")
 
-(=>
-   (instance ?DEVICE TransportationDevice)
-   (capability Transportation instrument ?DEVICE))
+(capability Transportation instrument TransportationDevice)
 
 (subclass Vehicle TransportationDevice)
 (documentation Vehicle EnglishLanguage "&%Vehicle is the subclass of
@@ -16433,9 +16464,7 @@ thing to something else, e.g. nails, screws, buttons, etc.")
 primarily to damage or destroy &%Humans/&%Animals, &%StationaryArtifacts or
 the places inhabited by &%Humans/&%Animals.")
 
-(=>
-   (instance ?WEAPON Weapon)
-   (capability Damaging instrument ?WEAPON))
+(capability Damaging instrument Weapon)
 
 (=>
   (instance ?WEAPON Weapon)
@@ -17071,9 +17100,7 @@ to bring about some sort of political change.")
 purpose of either defensive or offensive combat, whether or not
 the force is an official &%GovernmentOrganization.")
 
-(=>
-  (instance ?ORG MilitaryForce)
-  (capability ViolentContest agent ?ORG))
+(capability ViolentContest agent MilitaryForce)
 
 (subclass MilitaryOrganization MilitaryForce)
 (subclass MilitaryOrganization GovernmentOrganization)
@@ -17380,12 +17407,11 @@ intersected with its back (see &%BackFn).")
 &%False.  These are &%Attributes of &%Sentences and &%Propositions.")
 
 (=>
-   (and
-      (property ?ITEM ?VALUE)
-      (instance ?VALUE TruthValue))
-   (or
-      (instance ?ITEM Sentence)
-      (instance ?ITEM Proposition)))
+  (and
+    (property ?ITEM ?VALUE)
+    (instance ?VALUE TruthValue))
+  (instance ?ITEM
+    (UnionFn Sentence Proposition)))
 
 (instance True TruthValue)
 (documentation True EnglishLanguage "The &%TruthValue of being true.")

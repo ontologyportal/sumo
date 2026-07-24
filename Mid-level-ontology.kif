@@ -1655,6 +1655,7 @@ on) or move other things (like weapons).")
 (=>
   (and
     (instance ?GUN Gun)
+    (instance ?O Object)
     (instance ?U UnitOfLength)
     (effectiveRange ?GUN
       (MeasureFn ?LM ?U))
@@ -1664,13 +1665,13 @@ on) or move other things (like weapons).")
       (exists (?O2)
         (between ?O ?O2 ?GUN)))
     (lessThanOrEqualTo ?LM1 ?LM))
-  (exists (?DAMAGING)
-    (capability
-      (KappaFn ?DAMAGING
-        (and
-          (instance ?DAMAGING Damaging)
-          (patient ?DAMAGING ?O)))
-       instrument ?GUN)))
+  (modalAttribute
+    (exists (?DAMAGING)
+      (and
+        (instance ?DAMAGING Damaging)
+        (patient ?DAMAGING ?O)
+        (instrument ?DAMAGING ?GUN)))
+    Possibility))
 
 ;; effectiveRange of weapons means the ability to kill living things
 
@@ -1687,13 +1688,13 @@ on) or move other things (like weapons).")
       (exists (?O2)
         (between ?O ?O2 ?GUN)))
     (lessThanOrEqualTo ?LM1 ?LM))
-  (exists (?KILLING)
-    (capability
-      (KappaFn ?KILLING
-        (and
-          (instance ?KILLING Killing)
-          (patient ?KILLING ?O)))
-       instrument ?GUN)))
+  (modalAttribute
+    (exists (?KILLING)
+      (and
+        (instance ?KILLING Killing)
+        (patient ?KILLING ?O)
+        (instrument ?KILLING ?GUN)))
+    Possibility))
 
 (subclass GunStock EngineeringComponent)
 (documentation GunStock EnglishLanguage "The part of a &%Gun that is placed against the
@@ -6067,10 +6068,9 @@ single &%GeometricPoint, known as the center of the &%Sphere.")
 
 (=>
   (and
-    (attribute ?OBJ ?SPHERE)
+    (instance ?OBJ Sphere)
     (pointOfFigure ?PT1 ?OBJ)
-    (pointOfFigure ?PT2 ?OBJ)
-    (instance ?SPHERE Sphere))
+    (pointOfFigure ?PT2 ?OBJ))
   (exists (?CENTER ?DIST)
     (and
       (geometricDistance ?PT1 ?CENTER ?DIST)
@@ -7019,7 +7019,7 @@ diseases such as hepatitis C and acquired immunodeficiency syndrome.
   (and
     (holdsDuring ?T
       (attribute ?H ?C))
-    (instance ?H ChronicDisease)
+    (instance ?C ChronicDisease)
     (duration ?T ?D))
   (greaterThan ?D
     (MeasureFn 3 MonthDuration)))
@@ -9735,7 +9735,9 @@ who are mounted, i.e. who perform their combat missions from a &%Horse or
       (agent ?T ?P)
       (instance ?V Vehicle)
       (patient ?T ?V)
-      (during ?T ?B))))
+      (during
+        (WhenFn ?T)
+        (WhenFn ?B))
 
 (subclass MilitarySurplus MilitaryArtifact)
 (documentation MilitarySurplus EnglishLanguage "Any &%MilitaryArtifact which is sold to a
@@ -11486,12 +11488,16 @@ reduces the excretion of water in urine.[from Wikipedia]")
       (equal ?U1 ?U2))
     (result ?U2 ?P2)
     (agent ?U2 ?H)
-    (earlier ?U1 ?I)
-    (earlier ?I ?U2)
+    (earlier
+      (WhenFn ?U1)
+      (WhenFn ?I))
+    (earlier
+      (WhenFn ?I)
+      (WhenFn ?U2))
     (instance ?V UnitOfVolume)
-    (measure ?U1
+    (measure ?P1
       (MeasureFn ?N1 ?V))
-    (measure ?U2
+    (measure ?P2
       (MeasureFn ?N2 ?V)))
   (modalAttribute
     (greaterThan ?N1 ?N2)
@@ -12108,7 +12114,7 @@ two &%Muscles that put opposing forces on a part of the body.")
     (part ?AC ?H)
     (part ?BC ?H)
     (instance ?H Animal))
-  (capability Extension instrument ?BC))
+  (capability Extension instrument ?B))
 
 (=>
   (and
@@ -12121,7 +12127,7 @@ two &%Muscles that put opposing forces on a part of the body.")
     (part ?AC ?H)
     (part ?BC ?H)
     (instance ?H Animal))
-  (capability Flexion instrument ?BC))
+  (capability Flexion instrument ?B))
 
 (antagonistMuscles Bicep Tricep)
 (antagonistMuscles HamstringMuscle ThighMuscle)
@@ -12685,7 +12691,6 @@ includes the rib cage of an &%Animal, surrounding the &%Heart and
   (and
     (instance ?C Chest)
     (instance ?A Animal)
-    (instance ?C ?A)
     (part ?C ?A))
   (exists (?T)
     (and
@@ -12858,7 +12863,8 @@ heartbeat, cardiogenic shock or cardiac arrest.[from Wikipedia]")
             (instance ?BF LiquidMotion)
             (objectTransferred ?BF ?B)
             (instance ?B Blood)
-            (during ?BF
+            (during
+              (WhenFn ?BF)
               (WhenFn ?HA))
             (destination ?BF ?M)))))))
 
@@ -13404,7 +13410,8 @@ may include pneumonia and loss of bladder control.[from Wikipedia]")
             (instance ?BF LiquidMotion)
             (objectTransferred ?BF ?B)
             (instance ?B Blood)
-            (during ?BF
+            (during
+              (WhenFn ?BF)
               (WhenFn ?HA))
             (destination ?BF ?M)))))))
 
@@ -15586,7 +15593,7 @@ means that the &%AutonomousAgent ?AGENT has committed to the agreement ?PROP.")
 
 (instance agreementPeriod BinaryPredicate)
 (domain agreementPeriod 1 Agreement)
-(domain agreementPeriod 2 TimeInterval)
+(domain agreementPeriod 2 TimeDuration)
 (documentation agreementPeriod EnglishLanguage "(&%agreementPeriod ?AGREEMENT ?DURATION)
 holds if ?DURATION specifies a &%TimeDuration, which is the length of time that the
 ?AGREEMENT is &%ActiveAgreement.")
@@ -15600,7 +15607,7 @@ holds if ?DURATION specifies a &%TimeDuration, which is the length of time that 
 
 (instance agreementEffectiveDate BinaryPredicate)
 (domain agreementEffectiveDate 1 Agreement)
-(domainSubclass agreementEffectiveDate 2 Day)
+(domain agreementEffectiveDate 2 TimePoint)
 (documentation agreementEffectiveDate EnglishLanguage "(&%agreementEffectiveDate ?AGREEMENT
 ?TIME) means that ?AGREEMENT goes into effect at &%TimePoint ?TIME, and remains an
 &%ActiveAgreement for &%TimeDuration ?DURATION.")
@@ -15732,16 +15739,21 @@ It follows that all subpropositions of the &%Contract is &%Legal.")
     (instance ?PROC IntentionalProcess)
     (agent ?PROC ?AGENT1)
     (realization ?PROC ?PROP)
-    (containsFormula ?PROP ?FORM1)
-    (containsFormula ?AGREEMENT ?FORM2)
+    (instance ?DOC1 ContentBearingPhysical)
+    (represents ?DOC1 ?PROP)
+    (containsFormula ?DOC1 ?FORM1)
+    (instance ?DOC2 ContentBearingPhysical)
+    (represents ?DOC2 ?AGREEMENT)
+    (containsFormula ?DOC2 ?FORM2)
     (not
-       (consistent ?FORM1 ?FORM2)))
+      (consistent ?FORM1 ?FORM2)))
   (modalAttribute
     (exists (?LEGAL)
       (and
         (instance ?LEGAL LegalAction)
         (plaintiff ?LEGAL ?AGENT2)
-        (defendant ?LEGAL ?AGENT1))) Possibility))
+        (defendant ?LEGAL ?AGENT1)))
+    Possibility))
 
 (subclass MarriageContract Contract)
 (documentation MarriageContract EnglishLanguage "An &%Contract between a married couple
@@ -19095,15 +19107,17 @@ For a &%Device that has been damaged, one can use the term &%DeviceDamaged.")
     
 (=>
   (and
-    (capability ?PROCESS ?R ?O)
+    (capability ?PROCESS ?R ?OBJECT_CLASS)
+    (instance ?O ?OBJECT_CLASS)
     (instance ?O Artifact)
     (not
       (attribute ?O ArtifactNotFitForPurpose)))
-  (modalAttribute 
+  (modalAttribute
     (exists (?P)
       (and
         (instance ?P ?PROCESS)
-        (?R ?P ?O))) Possibility))
+        (?R ?P ?O)))
+    Possibility))
       
 (subclass Leaving Translocation)
 (documentation Leaving EnglishLanguage "The initial part of any instance of &%Translocation.")
@@ -20622,14 +20636,15 @@ who has completed less than one year at the school.")
 
 (=>
   (and
-    (attribute ?P CollegeFreshman)
+    (attribute ?H CollegeFreshman)
     (occupiesPosition ?H ?P ?ORG))
-  (exists (?T)
+  (exists (?INTERVAL ?YEARS)
     (and
-      (holdsDuring
-        (MeasureFn ?T YearDuration)
+      (holdsDuring ?INTERVAL
         (student ?H ?ORG))
-      (lessThan ?T 1))))
+      (duration ?INTERVAL
+        (MeasureFn ?YEARS YearDuration))
+      (lessThan ?YEARS 1))))
 
 (instance CollegeJunior CollegeStudentPosition)
 (documentation CollegeJunior EnglishLanguage "The &%Positions of a student at a &%PostSecondarySchool
@@ -20637,15 +20652,16 @@ who has completed at least two years and less than three years at the school.")
 
 (=>
   (and
-    (attribute ?P CollegeJunior)
-    (occupiesPosition ?H ?P ?ORG))
-  (exists (?T)
+    (attribute ?H CollegeJunior)
+    (student ?H ?ORG))
+  (exists (?INTERVAL ?YEARS)
     (and
-      (holdsDuring
-        (MeasureFn ?T YearDuration)
+      (holdsDuring ?INTERVAL
         (student ?H ?ORG))
-      (greaterThanOrEqualTo ?T 2)
-      (lessThan ?T 3))))
+      (duration ?INTERVAL
+        (MeasureFn ?YEARS YearDuration))
+      (greaterThanOrEqualTo ?YEARS 2)
+      (lessThan ?YEARS 3))))
 
 (instance CollegeSenior CollegeStudentPosition)
 (documentation CollegeSenior EnglishLanguage "The &%Positions of a student at a &%PostSecondarySchool
@@ -21505,13 +21521,28 @@ not longer change.")
    (instance ?PROCESS ChemicalProcess))
 
 (=>
-   (property ?PROCESS ChemicalEquilibrium)
-   (exists (?RATIO ?TIME ?RESOURCE ?RESULT)
-      (=>
-         (and
-            (holdsDuring ?TIME (resource ?PROCESS ?RESOURCE))
-            (holdsDuring ?TIME (result ?PROCESS ?RESULT)))
-         (equal ?RATIO (DivisionFn ?RESOURCE ?RESULT)))))
+  (property ?PROCESS ChemicalEquilibrium)
+  (exists
+    (?RATIO ?TIME ?RESOURCE ?RESULT
+     ?RESOURCE_VALUE ?RESULT_VALUE ?UNIT)
+    (=>
+      (and
+        (holdsDuring ?TIME
+          (resource ?PROCESS ?RESOURCE))
+        (holdsDuring ?TIME
+          (result ?PROCESS ?RESULT))
+        (holdsDuring ?TIME
+          (measure ?RESOURCE
+            (MeasureFn ?RESOURCE_VALUE ?UNIT)))
+        (holdsDuring ?TIME
+          (measure ?RESULT
+            (MeasureFn ?RESULT_VALUE ?UNIT)))
+        (not
+          (equal ?RESULT_VALUE 0)))
+      (equal ?RATIO
+        (DivisionFn
+          ?RESOURCE_VALUE
+          ?RESULT_VALUE)))))
 
 (subclass Chromatography Separating)
 (documentation Chromatography EnglishLanguage "&%Processes of &%Separating a &%LiquidMixture or
@@ -22263,14 +22294,13 @@ harvested from &%Plants or &%Animals as food for &%DomesticAnimals.")
 
 (=>
   (and
-      (instance ?A Omnivore)
-      (agent ?E ?A)
-      (instance ?E Eating)
-      (patient ?E ?F))
-  (or
-    (instance ?F Plant)
-    (instance ?F Animal)
-    (instance ?F Fungus)))
+    (instance ?A Omnivore)
+    (agent ?E ?A)
+    (instance ?E Eating)
+    (patient ?E ?F))
+  (instance ?F
+    (UnionFn Plant
+      (UnionFn Animal Fungus))))
 
 (documentation Fungivore EnglishLanguage "An organism that exclusively eats fungus")
 (termFormat EnglishLanguage Fungivore "fungivore")
@@ -23652,11 +23682,12 @@ in such a way that the fetus cannot survive.")
 e.g. the purchase of a house, closing a business deal, etc.")
 
 (=>
-   (and
-      (instance ?CLOSE ClosingContract)
-      (agent ?CLOSE ?AGENT)
-      (destination ?CLOSE ?CONTRACT))
-   (partyToAgreement ?CONTRACT ?AGENT))
+  (and
+    (instance ?CLOSE ClosingContract)
+    (agent ?CLOSE ?AGENT)
+    (destination ?CLOSE ?CONTRACT)
+    (instance ?CONTRACT Contract))
+  (partyToAgreement ?AGENT ?CONTRACT))
 
 (subclass Opening Motion)
 (relatedInternalConcept Opening Closing)
@@ -24029,19 +24060,17 @@ by another &%contestParticipant.")
     (subProcess ?B ?C)
     (contestParticipant ?C ?A1)
     (agent ?B ?A1))
-  (exists (?C1 ?A2)
+  (exists (?TRANSLOCATION ?A2)
     (and
-      (prevents ?C1 Translocation)
-      (instance ?B ?C1)
+      (instance ?TRANSLOCATION Translocation)
+      (prevents ?B ?TRANSLOCATION)
       (contestParticipant ?C ?A2)
       (not
         (equal ?A1 ?A2))
       (desires ?A2
-        (exists (?I)
-          (and
-            (instance ?I ?C1)
-            (agent ?I ?A1)
-            (subProcess ?I ?C)))))))
+        (and
+          (agent ?TRANSLOCATION ?A1)
+          (subProcess ?TRANSLOCATION ?C))))))
 
 (subclass MilitaryManeuver Maneuver)
 (documentation MilitaryManeuver EnglishLanguage "Any &%Maneuver which takes place in a &%Battle
@@ -26133,15 +26162,20 @@ the uterus.")
       (attribute ?F Menopausal))
     (equal ?BEFORE
       (SubtractionFn
-        (MeasureFn 1 YearDuration)
-        (BeginFn ?T1)))
+        (BeginFn ?T1)
+        (MeasureFn 1 YearDuration)))
     (equal ?YBEFORE
-      (TimeIntervalFn ?YBEFORE (BeginFn ?T1))))
+      (TimeIntervalFn
+        ?BEFORE
+        (BeginFn ?T1))))
   (not
     (exists (?M)
       (and
         (instance ?M Menstruation)
-        (experiencer ?M ?F)))))
+        (experiencer ?M ?F)
+        (overlapsTemporally
+          (WhenFn ?M)
+          ?YBEFORE)))))
 ;;
 ;; 31Jan2023 JP
 ;; corrected ?B
@@ -28220,8 +28254,7 @@ attribute that describes the temperature of a certain object")
   (exists (?TEMP)
     (and
       (measure ?X ?TEMP)
-      (instance ?TEMP TemperatureMeasure)
-      (attribute ?TEMP ?Y))))
+      (instance ?TEMP TemperatureMeasure))))
 
 (instance ColdTemperature TemperatureAttribute)
 (documentation ColdTemperature EnglishLanguage "&%ColdTemperature is a type of
@@ -32193,17 +32226,21 @@ agreement, resulting in an instance of &%Agreement.")
   (and
     (instance ?C Confirming)
     (agent ?C ?A)
-    (containsInformation ?C ?P))
-  (exists (?S ?RA ?A2)
+    (realization ?C ?P))
+  (exists (?S ?RA ?A2 ?AGREEMENT)
     (and
       (instance ?S Stating)
-      (earlier ?S ?C)
+      (earlier
+        (WhenFn ?S)
+        (WhenFn ?C))
       (instance ?RA ReachingAgreement)
       (agent ?S ?A2)
-      (containsInformation ?RA ?P)
-      (containsInformation ?S ?P)
-      (partyToAgreement ?RA ?A)
-      (partyToAgreement ?RA ?A2))))
+      (realization ?S ?P)
+      (realization ?RA ?P)
+      (result ?RA ?AGREEMENT)
+      (instance ?AGREEMENT Agreement)
+      (partyToAgreement ?A ?AGREEMENT)
+      (partyToAgreement ?A2 ?AGREEMENT))))
 
 (subclass Elaborating LinguisticCommunication)
 (documentation Elaborating EnglishLanguage "A &%LinguisticCommunication in
@@ -32281,15 +32318,18 @@ utterance, asking the hearer to complete it.")
 all things intended to be used in &%Covering a particular &%BodyPart.")
 
 (=>
-  (subclass ?C (CoveringFn ?B))
-  (hasPurpose ?C
-    (exists (?P ?BI ?CI)
-      (and
-        (instance ?P Covering)
-        (instance ?BI ?B)
-        (instance ?CI ?C)
-        (destination ?P ?BI)
-        (patient ?P ?CI)))))
+  (subclass ?C
+    (CoveringFn ?B))
+  (forall (?CI)
+    (=>
+      (instance ?CI ?C)
+      (hasPurpose ?CI
+        (exists (?P ?BI)
+          (and
+            (instance ?P Covering)
+            (instance ?BI ?B)
+            (destination ?P ?BI)
+            (patient ?P ?CI)))))))
 
 (documentation beforeOnPath EnglishLanguage "(beforeOnPath ?OBJ1 ?OBJ2 ?PATH ?PROC) means that ?OBJ1 is spatially
 before ?OBJ2 on the path ?PATH with respect to a particular &%Transfer &%Process.")
