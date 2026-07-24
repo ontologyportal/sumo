@@ -19,6 +19,7 @@ from typing import List, Sequence, Tuple
 # Error codes:
 CMD_NOT_FOUND = 127
 OTHER_ERR = 2
+DEFAULT_TIME_LIMIT_SECONDS = 10
 
 def discover_main_folders(base_dir: Path) -> List[Path]:
     """Return folders that contain EXAMPLES, OPTIONS, and SYSTEMS subfolders."""
@@ -40,27 +41,33 @@ def discover_thf_files(folder: Path) -> List[Path]:
     return thf_files
 
 
-def build_run_plan(base_dir: Path) -> List[Tuple[Path, Path, Path, Path, Path]]:
+def build_run_plan(base_dir: Path) -> List[Tuple[Path, Path, Path, Path, Path, Path, Path]]:
     """
-    Create a plan of (main_folder, example, option, system, output_problem_file).
+    Create a plan of (main_folder, example, option, system, output_problem_file, output_log_file, input_axiom_file).
     CF: Takes the input files and turns it into an object that the next 
     method is able to use as a guide
     """
-    plan: List[Tuple[Path, Path, Path, Path, Path]] = []
+    plan: List[Tuple[Path, Path, Path, Path, Path, Path, Path]] = []
     for main_folder in discover_main_folders(base_dir):
         examples = discover_thf_files(main_folder / "EXAMPLES")
         options = discover_thf_files(main_folder / "OPTIONS")
         systems = discover_thf_files(main_folder / "SYSTEMS")
 
-        output_dir = base_dir / "results" / main_folder.name
-        output_dir.mkdir(parents=True, exist_ok=True)
+        thf_output_dir = base_dir / "results" / "thf" / main_folder.name
+        full_output_dir = base_dir / "results" / "full_output" / main_folder.name
+        input_axioms_dir = base_dir / "results" / "input_axioms" / main_folder.name
+        thf_output_dir.mkdir(parents=True, exist_ok=True)
+        full_output_dir.mkdir(parents=True, exist_ok=True)
+        input_axioms_dir.mkdir(parents=True, exist_ok=True)
 
         for example in examples:
             for option in options:
                 for system in systems:
                     stem = f"{example.stem}__{option.stem}__{system.stem}"
-                    problem_file = output_dir / f"{stem}.thf"
-                    plan.append((main_folder, example, option, system, problem_file))
+                    problem_file = thf_output_dir / f"{stem}.thf"
+                    output_log = full_output_dir / f"{stem}.out"
+                    input_axioms_file = input_axioms_dir / f"{stem}.txt"
+                    plan.append((main_folder, example, option, system, problem_file, output_log, input_axioms_file))
     return plan
 
 
@@ -89,17 +96,26 @@ def find_vampire_binary(explicit_path: str | None) -> str | None:
     return None
 
 
-def run_vampire(problem_file: Path, vampire_binary: str, output_dir: Path) -> int:
-    """Run Vampire on the combined THF file and save its output log."""
-    output_log = output_dir / f"{problem_file.stem}.out"
-    command = [vampire_binary, str(problem_file)]
+def run_vampire(problem_file: Path, vampire_binary: str, output_log: Path, input_axioms_path: Path, time_limit_seconds: int) -> int:
+    """Run Vampire on the combined THF file and emit stdout only for nonzero exits."""
+    output_log.parent.mkdir(parents=True, exist_ok=True)
+    input_axioms_path.parent.mkdir(parents=True, exist_ok=True)
+    command = [vampire_binary, "--time_limit", str(time_limit_seconds), str(problem_file)]
     try:
         completed = subprocess.run(command, capture_output=True, text=True)
     except FileNotFoundError as exc:
         output_log.write_text(str(exc), encoding="utf-8")
         return CMD_NOT_FOUND
 
-    output_log.write_text(completed.stdout + completed.stderr, encoding="utf-8")
+    combined_output = completed.stdout + completed.stderr
+    input_axiom_lines = [line.rstrip() for line in combined_output.splitlines() if line.rstrip().endswith("[input(axiom)]")]
+    if input_axiom_lines:
+        input_axioms_path.write_text("\n".join(input_axiom_lines) + "\n", encoding="utf-8")
+
+    if completed.returncode != 0:
+        return completed.returncode
+
+    output_log.write_text(combined_output, encoding="utf-8")
     return completed.returncode
 
 
@@ -107,6 +123,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent, help="Directory containing the THF test folders")
     parser.add_argument("--vampire", default=os.environ.get("VAMPIRE_BIN"), help="Path to the Vampire executable")
+    parser.add_argument("--timeout", type=int, default=DEFAULT_TIME_LIMIT_SECONDS, help="Time limit to pass to Vampire in seconds")
     parser.add_argument("--dry-run", action="store_true", help="Show the planned combinations without running Vampire")
     args = parser.parse_args()
 
@@ -124,8 +141,8 @@ def main() -> int:
     if args.dry_run:
         print(f"Planned {len(plan)} combinations:")
         # First level '_' is example category (like '1_Obligation')
-        for _, example, option, system, problem_file in plan:
-            print(f"- {example.name} + {option.name} + {system.name} -> {problem_file.relative_to(base_dir)}")
+        for _, example, option, system, problem_file, output_log, input_axioms_path in plan:
+            print(f"- {example.name} + {option.name} + {system.name} -> THF: {problem_file.relative_to(base_dir)} ; LOG: {output_log.relative_to(base_dir)} ; INPUT_AXIOMS: {input_axioms_path.relative_to(base_dir)}")
         return 0
 
     # This is the start of the main section, where it verifies vampire is installed before running 
@@ -133,14 +150,13 @@ def main() -> int:
     if not vampire_binary:
         print("Vampire executable was not found. Install Vampire or set --vampire / VAMPIRE_BIN.", file=sys.stderr)
         return OTHER_ERR
-    print(f"Running {len(plan)} combinations with {vampire_binary}")
+    print(f"Running {len(plan)} combinations with {vampire_binary} using a {args.timeout}s Vampire time limit")
     # First level '_' is example category (like '1_Obligation')
     total_runtime = 0.0
-    for _, example, option, system, problem_file in plan:
+    for _, example, option, system, problem_file, output_log, input_axioms_path in plan:
         start_time = time.perf_counter()
-        output_dir = problem_file.parent
         compose_problem_file(problem_file, [system, example, option])
-        return_code = run_vampire(problem_file, vampire_binary, output_dir)
+        return_code = run_vampire(problem_file, vampire_binary, output_log, input_axioms_path, args.timeout)
         elapsed_time = time.perf_counter() - start_time
         status = "ok" if return_code == 0 else f"failed ({return_code})"
         print(f"- {problem_file.name}: {status} ({elapsed_time:.2f}s)")
