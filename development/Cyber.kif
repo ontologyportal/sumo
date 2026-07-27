@@ -64,7 +64,10 @@ not any agent has discovered it.")
 is exploitable on ?SYSTEM by ?AGENT given the agent's available resources.
 The agent argument is what makes &%Vulnerability relational: the same flaw
 on the same system may stand in &%vulnerableSystem to one agent without
-standing in &%vulnerableSystem to another.")
+standing in &%vulnerableSystem to another.  The same &%Vulnerability
+instance may also reside on more than one distinct system, as when the
+same underlying flaw is present across multiple systems of the same
+type.")
 
 (=>
   (and
@@ -73,6 +76,19 @@ standing in &%vulnerableSystem to another.")
     (instance ?AGENT AutonomousAgent)
     (vulnerableSystem ?VUL ?SYS ?AGENT))
   (attribute ?SYS ?VUL))
+
+;; rule: the same vulnerability instance can reside on more than one
+;; distinct system (e.g. the same flaw present across every system of a
+;; given type)
+
+(exists (?VUL ?SYS1 ?SYS2)
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?SYS1 Physical)
+    (instance ?SYS2 Physical)
+    (not (equal ?SYS1 ?SYS2))
+    (attribute ?SYS1 ?VUL)
+    (attribute ?SYS2 ?VUL)))
 
 ;; ============================================================
 ;; SoftwareBug 
@@ -224,6 +240,37 @@ there is at most one operational budget.")
     (not (equal ?B1 ?B2))))
 
 ;; ============================================================
+;; operationalBudgetInPeriod (TernaryPredicate)
+;; ============================================================
+
+;; Reifies the "current operational period" referenced in
+;; operationalBudget's own documentation as an explicit argument,
+;; following the same base-predicate / InPeriod-predicate pattern used
+;; throughout Economy.kif's Budget section (e.g. annualRevenuesOfArea /
+;; annualRevenuesOfAreaInPeriod).
+
+(instance operationalBudgetInPeriod TernaryPredicate)
+(domain operationalBudgetInPeriod 1 AutonomousAgent)
+(domain operationalBudgetInPeriod 2 CurrencyMeasure)
+(domainSubclass operationalBudgetInPeriod 3 TimeInterval)
+(termFormat EnglishLanguage operationalBudgetInPeriod "operational budget in period")
+(format EnglishLanguage operationalBudgetInPeriod "%1 has an operational budget of %2 for %3")
+(documentation operationalBudgetInPeriod EnglishLanguage "(&%operationalBudgetInPeriod
+?AGENT ?BUDGET ?PERIOD) means that ?AGENT has a total resource budget of
+?BUDGET available for cyber operations during the &%TimeInterval
+indicated by ?PERIOD.  Reifies the operational period referenced in
+&%operationalBudget's own documentation as an explicit argument, the
+same way &%annualRevenuesOfAreaInPeriod reifies a period for
+&%annualRevenuesOfArea.")
+
+(<=>
+  (operationalBudgetInPeriod ?AGENT ?BUDGET ?PERIOD)
+  (exists (?TIME)
+    (and
+      (instance ?TIME ?PERIOD)
+      (holdsDuring ?TIME (operationalBudget ?AGENT ?BUDGET)))))
+
+;; ============================================================
 ;; aggregateCyberCost (TernaryPredicate)
 ;; ============================================================
 
@@ -254,6 +301,23 @@ cost.")
     (aggregateCyberCost ?AGENT ?T ?TOTAL)
     (measure ?TOTAL ?AMOUNT))
   (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; rule: aggregateCyberCost can equal the sum of a single exploitCost and a
+;; single patchCost -- the simplest case of the general "sum of per-action
+;; costs" claim in the documentation
+
+(exists (?AGENT ?T ?VUL1 ?VUL2 ?C1 ?C2 ?AMOUNT1 ?AMOUNT2 ?TOTAL)
+  (and
+    (instance ?AGENT AutonomousAgent)
+    (instance ?T TimeInterval)
+    (instance ?VUL1 Vulnerability)
+    (instance ?VUL2 Vulnerability)
+    (holdsDuring ?T (exploitCost ?VUL1 ?AGENT ?C1))
+    (holdsDuring ?T (patchCost ?VUL2 ?AGENT ?C2))
+    (measure ?C1 ?AMOUNT1)
+    (measure ?C2 ?AMOUNT2)
+    (aggregateCyberCost ?AGENT ?T ?TOTAL)
+    (measure ?TOTAL (AdditionFn ?AMOUNT1 ?AMOUNT2))))
 
 (exists (?AGENT ?T1 ?T2 ?TOT1 ?TOT2)
   (and
