@@ -987,7 +987,10 @@ For example, (&%dateEstablished &%UnitedNations
   (exists (?DAY)
     (and
       (instance ?DAY ?DATE)
-      (overlapsTemporally ?DAY (BeginFn (WhenFn ?THING))))))
+      (temporalPart
+        (BeginFn
+          (WhenFn ?THING))
+        ?DAY))))
 
 (instance dateUsed TernaryPredicate)
 (domain dateUsed 1 Object)
@@ -9054,15 +9057,15 @@ complement of &%WholesaleStore, which is the class of
 &%MercantileOrganizations that sell goods to the general
 public.")
 
+(capability Selling agent RetailStore)
 (=>
   (instance ?X RetailStore)
-  (and
-    (capability Selling agent ?X)
-    (exists (?P ?EV)
-      (and
-        (instance ?EV Selling)
-        (destination ?EV ?P)
-        (instance ?P Human)))))
+  (exists (?P ?EV)
+    (and
+      (instance ?EV Selling)
+      (agent ?EV ?X)
+      (destination ?EV ?P)
+      (instance ?P Human))))
 
 (subclass ShoppingMall MercantileOrganization)
 (documentation ShoppingMall EnglishLanguage "A &%MercantileOrganization which is a collection
@@ -9319,13 +9322,15 @@ Sovereignty Area' used by the CIA World Fact Book.  Cf.
 &%GeopoliticalArea ?AREA.")
 
 (=>
-   (and
-      (instance ?AREA GeopoliticalArea)
-      (equal ?CITIZENRY
-        (CardinalityFn (CitizenryFn ?AREA)))
-      (equal ?POPULATION
-        (CardinalityFn (ResidentFn ?AREA))))
-   (greaterThanOrEqualTo ?POPULATION ?CITIZENRY))
+  (and
+    (instance ?AREA GeopoliticalArea)
+    (memberCount
+      (CitizenryFn ?AREA)
+      ?CITIZENRY)
+    (memberCount
+      (ResidentFn ?AREA)
+      ?POPULATION))
+  (greaterThanOrEqualTo ?POPULATION ?CITIZENRY))
 
 (instance PerCapitaFn BinaryFunction)
 (domain PerCapitaFn 1 Quantity)
@@ -9336,19 +9341,14 @@ average amount of ?QUANTITY possessed by a resident of &%GeopoliticalArea
 ?AREA.")
 
 (=>
-   (equal
-     (PerCapitaFn
-       (MeasureFn ?QUANTITY1 ?U)
-       ?AREA)
-     (MeasureFn ?QUANTITY2 ?U))
-   (exists (?POPULATION)
-      (and
-         (equal ?POPULATION
-           (CardinalityFn
-             (ResidentFn ?AREA)))
-         (equal
-           ?QUANTITY2
-           (DivisionFn ?QUANTITY1 ?POPULATION)))))
+  (equal
+    (PerCapitaFn
+      (MeasureFn ?QUANTITY1 ?U) ?AREA)
+    (MeasureFn ?QUANTITY2 ?U))
+  (exists (?POPULATION)
+    (and
+      (memberCount (ResidentFn ?AREA) ?POPULATION)
+      (equal ?QUANTITY2 (DivisionFn ?QUANTITY1 ?POPULATION)))))
 
 (subclass CityDistrict GeopoliticalArea)
 (documentation CityDistrict EnglishLanguage "Any &%geopoliticalSubdivision of a &%City.")
@@ -11190,7 +11190,8 @@ classify these agents.[from Wikipedia]")
       (WhenFn ?I)))
   (modalAttribute
     (not
-      (holdsDuring ?E2
+      (holdsDuring
+        (WhenFn ?E2)
         (attribute ?H ?ES)))
     Unlikely))
 
@@ -13970,7 +13971,8 @@ inflammatory process, and initiate tissue repair.[from Wikipedia]")
       (objectTransferred ?T ?W)
       (destination ?T
         (WhereFn ?I
-          (WhenFn ?I))))))
+          (BeginFn
+            (WhenFn ?I)))))))
 
 (instance InflammationFn UnaryFunction)
 (domain InflammationFn 1 BodyPart)
@@ -15342,8 +15344,11 @@ language to another, but use essentially the same Lyrical content. (09-15-2011)"
 (termFormat EnglishLanguage LyricalContent "lyrical content")
 
 (=>
-  (instance ?X LyricalContent)
-  (hasPurpose ?X
+  (and
+    (instance ?TEXT MusicText)
+    (instance ?X LyricalContent)
+    (containsInformation ?TEXT ?X))
+  (hasPurpose ?TEXT
     (exists (?S)
       (and
         (instance ?S Singing)
@@ -15871,13 +15876,13 @@ so it will also inherit from &%Recording. (09-14-2011)" "KJN")
 as wax cylinder, vinyl record, magnetic tape, CD or flash memory, that is
 intended to be used in some machine to reproduce that sound.")
 
+(capability RadiatingSound patient AudioRecording)
 (=>
   (instance ?X AudioRecording)
   (exists (?EV)
     (and
       (instance ?EV RadiatingSound)
-      (represents ?X ?EV)
-      (capability RadiatingSound patient ?X))))
+      (represents ?X ?EV))))
 
 (=>
   (instance ?RECORD AudioRecording)
@@ -15997,13 +16002,13 @@ of music.")
 as film, videotape or DVD.  Instances of this class are also commonly
 instances of &%AudioRecording.")
 
+(capability RadiatingLight patient VideoRecording)
 (=>
   (instance ?X VideoRecording)
   (exists (?EV)
     (and
       (instance ?EV Process)
-      (represents ?X ?EV)
-      (capability RadiatingLight patient ?X))))
+      (represents ?X ?EV))))
 
 (=>
   (instance ?VIDEO VideoRecording)
@@ -16839,13 +16844,12 @@ allows them to move in relation to one another.  Examples include &%Hinges, draw
 holds a &%Door.")
 
 (=>
-   (instance ?WAY Doorway)
-   (exists (?ARTIFACT)
-      (and
-         (part ?WAY ?ARTIFACT)
-         (or
-            (instance ?ARTIFACT Building)
-            (instance ?ARTIFACT Room)))))
+  (instance ?WAY Doorway)
+  (exists (?ARTIFACT)
+    (and
+      (part ?WAY ?ARTIFACT)
+      (instance ?ARTIFACT
+        (UnionFn Building Room)))))
 
 (=>
   (instance ?DOOR Door)
@@ -32245,7 +32249,7 @@ which the &%agent adds additional content beyond the original utterance.")
       (instance ?ELABORATION-MESSAGE ContentBearingPhysical)
       (result ?E ?ELABORATION-MESSAGE)
       (containsInformation ?ELABORATION-MESSAGE ?EP)
-      (subsumesContentInstance ?EP ?EARLIER-MESSAGE))))
+      (subsumesContentInstance ?ELABORATION-MESSAGE ?EARLIER-MESSAGE))))
 
 (subclass Restating LinguisticCommunication)
 (documentation Restating EnglishLanguage "A &%Communication act in
@@ -32259,13 +32263,15 @@ committing to the truth of what that person said.")
   (exists (?L ?RP ?EARLIER-MESSAGE ?RESTATED-MESSAGE)
     (and
       (instance ?L LinguisticCommunication)
-      (earlier (WhenFn ?L) (WhenFn ?R))
+      (earlier
+        (WhenFn ?L)
+        (WhenFn ?R))
       (instance ?EARLIER-MESSAGE ContentBearingPhysical)
       (result ?L ?EARLIER-MESSAGE)
       (instance ?RESTATED-MESSAGE ContentBearingPhysical)
       (result ?R ?RESTATED-MESSAGE)
       (containsInformation ?RESTATED-MESSAGE ?RP)
-      (equivalentContentInstance ?RP ?EARLIER-MESSAGE))))
+      (equivalentContentInstance ?RESTATED-MESSAGE ?EARLIER-MESSAGE))))
 
 (subclass Correcting Stating)
 (documentation Correcting EnglishLanguage "A &%Correcting is a part
@@ -32293,17 +32299,25 @@ utterance, asking the hearer to complete it.")
 
 (=>
   (instance ?P Prompting)
-  (exists (?H ?A)
+  (exists (?H ?A ?PROMPT-MESSAGE)
     (and
       (destination ?P ?H)
       (agent ?P ?A)
+      (instance ?PROMPT-MESSAGE ContentBearingPhysical)
+      (result ?P ?PROMPT-MESSAGE)
       (desires ?A
-         (exists (?LC)
-           (and
-             (instance ?LC LinguisticCommunication)
-             (agent ?LC ?H)
-             (earlier ?P ?LC)
-             (subsumesContentInstance ?LC ?P)))))))
+        (exists (?LC ?RESPONSE-MESSAGE)
+          (and
+            (instance ?LC LinguisticCommunication)
+            (agent ?LC ?H)
+            (earlier
+              (WhenFn ?P)
+              (WhenFn ?LC))
+            (instance
+              ?RESPONSE-MESSAGE
+              ContentBearingPhysical)
+            (result ?LC ?RESPONSE-MESSAGE)
+            (subsumesContentInstance ?RESPONSE-MESSAGE ?PROMPT-MESSAGE)))))))
 
 (instance CoveringFn UnaryFunction)
 (domainSubclass CoveringFn 1 BodyPart)
@@ -33620,13 +33634,6 @@ relationship that would require a more specific argument to disambiguate
 what is being measured.")
 
 (termFormat EnglishLanguage DefaultMeasure "default measure")
-
-(=>
-  (and
-    (memberMeasure ?S Length ?Q)
-    (instance ?S Class)
-    (instance ?O ?S))
-  (length ?O ?Q))
 
 (instance Width MeasurementAttribute)
 (documentation Width EnglishLanguage "As with &%Width, this is the measure of an Object from
