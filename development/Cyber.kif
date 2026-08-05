@@ -420,6 +420,60 @@ adjustment to the baseline capacity C.")
   (equal ?PERIODAMOUNT (MultiplicationFn ?FACTOR ?BASEAMOUNT)))
 
 ;; ============================================================
+;; ZeroSumContest (subclass of Contest)
+;; ============================================================
+
+(subclass ZeroSumContest Contest)
+(termFormat EnglishLanguage ZeroSumContest "zero sum contest")
+(documentation ZeroSumContest EnglishLanguage "A &%Contest between two
+participants where one participant's utility gain during any
+&%TimeInterval is exactly offset by the other participant's utility
+loss during that same interval. Formalizes the zero-sum utility
+gradient in Goohs, Savin, Starks, Dykstra, and Casey, 'Adversarial
+Knapsack and Secondary Effects of Common Information for Cyber
+Operations,' arXiv:2403.10789, equation 8 (the first-difference
+utility gained by one player equals the negative of the other's).")
+
+(instance utilityGained QuaternaryPredicate)
+(domain utilityGained 1 Contest)
+(domain utilityGained 2 AutonomousAgent)
+(domain utilityGained 3 TimeInterval)
+(domain utilityGained 4 RealNumber)
+(termFormat EnglishLanguage utilityGained "utility gained")
+(format EnglishLanguage utilityGained "%1 gained a utility of %3 for %2 during %4")
+(documentation utilityGained EnglishLanguage "(&%utilityGained ?CONTEST
+?AGENT ?T ?AMOUNT) means ?AGENT gained a signed ?AMOUNT of utility from
+?CONTEST during ?T. A negative ?AMOUNT represents a loss. Terminology
+and formalization follow Goohs, Savin, Starks, Dykstra, and Casey,
+'Adversarial Knapsack and Secondary Effects of Common Information for
+Cyber Operations,' arXiv:2403.10789, equation 6 (the first-difference
+utility gained by player x for a fixed round).")
+
+(=>
+  (and
+    (instance ?ZSC ZeroSumContest)
+    (agent ?ZSC ?A1)
+    (agent ?ZSC ?A2)
+    (not (equal ?A1 ?A2))
+    (instance ?T TimeInterval)
+    (utilityGained ?ZSC ?A1 ?T ?DELTA1)
+    (utilityGained ?ZSC ?A2 ?T ?DELTA2))
+  (equal ?DELTA2 (SubtractionFn 0 ?DELTA1)))
+
+(=>
+  (and
+    (instance ?ZSC ZeroSumContest)
+    (agent ?ZSC ?A1)
+    (instance ?T TimeInterval))
+  (exists (?DELTA)
+    (and
+      (greaterThan ?DELTA 0)
+      (modalAttribute
+        (hasPurposeForAgent ?ZSC ?A1
+          (utilityGained ?ZSC ?A1 ?T ?DELTA))
+        Likely))))
+
+;; ============================================================
 ;; AdversarialKnapsack (subclass of Contest)
 ;; ============================================================
 
