@@ -1,0 +1,2877 @@
+;; ===========================================================================
+;; ROE_Master.kif
+;;
+;; Terms drawn from the Newport ROE Handbook: the Annex D glossary, the
+;; Annex B series notes, and the body of the Handbook, together with the
+;; instruments it cites (ATP-1, UNCLOS, the UN Charter, the North Atlantic
+;; Treaty). Each documentation string names its source.
+;;
+;; This file defines the subject matter. The machinery for representing ROE
+;; measures is in ROE_Supplementary.kif, and the measures themselves are in
+;; ROE_Series.kif. Load this file first.
+;; ===========================================================================
+
+;; 1. HostileAct
+(subclass HostileAct Attack)
+(subclass HostileAct CriminalAction)
+
+;; Documentation
+(documentation HostileAct EnglishLanguage "An unlawful attack or other use of force against a State, the Force, or other designated persons or property. A hostile act includes traditional uses of force, such as the firing of weapons, and the taking or holding of hostages against their will. It does not include harassment.")
+
+;; Term format
+(termFormat EnglishLanguage HostileAct "hostile act")
+
+;; Rule 1: Every HostileAct is an illegal Attack by some agent
+(=>
+  (instance ?HA HostileAct)
+  (exists (?AGENT)
+    (and
+      (instance ?AGENT AutonomousAgent)
+      (agent ?HA ?AGENT)
+      (property ?HA Illegal))))
+
+;; Rule 2: HostileAct is NOT harassment
+(disjoint HostileAct Harassment)
+
+;; Rule 3: HostageTaking is a type of HostileAct
+(=>
+  (and
+    (instance ?HT HostageTaking)
+    (patient ?HT ?VICTIM)
+    (instance ?VICTIM Human))
+  (instance ?HT HostileAct))
+
+;; 2. HostileIntent
+(subclass HostileIntent Threatening)
+
+;; Documentation
+(documentation HostileIntent EnglishLanguage "The threat of an imminent hostile act. A determination of hostile intent is based on an identifiable threat comprising both the capability and intention to conduct a hostile act. In this ontology, hostile intent is employed in relation to self-defense, following the Newport Rules of Engagement (ROE) Handbook. Note that other ROE systems may employ hostile intent in relation to Law of Armed Conflict (LOAC)-based attack authorizations rather than self-defense. Targets of hostile intent are related by patient rather than victim, because Threatening is not a CriminalAction.")
+
+;; Term format
+(termFormat EnglishLanguage HostileIntent "hostile intent")
+
+;; Rule 1: HostileIntent indicates a possible imminent HostileAct by the same actor
+(=>
+  (instance ?HI HostileIntent)
+  (exists (?ACTOR)
+    (and
+      (agent ?HI ?ACTOR)
+      (modalAttribute
+        (exists (?HA)
+          (and
+            (instance ?HA HostileAct)
+            (agent ?HA ?ACTOR)
+            (during
+              (WhenFn ?HA)
+              (ImmediateFutureFn
+                (WhenFn ?HI))))) Possibility))))
+
+;; Rule 2: HostileIntent is not yet a HostileAct
+(disjoint HostileIntent HostileAct)
+
+;; Rule 3: HostileIntent involves an actor with capability AND
+;; an observed preparatory action directed at the target
+(=>
+  (instance ?HI HostileIntent)
+  (exists (?ACTOR ?TARGET ?PREP)
+    (and
+      (agent ?HI ?ACTOR)
+      (patient ?HI ?TARGET)
+      (instance ?PREP IntentionalProcess)
+      (agent ?PREP ?ACTOR)
+      (destination ?PREP ?TARGET)
+      (during
+        (WhenFn ?PREP)
+        (WhenFn ?HI))
+      (believes ?TARGET
+        (exists (?X)
+          (and
+            (instance ?X HostileAct)
+            (causes ?PREP ?X)
+            (destination ?X ?TARGET)))))))
+
+;; 2a. HostileConduct
+;; The unified trigger for self-defense. The Newport Handbook states the
+;; conditions for self-defense as "a hostile act or hostile intent" wherever it
+;; states them at all, and this class carries that disjunction as a single type.
+;;
+;; The class is not merely notational. Writing the disjunction inline, as
+;; (instance ?T HostileConduct), binds one variable
+;; to two classes that share no common subtype, and SUMOtoTFAform rejects such a
+;; formula with inconsistentVarTypes because TFF requires every variable to
+;; carry a single sort. Six rules in this file carried that pattern.
+;;
+;; Numbered 2a rather than given a new number so that cross-references from
+;; ROE_Supplementary.kif and ROE_Series.kif remain valid.
+
+(subclass HostileConduct IntentionalProcess)
+(documentation HostileConduct EnglishLanguage "Conduct that triggers the right of self-defense under the Newport ROE Handbook: either a hostile act, which is an attack or other use of force already under way, or hostile intent, which is the threat of an imminent hostile act. Harassment is excluded.")
+(termFormat EnglishLanguage HostileConduct "hostile conduct")
+
+(subclass HostileAct HostileConduct)
+(subclass HostileIntent HostileConduct)
+
+;; Stated with disjoint rather than partition. No rule depends on the two
+;; subclasses being jointly exhaustive of HostileConduct, and partition is a
+;; VariableArityRelation whose axiom carries a row variable and expands in both
+;; directions into exhaustiveDecomposition and disjointDecomposition, which
+;; measurably enlarges the search space.
+(disjoint HostileAct HostileIntent)
+(disjoint Harassment HostileConduct)
+
+;; 3. Harassment
+(subclass Harassment IntentionalProcess)
+
+(documentation Harassment EnglishLanguage "Actions or demonstrations that do not constitute a hostile act but are calculated to inconvenience, disrupt, or alarm. Harassment is provocative in nature but falls short of hostile intent or a hostile act, and therefore does not trigger self-defense rights under ROE (Newport Rules of Engagement (ROE) Handbook). Per Appendix 4 paragraph 4.3 of the Handbook, the line between harassment and hostile intent is highly contextual: the same act may be one or the other depending on the level of tension.")
+
+(termFormat EnglishLanguage Harassment "harassment")
+
+;; Rule 1: Harassment is disjoint from HostileAct and HostileIntent
+(disjoint Harassment HostileAct)
+(disjoint Harassment HostileIntent)
+
+;; Rule 2: Harassment does NOT cause physical damage
+(=>
+  (instance ?H Harassment)
+  (not
+    (exists (?D)
+      (and
+        (instance ?D Damaging)
+        (causes ?H ?D)))))
+
+;; Rule 3: Harassment does NOT trigger self-defense authorization
+(=>
+  (and
+    (instance ?H Harassment)
+    (patient ?H ?TARGET)
+    (instance ?TARGET AutonomousAgent))
+  (not
+    (permits ?TARGET
+      (exists (?S)
+        (and
+          (instance ?S SelfDefense)
+          (patient ?S ?H))))))
+
+;; Rule 4: Harassment has the purpose of interfering with a desired operation
+(=>
+  (and
+    (instance ?H Harassment)
+    (patient ?H ?TARGET)
+    (instance ?TARGET AutonomousAgent)
+    (instance ?OP Process)
+    (agent ?OP ?TARGET)
+    (desires ?TARGET ?OP))
+  (hasPurpose ?H ?OP))
+
+;; 4. SelfDefense
+(subclass SelfDefense Process)
+
+;; Documentation
+(documentation SelfDefense EnglishLanguage "The use of force to defend against an attack (hostile act) or imminent attack (hostile intent). Self-defense is available in all situations, including armed conflict. This ontology follows the Newport Rules of Engagement (ROE) Handbook categories: individual self-defense, unit self-defense, defense of others, national self-defense, and collective self-defense. Necessity exists when one faces a hostile act or hostile intent, and the authority continues so long as that act or intent continues.")
+
+;; Term format
+(termFormat EnglishLanguage SelfDefense "self-defense")
+
+;; Rule 1: Every SelfDefense action has an agent
+(=>
+  (instance ?S SelfDefense)
+  (exists (?A)
+    (and
+      (instance ?A AutonomousAgent)
+      (agent ?S ?A))))
+
+;; Rule 2: SelfDefense is caused by a HostileAct or HostileIntent
+;; directed at the defending agent
+(=>
+  (instance ?S SelfDefense)
+  (exists (?A ?T)
+    (and
+      (instance ?A AutonomousAgent)
+      (agent ?S ?A)
+      (instance ?T HostileConduct)
+      (patient ?T ?A)
+      (causes ?T ?S))))
+
+;; 5. IndividualSelfDefense
+(subclass IndividualSelfDefense SelfDefense)
+
+(documentation IndividualSelfDefense EnglishLanguage "The right of an individual to defend himself or herself against hostile acts or hostile intent.")
+
+;; Term format
+(termFormat EnglishLanguage IndividualSelfDefense "individual self-defense")
+
+;; Rule 1: IndividualSelfDefense has exactly one Human agent
+(=>
+  (instance ?S IndividualSelfDefense)
+  (exists (?A)
+    (and
+      (instance ?A Human)
+      (agent ?S ?A)
+      (not
+        (exists (?A2)
+          (and
+            (instance ?A2 Human)
+            (agent ?S ?A2)
+            (not
+              (equal ?A ?A2))))))))
+
+;; Rule 2: If HostileAct or HostileIntent targets a Human,
+;; that individual is permitted to use IndividualSelfDefense
+(=>
+  (and
+    (instance ?T HostileConduct)
+    (patient ?T ?A)
+    (instance ?A Human))
+  (permits ?A
+    (exists (?S)
+      (and
+        (instance ?S IndividualSelfDefense)
+        (agent ?S ?A)
+        (causes ?T ?S)))))
+
+;; 6. UnitSelfDefense
+(subclass UnitSelfDefense SelfDefense)
+
+(documentation UnitSelfDefense EnglishLanguage "The right of a unit commander to defend his or her unit and other units from the same State against hostile acts or hostile intent. In some States, this is both a right and an obligation, in others only a right.")
+
+;; Term format
+(termFormat EnglishLanguage UnitSelfDefense "unit self-defense")
+
+;; Rule 1: UnitSelfDefense agent is a MilitaryOrganization
+(=>
+  (instance ?S UnitSelfDefense)
+  (exists (?U)
+    (and
+      (instance ?U MilitaryOrganization)
+      (agent ?S ?U))))
+
+;; Rule 2: UnitSelfDefense protects units from the same State
+(=>
+  (and
+    (instance ?T Attack)
+    (instance ?TARGET MilitaryOrganization)
+    (patient ?T ?TARGET)
+    (instance ?U MilitaryOrganization)
+    (not
+      (equal ?U ?TARGET))
+    (instance ?HQ MilitaryOrganization)
+    (subOrganization ?U ?HQ)
+    (subOrganization ?TARGET ?HQ))
+  (permits ?U
+    (exists (?S)
+      (and
+        (instance ?S UnitSelfDefense)
+        (agent ?S ?U)
+        (patient ?S ?TARGET)
+        (causes ?T ?S)))))
+
+;; Rule 3: If HostileAct or HostileIntent targets a MilitaryOrganization,
+;; UnitSelfDefense is permitted
+(=>
+  (and
+    (instance ?T HostileConduct)
+    (patient ?T ?U)
+    (instance ?U MilitaryOrganization))
+  (permits ?U
+    (exists (?S)
+      (and
+        (instance ?S UnitSelfDefense)
+        (agent ?S ?U)
+        (causes ?T ?S)))))
+
+;; 7. DefenseOfOthers
+(subclass DefenseOfOthers SelfDefense)
+
+(documentation DefenseOfOthers EnglishLanguage "The use of force in defense of specified persons (who are not part of the Force) and their property against hostile acts or hostile intent.")
+
+;; Term format
+(termFormat EnglishLanguage DefenseOfOthers "defense of others")
+
+;; Rule: If a HostileAct or HostileIntent threatens a designated entity ?Y,
+;; then ?X who is protecting ?Y is permitted to use DefenseOfOthers.
+(=>
+  (and
+    (instance ?T HostileConduct)
+    (patient ?T ?Y)
+    (instance ?Y AutonomousAgent)
+    (instance ?DES Designating)
+    (patient ?DES ?Y)
+    (instance ?PR Protecting)
+    (agent ?PR ?X)
+    (patient ?PR ?Y)
+    (instance ?X AutonomousAgent))
+  (permits ?X
+    (exists (?S)
+      (and
+        (instance ?S DefenseOfOthers)
+        (agent ?S ?X)
+        (patient ?S ?Y)
+        (causes ?T ?S)))))
+
+;; 8. NationalSelfDefense
+(subclass NationalSelfDefense SelfDefense)
+
+(documentation NationalSelfDefense EnglishLanguage "As recognized in Article 51 of the UN Charter and customary international law, the right of a State to use force to defend itself, its nationals, and their property against hostile acts and hostile intent.")
+
+;; Term format
+(termFormat EnglishLanguage NationalSelfDefense "national self-defense")
+
+;; Rule: If a Nation faces a HostileAct or HostileIntent,
+;; it is permitted to use NationalSelfDefense.
+(=>
+  (and
+    (instance ?T HostileConduct)
+    (patient ?T ?ST)
+    (instance ?ST Nation))
+  (permits ?ST
+    (exists (?S)
+      (and
+        (instance ?S NationalSelfDefense)
+        (agent ?S ?ST)
+        (causes ?T ?S)))))
+
+;; 9. CollectiveSelfDefense
+(subclass CollectiveSelfDefense SelfDefense)
+
+(documentation CollectiveSelfDefense EnglishLanguage "As recognized in Article 51 of the UN Charter and customary international law, the right of a State to use force to defend another State, its persons, its forces, and/or its property in response to an armed attack or imminent armed attack.")
+
+;; Term format
+(termFormat EnglishLanguage CollectiveSelfDefense "collective self-defense")
+
+;; Rule: If an allied Nation (?ALLY2) faces a HostileAct or HostileIntent,
+;; then another allied Nation (?ALLY1) is permitted to use CollectiveSelfDefense.
+(=>
+  (and
+    (instance ?H HostileConduct)
+    (patient ?H ?ALLY2)
+    (instance ?ALLY2 Nation)
+    (instance ?ALLY1 Nation)
+    (not
+      (equal ?ALLY1 ?ALLY2))
+    (allied ?ALLY1 ?ALLY2))
+  (permits ?ALLY1
+    (exists (?CSD)
+      (and
+        (instance ?CSD CollectiveSelfDefense)
+        (agent ?CSD ?ALLY1)
+        (patient ?CSD ?ALLY2)))))
+
+;; 10. Declared Hostile Force
+(instance DeclaredHostileStatus RelationalAttribute)
+
+(documentation DeclaredHostileStatus EnglishLanguage "An attribute indicating that a force or individual has been declared hostile by competent authority under the applicable Rules of Engagement (ROE) (e.g., Newport ROE Series 30 and measure 12 F). Forces with this status may be engaged without requiring an observed hostile act or hostile intent. The status arises only from a declaration by competent authority; being engaged in hostilities does not by itself confer it.")
+
+(termFormat EnglishLanguage DeclaredHostileStatus "declared hostile")
+
+;; Rule 1: DeclaredHostileStatus arises only from a declaration by competent authority
+(=>
+  (property ?F DeclaredHostileStatus)
+  (exists (?HQ ?DECL)
+    (and
+      (instance ?HQ HigherHeadquarters)
+      (instance ?DECL Directing)
+      (agent ?DECL ?HQ)
+      (patient ?DECL ?F))))
+
+;; Rule 2: A unit that has received the declaration is permitted by the
+;; declaring authority to engage the declared hostile force
+(=>
+  (and
+    (property ?F DeclaredHostileStatus)
+    (instance ?F Physical)
+    (instance ?DECL Directing)
+    (instance ?HQ HigherHeadquarters)
+    (agent ?DECL ?HQ)
+    (patient ?DECL ?F)
+    (destination ?DECL ?UNIT)
+    (instance ?UNIT MilitaryOrganization))
+  (permits ?HQ
+    (exists (?E)
+      (and
+        (instance ?E Attack)
+        (agent ?E ?UNIT)
+        (patient ?E ?F)))))
+
+;; 11. UseOfForce
+(subclass UseOfForce IntentionalProcess)
+
+(documentation UseOfForce EnglishLanguage "A process in which an agent intentionally applies physical force, violence, or coercive power against persons or property. Use of force includes both lawful applications (such as self-defense) and unlawful applications (such as attacks). It encompasses traditional uses of force (weapons fire, physical violence) and other forceful actions regulated by Rules of Engagement (ROE).")
+
+(termFormat EnglishLanguage UseOfForce "use of force")
+
+;; Rule 1: Every Attack is a UseOfForce (Newport: traditional uses of force)
+(subclass Attack UseOfForce)
+
+;; Rule 2: UseOfForce involves an agent
+(=>
+  (instance ?UOF UseOfForce)
+  (exists (?AGENT)
+    (and
+      (instance ?AGENT AutonomousAgent)
+      (agent ?UOF ?AGENT))))
+
+;; Rule 3a: Weapon use that causes damage is UseOfForce
+(=>
+  (and
+    (instance ?PROC Process)
+    (instance ?W Weapon)
+    (instrument ?PROC ?W)
+    (instance ?D Damaging)
+    (causes ?PROC ?D))
+  (instance ?PROC UseOfForce))
+
+;; Rule 3b: Striking/hitting that causes damage is UseOfForce
+(=>
+  (and
+    (instance ?PROC Impelling)
+    (instance ?AGENT AutonomousAgent)
+    (agent ?PROC ?AGENT)
+    (instance ?D Damaging)
+    (causes ?PROC ?D))
+  (instance ?PROC UseOfForce))
+
+;; 12. Deadly Force
+(subclass ForceCharacter Attribute)
+
+(documentation ForceCharacter EnglishLanguage "An attribute characterizing the nature of force used, such as deadly or non-deadly, in rules of engagement contexts. Per the Newport glossary the distinction is a property of the force applied, not of the weapon employed: the same weapon may be used in a deadly or a non-deadly manner.")
+(termFormat EnglishLanguage ForceCharacter "force character")
+
+(instance DeadlyForce ForceCharacter)
+
+(documentation DeadlyForce EnglishLanguage "Force intended or likely to cause death or serious injury, regardless of whether death or serious injury results (Newport Rules of Engagement (ROE) Handbook, glossary).")
+
+(termFormat EnglishLanguage DeadlyForce "deadly force")
+
+;; Rule 1: A process that causes death is an application of deadly force
+(=>
+  (and
+    (instance ?P Process)
+    (instance ?E Death)
+    (causes ?P ?E))
+  (property ?P DeadlyForce))
+
+;; Rule 2: A process that causes injury is an application of deadly force
+(=>
+  (and
+    (instance ?P Process)
+    (instance ?E Injuring)
+    (causes ?P ?E))
+  (property ?P DeadlyForce))
+
+;; 13. Non-deadly Force
+(instance NonDeadlyForce ForceCharacter)
+
+(documentation NonDeadlyForce EnglishLanguage "Force not intended or likely to cause death or serious injury, consistent with the narrowed Newport Rules of Engagement (ROE) definition of non-deadly force.")
+
+(termFormat EnglishLanguage NonDeadlyForce "non-deadly force")
+
+;; Rule 1: Deadly and non-deadly force are mutually exclusive
+(contraryAttribute DeadlyForce NonDeadlyForce)
+
+;; Rule 2: Ordering on the force scale, for the "up to and including deadly
+;; force" ceiling used by the Newport measures
+(successorAttribute NonDeadlyForce DeadlyForce)
+
+;; 14. Warning Shot
+(subclass WarningShot Shooting)
+
+(documentation WarningShot EnglishLanguage "A warning shot is a shot fired in the vicinity of a person, vessel, or aircraft as a signal to stop or comply with instructions, without the intent to cause damage or injury (Newport Rules of Engagement (ROE) Series 23).")
+
+(termFormat EnglishLanguage WarningShot "warning shot")
+
+;; Rule 1: A WarningShot does not have the purpose of causing damage
+(=>
+  (and
+    (instance ?WS WarningShot)
+    (patient ?WS ?TARGET))
+  (not
+    (hasPurpose ?WS
+      (exists (?D)
+        (and
+          (instance ?D Damaging)
+          (patient ?D ?TARGET))))))
+
+;; Rule 2: WarningShot is an application of non-deadly force
+(=>
+  (instance ?WS WarningShot)
+  (property ?WS NonDeadlyForce))
+
+;; Rule 3: WarningShot projectile does not hit the target
+(=>
+  (and
+    (instance ?WS WarningShot)
+    (patient ?WS ?TARGET)
+    (instrument ?WS ?PROJ)
+    (instance ?PROJ Projectile))
+  (not
+    (meetsSpatially ?PROJ ?TARGET)))
+
+;; 15. Disabling Fire
+(subclass DisablingFire Shooting)
+
+(documentation DisablingFire EnglishLanguage "Disabling fire is fire directed at a target (usually a vessel or vehicle) to impair its ability to function or maneuver, without necessarily destroying it (Newport Rules of Engagement (ROE) Series 24).")
+
+(termFormat EnglishLanguage DisablingFire "disabling fire")
+
+;; Rule 1: DisablingFire has the purpose of impairing the target's function
+(=>
+  (and
+    (instance ?S DisablingFire)
+    (patient ?S ?DEV)
+    (instance ?DEV Device))
+  (hasPurpose ?S
+    (attribute ?DEV Malfunctioning)))
+
+;; Rule 2: After DisablingFire, the device is impaired
+(=>
+  (and
+    (instance ?S DisablingFire)
+    (patient ?S ?DEV)
+    (instance ?DEV Device)
+    (result ?S ?STATE))
+  (holdsDuring ?STATE
+    (attribute ?DEV Malfunctioning)))
+
+;; 16. Non-disabling Fire
+(subclass NonDisablingFire Shooting)
+
+(documentation NonDisablingFire EnglishLanguage
+ "Non-disabling fire is fire that is not intended to impair the target's
+  ability to function; it may serve primarily as a warning or signal short
+  of disabling or deadly force (Newport Rules of Engagement (ROE) Series 24).")
+
+(termFormat EnglishLanguage NonDisablingFire "non-disabling fire")
+
+;; Rule 1: NonDisablingFire and DisablingFire are disjoint
+(disjoint NonDisablingFire DisablingFire)
+
+;; Rule 2: NonDisablingFire does not have the purpose of disabling
+(=>
+  (instance ?S NonDisablingFire)
+  (not
+    (hasPurpose ?S
+      (exists (?D)
+        (and
+          (instance ?D Device)
+          (attribute ?D Malfunctioning))))))
+
+;; 17. InternationalWaters
+(subclass InternationalWaters Sea)
+(subclass InternationalWaters GeographicArea)
+(subclass InternationalWaters SaltWaterArea)
+
+(documentation InternationalWaters EnglishLanguage "International waters (high seas): Sea areas beyond any national maritime claim, where no State sovereignty applies, as defined in The United Nations Convention on the Law of the Sea (UNCLOS) Article 86 and referenced in Newport Rules of Engagement (ROE).")
+
+(termFormat EnglishLanguage InternationalWaters "international waters")
+
+;; Rule 1: International waters and maritime claim areas are disjoint
+(disjoint InternationalWaters MaritimeClaimArea)
+
+;; Rule 2: No State exercises sovereignty over international waters
+(=>
+  (instance ?IW InternationalWaters)
+  (not
+    (exists (?STATE)
+      (and
+        (instance ?STATE Nation)
+        (possesses ?STATE ?IW)))))
+
+;; Rule 3: No State has a territorial claim over international waters
+(=>
+  (instance ?IW InternationalWaters)
+  (not
+    (exists (?STATE)
+      (and
+        (instance ?STATE Nation)
+        (claimedTerritory ?IW ?STATE)))))
+
+;; 18. MaritimeOperation
+(subclass MaritimeOperation MilitaryOperation)
+
+(documentation MaritimeOperation EnglishLanguage "A military operation conducted primarily in the maritime domain, including sea surface, subsurface (underwater regions), the overlying airspace, and adjacent coastal land areas.")
+
+(termFormat EnglishLanguage MaritimeOperation "maritime operation")
+
+;; Rule: A MaritimeOperation's area of operation is maritime-related
+(=>
+  (instance ?OP MaritimeOperation)
+  (exists (?REGION)
+    (and
+      (areaOfOperation ?REGION ?OP)
+      (or
+        (instance ?REGION Sea)
+        (instance ?REGION UnderwaterRegion)
+        (exists (?SHORE)
+          (and
+            (instance ?SHORE ShoreArea)
+            (part ?SHORE ?REGION)))
+        (exists (?SEA)
+          (and
+            (instance ?SEA Sea)
+            (or
+              (orientation ?REGION ?SEA Above)
+              (meetsSpatially ?REGION ?SEA))))))))
+
+;; 19. TacticalQuestioning
+(subclass TacticalQuestioning Questioning)
+(subclass TacticalQuestioning MilitaryOperation)
+
+(documentation TacticalQuestioning EnglishLanguage "Field-expedient initial questioning for information of immediate tactical value, conducted at or near the point of capture, prior to formal interrogation. It is a specialized form of Questioning used in operational self-defense / Rules of Engagement (ROE) contexts (Newport ROE Appendix 4).")
+
+(termFormat EnglishLanguage TacticalQuestioning "tactical questioning")
+
+;; Rule 1: Tactical questioning involves a human subject
+(=>
+  (instance ?TQ TacticalQuestioning)
+  (exists (?P)
+    (and
+      (instance ?P Human)
+      (patient ?TQ ?P))))
+
+;; Rule 2: TacticalQuestioning -- agent doubts legality,
+;; requests a specific BoardingOperation from higher authority
+(=>
+  (and
+    (instance ?TQ TacticalQuestioning)
+    (patient ?TQ ?P)
+    (instance ?P Human)
+    (agent ?TQ ?A)
+    (instance ?A CognitiveAgent)
+    (doubts ?A
+      (attribute ?P Legal)))
+  (exists (?REQ ?CMD ?BO ?SHIP)
+    (and
+      (instance ?REQ Requesting)
+      (agent ?REQ ?A)
+      (instance ?CMD CognitiveAgent)
+      (destination ?REQ ?CMD)
+      (instance ?BO BoardingOperation)
+      (patient ?BO ?SHIP)
+      (instance ?SHIP Ship)
+      (patient ?REQ ?BO)
+      (earlier
+        (WhenFn ?TQ)
+        (WhenFn ?REQ)))))
+
+;; Rule 3: If higher authority approves the requesting agent,
+;; BoardingOperation is permitted
+(=>
+  (and
+    (instance ?REQ Requesting)
+    (agent ?REQ ?A)
+    (instance ?CMD CognitiveAgent)
+    (destination ?REQ ?CMD)
+    (patient ?REQ ?BO)
+    (instance ?BO BoardingOperation)
+    (approves ?CMD ?A))
+  (permits ?CMD
+    (and
+      (instance ?BO BoardingOperation)
+      (agent ?BO ?A))))
+
+;; 20. BoardingOperation
+(subclass BoardingOperation MaritimeOperation)
+(subclass BoardingOperation Boarding)
+
+(disjoint CompliantBoarding NonCompliantBoarding)
+
+(documentation BoardingOperation EnglishLanguage "A Rules of Engagement (ROE)-regulated maritime boarding operation: the process of entering a vessel (typically a Ship) in order to search, inspect, or exercise control under applicable ROE (Newport ROE Series 93).")
+
+(termFormat EnglishLanguage BoardingOperation "boarding operation")
+
+;; Rule 1: A boarding operation involves a ship
+(=>
+  (instance ?BO BoardingOperation)
+  (exists (?S)
+    (and
+      (instance ?S Ship)
+      (patient ?BO ?S))))
+
+;; Rule 2: After a boarding operation, the agent is onboard the ship
+(=>
+  (and
+    (instance ?BO BoardingOperation)
+    (agent ?BO ?A)
+    (patient ?BO ?S)
+    (instance ?S Ship))
+  (holdsDuring
+    (EndFn
+      (WhenFn ?BO))
+    (onboard ?A ?S)))
+
+;; Rule 3: During a BoardingOperation, SearchOperation is permitted
+(=>
+  (and
+    (instance ?BO BoardingOperation)
+    (agent ?BO ?A)
+    (instance ?A AutonomousAgent)
+    (patient ?BO ?P)
+    (instance ?P Physical))
+  (permits ?A
+    (exists (?S)
+      (and
+        (instance ?S SearchOperation)
+        (patient ?S ?P)
+        (agent ?S ?A)
+        (subProcess ?S ?BO)))))
+
+;; 21. CompliantBoarding
+(subclass CompliantBoarding BoardingOperation)
+
+(documentation CompliantBoarding EnglishLanguage "A boarding operation conducted with the consent and cooperation of the ship's master (captain). In a compliant boarding, the ship's master permits the boarding team to come aboard (Newport Rules of Engagement (ROE) Series 93).")
+
+(termFormat EnglishLanguage CompliantBoarding "compliant boarding")
+
+(instance ShipCaptain Position)
+(documentation ShipCaptain EnglishLanguage "The position of master of a vessel, holding command authority over the ship and its crew.")
+(termFormat EnglishLanguage ShipCaptain "ship's captain")
+
+;; Rule 1: A compliant boarding involves cooperation from the ship's captain
+(=>
+  (and
+    (instance ?CB CompliantBoarding)
+    (patient ?CB ?S)
+    (instance ?S Ship)
+    (agent ?CB ?TEAM)
+    (instance ?CAPTAIN Human)
+    (attribute ?CAPTAIN ShipCaptain)
+    (possesses ?CAPTAIN ?S))
+  (exists (?COOP)
+    (and
+      (instance ?COOP Cooperation)
+      (agent ?COOP ?CAPTAIN)
+      (agent ?COOP ?TEAM)
+      (subProcess ?COOP ?CB))))
+
+;; Rule 2: In a compliant boarding, no force subprocess is an attack
+(=>
+  (and
+    (instance ?CB CompliantBoarding)
+    (subProcess ?F ?CB))
+  (not
+    (instance ?F Attack)))
+
+;; 22. NonCompliantBoarding
+(subclass NonCompliantBoarding BoardingOperation)
+
+(documentation NonCompliantBoarding EnglishLanguage "A boarding operation conducted without the consent or cooperation of the ship's master, potentially requiring the use of force.")
+
+(termFormat EnglishLanguage NonCompliantBoarding "non-compliant boarding")
+
+;; Rule 1: Compliant and non-compliant are disjoint
+(disjoint CompliantBoarding NonCompliantBoarding)
+
+;; Rule 2: Non-compliant boarding lacks cooperation
+(=>
+  (and
+    (instance ?NCB NonCompliantBoarding)
+    (patient ?NCB ?S)
+    (instance ?S Ship)
+    (agent ?NCB ?TEAM)
+    (instance ?CAPTAIN Human)
+    (attribute ?CAPTAIN ShipCaptain)
+    (possesses ?CAPTAIN ?S))
+  (not
+    (exists (?COOP)
+      (and
+        (instance ?COOP Cooperation)
+        (agent ?COOP ?CAPTAIN)
+        (agent ?COOP ?TEAM)
+        (subProcess ?COOP ?NCB)))))
+
+;; Rule 3: NonCompliant boarding may involve force
+(=>
+  (instance ?NCB NonCompliantBoarding)
+  (modalAttribute
+    (exists (?F ?S)
+      (and
+        (instance ?F Attack)
+        (subProcess ?F ?NCB)
+        (patient ?F ?S)
+        (instance ?S Ship))) Possibility))
+
+;; 23. SearchOperation
+(subclass SearchOperation Searching)
+(subclass SearchOperation MilitaryOperation)
+
+(documentation SearchOperation EnglishLanguage "A Rules of Engagement (ROE)-regulated search operation: the systematic inspection of persons, vehicles, vessels, aircraft, or premises to locate weapons, contraband, or designated persons, consistent with Newport ROE Series 25.")
+
+(termFormat EnglishLanguage SearchOperation "search")
+
+;; Rule 1: A search operation has at least one target
+(=>
+  (instance ?S SearchOperation)
+  (exists (?T)
+    (patient ?S ?T)))
+
+;; Rule 2: A SearchOperation may lead to Detention of persons or seizure of vessels
+(=>
+  (and
+    (instance ?S SearchOperation)
+    (patient ?S ?P)
+    (instance ?P Physical)
+    (agent ?S ?A)
+    (instance ?A AutonomousAgent)
+    (property ?P Illegal))
+  (permits ?A
+    (exists (?D)
+      (and
+        (instance ?D Detention)
+        (patient ?D ?P)
+        (agent ?D ?A)
+        (earlier
+          (WhenFn ?S)
+          (WhenFn ?D))))))
+
+;; 24. Detention
+(subclass Detention Confining)
+(subclass Detention MilitaryOperation)
+
+(documentation Detention EnglishLanguage "The temporary holding of persons under control or custody, consistent with Rules of Engagement (ROE) measures on search, detention, and prevention of escape (Newport Series 25 and 111).")
+
+(termFormat EnglishLanguage Detention "detention")
+
+;; Rule 1: Detention involves at least one human subject
+(=>
+  (instance ?D Detention)
+  (exists (?P)
+    (and
+      (instance ?P Human)
+      (patient ?D ?P))))
+
+;; Rule 2: Detention has an authorized agent
+(=>
+  (instance ?D Detention)
+  (exists (?A)
+    (and
+      (instance ?A AutonomousAgent)
+      (agent ?D ?A)
+      (property ?D Legal))))
+
+;; 25. AutonomousWeaponSystem
+(subclass AutonomousWeaponSystem Weapon)
+
+(documentation AutonomousWeaponSystem EnglishLanguage "A weapon system that, once activated, can select and engage targets without further intervention by a human operator (Newport Rules of Engagement (ROE) Series 84). Note that Series 84 assumes the use of an autonomous weapon system is prohibited unless authorized by a rule, in contrast to Series 83 for semi-autonomous systems.")
+
+(termFormat EnglishLanguage AutonomousWeaponSystem "autonomous weapon system")
+
+;; Rule: When an autonomous weapon selects and engages, no human performs
+;; the target selection
+(=>
+  (and
+    (instance ?AWS AutonomousWeaponSystem)
+    (instance ?ATTACK Attack)
+    (instrument ?ATTACK ?AWS))
+  (not
+    (exists (?H ?SEL)
+      (and
+        (instance ?H Human)
+        (instance ?SEL Classifying)
+        (agent ?SEL ?H)
+        (causes ?SEL ?ATTACK)))))
+
+;; 26. SemiAutonomousWeaponSystem
+(subclass SemiAutonomousWeaponSystem Weapon)
+
+(documentation SemiAutonomousWeaponSystem EnglishLanguage "A weapon system that engages targets based on human-provided target selection or approval (Newport Rules of Engagement (ROE) Series 83). Series 83 assumes such use is permitted unless prohibited or limited by a rule.")
+
+(termFormat EnglishLanguage SemiAutonomousWeaponSystem "semi-autonomous weapon system")
+
+;; Rule 1: When a semi-autonomous weapon is used in an attack, a human is the agent
+(=>
+  (and
+    (instance ?SAWS SemiAutonomousWeaponSystem)
+    (instance ?ATTACK Attack)
+    (instrument ?ATTACK ?SAWS))
+  (exists (?H)
+    (and
+      (instance ?H Human)
+      (agent ?ATTACK ?H))))
+
+;; Rule 2: Autonomous and semi-autonomous weapon systems are disjoint
+(disjoint AutonomousWeaponSystem SemiAutonomousWeaponSystem)
+
+;; 27. HigherHeadquarters
+(subclass HigherHeadquarters MilitaryOrganization)
+
+(documentation HigherHeadquarters EnglishLanguage "A higher-level military headquarters that exercises command and control over subordinate units, including authority to approve or deny Rules of Engagement (ROE)-regulated operations.")
+
+(termFormat EnglishLanguage HigherHeadquarters "higher headquarters")
+
+;; Rule 1: HigherHeadquarters has at least one subordinate unit
+(=>
+  (instance ?HQ HigherHeadquarters)
+  (exists (?UNIT)
+    (and
+      (instance ?UNIT MilitaryOrganization)
+      (ancestorOrganization ?UNIT ?HQ))))
+
+;; Rule 2: HigherHeadquarters has the power to approve requests from subordinates
+(=>
+  (and
+    (instance ?HQ HigherHeadquarters)
+    (instance ?UNIT MilitaryOrganization)
+    (ancestorOrganization ?UNIT ?HQ)
+    (instance ?REQ Requesting)
+    (agent ?REQ ?UNIT)
+    (destination ?REQ ?HQ))
+  (modalAttribute
+    (approves ?HQ ?UNIT) Possibility))
+
+;; Rule 3: HigherHeadquarters orders trigger permitted MilitaryOperations
+(=>
+  (and
+    (instance ?HQ HigherHeadquarters)
+    (instance ?UNIT MilitaryOrganization)
+    (ancestorOrganization ?UNIT ?HQ)
+    (instance ?ORD Order)
+    (agent ?ORD ?HQ)
+    (destination ?ORD ?UNIT))
+  (permits ?HQ
+    (exists (?OP)
+      (and
+        (instance ?OP MilitaryOperation)
+        (agent ?OP ?UNIT)
+        (causes ?ORD ?OP)))))
+
+;; 28. OpposedBoarding
+(subclass OpposedBoarding NonCompliantBoarding)
+(documentation OpposedBoarding EnglishLanguage "A boarding operation where active or passive resistance measures are intended to inflict serious bodily harm or death to the boarding team, the suspect vessel has demonstrated intent to actively oppose the boarding, intelligence indicates a known threat, or any hostile action including threatening display of weapons is present (Newport ROE Series 93).")
+
+(termFormat EnglishLanguage OpposedBoarding "opposed boarding")
+
+;; Rule 1: OpposedBoarding involves HostileAct or HostileIntent
+;; directed at the boarding team
+(=>
+  (and
+    (instance ?OB OpposedBoarding)
+    (agent ?OB ?TEAM)
+    (instance ?TEAM MilitaryOrganization))
+  (exists (?T)
+    (and
+      (instance ?T HostileConduct)
+      (patient ?T ?TEAM))))
+
+;; Rule 2: OpposedBoarding triggers UnitSelfDefense
+(=>
+  (and
+    (instance ?OB OpposedBoarding)
+    (agent ?OB ?TEAM)
+    (instance ?TEAM MilitaryOrganization)
+    (instance ?T HostileConduct)
+    (patient ?T ?TEAM))
+  (permits ?TEAM
+    (exists (?SD)
+      (and
+        (instance ?SD UnitSelfDefense)
+        (agent ?SD ?TEAM)
+        (causes ?T ?SD)))))
+
+;; Rule 3: After OpposedBoarding, Detention is permitted
+(=>
+  (and
+    (instance ?OB OpposedBoarding)
+    (agent ?OB ?TEAM)
+    (instance ?TEAM MilitaryOrganization)
+    (patient ?OB ?SHIP)
+    (instance ?SHIP Ship))
+  (permits ?TEAM
+    (exists (?DET ?P)
+      (and
+        (instance ?DET Detention)
+        (agent ?DET ?TEAM)
+        (instance ?P Human)
+        (patient ?DET ?P)
+        (earlier
+          (WhenFn ?OB)
+          (WhenFn ?DET))))))
+
+;; 29. InnocentPassage
+(subclass InnocentPassage MaritimeOperation)
+(documentation InnocentPassage EnglishLanguage "The right of foreign ships to pass through a State's territorial sea continuously and expeditiously, provided the passage is not prejudicial to the peace, good order, or security of the coastal State (UNCLOS Article 17-19).")
+(termFormat EnglishLanguage InnocentPassage "innocent passage")
+
+;; Rule 1: InnocentPassage occurs in TerritorialSea
+(=>
+  (instance ?IP InnocentPassage)
+  (exists (?TS)
+    (and
+      (instance ?TS TerritorialSea)
+      (areaOfOperation ?TS ?IP))))
+
+;; Rule 2: InnocentPassage involves no HostileAct
+(=>
+  (instance ?IP InnocentPassage)
+  (not
+    (exists (?HA)
+      (and
+        (instance ?HA HostileAct)
+        (subProcess ?HA ?IP)))))
+
+;; Rule 3: Coastal State cannot blockade InnocentPassage
+(=>
+  (and
+    (instance ?IP InnocentPassage)
+    (instance ?SHIP Ship)
+    (agent ?IP ?SHIP)
+    (instance ?TS TerritorialSea)
+    (areaOfOperation ?TS ?IP)
+    (instance ?STATE Nation)
+    (claimedTerritory ?TS ?STATE))
+  (not
+    (exists (?BL)
+      (and
+        (instance ?BL Blockade)
+        (agent ?BL ?STATE)
+        (patient ?BL ?SHIP)))))
+
+;; 30. TransitPassage
+(subclass TransitPassage MaritimeOperation)
+(documentation TransitPassage EnglishLanguage "The right of ships and aircraft to pass through straits used for international navigation continuously and expeditiously. Unlike innocent passage, transit passage cannot be suspended by the bordering State (UNCLOS Article 37-44).")
+(termFormat EnglishLanguage TransitPassage "transit passage")
+
+;; Rule 1: TransitPassage occurs through a Strait
+(=>
+  (instance ?TP TransitPassage)
+  (exists (?ST)
+    (and
+      (instance ?ST Strait)
+      (areaOfOperation ?ST ?TP))))
+
+;; Rule 2: TransitPassage cannot be suspended by bordering State
+(=>
+  (and
+    (instance ?TP TransitPassage)
+    (instance ?ST Strait)
+    (areaOfOperation ?ST ?TP)
+    (instance ?STATE Nation)
+    (claimedTerritory ?ST ?STATE))
+  (not
+    (exists (?BL)
+      (and
+        (instance ?BL Blockade)
+        (agent ?BL ?STATE)
+        (patient ?BL ?TP)))))
+
+;; Rule 3: InnocentPassage and TransitPassage are disjoint
+(disjoint InnocentPassage TransitPassage)
+
+;; 31. EscalationOfForce
+(subclass EscalationOfForce UseOfForce)
+
+(documentation EscalationOfForce EnglishLanguage "A process in which an agent increases the level or intensity of force in response to a developing threat, typically moving from non-lethal measures such as warnings and warning shots to disabling fire and, if necessary, deadly force, consistent with ROE use of force continuum. Per the Newport Handbook, escalation of force procedures do not limit the right of self-defense.")
+(termFormat EnglishLanguage EscalationOfForce "escalation of force")
+
+;; Rule 1: EscalationOfForce is composed of ordered UseOfForce subprocesses
+(=>
+  (instance ?EOF EscalationOfForce)
+  (exists (?U1 ?U2)
+    (and
+      (instance ?U1 UseOfForce)
+      (instance ?U2 UseOfForce)
+      (subProcess ?U1 ?EOF)
+      (subProcess ?U2 ?EOF)
+      (not
+        (equal ?U1 ?U2))
+      (earlier
+        (WhenFn ?U1)
+        (WhenFn ?U2)))))
+
+;; Rule 2: WarningShot followed by DisablingFire is an EscalationOfForce
+(=>
+  (and
+    (instance ?WS WarningShot)
+    (instance ?DF DisablingFire)
+    (agent ?WS ?A)
+    (agent ?DF ?A)
+    (patient ?WS ?TARGET)
+    (patient ?DF ?TARGET)
+    (earlier
+      (WhenFn ?WS)
+      (WhenFn ?DF)))
+  (exists (?EOF)
+    (and
+      (instance ?EOF EscalationOfForce)
+      (agent ?EOF ?A)
+      (subProcess ?WS ?EOF)
+      (subProcess ?DF ?EOF))))
+
+;; Rule 3: DisablingFire followed by Attack is an EscalationOfForce
+(=>
+  (and
+    (instance ?DF DisablingFire)
+    (instance ?ATK Attack)
+    (agent ?DF ?A)
+    (agent ?ATK ?A)
+    (patient ?DF ?TARGET)
+    (patient ?ATK ?TARGET)
+    (earlier
+      (WhenFn ?DF)
+      (WhenFn ?ATK)))
+  (exists (?EOF)
+    (and
+      (instance ?EOF EscalationOfForce)
+      (agent ?EOF ?A)
+      (subProcess ?DF ?EOF)
+      (subProcess ?ATK ?EOF))))
+
+;; 32. MaritimeInterdictionOperation
+(subclass MaritimeInterdictionOperation MaritimeOperation)
+
+(documentation MaritimeInterdictionOperation EnglishLanguage "A ROE-regulated maritime operation in which naval or coalition forces monitor, query, stop, board, search, and possibly divert or detain vessels to enforce sanctions, embargoes, or other mandates authorized by competent authority (e.g., UN Security Council or national ROE-based MIO).")
+
+(termFormat EnglishLanguage MaritimeInterdictionOperation "maritime interdiction operation")
+
+;; Rule 1: MIO involves a BoardingOperation as subprocess
+(=>
+  (instance ?MIO MaritimeInterdictionOperation)
+  (exists (?BO)
+    (and
+      (instance ?BO BoardingOperation)
+      (subProcess ?BO ?MIO))))
+
+;; Rule 2: MIO permits SearchOperation and Detention
+(=>
+  (and
+    (instance ?MIO MaritimeInterdictionOperation)
+    (agent ?MIO ?A)
+    (instance ?A AutonomousAgent))
+  (permits ?A
+    (exists (?SO ?DET ?P)
+      (and
+        (instance ?SO SearchOperation)
+        (instance ?DET Detention)
+        (instance ?P Human)
+        (agent ?SO ?A)
+        (agent ?DET ?A)
+        (patient ?DET ?P)
+        (subProcess ?DET ?MIO)
+        (subProcess ?SO ?MIO)
+        (earlier
+          (WhenFn ?SO)
+          (WhenFn ?DET))))))
+
+;; 33. VisitAndSearchOperation
+(subclass VisitAndSearchOperation MaritimeInterdictionOperation)
+
+(documentation VisitAndSearchOperation EnglishLanguage "A maritime interdiction operation in which a warship or authorized vessel stops, boards, and searches a merchant or suspect vessel to verify its identity, cargo, and compliance with applicable mandates, typically without an initial intent to detain or divert the vessel.")
+
+(termFormat EnglishLanguage VisitAndSearchOperation "visit and search operation")
+
+;; Rule 1: VisitAndSearchOperation involves a BoardingOperation and a
+;; SearchOperation as subprocesses
+(=>
+  (instance ?VAS VisitAndSearchOperation)
+  (exists (?BO ?SO)
+    (and
+      (instance ?BO BoardingOperation)
+      (instance ?SO SearchOperation)
+      (subProcess ?BO ?VAS)
+      (subProcess ?SO ?VAS)
+      (subProcess ?SO ?BO))))
+
+;; Rule 2: If a searched person is found to be Illegal, Detention is permitted
+;; as a subprocess of VisitAndSearchOperation
+(=>
+  (and
+    (instance ?VAS VisitAndSearchOperation)
+    (instance ?SO SearchOperation)
+    (subProcess ?SO ?VAS)
+    (agent ?SO ?A)
+    (instance ?A AutonomousAgent)
+    (patient ?SO ?P)
+    (instance ?P Human)
+    (attribute ?P Illegal))
+  (permits ?A
+    (exists (?DET)
+      (and
+        (instance ?DET Detention)
+        (agent ?DET ?A)
+        (patient ?DET ?P)
+        (subProcess ?DET ?VAS)
+        (earlier
+          (WhenFn ?SO)
+          (WhenFn ?DET))))))
+
+;; 34. IndirectFire
+(subclass IndirectFire Shooting)
+
+(documentation IndirectFire EnglishLanguage "A form of shooting in which a weapon delivers fire at a target that is not visible to the firer, typically using calculated firing data and observer corrections, as in artillery or naval gunfire support (indirect fire).")
+(termFormat EnglishLanguage IndirectFire "indirect fire")
+
+;; Rule: IndirectFire implies the firer does not see the target
+(=>
+  (and
+    (instance ?IF IndirectFire)
+    (agent ?IF ?A)
+    (patient ?IF ?T)
+    (instance ?A AutonomousAgent)
+    (instance ?T Physical))
+  (not
+    (exists (?SEE)
+      (and
+        (instance ?SEE Seeing)
+        (agent ?SEE ?A)
+        (patient ?SEE ?T)))))
+
+;; 35. ObservedIndirectFire
+(subclass ObservedIndirectFire IndirectFire)
+(documentation ObservedIndirectFire EnglishLanguage "Indirect fire in which a forward observer or spotter observes the fall of shot and provides corrections to improve accuracy.")
+(termFormat EnglishLanguage ObservedIndirectFire "observed indirect fire")
+
+;; Rule: ObservedIndirectFire involves an observer who sees the target area
+(=>
+  (instance ?OIF ObservedIndirectFire)
+  (exists (?OBS ?SEE ?T ?TIME)
+    (and
+      (instance ?OBS CognitiveAgent)
+      (instance ?SEE Seeing)
+      (agent ?SEE ?OBS)
+      (patient ?SEE ?T)
+      (patient ?OIF ?T)
+      (time ?SEE ?TIME)
+      (overlapsTemporally
+        (WhenFn ?OIF) ?TIME))))
+
+;; 36. UnobservedIndirectFire
+(subclass UnobservedIndirectFire IndirectFire)
+(documentation UnobservedIndirectFire EnglishLanguage "Indirect fire delivered without a forward observer, relying solely on pre-calculated firing data without real-time corrections.")
+(termFormat EnglishLanguage UnobservedIndirectFire "unobserved indirect fire")
+
+;; Rule: UnobservedIndirectFire involves no observer
+(=>
+  (instance ?UIF UnobservedIndirectFire)
+  (not
+    (exists (?OBS ?SEE ?T)
+      (and
+        (instance ?OBS CognitiveAgent)
+        (instance ?SEE Seeing)
+        (agent ?SEE ?OBS)
+        (patient ?SEE ?T)
+        (patient ?UIF ?T)))))
+
+;; Partition
+(disjoint ObservedIndirectFire UnobservedIndirectFire)
+
+;; 37. DirectFire
+(subclass DirectFire Shooting)
+
+(documentation DirectFire EnglishLanguage "Fire directed at a target that is visible to the aimer. The target itself is used as a point of aim for either the weapon or the director.")
+
+(termFormat EnglishLanguage DirectFire "direct fire")
+
+;; Rule 1: DirectFire requires seeing the target
+(=>
+  (and
+    (instance ?DF DirectFire)
+    (agent ?DF ?A)
+    (patient ?DF ?T)
+    (instance ?A AutonomousAgent)
+    (instance ?T Physical))
+  (exists (?SEE)
+    (and
+      (instance ?SEE Seeing)
+      (agent ?SEE ?A)
+      (patient ?SEE ?T))))
+
+;; Rule 2: DirectFire and IndirectFire disjoint
+(disjoint DirectFire IndirectFire)
+
+;; 38. DirectedEnergyWeapon
+(subclass DirectedEnergyWeapon Weapon)
+(documentation DirectedEnergyWeapon EnglishLanguage "A weapon or system that uses highly focused or directed energy, such as lasers, microwaves, and particle beams, to incapacitate, damage, or destroy enemy equipment, facilities, and/or personnel.")
+(termFormat EnglishLanguage DirectedEnergyWeapon "directed energy weapon")
+
+;; Rule 1: DirectedEnergyWeapon produces RadiatingElectromagnetic
+(=>
+  (and
+    (instance ?DEW DirectedEnergyWeapon)
+    (instance ?PROC UseOfForce)
+    (instrument ?PROC ?DEW))
+  (exists (?RE)
+    (and
+      (instance ?RE RadiatingElectromagnetic)
+      (result ?PROC ?RE))))
+
+;; Rule 2: A laser employed as a weapon is a DirectedEnergyWeapon
+(subclass LaserWeapon DirectedEnergyWeapon)
+(subclass LaserWeapon Laser)
+(documentation LaserWeapon EnglishLanguage "A laser device employed as a weapon, that is, one whose emitted energy is directed at persons or materiel in order to incapacitate, damage, or destroy.")
+(termFormat EnglishLanguage LaserWeapon "laser weapon")
+
+;; Rule 3: DEW use in an attack is a use of force
+(=>
+  (and
+    (instance ?DEW DirectedEnergyWeapon)
+    (instance ?PROC Attack)
+    (instrument ?PROC ?DEW))
+  (instance ?PROC UseOfForce))
+
+;; 39. ExclusionZone
+(subclass ExclusionZone GeographicArea)
+(documentation ExclusionZone EnglishLanguage "A zone established by a sanctioning body to prohibit specific activities within a specific geographic area, in accordance with applicable mandates or Rules of Engagement.")
+(termFormat EnglishLanguage ExclusionZone "exclusion zone")
+
+;; Rule 1: ExclusionZone is established by an authority
+(=>
+  (instance ?EZ ExclusionZone)
+  (exists (?AUTH)
+    (and
+      (instance ?AUTH Organization)
+      (confersNorm ?AUTH Prohibition
+        (exists (?T)
+          (and
+            (instance ?T Translocation)
+            (eventLocated ?T ?EZ)))))))
+
+;; Rule 2: Entry into ExclusionZone without permission is prohibited
+(=>
+  (and
+    (instance ?EZ ExclusionZone)
+    (instance ?SHIP Ship)
+    (located ?SHIP ?EZ)
+    (not
+      (modalAttribute
+        (located ?SHIP ?EZ) Permission)))
+  (attribute ?SHIP Illegal))
+
+;; 40. ForceProtection
+(subclass ForceProtection Protecting)
+(documentation ForceProtection EnglishLanguage "Actions taken to prevent or mitigate hostile actions against personnel (including family members), resources, facilities, and critical information. Force protection does not include actions to defeat the enemy or protect against accidents, weather, or disease (Newport ROE Handbook).")
+(termFormat EnglishLanguage ForceProtection "force protection")
+
+;; Rule 1: ForceProtection protects personnel, resources, or facilities
+(=>
+  (instance ?FP ForceProtection)
+  (exists (?P)
+    (and
+      (instance ?P Object)
+      (patient ?FP ?P))))
+
+;; Rule 2: ForceProtection does not include Attack
+(=>
+  (instance ?FP ForceProtection)
+  (not
+    (exists (?ATK)
+      (and
+        (instance ?ATK Attack)
+        (subProcess ?ATK ?FP)))))
+
+;; 41. HorsDeCombat
+(instance HorsDeCombat PhysicalAttribute)
+(documentation HorsDeCombat EnglishLanguage
+  "A person who: (1) is in the power of an adverse party;
+   (2) clearly expresses an intention to surrender; or
+   (3) has been rendered unconscious or incapacitated by
+   wounds or sickness, or shipwreck, and is incapable of
+   defending himself, provided they abstain from
+   hostilities and do not try to escape.")
+(termFormat EnglishLanguage HorsDeCombat "hors de combat")
+
+;; Supporting terms
+(subclass Surrendering IntentionalProcess)
+(documentation Surrendering EnglishLanguage "An intentional process by which a person clearly expresses the intention to cease resistance and submit to an adverse party.")
+(termFormat EnglishLanguage Surrendering "surrendering")
+
+(instance Incapacitated PhysicalAttribute)
+(instance Wounded PhysicalAttribute)
+(instance Shipwrecked PhysicalAttribute)
+
+;; Rule 1: HorsDeCombat person cannot be attacked
+(=>
+  (and
+    (instance ?P Human)
+    (attribute ?P HorsDeCombat)
+    (instance ?A AutonomousAgent))
+  (not
+    (permits ?A
+      (exists (?ATK)
+        (and
+          (instance ?ATK Attack)
+          (patient ?ATK ?P)
+          (agent ?ATK ?A))))))
+
+;; Rule 2a: Detention implies HorsDeCombat
+(=>
+  (and
+    (instance ?P Human)
+    (instance ?DET Detention)
+    (patient ?DET ?P))
+  (attribute ?P HorsDeCombat))
+
+;; Rule 2b: Intention to surrender implies HorsDeCombat
+(=>
+  (and
+    (instance ?P Human)
+    (instance ?S Surrendering)
+    (agent ?S ?P))
+  (attribute ?P HorsDeCombat))
+
+;; Rule 2c: Incapacitation implies HorsDeCombat
+(=>
+  (and
+    (instance ?P Human)
+    (or
+      (attribute ?P Incapacitated)
+      (attribute ?P Wounded)
+      (attribute ?P Shipwrecked)))
+  (attribute ?P HorsDeCombat))
+
+;; 42. HostNation
+(subclass HostNation Nation)
+(documentation HostNation EnglishLanguage "A State that receives, with its consent, the forces and/or supplies of allied States and/or coalition partners, to be located on, to operate in, or to transit through its territory (Newport ROE Handbook).")
+(termFormat EnglishLanguage HostNation "host nation")
+
+;; Rule 1: HostNation consents to foreign forces operating on or transiting
+;; its territory
+(=>
+  (and
+    (instance ?HN HostNation)
+    (instance ?UNIT MilitaryOrganization)
+    (instance ?STATE Nation)
+    (not
+      (equal ?HN ?STATE))
+    (member ?UNIT ?STATE))
+  (confersNorm ?HN Permission
+    (exists (?OP)
+      (and
+        (or
+          (instance ?OP MilitaryOperation)
+          (instance ?OP Translocation))
+        (agent ?OP ?UNIT)
+        (eventLocated ?OP ?HN)))))
+
+;; 43. HumanSupervisedAutonomousWeaponSystem
+(subclass HumanSupervisedAutonomousWeaponSystem AutonomousWeaponSystem)
+(documentation HumanSupervisedAutonomousWeaponSystem EnglishLanguage "An autonomous weapon system that is designed to provide human operators with the ability to intervene and terminate engagement at any point during operation (Newport ROE Handbook Series 84).")
+(termFormat EnglishLanguage HumanSupervisedAutonomousWeaponSystem "human-supervised autonomous weapon system")
+
+;; Rule 1: HumanSupervisedAutonomousWeaponSystem has a human operator
+(=>
+  (instance ?HSAWS HumanSupervisedAutonomousWeaponSystem)
+  (exists (?OP)
+    (and
+      (instance ?OP Human)
+      (operator ?HSAWS ?OP))))
+
+;; Rule 2: Human operator is permitted to decide to cease engagement
+(=>
+  (and
+    (instance ?HSAWS HumanSupervisedAutonomousWeaponSystem)
+    (instance ?OP Human)
+    (operator ?HSAWS ?OP)
+    (instance ?ENG MilitaryOperation)
+    (instrument ?ENG ?HSAWS))
+  (modalAttribute
+    (exists (?DEC)
+      (and
+        (instance ?DEC Deciding)
+        (agent ?DEC ?OP)
+        (patient ?DEC ?ENG))) Permission))
+
+;; 44. TacticalIllumination
+(subclass TacticalIllumination MilitaryOperation)
+(documentation TacticalIllumination EnglishLanguage "The process of adding infrared or visible light to the zone of action by various means, including searchlights, thermal imagery, lasers, pyrotechnics, and flares, for purposes including targeting and improving visibility. For ROE purposes, also includes the use of fire control radar to generate a firing solution (Newport ROE Handbook). Illuminating a target creates the technical capability to engage it; it confers no authorization to do so, and per Appendix 4 paragraph 4.3 of the Handbook illumination may itself be read by the other party as a hostile intent indicator in conditions of high or escalating tension.")
+(termFormat EnglishLanguage TacticalIllumination "tactical illumination")
+
+;; Rule 1: TacticalIllumination results in Illuminated attribute
+;; on the target area
+(=>
+  (and
+    (instance ?TI TacticalIllumination)
+    (patient ?TI ?REGION)
+    (instance ?REGION Region))
+  (holdsDuring
+    (WhenFn ?TI)
+    (attribute ?REGION Illuminated)))
+
+;; Rule 2: TacticalIllumination involves RadiatingElectromagnetic
+(=>
+  (instance ?TI TacticalIllumination)
+  (exists (?RAD)
+    (and
+      (instance ?RAD RadiatingElectromagnetic)
+      (subProcess ?RAD ?TI))))
+
+;; Rule 3: TacticalIllumination makes engagement technically possible
+(=>
+  (and
+    (instance ?TI TacticalIllumination)
+    (agent ?TI ?A)
+    (patient ?TI ?TARGET))
+  (modalAttribute
+    (exists (?ATK)
+      (and
+        (instance ?ATK Attack)
+        (agent ?ATK ?A)
+        (patient ?ATK ?TARGET))) Possibility))
+
+;; 45. InformationEnvironment
+(subclass InformationEnvironment Collection)
+(documentation InformationEnvironment EnglishLanguage "The aggregate of individuals, organizations, and systems that collect, process, disseminate, or act on information. The information environment is where humans and automated systems observe, orient, decide, and act upon information (Newport ROE Handbook).")
+(termFormat EnglishLanguage InformationEnvironment "information environment")
+
+;; Rule 1: InformationEnvironment contains agents and systems
+(=>
+  (instance ?IE InformationEnvironment)
+  (exists (?A ?S)
+    (and
+      (instance ?A CognitiveAgent)
+      (instance ?S ComputerSystem)
+      (member ?A ?IE)
+      (member ?S ?IE))))
+
+;; Rule 2: InformationEnvironment is the domain of InformationOperation
+(=>
+  (instance ?IO InformationOperation)
+  (exists (?IE ?A)
+    (and
+      (instance ?IE InformationEnvironment)
+      (agent ?IO ?A)
+      (member ?A ?IE)
+      (areaOfOperation ?IE ?IO))))
+
+;; 46. Airspace
+(subclass Airspace AtmosphericRegion)
+(documentation Airspace EnglishLanguage "A defined volume of EarthsAtmosphere above a specific geographic area, extending from the earth's surface upward, over which a State may exercise sovereignty or which may be designated for specific uses under international law.")
+(termFormat EnglishLanguage Airspace "airspace")
+
+;; Rule 1: Airspace is above a GeographicArea
+(=>
+  (instance ?AS Airspace)
+  (exists (?GA)
+    (and
+      (instance ?GA GeographicArea)
+      (orientation ?AS ?GA Above))))
+
+;; Rule 2: Sovereign Airspace -- unauthorized entry is illegal
+(=>
+  (and
+    (instance ?AS Airspace)
+    (instance ?STATE Nation)
+    (claimedTerritory ?AS ?STATE)
+    (instance ?AC Aircraft)
+    (instance ?T Flying)
+    (agent ?T ?AC)
+    (meetsSpatially ?T ?AS)
+    (not
+      (modalAttribute ?T Permission)))
+  (property ?T Illegal))
+
+;; 47. InternationalAirspace
+(subclass InternationalAirspace Airspace)
+(documentation InternationalAirspace EnglishLanguage "Areas of airspace not subject to the sovereignty of a State, including airspace over the contiguous zone, EEZ, high seas, and territories not subject to national sovereignty.")
+(termFormat EnglishLanguage InternationalAirspace "international airspace")
+
+;; Rule 1: No sovereignty
+(=>
+  (instance ?IA InternationalAirspace)
+  (not
+    (exists (?STATE)
+      (and
+        (instance ?STATE Nation)
+        (possesses ?STATE ?IA)))))
+
+;; Rule 2: Airspace above international waters is international airspace
+(=>
+  (and
+    (instance ?IW InternationalWaters)
+    (instance ?AS Airspace)
+    (orientation ?AS ?IW Above))
+  (instance ?AS InternationalAirspace))
+
+;; Rule 3: Transit freedom
+(=>
+  (and
+    (instance ?IA InternationalAirspace)
+    (instance ?AC Aircraft)
+    (instance ?T Translocation)
+    (agent ?T ?AC)
+    (meetsSpatially ?T ?IA))
+  (modalAttribute ?T Permission))
+
+;; 48. LawOfArmedConflict
+(instance LawOfArmedConflict Agreement)
+(documentation LawOfArmedConflict EnglishLanguage "The body of international law governing the conduct of armed conflict, also known as International Humanitarian Law (IHL) or the Law of War. It includes the Geneva Conventions, Hague Conventions, and customary international law, establishing rules on the protection of civilians, treatment of prisoners, and permissible methods and means of warfare.")
+(termFormat EnglishLanguage LawOfArmedConflict "law of armed conflict")
+(conventionalShortName "LOAC" LawOfArmedConflict)
+(conventionalLongName "Law of Armed Conflict" LawOfArmedConflict)
+
+;; 49. MaritimeSecurityOperation
+(subclass MaritimeSecurityOperation MaritimeOperation)
+(documentation MaritimeSecurityOperation EnglishLanguage "All maritime operations that are not conducted under Law of Armed Conflict (LOAC)-based authorizations, including maritime interdiction operations, counter-piracy operations, maritime law enforcement operations, and UN Security Council sanctions enforcement operations (Newport ROE Handbook).")
+(termFormat EnglishLanguage MaritimeSecurityOperation "maritime security operation")
+
+;; Rule 1: MaritimeSecurityOperation is not conducted under LOAC
+(=>
+  (instance ?MSO MaritimeSecurityOperation)
+  (not
+    (confersNorm LawOfArmedConflict Permission
+      (instance ?MSO MaritimeSecurityOperation))))
+
+;; Rule 2: MIO is a subclass of MaritimeSecurityOperation
+(subclass MaritimeInterdictionOperation MaritimeSecurityOperation)
+
+;; Rule 3: CounterPiracyOperation is a subclass
+(subclass CounterPiracyOperation MaritimeSecurityOperation)
+(documentation CounterPiracyOperation EnglishLanguage "A maritime security operation conducted to deter, suppress, or respond to acts of piracy, including the boarding, search, and detention of vessels reasonably suspected of piracy in international waters.")
+(termFormat EnglishLanguage CounterPiracyOperation "counter-piracy operation")
+
+;; Rule 4: MaritimeLawEnforcementOperation is a subclass
+(subclass MaritimeLawEnforcementOperation MaritimeSecurityOperation)
+(documentation MaritimeLawEnforcementOperation EnglishLanguage "A maritime security operation conducted to enforce domestic or international law at sea, including fisheries, customs, migration, and narcotics enforcement.")
+(termFormat EnglishLanguage MaritimeLawEnforcementOperation "maritime law enforcement operation")
+
+;; 50. RulesOfEngagement
+(subclass RulesOfEngagement Ordering)
+(documentation RulesOfEngagement EnglishLanguage "Directives issued by competent military authority that delineate the circumstances, conditions, degree, and manner in which the use of force may be applied. ROE do not alter pre-existing rights and obligations under LOAC, and must always remain consistent with LOAC obligations (Newport ROE Handbook). RulesOfEngagement is a subclass of Ordering, hence a Process, so instances are promulgation events. The normative content they carry is expressed by confersNorm and modalAttribute rather than by the event itself. An action forbidden by ROE but permitted by LOAC is unauthorized, not unlawful.")
+(termFormat EnglishLanguage RulesOfEngagement "rules of engagement")
+(conventionalShortName "ROE" RulesOfEngagement)
+
+;; Rule 1: LOAC ceiling -- no authority may permit what LOAC prohibits
+(=>
+  (modalAttribute ?F Prohibition)
+  (not
+    (exists (?AUTH)
+      (confersNorm ?AUTH Permission ?F))))
+
+;; 51. MaritimeWarningZone
+(subclass MaritimeWarningZone GeographicArea)
+(documentation MaritimeWarningZone EnglishLanguage "A designated ocean area and superjacent airspace where a State purports to restrict or limit freedom of navigation or overflight, impacting high seas freedoms. Includes exclusion zones and warning areas (JP 3-32, Newport ROE Handbook). The restriction is one the establishing State purports to impose; it does not by itself extinguish high seas freedoms.")
+(termFormat EnglishLanguage MaritimeWarningZone "maritime warning zone")
+
+;; Rule 1: MaritimeWarningZone contains InternationalWaters
+(=>
+  (instance ?MWZ MaritimeWarningZone)
+  (exists (?IW)
+    (and
+      (instance ?IW InternationalWaters)
+      (part ?IW ?MWZ))))
+
+;; Rule 2: The establishing authority purports to prohibit transit
+(=>
+  (instance ?MWZ MaritimeWarningZone)
+  (exists (?AUTH)
+    (and
+      (instance ?AUTH Organization)
+      (confersNorm ?AUTH Prohibition
+        (exists (?T)
+          (and
+            (instance ?T Translocation)
+            (eventLocated ?T ?MWZ)))))))
+
+;; Rule 3: ExclusionZone and WarningArea are subclasses
+(subclass ExclusionZone MaritimeWarningZone)
+(subclass WarningArea MaritimeWarningZone)
+(documentation WarningArea EnglishLanguage "A designated maritime area within which a State advises that military activity is taking place and that entry may be hazardous, without purporting to prohibit entry outright.")
+(termFormat EnglishLanguage WarningArea "warning area")
+
+;; 52. TargetMarking
+(subclass TargetMarking MilitaryOperation)
+(documentation TargetMarking EnglishLanguage "A military operation in which a unit maintains contact with a target from a position that provides an immediate offensive capability against that target (Newport ROE Handbook).")
+(termFormat EnglishLanguage TargetMarking "marking")
+
+;; Rule 1: TargetMarking involves maintaining contact with a target
+(=>
+  (instance ?M TargetMarking)
+  (exists (?A ?T)
+    (and
+      (instance ?A MilitaryOrganization)
+      (instance ?T Physical)
+      (agent ?M ?A)
+      (patient ?M ?T)
+      (holdsDuring
+        (WhenFn ?M)
+        (connected ?A ?T)))))
+
+;; Rule 2: Marking unit has immediate offensive capability
+(=>
+  (and
+    (instance ?M TargetMarking)
+    (agent ?M ?A))
+  (instance ?A AutonomousAgent))
+
+;; 53. MilitaryDeception
+(subclass MilitaryDeception MilitaryOperation)
+(documentation MilitaryDeception EnglishLanguage "An information operations tool involving actions executed to deliberately mislead adversary military, paramilitary, or violent extremist organization decision makers, causing the adversary to take specific actions or inactions that contribute to the accomplishment of the friendly force mission (Newport ROE Handbook).")
+(termFormat EnglishLanguage MilitaryDeception "military deception")
+(conventionalShortName "MILDEC" MilitaryDeception)
+
+;; Rule 1: MilitaryDeception targets adversary decision makers
+(=>
+  (instance ?MD MilitaryDeception)
+  (exists (?A ?TARGET)
+    (and
+      (instance ?A MilitaryOrganization)
+      (agent ?MD ?A)
+      (instance ?TARGET CognitiveAgent)
+      (patient ?MD ?TARGET))))
+
+;; Rule 2: MilitaryDeception is intended to cause the adversary to act
+(=>
+  (and
+    (instance ?MD MilitaryDeception)
+    (patient ?MD ?TARGET))
+  (hasPurpose ?MD
+    (exists (?ACT)
+      (and
+        (instance ?ACT Process)
+        (agent ?ACT ?TARGET)
+        (causes ?MD ?ACT)))))
+
+;; 54. NationalAirspace
+(subclass NationalAirspace Airspace)
+(documentation NationalAirspace EnglishLanguage "Airspace above the territory, internal waters, territorial sea, and archipelagic waters of a State (Newport ROE Handbook).")
+(termFormat EnglishLanguage NationalAirspace "national airspace")
+
+;; Rule 1: NationalAirspace is above a Nation's territory
+(=>
+  (instance ?NA NationalAirspace)
+  (exists (?STATE ?TERR)
+    (and
+      (instance ?STATE Nation)
+      (instance ?TERR GeographicArea)
+      (claimedTerritory ?TERR ?STATE)
+      (orientation ?NA ?TERR Above))))
+
+;; Rule 2: NationalAirspace is sovereign -- unauthorized entry is Illegal
+(=>
+  (and
+    (instance ?NA NationalAirspace)
+    (instance ?AC Aircraft)
+    (instance ?T Flying)
+    (agent ?T ?AC)
+    (meetsSpatially ?T ?NA)
+    (not
+      (modalAttribute ?T Permission)))
+  (property ?T Illegal))
+
+;; Rule 3: NationalAirspace and InternationalAirspace are disjoint
+(disjoint NationalAirspace InternationalAirspace)
+
+;; 55. NavalMine
+(subclass NavalMine Bomb)
+(documentation NavalMine EnglishLanguage "An explosive device laid in the water, on the seabed, or in the subsoil thereof, with the intention of damaging or sinking ships or of deterring ships from entering an area (Newport ROE Handbook).")
+(termFormat EnglishLanguage NavalMine "naval mine")
+
+;; Rule 1: NavalMine is located in water or on seabed
+(=>
+  (instance ?NM NavalMine)
+  (exists (?LOC)
+    (and
+      (or
+        (instance ?LOC WaterArea)
+        (instance ?LOC UnderwaterRegion))
+      (located ?NM ?LOC))))
+
+;; Rule 2: NavalMine has purpose of damaging or deterring ships
+(=>
+  (instance ?NM NavalMine)
+  (hasPurpose ?NM
+    (exists (?S)
+      (and
+        (instance ?S Ship)
+        (or
+          (exists (?D)
+            (and
+              (instance ?D Damaging)
+              (patient ?D ?S)
+              (instrument ?D ?NM)))
+          (not
+            (exists (?T)
+              (and
+                (instance ?T Translocation)
+                (agent ?T ?S)
+                (patient ?T ?NM)))))))))
+
+;; 56. Neutralizing
+(subclass Neutralizing MilitaryOperation)
+(documentation Neutralizing EnglishLanguage "A military operation that renders a target ineffective, either temporarily or permanently (Newport ROE Handbook).")
+(termFormat EnglishLanguage Neutralizing "neutralize")
+
+;; Rule 1: Neutralizing causes Damaging of the target
+(=>
+  (and
+    (instance ?N Neutralizing)
+    (patient ?N ?T)
+    (instance ?T Physical))
+  (exists (?D)
+    (and
+      (instance ?D Damaging)
+      (patient ?D ?T)
+      (causes ?N ?D))))
+
+;; Rule 2: Temporary neutralization results in Malfunctioning
+(=>
+  (and
+    (instance ?N Neutralizing)
+    (patient ?N ?T)
+    (instance ?T Device))
+  (holdsDuring
+    (WhenFn ?N)
+    (attribute ?T Malfunctioning)))
+
+;; Rule 3: Permanent neutralization results in Destruction
+(=>
+  (and
+    (instance ?N Neutralizing)
+    (patient ?N ?T)
+    (instance ?T Physical))
+  (modalAttribute
+    (exists (?D)
+      (and
+        (instance ?D Destruction)
+        (patient ?D ?T)
+        (causes ?N ?D))) Possibility))
+
+;; 57. NoFlyZone
+(subclass NoFlyZone Airspace)
+(documentation NoFlyZone EnglishLanguage "A territory or area over which aircraft are not permitted to fly, or may fly only with the permission of the authority enforcing the zone (Newport ROE Handbook).")
+(termFormat EnglishLanguage NoFlyZone "no-fly zone")
+
+;; Rule 1: NoFlyZone is established by some authority via a prohibition norm
+(=>
+  (instance ?NFZ NoFlyZone)
+  (exists (?AUTH)
+    (and
+      (instance ?AUTH Organization)
+      (confersNorm ?AUTH Prohibition
+        (exists (?F)
+          (and
+            (instance ?F Flying)
+            (eventLocated ?F ?NFZ)))))))
+
+;; Rule 2: Unauthorized flying in a NoFlyZone is Illegal
+(=>
+  (and
+    (instance ?NFZ NoFlyZone)
+    (instance ?F Flying)
+    (eventLocated ?F ?NFZ)
+    (not
+      (modalAttribute ?F Permission)))
+  (property ?F Illegal))
+
+;; 58. Combatant
+(instance Combatant OccupationalRole)
+(documentation Combatant EnglishLanguage "A member of the armed forces of a party to an armed conflict who has the right to participate directly in hostilities under LOAC, and who may be targeted as such (Newport ROE Handbook, Geneva Convention III).")
+(termFormat EnglishLanguage Combatant "combatant")
+
+;; Rule 1: A Combatant may take part in hostilities
+(=>
+  (property ?P Combatant)
+  (modalAttribute
+    (exists (?VC)
+      (and
+        (instance ?VC ViolentContest)
+        (agent ?VC ?P))) Possibility))
+
+;; 59. NonCombatant
+(instance NonCombatant OccupationalRole)
+(subAttribute NonCombatant Civilian)
+(documentation NonCombatant EnglishLanguage "A person who is not a member of the armed forces and does not directly participate in hostilities, including civilians, medical personnel, and chaplains. NonCombatants are protected under LOAC and may not be targeted (Newport ROE Handbook, Geneva Convention IV).")
+(termFormat EnglishLanguage NonCombatant "non-combatant")
+
+;; Rule 1: NonCombatant cannot be targeted
+(=>
+  (and
+    (property ?P NonCombatant)
+    (instance ?A AutonomousAgent))
+  (not
+    (permits ?A
+      (exists (?ATK)
+        (and
+          (instance ?ATK Attack)
+          (agent ?ATK ?A)
+          (patient ?ATK ?P))))))
+
+;; Rule 2: Combatant and NonCombatant are disjoint
+(contraryAttribute Combatant NonCombatant)
+
+;; 60. NonCombatantEvacuationOperation
+(subclass NonCombatantEvacuationOperation MilitaryOperation)
+(documentation NonCombatantEvacuationOperation EnglishLanguage "An operation directed by national authority whereby non-combatants are evacuated from foreign States to safe havens when their lives are endangered by war, civil unrest, or natural disaster (Newport ROE Handbook).")
+(termFormat EnglishLanguage NonCombatantEvacuationOperation "non-combatant evacuation operation")
+(conventionalShortName "NEO" NonCombatantEvacuationOperation)
+
+;; Rule 1: NEO is directed by national authority
+(=>
+  (instance ?NEO NonCombatantEvacuationOperation)
+  (exists (?AUTH)
+    (and
+      (instance ?AUTH Nation)
+      (agent ?NEO ?AUTH))))
+
+;; Rule 2: NEO evacuates NonCombatants from a foreign State
+(=>
+  (instance ?NEO NonCombatantEvacuationOperation)
+  (exists (?P ?STATE)
+    (and
+      (property ?P NonCombatant)
+      (instance ?STATE Nation)
+      (patient ?NEO ?P)
+      (origin ?NEO ?STATE))))
+
+;; Rule 3: NEO is triggered by armed conflict, civil unrest, or natural disaster
+(=>
+  (instance ?NEO NonCombatantEvacuationOperation)
+  (or
+    (exists (?VC)
+      (and
+        (instance ?VC ViolentContest)
+        (causes ?VC ?NEO)))
+    (exists (?GP)
+      (and
+        (instance ?GP GeologicalProcess)
+        (causes ?GP ?NEO)))))
+
+;; Rule 4: Attack is not permitted during NEO
+(=>
+  (and
+    (instance ?NEO NonCombatantEvacuationOperation)
+    (subProcess ?ATK ?NEO)
+    (instance ?ATK Attack))
+  (property ?ATK Illegal))
+
+;; 61. NoStrikeList
+(subclass NoStrikeList UniqueList)
+(documentation NoStrikeList EnglishLanguage "A list of objects or entities protected from the effects of military operations under the law of armed conflict and/or rules of engagement (Newport ROE Handbook).")
+(termFormat EnglishLanguage NoStrikeList "no-strike list")
+
+;; Rule 1: NoStrikeList members cannot be targeted
+(=>
+  (and
+    (instance ?NSL NoStrikeList)
+    (inList ?E ?NSL)
+    (instance ?A AutonomousAgent))
+  (not
+    (permits ?A
+      (exists (?ATK)
+        (and
+          (instance ?ATK Attack)
+          (agent ?ATK ?A)
+          (patient ?ATK ?E))))))
+
+;; Rule 2: NoStrikeList is given effect by a prohibition from competent authority
+(=>
+  (instance ?NSL NoStrikeList)
+  (exists (?AUTH)
+    (and
+      (instance ?AUTH Organization)
+      (confersNorm ?AUTH Prohibition
+        (exists (?ATK ?E)
+          (and
+            (instance ?ATK Attack)
+            (inList ?E ?NSL)
+            (patient ?ATK ?E)))))))
+
+;; 62. Piracy
+(subclass Piracy Hijacking)
+(documentation Piracy EnglishLanguage "An illegal act of violence, depredation, or detention committed for private ends by the crew or passengers of a private ship or aircraft against another ship or aircraft, or against persons or property on board, occurring in or over international waters (Newport ROE Handbook, UNCLOS Art. 101).")
+(termFormat EnglishLanguage Piracy "piracy")
+
+;; Rule 1: Piracy occurs in international waters or airspace
+(=>
+  (instance ?P Piracy)
+  (exists (?LOC)
+    (and
+      (or
+        (instance ?LOC InternationalWaters)
+        (instance ?LOC InternationalAirspace))
+      (eventLocated ?P ?LOC))))
+
+;; Rule 2: Piracy is committed for private ends by private vessel
+(=>
+  (instance ?P Piracy)
+  (exists (?VESSEL ?AGENT)
+    (and
+      (instance ?VESSEL Vehicle)
+      (agent ?P ?AGENT)
+      (possesses ?AGENT ?VESSEL)
+      (not
+        (instance ?VESSEL MilitaryVehicle)))))
+
+;; Rule 3: Piracy is a HostileAct
+(=>
+  (instance ?P Piracy)
+  (instance ?P HostileAct))
+
+;; 63. PositiveFoeIdentification
+(subclass PositiveFoeIdentification Classifying)
+(subclass PositiveFoeIdentification MilitaryOperation)
+(documentation PositiveFoeIdentification EnglishLanguage
+  "A military identification process that determines with reasonable
+   certainty that an object of attack is a legitimate military target
+   and not a friendly or neutral force, in accordance with the law
+   of armed conflict and applicable rules of engagement. Encompasses
+   Identification Friend or Foe (IFF) procedures. Note: the term
+   PositiveFoeIdentification is used here to distinguish this concept
+   from general classification processes; the conventional military
+   abbreviation remains PID (Newport ROE Handbook).")
+(termFormat EnglishLanguage PositiveFoeIdentification "positive foe identification")
+(conventionalShortName "PID" PositiveFoeIdentification)
+
+;; Rule 1: PFI requires a cognitive agent
+(=>
+  (instance ?PID PositiveFoeIdentification)
+  (exists (?A)
+    (and
+      (instance ?A CognitiveAgent)
+      (agent ?PID ?A))))
+
+;; Rule 2: PFI identifies its target as a Combatant
+(=>
+  (instance ?PID PositiveFoeIdentification)
+  (exists (?T)
+    (and
+      (instance ?T Physical)
+      (patient ?PID ?T)
+      (property ?T Combatant))))
+
+;; Rule 3: An attack permitted under ROE requires prior PID
+(=>
+  (and
+    (instance ?ATK Attack)
+    (agent ?ATK ?UNIT)
+    (instance ?UNIT MilitaryOrganization)
+    (patient ?ATK ?TARGET)
+    (instance ?ROE RulesOfEngagement)
+    (confersNorm ?ROE Permission
+      (and
+        (instance ?ATK Attack)
+        (agent ?ATK ?UNIT))))
+  (exists (?PID)
+    (and
+      (instance ?PID PositiveFoeIdentification)
+      (patient ?PID ?TARGET)
+      (earlier
+        (WhenFn ?PID)
+        (WhenFn ?ATK)))))
+
+;; Rule 4: DeclaredHostileStatus satisfies the PID requirement
+(=>
+  (and
+    (instance ?T Physical)
+    (property ?T DeclaredHostileStatus))
+  (and
+    (property ?T Combatant)
+    (exists (?PID)
+      (and
+        (instance ?PID PositiveFoeIdentification)
+        (patient ?PID ?T)))))
+
+;; 64. PrecisionGuidedMunition
+(subclass PrecisionGuidedMunition Projectile)
+(documentation PrecisionGuidedMunition EnglishLanguage "A projectile that uses precision guidance technology to strike targets more accurately, with the intention of reducing unintended damage to persons or property compared to non-precision-guided munitions. Sometimes referred to as smart munitions (Newport ROE Handbook).")
+(termFormat EnglishLanguage PrecisionGuidedMunition "precision-guided munition")
+(conventionalShortName "PGM" PrecisionGuidedMunition)
+
+;; Rule 1: PGM is directed toward a specific target
+(=>
+  (and
+    (instance ?PGM PrecisionGuidedMunition)
+    (instance ?ATK Attack)
+    (instrument ?ATK ?PGM))
+  (exists (?T)
+    (and
+      (instance ?T Physical)
+      (target ?ATK ?T))))
+
+;; Rule 2: PGM use has the purpose of confining damage to military objectives
+(=>
+  (and
+    (instance ?PGM PrecisionGuidedMunition)
+    (instance ?ATK Attack)
+    (instrument ?ATK ?PGM))
+  (hasPurpose ?ATK
+    (not
+      (exists (?CD)
+        (and
+          (instance ?CD CollateralDamage)
+          (causes ?ATK ?CD))))))
+
+;; 65. ArticleFive
+(subclass ArticleFive CollectiveSelfDefense)
+(documentation ArticleFive EnglishLanguage
+  "The collective defence commitment enshrined in Article 5 of
+   the North Atlantic Treaty, whereby an attack against one NATO
+   member is considered an attack against all members, obligating
+   collective response (Newport ROE Handbook; North Atlantic
+   Treaty 1949).")
+(termFormat EnglishLanguage ArticleFive "Article 5")
+
+;; Rule 1: ArticleFive applies only within NATO
+(=>
+  (instance ?A5 ArticleFive)
+  (exists (?N)
+    (and
+      (instance ?N Nation)
+      (member ?N NorthAtlanticTreatyOrganization)
+      (agent ?A5 ?N))))
+
+;; Rule 2: An attack on one NATO member may be treated as an attack on all
+(=>
+  (and
+    (instance ?ATK Attack)
+    (instance ?N1 Nation)
+    (instance ?N2 Nation)
+    (member ?N1 NorthAtlanticTreatyOrganization)
+    (member ?N2 NorthAtlanticTreatyOrganization)
+    (patient ?ATK ?N1)
+    (not
+      (equal ?N1 ?N2)))
+  (modalAttribute
+    (exists (?A5)
+      (and
+        (instance ?A5 ArticleFive)
+        (agent ?A5 ?N2)
+        (patient ?A5 ?N1)
+        (causes ?ATK ?A5))) Possibility))
+
+;; Rule 3: ArticleFive is triggered by an Attack on the defended nation
+(=>
+  (and
+    (instance ?A5 ArticleFive)
+    (patient ?A5 ?N1))
+  (exists (?ATK)
+    (and
+      (instance ?ATK Attack)
+      (patient ?ATK ?N1)
+      (causes ?ATK ?A5))))
+
+;; Rule 4: NATO Member Nations
+(member Albania NorthAtlanticTreatyOrganization)
+(member Belgium NorthAtlanticTreatyOrganization)
+(member Bulgaria NorthAtlanticTreatyOrganization)
+(member Canada NorthAtlanticTreatyOrganization)
+(member Croatia NorthAtlanticTreatyOrganization)
+(member CzechRepublic NorthAtlanticTreatyOrganization)
+(member Denmark NorthAtlanticTreatyOrganization)
+(member Estonia NorthAtlanticTreatyOrganization)
+(member Finland NorthAtlanticTreatyOrganization)
+(member France NorthAtlanticTreatyOrganization)
+(member Germany NorthAtlanticTreatyOrganization)
+(member Greece NorthAtlanticTreatyOrganization)
+(member Hungary NorthAtlanticTreatyOrganization)
+(member Iceland NorthAtlanticTreatyOrganization)
+(member Italy NorthAtlanticTreatyOrganization)
+(member Latvia NorthAtlanticTreatyOrganization)
+(member Lithuania NorthAtlanticTreatyOrganization)
+(member Luxembourg NorthAtlanticTreatyOrganization)
+(member Montenegro NorthAtlanticTreatyOrganization)
+(member Netherlands NorthAtlanticTreatyOrganization)
+(member Macedonia NorthAtlanticTreatyOrganization)
+(member Norway NorthAtlanticTreatyOrganization)
+(member Poland NorthAtlanticTreatyOrganization)
+(member Portugal NorthAtlanticTreatyOrganization)
+(member Romania NorthAtlanticTreatyOrganization)
+(member Slovakia NorthAtlanticTreatyOrganization)
+(member Slovenia NorthAtlanticTreatyOrganization)
+(member Spain NorthAtlanticTreatyOrganization)
+(member Sweden NorthAtlanticTreatyOrganization)
+(member Turkey NorthAtlanticTreatyOrganization)
+(member UnitedKingdom NorthAtlanticTreatyOrganization)
+(member UnitedStates NorthAtlanticTreatyOrganization)
+
+;; 66. Covert
+(instance Covert RelationalAttribute)
+(documentation Covert EnglishLanguage "An attribute indicating that an operation or action is planned and executed so as to conceal the identity of the sponsor or to permit plausible deniability (Newport ROE Handbook).")
+(termFormat EnglishLanguage Covert "covert")
+(contraryAttribute Covert Overt)
+
+;; Rule 1: A covert entity's sponsor is not known to the opposing agent
+(=>
+  (and
+    (property ?OP Covert)
+    (instance ?OP Process)
+    (agent ?OP ?A)
+    (instance ?TARGET CognitiveAgent)
+    (not
+      (equal ?A ?TARGET)))
+  (not
+    (knows ?TARGET
+      (agent ?OP ?A))))
+
+;; 67. Overt
+(instance Overt RelationalAttribute)
+(documentation Overt EnglishLanguage "An attribute indicating that an operation or action is conducted openly, without concealment of the identity of the sponsor or the nature of the operation (Newport ROE Handbook).")
+(termFormat EnglishLanguage Overt "overt")
+
+;; Rule 1: An overt operation's sponsor is identifiable by observers
+(=>
+  (and
+    (property ?OP Overt)
+    (instance ?OP Process)
+    (agent ?OP ?A)
+    (instance ?SEE Seeing)
+    (agent ?SEE ?OBS)
+    (not
+      (equal ?A ?OBS))
+    (patient ?SEE ?OP))
+  (knows ?OBS
+    (agent ?OP ?A)))
+
+;; 68. CovertOperation
+(subclass CovertOperation MilitaryOperation)
+(documentation CovertOperation EnglishLanguage "A military operation planned and executed so as to conceal the identity of the sponsor. A covert operation differs from a clandestine operation in that emphasis is placed on concealment of the sponsor rather than concealment of the operation itself (Newport ROE Handbook).")
+(termFormat EnglishLanguage CovertOperation "covert operation")
+
+;; Rule 1: Every CovertOperation has the Covert attribute
+(=>
+  (instance ?CO CovertOperation)
+  (property ?CO Covert))
+
+;; Rule 2: In a CovertOperation, the sponsor is concealed from the target
+(=>
+  (and
+    (instance ?CO CovertOperation)
+    (agent ?CO ?SPONSOR)
+    (patient ?CO ?TARGET)
+    (instance ?TARGET CognitiveAgent))
+  (not
+    (knows ?TARGET
+      (agent ?CO ?SPONSOR))))
+
+;; 69. OvertOperation
+(subclass OvertOperation MilitaryOperation)
+(documentation OvertOperation EnglishLanguage "A military operation conducted openly, without concealment of the identity of the sponsor or the nature of the operation (Newport ROE Handbook).")
+(termFormat EnglishLanguage OvertOperation "overt operation")
+
+;; Rule 1: Every OvertOperation has the Overt attribute
+(=>
+  (instance ?OO OvertOperation)
+  (property ?OO Overt))
+
+;; Rule 2: OvertOperation is disjoint from CovertOperation
+(disjoint OvertOperation CovertOperation)
+
+;; 70. SurveillanceOperation
+(subclass SurveillanceOperation MilitaryOperation)
+(documentation SurveillanceOperation EnglishLanguage "Surveillance missions are normally designated by delineating the area and type of surveillance. Surveillance may be of a tactical or strategic nature and may be followed by reconnaissance. Considerations for the selection of vehicles for surveillance are similar to those applying to reconnaissance.")
+(termFormat EnglishLanguage SurveillanceOperation "surveillance operation")
+
+;; Rule 1: Surveillance covers a designated geographic area
+(=>
+  (instance ?SURV SurveillanceOperation)
+  (exists (?AREA)
+    (and
+      (instance ?AREA GeographicArea)
+      (eventLocated ?SURV ?AREA))))
+
+;; Rule 2: Surveillance is conducted by a military unit using a vehicle
+(=>
+  (instance ?SURV SurveillanceOperation)
+  (exists (?UNIT ?VEH)
+    (and
+      (instance ?UNIT MilitaryOrganization)
+      (agent ?SURV ?UNIT)
+      (instance ?VEH Vehicle)
+      (instrument ?SURV ?VEH))))
+
+;; Rule 3: Surveillance may be followed by Reconnaissance
+(=>
+  (and
+    (instance ?SURV SurveillanceOperation)
+    (agent ?SURV ?UNIT)
+    (instance ?UNIT MilitaryOrganization))
+  (modalAttribute
+    (exists (?RECON)
+      (and
+        (instance ?RECON ReconnaissanceOperation)
+        (agent ?RECON ?UNIT)
+        (earlier
+          (WhenFn ?SURV)
+          (WhenFn ?RECON)))) Possibility))
+
+;; 71. Shadowing
+(subclass Shadowing MilitaryOperation)
+(disjoint Shadowing TargetMarking)
+(documentation Shadowing EnglishLanguage "A military operation that observes and maintains contact with an object, normally as a follow-up to surveillance or reconnaissance, with effectiveness measured by the ability to obtain and report required information. Shadowing may be carried out overtly or covertly by aircraft, submarines, ships, or combinations thereof, and must respect applicable rules of engagement. It is important that shadowing is not mistaken for target marking, as this may cause an unwanted escalatory effect (Newport ROE Handbook).")
+(termFormat EnglishLanguage Shadowing "shadowing")
+
+;; Rule 1: Shadowing has a physical target
+(=>
+  (instance ?SH Shadowing)
+  (exists (?TARGET)
+    (and
+      (instance ?TARGET Physical)
+      (patient ?SH ?TARGET))))
+
+;; Rule 2: Shadowing may be covert or overt
+(=>
+  (instance ?SH Shadowing)
+  (or
+    (property ?SH Covert)
+    (property ?SH Overt)))
+
+;; Rule 3: Covert shadowing means the target is unaware
+(=>
+  (and
+    (instance ?SH Shadowing)
+    (property ?SH Covert)
+    (patient ?SH ?TARGET)
+    (instance ?TARGET CognitiveAgent))
+  (not
+    (knows ?TARGET
+      (exists (?X)
+        (and
+          (instance ?X Shadowing)
+          (patient ?X ?TARGET))))))
+
+;; Rule 4: Shadowing is conducted by a military unit using a military vehicle
+(=>
+  (instance ?SH Shadowing)
+  (exists (?V ?UNIT)
+    (and
+      (instance ?UNIT MilitaryOrganization)
+      (agent ?SH ?UNIT)
+      (instance ?V MilitaryVehicle)
+      (instrument ?SH ?V))))
+
+;; Rule 5: Shadowing usually follows Surveillance or Reconnaissance
+(=>
+  (instance ?SH Shadowing)
+  (modalAttribute
+    (exists (?ISR)
+      (and
+        (or
+          (instance ?ISR SurveillanceOperation)
+          (instance ?ISR ReconnaissanceOperation))
+        (earlier
+          (WhenFn ?ISR)
+          (WhenFn ?SH)))) Likely))
+
+;; 72. ROERequest
+(subclass ROERequest Requesting)
+(subclass ROERequest MilitaryOperation)
+(documentation ROERequest EnglishLanguage "A formal message (ROEREQ) used by a commander to seek the implementation, modification, or cancellation of rules of engagement from a superior commander. Any commander in the operational chain of command can originate a ROEREQ. Each request must include an explanation of why the ROE are required and the consequences should the ROE not be approved (Newport ROE Handbook).")
+(termFormat EnglishLanguage ROERequest "ROE request")
+(conventionalShortName "ROEREQ" ROERequest)
+
+;; Rule 1: ROERequest is from a subordinate unit to HigherHeadquarters
+(=>
+  (instance ?REQ ROERequest)
+  (exists (?CMD ?HQ)
+    (and
+      (instance ?CMD MilitaryOrganization)
+      (instance ?HQ HigherHeadquarters)
+      (agent ?REQ ?CMD)
+      (destination ?REQ ?HQ)
+      (ancestorOrganization ?CMD ?HQ))))
+
+;; Rule 2: ROERequest is originated by a commander to a superior commander
+(=>
+  (instance ?REQ ROERequest)
+  (exists (?CMD ?SUP ?MIL ?POS_CMD ?POS_SUP)
+    (and
+      (instance ?CMD Human)
+      (instance ?SUP Human)
+      (attribute ?CMD MilitaryCommander)
+      (attribute ?SUP MilitaryCommander)
+      (instance ?MIL MilitaryForce)
+      (agent ?REQ ?CMD)
+      (destination ?REQ ?SUP)
+      (occupiesPosition ?CMD ?POS_CMD ?MIL)
+      (occupiesPosition ?SUP ?POS_SUP ?MIL)
+      (subordinatePosition ?MIL ?POS_CMD ?POS_SUP))))
+
+;; Rule 3: ROERequest concerns RulesOfEngagement
+(=>
+  (instance ?REQ ROERequest)
+  (exists (?ROE)
+    (and
+      (instance ?ROE RulesOfEngagement)
+      (patient ?REQ ?ROE))))
+
+;; Rule 4: ROERequest must include a justification
+(=>
+  (instance ?REQ ROERequest)
+  (exists (?JUST)
+    (and
+      (instance ?JUST Statement)
+      (subProcess ?JUST ?REQ))))
+
+;; 73. ROEAuthorization
+(subclass ROEAuthorization Directing)
+(subclass ROEAuthorization MilitaryOperation)
+(documentation ROEAuthorization EnglishLanguage "A formal message (ROEAUTH) used by the appropriate higher headquarters to authorize or deny rules of engagement in response to a ROE request (ROEREQ). Each ROEAUTH message should be numbered sequentially (Newport ROE Handbook).")
+(termFormat EnglishLanguage ROEAuthorization "ROE authorization")
+(conventionalShortName "ROEAUTH" ROEAuthorization)
+
+;; Rule 1: ROEAuthorization is issued by HigherHeadquarters
+(=>
+  (instance ?AUTH ROEAuthorization)
+  (exists (?HQ ?UNIT)
+    (and
+      (instance ?HQ HigherHeadquarters)
+      (instance ?UNIT MilitaryOrganization)
+      (agent ?AUTH ?HQ)
+      (destination ?AUTH ?UNIT)
+      (ancestorOrganization ?UNIT ?HQ))))
+
+;; Rule 2: ROEAuthorization is a response to a ROERequest
+(=>
+  (instance ?AUTH ROEAuthorization)
+  (exists (?REQ)
+    (and
+      (instance ?REQ ROERequest)
+      (earlier
+        (WhenFn ?REQ)
+        (WhenFn ?AUTH))
+      (causes ?REQ ?AUTH))))
+
+;; Rule 3: ROEAuthorization concerns RulesOfEngagement
+(=>
+  (instance ?AUTH ROEAuthorization)
+  (exists (?ROE)
+    (and
+      (instance ?ROE RulesOfEngagement)
+      (patient ?AUTH ?ROE))))
+
+;; Rule 4: ROEAuthorization either confers or withholds permission
+(=>
+  (and
+    (instance ?AUTH ROEAuthorization)
+    (patient ?AUTH ?ROE)
+    (instance ?ROE RulesOfEngagement)
+    (destination ?AUTH ?UNIT)
+    (instance ?UNIT MilitaryOrganization)
+    (instance ?ACT MilitaryOperation)
+    (agent ?ACT ?UNIT)
+    (patient ?AUTH ?ACT))
+  (or
+    (confersNorm ?ROE Permission
+      (and
+        (instance ?ACT MilitaryOperation)
+        (agent ?ACT ?UNIT)))
+    (deprivesNorm ?ROE Permission
+      (and
+        (instance ?ACT MilitaryOperation)
+        (agent ?ACT ?UNIT)))))
+
+;; 74. ROEImplementation
+(subclass ROEImplementation Directing)
+(subclass ROEImplementation MilitaryOperation)
+(documentation ROEImplementation EnglishLanguage "A formal message (ROEIMP) used by a subordinate commander to control the application of rules of engagement that have been authorized by a higher headquarters. ROEIMP messages may contain additional guidance or restrictions, may retain certain ROE authorized by higher headquarters, or may implement dormant ROE that become available only when specified events occur (Newport ROE Handbook).")
+(termFormat EnglishLanguage ROEImplementation "ROE implementation")
+(conventionalShortName "ROEIMP" ROEImplementation)
+
+;; Rule 1: ROEImplementation is issued by a subordinate unit
+;;         that received a ROEAuthorization
+(=>
+  (instance ?IMP ROEImplementation)
+  (exists (?UNIT ?AUTH)
+    (and
+      (instance ?UNIT MilitaryOrganization)
+      (instance ?AUTH ROEAuthorization)
+      (destination ?AUTH ?UNIT)
+      (agent ?IMP ?UNIT)
+      (earlier
+        (WhenFn ?AUTH)
+        (WhenFn ?IMP)))))
+
+;; Rule 2: ROEImplementation concerns RulesOfEngagement
+(=>
+  (instance ?IMP ROEImplementation)
+  (exists (?ROE)
+    (and
+      (instance ?ROE RulesOfEngagement)
+      (patient ?IMP ?ROE))))
+
+;; Rule 3: ROEImplementation follows a ROEAuthorization
+(=>
+  (instance ?IMP ROEImplementation)
+  (exists (?AUTH)
+    (and
+      (instance ?AUTH ROEAuthorization)
+      (earlier
+        (WhenFn ?AUTH)
+        (WhenFn ?IMP))
+      (causes ?AUTH ?IMP))))
+
+;; 75. WeaponControlStatus
+(subclass WeaponControlStatus RelationalAttribute)
+(documentation WeaponControlStatus EnglishLanguage "A status issued by the Officer in Tactical Command (OTC) or the relevant warfare commander to state general direction or policy with regard to weapon employment for all or a particular warfare area. Weapon control status is general in nature and does not overrule ROE, weapon system management, specific weapon control orders, specific engagement orders, or command by veto (ATP-1).")
+(termFormat EnglishLanguage WeaponControlStatus "weapon control status")
+
+;; Rule 1: WeaponControlStatus is assigned by a military commander
+(=>
+  (and
+    (instance ?WCS WeaponControlStatus)
+    (attribute ?UNIT ?WCS)
+    (instance ?UNIT MilitaryOrganization))
+  (exists (?CMD ?ORDER)
+    (and
+      (instance ?CMD Human)
+      (attribute ?CMD MilitaryCommander)
+      (instance ?ORDER Directing)
+      (agent ?ORDER ?CMD)
+      (result ?ORDER ?WCS))))
+
+;; Rule 2: A WCS directive assigns that status to the receiving unit
+(=>
+  (and
+    (instance ?ORDER Directing)
+    (agent ?ORDER ?CMD)
+    (attribute ?CMD MilitaryCommander)
+    (destination ?ORDER ?UNIT)
+    (instance ?UNIT MilitaryOrganization)
+    (result ?ORDER ?WCS)
+    (instance ?WCS WeaponControlStatus))
+  (attribute ?UNIT ?WCS))
+
+;; 76. WeaponsFree
+(instance WeaponsFree WeaponControlStatus)
+(documentation WeaponsFree EnglishLanguage "A weapon control status in which fire may be opened on any target that has not been identified as friendly (ATP-1).")
+(termFormat EnglishLanguage WeaponsFree "weapons free")
+
+;; Rule 1: Under WeaponsFree, attack on Combatant targets is permitted
+(=>
+  (and
+    (attribute ?UNIT WeaponsFree)
+    (instance ?UNIT MilitaryOrganization)
+    (instance ?TARGET Physical)
+    (property ?TARGET Combatant))
+  (permits ?UNIT
+    (exists (?ATK)
+      (and
+        (instance ?ATK Attack)
+        (agent ?ATK ?UNIT)
+        (patient ?ATK ?TARGET)))))
+
+;; Rule 2: WeaponsFree does not override NoStrikeList protections
+(=>
+  (and
+    (attribute ?UNIT WeaponsFree)
+    (instance ?UNIT MilitaryOrganization)
+    (instance ?NSL NoStrikeList)
+    (inList ?TARGET ?NSL))
+  (not
+    (permits ?UNIT
+      (exists (?ATK)
+        (and
+          (instance ?ATK Attack)
+          (agent ?ATK ?UNIT)
+          (patient ?ATK ?TARGET))))))
+
+;; 77. WeaponsTight
+(instance WeaponsTight WeaponControlStatus)
+(documentation WeaponsTight EnglishLanguage "A weapon control status in which fire may not be opened unless the target has been positively identified as hostile (ATP-1).")
+(termFormat EnglishLanguage WeaponsTight "weapons tight")
+
+;; Rule: Under WeaponsTight, attack requires positive hostile identification
+(=>
+  (and
+    (attribute ?UNIT WeaponsTight)
+    (instance ?UNIT MilitaryOrganization)
+    (instance ?ATK Attack)
+    (agent ?ATK ?UNIT)
+    (patient ?ATK ?TARGET))
+  (exists (?PID)
+    (and
+      (instance ?PID PositiveFoeIdentification)
+      (patient ?PID ?TARGET)
+      (earlier
+        (WhenFn ?PID)
+        (WhenFn ?ATK)))))
+
+;; 78. WeaponsSafe
+(instance WeaponsSafe WeaponControlStatus)
+(documentation WeaponsSafe EnglishLanguage "A weapon control status in which fire may not be opened or must cease. Fire may be opened only in self-defense or in response to a formal order (ATP-1).")
+(termFormat EnglishLanguage WeaponsSafe "weapons safe")
+
+;; Rule: Under WeaponsSafe, attack is only permitted in self-defense
+(=>
+  (and
+    (attribute ?UNIT WeaponsSafe)
+    (instance ?UNIT MilitaryOrganization)
+    (instance ?ATK Attack)
+    (agent ?ATK ?UNIT))
+  (or
+    (exists (?SD)
+      (and
+        (instance ?SD SelfDefense)
+        (agent ?SD ?UNIT)
+        (causes ?SD ?ATK)))
+    (exists (?ORD)
+      (and
+        (instance ?ORD Directing)
+        (destination ?ORD ?UNIT)
+        (causes ?ORD ?ATK)))))
+
+;; Contrary attributes -- mutually exclusive
+(contraryAttribute WeaponsFree WeaponsTight WeaponsSafe)
+
+;; 79. CollateralDamage
+(subclass CollateralDamage Damaging)
+(documentation CollateralDamage EnglishLanguage "Unintentional or incidental injury or damage to persons or property that is not the target of an attack. Collateral damage is a key consideration in the application of the law of armed conflict principles of distinction and proportionality. Commanders must take feasible precautions to minimize collateral damage (Newport ROE Handbook).")
+(termFormat EnglishLanguage CollateralDamage "collateral damage")
+
+;; Rule 1: CollateralDamage is caused by an Attack
+(=>
+  (instance ?CD CollateralDamage)
+  (exists (?ATK)
+    (and
+      (instance ?ATK Attack)
+      (causes ?ATK ?CD))))
+
+;; Rule 2: The party harmed by CollateralDamage is NOT the intended target
+(=>
+  (and
+    (instance ?CD CollateralDamage)
+    (instance ?ATK Attack)
+    (causes ?ATK ?CD)
+    (patient ?CD ?HARMED)
+    (patient ?ATK ?TARGET))
+  (not
+    (equal ?HARMED ?TARGET)))
+
+;; Rule 3: A person harmed by CollateralDamage is not a Combatant
+(=>
+  (and
+    (instance ?CD CollateralDamage)
+    (patient ?CD ?HARMED)
+    (instance ?HARMED Human))
+  (property ?HARMED NonCombatant))
+
+;; Rule 4: PrecisionGuidedMunition has the purpose of decreasing CollateralDamage
+(=>
+  (and
+    (instance ?ATK Attack)
+    (instance ?PGM PrecisionGuidedMunition)
+    (instrument ?ATK ?PGM))
+  (hasPurpose ?ATK
+    (exists (?D ?CD)
+      (and
+        (instance ?D Decreasing)
+        (instance ?CD CollateralDamage)
+        (patient ?D ?CD)
+        (causes ?ATK ?D)))))
+
+;; 80. ProportionateAttack
+(instance ProportionateAttack NormativeAttribute)
+(documentation ProportionateAttack EnglishLanguage
+  "An attribute of an attack that complies with the principle
+   of proportionality; expected collateral damage is not
+   excessive relative to the concrete and direct military
+   advantage anticipated (Newport ROE Handbook). This is the LOAC
+   sense of proportionality. It is distinct from proportionate response
+   in self-defense, where the nature, duration, and scope of the force
+   used should not exceed what is required to neutralize the threat,
+   and where a decisive response may exceed the means and intensity
+   of the hostile act or hostile intent.")
+(termFormat EnglishLanguage ProportionateAttack "proportionate attack")
+
+;; Rule: If an attack is NOT proportionate and causes collateral damage,
+;; it is Illegal
+(=>
+  (and
+    (instance ?ATK Attack)
+    (instance ?CD CollateralDamage)
+    (causes ?ATK ?CD)
+    (not
+      (property ?ATK ProportionateAttack)))
+  (property ?ATK Illegal))
+
+;; 81. MilitaryNecessity
+(instance MilitaryNecessity NormativeAttribute)
+(documentation MilitaryNecessity EnglishLanguage "The principle whereby a belligerent has the right to apply any measures that are required to bring about the successful conclusion of a military operation and which are not forbidden by the law of armed conflict. It forbids the intentional destruction or seizure of enemy property unless imperatively demanded by the necessities of war. Military necessity does not authorize acts otherwise prohibited by LOAC (Newport ROE Handbook).")
+(termFormat EnglishLanguage MilitaryNecessity "military necessity")
+
+;; Rule 1: MilitaryNecessity permits measures required for mission success
+(=>
+  (and
+    (instance ?OP MilitaryOperation)
+    (property ?OP MilitaryNecessity))
+  (exists (?GOAL)
+    (and
+      (instance ?GOAL IntentionalProcess)
+      (hasPurpose ?OP ?GOAL))))
+
+;; Rule 2: MilitaryNecessity does not override LOAC
+(=>
+  (and
+    (instance ?OP MilitaryOperation)
+    (property ?OP MilitaryNecessity)
+    (confersNorm LawOfArmedConflict Prohibition
+      (instance ?OP MilitaryOperation)))
+  (property ?OP Illegal))
+
+;; Rule 3: Destruction of enemy property WITHOUT MilitaryNecessity is Illegal
+(=>
+  (and
+    (instance ?D Destruction)
+    (instance ?PROP Object)
+    (patient ?D ?PROP)
+    (instance ?OP MilitaryOperation)
+    (subProcess ?D ?OP)
+    (not
+      (property ?OP MilitaryNecessity)))
+  (property ?OP Illegal))
+
+;; 82. MilitaryObjective
+(subclass MilitaryObjective Object)
+(documentation MilitaryObjective EnglishLanguage "Under the law of armed conflict, military objectives are limited to those objects which by their nature, location, purpose, or use make an effective contribution to military action and whose total or partial destruction, capture, or neutralization, in the circumstances at the time, offers a definite military advantage (Newport ROE Handbook).")
+(termFormat EnglishLanguage MilitaryObjective "military objective")
+
+;; Rule 1: A MilitaryObjective contributes to military action
+(=>
+  (instance ?OBJ MilitaryObjective)
+  (exists (?OP)
+    (and
+      (instance ?OP MilitaryOperation)
+      (resource ?OP ?OBJ))))
+
+;; Rule 2: Destruction or Neutralizing of a MilitaryObjective offers
+;; military advantage
+(=>
+  (and
+    (instance ?OBJ MilitaryObjective)
+    (or
+      (and
+        (instance ?D Destruction)
+        (patient ?D ?OBJ))
+      (and
+        (instance ?D Neutralizing)
+        (patient ?D ?OBJ)))
+    (instance ?OP MilitaryOperation)
+    (subProcess ?D ?OP))
+  (property ?OP MilitaryNecessity))
+
+;; Rule 3: Attack on an object that is neither a military objective nor a
+;; combatant is Illegal under LOAC
+(=>
+  (and
+    (instance ?ATK Attack)
+    (patient ?ATK ?TARGET)
+    (instance ?TARGET Object)
+    (not
+      (instance ?TARGET MilitaryObjective))
+    (not
+      (property ?TARGET Combatant)))
+  (property ?ATK Illegal))
+
+;; 83. DistinctionPrinciple
+(instance DistinctionPrinciple ObjectiveNorm)
+(documentation DistinctionPrinciple EnglishLanguage "The principle of distinction requires that parties to a conflict distinguish at all times between combatants and civilians, and between military objectives and civilian property. Attacks may only be directed against combatants and military objectives (Newport ROE Handbook).")
+(termFormat EnglishLanguage DistinctionPrinciple "distinction principle")
+
+(confersNorm LawOfArmedConflict DistinctionPrinciple
+  (not
+    (exists (?ATK ?T)
+      (and
+        (instance ?ATK Attack)
+        (patient ?ATK ?T)
+        (not
+          (property ?T Combatant))
+        (not
+          (instance ?T MilitaryObjective))))))
+
+;; Rule 1: An attack on a target that is neither Combatant nor MilitaryObjective
+;; is Illegal
+(=>
+  (and
+    (instance ?ATK Attack)
+    (patient ?ATK ?TARGET)
+    (not
+      (property ?TARGET Combatant))
+    (not
+      (instance ?TARGET MilitaryObjective)))
+  (property ?ATK Illegal))
+
+;; Rule 2: An attack on a NonCombatant is Illegal
+(=>
+  (and
+    (instance ?ATK Attack)
+    (patient ?ATK ?TARGET)
+    (instance ?TARGET Human)
+    (property ?TARGET NonCombatant))
+  (property ?ATK Illegal))
+
+;; 84. DormantROE
+(subclass DormantROE RulesOfEngagement)
+(documentation DormantROE EnglishLanguage "Rules of engagement that have been authorized by higher headquarters but are not immediately in effect. Dormant ROE become active only when specified triggering events occur, as implemented through ROEIMP messages (Newport ROE Handbook).")
+(termFormat EnglishLanguage DormantROE "dormant ROE")
+
+;; Rule 1: DormantROE is authorized by ROEAuthorization
+(=>
+  (instance ?DROE DormantROE)
+  (exists (?AUTH)
+    (and
+      (instance ?AUTH ROEAuthorization)
+      (patient ?AUTH ?DROE))))
+
+;; Rule 2: Trigger event plus ROEImplementation activates DormantROE
+(=>
+  (and
+    (instance ?DROE DormantROE)
+    (instance ?EVENT Process)
+    (causes ?EVENT ?IMP)
+    (instance ?IMP ROEImplementation)
+    (patient ?IMP ?DROE)
+    (instance ?OP MilitaryOperation)
+    (earlier
+      (WhenFn ?IMP)
+      (WhenFn ?OP)))
+  (confersNorm ?DROE Permission
+    (instance ?OP MilitaryOperation)))
+
+;; 85. CivilianProperty
+(subclass CivilianProperty Object)
+(disjoint CivilianProperty MilitaryObjective)
+(documentation CivilianProperty EnglishLanguage "Property that is not a military objective. Civilian property is protected under the law of armed conflict and the principle of distinction. Attacks directed against civilian property are prohibited (Newport ROE Handbook).")
+(termFormat EnglishLanguage CivilianProperty "civilian property")
+
+;; Rule 1: Attack on CivilianProperty is Illegal
+(=>
+  (and
+    (instance ?ATK Attack)
+    (patient ?ATK ?TARGET)
+    (instance ?TARGET CivilianProperty))
+  (property ?ATK Illegal))
+
+;; Rule 2: Damaging CivilianProperty constitutes CollateralDamage
+(=>
+  (and
+    (instance ?ATK Attack)
+    (instance ?DMG Damaging)
+    (causes ?ATK ?DMG)
+    (patient ?DMG ?PROP)
+    (instance ?PROP CivilianProperty))
+  (instance ?DMG CollateralDamage))
+
+;; Behavioural predicate with no SUMO equivalent, used by the COLREGs
+;; scenario pipeline.
+
+;; 86. FriendlyForce
+(subclass FriendlyForce MilitaryOrganization)
+(documentation FriendlyForce EnglishLanguage "A military force that is allied or cooperating with one's own force. Positive identification of friendly forces is essential to prevent fratricide. Friendly forces must not be engaged under any weapon control status (Newport ROE Handbook).")
+(termFormat EnglishLanguage FriendlyForce "friendly force")
+
+;; Rule 1: FriendlyForce cannot have DeclaredHostileStatus
+(=>
+  (instance ?FF FriendlyForce)
+  (not
+    (property ?FF DeclaredHostileStatus)))
+
+;; Rule 2: Attack on FriendlyForce is Illegal
+(=>
+  (and
+    (instance ?ATK Attack)
+    (patient ?ATK ?FF)
+    (instance ?FF FriendlyForce))
+  (property ?ATK Illegal))
+
+;; Rule 3: FriendlyForce is not a valid target under any WeaponControlStatus
+(=>
+  (and
+    (instance ?UNIT MilitaryOrganization)
+    (instance ?WCS WeaponControlStatus)
+    (attribute ?UNIT ?WCS)
+    (instance ?FF FriendlyForce))
+  (not
+    (permits ?UNIT
+      (exists (?ATK)
+        (and
+          (instance ?ATK Attack)
+          (agent ?ATK ?UNIT)
+          (patient ?ATK ?FF))))))
