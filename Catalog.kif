@@ -29,8 +29,7 @@
 ;; =============================================================================
 
 (subclass Catalog Proposition)
-(documentation Catalog EnglishLanguage "a &%Catalog is a &%Proposition of the 
-classes of resources that an agent provides or offers")
+(documentation Catalog EnglishLanguage "a &%Catalog is a &%Proposition of the classes of resources that an agent provides or offers")
 (termFormat EnglishLanguage Catalog "catalog")
 
 (=>
@@ -43,8 +42,7 @@ classes of resources that an agent provides or offers")
 ;; (catalogItem ?OBJ ?CATALOG)
 (instance catalogItem BinaryPredicate)
 (instance catalogItem PartialValuedRelation)
-(documentation catalogItem EnglishLanguage "(&%catalogItem ?OBJ ?CATALOG) means that 
-an instance of ?OBJ is a member of ?CATALOG")
+(documentation catalogItem EnglishLanguage "(&%catalogItem ?OBJ ?CATALOG) means that an instance of ?OBJ is a member of ?CATALOG")
 (domainSubclass catalogItem 1 Entity)
 (domain catalogItem 2 Catalog)
 
@@ -76,8 +74,7 @@ an instance of ?OBJ is a member of ?CATALOG")
         (agent ?S ?AGENT))) Possibility))
               
 ;; (offers ?AGENT ?CATALOG)
-(documentation offers EnglishLanguage "(&%offers ?AGENT ?CATALOG) means that 
-?AGENT offers items of ?CATALOG to its customers")
+(documentation offers EnglishLanguage "(&%offers ?AGENT ?CATALOG) means that ?AGENT offers items of ?CATALOG to its customers")
 (instance offers BinaryPredicate)
 (domain offers 1 AutonomousAgent)
 (domain offers 2 Abstract)
@@ -90,7 +87,11 @@ an instance of ?OBJ is a member of ?CATALOG")
     (offers ?AGENT ?CATALOG)
     (catalogItem ?CLASS ?CATALOG)
     (subclass ?CLASS Process))
-  (capability ?CLASS agent ?AGENT))
+  (modalAttribute
+    (exists (?PROCESS)
+      (and
+        (instance ?PROCESS ?CLASS)
+        (agent ?PROCESS ?AGENT))) Possibility))
 
 ;; if an agent offers an object as a catalog item, then that agent is capable of being
 ;; an agent in a process that has that object as the patient (such as selling or
@@ -104,7 +105,8 @@ an instance of ?OBJ is a member of ?CATALOG")
     (subclass ?PROCESS Process)
     (instance ?OBJ ?CLASS)
     (patient ?PROCESSINST ?OBJ))
-  (capability ?PROCESS agent ?AGENT))
+  (modalAttribute
+    (agent ?PROCESSINST ?AGENT) Possibility))
 
 (=>
   (and
@@ -119,9 +121,7 @@ an instance of ?OBJ is a member of ?CATALOG")
         (agent ?SELL ?AGENT))) Possibility))
   
 ;; (offersAtTime ?AGENT ?CATALOG ?TIMEINT)
-(documentation offersAtTime EnglishLanguage "(%&offersAtTime ?AGENT ?CATALOG ?TIMEINT) 
-means that ?AGENT offers items of ?CATALOG to its customer only during the specified 
-?TIMEINT")      
+(documentation offersAtTime EnglishLanguage "(%&offersAtTime ?AGENT ?CATALOG ?TIMEINT) means that ?AGENT offers items of ?CATALOG to its customer only during the specified ?TIMEINT")
 (instance offersAtTime TernaryPredicate)
 (domain offersAtTime 1 AutonomousAgent)
 (domain offersAtTime 2 Entity)
@@ -131,39 +131,41 @@ means that ?AGENT offers items of ?CATALOG to its customer only during the speci
   (and
     (offersAtTime ?AGENT ?CATALOG ?TIMEINT)
     (catalogItem ?CLASS ?CATALOG)
-    (subclass ?CLASS Process)
-    (instance ?TIMEINT ?TIME)
-    (subclass ?TIME TimeInterval))
-  (capabilityDuring ?CLASS agent ?AGENT ?TIME))
+    (subclass ?CLASS Process))
+  (exists (?AGENTCLASS)
+    (and
+      (instance ?AGENT ?AGENTCLASS)
+      (holdsDuring ?TIMEINT
+        (capability ?CLASS agent ?AGENTCLASS)))))
 
 (=>
   (and
     (offersAtTime ?AGENT ?CATALOG ?TIMEINT)
     (catalogItem ?CLASS ?CATALOG)
-    (subclass ?CLASS Object)  
+    (subclass ?CLASS Object)
     (instance ?PROCESSINSTANCE ?PROCESS)
     (subclass ?PROCESS Process)
     (instance ?OBJ ?CLASS)
-    (patient ?PROCESSINSTANCE ?OBJ)
-    (instance ?TIMEINT ?TIME)
-    (subclass ?TIME TimeInterval))
-  (capabilityDuring ?PROCESS agent ?AGENT ?TIME))
+    (patient ?PROCESSINSTANCE ?OBJ))
+  (exists (?AGENTCLASS)
+    (and
+      (instance ?AGENT ?AGENTCLASS)
+      (holdsDuring ?TIMEINT
+        (capability ?PROCESS agent ?AGENTCLASS)))))
   
 (=>
   (and
     (offersAtTime ?AGENT ?ATTR ?TIMEINT)
     (instance ?ATTR Attribute))
   (holdsDuring ?TIMEINT
-    (offers ?AGENT ?ATTR)))   
+    (offers ?AGENT ?ATTR)))
     
 ;; ============================================================================
 ;; PRICING                   	     
 ;; ============================================================================
 
 (instance propositionOwner BinaryPredicate)
-(documentation propositionOwner EnglishLanguage "(&%propositionOwner ?AGENT ?PROP) 
-means that &%CognitiveAgent ?AGENT was the one who conceptualized or created the 
-&%Proposition ?PROP")
+(documentation propositionOwner EnglishLanguage "(&%propositionOwner ?AGENT ?PROP) means that &%CognitiveAgent ?AGENT was the one who conceptualized or created the &%Proposition ?PROP")
 (termFormat EnglishLanguage propositionOwner "proposition owner")
 
 (domain propositionOwner 1 CognitiveAgent)
@@ -182,8 +184,7 @@ means that &%CognitiveAgent ?AGENT was the one who conceptualized or created the
 ;; ---------------------------------------------------------------------------------
 
 (subclass PricingScheme Proposition)
-(documentation PricingScheme EnglishLanguage "&%PricingScheme refers to the conditions
-attached to the price of a product of service")
+(documentation PricingScheme EnglishLanguage "&%PricingScheme refers to the conditions attached to the price of a product of service")
 (termFormat EnglishLanguage PricingScheme "pricing scheme")
 
 (=>
@@ -195,9 +196,7 @@ attached to the price of a product of service")
       (agent ?CREATE ?AGENT))))
 
 (instance priceRange QuaternaryPredicate)
-(documentation priceRange EnglishLanguage "(&%priceRange ?OBJ ?MIN ?MAX ?AGENT) 
-means that &%AutonomousAgent ?AGENT attaches range of possible &%productPrice for ?OBJ with
-minimum ?MIN and maximum ?MAX")
+(documentation priceRange EnglishLanguage "(&%priceRange ?OBJ ?MIN ?MAX ?AGENT) means that &%AutonomousAgent ?AGENT attaches range of possible &%productPrice for ?OBJ with minimum ?MIN and maximum ?MAX")
 (termFormat EnglishLanguage priceRange "price range")
 
 (domainSubclass priceRange 1 Entity)
@@ -223,38 +222,32 @@ minimum ?MIN and maximum ?MAX")
 ;        (unitPrice ?ENT ?PRICE ?AGENT ?PS)))))
 
 (instance validFor BinaryPredicate)
-(documentation validFor EnglishLanguage "(&%validFor ?SCHEME ?AGENT) means that 
-&%CurrencyMeasure that &%PricingScheme refers to applies to &%AutonomousAgent ?AGENT")
+(documentation validFor EnglishLanguage "(&%validFor ?SCHEME ?AGENT) means that &%CurrencyMeasure that &%PricingScheme refers to applies to &%AutonomousAgent ?AGENT")
 (termFormat EnglishLanguage validFor "valid for")
 
 (domain validFor 1 PricingScheme)
 (domainSubclass validFor 2 AutonomousAgent)
 
 (instance validityPeriod BinaryPredicate)
-(documentation validityPeriod EnglishLanguage "(&%validityPeriod ?SCHEME ?TIMEINT) means
-that the &%CurrencyMeasure that &%PricingScheme refers to is valid for the given 
-&%TimeInterval")
+(documentation validityPeriod EnglishLanguage "(&%validityPeriod ?SCHEME ?TIMEINT) means that the &%CurrencyMeasure that &%PricingScheme refers to is valid for the given &%TimeInterval")
 (termFormat EnglishLanguage validityPeriod "validity period")
 
 (domain validityPeriod 1 PricingScheme)
 (domain validityPeriod 2 TimeInterval)
 
 (instance validPaymentType BinaryPredicate)
-(documentation validPaymentType EnglishLanguage "(&%validPaymentType ?SCHEME ?PAYMENT)
-means that the &%CurrencyMeasure that &%PricingScheme refers to is valid for the given
-&%Payment class")
+(documentation validPaymentType EnglishLanguage "(&%validPaymentType ?SCHEME ?PAYMENT) means that the &%CurrencyMeasure that &%PricingScheme refers to is valid for the given &%Payment class")
 (termFormat EnglishLanguage validPaymentType "valid payment type")
 
 (domain validPaymentType 1 PricingScheme)
 (domainSubclass validPaymentType 2 Payment)
     
 (instance pricePolicy BinaryPredicate)
-(documentation pricePolicy EnglishLanguage "(&%pricePolicy ?SCHEME ?POLICY) describes 
-the &%Policy ?POLICY attached to the given rate with the ?SCHEME")
+(documentation pricePolicy EnglishLanguage "(&%pricePolicy ?SCHEME ?POLICY) describes the &%Policy ?POLICY attached to the given rate with the ?SCHEME")
 (termFormat EnglishLanguage pricePolicy "rate policy")
 
 (domain pricePolicy 1 PricingScheme)
-(domain pricePolicy 2 Policy)    
+(domain pricePolicy 2 Policy)
 
 
 
@@ -263,9 +256,7 @@ the &%Policy ?POLICY attached to the given rate with the ?SCHEME")
 ;; ---------------------------------------------------------------------------------
 
 (instance negotiatedPrice TernaryPredicate)
-(documentation negotiatedPrice EnglishLanguage "(&%negotiatedPrice ?ENT ?PRICE ?AGREE)
-means that according to &%Agreement ?AGREE - which is agreed upon by seller and buyer -
-the &%CurrencyMeasure ?PRICE is given to &%Entity ?ENT")
+(documentation negotiatedPrice EnglishLanguage "(&%negotiatedPrice ?ENT ?PRICE ?AGREE) means that according to &%Agreement ?AGREE - which is agreed upon by seller and buyer - the &%CurrencyMeasure ?PRICE is given to &%Entity ?ENT")
 (domainSubclass negotiatedPrice 1 Physical)
 (domain negotiatedPrice 2 CurrencyMeasure)
 (domain negotiatedPrice 3 Agreement)
@@ -324,9 +315,7 @@ the &%CurrencyMeasure ?PRICE is given to &%Entity ?ENT")
         (transactionAmount ?B ?PRICE))) Obligation ?AGREE ?SELLER))
    
 (instance publishedPrice QuaternaryPredicate)
-(documentation publishedPrice EnglishLanguage "(&%publishedPrice ?ENT ?PRICE ?AGENT ?PS)
-means that the &%CurrencyMeasure ?PRICE is given by &%AutonomousAgent ?AGENT to &%Entity ?ENT, 
-based on conditions outlined in &%PricingScheme ?PS")
+(documentation publishedPrice EnglishLanguage "(&%publishedPrice ?ENT ?PRICE ?AGENT ?PS) means that the &%CurrencyMeasure ?PRICE is given by &%AutonomousAgent ?AGENT to &%Entity ?ENT, based on conditions outlined in &%PricingScheme ?PS")
 (termFormat EnglishLanguage publishedPrice "published price")
 
 (domainSubclass publishedPrice 1 Entity)
@@ -369,7 +358,7 @@ based on conditions outlined in &%PricingScheme ?PS")
         (patient ?B ?ITEM))
       (transactionAmount ?B ?PRICE)) Likely))
 
-(=>      
+(=>
   (and
     (or
       (publishedPrice ?ENT ?PRICE ?AGENT ?PS)
@@ -388,12 +377,7 @@ based on conditions outlined in &%PricingScheme ?PS")
     
       
 (instance unitPrice QuaternaryPredicate)
-(documentation unitPrice EnglishLanguage "(&%unitPrice ?ENT ?QUANT ?AGENT ?PS) is meant
-for objects that are not sold by the piece but by a certain unit of measure, for 
-instance, vegetables that are sold by the pound.  &%FunctionQuantity ?QUANT, in this
-case, refers to (&%PerFn &%CurrencyMeasure (&%MeasureFn &%RealNumber &%UnitOfMeasure)),
-which reads something like X amount of money per Y unit.  This can be attached to
-a &%PricingScheme ?PS by &%CognitiveAgent ?AGENT") 
+(documentation unitPrice EnglishLanguage "(&%unitPrice ?ENT ?QUANT ?AGENT ?PS) is meant for objects that are not sold by the piece but by a certain unit of measure, for instance, vegetables that are sold by the pound. &%FunctionQuantity ?QUANT, in this case, refers to (&%PerFn &%CurrencyMeasure (&%MeasureFn &%RealNumber &%UnitOfMeasure)), which reads something like X amount of money per Y unit. This can be attached to a &%PricingScheme ?PS by &%CognitiveAgent ?AGENT")
 (domainSubclass unitPrice 1 Entity)
 (domain unitPrice 2 FunctionQuantity)
 (domain unitPrice 3 CognitiveAgent)
@@ -403,13 +387,13 @@ a &%PricingScheme ?PS by &%CognitiveAgent ?AGENT")
   (unitPrice ?ENT ?QUANT ?AGENT ?PS)
   (exists (?MEAS ?AMT ?UOM)
     (and
-      (equal ?QUANT (PerFn ?MEAS (MeasureFn ?AMT ?UOM)))
-      (instance ?MEAS CurrencyMeasure)))) 
+      (equal ?QUANT
+        (PerFn ?MEAS
+          (MeasureFn ?AMT ?UOM)))
+      (instance ?MEAS CurrencyMeasure))))
 
 (instance productPrice TernaryPredicate)
-(documentation productPrice EnglishLanguage "(&%productPrice ?ENT ?QUANT ?AGENT) means
-that &%CognitiveAgent ?AGENT sells items of type &%Entity ?ENT for &%CurrencyMeasure 
-?QUANT")
+(documentation productPrice EnglishLanguage "(&%productPrice ?ENT ?QUANT ?AGENT) means that &%CognitiveAgent ?AGENT sells items of type &%Entity ?ENT for &%CurrencyMeasure ?QUANT")
 (termFormat EnglishLanguage productPrice "product price")
 
 (domainSubclass productPrice 1 Entity)
@@ -425,14 +409,14 @@ that &%CognitiveAgent ?AGENT sells items of type &%Entity ?ENT for &%CurrencyMea
         (immediateInstance ?I ?ENT)
         (patient ?S ?I)
         (agent ?S ?AGENT))
-    (transactionAmount ?S ?PRICE)) Likely))
+      (transactionAmount ?S ?PRICE)) Likely))
     
 (=>
   (and
-    (productPrice ?ENT 
+    (productPrice ?ENT
       (MeasureFn ?PRICE1 ?U) ?AGENT)
     (instance ?U UnitOfCurrency)
-    (publishedPrice ?ENT 
+    (publishedPrice ?ENT
       (MeasureFn ?PRICE2 ?U) ?AGENT ?PS)
     (validFor ?PS ?CUSTCLASS)
     (instance ?ITEM ?ENT)
@@ -445,10 +429,7 @@ that &%CognitiveAgent ?AGENT sells items of type &%Entity ?ENT for &%CurrencyMea
     (transactionAmount ?B ?PRICE1) Likely))
     
 (instance rentalPrice QuaternaryPredicate)
-(documentation rentalPrice EnglishLanguage "(&%rentalPrice ?OBJ ?PRICE ?AGENT ?PS) 
-means that the &%CurrencyMeasure ?PRICE is paid for the use of &%Physical ?OBJ. 
-&%CognitiveAgent ?AGENT sets this price with conditions stipulated in &%PricingScheme
-?PS")
+(documentation rentalPrice EnglishLanguage "(&%rentalPrice ?OBJ ?PRICE ?AGENT ?PS) means that the &%CurrencyMeasure ?PRICE is paid for the use of &%Physical ?OBJ. &%CognitiveAgent ?AGENT sets this price with conditions stipulated in &%PricingScheme ?PS")
 (termFormat EnglishLanguage rentalPrice "rental price")
 
 (domainSubclass rentalPrice 1 Physical)
@@ -462,7 +443,8 @@ means that the &%CurrencyMeasure ?PRICE is paid for the use of &%Physical ?OBJ.
     (and
       (instance ?DURATION TimeDuration)
       (instance ?CURR CurrencyMeasure)
-      (equal ?QUANT (PerFn ?CURR ?DURATION)))))
+      (equal ?QUANT
+        (PerFn ?CURR ?DURATION)))))
      
 ;(=>
 ;  (and
@@ -492,10 +474,7 @@ means that the &%CurrencyMeasure ?PRICE is paid for the use of &%Physical ?OBJ.
 ;          (transactionAmount ?P ?PRICE))))))
     
 (instance contractedRentalPrice TernaryPredicate)
-(documentation contractedRentalPrice EnglishLanguage "(&%contractedRentalPrice ?OBJ 
-?PRICE ?AGREEMENT) means that the conditions of rental of &%Physical ?OBJ
-is stipulated in &%Agreement ?AGREEMENT entered into by &%CognitiveAgent ?AGENT with
-a customer.")
+(documentation contractedRentalPrice EnglishLanguage "(&%contractedRentalPrice ?OBJ ?PRICE ?AGREEMENT) means that the conditions of rental of &%Physical ?OBJ is stipulated in &%Agreement ?AGREEMENT entered into by &%CognitiveAgent ?AGENT with a customer.")
 (termFormat EnglishLanguage contractedRentalPrice "contracted rental price")
 
 (domainSubclass contractedRentalPrice 1 Physical)
@@ -508,7 +487,8 @@ a customer.")
     (and
       (instance ?CURR CurrencyMeasure)
       (instance ?DURATION TimeDuration)
-      (equal ?QUANT (PerFn ?CURR ?DURATION)))))
+      (equal ?QUANT
+        (PerFn ?CURR ?DURATION)))))
 
 (=>
   (contractedRentalPrice ?OBJ ?QUANT ?AGREE)
@@ -524,6 +504,3 @@ a customer.")
             (patient ?R ?O)
             (agent ?R ?SELLER)
             (destination ?R ?CUSTOMER))) Obligation))))
-      
-
- 
