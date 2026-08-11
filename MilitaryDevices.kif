@@ -35,12 +35,17 @@
 (=>
   (and
     (weaponCarryingCapability ?MV ?WC ?COUNT)
-    (instance ?WEAPON ?WC)
-    (capability ?PC ?ROLE ?WEAPON)
+    (capability ?PC ?ROLE ?WC)
     (or
       (subclass ?PC Shooting)
       (subclass ?PC Damaging)))
-  (capability ?PC ?ROLE ?MV))
+  (modalAttribute
+    (exists (?PROCESS)
+      (and
+        (instance ?PROCESS ?PC)
+        (playsRoleInEvent
+          ?MV ?ROLE ?PROCESS)))
+    Possibility))
 
 ;; if some military vehicle can take part in a shooting then it must
 ;; carry some weapon which is able to do so
@@ -49,11 +54,11 @@
   (and
     (capability ?PC ?ROLE ?MV)
     (subclass ?PC Shooting))
-  (exists (?WEAPON)
+  (exists (?WEAPONTYPE)
     (and
-      (instance ?WEAPON Weapon)
-      (part ?WEAPON ?MV)
-      (capability ?PC ?ROLE ?WEAPON))))
+      (subclass ?WEAPONTYPE Weapon)
+      (partTypes ?WEAPONTYPE ?MV)
+      (capability ?PC ?ROLE ?WEAPONTYPE))))
 
 ;; is some weapon is part of a vehicle then it is in fact a military
 ;; vehicle
@@ -161,12 +166,13 @@ less than or equal to ?LMWIDTH, provided that the &%weight of these
     (lessThanOrEqualTo ?WEO ?WEIGHT)
     (lessThanOrEqualTo ?WO ?WIDTH)
     (lessThanOrEqualTo ?HO ?HEIGHT))
-  (capability
-    (KappaFn ?TRANSPORT
+  (modalAttribute
+    (exists (?TRANSPORT)
       (and
         (instance ?TRANSPORT Transportation)
-        (patient ?TRANSPORT ?O)))
-     instrument ?V))
+        (patient ?TRANSPORT ?O)
+        (instrument ?TRANSPORT ?V)))
+    Possibility))
 
 (subclass ArtilleryCannon ArtilleryGun)
 (disjoint ArtilleryCannon MilitaryTank)
@@ -394,12 +400,13 @@ designed to shoot projectiles with a diameter of ?L.")
     (instance ?GUN ?GUNCLASS)
     (width ?PROJ ?LM1)
     (equal ?LM ?LM1))
-  (capability
-    (KappaFn ?SHOOTING
+  (modalAttribute
+    (exists (?SHOOTING)
       (and
         (instance ?SHOOTING Shooting)
-        (patient ?SHOOTING ?PROJ)))
-     instrument ?GUN))
+        (patient ?SHOOTING ?PROJ)
+        (instrument ?SHOOTING ?GUN)))
+    Possibility))
 
 ;; a gun with a certain caliber has the purpose to shoot
 ;; the right projectiles
@@ -1112,19 +1119,15 @@ crank, or electric/hydraulic motor).  (from Wikipedia)")
         (located ?ALM ?REGION)))))
 
 (subclass GroundLaunchMissile Missile)
-
 (documentation GroundLaunchMissile EnglishLanguage "A missile launched from the ground.")
 
 ;; Ground launched missiles can take part in a TakingOff
 
-(=>
-  (instance ?GLM GroundLaunchMissile)
-  (not
-    (capability TakingOff patient ?GLM)))
-
+(not
+  (capability
+    TakingOff patient GroundLaunchMissile))
 
 (subclass AirAttackMissile Missile)
-
 (documentation AirAttackMissile EnglishLanguage "A missile that attacks targets in the
 air.")
 
@@ -1445,14 +1448,18 @@ the gasoline cling to the target.  (from Wikipedia)")
         (patient ?DAMAGE ?OBJ)))))
 
 ;; a molotov cocktail contains some flammable liquid mixture
-
 (=>
   (instance ?MC MolotovCocktail)
   (exists (?LIQUID)
     (and
       (instance ?LIQUID LiquidMixture)
       (part ?LIQUID ?MC)
-      (capability Combustion patient ?LIQUID))))
+      (modalAttribute
+        (exists (?COMBUSTION)
+          (and
+            (instance ?COMBUSTION Combustion)
+            (patient ?COMBUSTION ?LIQUID)))
+        Possibility))))
 
 (subclass RPG AntiArmorWeapon)
 (subclass RPG Rocket)
@@ -1567,10 +1574,10 @@ or emplaced on a target, fails to explode.")
   (and
     (instance ?PROCESS TakingOff)
     (patient ?PROCESS ?DUD)
-    (not
-      (exists (?EXPLOSION)
-        (and
-          (instance ?EXPLOSION Explosion)
+    (forall (?EXPLOSION)
+      (=>
+        (instance ?EXPLOSION Explosion)
+        (not
           (patient ?EXPLOSION ?DUD)))))
   (instance ?DUD AbsoluteDud))
 
@@ -2175,10 +2182,7 @@ as to impede the advance of an enemy), they stormed the barricade")
 land and water")
 
 ;; amphibious vehicles can land on shores etc.
-
-(=>
-  (instance ?VEHICLE  AmphibiousVehicle)
-  (capability  LandingWaterLand instrument ?VEHICLE))
+(capability LandingWaterLand instrument AmphibiousVehicle)
 
 ;; format and termFormat statements for MilitaryDevices.kif
 
