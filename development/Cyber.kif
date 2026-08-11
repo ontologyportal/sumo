@@ -531,11 +531,18 @@ from arXiv:2403.10789.")
 &%Vulnerability ?VUL. Encompasses tooling acquisition, scaling effort,
 compute resources, expertise, and operational overhead. Agent-relative:
 different agents may face different exploit costs for the same
-vulnerability depending on prior tooling and capability. Common
-knowledge: both the attacker for whom the vulnerability is exploitable
-and any defender possessing the vulnerable system know the exploit
-cost. Single-valued: for a given vulnerability and agent there is at
-most one exploit cost.")
+vulnerability depending on prior tooling and capability. Not common
+knowledge by default: discovering that a vulnerability exists is
+necessary before an agent can meaningfully estimate its exploit cost, but
+does not by itself determine that estimate. What most directly shapes it
+is whether a known or off-the-shelf exploit already exists (see
+&%KnownExploitAvailable) versus one needing custom development.
+Capacity-relative: the same exploit cost can be
+affordable for one agent and unaffordable for another depending on their
+&%operationalBudget, both directly and as a contributor to
+&%aggregateCyberCost, which &%violatedKnapsack compares against
+&%operationalBudget. Single-valued: for a given vulnerability and agent
+there is at most one exploit cost.")
 
 (=>
   (and
@@ -552,15 +559,6 @@ most one exploit cost.")
   (exists (?COST)
     (exploitCost ?VUL ?AGENT ?COST)))
 
-(=>
-  (and
-    (vulnerableSystem ?VUL ?SYS ?ATTACKER)
-    (possesses ?DEFENDER ?SYS)
-    (exploitCost ?VUL ?ATTACKER ?COST))
-  (and
-    (knows ?ATTACKER (exploitCost ?VUL ?ATTACKER ?COST))
-    (knows ?DEFENDER (exploitCost ?VUL ?ATTACKER ?COST))))
-
 (exists (?VUL ?A1 ?A2 ?C1 ?C2)
   (and
     (instance ?VUL Vulnerability)
@@ -570,6 +568,266 @@ most one exploit cost.")
     (exploitCost ?VUL ?A1 ?C1)
     (exploitCost ?VUL ?A2 ?C2)
     (not (equal ?C1 ?C2))))
+
+;; ============================================================
+;; KnownExploitAvailable (RelationalAttribute)
+;; ============================================================
+
+(instance KnownExploitAvailable RelationalAttribute)
+(termFormat EnglishLanguage KnownExploitAvailable "known exploit available")
+(documentation KnownExploitAvailable EnglishLanguage "An &%Attribute of a
+&%Vulnerability that holds during a &%TimeInterval when a publicly known
+or off-the-shelf exploit already exists for it, as opposed to requiring
+custom development. Time-relative: a &%Vulnerability may lack a known
+exploit in one interval (e.g. while still a zero-day) and gain one in a
+later interval once one is discovered, published, or leaked.")
+
+;; rule: when a known exploit is available, expertiseCost tends lower than
+;; for a comparable vulnerability without one -- custom development labor
+;; (see expertiseCost's monetaryWage tie-in) isn't needed, only enough
+;; expertise to deploy the existing exploit successfully. An existence
+;; witness, not a universal bound -- development time for a custom exploit
+;; varies widely (days to months) depending on desired stealth, which this
+;; does not attempt to formalize.
+
+(exists (?VUL1 ?VUL2 ?AGENT ?E1 ?E2 ?T)
+  (and
+    (instance ?VUL1 Vulnerability)
+    (instance ?VUL2 Vulnerability)
+    (not (equal ?VUL1 ?VUL2))
+    (instance ?AGENT AutonomousAgent)
+    (instance ?T TimeInterval)
+    (holdsDuring ?T (attribute ?VUL1 KnownExploitAvailable))
+    (not (holdsDuring ?T (attribute ?VUL2 KnownExploitAvailable)))
+    (expertiseCost ?VUL1 ?AGENT ?E1)
+    (expertiseCost ?VUL2 ?AGENT ?E2)
+    (measure ?E1 ?AMT1)
+    (measure ?E2 ?AMT2)
+    (lessThan ?AMT1 ?AMT2)))
+
+;; ============================================================
+;; toolingAcquisitionCost (TernaryPredicate)
+;; ============================================================
+
+(instance toolingAcquisitionCost TernaryPredicate)
+(instance toolingAcquisitionCost SingleValuedRelation)
+(domain toolingAcquisitionCost 1 Vulnerability)
+(domain toolingAcquisitionCost 2 AutonomousAgent)
+(domain toolingAcquisitionCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage toolingAcquisitionCost "tooling acquisition cost")
+(format EnglishLanguage toolingAcquisitionCost "%2's tooling acquisition cost for exploiting %1 is %3")
+(documentation toolingAcquisitionCost EnglishLanguage "(&%toolingAcquisitionCost
+?VUL ?AGENT ?COST) means ?AGENT spends ?COST acquiring the tools used to
+exploit &%Vulnerability ?VUL. Typically the &%transactionAmount of one or
+more &%Buying transactions in which ?AGENT is the &%agent and the acquired
+tool serves as the &%instrument of later exploit development. One of five
+cost components summed into &%exploitCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (toolingAcquisitionCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; scalingEffortCost (TernaryPredicate)
+;; ============================================================
+
+(instance scalingEffortCost TernaryPredicate)
+(instance scalingEffortCost SingleValuedRelation)
+(domain scalingEffortCost 1 Vulnerability)
+(domain scalingEffortCost 2 AutonomousAgent)
+(domain scalingEffortCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage scalingEffortCost "scaling effort cost")
+(format EnglishLanguage scalingEffortCost "%2's scaling effort cost for exploiting %1 is %3")
+(documentation scalingEffortCost EnglishLanguage "(&%scalingEffortCost ?VUL
+?AGENT ?COST) means ?AGENT spends ?COST on the effort to scale an exploit
+for &%Vulnerability ?VUL across additional targets or capacity. Related to
+&%operationalTempo, which models the same effort-surge dynamic as a
+multiplicative factor on &%operationalBudget rather than as a
+&%CurrencyMeasure; here the scaling effort is priced rather than measured
+as tempo. One of five cost components summed into &%exploitCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (scalingEffortCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; computeResourceCost (TernaryPredicate)
+;; ============================================================
+
+(instance computeResourceCost TernaryPredicate)
+(instance computeResourceCost SingleValuedRelation)
+(domain computeResourceCost 1 Vulnerability)
+(domain computeResourceCost 2 AutonomousAgent)
+(domain computeResourceCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage computeResourceCost "compute resource cost")
+(format EnglishLanguage computeResourceCost "%2's compute resource cost for exploiting %1 is %3")
+(documentation computeResourceCost EnglishLanguage "(&%computeResourceCost
+?VUL ?AGENT ?COST) means ?AGENT spends ?COST on compute resources consumed
+developing or running an exploit for &%Vulnerability ?VUL. One of five cost
+components summed into &%exploitCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (computeResourceCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; expertiseCost (TernaryPredicate)
+;; ============================================================
+
+(instance expertiseCost TernaryPredicate)
+(instance expertiseCost SingleValuedRelation)
+(domain expertiseCost 1 Vulnerability)
+(domain expertiseCost 2 AutonomousAgent)
+(domain expertiseCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage expertiseCost "expertise cost")
+(format EnglishLanguage expertiseCost "%2's expertise cost for exploiting %1 is %3")
+(documentation expertiseCost EnglishLanguage "(&%expertiseCost ?VUL ?AGENT
+?COST) means ?AGENT spends ?COST compensating the expertise needed to
+exploit &%Vulnerability ?VUL. Typically the sum of &%monetaryWage payments
+?AGENT, when acting as an &%Organization, pays &%Human personnel it
+&%employs to develop the exploit; a solo &%Human agent's expertise cost is
+the opportunity cost of their own time rather than a wage payment. Tends
+lower when &%KnownExploitAvailable holds for ?VUL, since deploying an
+existing exploit successfully needs less expertise than developing one
+from scratch. One of five cost components summed into &%exploitCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (expertiseCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; operationalOverheadCost (TernaryPredicate)
+;; ============================================================
+
+(instance operationalOverheadCost TernaryPredicate)
+(instance operationalOverheadCost SingleValuedRelation)
+(domain operationalOverheadCost 1 Vulnerability)
+(domain operationalOverheadCost 2 AutonomousAgent)
+(domain operationalOverheadCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage operationalOverheadCost "operational overhead cost")
+(format EnglishLanguage operationalOverheadCost "%2's operational overhead cost for exploiting %1 is %3")
+(documentation operationalOverheadCost EnglishLanguage
+"(&%operationalOverheadCost ?VUL ?AGENT ?COST) means ?AGENT spends ?COST on
+the ongoing operational overhead of maintaining an exploit for
+&%Vulnerability ?VUL, beyond its initial acquisition, scaling, compute, and
+expertise costs. One of five cost components summed into &%exploitCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (operationalOverheadCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; exploitCost -- sum-of-sub-costs definition (extends the existing
+;; aggregateCyberCost precedent at Cyber.kif:305-320 to exploitCost's
+;; own five components). Universal, not an existence witness: this is
+;; our interpretation of how the five components compose -- whenever an
+;; agent has all five sub-costs recorded for a vulnerability, the total
+;; exploitCost is defined as their sum.
+;; ============================================================
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (toolingAcquisitionCost ?VUL ?AGENT ?C1)
+    (scalingEffortCost ?VUL ?AGENT ?C2)
+    (computeResourceCost ?VUL ?AGENT ?C3)
+    (expertiseCost ?VUL ?AGENT ?C4)
+    (operationalOverheadCost ?VUL ?AGENT ?C5)
+    (measure ?C1 ?A1)
+    (measure ?C2 ?A2)
+    (measure ?C3 ?A3)
+    (measure ?C4 ?A4)
+    (measure ?C5 ?A5)
+    (exploitCost ?VUL ?AGENT ?TOTAL))
+  (measure ?TOTAL (AdditionFn ?A1 (AdditionFn ?A2 (AdditionFn ?A3 (AdditionFn ?A4 ?A5))))))
+
+;; rule: exploitCost varies with prior tooling and capability -- holding
+;; scaling-effort, compute-resource, and operational-overhead cost equal
+;; between two agents, lower tooling-acquisition cost (more prior tooling
+;; already possessed) and lower expertise cost (more prior capability
+;; already possessed) do not increase total exploitCost. Derives each
+;; total's measure directly via the same AdditionFn chain as the
+;; summation rule above, rather than requiring the totals as
+;; independently-given facts -- the ordering follows as a genuine
+;; consequence of the tooling/expertise comparison, not a separate
+;; assertion (revised 2026-08-08 after Diagnostics flagged the prior
+;; version's consequent variables as disconnected from the antecedent).
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?A1 AutonomousAgent)
+    (instance ?A2 AutonomousAgent)
+    (toolingAcquisitionCost ?VUL ?A1 ?T1)
+    (toolingAcquisitionCost ?VUL ?A2 ?T2)
+    (expertiseCost ?VUL ?A1 ?E1)
+    (expertiseCost ?VUL ?A2 ?E2)
+    (scalingEffortCost ?VUL ?A1 ?S)
+    (scalingEffortCost ?VUL ?A2 ?S)
+    (computeResourceCost ?VUL ?A1 ?C)
+    (computeResourceCost ?VUL ?A2 ?C)
+    (operationalOverheadCost ?VUL ?A1 ?O)
+    (operationalOverheadCost ?VUL ?A2 ?O)
+    (exploitCost ?VUL ?A1 ?TOTAL1)
+    (exploitCost ?VUL ?A2 ?TOTAL2)
+    (measure ?T1 ?AT1)
+    (measure ?T2 ?AT2)
+    (measure ?E1 ?AE1)
+    (measure ?E2 ?AE2)
+    (measure ?S ?AS)
+    (measure ?C ?AC)
+    (measure ?O ?AO)
+    (measure ?TOTAL1 (AdditionFn ?AT1 (AdditionFn ?AS (AdditionFn ?AC (AdditionFn ?AO ?AE1)))))
+    (measure ?TOTAL2 (AdditionFn ?AT2 (AdditionFn ?AS (AdditionFn ?AC (AdditionFn ?AO ?AE2)))))
+    (lessThanOrEqualTo ?AT1 ?AT2)
+    (lessThanOrEqualTo ?AE1 ?AE2))
+  (exists (?AMT1 ?AMT2)
+    (and
+      (measure ?TOTAL1 ?AMT1)
+      (measure ?TOTAL2 ?AMT2)
+      (lessThanOrEqualTo ?AMT1 ?AMT2))))
+
+;; rule: exploitCost is capacity-relative -- the identical cost can be
+;; affordable for one agent and unaffordable for another depending on
+;; operationalBudget, independent of exploitCost's own contribution to
+;; aggregateCyberCost/violatedKnapsack above
+
+(exists (?VUL ?A1 ?A2 ?B1 ?B2 ?COST)
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?A1 AutonomousAgent)
+    (instance ?A2 AutonomousAgent)
+    (not (equal ?A1 ?A2))
+    (exploitCost ?VUL ?A1 ?COST)
+    (exploitCost ?VUL ?A2 ?COST)
+    (operationalBudget ?A1 ?B1)
+    (operationalBudget ?A2 ?B2)
+    (measure ?COST ?AMT)
+    (measure ?B1 ?AMT1)
+    (measure ?B2 ?AMT2)
+    (lessThanOrEqualTo ?AMT ?AMT1)
+    (greaterThan ?AMT ?AMT2)))
 
 ;; ============================================================
 ;; patchCost (TernaryPredicate)
