@@ -1,0 +1,82 @@
+% Scenario for example 9 (chisholms) 
+
+% SUMO Terms: 
+
+thf(t1,type,s__agent:($i > $i > w > $o)).
+thf(t2,type,s__victim:($i > $i > w > $o)).
+thf(t3,type,s__manner:($i > $i > w > $o)).
+thf(t4,type,s__instance:($i > $i > $o)).
+
+thf(t5, type, s__Translocation: $i).
+thf(t6, type, s__LinguisticCommunication: $i).
+thf(t7, type, s__Smith: $i).
+
+thf(smith_always_human, axiom, (
+  s__instance @ s__Smith @ s__Human)).
+  
+% Distinctness block:
+thf(dist_translocation_linguisticcommunication, axiom,
+  ~(s__Translocation = s__LinguisticCommunication)).
+thf(dist_translocation_smith, axiom,
+  ~(s__Translocation = s__Smith)).
+thf(dist_linguisticcommunication_smith, axiom,
+  ~(s__LinguisticCommunication = s__Smith)).
+
+% Obligation A: If Smith goes, then it is obligatory that Smith tell.
+% (modalAttribute
+%   (=> 
+%     (and
+%       (instance ?GO Translocation)
+%       (agent ?GO Smith))
+%     (exists (?TELL)
+%       (and
+%         (instance ?TELL LinguisticCommunication)
+%         (agent ?TELL Smith))))
+%   Obligation)
+thf(obligation1_smith_goes, axiom,
+  ![W1:w, W2: w] : 
+  ( ![GO: $i] : (( 
+      (s__instance @ GO @ s__Translocation) & 
+      (s__agent @ GO @ s__Bill @ W1)) => (
+          (accreln1 @ s__Obligation @ W1 @ W2) => 
+            ( ?[TELL: $i] : (
+              (s__instance @ TELL @ s__LinguisticCommunication) & 
+              (s__agent @ TELL @ s__Smith @ W2))))))).
+
+% Obligation 2: If Smith does NOT go, then it is obligatory that Smith NOT tell.
+% (modalAttribute
+%   (=> 
+%     (not (exists (?GO)
+%       (and
+%         (instance ?GO Translocation)
+%         (agent ?GO Smith))))
+%     (not
+%       (exists (?T)
+%         (and
+%           (instance ?T LinguisticCommunication)
+%           (agent ?T Smith)))))
+%   Obligation)
+thf(obligation2_smith_does_not_go, axiom,
+  ![W1:w, W2: w] : 
+  ( ~?[GO: $i] : (( 
+      (s__instance @ GO @ s__Translocation) & 
+      (s__agent @ GO @ s__Bill @ W1)) => (
+          (accreln1 @ s__Obligation @ W1 @ W2) => 
+            ( ~?[TELL: $i] : (
+              (s__instance @ TELL @ s__LinguisticCommunication) & 
+              (s__agent @ TELL @ s__Smith @ W2))))))).
+
+% Conjecture: "Therefore, Smith should NOT tell in the actual world"
+% NOTE: We want this to work under CTD option rather than NF! This is 
+% the reverse of what we normally do! 
+% (modalAttribute
+%   (not (exists (?T)
+%     (and
+%       (instance ?T LinguisticCommunication)
+%       (agent ?T Smith)))) Obligation)
+thf(conj, conjecture, (
+  ?[Wx: w] : (
+    (accreln1 @ s__Obligation @ cw @ Wx) &
+    (~? [T: $i] : (
+        (s__instance @ T @ s__LinguisticCommunication) &
+        (s__agent @ T @ s__Smith @ cw)))))).
