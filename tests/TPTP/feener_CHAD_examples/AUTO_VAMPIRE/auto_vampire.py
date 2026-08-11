@@ -2,7 +2,7 @@
 """
 auto_vampire.py
 
-CF: Iterates over category/example/option/system and runs vampire 
+CF: Iterates over category/scenario/option/system and runs vampire 
 on each combination
 """
 
@@ -23,10 +23,10 @@ OTHER_ERR = 2
 DEFAULT_TIME_LIMIT_SECONDS = 10
 
 def discover_main_folders(base_dir: Path) -> List[Path]:
-    """Returns folders that contain EXAMPLES, OPTIONS, and SYSTEMS subfolders."""
+    """Returns folders that contain SCENARIOS, OPTIONS, and SYSTEMS subfolders."""
     folders: List[Path] = []
     for child in sorted(base_dir.iterdir()):
-        if child.is_dir() and (child / "EXAMPLES").is_dir() and (child / "OPTIONS").is_dir() and (child / "SYSTEMS").is_dir():
+        if child.is_dir() and (child / "SCENARIOS").is_dir() and (child / "OPTIONS").is_dir() and (child / "SYSTEMS").is_dir():
             folders.append(child)
     return folders
 
@@ -42,7 +42,7 @@ def discover_thf_files(folder: Path) -> List[Path]:
 def build_run_plan(base_dir: Path) -> List[Tuple[Path, Path, Path, Path, Path, Path, Path]]:
     plan: List[Tuple[Path, Path, Path, Path, Path, Path, Path]] = []
     for main_folder in discover_main_folders(base_dir):
-        examples = discover_thf_files(main_folder / "EXAMPLES")
+        examples = discover_thf_files(main_folder / "SCENARIOS")
         options = discover_thf_files(main_folder / "OPTIONS")
         systems = discover_thf_files(main_folder / "SYSTEMS")
 
