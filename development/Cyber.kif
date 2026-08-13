@@ -937,6 +937,129 @@ via &%successorAttribute, from least to most mature.")
     (not (equal ?C1 ?C2))))
 
 ;; ============================================================
+;; patchDevelopmentCost (TernaryPredicate)
+;; ============================================================
+
+(instance patchDevelopmentCost TernaryPredicate)
+(instance patchDevelopmentCost SingleValuedRelation)
+(domain patchDevelopmentCost 1 Vulnerability)
+(domain patchDevelopmentCost 2 AutonomousAgent)
+(domain patchDevelopmentCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage patchDevelopmentCost "patch development cost")
+(format EnglishLanguage patchDevelopmentCost "%2's patch development cost for %1 is %3")
+(documentation patchDevelopmentCost EnglishLanguage "(&%patchDevelopmentCost
+?VUL ?AGENT ?COST) means ?AGENT spends ?COST developing a fix for
+&%Vulnerability ?VUL. One of four cost components summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchDevelopmentCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; patchTestingCost (TernaryPredicate)
+;; ============================================================
+
+(instance patchTestingCost TernaryPredicate)
+(instance patchTestingCost SingleValuedRelation)
+(domain patchTestingCost 1 Vulnerability)
+(domain patchTestingCost 2 AutonomousAgent)
+(domain patchTestingCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage patchTestingCost "patch testing cost")
+(format EnglishLanguage patchTestingCost "%2's patch testing cost for %1 is %3")
+(documentation patchTestingCost EnglishLanguage "(&%patchTestingCost ?VUL
+?AGENT ?COST) means ?AGENT spends ?COST verifying that a fix for
+&%Vulnerability ?VUL closes the vulnerability without introducing
+regressions. One of four cost components summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchTestingCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; patchDeploymentCost (TernaryPredicate)
+;; ============================================================
+
+(instance patchDeploymentCost TernaryPredicate)
+(instance patchDeploymentCost SingleValuedRelation)
+(domain patchDeploymentCost 1 Vulnerability)
+(domain patchDeploymentCost 2 AutonomousAgent)
+(domain patchDeploymentCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage patchDeploymentCost "patch deployment cost")
+(format EnglishLanguage patchDeploymentCost "%2's patch deployment cost for %1 is %3")
+(documentation patchDeploymentCost EnglishLanguage "(&%patchDeploymentCost
+?VUL ?AGENT ?COST) means ?AGENT spends ?COST rolling a fix for
+&%Vulnerability ?VUL out across the affected systems it possesses. One of
+four cost components summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchDeploymentCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; operationalDisruptionCost (TernaryPredicate)
+;; ============================================================
+
+(instance operationalDisruptionCost TernaryPredicate)
+(instance operationalDisruptionCost SingleValuedRelation)
+(domain operationalDisruptionCost 1 Vulnerability)
+(domain operationalDisruptionCost 2 AutonomousAgent)
+(domain operationalDisruptionCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage operationalDisruptionCost "operational disruption cost")
+(format EnglishLanguage operationalDisruptionCost "%2's operational disruption cost for patching %1 is %3")
+(documentation operationalDisruptionCost EnglishLanguage
+"(&%operationalDisruptionCost ?VUL ?AGENT ?COST) means ?AGENT bears ?COST
+in lost or degraded operations while patching &%Vulnerability ?VUL, distinct
+from the direct cost of the patch work itself. One of four cost components
+summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (operationalDisruptionCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; patchCost -- sum-of-sub-costs definition. Universal, not an existence
+;; witness: whenever an agent has all four sub-costs recorded for a
+;; vulnerability, the total patchCost is defined as their sum, unified to
+;; a shared currency unit across all four components and the total.
+;; ============================================================
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchDevelopmentCost ?VUL ?AGENT ?C1)
+    (patchTestingCost ?VUL ?AGENT ?C2)
+    (patchDeploymentCost ?VUL ?AGENT ?C3)
+    (operationalDisruptionCost ?VUL ?AGENT ?C4)
+    (equal ?C1 (MeasureFn ?A1 ?UNIT))
+    (equal ?C2 (MeasureFn ?A2 ?UNIT))
+    (equal ?C3 (MeasureFn ?A3 ?UNIT))
+    (equal ?C4 (MeasureFn ?A4 ?UNIT))
+    (instance ?UNIT UnitOfCurrency)
+    (patchCost ?VUL ?AGENT ?TOTAL))
+  (equal ?TOTAL (MeasureFn (AdditionFn ?A1 (AdditionFn ?A2 (AdditionFn ?A3 ?A4))) ?UNIT)))
+
+;; ============================================================
 ;; vulnerabilityCause (BinaryPredicate)
 ;; ============================================================
 
