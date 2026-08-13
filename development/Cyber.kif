@@ -855,8 +855,59 @@ vulnerability and agent there is at most one patch cost.")
     (instance ?VUL Vulnerability)
     (instance ?AGENT AutonomousAgent)
     (patchCost ?VUL ?AGENT ?COST)
-    (measure ?COST ?AMOUNT))
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
   (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; PatchManagementMaturityAttribute (RelationalAttribute)
+;; ============================================================
+
+(subclass PatchManagementMaturityAttribute RelationalAttribute)
+(termFormat EnglishLanguage PatchManagementMaturityAttribute "patch management maturity attribute")
+(documentation PatchManagementMaturityAttribute EnglishLanguage "A &%RelationalAttribute
+grading an &%Organization's patch management capability, based on CMMC 2.0's
+three-level maturity structure. &%PatchManagementFoundational,
+&%PatchManagementAdvanced, and &%PatchManagementExpert form an ordered chain
+via &%successorAttribute, from least to most mature.")
+
+(instance PatchManagementFoundational PatchManagementMaturityAttribute)
+(termFormat EnglishLanguage PatchManagementFoundational "foundational patch management maturity")
+(documentation PatchManagementFoundational EnglishLanguage "The lowest
+&%PatchManagementMaturityAttribute level, corresponding to CMMC 2.0 Level 1
+(Foundational): basic, largely ad hoc patch practices.")
+
+(instance PatchManagementAdvanced PatchManagementMaturityAttribute)
+(termFormat EnglishLanguage PatchManagementAdvanced "advanced patch management maturity")
+(documentation PatchManagementAdvanced EnglishLanguage "The middle
+&%PatchManagementMaturityAttribute level, corresponding to CMMC 2.0 Level 2
+(Advanced): documented, managed patch processes.")
+
+(instance PatchManagementExpert PatchManagementMaturityAttribute)
+(termFormat EnglishLanguage PatchManagementExpert "expert patch management maturity")
+(documentation PatchManagementExpert EnglishLanguage "The highest
+&%PatchManagementMaturityAttribute level, corresponding to CMMC 2.0 Level 3
+(Expert): optimized, proactive patch management capability.")
+
+(successorAttribute PatchManagementAdvanced PatchManagementFoundational)
+(successorAttribute PatchManagementExpert PatchManagementAdvanced)
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?ORG1 Organization)
+    (instance ?ORG2 Organization)
+    (not (equal ?ORG1 ?ORG2))
+    (attribute ?ORG1 ?LEVEL1)
+    (attribute ?ORG2 ?LEVEL2)
+    (instance ?LEVEL1 PatchManagementMaturityAttribute)
+    (instance ?LEVEL2 PatchManagementMaturityAttribute)
+    (successorAttributeClosure ?LEVEL2 ?LEVEL1)
+    (patchCost ?VUL ?ORG1 ?COST1)
+    (patchCost ?VUL ?ORG2 ?COST2)
+    (equal ?COST1 (MeasureFn ?AMT1 ?UNIT))
+    (equal ?COST2 (MeasureFn ?AMT2 ?UNIT)))
+  (lessThanOrEqualTo ?AMT1 ?AMT2))
 
 (=>
   (and
