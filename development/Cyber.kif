@@ -1071,6 +1071,60 @@ summed into &%patchCost.")
   (equal ?TOTAL (MeasureFn (AdditionFn ?A1 (AdditionFn ?A2 (AdditionFn ?A3 ?A4))) ?UNIT)))
 
 ;; ============================================================
+;; defenderLossCost (TernaryPredicate)
+;; ============================================================
+
+(instance defenderLossCost TernaryPredicate)
+(instance defenderLossCost SingleValuedRelation)
+(domain defenderLossCost 1 Vulnerability)
+(domain defenderLossCost 2 AutonomousAgent)
+(domain defenderLossCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage defenderLossCost "defender loss cost")
+(format EnglishLanguage defenderLossCost "%2's expected loss from %1 being exploited is %3")
+(documentation defenderLossCost EnglishLanguage "(&%defenderLossCost ?VUL
+?AGENT ?COST) means ?AGENT, as the defender possessing a system vulnerable
+to &%Vulnerability ?VUL, expects to lose an amount of ?COST if ?VUL is
+successfully exploited against that system. Distinct from &%exploitCost,
+which prices the attacker's cost to carry out the exploitation, not the
+defender's loss from it. Grounds &%patchCost's rational-choice condition:
+patching is the cost-minimizing choice exactly when patchCost is less
+than defenderLossCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (defenderLossCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; rule: patchCost's essential rational-choice condition -- patching is the
+;; cost-minimizing choice exactly when patchCost is less than
+;; defenderLossCost. operationalDisruptionCost (a patchCost sub-cost) already
+;; prices the disruption caused by patching itself, so no separate
+;; opportunity-cost term is needed on the other side of the comparison.
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?DEFENDER AutonomousAgent)
+    (patchCost ?VUL ?DEFENDER ?PCOST)
+    (defenderLossCost ?VUL ?DEFENDER ?LCOST)
+    (equal ?PCOST (MeasureFn ?PAMT ?UNIT))
+    (equal ?LCOST (MeasureFn ?LAMT ?UNIT))
+    (lessThan ?PAMT ?LAMT))
+  (exists (?PATCH)
+    (and
+      (instance ?PATCH Repairing)
+      (agent ?PATCH ?DEFENDER)
+      (patient ?PATCH ?VUL)
+      (modalAttribute
+        (hasPurposeForAgent ?PATCH ?DEFENDER
+          (defenderLossCost ?VUL ?DEFENDER ?LCOST))
+        Likely))))
+
+;; ============================================================
 ;; vulnerabilityCause (BinaryPredicate)
 ;; ============================================================
 
