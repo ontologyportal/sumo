@@ -843,20 +843,75 @@ expertise costs. One of five cost components summed into &%exploitCost.")
 (documentation patchCost EnglishLanguage "(&%patchCost ?VUL ?AGENT ?COST)
 means that it costs ?AGENT an amount of ?COST to patch or remediate
 &%Vulnerability ?VUL. Includes development, testing, deployment, and any
-operational disruption overhead. Agent-relative: an organization with
-mature patch management pays less than one building remediation
-capability from scratch. Common knowledge: both the attacker for whom
-the vulnerability is exploitable and the defender possessing the
-vulnerable system know the patch cost. Single-valued: for a given
-vulnerability and agent there is at most one patch cost.")
+operational disruption overhead (see &%patchDevelopmentCost,
+&%patchTestingCost, &%patchDeploymentCost, &%operationalDisruptionCost).
+Agent-relative: an organization with mature patch management pays less
+than one building remediation capability from scratch (see
+&%PatchManagementMaturityAttribute). Discovery-gated, not common
+knowledge by default: the attacker for whom the vulnerability is
+exploitable and the defender possessing the vulnerable system each know
+the patch cost only once that side has discovered the vulnerability
+exists on the system. Single-valued: for a given vulnerability and agent
+there is at most one patch cost.")
 
 (=>
   (and
     (instance ?VUL Vulnerability)
     (instance ?AGENT AutonomousAgent)
     (patchCost ?VUL ?AGENT ?COST)
-    (measure ?COST ?AMOUNT))
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
   (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; PatchManagementMaturityAttribute (RelationalAttribute)
+;; ============================================================
+
+(subclass PatchManagementMaturityAttribute RelationalAttribute)
+(termFormat EnglishLanguage PatchManagementMaturityAttribute "patch management maturity attribute")
+(documentation PatchManagementMaturityAttribute EnglishLanguage "A &%RelationalAttribute
+grading an &%Organization's patch management capability, based on CMMC 2.0's
+three-level maturity structure. &%PatchManagementFoundational,
+&%PatchManagementAdvanced, and &%PatchManagementExpert form an ordered chain
+via &%successorAttribute, from least to most mature.")
+
+(instance PatchManagementFoundational PatchManagementMaturityAttribute)
+(termFormat EnglishLanguage PatchManagementFoundational "foundational patch management maturity")
+(documentation PatchManagementFoundational EnglishLanguage "The lowest
+&%PatchManagementMaturityAttribute level, corresponding to CMMC 2.0 Level 1
+(Foundational): basic, largely ad hoc patch practices.")
+
+(instance PatchManagementAdvanced PatchManagementMaturityAttribute)
+(termFormat EnglishLanguage PatchManagementAdvanced "advanced patch management maturity")
+(documentation PatchManagementAdvanced EnglishLanguage "The middle
+&%PatchManagementMaturityAttribute level, corresponding to CMMC 2.0 Level 2
+(Advanced): documented, managed patch processes.")
+
+(instance PatchManagementExpert PatchManagementMaturityAttribute)
+(termFormat EnglishLanguage PatchManagementExpert "expert patch management maturity")
+(documentation PatchManagementExpert EnglishLanguage "The highest
+&%PatchManagementMaturityAttribute level, corresponding to CMMC 2.0 Level 3
+(Expert): optimized, proactive patch management capability.")
+
+(successorAttribute PatchManagementAdvanced PatchManagementFoundational)
+(successorAttribute PatchManagementExpert PatchManagementAdvanced)
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?ORG1 Organization)
+    (instance ?ORG2 Organization)
+    (not (equal ?ORG1 ?ORG2))
+    (attribute ?ORG1 ?LEVEL1)
+    (attribute ?ORG2 ?LEVEL2)
+    (instance ?LEVEL1 PatchManagementMaturityAttribute)
+    (instance ?LEVEL2 PatchManagementMaturityAttribute)
+    (successorAttributeClosure ?LEVEL2 ?LEVEL1)
+    (patchCost ?VUL ?ORG1 ?COST1)
+    (patchCost ?VUL ?ORG2 ?COST2)
+    (equal ?COST1 (MeasureFn ?AMT1 ?UNIT))
+    (equal ?COST2 (MeasureFn ?AMT2 ?UNIT)))
+  (lessThanOrEqualTo ?AMT1 ?AMT2))
 
 (=>
   (and
@@ -870,10 +925,17 @@ vulnerability and agent there is at most one patch cost.")
   (and
     (vulnerableSystem ?VUL ?SYS ?ATTACKER)
     (possesses ?DEFENDER ?SYS)
-    (patchCost ?VUL ?DEFENDER ?COST))
+    (patchCost ?VUL ?DEFENDER ?COST)
+    (knows ?ATTACKER (attribute ?SYS ?VUL)))
+  (knows ?ATTACKER (patchCost ?VUL ?DEFENDER ?COST)))
+
+(=>
   (and
-    (knows ?ATTACKER (patchCost ?VUL ?DEFENDER ?COST))
-    (knows ?DEFENDER (patchCost ?VUL ?DEFENDER ?COST))))
+    (vulnerableSystem ?VUL ?SYS ?ATTACKER)
+    (possesses ?DEFENDER ?SYS)
+    (patchCost ?VUL ?DEFENDER ?COST)
+    (knows ?DEFENDER (attribute ?SYS ?VUL)))
+  (knows ?DEFENDER (patchCost ?VUL ?DEFENDER ?COST)))
 
 (exists (?VUL ?A1 ?A2 ?C1 ?C2)
   (and
@@ -884,6 +946,183 @@ vulnerability and agent there is at most one patch cost.")
     (patchCost ?VUL ?A1 ?C1)
     (patchCost ?VUL ?A2 ?C2)
     (not (equal ?C1 ?C2))))
+
+;; ============================================================
+;; patchDevelopmentCost (TernaryPredicate)
+;; ============================================================
+
+(instance patchDevelopmentCost TernaryPredicate)
+(instance patchDevelopmentCost SingleValuedRelation)
+(domain patchDevelopmentCost 1 Vulnerability)
+(domain patchDevelopmentCost 2 AutonomousAgent)
+(domain patchDevelopmentCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage patchDevelopmentCost "patch development cost")
+(format EnglishLanguage patchDevelopmentCost "%2's patch development cost for %1 is %3")
+(documentation patchDevelopmentCost EnglishLanguage "(&%patchDevelopmentCost
+?VUL ?AGENT ?COST) means ?AGENT spends ?COST developing a fix for
+&%Vulnerability ?VUL. One of four cost components summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchDevelopmentCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; patchTestingCost (TernaryPredicate)
+;; ============================================================
+
+(instance patchTestingCost TernaryPredicate)
+(instance patchTestingCost SingleValuedRelation)
+(domain patchTestingCost 1 Vulnerability)
+(domain patchTestingCost 2 AutonomousAgent)
+(domain patchTestingCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage patchTestingCost "patch testing cost")
+(format EnglishLanguage patchTestingCost "%2's patch testing cost for %1 is %3")
+(documentation patchTestingCost EnglishLanguage "(&%patchTestingCost ?VUL
+?AGENT ?COST) means ?AGENT spends ?COST verifying that a fix for
+&%Vulnerability ?VUL closes the vulnerability without introducing
+regressions. One of four cost components summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchTestingCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; patchDeploymentCost (TernaryPredicate)
+;; ============================================================
+
+(instance patchDeploymentCost TernaryPredicate)
+(instance patchDeploymentCost SingleValuedRelation)
+(domain patchDeploymentCost 1 Vulnerability)
+(domain patchDeploymentCost 2 AutonomousAgent)
+(domain patchDeploymentCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage patchDeploymentCost "patch deployment cost")
+(format EnglishLanguage patchDeploymentCost "%2's patch deployment cost for %1 is %3")
+(documentation patchDeploymentCost EnglishLanguage "(&%patchDeploymentCost
+?VUL ?AGENT ?COST) means ?AGENT spends ?COST rolling a fix for
+&%Vulnerability ?VUL out across the affected systems it possesses. One of
+four cost components summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchDeploymentCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; operationalDisruptionCost (TernaryPredicate)
+;; ============================================================
+
+(instance operationalDisruptionCost TernaryPredicate)
+(instance operationalDisruptionCost SingleValuedRelation)
+(domain operationalDisruptionCost 1 Vulnerability)
+(domain operationalDisruptionCost 2 AutonomousAgent)
+(domain operationalDisruptionCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage operationalDisruptionCost "operational disruption cost")
+(format EnglishLanguage operationalDisruptionCost "%2's operational disruption cost for patching %1 is %3")
+(documentation operationalDisruptionCost EnglishLanguage
+"(&%operationalDisruptionCost ?VUL ?AGENT ?COST) means ?AGENT bears ?COST
+in lost or degraded operations while patching &%Vulnerability ?VUL, distinct
+from the direct cost of the patch work itself. One of four cost components
+summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (operationalDisruptionCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; patchCost -- sum-of-sub-costs definition. Universal, not an existence
+;; witness: whenever an agent has all four sub-costs recorded for a
+;; vulnerability, the total patchCost is defined as their sum, unified to
+;; a shared currency unit across all four components and the total.
+;; ============================================================
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchDevelopmentCost ?VUL ?AGENT ?C1)
+    (patchTestingCost ?VUL ?AGENT ?C2)
+    (patchDeploymentCost ?VUL ?AGENT ?C3)
+    (operationalDisruptionCost ?VUL ?AGENT ?C4)
+    (equal ?C1 (MeasureFn ?A1 ?UNIT))
+    (equal ?C2 (MeasureFn ?A2 ?UNIT))
+    (equal ?C3 (MeasureFn ?A3 ?UNIT))
+    (equal ?C4 (MeasureFn ?A4 ?UNIT))
+    (instance ?UNIT UnitOfCurrency)
+    (patchCost ?VUL ?AGENT ?TOTAL))
+  (equal ?TOTAL (MeasureFn (AdditionFn ?A1 (AdditionFn ?A2 (AdditionFn ?A3 ?A4))) ?UNIT)))
+
+;; ============================================================
+;; defenderLossCost (TernaryPredicate)
+;; ============================================================
+
+(instance defenderLossCost TernaryPredicate)
+(instance defenderLossCost SingleValuedRelation)
+(domain defenderLossCost 1 Vulnerability)
+(domain defenderLossCost 2 AutonomousAgent)
+(domain defenderLossCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage defenderLossCost "defender loss cost")
+(format EnglishLanguage defenderLossCost "%2's expected loss from %1 being exploited is %3")
+(documentation defenderLossCost EnglishLanguage "(&%defenderLossCost ?VUL
+?AGENT ?COST) means ?AGENT, as the defender possessing a system vulnerable
+to &%Vulnerability ?VUL, expects to lose an amount of ?COST if ?VUL is
+successfully exploited against that system. Distinct from &%exploitCost,
+which prices the attacker's cost to carry out the exploitation, not the
+defender's loss from it. Grounds &%patchCost's rational-choice condition:
+patching is the cost-minimizing choice exactly when patchCost is less
+than defenderLossCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (defenderLossCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; rule: patchCost's essential rational-choice condition -- patching is the
+;; cost-minimizing choice exactly when patchCost is less than
+;; defenderLossCost. operationalDisruptionCost (a patchCost sub-cost) already
+;; prices the disruption caused by patching itself, so no separate
+;; opportunity-cost term is needed on the other side of the comparison.
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?DEFENDER AutonomousAgent)
+    (patchCost ?VUL ?DEFENDER ?PCOST)
+    (defenderLossCost ?VUL ?DEFENDER ?LCOST)
+    (equal ?PCOST (MeasureFn ?PAMT ?UNIT))
+    (equal ?LCOST (MeasureFn ?LAMT ?UNIT))
+    (lessThan ?PAMT ?LAMT))
+  (exists (?PATCH)
+    (and
+      (instance ?PATCH Repairing)
+      (agent ?PATCH ?DEFENDER)
+      (patient ?PATCH ?VUL)
+      (modalAttribute
+        (hasPurposeForAgent ?PATCH ?DEFENDER
+          (defenderLossCost ?VUL ?DEFENDER ?LCOST))
+        Likely))))
 
 ;; ============================================================
 ;; vulnerabilityCause (BinaryPredicate)
