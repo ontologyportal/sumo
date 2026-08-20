@@ -180,10 +180,12 @@
 
 (=>
   (instance ?BACTERIUM Bacterium)
-  (exists (?NUMBER)
+  (exists (?NUMBER ?WIDTH)
     (and
-      (width ?BACTERIUM
+      (equal ?WIDTH
         (MeasureFn ?NUMBER Meter))
+      (instance ?WIDTH LengthMeasure)
+      (width ?BACTERIUM ?WIDTH)
       (greaterThanOrEqualTo ?NUMBER 0.000001)
       (lessThanOrEqualTo ?NUMBER 0.000002))))
 
@@ -241,9 +243,15 @@
 (documentation RickettsiaProwazekii EnglishLanguage "The &%Bacterium that causes &%LouseBorneTyphus.")
 
 (instance LouseBorneTyphus BacterialDisease)
-(diseaseIncubation LouseBorneTyphus
-  (MeasureFn 1 WeekDuration)
-  (MeasureFn 2 WeekDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 1 WeekDuration))
+    (equal ?T2 (MeasureFn 2 WeekDuration)))
+  (diseaseIncubation LouseBorneTyphus ?T1 ?T2))
+
 (diseaseMedicine LouseBorneTyphus OralAntibiotic Ingesting)
 (documentation LouseBorneTyphus EnglishLanguage "The only rickettsial disease which is capable of causing widespread human epidemics. The initial symptoms of the disease are flu_like, but on the fifth or sixth day of infection a macular eruption appears on the upper trunk of the body and then spreads to the rest of the body.")
 
@@ -283,7 +291,9 @@
 (roomTempState Batrachotoxin Solid)
 
 (=>
-  (secretesToxin ?FROG Batrachotoxin)
+  (and
+    (instance ?B Batrachotoxin)
+    (secretesToxin ?FROG ?B))
   (subclass ?FROG Amphibian))
 
 (subclass ClostridiumBotulinum BacterialAgent)
@@ -292,13 +302,17 @@
 
 (subclass BotulinumToxin Toxin)
 (subclass BotulinumToxin BodySubstance)
-(attribute BotulinumToxin LifeThreatening)
+(=>
+  (instance ?B BotulinumToxin)
+  (attribute ?B LifeThreatening))
+
 (lethalDose BotulinumToxin
   (PerFn
     (MeasureFn 0.001
       (MicroFn Gram))
     (MeasureFn 1.0
       (KiloFn Gram))))
+
 (biochemicalAgentDelivery BotulinumToxin Ingesting)
 (biochemicalAgentSyndrome BotulinumToxin Botulism)
 (documentation BotulinumToxin EnglishLanguage "A &%Toxin produced by the bacterium &%ClostridiumBotulinum. It paralyzes muscles if ingested, and one billionth of a pound is sufficient to cause death.")
@@ -308,9 +322,15 @@
 (instance Botulism LifeThreateningDisease)
 (instance Botulism VaccinatableDisease)
 (diseaseSymptom Botulism Paralysis)
-(diseaseIncubation Botulism
-  (MeasureFn 2 HourDuration)
-  (MeasureFn 8 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 2 HourDuration))
+    (equal ?T2 (MeasureFn 8 HourDuration)))
+  (diseaseIncubation Botulism ?T1 ?T2))
+
 (documentation Botulism EnglishLanguage "A paralytic disease caused by &%BotulinumToxin, a &%Toxin produced by the bacterium &%ClostridiumBotulinum.")
 
 (subclass ClostridiumPerfringens BacterialAgent)
@@ -328,7 +348,11 @@
 (biologicalAgentCarrier BurkholderiaMallei Mammal)
 (biochemicalAgentDelivery BurkholderiaMallei Injecting)
 (biochemicalAgentSyndrome BurkholderiaMallei Glanders)
-(diseaseMedicine BurkholderiaMallei Ciprofloxacin Ingesting)
+
+(=>
+  (instance ?B BurkholderiaMallei)
+  (diseaseMedicine ?B Ciprofloxacin Ingesting))
+
 (documentation BurkholderiaMallei EnglishLanguage "The &%Bacterium that causes the disease &%Glanders. It is transmitted to humans by direct contact with infected animals. The bacteria enter the body through the skin and the mucosal surfaces of the eyes and nose.")
 
 (instance Glanders BacterialDisease)
@@ -372,15 +396,26 @@
 (documentation Plague EnglishLanguage "The disease caused by the &%Bacterium &%YersiniaPestis. &%Plague has two forms depending on the location of the infection within the body, &%BubonicPlague and &%PneumonicPlague.")
 
 (subAttribute BubonicPlague Plague)
-(diseaseIncubation BubonicPlague
-  (MeasureFn 2 DayDuration)
-  (MeasureFn 6 DayDuration))
 (documentation BubonicPlague EnglishLanguage "A variant of the &%Plague which results in large swellings, called buboes.")
 
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 2 DayDuration))
+    (equal ?T2 (MeasureFn 6 DayDuration)))
+  (diseaseIncubation BubonicPlague ?T1 ?T2))
+
 (subAttribute PneumonicPlague Plague)
-(diseaseIncubation PneumonicPlague
-  (MeasureFn 3 DayDuration)
-  (MeasureFn 4 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 3 DayDuration))
+    (equal ?T2 (MeasureFn 4 DayDuration)))
+  (diseaseIncubation PneumonicPlague ?T1 ?T2))
+
 (documentation PneumonicPlague EnglishLanguage "Also known as pulmonary plague, a variant of the &%Plague which attacks the lungs and is spread between humans by oral bodily fluids.")
 
 (subclass RicinToxin Toxin)
@@ -780,12 +815,13 @@
 
 (=>
   (and
-    (instance ?U McgPerKg)
-    (effectiveDose ?AGENT
-      (MeasureFn ?NUMBER1 ?U))
-    (lethalDose ?AGENT
-      (MeasureFn ?NUMBER2 ?U)))
-  (greaterThan ?NUMBER2 ?NUMBER1))
+    (instance ?MEASURE1 CompositeUnitOfMeasure)
+    (equal ?MEASURE1 (MeasureFn ?NUMBER1 McgPerKg))
+    (effectiveDose ?AGENT ?MEASURE)
+    (instance ?MEASURE2 CompositeUnitOfMeasure)
+    (equal ?MEASURE2 (MeasureFn ?NUMBER1 McgPerKg))
+    (lethalDose ?AGENT ?MEASURE2))
+  (greaterThan ?MEASURE2 ?MEASURE1))
 
 (=>
   (lethalDose ?AGENT
@@ -924,7 +960,7 @@
 (subclass SalmonellaPartyphi BacterialAgent)
 (documentation SalmonellaPartyphi EnglishLanguage "Causes a less severe illness than &%SalmonellaTyphimurium.")
 
-(subclass LifeThreatening BiologicalAttribute)
+(instance LifeThreatening BiologicalAttribute)
 (documentation LifeThreatening EnglishLanguage "A &%BiochemicalAgent that has been observed to cause the death of &%Humans.")
 
 (=>
@@ -1058,9 +1094,13 @@
 (instance Anthrax BacterialDisease)
 (diseaseMedicine Anthrax Doxycycline Ingesting)
 (diseaseMedicine Anthrax Ciprofloxacin Ingesting)
-(diseaseIncubation Anthrax
-  (MeasureFn 1 HourDuration)
-  (MeasureFn 2 HourDuration))
+(exists (?MIN ?MAX)
+  (and
+    (instance ?MIN TimeDuration)
+    (instance ?MAX TimeDuration)
+    (equal ?MIN (MeasureFn 1 WeekDuration))
+    (equal ?MAX (MeasureFn 2 WeekDuration))
+    (diseaseIncubation LouseBorneTyphus ?MIN ?MAX)))
 (documentation Anthrax EnglishLanguage "The disease caused by &%BacillusAnthracis. Victims of the disease may experience a brief, apparent recovery before death.")
 
 (subAttribute InhalationalAnthrax Anthrax)
@@ -1094,10 +1134,12 @@
 
 (=>
   (instance ?VIRUS YellowFeverVirus)
-  (exists (?NUMBER)
+  (exists (?NUMBER ?WIDTH)
     (and
-      (width ?VIRUS
+      (instance ?WIDTH LengthMeasure)
+      (equal ?WIDTH
         (MeasureFn ?NUMBER Meter))
+      (width ?VIRUS ?WIDTH)
       (equal ?NUMBER 0.00000002))))
 
 (subclass FootAndMouthVirus ViralAgent)
@@ -1241,7 +1283,7 @@
 (documentation ShigaToxin EnglishLanguage "The &%Toxin produced by the &%Bacterium &%ShigellaDysenteriae.")
 (roomTempState ShigaToxin Solid)
 
-(subclass AcquiredImmunoDeficiencySyndrome DiseaseOrSyndrome)
+(instance AcquiredImmunoDeficiencySyndrome DiseaseOrSyndrome)
 (documentation AcquiredImmunoDeficiencySyndrome EnglishLanguage "A disease that attacks the immune system and that is caused by the &%HIVVirus. Patients are usually infected through blood or semen.")
 
 (subclass HIVVirus ViralAgent)
@@ -1254,7 +1296,7 @@
 (biochemicalAgentSyndrome SalmonellaTyphi TyphoidFever)
 (documentation SalmonellaTyphi EnglishLanguage "The &%Bacterium that causes &%TyphoidFever.")
 
-(subclass TyphoidFever DiseaseOrSyndrome)
+(instance TyphoidFever DiseaseOrSyndrome)
 (diseaseSymptom TyphoidFever Fever)
 (diseaseMedicine TyphoidFever Antibiotic Ingesting)
 (documentation TyphoidFever EnglishLanguage "A life_threatening disease that is caused by &%SalmonellaTyphi.")
@@ -1298,8 +1340,8 @@
 (biologicalAgentCarrier Myxomatosis Rodent)
 (documentation Myxomatosis EnglishLanguage "A &%Virus that is infectious to rabbits and may cause blindness and death in these &%Rodents.")
 
-(subclass VenezuelanEquineEncephalitis ViralDisease)
-(subclass VenezuelanEquineEncephalitis VaccinatableDisease)
+(instance VenezuelanEquineEncephalitis ViralDisease)
+(instance VenezuelanEquineEncephalitis VaccinatableDisease)
 (diseaseMortality VenezuelanEquineEncephalitis 0.01)
 (diseaseSymptom VenezuelanEquineEncephalitis Fever)
 (documentation VenezuelanEquineEncephalitis EnglishLanguage "Also known as Venezuelan equine encephalomyelitis. Caused by any one of eight distinct &%Viruses. Symptoms of the disease include severe headache, high fever (up to 105 degrees), sensitivity to light (photophobia), nausea, coughing, and diarrhea. The disease results in central nervous system infection in 1 of 25 children.")
@@ -1308,7 +1350,7 @@
 (biochemicalAgentSyndrome VenezuelanEquineEncephalitisVirus VenezuelanEquineEncephalitis)
 (documentation VenezuelanEquineEncephalitisVirus EnglishLanguage "The &%Virus that causes &%VenezuelanEquineEncephalitis.")
 
-(subclass RiftValleyFever ViralDisease)
+(instance RiftValleyFever ViralDisease)
 (diseaseSymptom RiftValleyFever Fever)
 (diseaseMortality RiftValleyFever 0.01)
 (documentation RiftValleyFever EnglishLanguage "A &%ViralDisease that causes chills, bleeding, and stupor.")
@@ -1319,7 +1361,10 @@
 (documentation StaphylococcusAureus EnglishLanguage "A bacterium that secretes &%StaphylococcalEnterotoxicB. It causes chills, headache, muscle pain, coughing (which may last for weeks), and sudden fever of up to 106 degrees (which may last for days). It occasionally causes nausea, vomiting, and diarrhea.")
 
 (subclass StaphylococcalEnterotoxinB Toxin)
-(attribute StaphylococcalEnterotoxinB LifeThreatening)
+(=>
+  (instance ?S StaphylococcalEnterotoxinB)
+  (attribute ?S LifeThreatening))
+
 (roomTempState StaphylococcalEnterotoxinB Solid)
 (effectiveDose StaphylococcalEnterotoxinB
   (PerFn
@@ -1339,7 +1384,11 @@
 
 (subclass Influenza ViralDisease)
 (subclass Influenza VaccinatableDisease)
-(diseaseSymptom Influenza Fever)
+
+(=>
+  (instance ?I Influenza)
+  (diseaseSymptom ?I Fever))
+
 (documentation Influenza EnglishLanguage "A contagious disease caused by a large number of &%Viruses.")
 
 (subclass Saxitoxin Toxin)
@@ -1383,9 +1432,15 @@
 
 (instance Tetanus BacterialDisease)
 (instance Tetanus VaccinatableDisease)
-(diseaseIncubation Tetanus
-  (MeasureFn 3 DayDuration)
-  (MeasureFn 3 WeekDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 3 DayDuration))
+    (equal ?T2 (MeasureFn 3 WeekDuration)))
+  (diseaseIncubation Tetanus ?T1 ?T2))
+
 (documentation Tetanus EnglishLanguage "Also known as lockjaw, a &%BacterialDisease that affects the nervous system. A subject is infected with the disease by a puncture of the skin that becomes infected with the &%ClostridiumTetani bacterium. Symptoms of the disease include muscular stiffness (especially in the jaw and neck), difficulty swallowing, spasms, sweating, and fever.")
 
 (subclass ClostridiumTetani BacterialAgent)
@@ -1399,9 +1454,15 @@
 
 (instance HerpesB ViralDisease)
 (instance HerpesB LifeThreateningDisease)
-(diseaseIncubation HerpesB
-  (MeasureFn 10 DayDuration)
-  (MeasureFn 20 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 10 DayDuration))
+    (equal ?T2 (MeasureFn 20 DayDuration)))
+  (diseaseIncubation HerpesB ?T1 ?T2))
+
 (diseaseMortality HerpesB 0.7)
 (documentation HerpesB EnglishLanguage "The disease caused by &%HerpesBVirus.")
 
@@ -1451,9 +1512,15 @@
 (instance Pertussis BacterialDisease)
 (instance Pertussis VaccinatableDisease)
 (diseaseMedicine Pertussis Antibiotic Ingesting)
-(diseaseIncubation Pertussis
-  (MeasureFn 6 DayDuration)
-  (MeasureFn 21 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 6 DayDuration))
+    (equal ?T2 (MeasureFn 6 DayDuration)))
+  (diseaseIncubation Pertussis ?T1 ?T2))
+
 (documentation Pertussis EnglishLanguage "The &%BacterialDisease caused by &%BordetellaPertussis. Its symptoms include severe coughing (hence the colloquial name of whooping cough) and flu_like symptoms.")
 
 (subclass BordetellaPertussis BacterialAgent)
@@ -1472,9 +1539,15 @@
 (documentation ChlamydiaPsittaci EnglishLanguage "The &%Bacterium that causes &%Psittacosis.")
 
 (instance Psittacosis BacterialDisease)
-(diseaseIncubation Psittacosis
-  (MeasureFn 6 DayDuration)
-  (MeasureFn 19 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 6 DayDuration))
+    (equal ?T2 (MeasureFn 19 DayDuration)))
+  (diseaseIncubation Psittacosis ?T1 ?T2))
+
 (documentation Psittacosis EnglishLanguage "A serious disease caused by &%ChlamydiaPsittaci that affects both birds and humans. In humans the symptoms include fever, chills, headache, muscle aches, and a dry cough. The disease may give rise to pneumonia in extreme cases.")
 
 (instance Malaria InfectiousDisease)
@@ -1482,7 +1555,8 @@
 (diseaseSymptom Malaria Fever)
 (documentation Malaria EnglishLanguage "A disease that destroys red blood cells. It is caused by a &%Microorganism (see &%MalarialPlasmodium) that is carried by the Anopheles Gambiae mosquito.")
 
-(subclass MalarialPlasmodium Microorganism)
+(subclass MalarialPlasmodium Protozoa)
+(subclass MalarialPlasmodium BiologicalAgent)
 (biologicalAgentCarrier MalarialPlasmodium Mosquito)
 (biochemicalAgentDelivery MalarialPlasmodium Injecting)
 (documentation MalarialPlasmodium EnglishLanguage "Any of four strains of Plasmodium that are known to cause &%Malaria.")
@@ -1535,9 +1609,15 @@
 
 (instance SaintLouisEncephalitis ViralDisease)
 (instance SaintLouisEncephalitis LifeThreateningDisease)
-(diseaseIncubation SaintLouisEncephalitis
-  (MeasureFn 5 DayDuration)
-  (MeasureFn 15 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 5 DayDuration))
+    (equal ?T2 (MeasureFn 15 DayDuration)))
+  (diseaseIncubation SaintLouisEncephalitis ?T1 ?T2))
+
 (diseaseSymptom SaintLouisEncephalitis Fever)
 (documentation SaintLouisEncephalitis EnglishLanguage "In mild cases, symptoms are flu_like. In more severe cases, symptoms may include disorientation, coma, tremors, hemorrhage, and convulsions.")
 
@@ -1561,9 +1641,15 @@
 (instance JapaneseEncephalitis ViralDisease)
 (instance JapaneseEncephalitis LifeThreateningDisease)
 (instance JapaneseEncephalitis VaccinatableDisease)
-(diseaseIncubation JapaneseEncephalitis
-  (MeasureFn 6 DayDuration)
-  (MeasureFn 8 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 6 DayDuration))
+    (equal ?T2 (MeasureFn 8 DayDuration)))
+  (diseaseIncubation JapaneseEncephalitis ?T1 ?T2))
+
 (diseaseMortality JapaneseEncephalitis 0.30)
 (documentation JapaneseEncephalitis EnglishLanguage "Most people who are infected with this disease will suffer only mild symptoms. However, in severe cases, the disease attacks the central nervous system and may result in death.")
 
@@ -1589,9 +1675,15 @@
 (instance MarburgDisease ViralDisease)
 (instance MarburgDisease LifeThreateningDisease)
 (diseaseMortality MarburgDisease 0.25)
-(diseaseIncubation MarburgDisease
-  (MeasureFn 3 DayDuration)
-  (MeasureFn 7 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 3 DayDuration))
+    (equal ?T2 (MeasureFn 7 DayDuration)))
+  (diseaseIncubation MarburgDisease ?T1 ?T2))
+
 (documentation MarburgDisease EnglishLanguage "Extremely serious disease caused by the &%MarburgVirus. Symptoms include high fever, myalgias, vomiting, and diarrhea. Typically involves major organs, including the central nervous system.")
 
 (subclass StreptococcusA BacterialAgent)
@@ -1604,9 +1696,15 @@
 (documentation StrepThroat EnglishLanguage "A &%BacterialDisease whose symptoms include a very sore throat, difficulty swallowing, high fever, white spots and/  or pus on or near the tonsils, and swollen lymph nodes. If left untreated, &%StrepThroat can progress to &%ScarletFever.")
 
 (instance ScarletFever BacterialDisease)
-(diseaseIncubation ScarletFever
-  (MeasureFn 1 DayDuration)
-  (MeasureFn 4 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 1 DayDuration))
+    (equal ?T2 (MeasureFn 4 DayDuration)))
+  (diseaseIncubation ScarletFever ?T1 ?T2))
+
 (documentation ScarletFever EnglishLanguage "A serious disease that may arise if &%StrepThroat is left untreated.")
 
 (instance NecrotizingFaciitis BacterialDisease)
@@ -1660,9 +1758,15 @@
 
 (instance RotavirusGastroenteritis ViralDisease)
 (diseaseSymptom RotavirusGastroenteritis Fever)
-(diseaseIncubation RotavirusGastroenteritis
-  (MeasureFn 1 DayDuration)
-  (MeasureFn 3 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 1 DayDuration))
+    (equal ?T2 (MeasureFn 3 DayDuration)))
+  (diseaseIncubation RotavirusGastroenteritis ?T1 ?T2))
+
 (documentation RotavirusGastroenteritis EnglishLanguage "A disease caused by instances of &%Rotavirus, and characterized by vomiting, diarrhea, and fever.")
 
 (subclass Aflatoxin Mycotoxin)
@@ -1704,9 +1808,15 @@
 (instance LassaFever ViralDisease)
 (instance LassaFever LifeThreateningDisease)
 (diseaseSymptom LassaFever Fever)
-(diseaseIncubation LassaFever
-  (MeasureFn 1 WeekDuration)
-  (MeasureFn 3 WeekDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 1 WeekDuration))
+    (equal ?T2 (MeasureFn 3 WeekDuration)))
+  (diseaseIncubation LassaFever ?T1 ?T2))
+
 (diseaseMortality LassaFever 0.01)
 (documentation LassaFever EnglishLanguage "A viral, rodent_carried disease found in West Africa. The symptoms of the disease are wide_ranging and can be life_threatening. The disease can lead to permanent neurological problems, including deafness.")
 
@@ -1735,17 +1845,29 @@
 
 (instance Diphtheria BacterialDisease)
 (instance Diphtheria LifeThreateningDisease)
-(diseaseIncubation Diphtheria
-  (MeasureFn 2 DayDuration)
-  (MeasureFn 5 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 2 DayDuration))
+    (equal ?T2 (MeasureFn 5 DayDuration)))
+  (diseaseIncubation Diphtheria ?T1 ?T2))  
+
 (diseaseSymptom Diphtheria Fever)
 (documentation Diphtheria EnglishLanguage "The disease can infect almost any mucous membrane. It causes fever, chills, headache, and nausea. In severe cases it may affect heart rhythm and motor coordination.")
 
 (instance CrimeanCongoHemorrhagicFever HemorrhagicFever)
 (instance CrimeanCongoHemorrhagicFever LifeThreateningDisease)
-(diseaseIncubation CrimeanCongoHemorrhagicFever
-  (MeasureFn 5 DayDuration)
-  (MeasureFn 13 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 5 DayDuration))
+    (equal ?T2 (MeasureFn 13 DayDuration)))
+  (diseaseIncubation CrimeanCongoHemorrhagicFever ?T1 ?T2))  
+
 (diseaseSymptom CrimeanCongoHemorrhagicFever Fever)
 (diseaseMortality CrimeanCongoHemorrhagicFever 0.3)
 (documentation CrimeanCongoHemorrhagicFever EnglishLanguage "A widespread disease which was initially identified in the Crimea and the Congo, which accounts for its name. The disease has a high mortality rate for humans, but infection of humans occurs infrequently.")
@@ -1849,9 +1971,15 @@
 (documentation KyasanurForestDiseaseVirus EnglishLanguage "The &%Virus that carries &%KyasanurForestDisease.")
 
 (instance KyasanurForestDisease TickBorneEncephalitis)
-(diseaseIncubation KyasanurForestDisease
-  (MeasureFn 3 DayDuration)
-  (MeasureFn 8 DayDuration))
+
+(=>
+  (and
+    (instance ?T1 TimeDuration)
+    (instance ?T2 TimeDuration)
+    (equal ?T1 (MeasureFn 3 DayDuration))
+    (equal ?T2 (MeasureFn 8 DayDuration)))
+  (diseaseIncubation KyasanurForestDisease ?T1 ?T2))  
+
 (documentation KyasanurForestDisease EnglishLanguage "A tick_borne encephalitis that is largely restricted to the Shimoga and Kanara district of Karnataka, India.")
 
 (subclass HendraVirus ViralAgent)
