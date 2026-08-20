@@ -1201,3 +1201,85 @@ are disjoint classes.")
     (attribute ?PROG ?VUL)
     (holdsDuring ?T (attribute ?PROG ?CAUSE)))
   (holdsDuring ?T (attribute ?PROG ?VUL)))
+
+;; ============================================================
+;; SecurityControl (Physical)
+;; ============================================================
+
+(instance SecurityControl Class)
+(subclass SecurityControl Physical)
+(termFormat EnglishLanguage SecurityControl "security control")
+(documentation SecurityControl EnglishLanguage "A &%Physical safeguard or
+mechanism -- an &%Object, a &%Process, or several acting in tandem -- put in
+place to satisfy an &%Obligation a &%Policy confers on the &%CognitiveAgent
+accountable for meeting a defined security requirement. A &%SecurityControl
+applies to a given context only when a matching &%Obligation actually holds
+there; it is not universally applicable regardless of context.")
+
+;; rule: a SecurityControl is always either an Object (a lock, an RFID
+;; reader) or a Process (a guard's periodic credential check, a firewall
+;; actively filtering) -- never a merely-specified, undeployed plan
+
+(=>
+  (instance ?X SecurityControl)
+  (or
+    (instance ?X Object)
+    (instance ?X Process)))
+
+;; rule: a SecurityControl's purpose, when tied to a specific agent, must
+;; trace back to a real obligation that agent holds -- not asserted
+;; freestanding. This is the applicability-gating claim: an autonomous
+;; system checking whether a control is warranted for a given context
+;; checks for a matching holdsObligation first (e.g. no obligation covers
+;; a public library computer, so MFA's purpose cannot legitimately be
+;; asserted for it there -- provable as this rule's contrapositive)
+
+(=>
+  (and
+    (instance ?X SecurityControl)
+    (instance ?AGENT CognitiveAgent)
+    (hasPurposeForAgent ?X ?AGENT ?FORMULA))
+  (holdsObligation ?AGENT ?FORMULA))
+
+;; TIER 2 -- capability: the class affords being used toward Protecting,
+;; independent of whether a given instance is currently deployed
+
+(capability Protecting instrument SecurityControl)
+
+;; TIER 3 -- hasPurpose: agent-neutral designed intent, distinct from the
+;; agent-specific obligation-satisfaction rule above
+
+(=>
+  (instance ?X SecurityControl)
+  (hasPurpose ?X
+    (exists (?P)
+      (and
+        (instance ?P Protecting)
+        (instrument ?P ?X)))))
+
+;; TIER 5 -- consequences, Process branch (strict): a Process-typed
+;; SecurityControl instance just is a Protecting occurrence
+
+(=>
+  (and
+    (instance ?X SecurityControl)
+    (instance ?X Process))
+  (exists (?P)
+    (and
+      (instance ?P Protecting)
+      (equal ?P ?X))))
+
+;; TIER 5 -- consequences, Object branch (modal): an Object-typed instance
+;; being deployed does not guarantee it is currently effective (a lock can
+;; be picked, a firewall misconfigured)
+
+(=>
+  (and
+    (instance ?X SecurityControl)
+    (instance ?X Object))
+  (modalAttribute
+    (exists (?P)
+      (and
+        (instance ?P Protecting)
+        (instrument ?P ?X)))
+    Likely))
