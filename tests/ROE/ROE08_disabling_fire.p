@@ -1,0 +1,36 @@
+fof(example_1, axiom, ( s__instance(s__measureInSeries__m,s__BinaryPredicate) )).
+fof(example_2, axiom, ( s__domain(s__measureInSeries__m,n__1,s__ROEMeasure) )).
+fof(example_3, axiom, ( s__domain(s__measureInSeries__m,n__2,s__ROESeries) )).
+fof(example_4, axiom, ( s__instance(s__measureAuthorizes__m,s__BinaryPredicate) )).
+fof(example_5, axiom, ( s__domain(s__measureAuthorizes__m,n__1,s__ROEMeasure) )).
+fof(example_6, axiom, ( s__domainSubclass(s__measureAuthorizes__m,n__2,s__Process) )).
+fof(example_7, axiom, ( s__instance(s__measureSubsumes__m,s__BinaryPredicate) )).
+fof(example_8, axiom, ( s__domain(s__measureSubsumes__m,n__1,s__ROEMeasure) )).
+fof(example_9, axiom, ( s__domain(s__measureSubsumes__m,n__2,s__ROEMeasure) )).
+fof(example_10, axiom, ( s__subclass(s__ROESeries,s__Proposition) )).
+fof(example_11, axiom, ( s__subclass(s__ROEMeasure,s__Proposition) )).
+fof(example_12, axiom, ( s__subclass(s__CompleteROEMeasure,s__ROEMeasure) )).
+fof(example_13, axiom, ( s__subclass(s__TemplateROEMeasure,s__ROEMeasure) )).
+fof(example_14, axiom, ( s__instance(s__ROESeries24,s__ROESeries) )).
+fof(example_15, axiom, ( s__instance(s__ROE24C,s__ROEMeasure) )).
+fof(example_16, axiom, ( s__instance(s__ROE24C,s__CompleteROEMeasure) )).
+fof(example_17, axiom, ( s__measureInSeries(s__ROE24C,s__ROESeries24) )).
+fof(example_18, axiom, ( s__measureAuthorizes(s__ROE24C,s__NonDisablingFire) )).
+fof(example_19, axiom, ( s__instance(s__ROE24F,s__ROEMeasure) )).
+fof(example_20, axiom, ( s__instance(s__ROE24F,s__CompleteROEMeasure) )).
+fof(example_21, axiom, ( s__measureInSeries(s__ROE24F,s__ROESeries24) )).
+fof(example_22, axiom, ( s__measureAuthorizes(s__ROE24F,s__DisablingFire) )).
+fof(example_23, axiom, ( s__subclass(s__DisablingFire,s__Shooting) )).
+fof(example_24, axiom, ( s__subclass(s__NonDisablingFire,s__Shooting) )).
+fof(example_25, axiom, ( s__disjoint(s__NonDisablingFire,s__DisablingFire) )).
+fof(example_26, axiom, ( s__subclass(s__CompellingDisablingFire,s__DisablingFire) )).
+fof(example_27, axiom, ( s__subclass(s__CompellingNonDisablingFire,s__NonDisablingFire) )).
+fof(example_28, axiom, ( ~(s__subclass(s__DisablingFire,s__NonDisablingFire)) )).
+fof(example_29, axiom, ( ~(s__subclass(s__NonDisablingFire,s__DisablingFire)) )).
+fof(example_30, axiom, ( ~(s__subclass(s__NonDisablingFire,s__CompellingNonDisablingFire)) )).
+fof(example_31, axiom, ( ~(s__subclass(s__DisablingFire,s__CompellingDisablingFire)) )).
+fof(example_32, axiom, ( ~(s__subclass(s__CompellingDisablingFire,s__NonDisablingFire)) )).
+fof(example_33, axiom, ( ~(s__subclass(s__CompellingNonDisablingFire,s__DisablingFire)) )).
+fof(example_34, axiom, ( ( ! [V__C1,V__C2,V__C3] : (((s__subclass(V__C1,V__C2) & s__subclass(V__C2,V__C3)) => s__subclass(V__C1,V__C3)) ) ) )).
+fof(example_35, axiom, ( ( ! [V__C1,V__C2,V__M1,V__M2] : (((s__measureAuthorizes(V__M1,V__C1) & s__measureAuthorizes(V__M2,V__C2) & s__subclass(V__C2,V__C1)) => s__measureSubsumes(V__M1,V__M2)) ) ) )).
+fof(conjecture, conjecture, ( s__measureSubsumes(s__ROE24F,s__ROE24C) )).

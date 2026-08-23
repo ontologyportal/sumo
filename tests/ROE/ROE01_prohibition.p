@@ -1,0 +1,53 @@
+fof(example_1, axiom, ( s__instance(s__activationMeasure__m,s__BinaryPredicate) )).
+fof(example_2, axiom, ( s__domain(s__activationMeasure__m,n__1,s__ROEActivation) )).
+fof(example_3, axiom, ( s__domain(s__activationMeasure__m,n__2,s__ROEMeasure) )).
+fof(example_4, axiom, ( s__instance(s__activationOperation__m,s__BinaryPredicate) )).
+fof(example_5, axiom, ( s__domain(s__activationOperation__m,n__1,s__ROEActivation) )).
+fof(example_6, axiom, ( s__domain(s__activationOperation__m,n__2,s__MilitaryOperation) )).
+fof(example_7, axiom, ( s__instance(s__activationParameter__m,s__BinaryPredicate) )).
+fof(example_8, axiom, ( s__domain(s__activationParameter__m,n__1,s__ROEActivation) )).
+fof(example_9, axiom, ( s__domain(s__activationParameter__m,n__2,s__Entity) )).
+fof(example_10, axiom, ( s__instance(s__actionProhibited__m,s__BinaryPredicate) )).
+fof(example_11, axiom, ( s__domain(s__actionProhibited__m,n__1,s__Process) )).
+fof(example_12, axiom, ( s__domain(s__actionProhibited__m,n__2,s__MilitaryOperation) )).
+fof(example_13, axiom, ( s__instance(s__actionAuthorized__m,s__BinaryPredicate) )).
+fof(example_14, axiom, ( s__domain(s__actionAuthorized__m,n__1,s__Process) )).
+fof(example_15, axiom, ( s__domain(s__actionAuthorized__m,n__2,s__MilitaryOperation) )).
+fof(example_16, axiom, ( s__instance(s__measureAuthorizes__m,s__BinaryPredicate) )).
+fof(example_17, axiom, ( s__domain(s__measureAuthorizes__m,n__1,s__ROEMeasure) )).
+fof(example_18, axiom, ( s__domainSubclass(s__measureAuthorizes__m,n__2,s__Process) )).
+fof(example_19, axiom, ( s__instance(s__measureProhibits__m,s__BinaryPredicate) )).
+fof(example_20, axiom, ( s__domain(s__measureProhibits__m,n__1,s__ROEMeasure) )).
+fof(example_21, axiom, ( s__domainSubclass(s__measureProhibits__m,n__2,s__Process) )).
+fof(example_22, axiom, ( s__subclass(s__ROEActivation,s__Proposition) )).
+fof(example_23, axiom, ( s__subclass(s__ROEMeasure,s__Proposition) )).
+fof(example_24, axiom, ( s__subclass(s__CompleteROEMeasure,s__ROEMeasure) )).
+fof(example_25, axiom, ( s__subclass(s__TemplateROEMeasure,s__ROEMeasure) )).
+fof(example_26, axiom, ( s__instance(s__ROE23E,s__ROEMeasure) )).
+fof(example_27, axiom, ( s__instance(s__ROE23E,s__CompleteROEMeasure) )).
+fof(example_28, axiom, ( s__measureAuthorizes(s__ROE23E,s__WarningShot) )).
+fof(example_29, axiom, ( s__instance(s__ROE23B,s__ROEMeasure) )).
+fof(example_30, axiom, ( s__instance(s__ROE23B,s__TemplateROEMeasure) )).
+fof(example_31, axiom, ( s__measureProhibits(s__ROE23B,s__ProximateWarningShot) )).
+fof(example_32, axiom, ( s__subclass(s__WarningShot,s__Shooting) )).
+fof(example_33, axiom, ( s__subclass(s__ProximateWarningShot,s__WarningShot) )).
+fof(example_34, axiom, ( s__instance(s__roeInForce__m,s__BinaryPredicate) )).
+fof(example_35, axiom, ( s__domain(s__roeInForce__m,n__1,s__ROEMeasure) )).
+fof(example_36, axiom, ( s__domain(s__roeInForce__m,n__2,s__MilitaryOperation) )).
+fof(example_37, axiom, ( ( ! [V__ACTV,V__M,V__OP] : (((s__activationMeasure(V__ACTV,V__M) & s__activationOperation(V__ACTV,V__OP)) => s__roeInForce(V__M,V__OP)) ) ) )).
+fof(example_38, axiom, ( ( ! [V__ACT,V__ACTV,V__C,V__M,V__OP] : (((s__activationMeasure(V__ACTV,V__M) & s__activationOperation(V__ACTV,V__OP) & s__instance(V__M,s__CompleteROEMeasure) & s__measureAuthorizes(V__M,V__C) & s__instance(V__ACT,V__C)) => s__actionAuthorized(V__ACT,V__OP)) ) ) )).
+fof(example_39, axiom, ( ( ! [V__ACT,V__ACTV,V__C,V__M,V__OP,V__X] : (((s__activationMeasure(V__ACTV,V__M) & s__activationOperation(V__ACTV,V__OP) & s__activationParameter(V__ACTV,V__X) & s__instance(V__M,s__TemplateROEMeasure) & s__measureProhibits(V__M,V__C) & s__instance(V__ACT,V__C) & s__involvedInEvent(V__ACT,V__X)) => s__actionProhibited(V__ACT,V__OP)) ) ) )).
+fof(example_40, axiom, ( ( ! [V__C1,V__C2,V__X] : (((s__instance(V__X,V__C1) & s__subclass(V__C1,V__C2)) => s__instance(V__X,V__C2)) ) ) )).
+fof(example_41, axiom, ( s__instance(s__OpAlpha,s__MilitaryOperation) )).
+fof(example_42, axiom, ( s__instance(s__MvAurora,s__Ship) )).
+fof(example_43, axiom, ( s__instance(s__MvAurora,s__Object) )).
+fof(example_44, axiom, ( s__instance(s__Shot101,s__ProximateWarningShot) )).
+fof(example_45, axiom, ( s__involvedInEvent(s__Shot101,s__MvAurora) )).
+fof(example_46, axiom, ( s__instance(s__Act1,s__ROEActivation) )).
+fof(example_47, axiom, ( s__activationMeasure(s__Act1,s__ROE23E) )).
+fof(example_48, axiom, ( s__activationOperation(s__Act1,s__OpAlpha) )).
+fof(example_49, axiom, ( s__instance(s__Act2,s__ROEActivation) )).
+fof(example_50, axiom, ( s__activationMeasure(s__Act2,s__ROE23B) )).
+fof(example_51, axiom, ( s__activationOperation(s__Act2,s__OpAlpha) )).
+fof(example_52, axiom, ( s__activationParameter(s__Act2,s__MvAurora) )).
+fof(conjecture, conjecture, ( s__actionProhibited(s__Shot101,s__OpAlpha) )).
