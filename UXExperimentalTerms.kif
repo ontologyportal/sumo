@@ -327,11 +327,15 @@
     (instance ?BIDDER2 AutonomousAgent)
     (instance ?ITEM Object)
     (instance ?U UnitOfCurrency)
+    (instance ?OFFER1M CurrencyMeasure)
+    (equal ?OFFER1M
+      (MeasureFn ?OFFER1 ?U))
+    (instance ?OFFER2M CurrencyMeasure)
+    (equal ?OFFER2M
+      (MeasureFn ?OFFER2 ?U))
     (patient ?AUCTIONING ?ITEM)
-    (bidPrice ?ITEM
-      (MeasureFn ?OFFER1 ?U) ?BIDDER1)
-    (bidPrice ?ITEM
-      (MeasureFn ?OFFER2 ?U) ?BIDDER2)
+    (bidPrice ?ITEM ?OFFER1M ?BIDDER1)
+    (bidPrice ?ITEM ?OFFER2M ?BIDDER2)
     (greaterThan ?OFFER1 ?OFFER2))
   (destination ?AUCTIONING ?BIDDER1))
 
@@ -382,13 +386,17 @@
 (=>
   (and
     (instance ?U UnitOfCurrency)
-    (reservePrice ?AUCTION
+    (instance ?RESERVE CurrencyMeasure)
+    (equal ?RESERVE
       (MeasureFn ?AMOUNT ?U))
+    (reservePrice ?AUCTION ?RESERVE)
     (destination ?AUCTION ?BUYER))
-  (exists (?OFFER ?ITEM)
+  (exists (?OFFER ?ITEM ?OFFERM)
     (and
-      (bidPrice ?ITEM
-        (MeasureFn ?OFFER ?U) ?BUYER)
+      (instance ?OFFERM CurrencyMeasure)
+      (equal ?OFFERM
+        (MeasureFn ?OFFER ?U))
+      (bidPrice ?ITEM ?OFFERM ?BUYER)
       (greaterThan ?OFFER ?AMOUNT))))
 
 (instance webStoreAdvertisement BinaryPredicate)
@@ -997,21 +1005,19 @@
 (=>
   (and
     (underageUser ?HUMAN ?SITE)
-    (age ?HUMAN
-      (MeasureFn ?AGE YearDuration)))
-  (greaterThanOrEqualTo ?AGE 18))
+    (instance ?AGEDUR TimeDuration)
+    (equal ?AGEDUR
+      (MeasureFn ?AGE YearDuration))
+    (age ?HUMAN ?AGEDUR))
+  (lessThan ?AGE 18))
 
 ;; UserIDString
 ;; -------------------------------------------------------------------
 
 (instance userIDString BinaryPredicate)
-
 (domain userIDString 1 Identifier)
-
 (domain userIDString 2 UserAccount)
-
 (documentation userIDString EnglishLanguage "(userIDString ?STRING ?ACCOUNT) Associates an &%Identifer ?STRING to a &%UserAccount ?ACCOUNT. The ?STRING &%represents the user which &%hasAccount ?ACCOUNT. Every &%UserAccount has a &%userIDString. They are likely to be unique.")
-
 (termFormat EnglishLanguage userIDString "user identifier string")
 
 (=>
@@ -1551,24 +1557,29 @@
   (instance ?BEST_OFFER BestOffering)
   (exists (?OBJECT ?MONEY1 ?U)
     (and
+      (instance ?U UnitOfCurrency)
       (containsFormula ?BEST_OFFER
-        (exists (?BUYING ?AGENT)
+        (exists (?BUYING ?AGENT ?MONEY1M)
           (and
             (instance ?BUYING Buying)
+            (instance ?MONEY1M CurrencyMeasure)
+            (equal ?MONEY1M
+              (MeasureFn ?MONEY1 ?U))
             (agent ?BUYING ?AGENT)
             (patient ?BUYING ?OBJECT)
-            (transactionAmount ?BUYING
-              (MeasureFn ?MONEY1 ?U)))))
+            (transactionAmount ?BUYING ?MONEY1M))))
       (not
         (exists (?OFFER2)
           (containsFormula ?OFFER2
-            (exists (?BUYING2 ?AGENT2 ?MONEY2)
+            (exists (?BUYING2 ?AGENT2 ?MONEY2 ?MONEY2M)
               (and
                 (instance ?BUYING2 Buying)
+                (instance ?MONEY2M CurrencyMeasure)
+                (equal ?MONEY2M
+                  (MeasureFn ?MONEY2 ?U))
                 (agent ?BUYING2 ?AGENT2)
                 (patient ?BUYING2 ?OBJECT)
-                (transactionAmount ?BUYING2
-                  (MeasureFn ?MONEY2 ?U))
+                (transactionAmount ?BUYING2 ?MONEY2M)
                 (greaterThan ?MONEY2 ?MONEY1)))))))))
 
 ;; broker
@@ -1883,14 +1894,14 @@
 ;; -------------------------------------------------------------------
 
 (subclass PageModuleServer Software)
-
 (termFormat EnglishLanguage PageModuleServer "page module server")
-
 (documentation PageModuleServer EnglishLanguage "&%Software which is a &%part of a &%ComputerProgram, and &%hasPurpose of being the &%origin of a &%DataTransfer where a &%PageServerModule is the destination.")
 
 (=>
-  (instance ?MODULE_SERVER PageModuleServer)
-  (part ?MODULE_SERVER ComputerProgram))
+  (and
+    (instance ?MODULESERVER PageModuleServer)
+    (instance ?COMPUTERPROGRAM ComputerProgram))
+  (part ?MODULESERVER ?COMPUTERPROGRAM))
 
 (=>
   (instance ?MODULE WebPageModule)
@@ -2037,13 +2048,9 @@
 ;; -------------------------------------------------------------------
 
 (instance userDatabase BinaryPredicate)
-
 (domain userDatabase 1 Database)
-
 (domain userDatabase 2 WebSite)
-
 (documentation userDatabase EnglishLanguage "(userDatabase ?DATABASE ?WEBSITE) relates a &%Database and a &%WebSite, and signifies that ?DATABASE has a &%part which &%represents the &%Collection of users of the ?WEBSITE - i.e. &%members of this collection are &%Agents who are &%agents of an &%AccessingWebPage where the &%patient of the accessing is &%component of ?WebSite.")
-
 (termFormat EnglishLanguage userDatabase "user database")
 
 (=>
@@ -2063,7 +2070,7 @@
                 (instance ?ACCESSING AccessingWebPage)
                 (instance ?PAGE WebPage)
                 (patient ?ACCESSING Page)
-                (agent ?ACCESSING AutonomousAgent)
+                (agent ?ACCESSING ?MEMBER)
                 (component ?PAGE ?WEBSITE)))))))))
 
 
@@ -2071,9 +2078,7 @@
 ;; -------------------------------------------------------------------
 
 (subclass DataWarehouse Database)
-
 (documentation DataWarehouse EnglishLanguage "A &%Database that &%hasPurpose of containing information about a particular subject &%inScopeOfInterest of a particular &%AutonomousAgent.")
-
 (termFormat EnglishLanguage DataWarehouse "data warehouse")
 
 (=>
@@ -2135,9 +2140,7 @@
 ;; -------------------------------------------------------------------
 
 (subclass BestMatchAlgorithm Procedure)
-
 (documentation BestMatchAlgorithm EnglishLanguage "A &%Procedure that &%hasPurpose of there being a &%SearchEngine that is its &%agent, a &%SearchQuery which is its &%patient &%SRPResults being its agent.")
-
 (termFormat EnglishLanguage BestMatchAlgorithm "best match sort")
 
 (=>
@@ -2184,13 +2187,9 @@
 ;; -------------------------------------------------------------------
 
 (instance searchResult BinaryPredicate)
-
 (domain searchResult 1 WebListing)
-
 (domain searchResult 2 SearchAttempt)
-
 (termFormat EnglishLanguage searchResult "search result")
-
 (documentation searchResult EnglishLanguage "(searchResult ?RESULT ?SA) relates a &%WebListing to a &%SearchAttempt where the listing is in the &%SRPResults.")
 
 (=>
@@ -2200,14 +2199,11 @@
       (instance ?RESULTS SRPResults)
       (inList ?RESULT ?RESULTS))))
 
-
 ;; SearchAttempt
 ;; -------------------------------------------------------------------
 
 (subclass SearchAttempt Pursuing)
-
 (termFormat EnglishLanguage SearchAttempt "search attempt")
-
 (documentation SearchAttempt EnglishLanguage "A &%subclass of &%Pursuing where there is a &%SearchQuery which represents the &%SearchAttempt.")
 
 (=>
@@ -2217,14 +2213,11 @@
       (instance ?QUERY SearchQuery)
       (represents ?QUERY ?SA))))
 
-
 ;; SearchEngine
 ;; -------------------------------------------------------------------
 
 (subclass SearchEngine ComputerProgram)
-
 (documentation SearchEngine EnglishLanguage "A computer program that retrieves documents or files or data from a database or from a computer network (especially from the internet).")
-
 (termFormat EnglishLanguage SearchEngine "search engine")
 
 ;; JW:
@@ -2235,10 +2228,8 @@
 ;; SEO
 ;; -------------------------------------------------------------------
 
-(instance SEO Process)
-
+(subclass SEO Process)
 (termFormat EnglishLanguage SEO "search engine optimization")
-
 (documentation SEO EnglishLanguage "A &%Process which makes a &%WebPage more likely to be listed higher in a &%SRPResults &%List.")
 
 (=>
@@ -3187,15 +3178,10 @@
 ;; -------------------------------------------------------------------
 
 (instance SiteWideNewBuyersFn BinaryFunction)
-
 (domain SiteWideNewBuyersFn 1 TimeInterval)
-
 (domain SiteWideNewBuyersFn 2 WebSite)
-
 (range SiteWideNewBuyersFn Collection)
-
 (termFormat EnglishLanguage SiteWideNewBuyersFn "new buyers")
-
 (documentation SiteWideNewBuyersFn EnglishLanguage "(SiteWideNewBuyersFn ?INTERVAL ?SITE) Returns a collection of &%Agents who were agents of a &%Buying &%during &%TimeInterval ?INTERVAL where ?SITE was the &%instrument, and who were not &%registeredUsers before ?INTERVAL.")
 
 (=>
@@ -3625,13 +3611,9 @@
 ;; -------------------------------------------------------------------
 
 (instance experimentalControlProcess BinaryPredicate)
-
 (documentation experimentalControlProcess EnglishLanguage "(experimentalControlProcess ?EXPERIMENT ?PROC) means that the &%experiencing of the &%Process ?PROC is the control in the instance of experimenting ?EXPERIMENT, i.e. ?PROC is what is different from an &%experimentalVariableProcess &%experienced by the experimental group in the experiment.")
-
 (domain experimentalControlProcess 1 Experimenting)
-
 (domain experimentalControlProcess 2 Process)
-
 (termFormat EnglishLanguage experimentalControlProcess "experimental control (process)")
 
 (=>
@@ -3645,13 +3627,9 @@
 ;; -------------------------------------------------------------------
 
 (instance controlGroup BinaryPredicate)
-
 (domain controlGroup 1 Collection)
-
 (domain controlGroup 2 Experimenting)
-
 (documentation controlGroup EnglishLanguage "(controlGroup ?COLLECTION ?EXPERIMENT) means that ?COLLECTION is the group of all agents who have experienced an &%experimentalControlProcess of ?EXPERIMENT, where ?EXPERIMENT is an instance of &%Experimenting.")
-
 (termFormat EnglishLanguage controlGroup "control group")
 
 (=>
@@ -3659,7 +3637,7 @@
     (instance ?VARIABLE Process)
     (instance ?EXPERIMENT Experimenting)
     (instance ?AGENT AutonomousAgent)
-    (experiencer ?AGENT AutonomousAgent)
+    (experiencer ?EXPERIMENT ?AGENT)
     (experimentalVariableProcess ?EXPERIMENT ?VARIABLE))
   (exists (?CONTROL_GROUP)
     (and
@@ -3672,13 +3650,9 @@
 ;; -------------------------------------------------------------------
 
 (instance experimentalVariableProcess BinaryPredicate)
-
 (domain experimentalVariableProcess 1 Experimenting)
-
 (domain experimentalVariableProcess 2 Process)
-
 (termFormat EnglishLanguage experimentalVariableProcess "experimental variable (process)")
-
 (documentation experimentalVariableProcess EnglishLanguage "(experimentalVariableProcess ?EXPERIMENT ?PROC) means that an &%AutonomousAgent being the &%experiencer of the &%Process ?PROC is the experimental independent variable in the instance of experimenting ?EXPERIMENT, i.e. ?PROC is what is different from the &%experimentalControlProcess &%experienced by the control group in the experiment")
 
 (=>
@@ -3686,7 +3660,6 @@
     (instance ?EXPERIMENT Experimenting)
     (experimentalVariableProcess ?EXPERIMENT ?VARIABLE))
   (subProcess ?VARIABLE ?EXPERIMENT))
-
 
 (=>
   (and
@@ -3706,18 +3679,13 @@
 ;; JW:
 ;; Is an experimentalVariableProcess really a subProcess of the experimenting?
 
-
 ;; experimentalSubject
 ;; -------------------------------------------------------------------
 
 (instance experimentalSubject CaseRole)
-
 (domain experimentalSubject 1 Experimenting)
-
 (domain experimentalSubject 2 Human)
-
 (termFormat EnglishLanguage experimentalSubject "experimental subject")
-
 (documentation experimentalSubject EnglishLanguage "The &%CaseRole (experimentalSubject ?EXPERIMENT ?SUBJECT) means that ?SUBJECT is a &%Human who is the &%experiencer of either and &%experimentalControlProcess or an &%experimentalVariableProcess.")
 
 (=>
@@ -3738,27 +3706,18 @@
 ;; -------------------------------------------------------------------
 
 (instance experimenter CaseRole)
-
 (domain experimenter 1 Experimenting)
-
 (domain experimenter 2 CognitiveAgent)
-
 (termFormat EnglishLanguage experimenter "experimental subject")
-
 (documentation experimenter EnglishLanguage "The &%CaseRole (experimenter ?EXPERIMENT ?HUMAN) means that ?HUMAN is one of the &%CognitiveAgents either conducting or analyzing the &%Experimenting ?EXPERIMENT.")
-
 
 ;; treatmentGroup
 ;; -------------------------------------------------------------------
 
 (instance treatmentGroup BinaryPredicate)
-
 (domain treatmentGroup 1 Collection)
-
 (domain treatmentGroup 2 Experimenting)
-
 (termFormat EnglishLanguage treatmentGroup "treatment group")
-
 (documentation treatmentGroup EnglishLanguage "(treatmentGroup ?COLLECTION ?EXPERIMENT) means that ?COLLECTION is the group of all agents who have experienced an &%experimentalVariableProcess of ?EXERIMENT, where ?EXPERIMENT is an instance of &%Experimenting.")
 
 (=>
@@ -3783,11 +3742,8 @@
 ;; -------------------------------------------------------------------
 
 (domain treatedUser 1 Human)
-
 (domain treatedUser 2 Experimenting)
-
 (documentation treatedUser EnglishLanguage "(treatedUser ?VISITOR ?EXPERIMENT) means that ?VISITOR experienced a Qualifying Event of ?EXPERIMENT.")
-
 (instance treatedUser BinaryPredicate)
 
 (=>
@@ -3796,42 +3752,32 @@
     (and
       (member ?EVENT
         (QualifyingEventsFn ?EXPERIMENT))
-      (experiencer ?VISITOR ?EVENT))))
+      (experiencer ?EVENT ?VISITOR))))
 
 (=>
   (treatedUser ?VISITOR ?EXPERIMENT)
-  (experimentalSubject ?VISITOR ?EXPERIMENT))
-
+  (experimentalSubject ?EXPERIMENT ?VISITOR))
 
 ;; experimentID
 ;; -------------------------------------------------------------------
 
 (instance experimentID BinaryPredicate)
-
 (domain experimentID 1 Identifier)
-
 (domain experimentID 2 Experimenting)
-
 (documentation experimentID EnglishLanguage "(experimentID ?STRING ?EXP) Associates an &%Identifer ?STRING to a &%Experimenting ?EXP. They are likely to be unique.")
-
 (termFormat EnglishLanguage experimentID "experiment identifier string")
 
 (=>
   (experimentID ?STRING ?EXP)
   (represents ?STRING ?USER))
 
-
 ;; experimentalTreatmentCollection
 ;; -------------------------------------------------------------------
 
 (instance experimentalTreatmentCollection BinaryPredicate)
-
 (domain experimentalTreatmentCollection 1 Collection)
-
 (domain experimentalTreatmentCollection 2 Experimenting)
-
 (termFormat EnglishLanguage experimentalTreatmentCollection "experimental treatment")
-
 (documentation experimentalTreatmentCollection EnglishLanguage "A &%BinaryPredicate specifying the the collection of &%Processes which are &%experimentalVariableProcesses of an &%Experimenting.")
 
 (=>
@@ -3844,11 +3790,8 @@
 ;; -------------------------------------------------------------------
 
 (instance qualifiedExperiment BinaryPredicate)
-
 (domain qualifiedExperiment 1 Experimenting)
-
 (domain qualifiedExperiment 2 Human)
-
 (documentation qualifiedExperiment EnglishLanguage "(qualifiedExperiment ?EXPERIMENT ?HUMAN means that ?HUMAN has the capabilty of being the experimentalSubject of ?EXPERIMENT")
 
 (=>
@@ -3880,7 +3823,6 @@
 (domain qualifiedTreatment 2 Human)
 (termFormat EnglishLanguage qualifiedTreatment "qualified treatment")
 (documentation qualifiedTreatment EnglishLanguage "(qualifiedTreatment ?TREATMENT ?HUMAN) means that ?HUMAN has &%capability to be put into &%Experimenting track ?TREATMENT")
-
 (domain treatedPage 1 WebPage)
 
 ;; treatedPage
@@ -3901,20 +3843,16 @@
           (instance ?ACCESSING AccessingWebPage)
           (agent ?ACCESSING ?VISITOR)
           (destination ?ACCESSING ?WEBPAGE))
-        (experiencer ?VISITOR ?EVENT)))))
+        (experiencer ?EVENT ?VISITOR)))))
 
 (domain treatedPageDefinition 1 Experimenting)
 
 ;; treatedPageDefinition
 ;; -------------------------------------------------------------------
 (domain treatedPageDefinition 2 Formula)
-
 (termFormat EnglishLanguage treatedPageDefinition "treated page definition")
-
 (instance treatedPageDefinition BinaryPredicate)
-
 (documentation treatedPageDefinition EnglishLanguage "(treatedPageDefinition ?EXPERIMENT ?FORMULA) means that if the the &%Formula ?FORMULA &%refers to a &%WebPage, that &%WebPage is a &%treatedPage in the context of the &%Experimenting ?EXPERIMENT.")
-
 (instance QPViewsFn UnaryFunction)
 
 ;(=>
@@ -3930,11 +3868,8 @@
 ;; -------------------------------------------------------------------
 
 (domain QPViewsFn 1 Human)
-
 (range QPViewsFn Collection)
-
 (termFormat EnglishLanguage QPViewsFn "qualifed page views")
-
 (documentation QPViewsFn EnglishLanguage "(QPViewsFn ?VISITOR) returns all the instances of &%AccessingWebPage where ?Visitor is the &%agent and the &%desitination is a &%treatedPage")
 
 (=>
@@ -3961,11 +3896,8 @@
 ;; -------------------------------------------------------------------
 
 (domain QualifyingEventsFn 1 Experimenting)
-
 (range QualifyingEventsFn Collection)
-
 (termFormat EnglishLanguage QualifyingEventsFn "Qualifying Factor or Event")
-
 (documentation QualifyingEventsFn EnglishLanguage "(QualifyingEventsFn ?EXPERIMENT) returns the &%Collection of all &%Processes that are &%experimentalControlProcesses or &%experimentalVariableProcesses of ?EXPERIMENT.")
 
 (=>
@@ -3994,16 +3926,13 @@
 (range QualifiedTreatmentsFn Collection)
 (documentation QualifiedTreatmentsFn EnglishLanguage "(QualifiedTreatmentsFn ?VISITOR) returns all the &%Processes that ?VISITOR has the &%capability of being the &%experiencer of which are qualifying events of &%Experimentings.")
 (termFormat EnglishLanguage QualifiedTreatmentsFn "qualifed treatments")
-
 (instance TreatedUsersFn UnaryFunction)
 
 ;; TreatedUsersFn
 ;; -------------------------------------------------------------------
 
 (domain TreatedUsersFn 1 Experimenting)
-
 (range TreatedUsersFn Collection)
-
 (documentation TreatedUsersFn EnglishLanguage "(TreatedUsersFn ?EXPERIMENT) returns a &%Collection of all &%Humans who where &%treatedUsers in ?EXPERIMENT.")
 
 (=>
@@ -4027,11 +3956,8 @@
 ;; -------------------------------------------------------------------
 
 (domain burnInPeriod 1 Experimenting)
-
 (domain burnInPeriod 2 TimeInterval)
-
 (termFormat EnglishLanguage burnInPeriod "burn_in period")
-
 (documentation burnInPeriod EnglishLanguage "(burnInPeriod ?EXPERIMENT ?INTERVAL) means that the &%TimeInterval ?INTERVAL, which occurs at the begining of the &%Experimenting ?EXPERIMENT, is a period not counted when the data are being analyzed.")
 
 (=>

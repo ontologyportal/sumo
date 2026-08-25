@@ -1607,7 +1607,7 @@ CONPLAN.")
     (agent ?PLANNING ?COMMANDER))
   (or
     (and
-      (instance ?COMMANDER CombatantCommander)
+      (attribute ?COMMANDER CombatantCommander)
       (exists (?REQUEST ?CHAIRMAN)
         (and
           (instance ?REQUEST Requesting)
@@ -1615,7 +1615,7 @@ CONPLAN.")
           (attribute ?CHAIRMAN ChairmanJCS)
           (causes ?REQUEST ?PLANNING))))
     (and
-      (instance ?COMMANDER SubunifiedCommander)
+      (attribute ?COMMANDER SubunifiedCommander)
       (exists (?REQUEST ?COMMANDERSUPER ?MILITARY)
         (and
           (instance ?REQUEST Requesting)
@@ -1689,8 +1689,8 @@ execution of an operation. Also called OPORD.")
       (agent ?ORDER ?SUPERIORCOMMANDER)
       (origin ?ORDER ?SUPERIORCOMMANDER)
       (destination ?ORDER ?SUBORDINATECOMMANDER)
-      (instance ?SUPERIORCOMMANDER MilitaryCommander)
-      (instance ?SUBORDINATECOMMANDER MilitaryCommander)
+      (attribute ?SUPERIORCOMMANDER MilitaryCommander)
+      (attribute ?SUBORDINATECOMMANDER MilitaryCommander)
       (subordinatePosition ?MILITARY ?SUBORDINATECOMMANDER ?SUPERIORCOMMANDER)
       (instance ?MILITARY MilitaryForce))))
 
@@ -1865,9 +1865,7 @@ operation planning, joint operations.")
 
 (=>
   (instance ?MANUAL JOPESManual)
-  (and
-    (containsInformation ?MANUAL ?JOPES)
-    (instance ?JOPES JOPES)))
+  (containsInformation ?MANUAL JOPES))
 
 (subclass InformationOperation MilitaryOperation)
 (documentation InformationOperation EnglishLanguage "Actions taken to affect adversary
@@ -2442,8 +2440,10 @@ civil affairs, civil-military operations.")
 ?PROCESS after it has gotten aborted by the &%AutonomousAgent ?AGENT")
 
 (=>
-  (instance ?X
-    (AbortedFn ?A ?P))
+  (and
+    (instance ?P Process)
+    (equal ?X
+      (AbortedFn ?A ?P)))
   (exists (?T)
     (and
       (holdsDuring ?T
@@ -2452,7 +2452,8 @@ civil affairs, civil-military operations.")
             (and
               (instance ?PR ?P)
               (agent ?PR ?A)))))
-      (earlier ?T (WhenFn ?X))))) 
+      (earlier ?T
+        (WhenFn ?X)))))
 
 (instance AbortedMissionFn BinaryFunction)
 (domain AbortedMissionFn 1 AutonomousAgent)
@@ -2465,12 +2466,13 @@ civil affairs, civil-military operations.")
 
 ;; the cause of the aborting is not an action of someone who is the
 ;; enemy of the agent performing the actual mission
-(=> (and (instance ?ABORTED
-           (AbortedMissionFn ?A ?MISSION))
-         (causes ?ACTION ?ABORTED)
-         (agent ?ACTION ?OTHER_A)
-         (agent ?MISSION ?THIS_A))
-    (not (enemy ?OTHER_A ?THIS_A)))
+(=> 
+  (and 
+    (causes ?ACTION (AbortedMissionFn ?A ?MISSION))
+    (agent ?ACTION ?OTHER_A)
+    (agent ?MISSION ?THIS_A))
+  (not 
+    (enemy ?OTHER_A ?THIS_A)))
 
 (domain enemy 1 AutonomousAgent)
 (domain enemy 2 AutonomousAgent)
@@ -2494,7 +2496,7 @@ other")
 (subrelation allied inScopeOfInterest)
 (documentation allied EnglishLanguage "Marks two &%Agents that are allies of each
 other")
-(disjoint enemy allied)
+;(disjoint enemy allied)
 (termFormat EnglishLanguage allied "allied")
 (format EnglishLanguage allied "%1 and %2 are %n allies of each other")
 
@@ -2593,19 +2595,17 @@ being transported out of the contaminated area. (from Wikipedia)")
     (instance ?EV Evacuation)
     (origin ?EV ?OR)
     (agent ?EV ?A))
-  (exists (?P)
+  (exists (?P ?GEOGRAPHICAREA)
     (and
       (instance ?P Process)
-      (geographicSubregion ?OR
-        (WhereFn ?P
-          (BeginFn
-            (WhenFn ?EV))))
+      (instance ?GEOGRAPHICAREA GeographicArea)
+      (equal ?GEOGRAPHICAREA (WhereFn ?P (BeginFn (WhenFn ?EV))))
+      (geographicSubregion ?OR ?GEOGRAPHICAREA)
       (causes ?P ?EV)
       (believes ?A
         (attribute ?P Dangerous)))))
 
 ;; evacuation involves people only
-
 (=>
   (and
     (instance ?EV Evacuation)
@@ -2613,13 +2613,11 @@ being transported out of the contaminated area. (from Wikipedia)")
   (instance ?H Human))
 
 ;; all agents of evacuation are cognitive agents
-
 (=>
   (and
     (instance ?EV Evacuation)
     (agent ?EV ?H))
   (instance ?H CognitiveAgent))
-
 
 ;; evacuation includes movements of at least part of the agents to the
 ;; evacuation origin
