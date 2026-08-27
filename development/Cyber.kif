@@ -1283,3 +1283,64 @@ there. It is not universally applicable regardless of context.")
         (instance ?P Protecting)
         (instrument ?P ?X)))
     Likely))
+
+;; ============================================================
+;; ControlException (Policy)
+;; ============================================================
+
+(instance ControlException Class)
+(subclass ControlException Policy)
+(termFormat EnglishLanguage ControlException "control exception")
+(documentation ControlException EnglishLanguage "A &%Policy documenting an
+organization's knowing acceptance of risk: it records that a &%CognitiveAgent
+has acknowledged a security requirement or vulnerability which a specific
+&%SecurityControl would address, and has deliberately chosen not to apply
+that &%SecurityControl because of a conflicting business, technological, or
+resource constraint. A &%ControlException is never permanent: it holds only
+while the constraint that justified it remains and the underlying
+vulnerability's risk stays within the accepted tolerance, and lapses once
+either condition fails.")
+
+;; rule: a ControlException always presupposes a prior identified
+;; SecurityControl requirement tied to a specific agent's obligation, and
+;; confers that agent the right to not bring the excepted formula about
+
+(=>
+  (instance ?CE ControlException)
+  (exists (?X ?AGENT ?FORMULA)
+    (and
+      (instance ?X SecurityControl)
+      (instance ?AGENT CognitiveAgent)
+      (hasPurposeForAgent ?X ?AGENT ?FORMULA)
+      (confersRight ?CE ?AGENT (not ?FORMULA)))))
+
+;; rule: whoever a ControlException confers a right on also knows what
+;; they are accepting -- a knowing acceptance of risk, not administrative
+;; cover the agent is unaware of
+
+(=>
+  (and
+    (instance ?CE ControlException)
+    (confersRight ?CE ?AGENT ?RIGHTFORMULA))
+  (knows ?AGENT ?RIGHTFORMULA))
+
+(instance exceptionExpirationDate BinaryPredicate)
+(domain exceptionExpirationDate 1 ControlException)
+(domainSubclass exceptionExpirationDate 2 TimePosition)
+(termFormat EnglishLanguage exceptionExpirationDate "exception expiration date")
+(documentation exceptionExpirationDate EnglishLanguage "(&%exceptionExpirationDate
+?CE ?DATE) means that the &%ControlException ?CE ceases to confer its right
+at the time indicated by ?DATE.")
+
+;; rule: an exception typically stops holding once its expiration date
+;; passes -- modal, not strict, since enforcement lag means the right can
+;; still be exercised in practice past its formal expiration
+
+(=>
+  (and
+    (exceptionExpirationDate ?CE ?DATE)
+    (confersRight ?CE ?AGENT ?FORMULA)
+    (instance ?TIME ?DATE))
+  (modalAttribute
+    (not (holdsDuring (ImmediateFutureFn ?TIME) (holdsRight ?AGENT ?FORMULA)))
+    Likely))
