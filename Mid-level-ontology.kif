@@ -1548,8 +1548,11 @@ in &%ProjectileWeapons.")
     (part ?P1 ?E1)
     (part ?P2 ?E2)
     (instance ?U UnitOfLength)
-    (distance ?P1 ?P2
-      (MeasureFn ?D1 ?U))
+    (instance ?LENGTH1 LengthMeasure)
+    (equal ?LENGTH1 (MeasureFn ?D1 ?U))
+    (instance ?LENGTH2 LengthMeasure)
+    (equal ?LENGTH2 (MeasureFn ?D2 ?U))
+    (distance ?P1 ?P2 ?LENGTH1)
     (not
       (equal ?E1 ?E2)))
   (not
@@ -1559,8 +1562,7 @@ in &%ProjectileWeapons.")
           (part ?OP1 ?E1))
         (not
           (part ?OP2 ?E2))
-        (distance ?OP1 ?OP2
-          (MeasureFn ?D2 ?U))
+        (distance ?OP1 ?OP2 ?LENGTH2)
         (greaterThan ?D2 ?D1)))))
         
 (instance fulcrum CaseRole)
@@ -4446,8 +4448,12 @@ by 2.0m in size")
 (=>
   (instance ?X SingleBed)
   (and
-    (width ?X (MeasureFn 1.0 Meter))
-    (length ?X (MeasureFn 2.0 Meter))))
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH1 (MeasureFn 1.0 Meter))
+    (instance ?LENGTH2 LengthMeasure)
+    (equal ?LENGTH2 (MeasureFn 2.0 Meter))
+    (width ?X ?LENGTH1)
+    (length ?X ?LENGTH2)))
 
 (subclass BunkBed Bed)
 (documentation BunkBed EnglishLanguage "A &%BunkBed is a type of &%Bed has one bed
@@ -7067,8 +7073,8 @@ shortness of breath, and chest pain. Bronchitis can be &%AcuteBronchitis or
   (attribute ?H Bronchitis)
   (exists (?I)
     (and
-      (instance ?I
-        (InflammationFn BronchialDuct))
+      (instance ?BRONCH BronchialDuct)
+      (instance ?I ?BRONCH)
       (experiencer ?I ?H))))
 
 (subAttribute ChronicBronchitis Bronchitis)
@@ -7439,8 +7445,9 @@ of something that is not true.")
 (=>
   (and
     (instance ?H Hallucination)
-    (experiencer ?H ?P))
-  (attribute ?P PsychologicalDysfunction))
+    (experiencer ?H ?P)
+    (instance ?ATTR PsychologicalDysfunction))
+  (attribute ?P ?ATTR))
 
 (=>
   (and
@@ -7477,7 +7484,7 @@ disease or lack of use.")
   (exists (?P ?S ?I ?G)
     (and
       (experiencer ?B ?P)
-      (instance ?G Gas)
+      (attribute ?G Gas)
       (or
         (and
           (part ?I ?P)
@@ -11112,8 +11119,10 @@ memories through play. A person with PTSD is at a higher risk of
 suicide and intentional self-harm.[from Wikipedia]")
 
 (=>
-  (holdsDuring ?T
-    (attribute ?H PostTraumaticStressDisorder))
+  (and
+    (instance ?ATTR PostTraumaticStressDisorder)
+    (holdsDuring ?T
+        (attribute ?H ?ATTR)))
   (exists (?V)
     (and
       (instance ?V ViolentContest)
@@ -18713,20 +18722,24 @@ or something is moving.")
   (and
     (instance ?D Decelerating)
     (agent ?D ?A))
-  (exists (?L1 ?L2 ?T1 ?T2 ?U1 ?U2)
+  (exists (?L1 ?L2 ?T1 ?T2 ?U1 ?U2 ?LENGTH1 ?LENGTH2 ?TIMEDUR1 ?TIMEDUR2)
     (and
+      (instance ?LENGTH1 LengthMeasure)
+      (equal ?LENGTH1 (MeasureFn ?L1 ?U1))
+      (instance ?TIMEDUR1 TimeDuration)
+      (equal ?TIMEDUR1 (MeasureFn ?T1 ?U2))
       (holdsDuring
         (BeginFn (WhenFn ?D))
         (measure ?A
-          (SpeedFn
-            (MeasureFn ?L1 ?U1)
-            (MeasureFn ?T1 ?U2))))
+          (SpeedFn ?LENGTH1 ?TIMEDUR1)))
+      (instance ?LENGTH2 LengthMeasure)
+      (equal ?LENGTH2 (MeasureFn ?L2 ?U1))
+      (instance ?TIMEDUR2 TimeDuration)
+      (equal ?TIMEDUR2 (MeasureFn ?T2 ?U2))
       (holdsDuring
         (EndFn (WhenFn ?D))
         (measure ?A
-          (SpeedFn
-            (MeasureFn ?L2 ?U1)
-            (MeasureFn ?T2 ?U2))))
+          (SpeedFn ?LENGTH2 ?TIMEDUR2)))
       (or
         (greaterThan ?L1 ?L2)
         (greaterThan ?T1 ?T2)))))
@@ -19437,14 +19450,16 @@ over a flood plain along a &%Waterway.")
   (exists (?L1 ?L2 ?U)
     (and
       (instance ?U UnitOfLength)
+      (instance ?DEPTH1 LengthMeasure)
+      (equal ?DEPTH1 (MeasureFn ?L1 ?U))
+      (instance ?DEPTH2 LengthMeasure)
+      (equal ?DEPTH2 (MeasureFn ?L2 ?U))
       (holdsDuring
         (BeginFn (WhenFn ?F))
-        (waterDepth ?P
-          (MeasureFn ?L1 ?U)))
+        (waterDepth ?P ?DEPTH1))
       (holdsDuring
         (EndFn (WhenFn ?F))
-        (waterDepth ?P
-          (MeasureFn ?L2 ?U)))
+        (waterDepth ?P ?DEPTH2))
       (greaterThan ?L2 ?L1))))
 
 (subclass Spraying LiquidMotion)
@@ -23022,9 +23037,10 @@ the agent.")
 
 (=>
   (contractor ?BUILDING ?CONTRACTOR)
-  (exists (?CONTRACT ?AGENT)
+  (exists (?CONTRACT ?AGENT ?ATTR)
     (and
-      (property ?CONTRACT Contract)
+      (instance ?ATTR Contract)
+      (property ?CONTRACT ?ATTR)
       (partyToAgreement ?AGENT ?CONTRACT)
       (partyToAgreement ?CONTRACTOR ?CONTRACT)
       (confersObligation ?AGENT ?CONTRACTOR
@@ -27952,11 +27968,13 @@ means that ?POINT1 and ?POINT2 are the two end points of the &%FiniteLineInSpace
     (part ?P1 ?L)
     (part ?P2 ?L)
     (endPointsOfLineInSpace ?P1 ?P2 ?L)
-    (length ?L
-      (MeasureFn ?X ?U))
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn ?X ?U))
+    (length ?L ?LENGTH)
     (instance ?U UnitOfLength)
-    (distance ?P1 ?P2
-      (MeasureFn ?Y ?U)))
+    (instance ?LENGTH2 LengthMeasure)
+    (equal ?LENGTH2 (MeasureFn ?Y ?U))
+    (distance ?P1 ?P2 ?LENGTH2))
   (equal ?X ?Y))
 
 (relatedInternalConcept InfiniteLineInSpace FiniteLineInSpace)
@@ -27991,16 +28009,18 @@ another. The distance between them is ?DIST. ?DIST is the shortest distance betw
 
 (=>
   (and
-    (distanceOfParallelLinesInSpace ?L1 ?L2
-      (MeasureFn ?D ?U))
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn ?D ?U))
+    (distanceOfParallelLinesInSpace ?L1 ?L2 ?LENGTH)
     (instance ?U UnitOfLength)
     (parallelLinesInSpace ?L1 ?L2)
     (part ?P1 ?L1)
     (instance ?P1 PointInSpace)
     (part ?P2 ?L2)
     (instance ?P2 PointInSpace)
-    (distance ?P1 ?P2
-      (MeasureFn ?X ?U)))
+    (instance ?LENGTH2 LengthMeasure)
+    (equal ?LENGTH2 (MeasureFn ?X ?U))
+    (distance ?P1 ?P2 ?LENGTH2))
   (lessThanOrEqualTo ?D ?X))
 
 (documentation PlaneInSpace EnglishLanguage "&%PlaneInSpace is a &%Region. It is an
@@ -29550,7 +29570,8 @@ certain location and showing it instantly to people, presumably a &%SecurityUnit
     (located ?VIDEO ?LOC1)
     (instance ?VIDEO Camera)
     (located ?DISPLAY ?LOC2)
-    (not (equal ?LOC1 ?LOC2))
+    (not 
+        (equal ?LOC1 ?LOC2))
     (instance ?DISPLAY VideoDisplay))
   (hasPurpose ?X
     (exists (?PROC ?VID ?RL ?CAPTURE)
@@ -31782,201 +31803,976 @@ of Lise Meitner the Austrian physicist.")
 (documentation Unnildecium EnglishLanguage "Half-life of approximately 10ms.  Reported in
 1994 by German researchers at Darmstadt, Germany.")
 
-(meltingPoint Hydrogen (MeasureFn 14.01 KelvinDegree))
-(boilingPoint Hydrogen (MeasureFn 20.28 KelvinDegree))
-(meltingPoint Helium (MeasureFn 0.95 KelvinDegree))
-(boilingPoint Helium (MeasureFn 4.216 KelvinDegree))
-(meltingPoint Lithium (MeasureFn 453.69 KelvinDegree))
-(boilingPoint Lithium (MeasureFn 1590.0 KelvinDegree))
-(meltingPoint Beryllium (MeasureFn 1551.0 KelvinDegree))
-(boilingPoint Beryllium (MeasureFn 3243.0 KelvinDegree))
-(meltingPoint Boron (MeasureFn 2573.0 KelvinDegree))
-(boilingPoint Boron (MeasureFn 2823.0 KelvinDegree))
-(meltingPoint Carbon (MeasureFn 3823.0 KelvinDegree))
-(boilingPoint Carbon (MeasureFn 5100.0 KelvinDegree))
-(meltingPoint Nitrogen (MeasureFn 63.29 KelvinDegree))
-(boilingPoint Nitrogen (MeasureFn 77.4 KelvinDegree))
-(meltingPoint Oxygen (MeasureFn 54.75 KelvinDegree))
-(boilingPoint Oxygen (MeasureFn 90.188 KelvinDegree))
-(meltingPoint Fluorine (MeasureFn 53.53 KelvinDegree))
-(boilingPoint Fluorine (MeasureFn 85.01 KelvinDegree))
-(meltingPoint Neon (MeasureFn 24.48 KelvinDegree))
-(boilingPoint Neon (MeasureFn 27.1 KelvinDegree))
-(meltingPoint Sodium (MeasureFn 370.95 KelvinDegree))
-(boilingPoint Sodium (MeasureFn 1165.0 KelvinDegree))
-(meltingPoint Magnesium (MeasureFn 921.95 KelvinDegree))
-(boilingPoint Magnesium (MeasureFn 1380.0 KelvinDegree))
-(meltingPoint Aluminum (MeasureFn 933.52 KelvinDegree))
-(boilingPoint Aluminum (MeasureFn 2740.0 KelvinDegree))
-(meltingPoint Silicon (MeasureFn 1683.0 KelvinDegree))
-(boilingPoint Silicon (MeasureFn 2628.0 KelvinDegree))
-(meltingPoint Phosphorus (MeasureFn 317.3 KelvinDegree))
-(boilingPoint Phosphorus (MeasureFn 553.0 KelvinDegree))
-(meltingPoint Sulphur (MeasureFn 386.0 KelvinDegree))
-(boilingPoint Sulphur (MeasureFn 717.824 KelvinDegree))
-(meltingPoint Chlorine (MeasureFn 172.17 KelvinDegree))
-(boilingPoint Chlorine (MeasureFn 238.55 KelvinDegree))
-(meltingPoint Argon (MeasureFn 83.78 KelvinDegree))
-(boilingPoint Argon (MeasureFn 87.29 KelvinDegree))
-(meltingPoint Potassium (MeasureFn 336.8 KelvinDegree))
-(boilingPoint Potassium (MeasureFn 1047.0 KelvinDegree))
-(meltingPoint Calcium (MeasureFn 1112.0 KelvinDegree))
-(boilingPoint Calcium (MeasureFn 1760.0 KelvinDegree))
-(meltingPoint Scandium (MeasureFn 1812.0 KelvinDegree))
-(boilingPoint Scandium (MeasureFn 3105.0 KelvinDegree))
-(meltingPoint Titanium (MeasureFn 1933.0 KelvinDegree))
-(boilingPoint Titanium (MeasureFn 3533.0 KelvinDegree))
-(meltingPoint Vanadium (MeasureFn 2163.0 KelvinDegree))
-(boilingPoint Vanadium (MeasureFn 3653.0 KelvinDegree))
-(meltingPoint Chromium (MeasureFn 2130.0 KelvinDegree))
-(boilingPoint Chromium (MeasureFn 2755.0 KelvinDegree))
-(meltingPoint Manganese (MeasureFn 1517.0 KelvinDegree))
-(boilingPoint Manganese (MeasureFn 2370.0 KelvinDegree))
-(meltingPoint Iron (MeasureFn 1808.0 KelvinDegree))
-(boilingPoint Iron (MeasureFn 3023.0 KelvinDegree))
-(meltingPoint Cobalt (MeasureFn 1768.0 KelvinDegree))
-(boilingPoint Cobalt (MeasureFn 3143.0 KelvinDegree))
-(meltingPoint Nickel (MeasureFn 1726.0 KelvinDegree))
-(boilingPoint Nickel (MeasureFn 3005.0 KelvinDegree))
-(meltingPoint Copper (MeasureFn 1356.6 KelvinDegree))
-(boilingPoint Copper (MeasureFn 2868.0 KelvinDegree))
-(meltingPoint Zinc (MeasureFn 692.73 KelvinDegree))
-(boilingPoint Zinc (MeasureFn 1180.0 KelvinDegree))
-(meltingPoint Gallium (MeasureFn 302.93 KelvinDegree))
-(boilingPoint Gallium (MeasureFn 2676.0 KelvinDegree))
-(meltingPoint Germanium (MeasureFn 1210.55 KelvinDegree))
-(boilingPoint Germanium (MeasureFn 3103.0 KelvinDegree))
-(meltingPoint Arsenic (MeasureFn 886.0 KelvinDegree))
-(boilingPoint Arsenic (MeasureFn 886.0 KelvinDegree))
-(meltingPoint Selenium (MeasureFn 490.0 KelvinDegree))
-(boilingPoint Selenium (MeasureFn 958.1 KelvinDegree))
-(meltingPoint Bromine (MeasureFn 265.9 KelvinDegree))
-(boilingPoint Bromine (MeasureFn 331.93 KelvinDegree))
-(meltingPoint Krypton (MeasureFn 116.55 KelvinDegree))
-(boilingPoint Krypton (MeasureFn 120.85 KelvinDegree))
-(meltingPoint Rubidium (MeasureFn 312.2 KelvinDegree))
-(boilingPoint Rubidium (MeasureFn 961.0 KelvinDegree))
-(meltingPoint Strontium (MeasureFn 1042.0 KelvinDegree))
-(boilingPoint Strontium (MeasureFn 1657.0 KelvinDegree))
-(meltingPoint Yttrium (MeasureFn 1796.0 KelvinDegree))
-(boilingPoint Yttrium (MeasureFn 3610.0 KelvinDegree))
-(meltingPoint Zirconium (MeasureFn 2125.0 KelvinDegree))
-(boilingPoint Zirconium (MeasureFn 4650.0 KelvinDegree))
-(meltingPoint Niobium (MeasureFn 2741.0 KelvinDegree))
-(boilingPoint Niobium (MeasureFn 5200.0 KelvinDegree))
-(meltingPoint Molybdenum (MeasureFn 2890.0 KelvinDegree))
-(boilingPoint Molybdenum (MeasureFn 5833.0 KelvinDegree))
-(meltingPoint Technetium (MeasureFn 2445.0 KelvinDegree))
-(boilingPoint Technetium (MeasureFn 5303.0 KelvinDegree))
-(meltingPoint Ruthenium (MeasureFn 2583.0 KelvinDegree))
-(boilingPoint Ruthenium (MeasureFn 4173.0 KelvinDegree))
-(meltingPoint Rhodium (MeasureFn 2239.0 KelvinDegree))
-(boilingPoint Rhodium (MeasureFn 4000.0 KelvinDegree))
-(meltingPoint Palladium (MeasureFn 1825.0 KelvinDegree))
-(boilingPoint Palladium (MeasureFn 3413.0 KelvinDegree))
-(meltingPoint Silver (MeasureFn 1235.08 KelvinDegree))
-(boilingPoint Silver (MeasureFn 2485.0 KelvinDegree))
-(meltingPoint Cadmium (MeasureFn 594.1 KelvinDegree))
-(boilingPoint Cadmium (MeasureFn 1038.0 KelvinDegree))
-(meltingPoint Indium (MeasureFn 429.32 KelvinDegree))
-(boilingPoint Indium (MeasureFn 2353.0 KelvinDegree))
-(meltingPoint Tin (MeasureFn 505.118 KelvinDegree))
-(boilingPoint Tin (MeasureFn 2543.0 KelvinDegree))
-(meltingPoint Antimony (MeasureFn 903.89 KelvinDegree))
-(boilingPoint Antimony (MeasureFn 2023.0 KelvinDegree))
-(meltingPoint Tellurium (MeasureFn 722.7 KelvinDegree))
-(boilingPoint Tellurium (MeasureFn 1263.0 KelvinDegree))
-(meltingPoint Iodine (MeasureFn 386.65 KelvinDegree))
-(boilingPoint Iodine (MeasureFn 457.55 KelvinDegree))
-(meltingPoint Xenon (MeasureFn 161.3 KelvinDegree))
-(boilingPoint Xenon (MeasureFn 166.1 KelvinDegree))
-(meltingPoint Caesium (MeasureFn 301.55 KelvinDegree))
-(boilingPoint Caesium (MeasureFn 963.0 KelvinDegree))
-(meltingPoint Barium (MeasureFn 998.0 KelvinDegree))
-(boilingPoint Barium (MeasureFn 1913.0 KelvinDegree))
-(meltingPoint Lanthanum (MeasureFn 1193.0 KelvinDegree))
-(boilingPoint Lanthanum (MeasureFn 3727.0 KelvinDegree))
-(meltingPoint Cerium (MeasureFn 1071.0 KelvinDegree))
-(boilingPoint Cerium (MeasureFn 3530.0 KelvinDegree))
-(meltingPoint Praseodymium (MeasureFn 1204.0 KelvinDegree))
-(boilingPoint Praseodymium (MeasureFn 3485.0 KelvinDegree))
-(meltingPoint Neodymium (MeasureFn 1283.0 KelvinDegree))
-(boilingPoint Neodymium (MeasureFn 3400.0 KelvinDegree))
-(meltingPoint Promethium (MeasureFn 1353.0 KelvinDegree))
-(boilingPoint Promethium (MeasureFn 3000.0 KelvinDegree))
-(meltingPoint Samarium (MeasureFn 1345.0 KelvinDegree))
-(boilingPoint Samarium (MeasureFn 2051.0 KelvinDegree))
-(meltingPoint Europium (MeasureFn 1095.0 KelvinDegree))
-(boilingPoint Europium (MeasureFn 1870.0 KelvinDegree))
-(meltingPoint Gadolinium (MeasureFn 1584.0 KelvinDegree))
-(boilingPoint Gadolinium (MeasureFn 3506.0 KelvinDegree))
-(meltingPoint Terbium (MeasureFn 1633.0 KelvinDegree))
-(boilingPoint Terbium (MeasureFn 3314.0 KelvinDegree))
-(meltingPoint Dysprosium (MeasureFn 1682.0 KelvinDegree))
-(boilingPoint Dysprosium (MeasureFn 2608.0 KelvinDegree))
-(meltingPoint Holmium (MeasureFn 1743.0 KelvinDegree))
-(boilingPoint Holmium (MeasureFn 2993.0 KelvinDegree))
-(meltingPoint Erbium (MeasureFn 1795.0 KelvinDegree))
-(boilingPoint Erbium (MeasureFn 2783.0 KelvinDegree))
-(meltingPoint Thulium (MeasureFn 1818.0 KelvinDegree))
-(boilingPoint Thulium (MeasureFn 2000.0 KelvinDegree))
-(meltingPoint Ytterbium (MeasureFn 1097.0 KelvinDegree))
-(boilingPoint Ytterbium (MeasureFn 1466.0 KelvinDegree))
-(meltingPoint Lutetium (MeasureFn 1929.0 KelvinDegree))
-(boilingPoint Lutetium (MeasureFn 3588.0 KelvinDegree))
-(meltingPoint Hafnium (MeasureFn 2423.0 KelvinDegree))
-(boilingPoint Hafnium (MeasureFn 5673.0 KelvinDegree))
-(meltingPoint Tantalum (MeasureFn 3269.0 KelvinDegree))
-(boilingPoint Tantalum (MeasureFn 5698.0 KelvinDegree))
-(meltingPoint Tungsten (MeasureFn 3680.0 KelvinDegree))
-(boilingPoint Tungsten (MeasureFn 6200.0 KelvinDegree))
-(meltingPoint Rhenium (MeasureFn 3453.0 KelvinDegree))
-(boilingPoint Rhenium (MeasureFn 5900.0 KelvinDegree))
-(meltingPoint Osmium (MeasureFn 3318.0 KelvinDegree))
-(boilingPoint Osmium (MeasureFn 5300.0 KelvinDegree))
-(meltingPoint Iridium (MeasureFn 2683.0 KelvinDegree))
-(boilingPoint Iridium (MeasureFn 4403.0 KelvinDegree))
-(meltingPoint Platinum (MeasureFn 2045.0 KelvinDegree))
-(boilingPoint Platinum (MeasureFn 4100.0 KelvinDegree))
-(meltingPoint Gold (MeasureFn 1337.58 KelvinDegree))
-(boilingPoint Gold (MeasureFn 3213.0 KelvinDegree))
-(meltingPoint Mercury (MeasureFn 234.28 KelvinDegree))
-(boilingPoint Mercury (MeasureFn 629.73 KelvinDegree))
-(meltingPoint Thallium (MeasureFn 576.7 KelvinDegree))
-(boilingPoint Thallium (MeasureFn 1730.0 KelvinDegree))
-(meltingPoint Lead (MeasureFn 600.65 KelvinDegree))
-(boilingPoint Lead (MeasureFn 2013.0 KelvinDegree))
-(meltingPoint Bismuth (MeasureFn 544.5 KelvinDegree))
-(boilingPoint Bismuth (MeasureFn 1833.0 KelvinDegree))
-(meltingPoint Polonium (MeasureFn 527.0 KelvinDegree))
-(boilingPoint Polonium (MeasureFn 1235.0 KelvinDegree))
-(meltingPoint Astatine (MeasureFn 575.0 KelvinDegree))
-(boilingPoint Astatine (MeasureFn 610.0 KelvinDegree))
-(meltingPoint Radon (MeasureFn 202.0 KelvinDegree))
-(boilingPoint Radon (MeasureFn 211.4 KelvinDegree))
-(meltingPoint Francium (MeasureFn 300.0 KelvinDegree))
-(boilingPoint Francium (MeasureFn 950.0 KelvinDegree))
-(meltingPoint Radium (MeasureFn 973.0 KelvinDegree))
-(boilingPoint Radium (MeasureFn 1413.0 KelvinDegree))
-(meltingPoint Actinium (MeasureFn 1320.0 KelvinDegree))
-(boilingPoint Actinium (MeasureFn 3470.0 KelvinDegree))
-(meltingPoint Thorium (MeasureFn 2023.0 KelvinDegree))
-(boilingPoint Thorium (MeasureFn 5060.0 KelvinDegree))
-(meltingPoint Protactinium (MeasureFn 1827.0 KelvinDegree))
-(boilingPoint Protactinium (MeasureFn 4300.0 KelvinDegree))
-(meltingPoint Uranium (MeasureFn 1405.5 KelvinDegree))
-(boilingPoint Uranium (MeasureFn 4091.0 KelvinDegree))
-(meltingPoint Neptunium (MeasureFn 913.0 KelvinDegree))
-(boilingPoint Neptunium (MeasureFn 4175.0 KelvinDegree))
-(meltingPoint Plutonium (MeasureFn 914.0 KelvinDegree))
-(boilingPoint Plutonium (MeasureFn 3600.0 KelvinDegree))
-(meltingPoint Americium (MeasureFn 1267.0 KelvinDegree))
-(boilingPoint Americium (MeasureFn 2880.0 KelvinDegree))
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 14.01 KelvinDegree)) 
+    (meltingPoint Hydrogen ?TEMP))
 
-(meltingPoint Curium (MeasureFn 1613.0 KelvinDegree))
-(meltingPoint Berkelium (MeasureFn 1259.0 KelvinDegree))
-(meltingPoint Californium (MeasureFn 1173.0 KelvinDegree))
-(meltingPoint Einsteinium (MeasureFn 1133.0 KelvinDegree))
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 20.28 KelvinDegree)) 
+    (boilingPoint Hydrogen ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 0.95 KelvinDegree)) 
+    (meltingPoint Helium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 4.216 KelvinDegree)) 
+    (boilingPoint Helium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 453.69 KelvinDegree)) 
+    (meltingPoint Lithium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1590.0 KelvinDegree)) 
+    (boilingPoint Lithium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1551.0 KelvinDegree)) 
+    (meltingPoint Beryllium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3243.0 KelvinDegree)) 
+    (boilingPoint Beryllium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2573.0 KelvinDegree)) 
+    (meltingPoint Boron ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2823.0 KelvinDegree)) 
+    (boilingPoint Boron ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3823.0 KelvinDegree)) 
+    (meltingPoint Carbon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 5100.0 KelvinDegree)) 
+    (boilingPoint Carbon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 63.29 KelvinDegree)) 
+    (meltingPoint Nitrogen ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 77.4 KelvinDegree)) 
+    (boilingPoint Nitrogen ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 54.75 KelvinDegree)) 
+    (meltingPoint Oxygen ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 90.188 KelvinDegree)) 
+    (boilingPoint Oxygen ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 53.53 KelvinDegree)) 
+    (meltingPoint Fluorine ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 85.01 KelvinDegree)) 
+    (boilingPoint Fluorine ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 24.48 KelvinDegree)) 
+    (meltingPoint Neon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 27.1 KelvinDegree)) 
+    (boilingPoint Neon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 370.95 KelvinDegree)) 
+    (meltingPoint Sodium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1165.0 KelvinDegree)) 
+    (boilingPoint Sodium ?TEMP))
+
+(and
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 921.95 KelvinDegree)) 
+    (meltingPoint Magnesium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1380.0 KelvinDegree)) 
+    (boilingPoint Magnesium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 933.52 KelvinDegree)) 
+    (meltingPoint Aluminum ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2740.0 KelvinDegree)) 
+    (boilingPoint Aluminum ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1683.0 KelvinDegree)) 
+    (meltingPoint Silicon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2628.0 KelvinDegree)) 
+    (boilingPoint Silicon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 317.3 KelvinDegree)) 
+    (meltingPoint Phosphorus ?TEMP))
+
+(and
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 553.0 KelvinDegree)) 
+    (boilingPoint Phosphorus ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 386.0 KelvinDegree)) 
+    (meltingPoint Sulphur ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 717.824 KelvinDegree)) 
+    (boilingPoint Sulphur ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 172.17 KelvinDegree)) 
+    (meltingPoint Chlorine ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 238.55 KelvinDegree)) 
+    (boilingPoint Chlorine ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 83.78 KelvinDegree)) 
+    (meltingPoint Argon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 87.29 KelvinDegree)) 
+    (boilingPoint Argon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 336.8 KelvinDegree)) 
+    (meltingPoint Potassium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1047.0 KelvinDegree)) 
+    (boilingPoint Potassium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1112.0 KelvinDegree))
+    (meltingPoint Calcium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1760.0 KelvinDegree)) 
+    (boilingPoint Calcium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1812.0 KelvinDegree)) 
+    (meltingPoint Scandium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3105.0 KelvinDegree)) 
+    (boilingPoint Scandium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1933.0 KelvinDegree)) 
+    (meltingPoint Titanium ?TEMP))
+
+(and 
+
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3533.0 KelvinDegree)) 
+    (boilingPoint Titanium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2163.0 KelvinDegree)) 
+    (meltingPoint Vanadium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3653.0 KelvinDegree)) 
+    (boilingPoint Vanadium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2130.0 KelvinDegree)) 
+    (meltingPoint Chromium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2755.0 KelvinDegree)) 
+    (boilingPoint Chromium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1517.0 KelvinDegree)) 
+    (meltingPoint Manganese ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2370.0 KelvinDegree)) 
+    (boilingPoint Manganese ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1808.0 KelvinDegree)) 
+    (meltingPoint Iron ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3023.0 KelvinDegree)) 
+    (boilingPoint Iron ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1768.0 KelvinDegree)) 
+    (meltingPoint Cobalt ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3143.0 KelvinDegree)) 
+    (boilingPoint Cobalt ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1726.0 KelvinDegree)) 
+    (meltingPoint Nickel ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3005.0 KelvinDegree)) 
+    (boilingPoint Nickel ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1356.6 KelvinDegree)) 
+    (meltingPoint Copper ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2868.0 KelvinDegree)) 
+    (boilingPoint Copper ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 692.73 KelvinDegree)) 
+    (meltingPoint Zinc ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1180.0 KelvinDegree)) 
+    (boilingPoint Zinc ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 302.93 KelvinDegree)) 
+    (meltingPoint Gallium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2676.0 KelvinDegree)) 
+    (boilingPoint Gallium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1210.55 KelvinDegree)) 
+    (meltingPoint Germanium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3103.0 KelvinDegree)) 
+    (boilingPoint Germanium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 886.0 KelvinDegree)) 
+    (meltingPoint Arsenic ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 886.0 KelvinDegree)) 
+    (boilingPoint Arsenic ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 490.0 KelvinDegree)) 
+    (meltingPoint Selenium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 958.1 KelvinDegree)) 
+    (boilingPoint Selenium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 265.9 KelvinDegree)) 
+    (meltingPoint Bromine ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 331.93 KelvinDegree)) 
+    (boilingPoint Bromine ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 116.55 KelvinDegree)) 
+    (meltingPoint Krypton ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 120.85 KelvinDegree)) 
+    (boilingPoint Krypton ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 312.2 KelvinDegree)) 
+    (meltingPoint Rubidium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 961.0 KelvinDegree)) 
+    (boilingPoint Rubidium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1042.0 KelvinDegree)) 
+    (meltingPoint Strontium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1657.0 KelvinDegree)) 
+    (boilingPoint Strontium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1796.0 KelvinDegree)) 
+    (meltingPoint Yttrium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3610.0 KelvinDegree)) 
+    (boilingPoint Yttrium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2125.0 KelvinDegree)) 
+    (meltingPoint Zirconium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 4650.0 KelvinDegree)) 
+    (boilingPoint Zirconium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2741.0 KelvinDegree)) 
+    (meltingPoint Niobium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 5200.0 KelvinDegree)) 
+    (boilingPoint Niobium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2890.0 KelvinDegree)) 
+    (meltingPoint Molybdenum ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 5833.0 KelvinDegree)) 
+    (boilingPoint Molybdenum ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2445.0 KelvinDegree)) 
+    (meltingPoint Technetium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 5303.0 KelvinDegree)) 
+    (boilingPoint Technetium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2583.0 KelvinDegree)) 
+    (meltingPoint Ruthenium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 4173.0 KelvinDegree)) 
+    (boilingPoint Ruthenium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2239.0 KelvinDegree)) 
+    (meltingPoint Rhodium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 4000.0 KelvinDegree)) 
+    (boilingPoint Rhodium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1825.0 KelvinDegree)) 
+    (meltingPoint Palladium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3413.0 KelvinDegree)) 
+    (boilingPoint Palladium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1235.08 KelvinDegree)) 
+    (meltingPoint Silver ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2485.0 KelvinDegree)) 
+    (boilingPoint Silver ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 594.1 KelvinDegree)) 
+    (meltingPoint Cadmium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1038.0 KelvinDegree)) 
+    (boilingPoint Cadmium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 429.32 KelvinDegree)) 
+    (meltingPoint Indium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2353.0 KelvinDegree)) 
+    (boilingPoint Indium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 505.118 KelvinDegree)) 
+    (meltingPoint Tin ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2543.0 KelvinDegree)) 
+    (boilingPoint Tin ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 903.89 KelvinDegree)) 
+    (meltingPoint Antimony ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2023.0 KelvinDegree)) 
+    (boilingPoint Antimony ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 722.7 KelvinDegree)) 
+    (meltingPoint Tellurium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1263.0 KelvinDegree)) 
+    (boilingPoint Tellurium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 386.65 KelvinDegree)) 
+    (meltingPoint Iodine ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 457.55 KelvinDegree)) 
+    (boilingPoint Iodine ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 161.3 KelvinDegree)) 
+    (meltingPoint Xenon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 166.1 KelvinDegree)) 
+    (boilingPoint Xenon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 301.55 KelvinDegree)) 
+    (meltingPoint Caesium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 963.0 KelvinDegree)) 
+    (boilingPoint Caesium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 998.0 KelvinDegree)) 
+    (meltingPoint Barium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1913.0 KelvinDegree)) 
+    (boilingPoint Barium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1193.0 KelvinDegree)) 
+    (meltingPoint Lanthanum ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3727.0 KelvinDegree)) 
+    (boilingPoint Lanthanum ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1071.0 KelvinDegree)) 
+    (meltingPoint Cerium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3530.0 KelvinDegree)) 
+    (boilingPoint Cerium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1204.0 KelvinDegree)) 
+    (meltingPoint Praseodymium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3485.0 KelvinDegree)) 
+    (boilingPoint Praseodymium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1283.0 KelvinDegree)) 
+    (meltingPoint Neodymium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3400.0 KelvinDegree)) 
+    (boilingPoint Neodymium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1353.0 KelvinDegree)) 
+    (meltingPoint Promethium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3000.0 KelvinDegree)) 
+    (boilingPoint Promethium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1345.0 KelvinDegree)) 
+    (meltingPoint Samarium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2051.0 KelvinDegree)) 
+    (boilingPoint Samarium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1095.0 KelvinDegree)) 
+    (meltingPoint Europium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1870.0 KelvinDegree)) 
+    (boilingPoint Europium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1584.0 KelvinDegree)) 
+    (meltingPoint Gadolinium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3506.0 KelvinDegree)) 
+    (boilingPoint Gadolinium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1633.0 KelvinDegree)) 
+    (meltingPoint Terbium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3314.0 KelvinDegree)) 
+    (boilingPoint Terbium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1682.0 KelvinDegree)) 
+    (meltingPoint Dysprosium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2608.0 KelvinDegree)) 
+    (boilingPoint Dysprosium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1743.0 KelvinDegree)) 
+    (meltingPoint Holmium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2993.0 KelvinDegree)) 
+    (boilingPoint Holmium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1795.0 KelvinDegree)) 
+    (meltingPoint Erbium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2783.0 KelvinDegree)) 
+    (boilingPoint Erbium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1818.0 KelvinDegree)) 
+    (meltingPoint Thulium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2000.0 KelvinDegree)) 
+    (boilingPoint Thulium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1097.0 KelvinDegree)) 
+    (meltingPoint Ytterbium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1466.0 KelvinDegree)) 
+    (boilingPoint Ytterbium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1929.0 KelvinDegree))
+    (meltingPoint Lutetium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3588.0 KelvinDegree)) 
+    (boilingPoint Lutetium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2423.0 KelvinDegree)) 
+    (meltingPoint Hafnium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 5673.0 KelvinDegree)) 
+    (boilingPoint Hafnium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3269.0 KelvinDegree)) 
+    (meltingPoint Tantalum ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 5698.0 KelvinDegree)) 
+    (boilingPoint Tantalum ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3680.0 KelvinDegree)) 
+    (meltingPoint Tungsten ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 6200.0 KelvinDegree)) 
+    (boilingPoint Tungsten ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3453.0 KelvinDegree)) 
+    (meltingPoint Rhenium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 5900.0 KelvinDegree)) 
+    (boilingPoint Rhenium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3318.0 KelvinDegree)) 
+    (meltingPoint Osmium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 5300.0 KelvinDegree)) 
+    (boilingPoint Osmium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2683.0 KelvinDegree)) 
+    (meltingPoint Iridium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 4403.0 KelvinDegree)) 
+    (boilingPoint Iridium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2045.0 KelvinDegree)) 
+    (meltingPoint Platinum ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 4100.0 KelvinDegree)) 
+    (boilingPoint Platinum ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1337.58 KelvinDegree)) 
+    (meltingPoint Gold ?TEMP))
+
+(and    
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3213.0 KelvinDegree)) 
+    (boilingPoint Gold ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 234.28 KelvinDegree)) 
+    (meltingPoint Mercury ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 629.73 KelvinDegree)) 
+    (boilingPoint Mercury ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 576.7 KelvinDegree)) 
+    (meltingPoint Thallium ?TEMP))
+
+(and    
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1730.0 KelvinDegree)) 
+    (boilingPoint Thallium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 600.65 KelvinDegree)) 
+    (meltingPoint Lead ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2013.0 KelvinDegree)) 
+    (boilingPoint Lead ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 544.5 KelvinDegree)) 
+    (meltingPoint Bismuth ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1833.0 KelvinDegree)) 
+    (boilingPoint Bismuth ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 527.0 KelvinDegree)) 
+    (meltingPoint Polonium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1235.0 KelvinDegree)) 
+    (boilingPoint Polonium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 575.0 KelvinDegree)) 
+    (meltingPoint Astatine ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 610.0 KelvinDegree)) 
+    (boilingPoint Astatine ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 202.0 KelvinDegree)) 
+    (meltingPoint Radon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 211.4 KelvinDegree)) 
+    (boilingPoint Radon ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 300.0 KelvinDegree)) 
+    (meltingPoint Francium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 950.0 KelvinDegree)) 
+    (boilingPoint Francium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 973.0 KelvinDegree)) 
+    (meltingPoint Radium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1413.0 KelvinDegree)) 
+    (boilingPoint Radium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1320.0 KelvinDegree)) 
+    (meltingPoint Actinium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3470.0 KelvinDegree)) 
+    (boilingPoint Actinium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2023.0 KelvinDegree)) 
+    (meltingPoint Thorium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 5060.0 KelvinDegree)) 
+    (boilingPoint Thorium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1827.0 KelvinDegree)) 
+    (meltingPoint Protactinium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 4300.0 KelvinDegree)) 
+    (boilingPoint Protactinium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1405.5 KelvinDegree)) 
+    (meltingPoint Uranium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 4091.0 KelvinDegree)) 
+    (boilingPoint Uranium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 913.0 KelvinDegree)) 
+    (meltingPoint Neptunium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 4175.0 KelvinDegree)) 
+    (boilingPoint Neptunium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 914.0 KelvinDegree)) 
+    (meltingPoint Plutonium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 3600.0 KelvinDegree)) 
+    (boilingPoint Plutonium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1267.0 KelvinDegree)) 
+    (meltingPoint Americium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 2880.0 KelvinDegree)) 
+    (boilingPoint Americium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1613.0 KelvinDegree)) 
+    (meltingPoint Curium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1259.0 KelvinDegree)) 
+    (meltingPoint Berkelium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1173.0 KelvinDegree)) 
+    (meltingPoint Californium ?TEMP))
+
+(and 
+    (instance ?TEMP TemperatureMeasure) 
+    (equal ?TEMP (MeasureFn 1133.0 KelvinDegree)) 
+    (meltingPoint Einsteinium ?TEMP))
 
 (subclass VehicleDoor Device)
 (documentation VehicleDoor EnglishLanguage "An equivalent to a &%Door but in

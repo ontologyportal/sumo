@@ -240,7 +240,6 @@
 (instance lengthOfStandardGaugeRailway BinaryPredicate)
 (domain lengthOfStandardGaugeRailway 1 GeographicArea)
 (domain lengthOfStandardGaugeRailway 2 LengthMeasure)
-
 (documentation lengthOfStandardGaugeRailway EnglishLanguage "(&%lengthOfStandardGaugeRailway ?AREA ?LENGTH) means that the sum length of standard gauge railway routes in the &%GeographicArea ?AREA is the &%LengthMeasure ?LENGTH.")
 
 (<=>
@@ -306,7 +305,8 @@
   (instance ?X SubwaySystem)
   (exists (?SURF)
     (and
-      (surface ?SURF GeographicArea)
+      (instance ?G GeographicArea)
+      (surface ?SURF ?G)
       (orientation ?X ?SURF Below))))
 
 (=>
@@ -440,8 +440,9 @@
 
 (=>
   (and
-    (totalLengthOfHighwaySystem ?AREA
-      (MeasureFn ?LENGTH ?UNIT))
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTHM (MeasureFn ?LENGTH ?UNIT))
+    (totalLengthOfHighwaySystem ?AREA ?LENGTHM)
     (instance ?UNIT UnitOfLength)
     (greaterThan ?LENGTH 0))
   (exists (?HIGHWAY)
@@ -553,10 +554,12 @@
 (=>
   (and
     (instance ?UNIT UnitOfLength)
-    (lengthOfExpresswaySystem ?AREA
-      (MeasureFn ?LENGTH1 ?UNIT))
-    (lengthOfPavedHighway ?AREA
-      (MeasureFn ?LENGTH2 ?UNIT)))
+    (instance ?LENGTHA LengthMeasure)
+    (equal ?LENGTHA (MeasureFn ?LENGTH1 ?UNIT))
+    (lengthOfExpresswaySystem ?AREA ?LENGTHA)
+    (instance ?LENGTHB LengthMeasure)
+    (equal ?LENGTHB (MeasureFn ?LENGTH2 ?UNIT))
+    (lengthOfPavedHighway ?AREA ?LENGTHB))
   (greaterThanOrEqualTo ?LENGTH2 ?LENGTH1))
 
 (instance lengthOfUnpavedHighway BinaryPredicate)
@@ -574,8 +577,9 @@
 
 (=>
   (and
-    (lengthOfUnpavedHighway ?AREA
-      (MeasureFn ?LENGTH ?UNIT))
+    (instance ?LENGTHA LengthMeasure)
+    (equal ?LENGTHA (MeasureFn ?LENGTH ?UNIT))
+    (lengthOfUnpavedHighway ?AREA ?LENGTHA)
     (instance ?UNIT UnitOfLength)
     (greaterThan ?LENGTH 0))
   (exists (?HIGHWAY)
@@ -719,10 +723,12 @@
 
 (=>
   (and
-    (lengthOfPetroleumProductPipeline ?AREA
-      (MeasureFn ?AMOUNT1 Meter))
-    (totalPipelineInArea ?AREA
-      (MeasureFn ?AMOUNT2 Meter)))
+    (instance ?LENGTH1 LengthMeasure)
+    (equal ?LENGTH1 (MeasureFn ?AMOUNT1 Meter))
+    (lengthOfPetroleumProductPipeline ?AREA ?LENGTH1)
+    (instance ?LENGTH2 LengthMeasure)
+    (equal ?LENGTH2 (MeasureFn ?AMOUNT2 Meter))
+    (totalPipelineInArea ?AREA ?LENGTH2))
   (lessThanOrEqualTo ?AMOUNT1 ?AMOUNT2))
 
 (subclass Pipeline Transitway)
@@ -902,6 +908,9 @@
 (=>
   (and
     (instance ?AREA GeopoliticalArea)
+    (instance
+      (MerchantMarineFn ?AREA)
+      MerchantMarine)
     (member ?SHIP
       (MerchantMarineFn ?AREA)))
   (instance ?SHIP MerchantMarineShip))
@@ -936,8 +945,9 @@
 (=>
   (and
     (instance ?UNIT UnitOfMass)
-    (fleetDeadWeightTonnage ?FLEET
-      (MeasureFn ?NUMBER ?UNIT)))
+    (instance ?MASS MassMeasure)
+    (equal ?MASS (MeasureFn ?NUMBER ?UNIT))
+    (fleetDeadWeightTonnage ?FLEET ?MASS))
   (equal ?UNIT LongTon))
 
 (subclass MerchantMarineShip Ship)
@@ -1013,8 +1023,9 @@
 (documentation ShipRegister EnglishLanguage "A &%ShipRegister is a record of each &%Ship and owner registered with the maritime authorities of a country or possession, colony, or territory of a country. Ships on the &%ShipRegister of a given region fly the flag of that region and are subject to its maritime regulations and rules of taxation.")
 
 (=>
-  (instance ?MM
-    (MerchantMarineFn ?AREA))
+  (and
+    (instance ?MM MerchantMarine)
+    (equal ?MM (MerchantMarineFn ?AREA)))
   (exists (?REGISTER)
     (and
       (instance ?REGISTER ShipRegister)
@@ -1322,8 +1333,10 @@
         (connects ?T ?R ?AA)))))
 
 (=>
-  (instance ?T Taxiway)
-  (trafficableForTrafficType ?T Airplane))
+  (and
+    (instance ?T Taxiway)
+    (instance ?A Airplane))
+  (trafficableForTrafficType ?T ?A))
 
 (instance numberOfRunways BinaryPredicate)
 (documentation numberOfRunways EnglishLanguage "(&%numberOfRunways ?A ?N) means that &%Airport ?A has &%Integer ?N number of &%Runways.")
@@ -1513,8 +1526,10 @@
 (documentation Heliport EnglishLanguage "&%Heliport is a &%TransitTerminal designed for the takeoff and landing of &%Helicopters.")
 
 (=>
-  (instance ?HELO Heliport)
-  (trafficableForTrafficType ?HELO Helicopter))
+  (and
+    (instance ?HELO Heliport)
+    (instance ?HELI Helicopter))
+  (trafficableForTrafficType ?HELO ?HELI))
 
 ;;----------------------------------------------------------------------
 
@@ -1712,8 +1727,9 @@
 
 (=>
   (and
-    (topSpeed ?V
-      (MeasureFn ?Q ?CU))
+    (instance ?FUNC FunctionQuantity)
+    (equal ?FUNC (MeasureFn ?Q ?CU))
+    (topSpeed ?V ?FUNC)
     (instance ?CU CompositeUnitOfMeasure)
     (instance ?UL UnitOfLength)
     (instance ?UD UnitOfDuration)
@@ -1729,10 +1745,12 @@
           (SpeedFn
             (MeasureFn ?L2 ?UL)
             (MeasureFn ?T2 ?UD)))))
-    (greaterThan
-      (SpeedFn ?L1 ?T1) ?Q)
-    (greaterThan ?Q
-      (SpeedFn ?L2 ?T2)))
+    (instance ?RN1 RealNumber)
+    (equal ?RN1 (SpeedFn ?L1 ?T1))
+    (instance ?RN2 RealNumber)
+    (equal ?RN2 (SpeedFn ?L2 ?T2))
+    (greaterThan ?RN1 ?Q)
+    (greaterThan ?Q ?RN2))
   (greaterThan ?SLOWPROB ?FASTPROB))
 
 ;; KJN: Removing these for now per the Product issue
@@ -1852,8 +1870,10 @@
 (documentation Motorcycle EnglishLanguage "Motorcycle is the subclass of &%RoadVehicles that have two wheels one behind the other in the frame, upon which the rider sits on a seat above the engine.")
 
 (=>
-  (instance ?M Motorcycle)
-  (equipmentCount ?M VehicleWheel 2))
+  (and
+    (instance ?M Motorcycle)
+    (instance ?V VehicleWheel))
+  (equipmentCount ?M ?V 2))
 
 (subclass MotorScooter RoadVehicle)
 
@@ -1873,11 +1893,12 @@
 (=>
   (instance ?A Ambulance)
   (hasPurpose ?A
-    (exists (?P ?T ?H)
+    (exists (?P ?T ?H ?ATTR)
       (and
+        (instance ?ATTR DiseaseOrSyndrome)
         (instance ?P Human)
         (or
-          (attribute ?P DiseaseOrSyndrome)
+          (attribute ?P ?ATTR)
           (exists (?I)
             (and
               (instance ?I Injuring)
@@ -1918,8 +1939,10 @@
 (typicalPart VehicleDoor Automobile)
 
 (=>
-  (instance ?A Automobile)
-  (equipmentCount ?A VehicleWheel 4))
+  (and
+    (instance ?A Automobile)
+    (instance ?V VehicleWheel))
+  (equipmentCount ?A ?V 4))
 
 (=>
   (instance ?A Automobile)
@@ -2034,8 +2057,10 @@
 (typicalPart RailroadTrack RailwayTerminal)
 
 (=>
-  (instance ?R RailwayTerminal)
-  (trafficableForTrafficType ?R Train))
+  (and
+    (instance ?R RailwayTerminal)
+    (instance ?T Train))
+  (trafficableForTrafficType ?R ?T))
 
 (subclass Railhead Railway)
 (documentation Railhead EnglishLanguage "A &%Railhead is a point on a A point on a railway system where goods (or passengers) are loaded, unloaded or transferred to other transport. [Wiktionary]")
@@ -2178,7 +2203,7 @@
   (KappaFn ?TRANS
     (exists (?L)
       (and
-        (instance ?L Liquid)
+        (attribute ?L Liquid)
         (instance ?TRANS Transportation)
         (patient ?TRANS ?L)))) instrument TankCar)
 
@@ -2297,11 +2322,13 @@
 (names "chemical carrier" ChemicalTankerShip)
 
 (=>
-  (instance ?SHIP ChemicalTankerShip)
-  (cargoType ?SHIP ChemicalProduct))
+  (and
+    (instance ?SHIP ChemicalTankerShip)
+    (instance ?CHEMPROD ChemicalProduct))
+  (cargoType ?SHIP ?CHEMPROD))
 
 (documentation ChemicalTankerShip EnglishLanguage "&%ChemicalTankerShip is the subclass of ships that carry &%ChemicalProducts.")
-(subclass Chemical_OilTankerShip ChemicalTankerShip)
+(subclass OilTankerShip ChemicalTankerShip)
 
 (subclass LiquefiedGasTankerShip CargoShip)
 (names "Liquefied gas carrier" LiquefiedGasTankerShip)
@@ -2354,8 +2381,10 @@
 (subclass SpecializedTankerShip CargoShip)
 (=>
   (instance ?SHIP SpecializedTankerShip)
-  (cargoType ?SHIP
-    (ExtensionFn Fluid)))
+  (and
+    (instance ?O Object)
+    (equal ?O (ExtensionFn Fluid))
+    (cargoType ?SHIP ?O)))
 
 (subclass PassengerAndCargoShip PassengerShip)
 (subclass PassengerAndCargoShip CargoShip)
@@ -2420,6 +2449,9 @@
     (and
       (instance ?CT ControlTower)
       (component ?CT ?AC))))
+
+(subclass ArrestingGear Brake)
+(documentation ArrestingGear EnglishLanguage "A rapid deceleration mechanical system used to stop landing aircraft on the short decks of aircraft carriers or emergency land runways.")
 
 (=>
   (instance ?AC AircraftCarrier)
@@ -2500,10 +2532,12 @@
 
 (=>
   (and
-    (fleetDeadWeightTonnage ?FLEET
-      (MeasureFn ?T LongTon))
-    (vesselDeadWeightTonnage ?VESSEL
-      (MeasureFn ?X LongTon))
+    (instance ?MASS MassMeasure)
+    (equal ?MASS (MeasureFn ?T LongTon))
+    (fleetDeadWeightTonnage ?FLEET ?MASS)
+    (instance ?MASS2 MassMeasure)
+    (equal ?MASS2 (MeasureFn ??X LongTon))
+    (vesselDeadWeightTonnage ?VESSEL ?MASS2)
     (member ?VESSEL ?FLEET))
   (exists (?L)
     (and
@@ -2556,10 +2590,12 @@
 (=>
   (instance ?T TwentyFtContainer)
   (and
-    (length ?T
-      (MeasureFn 20 FootLength))
-    (width ?T
-      (MeasureFn 8 FootLength))))
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn 20 FootLength))
+    (length ?T ?LENGTH)
+    (instance ?WIDTH LengthMeasure)
+    (equal ?WIDTH (MeasureFn 8 FootLength))
+    (width ?T ?WIDTH)))
 
 (=>
   (defaultMeasure TwentyFtContainer
@@ -2575,18 +2611,22 @@
   (and
     (instance ?T TwentyFtContainer)
     (attribute ?T Dry))
-  (capacity ?T
-    (MeasureFn 21600 Kilogram)))
+  (and
+    (instance ?CONST ConstantQuantity)
+    (equal ?CONST (MeasureFn 21600 Kilogram))
+    (capacity ?T ?CONST)))
 
 (=>
   (and
     (instance ?T ShipContainer)
-    (capacity ?T
-      (MeasureFn ?X ?U))
+    (instance ?CONST ConstantQuantity)
+    (equal ?CONST (MeasureFn ?X ?U))
+    (capacity ?T ?CONST)
     (instance ?X UnitOfMass)
     (contains ?T ?O)
-    (weight ?O
-      (MeasureFn ?Y ?U))
+    (instance ?MASS MassMeasure)
+    (equal ?MASS (MeasureFn ?Y ?U))
+    (weight ?O ?MASS)
     (lessThan ?Y ?X))
   (modalAttribute
     (not
@@ -2601,8 +2641,10 @@
 
 (=>
   (instance ?T TwentyFtStandardContainer)
-  (height ?T
-    (MeasureFn 102 Inch)))
+  (and
+    (instance ?HEIGHT LengthMeasure)
+    (equal ?HEIGHT (MeasureFn 102 Inch))
+    (height ?T ?HEIGHT)))
 
 (=>
   (instance ?X TwentyFtStandardContainer)
@@ -2634,8 +2676,10 @@
 
 (=>
   (instance ?T TwentyFtHeavyDutyContainer)
-  (height ?T
-    (MeasureFn 102 Inch)))
+  (and
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn 102 Inch))
+    (height ?T ?LENGTH)))
 
 (=>
   (instance ?X TwentyFtHeavyDutyContainer)
@@ -2652,8 +2696,10 @@
 
 (=>
   (instance ?T TwentyFtHighcubeContainer)
-  (height ?T
-    (MeasureFn 114 Inch)))
+  (and
+    (instance ?H LengthMeasure)
+    (equal ?H (MeasureFn 114 Inch))
+    (height ?T ?H)))
 
 (=>
   (instance ?X TwentyFtHighcubeContainer)
@@ -2670,8 +2716,10 @@
 
 (=>
   (instance ?T TwentyFtHalfHeightContainer)
-  (height ?T
-    (MeasureFn 53 Inch)))
+  (and
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn 53 Inch))
+    (height ?T ?LENGTH)))
 
 (=>
   (instance ?X TwentyFtHalfHeightContainer)
@@ -2689,10 +2737,12 @@
 (=>
   (instance ?T FortyFtContainer)
   (and
-    (length ?T
-      (MeasureFn 40 FootLength))
-    (width ?T
-      (MeasureFn 8 FootLength))))
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn 40 FootLength))
+    (instance ?WIDTH LengthMeasure)
+    (equal ?WIDTH (MeasureFn 8 FootLength))
+    (length ?T ?LENGTH)
+    (width ?T ?WIDTH)))
 
 (=>
   (defaultMeasure FortyFtContainer
@@ -2707,17 +2757,20 @@
 (=>
   (and
     (instance ?T FortyFtContainer)
-    (attribute ?T Dry))
-  (capacity ?T
-    (MeasureFn 26480 Kilogram)))
+    (attribute ?T Dry)
+    (instance ?MASS MassMeasure)
+    (equal ?MASS (MeasureFn 26480 Kilogram)))
+  (capacity ?T ?MASS))
 
 (subclass FortyFtStandardContainer FortyFtContainer)
 (documentation FortyFtStandardContainer EnglishLanguage "A &%FortyFtStandardContainer is most common forty_foot container. It occupies a space of 40 feet (12.2 m) long, 8 feet (2.44 m) wide, and 8 feet 6 inches (2.59 m) high. [Wikipedia]")
 
 (=>
-  (instance ?T FortyFtStandardContainer)
-  (height ?T
-    (MeasureFn 102 Inch)))
+  (and
+    (instance ?T FortyFtStandardContainer)
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn 102 Inch)))
+  (height ?T ?LENGTH))
 
 (=>
   (instance ?X FortyFtStandardContainer)
@@ -2739,15 +2792,14 @@
     (equal ?MEASURE (MeasureFn 114 Inch)))
   (height ?T ?MEASURE))
 
-
 (subclass FortyFtHalfHeightContainer FortyFtContainer)
 (documentation FortyFtHalfHeightContainer EnglishLanguage "A &%FortyFtHalfHeightContainer is half the height of the standard &%FortyFtContainer. It occupies a space of 40 feet (12.2 m) long, 8 feet (2.44 m) wide, and 4 feet 3 inches (1.3 m) high. [Wikipedia]")
 
 (=>
   (and
-  (instance ?T FortyFtHalfHeightContainer)
-  (instance ?MEASURE LengthMeasure)
-  (equal ?MEASURE (MeasureFn 114 Inch)))
+    (instance ?T FortyFtHalfHeightContainer)
+    (instance ?MEASURE LengthMeasure)
+    (equal ?MEASURE (MeasureFn 114 Inch)))
   (height ?T ?MEASURE))
 
 (subclass FortyfiveFtContainer ShipContainer)
@@ -2949,16 +3001,19 @@ precisely into other units.[Wikipedia]")
 
 (=>
   (and
-    (pitch ?V
-      (MeasureFn ?X AngularDegree))
+    (instance ?ANGLE AngleMeasure)
+    (equal ?ANGLE (MeasureFn ?X AngularDegree))
+    (pitch ?V ?ANGLE)
     (instance ?V Aircraft))
   (exists (?A ?B)
     (and
       (longitudinalAxis ?A ?V)
       (centerOfMass ?B ?V)
+      (instance ?ANGLEMEASURE AngleMeasure)
+      (equal ?ANGLEMEASURE (MeasureFn ?X AngularDegree))
       (planeAngleMeasure ?A
         (LevelPlaneFn ?B PlanetEarth)
-        (MeasureFn ?X AngularDegree)))))
+        ?ANGLEMEASURE))))
 
 (instance yaw BinaryPredicate)
 (subrelation yaw measure)
@@ -2989,8 +3044,9 @@ precisely into other units.[Wikipedia]")
 
 (=>
   (and
-    (yaw ?V
-      (MeasureFn ?X AngularDegree))
+    (instance ?YAW AngleMeasure)
+    (equal ?YAW (MeasureFn ?X AngularDegree))
+    (yaw ?V ?YAW)
     (instance ?V Aircraft))
   (exists (?A ?T ?P)
     (and
@@ -2998,8 +3054,9 @@ precisely into other units.[Wikipedia]")
       (instance ?T Translocation)
       (patient ?T ?V)
       (path ?T ?P)
-      (planeAngleMeasure ?A ?P
-        (MeasureFn ?X AngularDegree)))))
+      (instance ?PAM AngleMeasure)
+      (equal ?PAM (MeasureFn ?X AngularDegree))
+      (planeAngleMeasure ?A ?P ?PAM))))
 
 (instance roll BinaryPredicate)
 (subrelation roll measure)
@@ -3030,16 +3087,19 @@ precisely into other units.[Wikipedia]")
 
 (=>
   (and
-    (roll ?V
-      (MeasureFn ?X AngularDegree))
+    (instance ?ROLL AngleMeasure)
+    (equal ?ROLL (MeasureFn ?X AngularDegree))
+    (roll ?V ?ROLL)
     (instance ?V Aircraft))
   (exists (?A ?B)
     (and
       (transverseAxis ?A ?V)
       (centerOfMass ?B ?V)
-      (planeAngleMeasure ?A
-        (LevelPlaneFn ?B PlanetEarth)
-        (MeasureFn ?X AngularDegree)))))
+      (instance ?LINE LineInSpace)
+      (equal ?LINE (LevelPlaneFn ?B PlanetEarth))
+      (instance ?ANGLE AngleMeasure)
+      (equal ?ANGLE (MeasureFn ?X AngularDegree))
+      (planeAngleMeasure ?A ?LINE ?ANGLE))))
 
 (subclass AirFoil Device)
 (documentation AirFoil EnglishLanguage "An &%AirFoil or aerofoil (British English) is a streamlined body that is capable of generating significantly more lift than drag. &%FlightWings, sails and propeller blades are examples of airfoils. [Wikipedia]")
@@ -3238,16 +3298,18 @@ precisely into other units.[Wikipedia]")
     (member ?E ?P)
     (instance ?M MotionUpward)
     (moves ?M ?E)
+    (instance ?ANGLE1 AngleMeasure)
+    (equal ?ANGLE1 (MeasureFn ?X AngularDegree))
+    (instance ?ANGLE2 AngleMeasure)
+    (equal ?ANGLE2 (MeasureFn ?Y AngularDegree))
     (holdsDuring
       (BeginFn
         (WhenFn ?M))
-      (pitch ?F
-        (MeasureFn ?X AngularDegree)))
+      (pitch ?F ?ANGLE1))
     (holdsDuring
       (EndFn
         (WhenFn ?M))
-      (pitch ?F
-        (MeasureFn ?Y AngularDegree))))
+      (pitch ?F ?ANGLE2)))
   (greaterThan ?X ?Y))
       
 (=>
@@ -3259,16 +3321,18 @@ precisely into other units.[Wikipedia]")
     (member ?E ?P)
     (instance ?M MotionDownward)
     (moves ?M ?E)
+    (instance ?ANGLE1 AngleMeasure)
+    (equal ?ANGLE1 (MeasureFn ?X AngularDegree))
     (holdsDuring
       (BeginFn
         (WhenFn ?M))
-      (pitch ?F
-        (MeasureFn ?X AngularDegree)))
+      (pitch ?F ?ANGLE1))
+    (instance ?ANGLE2 AngleMeasure)
+    (equal ?ANGLE2 (MeasureFn ?Y AngularDegree))
     (holdsDuring
       (EndFn
         (WhenFn ?M))
-      (pitch ?F
-        (MeasureFn ?Y AngularDegree))))
+      (pitch ?F ?ANGLE2)))
   (lessThan ?X ?Y))
    
 (=>
@@ -3278,9 +3342,10 @@ precisely into other units.[Wikipedia]")
     (instance ?F Airplane)
     (memberType ?P FlightElevator)
     (member ?E ?P)
+    (instance ?ANGLE AngleMeasure)
+    (equal ?ANGLE (MeasureFn 0 AngularDegree))
     (holdsDuring ?T
-      (pitch ?F
-        (MeasureFn 0 AngularDegree))))
+      (pitch ?F ?ANGLE)))
   (holdsDuring ?T
     (not
       (exists (?M)
@@ -3292,8 +3357,9 @@ precisely into other units.[Wikipedia]")
 
 (=>
   (and
-    (roll ?P
-      (MeasureFn 0 AngularDegree))
+    (instance ?ANGLE AngleMeasure)
+    (equal ?ANGLE (MeasureFn 0 AngularDegree))
+    (roll ?P ?ANGLE)
     (instance ?P Airplane)
     (part ?A ?P)
     (instance ?A Aileron))
@@ -3336,8 +3402,9 @@ precisely into other units.[Wikipedia]")
     (direction ?M Right))
   (exists (?X)
     (and
-      (yaw ?P
-        (MeasureFn ?X AngularDegree))
+      (instance ?ANGLE AngleMeasure)
+      (equal ?ANGLE (MeasureFn ?X AngularDegree))
+      (yaw ?P ?ANGLE)
       (greaterThan ?X 0))))
 
 (=>
@@ -3350,8 +3417,9 @@ precisely into other units.[Wikipedia]")
     (direction ?M Left))
   (exists (?X)
     (and
-      (yaw ?P
-        (MeasureFn ?X AngularDegree))
+      (instance ?ANGLE AngleMeasure)
+      (equal ?ANGLE (MeasureFn ?X AngularDegree))
+      (yaw ?P ?ANGLE)
       (lessThan ?X 0))))
 
 ;;---------------------------------------------------------------------
@@ -3361,13 +3429,13 @@ precisely into other units.[Wikipedia]")
 
 (instance trafficableForTrafficType BinaryPredicate)
 (domain trafficableForTrafficType 1 Object)
-(domainSubclass trafficableForTrafficType 2 SelfConnectedObject)
+(domainSubclass trafficableForTrafficType 2 Object)
 (documentation trafficableForTrafficType EnglishLanguage "(&%trafficableForTrafficType ?WAY ?TYPE) means that &%Objects of ?TYPE can move along the &%Transitway ?WAY.")
 
 (=>
   (and
     (trafficableForTrafficType ?PLACE ?TYPE)
-    (subclass ?TYPE TransportationDevice)
+    (instance ?TYPE TransportationDevice)
     (instance ?MOVER ?TYPE))
   (capableAtLocation Transportation instrument ?MOVER ?PLACE))
 
@@ -3379,8 +3447,10 @@ precisely into other units.[Wikipedia]")
   (capableAtLocation Translocation agent ?mover ?place))
 
 (=>
-  (instance ?AIRPORT Airport)
-  (trafficableForTrafficType ?AIRPORT Airplane))
+  (and
+    (instance ?A Airplane)
+    (instance ?AIRPORT Airport))
+  (trafficableForTrafficType ?AIRPORT ?A))
 
 (instance navigableForShippingTonnage BinaryPredicate)
 (domain navigableForShippingTonnage 1 WaterArea)
@@ -3406,7 +3476,6 @@ precisely into other units.[Wikipedia]")
 (instance navigableForDraft BinaryPredicate)
 (domain navigableForDraft 1 WaterArea)
 (domain navigableForDraft 2 LengthMeasure)
-
 (documentation navigableForDraft EnglishLanguage "(&%navigableForDraft ?WATERWAY ?DRAFT) means that the &%Waterway ?WATERWAY can be transited by vessels up to the draft ?DRAFT.")
 
 (=>
@@ -3427,10 +3496,12 @@ precisely into other units.[Wikipedia]")
 
 (=>
   (and
-    (navigableForDraft ?WATERWAY
-      (MeasureFn ?AMOUNT Meter))
-    (ladenDraft ?SHIP
-      (MeasureFn ?DRAFT Meter))
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn ?AMOUNT Meter))
+    (navigableForDraft ?WATERWAY ?LENGTH)
+    (instance ?LENGTH2 LengthMeasure)
+    (equal ?LENGTH2 (MeasureFn ?DRAFT Meter))
+    (ladenDraft ?SHIP ?LENGTH2)
     (lessThan ?AMOUNT ?DRAFT))
   (not
     (modalAttribute
@@ -3443,12 +3514,14 @@ precisely into other units.[Wikipedia]")
 (=>
   (and
     (instance ?WATERWAY Waterway)
-    (depth ?OBJ ?WATERWAY
-      (MeasureFn ?DEPTH ?UNIT))
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn ?DEPTH ?UNIT))
+    (depth ?OBJ ?WATERWAY ?LENGTH)
     (instance ?UNIT UnitOfLength)
-    (lessThan ?DRAFT ?DEPTH))
-  (navigableForDraft ?WATERWAY
-    (MeasureFn ?DRAFT ?UNIT)))
+    (lessThan ?DRAFT ?DEPTH)
+    (instance ?LENGTH2 LengthMeasure)
+    (equal ?LENGTH2 (MeasureFn ?DRAFT ?UNIT)))
+  (navigableForDraft ?WATERWAY ?LENGTH2))
 
 (instance ladenDraft BinaryPredicate)
 (domain ladenDraft 1 WaterVehicle)
@@ -3485,6 +3558,8 @@ precisely into other units.[Wikipedia]")
     (and
       (instance ?P Policy)
       (confersNorm
+        ?P
+        Permission
         (exists (?T1 ?A ?B)
           (and
             (instance ?T1 Transportation)
@@ -3499,10 +3574,10 @@ precisely into other units.[Wikipedia]")
                 (and
                   (instance ?T2 Transportation)
                   (path ?T2 ?W)
-                  (origin ?T1 ?B)
-                  (destination ?T1 ?A)
+                  (origin ?T2 ?B)
+                  (destination ?T2 ?A)
                   (not
-                    (equal ?T1 ?T2))))))) Permission ?P))))
+                    (equal ?T1 ?T2)))))))))))
 
 (instance UniDirectionalTraffic NormativeAttribute)
 (documentation UniDirectionalTraffic EnglishLanguage "&%UniDirectionalTraffic is a &%NormativeAttribute. A &%Transitway is &%UniDirectionalTraffic when it either facilitating only one_way traffic, or designed to direct &%Vehicles to move in one direction only.The condition holds when a government or an authority confers prohibition for two way traffic.[Wikipedia]")
@@ -3515,6 +3590,8 @@ precisely into other units.[Wikipedia]")
     (and
       (instance ?P Policy)
       (confersNorm
+        ?P
+        Prohibition
         (exists (?T1 ?A ?B)
           (and
             (instance ?T1 Transportation)
@@ -3529,10 +3606,10 @@ precisely into other units.[Wikipedia]")
                 (and
                   (instance ?T2 Transportation)
                   (path ?T2 ?W)
-                  (origin ?T1 ?B)
-                  (destination ?T1 ?A)
+                  (origin ?T2 ?B)
+                  (destination ?T2 ?A)
                   (not
-                    (equal ?T1 ?T2))))))) Prohibition ?P))))
+                    (equal ?T1 ?T2)))))))))))
 
 ;;	   2. Transitway state
 
@@ -3993,7 +4070,8 @@ precisely into other units.[Wikipedia]")
 (=>
   (and
     (instance ?HARBOR Harbor)
-    (equipmentCount ?HARBOR ShipBerth ?NUM)
+    (instance ?SB ShipBerth)
+    (equipmentCount ?HARBOR ?SB ?NUM)
     (greaterThan ?NUM 0))
   (modalAttribute
     (exists (?BERTHING)
@@ -4763,8 +4841,9 @@ the speed of sound is the temperature. In the standard atmosphere (1 atm):
   
 (=>
   (and
-    (speedOfSound
-      (MeasureFn ?N MeterPerSecond) ?R ?T)
+    (instance ?SOS FunctionQuantity)
+    (equal ?SOS (MeasureFn ?N MeterPerSecond))
+    (speedOfSound ?SOS ?R ?T)
     (located ?R EarthsAtmosphere)
     (holdsDuring ?T
       (property ?R StandardAmbientTemperaturePressure)))
@@ -4772,8 +4851,10 @@ the speed of sound is the temperature. In the standard atmosphere (1 atm):
     (approximateValue ?N 346)))
             
 (=>
-  (speedOfSound
-    (MeasureFn ?N MeterPerSecond) ?R ?T)
+  (and
+    (instance ?FUNC FunctionQuantity)
+    (equal ?FUNC (MeasureFn ?N MeterPerSecond))
+    (speedOfSound ?FUNC ?R ?T))
   (holdsDuring ?T
     (exists (?W)
       (and
@@ -4784,8 +4865,10 @@ the speed of sound is the temperature. In the standard atmosphere (1 atm):
         (approximateValue ?N 1481)))))
         
 (=>
-  (speedOfSound
-    (MeasureFn ?N MeterPerSecond) ?R ?T)
+  (and
+  (instance ?FUNC FunctionQuantity)
+  (equal ?FUNC (MeasureFn ?N MeterPerSecond))
+  (speedOfSound ?FUNC ?R ?T))
   (holdsDuring ?T
     (exists (?O)
       (and
@@ -4797,8 +4880,10 @@ the speed of sound is the temperature. In the standard atmosphere (1 atm):
         (approximateValue ?N 5120)))))
 
 (=>
-  (speedOfSound
-    (MeasureFn ?N MeterPerSecond) ?R ?T)
+  (and 
+    (instance ?FUNC FunctionQuantity)
+    (equal ?FUNC (MeasureFn ?N MeterPerSecond))
+    (speedOfSound ?FUNC ?R ?T))
   (holdsDuring ?T
     (exists (?O)
       (and
@@ -4861,7 +4946,7 @@ the speed of sound is the temperature. In the standard atmosphere (1 atm):
     
 (instance Supersonic RelationalAttribute)
 (documentation Supersonic EnglishLanguage "&%Supersonic is a &%RelationalAttribute which describe the speed of an object that can travel faster than the &%speedOfSound or &%MachNumber &%greaterThan 1 and less than 5 &%MachNumber. Speeds greater than five times the speed of sound are often referred as &%Hypersonic. [Wikipedia] ")
-(termFormat EnglishGroupLanguage Supersonic "supersonic")
+(termFormat EnglishLanguage Supersonic "supersonic")
     
 (=>
   (and
@@ -4896,7 +4981,7 @@ the speed of sound is the temperature. In the standard atmosphere (1 atm):
   
 (instance Hypersonic RelationalAttribute)
 (documentation Hypersonic EnglishLanguage "&%Hypersonic is a &%RelationalAttribute which describe the speed of an object that can travel faster than five times the &%speedOfSound or &%MachNumber &%greaterThan 5. [Wikipedia] ")
-(termFormat EnglishGroupLanguage Hypersonic "hypersonic")
+(termFormat EnglishLanguage Hypersonic "hypersonic")
 
 (=>
   (and
@@ -4973,7 +5058,7 @@ Systems (24% of 2024 revenues); and Lockheed Martin Space (18% of 2024 revenues)
 (subclass ANSPY6 ThreeDRadar)
 (documentation ANSPY6 EnglishLanguage "&%ANSPY6 is an active electronically scanned array (&%AESAAntenna) &%ThreeDRadar system developed and built by RTX Corporation, and in service with the United States Navy. It provides integrated air and missile defense for Flight III Arleigh Burke-class destroyers. [Wikipedia]")
 (termFormat EnglishLanguage ANSPY6 "An/SPY-6")
-(creator ANSPY6 RTXCorporation)
+(creator RTXCorporation ANSPY6)
 (manufacturer ANSPY6 RTXCorporation)
 (typicalPart AESAAntenna ANSPY6)
 
@@ -5105,7 +5190,7 @@ Systems (24% of 2024 revenues); and Lockheed Martin Space (18% of 2024 revenues)
 (instance radarEmissionPowerCapability BinaryPredicate)
 (documentation radarEmissionPowerCapability EnglishLanguage "(radarEmissionPowerCapability ?R ?W) means that the &%Radar has a maximium emission power of ?W.")
 (domain radarEmissionPowerCapability 1 Radar)
-(domain radarEmissionPowerCapability 2 PowerMeasure)
+(domain radarEmissionPowerCapability 2 Power)
 (format EnglishLanguage radarEmissionPowerCapability "%1 has the maximium emission capacity of %2")
 (termFormat EnglishLanguage radarEmissionPowerCapability "radar emission power capability")
 
@@ -5121,7 +5206,7 @@ Systems (24% of 2024 revenues); and Lockheed Martin Space (18% of 2024 revenues)
     (exists (?Y)
       (greaterThan ?Y ?X))))
                
-(instance radarEmissionFrequency BinaryPredicate)
+(instance radarEmissionFrequency TernaryPredicate)
 (documentation radarEmissionFrequency EnglishLanguage "(radarEmissionFrequency ?R ?F) means that the &%Radar has the emission frequency of ?W.")
 (domain radarEmissionFrequency 1 Radar)
 (domain radarEmissionFrequency 2 FrequencyMeasure)
@@ -5136,8 +5221,9 @@ Systems (24% of 2024 revenues); and Lockheed Martin Space (18% of 2024 revenues)
       (and
         (instance ?E RadiatingElectromagnetic)
         (instrument ?E ?R)
-        (wavelength ?E
-          (MeasureFn ?L Nanometer))
+        (instance ?WAVELENGTH LengthMeasure)
+        (equal ?WAVELENGTH (MeasureFn ?L Nanometer))
+        (wavelength ?E ?WAVELENGTH)
         (equal
           (MeasureFn ?C MeterPerSecond) SpeedOfLight)
         (equal ?F
