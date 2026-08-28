@@ -578,11 +578,10 @@
   (and
     (instance ?Application AutomaticApplication)
     (instance ?System SoftwareSystem)
-    (part ?Application ?System))
-  (part
+    (subProposition ?Application ?System))
+  (subProposition
     (StartupFn ?Application)
     (StartupFn ?System)))
-
 
 (subclass RMStartApplication ComputerProgram)
 (termFormat EnglishLanguage RMStartApplication "RM start application")
@@ -1025,16 +1024,20 @@
 (=>
   (and
     (instance ?Path ComputerPath)
-    (property ?Path DynamicDataStream))
+    (instance ?ATTR DynamicDataStream)
+    (instance ?ATTR2 StochasticDataStream)
+    (property ?Path ?ATTR))
   (not
-    (property ?Path StochasticDataStream)))
+    (property ?Path ?ATTR2)))
 
 (=>
   (and
     (instance ?Path ComputerPath)
-    (property ?Path DynamicDataStream))
+    (instance ?ATTR1 DynamicDataStream)
+    (instance ?ATTR2 DeterministicDataStream)
+    (property ?Path ?ATTR1))
   (not
-    (property ?Path DeterministicDataStream)))
+    (property ?Path ?ATTR2)))
 
 (subclass ContinuousPath ComputerPathAttribute)
 (documentation ContinuousPath EnglishLanguage "The attribute which denotes that the path type is continuous, as opposed to transient or quasicontinuous paths. A continuous path handles a stream of data arriving at a comment of rate.")
@@ -1048,16 +1051,20 @@
 (=>
   (and
     (instance ?Path ComputerPath)
-    (property ?Path ContinuousPath))
+    (instance ?ATTR ContinuousPath)
+    (property ?Path ?ATTR)
+    (instance ?ATTR2 TransientPath))
   (not
-    (property ?Path TransientPath)))
+    (property ?Path ?ATTR2)))
 
 (=>
   (and
     (instance ?Path ComputerPath)
-    (property ?Path ContinuousPath))
+    (instance ?ATTR ContinuousPath)
+    (property ?Path ?ATTR)
+    (instance ?ATTR2 QuasicontinuousPath))
   (not
-    (property ?Path QuasicontinuousPath)))
+    (property ?Path ?ATTR2)))
 
 (instance simpleDeadline BinaryPredicate)
 (domain simpleDeadline 1 ComputerPath)
@@ -1091,10 +1098,13 @@
 (documentation dataStreamSlack EnglishLanguage "(&%dataStreamSlack ?PATH ?N) means that a continuous or quasicontinuous path ?PATH should be able to process ?N additional data items at any time.")
 
 (=>
-  (dataStreamSlack ?Path ?Number)
+  (and
+    (dataStreamSlack ?Path ?Number)
+    (instance ?ATTR ContinuousPath)
+    (instance ?ATTR2 QuasicontinuousPath))
   (or
-    (property ?Path ContinuousPath)
-    (property ?Path QuasicontinuousPath)))
+    (property ?Path ?ATTR)
+    (property ?Path ?ATTR2)))
 
 (instance dependencyType BinaryPredicate)
 (domain dependencyType 1 ComputerProgram)
@@ -1210,9 +1220,9 @@
 (subclass Transient_SystemBehavior SystemBehaviorAttribute)
 (documentation Transient_SystemBehavior EnglishLanguage "An instance of the class &%RealtimeSystem shows &%Transient_SystemBehavior when it is activated by sporadic events.")
 
-(subclass Hybrid_SystemBehavior SystemBehaviorAttribute)
-(subAttribute Hybrid_SystemBehavior Transient_SystemBehavior)
-(subAttribute Hybrid_SystemBehavior Periodic_SystemBehavior)
+(instance Hybrid_SystemBehavior SystemBehaviorAttribute)
+(instance Hybrid_SystemBehavior Transient_SystemBehavior)
+(instance Hybrid_SystemBehavior Periodic_SystemBehavior)
 (documentation Hybrid_SystemBehavior EnglishLanguage "An instance of the class &%RealtimeSystem shows &%Hybrid_SystemBehavior if it is activated by transient events, i.e. it is executed at regular intervals when activated, and is deactivated by action completion.")
 
 (subclass DesignPatternAttribute RealtimeSystemAttribute)
@@ -1229,16 +1239,22 @@
 (documentation Guidance_DesignPattern EnglishLanguage "Instances of &%RealtimeSystems are described as systems with &%Guidance_DesignPattern if they consist of sensors connected to a software module that filters data from the sensors and sends the filtered data to a software module that evaluates the filtered data and sends instructions to a software module that commands actuators. The design pattern is an event source that produces events and a data source that produces data, both executing in parallel and handled by a single event-driven periodic data handler. The two separate input streams have fundamentally different characteristics. The event stream is necessarily asychronous, or transient. Once an event is sensed, the handler accepts data from the data stream, which has an invariant cycle time. There are two deadlines for a real-time guidance system. The period deadline is the time to process all elements in the data stream once and generate an actuator command. The action completion deadline is the time to guide the actuator to completion of the action.")
 
 (=>
-  (designPattern ?System Guidance_DesignPattern)
-  (systemBehavior ?System Transient_SystemBehavior))
+  (and
+    (instance ?ATTR Guidance_DesignPattern)
+    (instance ?ATTR2 Transient_SystemBehavior)
+    (designPattern ?System ?ATTR))
+  (systemBehavior ?System ?ATTR2))
 
 (subclass InitiationDesignPattern DesignPatternAttribute)
 (termFormat EnglishLanguage InitiationDesignPattern "initiation design pattern")
 (documentation InitiationDesignPattern EnglishLanguage "An instance of the class &%RealtimeSystem has &%Initiation_DesignPattern if it consists of one software module and the actuators it commands. The design pattern is an event source which produces events for an event handler. The event source is typically an evaluate-and-decide software module. The event stream is necessarily asynchronous, or transient. The arrival rate of events may vary and is unbounded. Events may be either homogeneous or heterogeneous. The workload per event for homogeneous events is constant. The workload per event for heterogeneous events is a function of each event type. There is one deadline for real-time action initiation systems. It is the upper bound on the time to generate a command for the actuator.")
 
 (=>
-  (designPattern ?System InitiationDesignPattern)
-  (systemBehavior ?System Transient_SystemBehavior))
+  (and
+    (instance ?ATTR InitiationDesignPattern)
+    (instance ?ATTR2 Transient_SystemBehavior)
+    (designPattern ?System ?ATTR))
+  (systemBehavior ?System ?ATTR2))
 
 (subclass AssessmentDesignPattern DesignPatternAttribute)
 (termFormat EnglishLanguage AssessmentDesignPattern "assessment design pattern")
@@ -1307,20 +1323,28 @@
 (documentation SingleRequirementComplexity EnglishLanguage "An attribute that describes instances of &%RealtimeSystems which require a single timing requirement, either a bound for completion time for systems with &%Transient_SystemBehavior or cycle deadline for systems with &%PeriodicSystemBehavior.")
 
 (=>
-  (systemBehavior ?System Transient_SystemBehavior)
-  (complexity ?System SingleRequirementComplexity))
+  (and
+    (instance ?ATTR Transient_SystemBehavior)
+    (instance ?ATTR2 SingleRequirementComplexity)
+    (systemBehavior ?System ?ATTR))
+  (complexity ?System ?ATTR2))
 
 (=>
-  (systemBehavior ?System Periodic_SystemBehavior)
-  (complexity ?System SingleRequirementComplexity))
+  (and
+    (instance ?ATTR SingleRequirementComplexity)
+    (instance ?ATTR2 Periodic_SystemBehavior)
+    (systemBehavior ?System ?ATTR2))
+  (complexity ?System ?ATTR))
 
 (subclass MultipleRequirementComplexity ComplexityAttribute)
 (termFormat EnglishLanguage MultipleRequirementComplexity "multiple requirement complexity")
 (documentation MultipleRequirementComplexity EnglishLanguage "An attribute that describes instances of &%RealtimeSystems which require multiple timing requirements, both a bound for completion time for its transient behavior and a cycle deadline for its periodic behavior.")
 
 (=>
-  (systemBehavior ?System Hybrid_SystemBehavior)
-  (complexity ?System MultipleRequirementComplexity))
+  (and
+    (instance ?MULTIPLE MultipleRequirementComplexity)
+    (systemBehavior ?System Hybrid_SystemBehavior))
+  (complexity ?System ?MULTIPLE))
 
 (subclass StrictnessAttribute TimingRequirementAttribute)
 (documentation StrictnessAttribute EnglishLanguage "This is a subclass of &%TimingRequirementAttribute, which includes &%Hard_Strictness, &%Firm_Strictness, &%Soft_Strictness, &%Importance_Strictness, &%Utility_Strictness, and &%Hybrid_Strictness")
@@ -1356,20 +1380,27 @@
 (documentation HybridStrictness EnglishLanguage "An attribute that applies to a &%RealtimeSystem just in case the strictness of the system is a combination of &%Hard/ Firm/ Soft_Strictness with &%Importance_Strictness or a combination of &%Utility_Strictness with &%Importance_Strictness.")
 
 (=>
-  (strictness ?System HybridStrictness)
+  (and
+    (instance ?HYBRID HybridStrictness)
+    (strictness ?System ?HYBRID)
+    (instance ?IMPORTANCESTRICTNESS ImportanceStrictness)
+    (instance ?UTILITY UtilityStrictness)
+    (instance ?HARD HardStrictness)
+    (instance ?FIRM FirmStrictness)
+    (instance ?SOFT SoftStrictness))
   (or
     (and
-      (strictness ?System ImportanceStrictness)
-      (strictness ?System UtilityStrictness))
+      (strictness ?System ?IMPORTANCESTRICTNESS)
+      (strictness ?System ?UTILITY))
     (and
-      (strictness ?System ImportanceStrictness)
-      (strictness ?System HardStrictness))
+      (strictness ?System ?IMPORTANCESTRICTNESS)
+      (strictness ?System ?HARD))
     (and
-      (strictness ?System ImportanceStrictness)
-      (strictness ?System FirmStrictness))
+      (strictness ?System ?IMPORTANCESTRICTNESS)
+      (strictness ?System ?FIRM))
     (and
-      (strictness ?System ImportanceStrictness)
-      (strictness ?System SoftStrictness))))
+      (strictness ?System ?IMPORTANCESTRICTNESS)
+      (strictness ?System ?SOFT))))
 
 (subclass AbstractionLevelAttribute TimingRequirementAttribute)
 (documentation AbstractionLevelAttribute EnglishLanguage "This is a subclass of &%TimingRequirementAttribute, which includes &%Instrument_AbstractionLevel, &%Method_AbstractionLevel, &%Object_AbstractionLevel, &%Task_AbstractionLevel, and &%TaskGroup_AbstractionLevel.")
@@ -1610,7 +1641,6 @@
     (and
       (instance ?DSTORE DataStorageDevice)
       (resource ?DSAVE ?DSTORE))))
-    
 
 (subclass DataCompression ComputerProcess)
 (documentation DataCompression EnglishLanguage "Encoding data to take up less storage space.")
@@ -1618,17 +1648,20 @@
 (=>
   (and
     (instance ?Compression DataCompression)
+    (instance ?CONST ConstantQuantity)
+    (equal ?CONST (MeasureFn ?Memory ?Measure))
+    (instance ?CONST2 ConstantQuantity)
+    (equal ?CONST2 (MeasureFn ?NewMemory ?Measure))
     (dataProcessed ?Compression ?Data)
     (holdsDuring
       (ImmediatePastFn
         (WhenFn ?Compression))
-      (memorySize ?Data
-        (MeasureFn ?Memory ?Measure)))
+      (memorySize ?Data ?CONST))
     (holdsDuring
       (ImmediateFutureFn
         (WhenFn ?Compression))
       (memorySize ?Data
-        (MeasureFn ?NewMemory ?Measure))))
+        ?CONST2)))
   (lessThan ?NewMemory ?Memory))
 
 (subclass ProcessTask Abstract)
