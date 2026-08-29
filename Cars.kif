@@ -625,8 +625,9 @@
 
 (=>
   (and
-    (physicalAmplitude ?T
-      (MeasureFn ?L ?U))
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn ?L ?U))
+    (physicalAmplitude ?T ?LENGTH)
     (instance ?U UnitOfLength)
     (patient ?T ?O))
   (not
@@ -640,8 +641,9 @@
           (located ?O ?P1))
         (holdsDuring ?T2
           (located ?O ?P2))
-        (distance ?P1 ?P2
-          (MeasureFn ?L2 ?U))
+        (instance ?LENGTH LengthMeasure)
+        (equal ?LENGTH (MeasureFn ?L2 ?U))
+        (distance ?P1 ?P2 ?LENGTH)
         (greaterThan ?L2 ?L)))))
 
 (subclass Damper Device)
@@ -658,15 +660,17 @@
     (part ?D ?O)
     (causes ?E ?T)
     (instance ?U UnitOfLength)
+    (instance ?AMP LengthMeasure)
+    (equal ?AMP (MeasureFn ?A1 ?U))
+    (instance ?AMP2 LengthMeasure)
+    (equal ?AMP2 (MeasureFn ?A2 ?U))
     (holdsDuring
       (WhenFn ?E)
-      (physicalAmplitude ?T
-        (MeasureFn ?A1 ?U)))
+      (physicalAmplitude ?T ?AMP))
     (holdsDuring
       (ImmediateFutureFn
         (WhenFn ?E))
-      (physicalAmplitude ?T
-        (MeasureFn ?A2 ?U))))
+      (physicalAmplitude ?T ?AMP2)))
   (greaterThan ?A1 ?A2))
 
 (instance dampingRatio BinaryPredicate)
@@ -682,12 +686,14 @@
     (instance ?T Tremor)
     (patient ?T ?P)
     (instance ?U UnitOfLength)
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn ?A1 ?U))
+    (instance ?LENGTH2 LengthMeasure)
+    (equal ?LENGTH2 (MeasureFn ?A2 ?U))
     (holdsDuring ?T1
-      (physicalAmplitude ?T
-        (MeasureFn ?A1 ?U)))
+      (physicalAmplitude ?T ?LENGTH))
     (holdsDuring ?T2
-      (physicalAmplitude ?T
-        (MeasureFn ?A2 ?U)))
+      (physicalAmplitude ?T ?LENGTH2))
     (during ?T1
       (WhenFn ?T))
     (during ?T2
@@ -1579,10 +1585,11 @@
     (part ?CC ?E)
     (eventLocated ?EC ?E)
     (instance ?U UnitOfVolume)
+    (instance ?VOL VolumeMeasure)
+    (equal ?VOL (MeasureFn ?V1 ?U))
     (holdsDuring
       (WhenFn ?EC)
-      (minCylinderVolume ?E
-        (MeasureFn ?V1 ?U))))
+      (minCylinderVolume ?E ?VOL)))
   (not
     (exists (?V2 ?T)
       (and
@@ -1607,10 +1614,11 @@
     (part ?CC ?E)
     (eventLocated ?EC ?E)
     (instance ?U UnitOfVolume)
+    (instance ?VOLUME VolumeMeasure)
+    (equal ?VOLUME (MeasureFn ?V1 ?U))
     (holdsDuring
       (WhenFn ?EC)
-      (maxCylinderVolume ?E
-        (MeasureFn ?V1 ?U))))
+      (maxCylinderVolume ?E ?VOLUME)))
   (not
     (exists (?V2 ?T)
       (and
@@ -1630,10 +1638,12 @@
 (<=>
   (compressionRatio ?E ?R)
   (and
-    (minCylinderVolume ?E
-      (MeasureFn ?MIN ?M))
-    (maxCylinderVolume ?E
-      (MeasureFn ?MAX ?M))
+    (instance ?VOL1 VolumeMeasure)
+    (equal ?VOL1 (MeasureFn ?MIN ?M))
+    (instance ?VOL2 VolumeMeasure)
+    (equal ?VOL2 (MeasureFn ?MAX ?M))
+    (minCylinderVolume ?E ?VOL1)
+    (maxCylinderVolume ?E ?VOL2)
     (equal ?R
       (DivisionFn ?MIN ?MAX))))
 
@@ -1652,10 +1662,11 @@
     (part ?P ?E)
     (patient ?EC ?P)
     (eventLocated ?EC ?E)
-    (pistonStroke ?E
-      (MeasureFn ?LM ?U)))
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn ?LM ?U))
+    (pistonStroke ?E ?LENGTH))
   (not
-    (exists (?T1 ?T2 ?L1 ?L2 ?D)
+    (exists (?T1 ?T2 ?L1 ?L2 ?D ?LENGTH2)
       (and
         (during ?T1
           (WhenFn ?EC))
@@ -1665,8 +1676,9 @@
           (located ?P ?L1))
         (holdsDuring ?T2
           (located ?P ?L2))
-        (distance ?L1 ?L2
-          (MeasureFn ?D ?U))
+        (instance ?LENGTH2 LengthMeasure)
+        (equal ?LENGTH2 (MeasureFn ?D ?U))
+        (distance ?L1 ?L2 ?LENGTH2)
         (greaterThan ?D ?LM)))))
 
 (subclass EngineConnectingRod Device)
@@ -1908,6 +1920,22 @@
         (patient ?R1 ?F)
         (causes ?R1 ?R2)))))
 
+(instance PerpendicularOrientation PositionalAttribute)
+(documentation PerpendicularOrientation EnglishLanguage "A positional attribute indicating that the principal axes of two objects are perpendicular.")
+
+(instance relativeOrientationAngle TernaryPredicate)
+
+(domain relativeOrientationAngle 1 Object)
+(domain relativeOrientationAngle 2 Object)
+(domain relativeOrientationAngle 3 TwoDimensionalAngle)
+
+(documentation relativeOrientationAngle EnglishLanguage
+  "(relativeOrientationAngle ?OBJ1 ?OBJ2 ?ANGLE) means that the principal axes of ?OBJ1 and ?OBJ2 have the angular offset ?ANGLE.")
+
+(<=>
+  (orientation ?OBJ1 ?OBJ2 PerpendicularOrientation)
+  (relativeOrientationAngle ?OBJ1 ?OBJ2 RightAngle))
+
 (subclass Differential GearTrain)
 (termFormat EnglishLanguage Differential "differential")
 (documentation Differential EnglishLanguage "A set of &%Gears that change the axis of &%Rotating of a &%Shaft, in order to transmit power from an &%Automobile &%Engine to its &%Wheels.")
@@ -1920,7 +1948,7 @@
       (instance ?G2 Gear)
       (part ?G1 ?D)
       (part ?G2 ?D)
-      (orientation ?G1 ?G2 RightAngle))))
+      (orientation ?G1 ?G2 PerpendicularOrientation))))
 
 (subclass Distributor Device)
 (termFormat EnglishLanguage Distributor "distributor")
@@ -2194,8 +2222,9 @@
 
 (=>
   (and
-    (engineIdleSpeed ?E
-      (MeasureFn ?RI RevolutionsPerMinute))
+    (instance ?FUNC FunctionQuantity)
+    (equal ?FUNC (MeasureFn ?RI RevolutionsPerMinute))
+    (engineIdleSpeed ?E ?FUNC)
     (instance ?A Automobile)
     (instance ?GP GasPedal)
     (instance ?P Pushing)
@@ -2498,8 +2527,9 @@
 (=>
   (and
     (instance ?G SpeedGovernor)
-    (governorSpeed ?V
-      (MeasureFn ?S MilesPerHour))
+    (instance ?FUNC FunctionQuantity)
+    (equal ?FUNC (MeasureFn ?S MilesPerHour))
+    (governorSpeed ?V ?FUNC)
     (connectedEngineeringComponents ?G ?V))
   (hasPurpose ?G
     (not
@@ -2518,8 +2548,9 @@
     (instance ?EG EngineGovernor)
     (instance ?E Engine)
     (connectedEngineeringComponents ?EG ?E)
-    (governorSpeed ?E
-      (MeasureFn ?S MilesPerHour)))
+    (instance ?FUNC FunctionQuantity)
+    (equal ?FUNC (MeasureFn ?S MilesPerHour))
+    (governorSpeed ?E ?FUNC))
   (hasPurpose ?EG
     (not
       (exists (?R ?P ?M)
@@ -2543,8 +2574,9 @@
     (instance ?EG EngineGovernor)
     (instance ?V Vehicle)
     (connectedEngineeringComponents ?EG ?V)
-    (governorSpeed ?E
-      (MeasureFn ?S MilesPerHour)))
+    (instance ?FUNC FunctionQuantity)
+    (equal ?FUNC (MeasureFn ?S MilesPerHour))
+    (governorSpeed ?E ?FUNC))
   (hasPurpose ?EG
     (not
       (exists (?T ?M)
@@ -2575,8 +2607,9 @@
     (instance ?T Translocation)
     (instrument ?T ?V)
     (path ?T ?P)
-    (distanceOnPath
-      (MeasureFn ?D ?U) ?P)
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn ?D ?U))
+    (distanceOnPath ?LENGTH ?P)
     (instance ?U LengthMeasure))
   (hasPurpose ?O
     (exists (?M ?L ?DIST)
@@ -2586,8 +2619,7 @@
         (measurementReading ?O ?DIST)
         (inList ?D ?L)
         (holdsDuring
-          (WhenFn
-            (EndFn ?M))
+          (EndFn ?M)
           (and
             (equal ?DIST
               (MeasureFn
@@ -2603,10 +2635,12 @@
   (and
     (instance ?X MeasuringDevice)
     (attribute ?X ResetMeasuringDevice))
-  (and
-    (measurementReading ?X
-      (MeasureFn 0 ?U))
-    (instance ?U UnitOfMeasure)))
+  (exists (?CONST ?U)
+    (and
+        (instance ?CONST ConstantQuantity)
+        (equal ?CONST (MeasureFn 0 ?U))
+        (measurementReading ?X ?CONST)
+        (instance ?U UnitOfMeasure))))
 
 (subclass Speedometer MeasuringDevice)
 (documentation Speedometer EnglishLanguage "A &%Speedometer is a gauge that measures and displays the instantaneous speed of a vehicle.[Wikipedia]")
@@ -2725,11 +2759,11 @@
     (coilCount ?WC2 ?N2)
     (holdsDuring ?T
       (measure ?WC1
-        (MeasureFn Volt ?V1))))
+        (MeasureFn ?V1 Volt))))
   (and
     (holdsDuring ?T
       (measure ?WC2
-        (MeasureFn Volt ?V2)))
+        (MeasureFn ?V2 Volt)))
     (equal ?V2
       (MultiplicationFn ?V1
         (DivisionFn ?N2 ?N1)))))
@@ -3276,7 +3310,6 @@
                     (causes ?M ?INJ)
                     (patient ?INJ ?PERSON)
                     (subProcess ?IMP ?INJ))) Possibility))))))))
-
                                         
 (subclass CarAlarm SecurityDevice)
 (documentation CarAlarm EnglishLanguage "A &SecurityDevice which is a &%typicalPart of cars and other &%SelfPoweredRoadVehicle. ")
@@ -4431,7 +4464,9 @@
 (subclass RotationalAttribute PositionalAttribute)
 (documentation RotationalAttribute EnglishLanguage "A &%PositionalAttribute characterizing the direction of &%Rotating.")
 (=>
-  (manner ?PROC RotationalAttribute)
+  (and
+    (instance ?ATTR RotationalAttribute)
+    (manner ?PROC ?ATTR))
   (instance ?PROC Rotating))
 
 (instance Clockwise RotationalAttribute)

@@ -304,15 +304,25 @@
     (negotiatedPrice ?ENT ?PRICE ?AGREE)
     (partyToAgreement ?SELLER ?AGREE)
     (partyToAgreement ?BUYER ?AGREE))
-  (agreementClause
-    (exists (?B ?ITEM)
-      (and
-        (instance ?B Buying)
-        (patient ?B ?ITEM)
-        (immediateInstance ?ITEM ?ENT)
-        (agent ?B ?BUYER)
-        (origin ?B ?SELLER)
-        (transactionAmount ?B ?PRICE))) Obligation ?AGREE ?SELLER))
+  (exists (?PROP)
+    (and
+      (instance ?PROP Proposition)
+      (agreementClause
+        ?PROP
+        Obligation
+        ?AGREE
+        ?SELLER)
+      (forall (?B)
+        (=>
+          (realization ?B ?PROP)
+          (exists (?ITEM)
+            (and
+              (instance ?B Buying)
+              (patient ?B ?ITEM)
+              (immediateInstance ?ITEM ?ENT)
+              (agent ?B ?BUYER)
+              (origin ?B ?SELLER)
+              (transactionAmount ?B ?PRICE))))))))
    
 (instance publishedPrice QuaternaryPredicate)
 (documentation publishedPrice EnglishLanguage "(&%publishedPrice ?ENT ?PRICE ?AGENT ?PS) means that the &%CurrencyMeasure ?PRICE is given by &%AutonomousAgent ?AGENT to &%Entity ?ENT, based on conditions outlined in &%PricingScheme ?PS")
@@ -413,11 +423,15 @@
     
 (=>
   (and
-    (productPrice ?ENT
-      (MeasureFn ?PRICE1 ?U) ?AGENT)
     (instance ?U UnitOfCurrency)
-    (publishedPrice ?ENT
-      (MeasureFn ?PRICE2 ?U) ?AGENT ?PS)
+    (instance ?PRODUCTPRICE CurrencyMeasure)
+    (equal ?PRODUCTPRICE
+      (MeasureFn ?PRICE1 ?U))
+    (productPrice ?ENT ?PRODUCTPRICE ?AGENT)
+    (instance ?PUBLISHEDPRICE CurrencyMeasure)
+    (equal ?PUBLISHEDPRICE
+      (MeasureFn ?PRICE2 ?U))
+    (publishedPrice ?ENT ?PUBLISHEDPRICE ?AGENT ?PS)
     (validFor ?PS ?CUSTCLASS)
     (instance ?ITEM ?ENT)
     (instance ?B Buying)
@@ -426,7 +440,7 @@
     (origin ?B ?AGENT)
     (lessThan ?PRICE2 ?PRICE1))
   (modalAttribute
-    (transactionAmount ?B ?PRICE1) Likely))
+    (transactionAmount ?B ?PRODUCTPRICE) Likely))
     
 (instance rentalPrice QuaternaryPredicate)
 (documentation rentalPrice EnglishLanguage "(&%rentalPrice ?OBJ ?PRICE ?AGENT ?PS) means that the &%CurrencyMeasure ?PRICE is paid for the use of &%Physical ?OBJ. &%CognitiveAgent ?AGENT sets this price with conditions stipulated in &%PricingScheme ?PS")

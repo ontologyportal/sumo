@@ -95,16 +95,19 @@ provided that their height and width are within the limits of
 ;; maximumPayloadCapacity limits the ability to transport goods
 
 (=>
-  (maximumPayloadCapacity ?V
-    (MeasureFn ?LOAD ?UNITLOAD))
+  (and
+  (instance ?MASS1 MassMeasure)
+  (equal ?MASS1 (MeasureFn ?LOAD ?UNITLOAD))
+  (maximumPayloadCapacity ?V ?MASS1))
   (not
     (exists (?TP ?O ?WO ?WOU)
       (and
         (instance ?TP Transportation)
         (instrument ?TP ?V)
         (patient ?TP ?O)
-        (weight ?O
-          (MeasureFn ?WO ?WOU))
+        (instance ?MASS MassMeasure)
+        (equal ?MASS (MeasureFn ?WO ?WOU))
+        (weight ?O ?MASS)
         (equal ?WOU ?UNITLOAD)
         (greaterThan ?WO ?LOAD)))))
 
@@ -123,20 +126,35 @@ less than or equal to ?LMWIDTH, provided that the &%weight of these
 
 ;; maximumPayloadHeightWidth limits the ability to transport goods
 
+
 (=>
-  (maximumPayloadHeightWidth ?V
-    (MeasureFn ?HEIGHT ?UNITHEIGHT)
-    (MeasureFn ?WIDTH ?UNITWIDTH))
+  (and
+    (instance ?MAXHEIGHT LengthMeasure)
+    (equal ?MAXHEIGHT
+      (MeasureFn ?HEIGHT ?UNITHEIGHT))
+
+    (instance ?MAXWIDTH LengthMeasure)
+    (equal ?MAXWIDTH
+      (MeasureFn ?WIDTH ?UNITWIDTH))
+
+    (maximumPayloadHeightWidth
+      ?V ?MAXHEIGHT ?MAXWIDTH))
   (not
-    (exists (?TP ?O ?WO ?WOU ?HO ?HOU)
+    (exists
+      (?TP ?O ?WO ?WOU ?HO ?HOU
+       ?OBJECTWIDTH ?OBJECTHEIGHT)
       (and
         (instance ?TP Transportation)
         (instrument ?TP ?V)
         (patient ?TP ?O)
-        (width ?O
+        (instance ?OBJECTWIDTH LengthMeasure)
+        (equal ?OBJECTWIDTH
           (MeasureFn ?WO ?WOU))
-        (height ?O
+        (width ?O ?OBJECTWIDTH)
+        (instance ?OBJECTHEIGHT LengthMeasure)
+        (equal ?OBJECTHEIGHT
           (MeasureFn ?HO ?HOU))
+        (height ?O ?OBJECTHEIGHT)
         (equal ?WOU ?UNITWIDTH)
         (equal ?HOU ?UNITHEIGHT)
         (greaterThan ?WO ?WIDTH)
@@ -148,18 +166,31 @@ less than or equal to ?LMWIDTH, provided that the &%weight of these
 
 (=>
   (and
-    (maximumPayloadCapacity ?V
+    (instance ?MAXWEIGHT MassMeasure)
+    (equal ?MAXWEIGHT
       (MeasureFn ?WEIGHT ?UNITWEIGHT))
-    (maximumPayloadHeightWidth ?V
-      (MeasureFn ?HEIGHT ?UNITHEIGHT)
+    (maximumPayloadCapacity ?V ?MAXWEIGHT)
+    (instance ?MAXHEIGHT LengthMeasure)
+    (equal ?MAXHEIGHT
+      (MeasureFn ?HEIGHT ?UNITHEIGHT))
+    (instance ?MAXWIDTH LengthMeasure)
+    (equal ?MAXWIDTH
       (MeasureFn ?WIDTH ?UNITWIDTH))
+    (maximumPayloadHeightWidth
+      ?V ?MAXHEIGHT ?MAXWIDTH)
     (instance ?O SelfConnectedObject)
-    (weight ?O
+    (instance ?OBJECTWEIGHT MassMeasure)
+    (equal ?OBJECTWEIGHT
       (MeasureFn ?WEO ?WEOU))
-    (width ?O
+    (weight ?O ?OBJECTWEIGHT)
+    (instance ?OBJECTWIDTH LengthMeasure)
+    (equal ?OBJECTWIDTH
       (MeasureFn ?WO ?WOU))
-    (height ?O
+    (width ?O ?OBJECTWIDTH)
+    (instance ?OBJECTHEIGHT LengthMeasure)
+    (equal ?OBJECTHEIGHT
       (MeasureFn ?HO ?HOU))
+    (height ?O ?OBJECTHEIGHT)
     (equal ?WEOU ?UNITWEIGHT)
     (equal ?WOU ?UNITWIDTH)
     (equal ?HOU ?UNITHEIGHT)
@@ -183,12 +214,14 @@ capable of launching rockets or grenades or other explosives.")
 (=>
   (instance ?G ArtilleryCannon)
   (hasPurpose ?G
-    (exists (?S ?X)
+    (exists (?S ?X ?ANGLE)
       (and
         (instance ?S Shooting)
-        (instrument ?S ?G)
-        (angleOfFire ?S
+        (instance ?ANGLE PlaneAngleMeasure)
+        (equal ?ANGLE
           (MeasureFn ?X AngularDegree))
+        (instrument ?S ?G)
+        (angleOfFire ?S ?ANGLE)
         (greaterThanOrEqualTo ?X 0)
         (lessThanOrEqualTo ?X 45)))))
 
@@ -213,12 +246,14 @@ of high-angle fire (45° to 90° elevation)[Wikipedia]")
 (=>
   (instance ?G Howitzer)
   (hasPurpose ?G
-    (exists (?S ?X)
+    (exists (?S ?X ?ANGLE)
       (and
         (instance ?S Shooting)
-        (instrument ?S ?G)
-        (angleOfFire ?S
+        (instance ?ANGLE PlaneAngleMeasure)
+        (equal ?ANGLE
           (MeasureFn ?X AngularDegree))
+        (instrument ?S ?G)
+        (angleOfFire ?S ?ANGLE)
         (greaterThanOrEqualTo ?X 0)
         (lessThanOrEqualTo ?X 90)))))
 
@@ -236,12 +271,14 @@ of high-angle fire (45° to 90° elevation)[Wikipedia]")
 (=>
   (instance ?G MortarGun)
   (hasPurpose ?G
-    (exists (?S ?X)
+    (exists (?S ?X ?ANGLE)
       (and
         (instance ?S Shooting)
-        (instrument ?S ?G)
-        (angleOfFire ?S
+        (instance ?ANGLE PlaneAngleMeasure)
+        (equal ?ANGLE
           (MeasureFn ?X AngularDegree))
+        (instrument ?S ?G)
+        (angleOfFire ?S ?ANGLE)
         (greaterThanOrEqualTo ?X 45)
         (lessThanOrEqualTo ?X 90)))))
 
@@ -289,8 +326,8 @@ the whether a &%Shooting event is held at a high or low angle.")
     (attribute ?S ?A)
     (instance ?A ShootingAngle))
   (or
-    (instance ?A HighAngleFire)
-    (instance ?A LowAngleFire)))
+    (attribute ?A HighAngleFire)
+    (attribute ?A LowAngleFire)))
 
 (instance HighAngleFire ShootingAngle)
 (documentation HighAngleFire EnglishLanguage "&%HighAngleFire describes a &%Shooting
@@ -301,8 +338,10 @@ event with an &%angleOfFire between 45 to 90 degree elevation.")
   (and
     (instance ?S Shooting)
     (attribute ?S HighAngleFire)
-    (angleOfFire ?S
-      (MeasureFn ?A AngularDegree)))
+    (instance ?ANGLE PlaneAngleMeasure)
+    (equal ?ANGLE
+      (MeasureFn ?A AngularDegree))
+    (angleOfFire ?S ?ANGLE))
   (and
     (greaterThanOrEqualTo ?A 45)
     (lessThanOrEqualTo ?A 90)))
@@ -316,8 +355,10 @@ event with an &%angleOfFire between 0 to 45 to degree elevation.")
   (and
     (instance ?S Shooting)
     (attribute ?S LowAngleFire)
-    (angleOfFire ?S
-      (MeasureFn ?A AngularDegree)))
+    (instance ?ANGLE PlaneAngleMeasure)
+    (equal ?ANGLE
+      (MeasureFn ?A AngularDegree))
+    (angleOfFire ?S ?ANGLE))
   (and
     (greaterThanOrEqualTo ?A 0)
     (lessThanOrEqualTo ?A 45)))
@@ -443,22 +484,34 @@ type of ammunition used).  (from Wikipedia)")
 
 ;; caliber of M242
 
-(caliber M242
-  (MeasureFn 25.0 Millimeter))
+(exists (?CALIBER)
+  (and
+    (instance ?CALIBER LengthMeasure)
+    (equal ?CALIBER
+      (MeasureFn 25.0 Millimeter))
+    (caliber M242 ?CALIBER)))
 
 ;; effective range of M242
 
 (=>
   (instance ?M242 M242)
-  (effectiveRange ?M242
-    (MeasureFn 2.0 Kilometer)))
+  (exists (?RANGE)
+    (and
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 2.0 Kilometer))
+      (effectiveRange ?M242 ?RANGE))))
 
 ;; weight of M242
 
 (=>
   (instance ?M242 M242)
-  (weight ?M242
-    (MeasureFn 110.0 Kilogram)))
+  (exists (?WEIGHT)
+    (and
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 110.0 Kilogram))
+      (weight ?M242 ?WEIGHT))))
 
 (subclass GAU12U AntiArmorWeapon)
 (subclass GAU12U GatlingGun)
@@ -477,15 +530,24 @@ ADEN cannon it replaces.  (from Wikipedia)")
 
 ;; caliber of GAU12U
 
-(caliber GAU12U
-  (MeasureFn 25.0 Millimeter))
+(exists (?CALIBER)
+  (and
+    (instance ?CALIBER LengthMeasure)
+    (equal ?CALIBER
+      (MeasureFn 25.0 Millimeter))
+    (caliber GAU12U ?CALIBER)))
 
 ;; weight of GAU12U
 
+
 (=>
   (instance ?GAU12U GAU12U)
-  (weight ?GAU12U
-    (MeasureFn 122.0 Kilogram)))
+  (exists (?WEIGHT)
+    (and
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 122.0 Kilogram))
+      (weight ?GAU12U ?WEIGHT))))
 
 (subclass ChainGun HeavyMachineGun)
 (documentation ChainGun EnglishLanguage "A chain gun is a type of machine gun or automatic
@@ -553,23 +615,32 @@ versions in service, see selected versions below:
  (from Wikipedia)")
 
 ;; ammunition for M240
-
-(caliber M240
-  (MeasureFn 7.62 Millimeter))
+(exists (?CALIBER)
+  (and
+    (instance ?CALIBER LengthMeasure)
+    (equal ?CALIBER
+      (MeasureFn 7.62 Millimeter))
+    (caliber M240 ?CALIBER)))
 
 ;; weight of M240
-
 (=>
   (instance ?M240 M240)
-  (weight ?M240
-    (MeasureFn 12.5 Kilogram)))
+  (exists (?WEIGHT)
+    (and
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 12.5 Kilogram))
+      (weight ?M240 ?WEIGHT))))
 
 ;; effective range of M240
-
 (=>
   (instance ?M240 M240)
-  (effectiveRange ?M240
-    (MeasureFn 1.8 Kilometer)))
+  (exists (?RANGE)
+    (and
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 1.8 Kilometer))
+      (effectiveRange ?M240 ?RANGE))))
 
 (subclass M60 AutomaticGun)
 (documentation M60 EnglishLanguage "The M60 (also seen 'M-60', formally Machine Gun,
@@ -594,22 +665,34 @@ meters if the gunner is sufficiently skilled.  (from Wikipedia)")
 
 ;; ammunition for M60
 
-(caliber M60
-  (MeasureFn 7.62 Millimeter))
+(exists (?CALIBER)
+  (and
+    (instance ?CALIBER LengthMeasure)
+    (equal ?CALIBER
+      (MeasureFn 7.62 Millimeter))
+    (caliber M60 ?CALIBER)))
 
 ;; weight of M60
 
 (=>
   (instance ?M60 M60)
-  (weight ?M60
-    (MeasureFn 10.5 Kilogram)))
+  (exists (?WEIGHT)
+    (and
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 10.5 Kilogram))
+      (weight ?M60 ?WEIGHT))))
 
 ;; effective range of M60
 
 (=>
   (instance ?M60 M60)
-  (effectiveRange ?M60
-    (MeasureFn 1.1 Kilometer)))
+  (exists (?RANGE)
+    (and
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 1.1 Kilometer))
+      (effectiveRange ?M60 ?RANGE))))
 
 (subclass HeavyMachineGun AutomaticGun)
 (documentation HeavyMachineGun EnglishLanguage "A heavy machine gun refers to either a
@@ -658,22 +741,34 @@ Effective range 	2,000 m (2200 yards)
 
 ;; ammunition for M2Browning
 
-(caliber M2Browning
-  (MeasureFn 12.7 Millimeter))
+(exists (?CALIBER)
+  (and
+    (instance ?CALIBER LengthMeasure)
+    (equal ?CALIBER
+      (MeasureFn 12.7 Millimeter))
+    (caliber M2Browning ?CALIBER)))
 
 ;; weight of M2Browning
 
 (=>
   (instance ?M2Browning M2Browning)
-  (weight ?M2Browning
-    (MeasureFn 38.0 Kilogram)))
+  (exists (?WEIGHT)
+    (and
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 38.0 Kilogram))
+      (weight ?M2Browning ?WEIGHT))))
 
 ;; effective range of M2Browning
 
 (=>
   (instance ?M2Browning M2Browning)
-  (effectiveRange ?M2Browning
-    (MeasureFn 2.0 Kilometer)))
+  (exists (?RANGE)
+    (and
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 2.0 Kilometer))
+      (effectiveRange ?M2Browning ?RANGE))))
 
 (subclass XM218 HeavyMachineGun)
 (relatedInternalConcept XM218 M2Browning)
@@ -692,22 +787,34 @@ http://www.fas.org/man/dod-101/sys/ac/equip/gau-15.htm)")
 
 ;; ammunition for XM218
 
-(caliber XM218
-  (MeasureFn 12.7 Millimeter))
+(exists (?CALIBER)
+  (and
+    (instance ?CALIBER LengthMeasure)
+    (equal ?CALIBER
+      (MeasureFn 12.7 Millimeter))
+    (caliber XM218 ?CALIBER)))
 
 ;; weight of XM218
 
 (=>
   (instance ?XM218 XM218)
-  (weight ?XM218
-    (MeasureFn 27.0 Kilogram)))
+  (exists (?WEIGHT)
+    (and
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 27.0 Kilogram))
+      (weight ?XM218 ?WEIGHT))))
 
 ;; effective range of XM218
 
 (=>
   (instance ?XM218 XM218)
-  (effectiveRange ?XM218
-    (MeasureFn 2.0 Kilometer)))
+  (exists (?RANGE)
+    (and
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 2.0 Kilometer))
+      (effectiveRange ?XM218 ?RANGE))))
 
 (subclass M3M HeavyMachineGun)
 (documentation M3M EnglishLanguage "The M3M is a weapon system rather than just a machine
@@ -735,22 +842,34 @@ http://www.navweaps.com/Weapons/WNUS_50cal_M3M_MG.htm)")
 
 ;; ammunition for M3M
 
-(caliber M3M
-  (MeasureFn 12.7 Millimeter))
+(exists (?CALIBER)
+  (and
+    (instance ?CALIBER LengthMeasure)
+    (equal ?CALIBER
+      (MeasureFn 12.7 Millimeter))
+    (caliber M3M ?CALIBER)))
 
 ;; weight of M3M
 
 (=>
   (instance ?M3M M3M)
-  (weight ?M3M
-    (MeasureFn 35.8 Kilogram)))
+  (exists (?WEIGHT)
+    (and
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 35.8 Kilogram))
+      (weight ?M3M ?WEIGHT))))
 
 ;; effective range of M3M
 
 (=>
   (instance ?M3M M3M)
-  (effectiveRange ?M3M
-    (MeasureFn 1.85 Kilometer)))
+  (exists (?RANGE)
+    (and
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 1.85 Kilometer))
+      (effectiveRange ?M3M ?RANGE))))
 
 (subclass GrenadeLauncher HeavyMachineGun)
 (documentation GrenadeLauncher EnglishLanguage "A grenade launcher is an machine gun
@@ -797,22 +916,34 @@ jeeps and as well as a large variety of naval mounts.  (from Wikipedia)")
 
 ;; ammunition for MK19
 
-(caliber MK19
-  (MeasureFn 40.0 Millimeter))
+(exists (?CALIBER)
+  (and
+    (instance ?CALIBER LengthMeasure)
+    (equal ?CALIBER
+      (MeasureFn 40.0 Millimeter))
+    (caliber MK19 ?CALIBER)))
 
 ;; weight of MK19
 
 (=>
   (instance ?MK19 MK19)
-  (weight ?MK19
-    (MeasureFn 33.0 Kilogram)))
+  (exists (?WEIGHT)
+    (and
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 33.0 Kilogram))
+      (weight ?MK19 ?WEIGHT))))
 
 ;; effective range of MK19
 
 (=>
   (instance ?MK19 MK19)
-  (effectiveRange ?MK19
-    (MeasureFn 1.6 Kilometer)))
+  (exists (?RANGE)
+    (and
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 1.6 Kilometer))
+      (effectiveRange ?MK19 ?RANGE))))
 
 (subclass AntiArmorWeapon Weapon)
 (documentation AntiArmorWeapon EnglishLanguage "A weapon designed to damage the armor
@@ -870,15 +1001,23 @@ the missile. The night tracker operates in the thermal energy range.
 
 (=>
   (instance ?DragonWeapon DragonWeapon)
-  (weight ?DragonWeapon
-    (MeasureFn 33.9 PoundMass)))
+  (exists (?WEIGHT)
+    (and
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 33.9 PoundMass))
+      (weight ?DragonWeapon ?WEIGHT))))
 
 ;; effective range of DragonWeapon
 
 (=>
   (instance ?DragonWeapon DragonWeapon)
-  (effectiveRange ?DragonWeapon
-    (MeasureFn 1.0 Kilometer)))
+  (exists (?RANGE)
+    (and
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 1.0 Kilometer))
+      (effectiveRange ?DragonWeapon ?RANGE))))
 
 (subclass JavelinWeapon AntiTankWeapon)
 (subclass JavelinWeapon Missile)
@@ -929,16 +1068,23 @@ http://federalvoice.dscc.dla.mil/federalvoice/040728/weapon.html)")
 
 (=>
   (instance ?JavelinWeapon JavelinWeapon)
-  (weight ?JavelinWeapon
-    (MeasureFn 49.5 PoundMass)))
+  (exists (?WEIGHT)
+    (and
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 49.5 PoundMass))
+      (weight ?JavelinWeapon ?WEIGHT))))
 
 ;; effective range of JavelinWeapon
 
 (=>
   (instance ?JavelinWeapon JavelinWeapon)
-  (effectiveRange ?JavelinWeapon
-    (MeasureFn 1.5 Mile)))
-
+  (exists (?RANGE)
+    (and
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 1.5 Mile))
+      (effectiveRange ?JavelinWeapon ?RANGE))))
 
 (subclass SMAWBunkerBuster AntiArmorWeapon)
 (subclass SMAWBunkerBuster Missile)
@@ -989,22 +1135,32 @@ the loss of boresight problem between launch tube and spotting rifle.
 
 ;; ammunition for SMAWBunkerBuster
 
-(caliber SMAWBunkerBuster
-  (MeasureFn 83.0 Millimeter))
+(=>
+  (instance ?SMAW SMAWBunkerBuster)
+  (exists (?WIDTH)
+    (and
+      (instance ?WIDTH LengthMeasure)
+      (equal ?WIDTH
+        (MeasureFn 83.0 Millimeter))
+      (width ?SMAW ?WIDTH))))
 
 ;; weight of SMAWBunkerBuster
 
 (=>
-  (instance ?SMAWBunkerBuster SMAWBunkerBuster)
-  (weight ?SMAWBunkerBuster
-    (MeasureFn 7.54 Kilogram)))
+  (and
+    (instance ?MASS MassMeasure)
+    (equal ?MASS (MeasureFn 7.54 Kilogram))
+    (instance ?SMAWBunkerBuster SMAWBunkerBuster))
+  (weight ?SMAWBunkerBuster ?MASS))
 
 ;; effective range of SMAWBunkerBuster
 
 (=>
-  (instance ?SMAWBunkerBuster SMAWBunkerBuster)
-  (effectiveRange ?SMAWBunkerBuster
-    (MeasureFn 0.5 Kilometer)))
+  (and
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn 0.5 Kilometer))
+    (instance ?SMAWBunkerBuster SMAWBunkerBuster))
+  (effectiveRange ?SMAWBunkerBuster ?LENGTH))
 
 (subclass BGM71TOW AntiTankMissile)
 (documentation BGM71TOW EnglishLanguage "The BGM-71 TOW is a US anti-tank missile. TOW
@@ -1017,16 +1173,20 @@ all currently known tank armor. (from Wikipedia)")
 ;; weight of BGM71TOW
 
 (=>
-  (instance ?BGM71TOW BGM71TOW)
-  (weight ?BGM71TOW
-    (MeasureFn 18.9 Kilogram)))
+  (and
+    (instance ?MASS MassMeasure)
+    (equal ?MASS (MeasureFn 18.9 Kilogram))
+    (instance ?BGM71TOW BGM71TOW))
+  (weight ?BGM71TOW ?MASS))
 
 ;; effective range of BGM71TOW
 
 (=>
-  (instance ?BGM71TOW BGM71TOW)
-  (effectiveRange ?BGM71TOW
-    (MeasureFn 3.0 Kilometer)))
+  (and
+    (instance ?LENGTH LengthMeasure)
+    (equal ?LENGTH (MeasureFn 3.0 Kilometer))
+    (instance ?BGM71TOW BGM71TOW))
+  (effectiveRange ?BGM71TOW ?LENGTH))
 
 (subclass AntiTankWeapon AntiArmorWeapon)
 (documentation AntiTankWeapon EnglishLanguage "A weapon primarily designed to destroy
@@ -1150,7 +1310,6 @@ air.")
             (located ?OBJ ?REGION)))))))
 
 (subclass GroundAttackMissile Missile)
-
 (documentation GroundAttackMissile EnglishLanguage "A missile that attacks targets on
 the ground.")
 
@@ -1314,17 +1473,28 @@ types is a solid-fuel rocket motor behind the warhead.  (from Wikipedia)")
 
 (=>
   (instance ?AGM65 AGM65)
-  (and
-    (length ?AGM65
-      (MeasureFn 2.55 Meter))
-    (width ?AGM65
-      (MeasureFn 0.7 Meter))
-    (height ?AGM65
-      (MeasureFn 0.7 Meter))
-    (weight ?AGM65
-      (MeasureFn 302.0 Kilogram))
-    (effectiveRange ?AGM65
-      (MeasureFn 27.0 Kilometer))))
+  (exists (?LENGTH ?WIDTH ?HEIGHT ?WEIGHT ?RANGE)
+    (and
+      (instance ?LENGTH LengthMeasure)
+      (equal ?LENGTH
+        (MeasureFn 2.55 Meter))
+      (instance ?WIDTH LengthMeasure)
+      (equal ?WIDTH
+        (MeasureFn 0.7 Meter))
+      (instance ?HEIGHT LengthMeasure)
+      (equal ?HEIGHT
+        (MeasureFn 0.7 Meter))
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 302.0 Kilogram))
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 27.0 Kilometer))
+      (length ?AGM65 ?LENGTH)
+      (width ?AGM65 ?WIDTH)
+      (height ?AGM65 ?HEIGHT)
+      (weight ?AGM65 ?WEIGHT)
+      (effectiveRange ?AGM65 ?RANGE))))
 
 (subclass AAM AirLaunchMissile)
 (subclass AAM AirAttackMissile)
@@ -1348,17 +1518,28 @@ many air forces. (from Wikipedia)")
 
 (=>
   (instance ?AIM9 AIM9)
-  (and
-    (length ?AIM9
-      (MeasureFn 2.85 Meter))
-    (width ?AIM9
-      (MeasureFn 0.63 Meter))
-    (height ?AIM9
-      (MeasureFn 0.63 Meter))
-    (weight ?AIM9
-      (MeasureFn 91.0 Kilogram))
-    (effectiveRange ?AIM9
-      (MeasureFn 18.0 Kilometer))))
+  (exists (?LENGTH ?WIDTH ?HEIGHT ?WEIGHT ?RANGE)
+    (and
+      (instance ?LENGTH LengthMeasure)
+      (equal ?LENGTH
+        (MeasureFn 2.85 Meter))
+      (instance ?WIDTH LengthMeasure)
+      (equal ?WIDTH
+        (MeasureFn 0.63 Meter))
+      (instance ?HEIGHT LengthMeasure)
+      (equal ?HEIGHT
+        (MeasureFn 0.63 Meter))
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 91.0 Kilogram))
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 18.0 Kilometer))
+      (length ?AIM9 ?LENGTH)
+      (width ?AIM9 ?WIDTH)
+      (height ?AIM9 ?HEIGHT)
+      (weight ?AIM9 ?WEIGHT)
+      (effectiveRange ?AIM9 ?RANGE))))
 
 (subclass AGM114 AGM)
 (subclass AGM114 BeamRidingGMissile)
@@ -1394,17 +1575,28 @@ service for many years.  (from Wikipedia)")
 
 (=>
   (instance ?AGM114 AGM114)
-  (and
-    (length ?AGM114
-      (MeasureFn 1.63 Meter))
-    (width ?AGM114
-      (MeasureFn 0.71 Meter))
-    (height ?AGM114
-      (MeasureFn 0.71 Meter))
-    (weight ?AGM114
-      (MeasureFn 45.0 Kilogram))
-    (effectiveRange ?AGM114
-      (MeasureFn 8.0 Kilometer))))
+  (exists (?LENGTH ?WIDTH ?HEIGHT ?WEIGHT ?RANGE)
+    (and
+      (instance ?LENGTH LengthMeasure)
+      (equal ?LENGTH
+        (MeasureFn 1.63 Meter))
+      (instance ?WIDTH LengthMeasure)
+      (equal ?WIDTH
+        (MeasureFn 0.71 Meter))
+      (instance ?HEIGHT LengthMeasure)
+      (equal ?HEIGHT
+        (MeasureFn 0.71 Meter))
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 45.0 Kilogram))
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 8.0 Kilometer))
+      (length ?AGM114 ?LENGTH)
+      (width ?AGM114 ?WIDTH)
+      (height ?AGM114 ?HEIGHT)
+      (weight ?AGM114 ?WEIGHT)
+      (effectiveRange ?AGM114 ?RANGE))))
 
 (subclass MolotovCocktail Bomb)
 (documentation MolotovCocktail EnglishLanguage "Molotov cocktail, named after Vyacheslav
@@ -1705,17 +1897,28 @@ LAV-25 to an LAV-25A1 standard.  (from Wikipedia)")
 
 (=>
   (instance ?LAV LAV25)
-  (and
-    (length ?LAV
-      (MeasureFn 6.39 Meter))
-    (width ?LAV
-      (MeasureFn 2.5 Meter))
-    (height ?LAV
-      (MeasureFn 2.69 Meter))
-    (weight ?LAV
-      (MeasureFn 12802.8 Kilogram))
-    (effectiveRange ?LAV
-      (MeasureFn 660.1 Kilometer))))
+  (exists (?LENGTH ?WIDTH ?HEIGHT ?WEIGHT ?RANGE)
+    (and
+      (instance ?LENGTH LengthMeasure)
+      (equal ?LENGTH
+        (MeasureFn 6.39 Meter))
+      (instance ?WIDTH LengthMeasure)
+      (equal ?WIDTH
+        (MeasureFn 2.5 Meter))
+      (instance ?HEIGHT LengthMeasure)
+      (equal ?HEIGHT
+        (MeasureFn 2.69 Meter))
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 12802.8 Kilogram))
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 660.1 Kilometer))
+      (length ?LAV ?LENGTH)
+      (width ?LAV ?WIDTH)
+      (height ?LAV ?HEIGHT)
+      (weight ?LAV ?WEIGHT)
+      (effectiveRange ?LAV ?RANGE))))
 
 ;; weapons carried by an LAV25
 
@@ -1825,17 +2028,28 @@ related combat support in subsequent mechanized operations ashore.")
 
 (=>
   (instance ?AAV AAV)
-  (and
-    (length ?AAV
-      (MeasureFn 7.94 Meter))
-    (width ?AAV
-      (MeasureFn 3.27 Meter))
-    (weight ?AAV
-      (MeasureFn 22.8 TonMass))
-    (height ?AAV
-      (MeasureFn 3.26 Meter))
-    (effectiveRange ?AAV
-      (MeasureFn 480.0 Kilometer))))
+  (exists (?LENGTH ?WIDTH ?WEIGHT ?HEIGHT ?RANGE)
+    (and
+      (instance ?LENGTH LengthMeasure)
+      (equal ?LENGTH
+        (MeasureFn 7.94 Meter))
+      (instance ?WIDTH LengthMeasure)
+      (equal ?WIDTH
+        (MeasureFn 3.27 Meter))
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 22.8 TonMass))
+      (instance ?HEIGHT LengthMeasure)
+      (equal ?HEIGHT
+        (MeasureFn 3.26 Meter))
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 480.0 Kilometer))
+      (length ?AAV ?LENGTH)
+      (width ?AAV ?WIDTH)
+      (weight ?AAV ?WEIGHT)
+      (height ?AAV ?HEIGHT)
+      (effectiveRange ?AAV ?RANGE))))
 
 ;; weapons carried by an AAV
 
@@ -1907,17 +2121,28 @@ primarily by NATO countries, and also by India.  (from Wikipedia)")
 
 (=>
   (instance ?Harrier Harrier2)
-  (and
-    (length ?Harrier
-      (MeasureFn 14.1 Meter))
-    (width ?Harrier
-      (MeasureFn 9.2 Meter))
-    (height ?Harrier
-      (MeasureFn 3.5 Meter))
-    (weight ?Harrier
-      (MeasureFn 5700.0 Kilogram))
-    (effectiveRange ?Harrier
-      (MeasureFn 1000.0 Kilometer))))
+  (exists (?LENGTH ?WIDTH ?HEIGHT ?WEIGHT ?RANGE)
+    (and
+      (instance ?LENGTH LengthMeasure)
+      (equal ?LENGTH
+        (MeasureFn 14.1 Meter))
+      (instance ?WIDTH LengthMeasure)
+      (equal ?WIDTH
+        (MeasureFn 9.2 Meter))
+      (instance ?HEIGHT LengthMeasure)
+      (equal ?HEIGHT
+        (MeasureFn 3.5 Meter))
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 5700.0 Kilogram))
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 1000.0 Kilometer))
+      (length ?Harrier ?LENGTH)
+      (width ?Harrier ?WIDTH)
+      (height ?Harrier ?HEIGHT)
+      (weight ?Harrier ?WEIGHT)
+      (effectiveRange ?Harrier ?RANGE))))
 
 ;; weapons carried by an Harrier2
 
@@ -1952,16 +2177,21 @@ which will be equipped with three 6000 shp-class turboshaft engines.
 (=>
   (instance ?CH53E CH53E)
   (and
-    (length ?CH53E
-      (MeasureFn 30.2 Meter))
-    (width ?CH53E
-      (MeasureFn 24.1 Meter))
-    (height ?CH53E
-      (MeasureFn 8.46 Meter))
-    (weight ?CH53E
-      (MeasureFn 15071.0 Kilogram))
-    (effectiveRange ?CH53E
-      (MeasureFn 2000.0 Kilometer))))
+    (instance ?LENGTH1 LengthMeasure)
+    (equal ?LENGTH1 (MeasureFn 30.2 Meter))
+    (length ?CH53E ?LENGTH1)
+    (instance ?LENGTH2 LengthMeasure)
+    (equal ?LENGTH2 (MeasureFn 30.2 Meter))
+    (width ?CH53E ?LENGTH2)
+    (instance ?LENGTH3 LengthMeasure)
+    (equal ?LENGTH3 (MeasureFn 8.46 Meter))
+    (height ?CH53E ?LENGTH3)
+    (instance ?LENGTH4 LengthMeasure)
+    (equal ?MASS (MeasureFn 15071.0 Kilogram))
+    (weight ?CH53E ?MASS)
+    (instance ?LENGTH5 LengthMeasure)
+    (equal ?LENGTH5 (MeasureFn 2000.0 Kilometer))
+    (effectiveRange ?CH53E ?LENGTH5)))
 
 ;; weapons carried by an CH53E
 
@@ -1975,10 +2205,13 @@ which will be equipped with three 6000 shp-class turboshaft engines.
 
 (=>
   (instance ?CH53E CH53E)
-  (and
-    (personTransportCapability ?CH53E 55)
-    (maximumPayloadCapacity ?CH53E
-      (MeasureFn 14515.0 Kilogram))))
+  (exists (?PAYLOAD)
+    (and
+      (instance ?PAYLOAD MassMeasure)
+      (equal ?PAYLOAD
+        (MeasureFn 14515.0 Kilogram))
+      (personTransportCapability ?CH53E 55)
+      (maximumPayloadCapacity ?CH53E ?PAYLOAD))))
 
 ;; a CH53E has heavy MGs mounted
 
@@ -2023,17 +2256,28 @@ continue through the other medium helicopter squadrons, into 2014.
 
 (=>
   (instance ?CH46D CH46D)
-  (and
-    (length ?CH46D
-      (MeasureFn 25.72 Meter))
-    (width ?CH46D
-      (MeasureFn 15.54 Meter))
-    (height ?CH46D
-      (MeasureFn 5.1 Meter))
-    (weight ?CH46D
-      (MeasureFn 7047.0 Kilogram))
-    (effectiveRange ?CH46D
-      (MeasureFn 676.0 Kilometer))))
+  (exists (?LENGTH ?WIDTH ?HEIGHT ?WEIGHT ?RANGE)
+    (and
+      (instance ?LENGTH LengthMeasure)
+      (equal ?LENGTH
+        (MeasureFn 25.72 Meter))
+      (instance ?WIDTH LengthMeasure)
+      (equal ?WIDTH
+        (MeasureFn 15.54 Meter))
+      (instance ?HEIGHT LengthMeasure)
+      (equal ?HEIGHT
+        (MeasureFn 5.1 Meter))
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 7047.0 Kilogram))
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 676.0 Kilometer))
+      (length ?CH46D ?LENGTH)
+      (width ?CH46D ?WIDTH)
+      (height ?CH46D ?HEIGHT)
+      (weight ?CH46D ?WEIGHT)
+      (effectiveRange ?CH46D ?RANGE))))
 
 ;; weapons carried by an CH46D
 
@@ -2045,10 +2289,13 @@ continue through the other medium helicopter squadrons, into 2014.
 
 (=>
   (instance ?CH46D CH46D)
-  (and
-    (personTransportCapability ?CH46D 25)
-    (maximumPayloadCapacity ?CH46D
-      (MeasureFn 3131.0 Kilogram))))
+  (exists (?PAYLOAD)
+    (and
+      (instance ?PAYLOAD MassMeasure)
+      (equal ?PAYLOAD
+        (MeasureFn 3131.0 Kilogram))
+      (personTransportCapability ?CH46D 25)
+      (maximumPayloadCapacity ?CH46D ?PAYLOAD))))
 
 (subclass AH1 Helicopter)
 (subclass AH1 MilitaryVehicle)
@@ -2063,17 +2310,28 @@ with US Marine Corps, US Navy and several other users.  (from Wikipedia)")
 
 (=>
   (instance ?AH1 AH1)
-  (and
-    (length ?AH1
-      (MeasureFn 17.68 Meter))
-    (width ?AH1
-      (MeasureFn 14.63 Meter))
-    (height ?AH1
-      (MeasureFn 4.44 Meter))
-    (weight ?AH1
-      (MeasureFn 4634.0 Kilogram))
-    (effectiveRange ?AH1
-      (MeasureFn 587.0 Kilometer))))
+  (exists (?LENGTH ?WIDTH ?HEIGHT ?WEIGHT ?RANGE)
+    (and
+      (instance ?LENGTH LengthMeasure)
+      (equal ?LENGTH
+        (MeasureFn 17.68 Meter))
+      (instance ?WIDTH LengthMeasure)
+      (equal ?WIDTH
+        (MeasureFn 14.63 Meter))
+      (instance ?HEIGHT LengthMeasure)
+      (equal ?HEIGHT
+        (MeasureFn 4.44 Meter))
+      (instance ?WEIGHT MassMeasure)
+      (equal ?WEIGHT
+        (MeasureFn 4634.0 Kilogram))
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 587.0 Kilometer))
+      (length ?AH1 ?LENGTH)
+      (width ?AH1 ?WIDTH)
+      (height ?AH1 ?HEIGHT)
+      (weight ?AH1 ?WEIGHT)
+      (effectiveRange ?AH1 ?RANGE))))
 
 ;; weapons carried by an AH1
 
@@ -2104,7 +2362,6 @@ with US Marine Corps, US Navy and several other users.  (from Wikipedia)")
         (instance ?ATTACK Attack)
         (instrument ?ATTACK ?CH)))))
 
-
 (subclass LCAC AmphibiousVehicle)
 (subclass LCAC MilitaryVehicle)
 (subclass LCAC PassengerVehicle)
@@ -2130,11 +2387,16 @@ Royal Marines.  (from Wikipedia) ")
 
 (=>
   (instance ?LCAC LCAC)
-  (and
-    (length ?LCAC
-      (MeasureFn 88.0 FootLength))
-    (effectiveRange ?LCAC
-      (MeasureFn 555.0 Kilometer))))
+  (exists (?LENGTH ?RANGE)
+    (and
+      (instance ?LENGTH LengthMeasure)
+      (equal ?LENGTH
+        (MeasureFn 88.0 FootLength))
+      (instance ?RANGE LengthMeasure)
+      (equal ?RANGE
+        (MeasureFn 555.0 Kilometer))
+      (length ?LCAC ?LENGTH)
+      (effectiveRange ?LCAC ?RANGE))))
 
 ;; weapons carried by an LCAC
 
@@ -2155,8 +2417,12 @@ Royal Marines.  (from Wikipedia) ")
 
 (=>
   (instance ?LCAC LCAC)
-  (maximumPayloadCapacity ?LCAC
-    (MeasureFn 60.0 TonMass)))
+  (exists (?PAYLOAD)
+    (and
+      (instance ?PAYLOAD MassMeasure)
+      (equal ?PAYLOAD
+        (MeasureFn 60.0 TonMass))
+      (maximumPayloadCapacity ?LCAC ?PAYLOAD))))
 
 ;; barriers should prohibit translocations along their location
 
