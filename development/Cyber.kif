@@ -28,27 +28,6 @@ not any agent has discovered it.")
       (instance ?AGENT AutonomousAgent)
       (vulnerableSystem ?VUL ?SYS ?AGENT))))
 
-(exists (?VUL ?SYS ?A1 ?A2)
-  (and
-    (instance ?VUL Vulnerability)
-    (instance ?SYS Physical)
-    (instance ?A1 AutonomousAgent)
-    (instance ?A2 AutonomousAgent)
-    (not (equal ?A1 ?A2))
-    (vulnerableSystem ?VUL ?SYS ?A1)
-    (not (vulnerableSystem ?VUL ?SYS ?A2))))
-
-(exists (?VUL ?SYS)
-  (and
-    (instance ?VUL Vulnerability)
-    (attribute ?SYS ?VUL)
-    (not
-      (exists (?AGENT)
-        (and
-          (instance ?AGENT AutonomousAgent)
-          (knows ?AGENT
-            (attribute ?SYS ?VUL)))))))
-
 ;; ============================================================
 ;; vulnerableSystem (TernaryPredicate)
 ;; ============================================================
@@ -77,21 +56,14 @@ type.")
     (vulnerableSystem ?VUL ?SYS ?AGENT))
   (attribute ?SYS ?VUL))
 
-;; rule: the same vulnerability instance can reside on more than one
-;; distinct system (e.g. the same flaw present across every system of a
-;; given type)
-
-(exists (?VUL ?SYS1 ?SYS2)
-  (and
-    (instance ?VUL Vulnerability)
-    (instance ?SYS1 Physical)
-    (instance ?SYS2 Physical)
-    (not (equal ?SYS1 ?SYS2))
-    (attribute ?SYS1 ?VUL)
-    (attribute ?SYS2 ?VUL)))
+;; the same vulnerability instance can reside on more than one distinct
+;; system (e.g. the same flaw present across every system of a given
+;; type). Non-triviality witness lives at
+;; proof-scenarios/vulnerablesystem_shared_vulnerability.tq, not as a KB
+;; axiom.
 
 ;; ============================================================
-;; SoftwareBug 
+;; SoftwareBug
 ;; ============================================================
 
 ;; A bug is relational: it exists only with respect to some agent's
@@ -125,32 +97,12 @@ security vulnerabilities, incorrect values, or poor performance.
 The agent who discovers a bug (see &%bugDiscoverer) need not be the
 same agent whose specification defines it as a bug.")
 
-;; rule: relational nature — the same program can be buggy with
-;; respect to one agent's specification but not another's
-
-(exists (?PROG ?BUG ?AGENT1 ?AGENT2)
-  (and
-    (instance ?PROG ComputerProgram)
-    (instance ?BUG SoftwareBug)
-    (instance ?AGENT1 AutonomousAgent)
-    (instance ?AGENT2 AutonomousAgent)
-    (not (equal ?AGENT1 ?AGENT2))
-    (bugInProgram ?BUG ?PROG ?AGENT1)
-    (not (bugInProgram ?BUG ?PROG ?AGENT2))))
-
-;; rule: multiple dimensions — a program may exhibit multiple
-;; bugs simultaneously relative to the same agent's specification
-
-(exists (?PROG ?BUG1 ?BUG2 ?AGENT)
-  (and
-    (instance ?PROG ComputerProgram)
-    (instance ?BUG1 SoftwareBug)
-    (instance ?BUG2 SoftwareBug)
-    (instance ?AGENT AutonomousAgent)
-    (not (equal ?BUG1 ?BUG2))
-    (bugInProgram ?BUG1 ?PROG ?AGENT)
-    (bugInProgram ?BUG2 ?PROG ?AGENT)))
-
+;; Relational nature (the same program can be buggy with respect to one
+;; agent's specification but not another's) and multiple dimensions (a
+;; program may exhibit multiple bugs simultaneously relative to the same
+;; agent's specification): non-triviality witnesses live at
+;; proof-scenarios/softwarebug_relational.tq and
+;; proof-scenarios/softwarebug_multidimensional.tq, not as KB axioms.
 
 ;; ============================================================
 ;; bugInProgram : relates bug-attribute to program and agent
@@ -230,15 +182,6 @@ there is at most one operational budget.")
     (knows ?ATTACKER (operationalBudget ?DEFENDER ?DBUDGET))
     (knows ?DEFENDER (operationalBudget ?ATTACKER ?ABUDGET))))
 
-(exists (?A1 ?A2 ?B1 ?B2)
-  (and
-    (instance ?A1 AutonomousAgent)
-    (instance ?A2 AutonomousAgent)
-    (not (equal ?A1 ?A2))
-    (operationalBudget ?A1 ?B1)
-    (operationalBudget ?A2 ?B2)
-    (not (equal ?B1 ?B2))))
-
 ;; ============================================================
 ;; operationalBudgetInPeriod (TernaryPredicate)
 ;; ============================================================
@@ -302,32 +245,12 @@ cost.")
     (measure ?TOTAL ?AMOUNT))
   (greaterThanOrEqualTo ?AMOUNT 0))
 
-;; rule: aggregateCyberCost can equal the sum of a single exploitCost and a
+;; aggregateCyberCost can equal the sum of a single exploitCost and a
 ;; single patchCost -- the simplest case of the general "sum of per-action
-;; costs" claim in the documentation
-
-(exists (?AGENT ?T ?VUL1 ?VUL2 ?C1 ?C2 ?AMOUNT1 ?AMOUNT2 ?TOTAL)
-  (and
-    (instance ?AGENT AutonomousAgent)
-    (instance ?T TimeInterval)
-    (instance ?VUL1 Vulnerability)
-    (instance ?VUL2 Vulnerability)
-    (holdsDuring ?T (exploitCost ?VUL1 ?AGENT ?C1))
-    (holdsDuring ?T (patchCost ?VUL2 ?AGENT ?C2))
-    (measure ?C1 ?AMOUNT1)
-    (measure ?C2 ?AMOUNT2)
-    (aggregateCyberCost ?AGENT ?T ?TOTAL)
-    (measure ?TOTAL (AdditionFn ?AMOUNT1 ?AMOUNT2))))
-
-(exists (?AGENT ?T1 ?T2 ?TOT1 ?TOT2)
-  (and
-    (instance ?AGENT AutonomousAgent)
-    (instance ?T1 TimeInterval)
-    (instance ?T2 TimeInterval)
-    (not (equal ?T1 ?T2))
-    (aggregateCyberCost ?AGENT ?T1 ?TOT1)
-    (aggregateCyberCost ?AGENT ?T2 ?TOT2)
-    (not (equal ?TOT1 ?TOT2))))
+;; costs" claim in the documentation. Non-triviality witnesses for this and
+;; the interval-relative claim live at
+;; proof-scenarios/aggregatecybercost_exploit_plus_patch_sum.tq and
+;; proof-scenarios/aggregatecybercost_interval_relative.tq, not as KB axioms.
 
 ;; ============================================================
 ;; ViolatedKnapsack (RelationalAttribute)
@@ -353,38 +276,6 @@ same agent may satisfy in one interval and violate in another.")
     (greaterThan ?TOTAL_AMOUNT ?BUDGET_AMOUNT))
   (holdsDuring ?T
     (attribute ?AGENT ViolatedKnapsack)))
-
-(exists (?A1 ?A2 ?T ?B1 ?B2 ?TOT1 ?TOT2 ?BA1 ?BA2 ?TA1 ?TA2)
-  (and
-    (instance ?A1 AutonomousAgent)
-    (instance ?A2 AutonomousAgent)
-    (not (equal ?A1 ?A2))
-    (instance ?T TimeInterval)
-    (operationalBudget ?A1 ?B1)
-    (operationalBudget ?A2 ?B2)
-    (aggregateCyberCost ?A1 ?T ?TOT1)
-    (aggregateCyberCost ?A2 ?T ?TOT2)
-    (measure ?B1 ?BA1)
-    (measure ?B2 ?BA2)
-    (measure ?TOT1 ?TA1)
-    (measure ?TOT2 ?TA2)
-    (greaterThan ?TA1 ?BA1)
-    (not (greaterThan ?TA2 ?BA2))))
-
-(exists (?AGENT ?T1 ?T2 ?B ?TOT1 ?TOT2 ?BA ?TA1 ?TA2)
-  (and
-    (instance ?AGENT AutonomousAgent)
-    (instance ?T1 TimeInterval)
-    (instance ?T2 TimeInterval)
-    (not (equal ?T1 ?T2))
-    (operationalBudget ?AGENT ?B)
-    (aggregateCyberCost ?AGENT ?T1 ?TOT1)
-    (aggregateCyberCost ?AGENT ?T2 ?TOT2)
-    (measure ?B ?BA)
-    (measure ?TOT1 ?TA1)
-    (measure ?TOT2 ?TA2)
-    (not (greaterThan ?TA1 ?BA))
-    (greaterThan ?TA2 ?BA)))
 
 ;; ============================================================
 ;; operationalTempo (TernaryPredicate)
@@ -504,17 +395,6 @@ from arXiv:2403.10789.")
   (exists (?BUDGET)
     (operationalBudget ?AGENT ?BUDGET)))
 
-(exists (?AK ?A1 ?A2 ?B1 ?B2)
-  (and
-    (instance ?AK AdversarialKnapsack)
-    (instance ?A1 AutonomousAgent)
-    (instance ?A2 AutonomousAgent)
-    (not (equal ?A1 ?A2))
-    (contestParticipant ?AK ?A1)
-    (contestParticipant ?AK ?A2)
-    (operationalBudget ?A1 ?B1)
-    (operationalBudget ?A2 ?B2)
-    (not (equal ?B1 ?B2))))
 ;; ============================================================
 ;; exploitCost (TernaryPredicate)
 ;; ============================================================
@@ -559,16 +439,6 @@ there is at most one exploit cost.")
   (exists (?COST)
     (exploitCost ?VUL ?AGENT ?COST)))
 
-(exists (?VUL ?A1 ?A2 ?C1 ?C2)
-  (and
-    (instance ?VUL Vulnerability)
-    (instance ?A1 AutonomousAgent)
-    (instance ?A2 AutonomousAgent)
-    (not (equal ?A1 ?A2))
-    (exploitCost ?VUL ?A1 ?C1)
-    (exploitCost ?VUL ?A2 ?C2)
-    (not (equal ?C1 ?C2))))
-
 ;; ============================================================
 ;; KnownExploitAvailable (RelationalAttribute)
 ;; ============================================================
@@ -582,28 +452,15 @@ custom development. Time-relative: a &%Vulnerability may lack a known
 exploit in one interval (e.g. while still a zero-day) and gain one in a
 later interval once one is discovered, published, or leaked.")
 
-;; rule: when a known exploit is available, expertiseCost tends lower than
-;; for a comparable vulnerability without one -- custom development labor
+;; When a known exploit is available, expertiseCost tends lower than for
+;; a comparable vulnerability without one -- custom development labor
 ;; (see expertiseCost's monetaryWage tie-in) isn't needed, only enough
-;; expertise to deploy the existing exploit successfully. An existence
-;; witness, not a universal bound -- development time for a custom exploit
-;; varies widely (days to months) depending on desired stealth, which this
-;; does not attempt to formalize.
-
-(exists (?VUL1 ?VUL2 ?AGENT ?E1 ?E2 ?T)
-  (and
-    (instance ?VUL1 Vulnerability)
-    (instance ?VUL2 Vulnerability)
-    (not (equal ?VUL1 ?VUL2))
-    (instance ?AGENT AutonomousAgent)
-    (instance ?T TimeInterval)
-    (holdsDuring ?T (attribute ?VUL1 KnownExploitAvailable))
-    (not (holdsDuring ?T (attribute ?VUL2 KnownExploitAvailable)))
-    (expertiseCost ?VUL1 ?AGENT ?E1)
-    (expertiseCost ?VUL2 ?AGENT ?E2)
-    (measure ?E1 ?AMT1)
-    (measure ?E2 ?AMT2)
-    (lessThan ?AMT1 ?AMT2)))
+;; expertise to deploy the existing exploit successfully. Not a universal
+;; bound -- development time for a custom exploit varies widely (days to
+;; months) depending on desired stealth, which this does not attempt to
+;; formalize. Non-triviality witness lives at
+;; proof-scenarios/knownexploitavailable_expertise_cost.tq, not as a KB
+;; axiom.
 
 ;; ============================================================
 ;; toolingAcquisitionCost (TernaryPredicate)
@@ -808,26 +665,11 @@ expertise costs. One of five cost components summed into &%exploitCost.")
       (measure ?TOTAL2 ?AMT2)
       (lessThanOrEqualTo ?AMT1 ?AMT2))))
 
-;; rule: exploitCost is capacity-relative -- the identical cost can be
+;; exploitCost is capacity-relative -- the identical cost can be
 ;; affordable for one agent and unaffordable for another depending on
 ;; operationalBudget, independent of exploitCost's own contribution to
-;; aggregateCyberCost/ViolatedKnapsack above
-
-(exists (?VUL ?A1 ?A2 ?B1 ?B2 ?COST)
-  (and
-    (instance ?VUL Vulnerability)
-    (instance ?A1 AutonomousAgent)
-    (instance ?A2 AutonomousAgent)
-    (not (equal ?A1 ?A2))
-    (exploitCost ?VUL ?A1 ?COST)
-    (exploitCost ?VUL ?A2 ?COST)
-    (operationalBudget ?A1 ?B1)
-    (operationalBudget ?A2 ?B2)
-    (measure ?COST ?AMT)
-    (measure ?B1 ?AMT1)
-    (measure ?B2 ?AMT2)
-    (lessThanOrEqualTo ?AMT ?AMT1)
-    (greaterThan ?AMT ?AMT2)))
+;; aggregateCyberCost/ViolatedKnapsack above. Non-triviality witness lives
+;; at proof-scenarios/exploitcost_capacity_relative.tq, not as a KB axiom.
 
 ;; ============================================================
 ;; patchCost (TernaryPredicate)
@@ -936,16 +778,6 @@ via &%successorAttribute, from least to most mature.")
     (patchCost ?VUL ?DEFENDER ?COST)
     (knows ?DEFENDER (attribute ?SYS ?VUL)))
   (knows ?DEFENDER (patchCost ?VUL ?DEFENDER ?COST)))
-
-(exists (?VUL ?A1 ?A2 ?C1 ?C2)
-  (and
-    (instance ?VUL Vulnerability)
-    (instance ?A1 AutonomousAgent)
-    (instance ?A2 AutonomousAgent)
-    (not (equal ?A1 ?A2))
-    (patchCost ?VUL ?A1 ?C1)
-    (patchCost ?VUL ?A2 ?C2)
-    (not (equal ?C1 ?C2))))
 
 ;; ============================================================
 ;; patchDevelopmentCost (TernaryPredicate)
@@ -1151,31 +983,14 @@ are disjoint classes.")
 
 (disjoint SoftwareBug Vulnerability)
 
-;; rule: not every vulnerability originates from a bug (weak default
-;; passwords, misconfigurations, and design flaws are vulnerabilities
-;; with no software bug as their cause)
-
-(exists (?VUL)
-  (and
-    (instance ?VUL Vulnerability)
-    (not
-      (exists (?BUG)
-        (and
-          (instance ?BUG SoftwareBug)
-          (vulnerabilityCause ?BUG ?VUL))))))
-
-;; rule: not every bug is a vulnerability (a UI glitch is a
-;; &%SoftwareBug that causes no &%Vulnerability)
-
-(exists (?BUG ?PROG ?AGENT)
-  (and
-    (instance ?BUG SoftwareBug)
-    (bugInProgram ?BUG ?PROG ?AGENT)
-    (not
-      (exists (?VUL)
-        (and
-          (instance ?VUL Vulnerability)
-          (vulnerabilityCause ?BUG ?VUL))))))
+;; Not every vulnerability originates from a bug (weak default passwords,
+;; misconfigurations, and design flaws are vulnerabilities with no
+;; software bug as their cause), and not every bug is a vulnerability (a
+;; UI glitch is a &%SoftwareBug that causes no &%Vulnerability).
+;; Non-triviality witnesses live at
+;; proof-scenarios/vulnerabilitycause_not_every_vuln_has_bug.tq and
+;; proof-scenarios/vulnerabilitycause_not_every_bug_causes_vuln.tq, not
+;; as KB axioms.
 
 ;; rule: if a bug causes a vulnerability in a program, the program
 ;; carries that vulnerability as an attribute
