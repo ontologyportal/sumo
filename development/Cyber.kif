@@ -28,27 +28,6 @@ not any agent has discovered it.")
       (instance ?AGENT AutonomousAgent)
       (vulnerableSystem ?VUL ?SYS ?AGENT))))
 
-(exists (?VUL ?SYS ?A1 ?A2)
-  (and
-    (instance ?VUL Vulnerability)
-    (instance ?SYS Physical)
-    (instance ?A1 AutonomousAgent)
-    (instance ?A2 AutonomousAgent)
-    (not (equal ?A1 ?A2))
-    (vulnerableSystem ?VUL ?SYS ?A1)
-    (not (vulnerableSystem ?VUL ?SYS ?A2))))
-
-(exists (?VUL ?SYS)
-  (and
-    (instance ?VUL Vulnerability)
-    (attribute ?SYS ?VUL)
-    (not
-      (exists (?AGENT)
-        (and
-          (instance ?AGENT AutonomousAgent)
-          (knows ?AGENT
-            (attribute ?SYS ?VUL)))))))
-
 ;; ============================================================
 ;; vulnerableSystem (TernaryPredicate)
 ;; ============================================================
@@ -77,21 +56,14 @@ type.")
     (vulnerableSystem ?VUL ?SYS ?AGENT))
   (attribute ?SYS ?VUL))
 
-;; rule: the same vulnerability instance can reside on more than one
-;; distinct system (e.g. the same flaw present across every system of a
-;; given type)
-
-(exists (?VUL ?SYS1 ?SYS2)
-  (and
-    (instance ?VUL Vulnerability)
-    (instance ?SYS1 Physical)
-    (instance ?SYS2 Physical)
-    (not (equal ?SYS1 ?SYS2))
-    (attribute ?SYS1 ?VUL)
-    (attribute ?SYS2 ?VUL)))
+;; the same vulnerability instance can reside on more than one distinct
+;; system (e.g. the same flaw present across every system of a given
+;; type). Non-triviality witness lives at
+;; proof-scenarios/vulnerablesystem_shared_vulnerability.tq, not as a KB
+;; axiom.
 
 ;; ============================================================
-;; SoftwareBug 
+;; SoftwareBug
 ;; ============================================================
 
 ;; A bug is relational: it exists only with respect to some agent's
@@ -125,32 +97,12 @@ security vulnerabilities, incorrect values, or poor performance.
 The agent who discovers a bug (see &%bugDiscoverer) need not be the
 same agent whose specification defines it as a bug.")
 
-;; rule: relational nature — the same program can be buggy with
-;; respect to one agent's specification but not another's
-
-(exists (?PROG ?BUG ?AGENT1 ?AGENT2)
-  (and
-    (instance ?PROG ComputerProgram)
-    (instance ?BUG SoftwareBug)
-    (instance ?AGENT1 AutonomousAgent)
-    (instance ?AGENT2 AutonomousAgent)
-    (not (equal ?AGENT1 ?AGENT2))
-    (bugInProgram ?BUG ?PROG ?AGENT1)
-    (not (bugInProgram ?BUG ?PROG ?AGENT2))))
-
-;; rule: multiple dimensions — a program may exhibit multiple
-;; bugs simultaneously relative to the same agent's specification
-
-(exists (?PROG ?BUG1 ?BUG2 ?AGENT)
-  (and
-    (instance ?PROG ComputerProgram)
-    (instance ?BUG1 SoftwareBug)
-    (instance ?BUG2 SoftwareBug)
-    (instance ?AGENT AutonomousAgent)
-    (not (equal ?BUG1 ?BUG2))
-    (bugInProgram ?BUG1 ?PROG ?AGENT)
-    (bugInProgram ?BUG2 ?PROG ?AGENT)))
-
+;; Relational nature (the same program can be buggy with respect to one
+;; agent's specification but not another's) and multiple dimensions (a
+;; program may exhibit multiple bugs simultaneously relative to the same
+;; agent's specification): non-triviality witnesses live at
+;; proof-scenarios/softwarebug_relational.tq and
+;; proof-scenarios/softwarebug_multidimensional.tq, not as KB axioms.
 
 ;; ============================================================
 ;; bugInProgram : relates bug-attribute to program and agent
@@ -500,28 +452,15 @@ custom development. Time-relative: a &%Vulnerability may lack a known
 exploit in one interval (e.g. while still a zero-day) and gain one in a
 later interval once one is discovered, published, or leaked.")
 
-;; rule: when a known exploit is available, expertiseCost tends lower than
-;; for a comparable vulnerability without one -- custom development labor
+;; When a known exploit is available, expertiseCost tends lower than for
+;; a comparable vulnerability without one -- custom development labor
 ;; (see expertiseCost's monetaryWage tie-in) isn't needed, only enough
-;; expertise to deploy the existing exploit successfully. An existence
-;; witness, not a universal bound -- development time for a custom exploit
-;; varies widely (days to months) depending on desired stealth, which this
-;; does not attempt to formalize.
-
-(exists (?VUL1 ?VUL2 ?AGENT ?E1 ?E2 ?T)
-  (and
-    (instance ?VUL1 Vulnerability)
-    (instance ?VUL2 Vulnerability)
-    (not (equal ?VUL1 ?VUL2))
-    (instance ?AGENT AutonomousAgent)
-    (instance ?T TimeInterval)
-    (holdsDuring ?T (attribute ?VUL1 KnownExploitAvailable))
-    (not (holdsDuring ?T (attribute ?VUL2 KnownExploitAvailable)))
-    (expertiseCost ?VUL1 ?AGENT ?E1)
-    (expertiseCost ?VUL2 ?AGENT ?E2)
-    (measure ?E1 ?AMT1)
-    (measure ?E2 ?AMT2)
-    (lessThan ?AMT1 ?AMT2)))
+;; expertise to deploy the existing exploit successfully. Not a universal
+;; bound -- development time for a custom exploit varies widely (days to
+;; months) depending on desired stealth, which this does not attempt to
+;; formalize. Non-triviality witness lives at
+;; proof-scenarios/knownexploitavailable_expertise_cost.tq, not as a KB
+;; axiom.
 
 ;; ============================================================
 ;; toolingAcquisitionCost (TernaryPredicate)
@@ -1044,31 +983,14 @@ are disjoint classes.")
 
 (disjoint SoftwareBug Vulnerability)
 
-;; rule: not every vulnerability originates from a bug (weak default
-;; passwords, misconfigurations, and design flaws are vulnerabilities
-;; with no software bug as their cause)
-
-(exists (?VUL)
-  (and
-    (instance ?VUL Vulnerability)
-    (not
-      (exists (?BUG)
-        (and
-          (instance ?BUG SoftwareBug)
-          (vulnerabilityCause ?BUG ?VUL))))))
-
-;; rule: not every bug is a vulnerability (a UI glitch is a
-;; &%SoftwareBug that causes no &%Vulnerability)
-
-(exists (?BUG ?PROG ?AGENT)
-  (and
-    (instance ?BUG SoftwareBug)
-    (bugInProgram ?BUG ?PROG ?AGENT)
-    (not
-      (exists (?VUL)
-        (and
-          (instance ?VUL Vulnerability)
-          (vulnerabilityCause ?BUG ?VUL))))))
+;; Not every vulnerability originates from a bug (weak default passwords,
+;; misconfigurations, and design flaws are vulnerabilities with no
+;; software bug as their cause), and not every bug is a vulnerability (a
+;; UI glitch is a &%SoftwareBug that causes no &%Vulnerability).
+;; Non-triviality witnesses live at
+;; proof-scenarios/vulnerabilitycause_not_every_vuln_has_bug.tq and
+;; proof-scenarios/vulnerabilitycause_not_every_bug_causes_vuln.tq, not
+;; as KB axioms.
 
 ;; rule: if a bug causes a vulnerability in a program, the program
 ;; carries that vulnerability as an attribute
