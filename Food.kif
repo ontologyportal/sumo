@@ -1062,8 +1062,12 @@ describing the diameter measure of a particle.")
   (and
     (instance ?G Grain)
     (grainSize ?G ?L))
-  (approximateDiameter ?G
-    (MeasureFn ?L UnitOfLength)))
+  (exists (?DIAMETER)
+    (and
+      (instance ?DIAMETER LengthMeasure)
+      (equal ?DIAMETER
+        (MeasureFn ?L Millimeter))
+      (approximateDiameter ?G ?DIAMETER))))
            
 (instance ExtraCoarseGrind CoffeeGrindAttribute)
 (documentation ExtraCoarseGrind EnglishLanguage "&%ExtraCoarseGrind &%CoffeeGrind has a particle 
@@ -1214,6 +1218,7 @@ to mix with the milk while it is heated to 70C. MilkFoam is used for making &%Ca
   (measure ?M (MeasureFn 70 CelsiusDegree)))
              
 (instance mixtureRatio QuintaryRelation)
+(instance mixtureRatio QuintaryPredicate)
 (documentation mixtureRatio EnglishLanguage "&%mixtureRatio is a &%QuintaryRelation 
 which specifies how many &%Liter of two &%Liquid &%Substances in a &%LiquidMixture.")
 (termFormat EnglishLanguage mixtureRatio "mixture ratio")
@@ -1283,8 +1288,12 @@ giving a 180ml of capuucino.The milk foam on the top is 20mm in thickness. [Wiki
 (documentation Americano EnglishLanguage "An &%Americano is  is a type of coffee drink 
 prepared by diluting an espresso with hot water (typically 1:5). [Wikipedia] ")
 (termFormat EnglishLanguage Americano "americano")
-(ingredient Espresso Americano)
-(ingredient DrinkingWater Americano)
+
+(=>
+  (instance ?AMERICANO Americano)
+  (and
+    (ingredient Espresso ?AMERICANO)
+    (ingredient DrinkingWater ?AMERICANO)))
 
 (=>
   (instance ?A Americano)
@@ -1964,6 +1973,8 @@ crustaceans, which are creatures live in bodies of water that have an exoskeleto
 (meatOfAnimal CrabMeat Crab)
 (termFormat EnglishLanguage CrabMeat "crab")
 
+(subclass Crayfish Crustacean)
+
 (subclass Crayfish Shellfish)
 (meatOfAnimal CrayfishMeat Crayfish)
 (subclass CrayfishMeat Shellfish)
@@ -2094,8 +2105,15 @@ is a traditional Provençal sauce made of garlic, olive oil, and
 (typically) egg. There are many variations, such as the addition 
 of mustard or, in Catalonia, pears. It is usually served at room 
 temperature.")
-(ingredient Garlic Aioli)
-(ingredient OliveOil Aioli)
+
+(subclass GarlicPulp Mixture)
+(initialPart GarlicPulp Garlic)
+
+(=>
+  (instance ?AIOLI Aioli)
+  (and
+    (ingredient GarlicPulp ?AIOLI)
+    (ingredient OliveOil ?AIOLI)))
 
 (subclass AlmondNut EdibleNut)
 (termFormat EnglishLanguage AlmondNut "almond")
@@ -2485,16 +2503,22 @@ roughly equal proportion.[Wikipedia]")
 (=>
   (and
     (instance ?L CocoaLiquor)
-    (weight ?L
+    (instance ?LIQUORWEIGHT MassMeasure)
+    (equal ?LIQUORWEIGHT
       (MeasureFn 100.0 Gram))
+    (weight ?L ?LIQUORWEIGHT)
     (instance ?S CocoaSolid)
     (part ?S ?L)
-    (weight ?S
+    (instance ?SOLIDWEIGHT MassMeasure)
+    (equal ?SOLIDWEIGHT
       (MeasureFn ?X Gram))
+    (weight ?S ?SOLIDWEIGHT)
     (instance ?B CocoaButter)
     (part ?B ?L)
-    (weight ?B
-      (MeasureFn ?Y Gram)))
+    (instance ?BUTTERWEIGHT MassMeasure)
+    (equal ?BUTTERWEIGHT
+      (MeasureFn ?Y Gram))
+    (weight ?B ?BUTTERWEIGHT))
   (and
     (approximateValue ?X 50.0)
     (approximateValue ?Y 50.0)))
@@ -2506,7 +2530,7 @@ liquor, roasted cocoa beans that have been ground into a liquid state.[wikipedia
 (initialPart CocoaSolid CocoaLiquor)
 
 (subclass CocoaButter VegetableOil)
-(roomTempState CocoaButter Emulsion)
+(roomTempState CocoaButter Liquid)
 (subclass CocoaButter Chocolate)
 (roomTempState CocoaButter Solid)
 (documentation CocoaButter EnglishLanguage "&%CocoaButter is edible fat extracted
@@ -2526,8 +2550,8 @@ from Cocoa liquor. [Wikipedia]")
     (material Oil ?CHOC)
     (material Sugar ?CHOC)))
 
-(subclass BoxOfChocolates CollectionOfObjects)
-(documentation BoxOfChocolates EnglishLanguage "A &%BoxOfChocolates is a &%Box of &%ChocolateCandy. It has
+(subclass BoxOfChocolates Box)
+(documentation BoxOfChocolates EnglishLanguage "A &%BoxOfChocolates is a &%Box cotaning a collection of &%ChocolateCandy. It has
 a &%defaultMeasure of 250 &%Gram.")
 
 (termFormat EnglishLanguage BoxOfChocolates "box of chocolate")
@@ -2535,16 +2559,25 @@ a &%defaultMeasure of 250 &%Gram.")
 (termFormat ChineseTraditionalLanguage BoxOfChocolates " 一盒巧克力")
 
 (=>
-  (instance ?X BoxOfChocolates)
-  (exists (?B ?C)
+  (instance ?BOX BoxOfChocolates)
+  (exists (?COLLECTION ?CANDY)
     (and
-      (instance ?B Box)
-      (instance ?C ChocolateCandy)
-      (contains ?B ?C)
-      (member ?C ?X))))  
-      
-(defaultMeasure BoxOfChocolates
-  (MeasureFn 250.0 Gram))
+      (instance ?COLLECTION CollectionOfObjects)
+      (memberType ?COLLECTION ChocolateCandy)
+      (instance ?CANDY ChocolateCandy)
+      (member ?CANDY ?COLLECTION)
+      (contains ?BOX ?CANDY)
+      (forall (?MEMBER)
+        (=>
+          (member ?MEMBER ?COLLECTION)
+          (contains ?BOX ?MEMBER))))))
+
+(exists (?DEFAULTMASS)
+  (and
+    (instance ?DEFAULTMASS MassMeasure)
+    (equal ?DEFAULTMASS
+      (MeasureFn 250.0 Gram))
+    (defaultMeasure BoxOfChocolates ?DEFAULTMASS)))
     
 (subclass Cilantro Herb)
 
@@ -2638,9 +2671,21 @@ created from a given &%FruitOrVegetable.")
 (roomTempState Kahlua Liquid)
 
 (subclass Ketchup Sauce)
+(subclass TomatoPuree FruitPuree)
+(subclass TomatoPureeing Pureeing)
+
+(=>
+  (instance ?PUREE TomatoPuree)
+  (exists (?TOMATO ?PROCESS)
+    (and
+      (instance ?TOMATO Tomato)
+      (instance ?PROCESS TomatoPureeing)
+      (patient ?PROCESS ?TOMATO)
+      (result ?PROCESS ?PUREE))))
+
 (=>
   (instance ?K Ketchup)
-  (material Tomato ?K))
+  (material TomatoPuree ?K))
 
 (subclass Lettuce LeafyGreenVegetable)
 (subclass Linguine Pasta)
@@ -2660,17 +2705,23 @@ created from a given &%FruitOrVegetable.")
     (instance ?S Spaghetti)
     (instance ?L Linguine)
     (instance ?U UnitOfLength)
-    (width ?S 
+    (instance ?SPAGHETTIWIDTH LengthMeasure)
+    (equal ?SPAGHETTIWIDTH
       (MeasureFn ?TW1 ?U))
-    (width ?L 
-      (MeasureFn ?TW2 ?U)))
+    (width ?S ?SPAGHETTIWIDTH)
+    (instance ?LINGUINEWIDTH LengthMeasure)
+    (equal ?LINGUINEWIDTH
+      (MeasureFn ?TW2 ?U))
+    (width ?L ?LINGUINEWIDTH))
   (greaterThan ?TW2 ?TW1))
 
 (subclass Liqueur DistilledAlcoholicBeverage)
 (roomTempState Liqueur Liquid)
 (=>
-  (instance ?L Liqueur)
-  (material Sugar ?L))
+  (and
+    (instance ?L Liqueur)
+    (instance ?S Sugar))
+  (material ?S ?L))
 
 (documentation Liqueur EnglishLanguage "A sweet alcoholic beverage that has 
 been flavored with one of various substances.")
@@ -2689,6 +2740,9 @@ to thick. In countries influenced by &%France, mustard is also a common ingredie
 In &%Spain, &%OliveOil is used as the oil and mustard is never included. Numerous 
 other sauces can be created from it with addition of various herbs, spices, and 
 finely chopped pickles. Where mustard is used, it is also an emulsifier. [Wikipedia].")
+
+(subclass EggYolk AnimalSubstance)
+
 (=>
   (instance ?M Mayonnaise)
   (and
@@ -3480,9 +3534,21 @@ sometimes wine and/or liqueur. [Wikipedia]")
   (instance ?S Sorbet)
   (material DrinkingWater ?S))
 
+(subclass FruitPuree Mixture)
+(subclass Pureeing Grinding)
+
+(=>
+  (instance ?PUREE FruitPuree)
+  (exists (?FRUIT ?PROCESS)
+    (and
+      (instance ?FRUIT Fruit)
+      (instance ?PROCESS Pureeing)
+      (patient ?PROCESS ?FRUIT)
+      (result ?PROCESS ?PUREE))))
+
 (=>
   (instance ?S Sorbet)
-  (material Fruit ?S))
+  (material FruitPuree ?S))
 
 (=>
   (instance ?S Sorbet)
@@ -3548,9 +3614,12 @@ in the production of &%Tequila.")
 coagulating soy milk and then pressing the resulting curds into soft 
 white blocks. [Wikipedia]")
 
+(subclass SoyMilk Mixture)
+(subclass SoyMilk FoodFromPlant)
+
 (=>
   (instance ?X Tofu)
-  (material Soybean ?X))
+  (material SoyMilk ?X))
 
 (subclass Tuna Fish)
 
