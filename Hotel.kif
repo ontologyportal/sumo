@@ -348,8 +348,12 @@
       (patient ?P ?O)
       (instrument ?P ?O)
       (resource ?P ?O)))
-  (price ?O
-    (MeasureFn 0 UnitedStatesDollar) ?GUEST))
+  (exists (?CURRENCYMEASURE)
+    (and
+      (equal ?CURRENCYMEASURE
+        (MeasureFn 0 UnitedStatesDollar))
+      (instance ?CURRENCYMEASURE CurrencyMeasure)
+      (price ?O ?CURRENCYMEASURE ?GUEST))))
   
 ;;Process
 (=>
@@ -587,12 +591,14 @@
         (possesses ?AGENT ?X)
         (instance ?X Object)
         (uses ?X ?CUST))))
-  (exists (?PRICE ?U)
+  (exists (?PRICE ?U ?CURRENCYMEASURE)
     (and
-      (price ?X
-        (MeasureFn ?PRICE ?U) ?AGENT)
       (instance ?U UnitOfCurrency)
-      (greaterThan ?PRICE 0))))
+      (equal ?CURRENCYMEASURE
+        (MeasureFn ?PRICE ?U))
+      (instance ?CURRENCYMEASURE CurrencyMeasure)
+      (greaterThan ?PRICE 0)
+      (price ?X ?CURRENCYMEASURE ?AGENT))))
         
 (instance activityCapability BinaryPredicate)
 (documentation activityCapability EnglishLanguage "(&%activityCapability ?AGENT ?ACT) means that &%Process ?ACT can be located on the property owned by &%AutonomousAgent ?AGENT")
@@ -885,7 +891,6 @@
     (patient ?R ?RM)
     (destination ?R ?CUST)
     (instance ?X ?PHYS)
-    (possesses ?AGENT ?X)
     (customer ?CUST ?AGENT)
     (or
       (and
@@ -897,12 +902,14 @@
         (possesses ?AGENT ?X)
         (instance ?X Object)
         (uses ?X ?CUST))))
-  (exists (?PRICE ?U)
+  (exists (?PRICE ?U ?CURRENCYMEASURE)
     (and
-      (price ?X
-        (MeasureFn ?PRICE ?U) ?AGENT)
       (instance ?U UnitOfCurrency)
-      (greaterThan ?PRICE 0))))
+      (equal ?CURRENCYMEASURE
+        (MeasureFn ?PRICE ?U))
+      (instance ?CURRENCYMEASURE CurrencyMeasure)
+      (greaterThan ?PRICE 0)
+      (price ?X ?CURRENCYMEASURE ?CUST))))
   
 ;; LOCATION RELATIONS
 ;; =================================================================================
@@ -1320,6 +1327,7 @@
       (represents ?BRAND2 ?OBJ))))
 
 ;; additional rule for Internet
+(instance Internet EngineeringComponent)
 
 (=>
   (and
@@ -1897,14 +1905,15 @@
 
 (=>
   (and
-    (instance ?X TravelerAccommodation)
-    (capability RoomCleaningService agent TravelerAccommodation))
+    (attribute ?X TravelerAccommodation)
+    (capability RoomCleaningService agent CognitiveAgent))
   (exists (?MAID ?HOTELROOM)
     (and
       (employs ?X ?MAID)
       (attribute ?MAID Maid)
       (instance ?HOTELROOM HotelUnit)
-      (element ?HOTELROOM (PropertyFn ?X))
+      (element ?HOTELROOM
+        (PropertyFn ?X))
       (capability RoomCleaningService patient HotelUnit)
       (capability RoomCleaningService serviceProvider CognitiveAgent))))
 
@@ -2830,17 +2839,20 @@
   (and
     (numberSeniorOccupant ?RESERVE ?NUM)
     (fulfillingEntity ?HOTEL ?RESERVE))
-  (exists (?COL ?AGE)
+  (exists (?COL)
     (and
       (instance ?COL GroupOfPeople)
       (forall (?X)
         (=>
           (member ?X ?COL)
-          (and
-            (instance ?X HumanAdult)
-            (age ?X
-              (MeasureFn ?AGE YearDuration))
-            (greaterThanOrEqualTo ?AGE 60))))
+          (exists (?AGE ?AGEDURATION)
+            (and
+              (instance ?X HumanAdult)
+              (equal ?AGEDURATION
+                (MeasureFn ?AGE YearDuration))
+              (instance ?AGEDURATION TimeDuration)
+              (age ?X ?AGEDURATION)
+              (greaterThanOrEqualTo ?AGE 60)))))
       (memberCount ?COL ?NUM)
       (potentialCustomer ?COL ?HOTEL))))
       

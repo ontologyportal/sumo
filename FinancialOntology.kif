@@ -147,19 +147,20 @@
 
 (=>
   (and
-    (instance ?Drawing DrawingACheck)
-    (patient ?Drawing ?Check)
-    (instance ?Processing ProcessingACheck)
-    (patient ?Processing ?Check)
-    (equal
-      (WhenFn ?Drawing) ?DrawingTime)
-    (equal
-      (WhenFn ?Processing) ?ProcessingTime)
-    (meetsTemporally ?DrawingTime ?Time)
-    (meetsTemporally ?Time ?ProcessingTime)
-    (duration ?Time
-      (MeasureFn ?Duration MonthDuration)))
-  (lessThan ?Duration 6))
+    (instance ?DRAWING DrawingACheck)
+    (patient ?DRAWING ?CHECK)
+    (instance ?PROCESSING ProcessingACheck)
+    (patient ?PROCESSING ?CHECK)
+    (instance ?TIME TimeInterval)
+    (meetsTemporally
+      (WhenFn ?DRAWING) ?TIME)
+    (meetsTemporally ?TIME
+      (WhenFn ?PROCESSING))
+    (instance ?DURATIONMEASURE TimeDuration)
+    (equal ?DURATIONMEASURE
+      (MeasureFn ?DURATION MonthDuration))
+    (duration ?TIME ?DURATIONMEASURE))
+  (lessThan ?DURATION 6))
 
 (subclass PayCheck Check)
 (documentation PayCheck EnglishLanguage "A check issued to an employee in payment of salary or wages")
@@ -392,22 +393,37 @@
 
 (=>
   (and
-    (instance ?Payment Payment)
-    (origin ?Payment
-      (CurrencyFn ?Account))
-    (instance ?Account FinancialAccount)
-    (transactionAmount ?Payment
-      (MeasureFn ?Amount ?CUNIT))
-    (currentAccountBalance ?Account
-      (ImmediatePastFn
-        (WhenFn ?Payment))
-      (MeasureFn ?Balance1 ?CUNIT))
-    (equal ?Balance2
-      (SubtractionFn ?Balance1 ?Amount)))
-  (currentAccountBalance ?Account
-    (ImmediateFutureFn
-      (WhenFn ?Payment))
-    (MeasureFn ?Balance2 ?CUNIT)))
+    (instance ?PAYMENT Payment)
+    (instance ?ACCOUNT FinancialAccount)
+    (origin ?PAYMENT
+      (CurrencyFn ?ACCOUNT))
+    (instance ?CUNIT UnitOfCurrency)
+    (instance ?TRANSACTIONAMOUNT CurrencyMeasure)
+    (equal ?TRANSACTIONAMOUNT
+      (MeasureFn ?AMOUNT ?CUNIT))
+    (transactionAmount ?PAYMENT ?TRANSACTIONAMOUNT)
+    (instance ?BEFORETIME TimePoint)
+    (equal ?BEFORETIME
+      (EndFn
+        (ImmediatePastFn
+          (WhenFn ?PAYMENT))))
+    (instance ?INITIALBALANCE CurrencyMeasure)
+    (equal ?INITIALBALANCE
+      (MeasureFn ?BALANCE1 ?CUNIT))
+    (currentAccountBalance ?ACCOUNT ?BEFORETIME ?INITIALBALANCE)
+    (equal ?BALANCE2
+      (SubtractionFn ?BALANCE1 ?AMOUNT)))
+  (exists (?AFTERTIME ?FINALBALANCE)
+    (and
+      (instance ?AFTERTIME TimePoint)
+      (equal ?AFTERTIME
+        (BeginFn
+          (ImmediateFutureFn
+            (WhenFn ?PAYMENT))))
+      (instance ?FINALBALANCE CurrencyMeasure)
+      (equal ?FINALBALANCE
+        (MeasureFn ?BALANCE2 ?CUNIT))
+      (currentAccountBalance ?ACCOUNT ?AFTERTIME ?FINALBALANCE))))
 
 (subclass HealthInsuranceCompany InsuranceCompany)
 (documentation HealthInsuranceCompany EnglishLanguage "A &%Business that insures &%Agents against health care costs for the payment of a premium or premiums.")
@@ -439,23 +455,36 @@
 
 (=>
   (and
-    (instance ?Deposit Deposit)
-    (instance ?Account FinancialAccount)
-    (destination ?Deposit
-      (CurrencyFn ?Account))
-    (transactionAmount ?Deposit
-      (MeasureFn ?Amount ?CUNIT))
-    (currentAccountBalance ?Account
-      (ImmediatePastFn
-        (WhenFn ?Deposit))
-      (MeasureFn ?Balance1 ?CUNIT))
-    (equal ?Balance2
-      (AdditionFn ?Balance1 ?Amount)))
-  (currentAccountBalance ?Account
-    (ImmediateFutureFn
-      (FutureFn ?Deposit))
-    (MeasureFn ?Balance2 ?CUNIT)))
-
+    (instance ?DEPOSIT Deposit)
+    (instance ?ACCOUNT FinancialAccount)
+    (destination ?DEPOSIT
+      (CurrencyFn ?ACCOUNT))
+    (instance ?CUNIT UnitOfCurrency)
+    (instance ?DEPOSITAMOUNT CurrencyMeasure)
+    (equal ?DEPOSITAMOUNT
+      (MeasureFn ?AMOUNT ?CUNIT))
+    (transactionAmount ?DEPOSIT ?DEPOSITAMOUNT)
+    (instance ?DEPOSITSTART TimePoint)
+    (equal ?DEPOSITSTART
+      (BeginFn
+        (WhenFn ?DEPOSIT)))
+    (instance ?PREVIOUSBALANCE CurrencyMeasure)
+    (equal ?PREVIOUSBALANCE
+      (MeasureFn ?BALANCE1 ?CUNIT))
+    (currentAccountBalance ?ACCOUNT ?DEPOSITSTART ?PREVIOUSBALANCE)
+    (equal ?BALANCE2
+      (AdditionFn ?BALANCE1 ?AMOUNT)))
+  (exists (?DEPOSITEND ?NEWBALANCE)
+    (and
+      (instance ?DEPOSITEND TimePoint)
+      (equal ?DEPOSITEND
+        (EndFn
+          (WhenFn ?DEPOSIT)))
+      (instance ?NEWBALANCE CurrencyMeasure)
+      (equal ?NEWBALANCE
+        (MeasureFn ?BALANCE2 ?CUNIT))
+      (currentAccountBalance ?ACCOUNT ?DEPOSITEND ?NEWBALANCE))))
+  
 (subclass Withdrawal FinancialTransaction)
 (documentation Withdrawal EnglishLanguage "An activity of money being transferred from a customer's account at a financial institution.")
 
@@ -469,21 +498,36 @@
 
 (=>
   (and
-    (instance ?Withdrawal Withdrawal)
-    (instance ?Account FinancialAccount)
-    (origin ?Withdrawal ?Account)
-    (transactionAmount ?Withdrawal
-      (MeasureFn ?Amount ?CUNIT))
-    (currentAccountBalance ?Account
-      (ImmediatePastFn
-        (WhenFn ?Withdrawal))
-      (MeasureFn ?Balance1 ?CUNIT))
-    (equal ?Balance2
-      (SubtractionFn ?Balance1 ?Amount)))
-  (currentAccountBalance ?Account
-    (ImmediateFutureFn
-      (FutureFn ?Withdrawal))
-    (MeasureFn ?Balance2 ?CUNIT)))
+    (instance ?WITHDRAWAL Withdrawal)
+    (instance ?ACCOUNT FinancialAccount)
+    (origin ?WITHDRAWAL ?ACCOUNT)
+    (instance ?CUNIT UnitOfCurrency)
+    (instance ?TRANSACTIONAMOUNT CurrencyMeasure)
+    (equal ?TRANSACTIONAMOUNT
+      (MeasureFn ?AMOUNT ?CUNIT))
+    (transactionAmount ?WITHDRAWAL ?TRANSACTIONAMOUNT)
+    (instance ?BEFORETIME TimePoint)
+    (equal ?BEFORETIME
+      (EndFn
+        (ImmediatePastFn
+          (WhenFn ?WITHDRAWAL))))
+    (instance ?INITIALBALANCE CurrencyMeasure)
+    (equal ?INITIALBALANCE
+      (MeasureFn ?BALANCE1 ?CUNIT))
+    (currentAccountBalance ?ACCOUNT ?BEFORETIME ?INITIALBALANCE)
+    (equal ?BALANCE2
+      (SubtractionFn ?BALANCE1 ?AMOUNT)))
+  (exists (?AFTERTIME ?FINALBALANCE)
+    (and
+      (instance ?AFTERTIME TimePoint)
+      (equal ?AFTERTIME
+        (BeginFn
+          (ImmediateFutureFn
+            (WhenFn ?WITHDRAWAL))))
+      (instance ?FINALBALANCE CurrencyMeasure)
+      (equal ?FINALBALANCE
+        (MeasureFn ?BALANCE2 ?CUNIT))
+      (currentAccountBalance ?ACCOUNT ?AFTERTIME ?FINALBALANCE))))
 
 (subclass Investing FinancialTransaction)
 (documentation Investing EnglishLanguage "An activity of commiting money or capital in order to gain a financial return.")
@@ -536,15 +580,21 @@
 
 (=>
   (and
-    (principalAmount ?Account
-      (MeasureFn ?Balance ?CUNIT))
-    (fixedInterestRate ?Account ?Rate)
-    (simpleInterest ?Account
-      (MeasureFn ?Amount ?CUNIT) ?Period)
-    (equal ?Rate_Decimal
-      (DivisionFn ?Rate 100)))
-  (equal ?Amount
-    (MultiplicationFn ?Balance ?Rate_Decimal)))
+    (instance ?ACCOUNT FinancialAccount)
+    (instance ?CUNIT UnitOfCurrency)
+    (instance ?PRINCIPAL CurrencyMeasure)
+    (equal ?PRINCIPAL
+      (MeasureFn ?BALANCE ?CUNIT))
+    (principalAmount ?ACCOUNT ?PRINCIPAL)
+    (fixedInterestRate ?ACCOUNT ?RATE)
+    (instance ?INTEREST CurrencyMeasure)
+    (equal ?INTEREST
+      (MeasureFn ?AMOUNT ?CUNIT))
+    (simpleInterest ?ACCOUNT ?INTEREST ?PERIOD)
+    (equal ?RATEDECIMAL
+      (DivisionFn ?RATE 100)))
+  (equal ?AMOUNT
+    (MultiplicationFn ?BALANCE ?RATEDECIMAL)))
 
 (instance compoundInterest TernaryPredicate)
 (subrelation compoundInterest interestEarned)
@@ -580,15 +630,20 @@
 
 (=>
   (and
-    (simpleInterest ?Account
-      (MeasureFn ?Interest ?CUNIT) ?Period)
-    (principalAmount ?Account
-      (MeasureFn ?Principal ?CUNIT))
-    (equal ?Rate_Decimal
-      (DivisionFn ?Interest ?Principal))
-    (equal ?Rate
-      (MultiplicationFn ?Rate_Decimal 100.0)))
-  (interestRatePerPeriod ?Account ?Rate ?Period))
+    (instance ?CUNIT UnitOfCurrency)
+    (instance ?INTERESTMEASURE CurrencyMeasure)
+    (equal ?INTERESTMEASURE
+      (MeasureFn ?INTEREST ?CUNIT))
+    (simpleInterest ?ACCOUNT ?INTERESTMEASURE ?PERIOD)
+    (instance ?PRINCIPALMEASURE CurrencyMeasure)
+    (equal ?PRINCIPALMEASURE
+      (MeasureFn ?PRINCIPAL ?CUNIT))
+    (principalAmount ?ACCOUNT ?PRINCIPALMEASURE)
+    (equal ?RATEDECIMAL
+      (DivisionFn ?INTEREST ?PRINCIPAL))
+    (equal ?RATE
+      (MultiplicationFn ?RATEDECIMAL 100.0)))
+  (interestRatePerPeriod ?ACCOUNT ?RATE ?PERIOD))
 
 (instance primeInterestRate BinaryPredicate)
 (domain primeInterestRate 1 Day)
@@ -674,35 +729,45 @@
 
 (=>
   (and
-    (instance ?Account FinancialAccount)
-    (minimumBalance ?Account OpeningAnAccount
-      (MeasureFn ?Balance ?U))
-    (instance ?U UnitOfCurrency))
-  (exists (?Payment ?Date ?Amount)
+    (instance ?ACCOUNT LiabilityAccount)
+    (instance ?U UnitOfCurrency)
+    (instance ?MINIMUMMEASURE CurrencyMeasure)
+    (equal ?MINIMUMMEASURE
+      (MeasureFn ?MINPAYMENT ?U))
+    (minimumPayment ?ACCOUNT ?MINIMUMMEASURE MonthDuration)
+    (instance ?MONTH Month)
+    (instance ?PAYMENT Payment)
+    (destination ?PAYMENT
+      (CurrencyFn ?ACCOUNT))
+    (instance ?PAYMENTMEASURE CurrencyMeasure)
+    (equal ?PAYMENTMEASURE
+      (MeasureFn ?AMOUNT ?U))
+    (paymentsPerPeriod ?ACCOUNT ?PAYMENTMEASURE ?MONTH)
+    (lessThan ?AMOUNT ?MINPAYMENT))
+  (exists (?PENALTY)
     (and
-      (destination ?Payment
-        (CurrencyFn ?Account))
-      (transactionAmount ?Payment
-        (MeasureFn ?Amount ?U))
-      (greaterThanOrEqualTo ?Amount ?Balance)
-      (agreementEffectiveDate ?Account ?Date)
-      (date ?Payment ?Date))))
+      (instance ?PENALTY Penalty)
+      (destination ?PENALTY
+        (CurrencyFn ?ACCOUNT)))))
 
 (=>
   (and
-    (instance ?Account FinancialAccount)
-    (minimumBalance ?Account UsingAnAccount
-      (MeasureFn ?Balance ?U))
+    (instance ?ACCOUNT FinancialAccount)
     (instance ?U UnitOfCurrency)
-    (currentAccountBalance ?Account ?Date
-      (MeasureFn ?Amount ?U))
-    (lessThan ?Amount ?Balance))
-  (exists (?Penalty)
+    (instance ?MINIMUMBALANCE CurrencyMeasure)
+    (equal ?MINIMUMBALANCE
+      (MeasureFn ?BALANCE ?U))
+    (minimumBalance ?ACCOUNT UsingAnAccount ?MINIMUMBALANCE)
+    (instance ?CURRENTBALANCE CurrencyMeasure)
+    (equal ?CURRENTBALANCE
+      (MeasureFn ?AMOUNT ?U))
+    (currentAccountBalance ?ACCOUNT ?DATE ?CURRENTBALANCE)
+    (lessThan ?AMOUNT ?BALANCE))
+  (exists (?PENALTY)
     (and
-      (instance ?Penalty Penalty)
-      (date ?Penalty ?Date)
-      (destination ?Penalty
-        (CurrencyFn ?Account)))))
+      (instance ?PENALTY Penalty)
+      (date ?PENALTY ?DATE)
+      (destination ?PENALTY ?ACCOUNT))))
 
 (instance originalBalance BinaryPredicate)
 (domain originalBalance 1 FinancialAccount)
@@ -744,22 +809,38 @@
 (documentation minimumPayment EnglishLanguage "The smallest amount which can be paid on a revolving charge account to avoid a penalty.")
 
 (=>
-  (and
-    (instance ?Account LiabilityAccount)
-    (minimumPayment ?Account
-      (MeasureFn ?MinPayment ?U) MonthDuration)
-    (instance ?U UnitOfCurrency)
-    (instance ?Month Month)
-    (destination ?Payment
-      (CurrencyFn ?Account))
-    (paymentsPerPeriod ?Account
-      (MeasureFn ?Amount ?U) ?Month)
-    (lessThan ?Amount ?MinPayment))
-  (exists (?Penalty)
+  (instance ?SPREAD ButterflySpread)
+  (exists (?CALL1 ?CALL2 ?CALL3 ?CALL4 ?PRICE1 ?PRICE2 ?PRICE3 ?PRICE4 ?U ?STRIKE1 ?STRIKE2 ?STRIKE3 ?STRIKE4)
     (and
-      (instance ?Penalty Penalty)
-      (destination ?Penalty
-        (CurrencyFn ?Account)))))
+      (instance ?CALL1 CallOption)
+      (instance ?CALL2 CallOption)
+      (instance ?CALL3 CallOption)
+      (instance ?CALL4 CallOption)
+      (subProcess ?CALL1 ?SPREAD)
+      (subProcess ?CALL2 ?SPREAD)
+      (subProcess ?CALL3 ?SPREAD)
+      (subProcess ?CALL4 ?SPREAD)
+      (instance ?U UnitOfCurrency)
+      (instance ?STRIKE1 CurrencyMeasure)
+      (equal ?STRIKE1
+        (MeasureFn ?PRICE1 ?U))
+      (strikePrice ?CALL1 ?STRIKE1)
+      (instance ?STRIKE2 CurrencyMeasure)
+      (equal ?STRIKE2
+        (MeasureFn ?PRICE2 ?U))
+      (strikePrice ?CALL2 ?STRIKE2)
+      (instance ?STRIKE3 CurrencyMeasure)
+      (equal ?STRIKE3
+        (MeasureFn ?PRICE3 ?U))
+      (strikePrice ?CALL3 ?STRIKE3)
+      (instance ?STRIKE4 CurrencyMeasure)
+      (equal ?STRIKE4
+        (MeasureFn ?PRICE4 ?U))
+      (strikePrice ?CALL4 ?STRIKE4)
+      (lessThan ?PRICE1 ?PRICE2)
+      (lessThan ?PRICE1 ?PRICE3)
+      (greaterThan ?PRICE4 ?PRICE2)
+      (greaterThan ?PRICE4 ?PRICE3))))
 
 (instance overdraft TernaryPredicate)
 (domain overdraft 1 FinancialAccount)
@@ -769,13 +850,19 @@
 
 (=>
   (and
-    (currentAccountBalance ?Account ?Date
-      (MeasureFn ?Balance UnitedStatesDollar))
-    (lessThan ?Balance 0)
-    (equal ?Overdraft
-      (SubtractionFn 0 ?Balance)))
-  (overdraft ?Account
-    (MeasureFn ?Overdraft UnitedStatesDollar) ?Date))
+    (instance ?BALANCEMEASURE CurrencyMeasure)
+    (equal ?BALANCEMEASURE
+      (MeasureFn ?BALANCE UnitedStatesDollar))
+    (currentAccountBalance ?ACCOUNT ?DATE ?BALANCEMEASURE)
+    (lessThan ?BALANCE 0)
+    (equal ?OVERDRAFTAMOUNT
+      (SubtractionFn 0 ?BALANCE)))
+  (exists (?OVERDRAFTMEASURE)
+    (and
+      (instance ?OVERDRAFTMEASURE CurrencyMeasure)
+      (equal ?OVERDRAFTMEASURE
+        (MeasureFn ?OVERDRAFTAMOUNT UnitedStatesDollar))
+      (overdraft ?ACCOUNT ?OVERDRAFTMEASURE ?DATE))))
 
 (instance creditLimit BinaryPredicate)
 (domain creditLimit 1 CreditAccount)
@@ -805,15 +892,24 @@
 
 (=>
   (and
-    (downPayment ?Loan
-      (MeasureFn ?Amount ?CUNIT))
-    (loanForPurchase ?Loan ?Purchase)
-    (monetaryValue ?Purchase
-      (MeasureFn ?Value ?CUNIT))
-    (equal ?Balance
-      (SubtractionFn ?Value ?Amount)))
-  (originalBalance ?Loan
-    (MeasureFn ?Balance ?CUNIT)))
+    (instance ?CUNIT UnitOfCurrency)
+    (instance ?DOWNPAYMENT CurrencyMeasure)
+    (equal ?DOWNPAYMENT
+      (MeasureFn ?AMOUNT ?CUNIT))
+    (downPayment ?LOAN ?DOWNPAYMENT)
+    (loanForPurchase ?LOAN ?PURCHASE)
+    (instance ?PURCHASEVALUE CurrencyMeasure)
+    (equal ?PURCHASEVALUE
+      (MeasureFn ?VALUE ?CUNIT))
+    (monetaryValue ?PURCHASE ?PURCHASEVALUE)
+    (equal ?BALANCE
+      (SubtractionFn ?VALUE ?AMOUNT)))
+  (exists (?ORIGINALBALANCE)
+    (and
+      (instance ?ORIGINALBALANCE CurrencyMeasure)
+      (equal ?ORIGINALBALANCE
+        (MeasureFn ?BALANCE ?CUNIT))
+      (originalBalance ?LOAN ?ORIGINALBALANCE))))
 
 (subclass Prepayment Payment)
 (documentation Prepayment EnglishLanguage "Prepayment is the payment of all or part of a debt prior to its due date.")
@@ -1160,7 +1256,7 @@
     (accountAt ?Account ?Bank))
   (exists (?Debt)
     (and
-      (property ?Debt Liability)
+      (instance ?Debt Liability)
       (partyToAgreement ?Debt ?Agent)
       (partyToAgreement ?Debt ?Bank))))
 
@@ -1182,15 +1278,19 @@
     (instance ?PSP ProfitSharingPlan)
     (accountHolder ?PSP ?H)
     (employs ?O ?H)
-    (profit ?A
-      (MeasureFn ?P ?U))
     (instance ?U UnitOfCurrency)
+    (instance ?PROFITMEASURE CurrencyMeasure)
+    (equal ?PROFITMEASURE
+      (MeasureFn ?P ?U))
+    (profit ?A ?PROFITMEASURE)
     (agent ?A ?O))
-  (exists (?C ?PAY)
+  (exists (?C ?PAY ?PAYMENTMEASURE)
     (and
       (instance ?PAY FinancialTransaction)
-      (transactionAmount ?PAY
+      (instance ?PAYMENTMEASURE CurrencyMeasure)
+      (equal ?PAYMENTMEASURE
         (MeasureFn ?C ?U))
+      (transactionAmount ?PAY ?PAYMENTMEASURE)
       (lessThan ?C ?P)
       (destination ?PAY ?PSP))))
   
@@ -1483,11 +1583,13 @@
 
 (=>
   (and
-    (instance ?Loan BankTermLoan)
-    (agreementPeriod ?Loan ?Period)
-    (duration ?Period
-      (MeasureFn ?Duration YearDuration)))
-  (greaterThanOrEqualTo ?Duration 1))
+    (instance ?LOAN BankTermLoan)
+    (agreementPeriod ?LOAN ?PERIOD)
+    (instance ?DURATIONMEASURE TimeDuration)
+    (equal ?DURATIONMEASURE
+      (MeasureFn ?DURATION YearDuration))
+    (duration ?PERIOD ?DURATIONMEASURE))
+  (greaterThanOrEqualTo ?DURATION 1))
 
 (subclass BridgeLoan Loan)
 (documentation BridgeLoan EnglishLanguage "Short_term financing which is expected to be paid back relatively quickly, such as by a subsequent longer_term loan.")
@@ -1563,11 +1665,14 @@
   (attribute ?Borrower Broker))
 
 (=>
-  (instance ?Loan DayLoan)
-  (and
-    (agreementPeriod ?Loan ?Period)
-    (duration ?Period
-      (MeasureFn 1 DayDuration))))
+  (instance ?LOAN DayLoan)
+  (exists (?PERIOD ?LOANDURATION)
+    (and
+      (agreementPeriod ?LOAN ?PERIOD)
+      (instance ?LOANDURATION TimeDuration)
+      (equal ?LOANDURATION
+        (MeasureFn 1 DayDuration))
+      (duration ?PERIOD ?LOANDURATION))))
 
 (subclass PiggybankLoan Loan)
 (documentation PiggybankLoan EnglishLanguage "Two lenders participating in the same loan.")
@@ -1965,49 +2070,63 @@
 
 (=>
   (and
-    (instance ?Order LimitOrder)
-    (partyToAgreement ?Order ?Broker)
-    (attribute ?Broker Broker)
-    (orderFor ?Order Buying ?Object)
-    (measure ?Object ?Quantity)
-    (limitPrice ?Order
-      (MeasureFn ?LimitPrice ?U))
+    (instance ?ORDER LimitOrder)
+    (partyToAgreement ?BROKER ?ORDER)
+    (attribute ?BROKER Broker)
+    (orderFor ?ORDER Buying ?OBJECT)
+    (measure ?OBJECT ?QUANTITY)
     (instance ?U UnitOfCurrency)
-    (askPrice ?Object
-      (MeasureFn ?Price ?U) ?Time)
-    (lessThanOrEqualTo ?Price ?LimitPrice))
-  (holdsObligation ?Broker
-    (exists (?Buy)
+    (instance ?LIMITPRICEMEASURE CurrencyMeasure)
+    (equal ?LIMITPRICEMEASURE
+      (MeasureFn ?LIMITPRICE ?U))
+    (limitPrice ?ORDER ?LIMITPRICEMEASURE)
+    (instance ?ASKPRICEMEASURE CurrencyMeasure)
+    (equal ?ASKPRICEMEASURE
+      (MeasureFn ?PRICE ?U))
+    (instance ?SELLER AutonomousAgent)
+    (instance ?TIME TimeInterval)
+    (holdsDuring ?TIME
+      (askPrice ?OBJECT ?ASKPRICEMEASURE ?SELLER))
+    (lessThanOrEqualTo ?PRICE ?LIMITPRICE))
+  (holdsObligation ?BROKER
+    (exists (?BUY)
       (and
-        (instance ?Buy Buying)
-        (patient ?Buy ?Object)
-        (measure ?Object ?Quantity)
-        (equal
-          (WhenFn ?Buy) ?BuyingTime)
-        (overlapsTemporally ?Time ?BuyingTime)))))
+        (instance ?BUY Buying)
+        (agent ?BUY ?BROKER)
+        (patient ?BUY ?OBJECT)
+        (measure ?OBJECT ?QUANTITY)
+        (overlapsTemporally ?TIME
+          (WhenFn ?BUY))))))
 
 (=>
   (and
-    (attribute ?Order LimitOrder)
-    (partyToAgreement ?Order ?Broker)
-    (attribute ?Broker Broker)
-    (orderFor ?Order Selling ?Object)
-    (measure ?Object ?Quantity)
-    (limitPrice ?Order
-      (MeasureFn ?LimitPrice ?U))
-    (bidPrice ?Object
-      (MeasureFn ?Price ?U) ?Time)
+    (instance ?ORDER LimitOrder)
+    (partyToAgreement ?BROKER ?ORDER)
+    (attribute ?BROKER Broker)
+    (orderFor ?ORDER Selling ?OBJECT)
+    (measure ?OBJECT ?QUANTITY)
     (instance ?U UnitOfCurrency)
-    (greaterThanOrEqualTo ?Price ?LimitPrice))
-  (holdsObligation ?Broker
-    (exists (?Sell)
+    (instance ?LIMITPRICEMEASURE CurrencyMeasure)
+    (equal ?LIMITPRICEMEASURE
+      (MeasureFn ?LIMITPRICE ?U))
+    (limitPrice ?ORDER ?LIMITPRICEMEASURE)
+    (instance ?BIDPRICEMEASURE CurrencyMeasure)
+    (equal ?BIDPRICEMEASURE
+      (MeasureFn ?PRICE ?U))
+    (instance ?BIDDER AutonomousAgent)
+    (instance ?TIME TimeInterval)
+    (holdsDuring ?TIME
+      (bidPrice ?OBJECT ?BIDPRICEMEASURE ?BIDDER))
+    (greaterThanOrEqualTo ?PRICE ?LIMITPRICE))
+  (holdsObligation ?BROKER
+    (exists (?SELL)
       (and
-        (instance ?Sell Selling)
-        (patient ?Sell ?Object)
-        (measure ?Object ?Quantity)
-        (equal
-          (WhenFn ?Sell) ?SellingTime)
-        (overlapsTemporally ?SellingTime ?Time)))))
+        (instance ?SELL Selling)
+        (agent ?SELL ?BROKER)
+        (patient ?SELL ?OBJECT)
+        (measure ?OBJECT ?QUANTITY)
+        (overlapsTemporally
+          (WhenFn ?SELL) ?TIME)))))
 
 (instance Broker Position)
 (documentation Broker EnglishLanguage "An individual or firm which acts as an intermediary between a buyer and seller, usually charging a commisssion.")
@@ -2040,8 +2159,9 @@
 (subclass VariableAnnuity Annuity)
 (documentation VariableAnnuity EnglishLanguage "An investment vehicle offered by an insurance company that does not guarantee a payment amount but does have the potential for greater returns than a &%FixedAnnuity.")
 
-(subclass ShareUnit CurrencyMeasure)
-(documentation ShareUnit EnglishLanguage "The &%UnitOfMeasure representing one share in a corporation. Note that the number of shares in a corporation can change over time, as does their value. The percentage ownership that a share entails is time dependent, as well as being dependent on the rules of the legal jurisdiction that is relevant, and rules set in place by the corporation.")
+(instance ShareUnit NonCompositeUnitOfMeasure)
+(documentation ShareUnit EnglishLanguage "A unit of measure representing one share of ownership in a corporation, mutual fund, or similar organization.")
+(subclass ShareMeasure ConstantQuantity)
 
 (subclass Share Security)
 (documentation Share EnglishLanguage "Certificate, representing one unit of ownership in a corporation, &%MutualFund, or limited partnership.")
@@ -2120,10 +2240,15 @@
 
 (=>
   (and
-    (instance ?Stock PennyStock)
-    (askPrice ?Stock
-      (MeasureFn ?Price UnitedStatesDollar) ?Date))
-  (lessThan ?Price 5))
+    (instance ?STOCK PennyStock)
+    (instance ?ASKPRICEMEASURE CurrencyMeasure)
+    (equal ?ASKPRICEMEASURE
+      (MeasureFn ?PRICE UnitedStatesDollar))
+    (instance ?SELLER AutonomousAgent)
+    (instance ?DATE TimePosition)
+    (holdsDuring ?DATE
+      (askPrice ?STOCK ?ASKPRICEMEASURE ?SELLER)))
+  (lessThan ?PRICE 5))
 
 (documentation stockHolder EnglishLanguage "(stockHolder ?Stock ?Agent) means that ?Agent possesses the &%Stock ?Stock.")
 (instance stockHolder BinaryPredicate)
@@ -2233,28 +2358,42 @@
 
 (=>
   (and
-    (instance ?Bond ZeroCouponBond)
+    (instance ?BOND ZeroCouponBond)
     (maturityDate
-      (AccountFn ?Bond) ?Date)
-    (possesses ?BondHolder ?Bond)
+      (AccountFn ?BOND)
+      ?DATE)
+    (possesses ?BONDHOLDER ?BOND)
+    (instance ?CUNIT UnitOfCurrency)
+    (instance ?PRINCIPALAMOUNT CurrencyMeasure)
+    (equal ?PRINCIPALAMOUNT
+      (MeasureFn ?PRINCIPAL ?CUNIT))
     (principalAmount
-      (AccountFn ?Bond)
-      (MeasureFn ?Principal ?CUNIT))
+      (AccountFn ?BOND)
+      ?PRINCIPALAMOUNT)
     (agreementPeriod
-      (AccountFn ?Bond) ?Period)
+      (AccountFn ?BOND)
+      ?PERIOD)
+    (instance ?INTERESTAMOUNT CurrencyMeasure)
+    (equal ?INTERESTAMOUNT
+      (MeasureFn ?INTEREST ?CUNIT))
     (interestEarned
-      (AccountFn ?Bond)
-      (MeasureFn ?Interest ?CUNIT) ?Period)
-    (equal ?Total
-      (AdditionFn ?Principal ?Interest)))
-  (exists (?Payment)
+      (AccountFn ?BOND)
+      ?INTERESTAMOUNT
+      ?PERIOD)
+    (equal ?TOTAL
+      (AdditionFn ?PRINCIPAL ?INTEREST)))
+  (exists (?PAYMENT ?TOTALAMOUNT)
     (and
-      (instance ?Payment Payment)
-      (destination ?Payment ?BondHolder)
-      (origin ?Payment
-        (AccountFn ?Bond))
-      (transactionAmount ?Payment
-        (MeasureFn ?Total ?CUNIT)))))
+      (instance ?PAYMENT Payment)
+      (destination ?PAYMENT ?BONDHOLDER)
+      (origin ?PAYMENT
+        (AccountFn ?BOND))
+      (instance ?TOTALAMOUNT CurrencyMeasure)
+      (equal ?TOTALAMOUNT
+        (MeasureFn ?TOTAL ?CUNIT))
+      (transactionAmount
+        ?PAYMENT
+        ?TOTALAMOUNT))))
 
 (subclass RegisteredBond Bond)
 (documentation RegisteredBond EnglishLanguage "A bond issued with the name of the owner printed on the face of the certificate. It can be transferred to another individual only with the owner's endorsement.")
@@ -2436,25 +2575,29 @@
 (documentation ConventionalOption EnglishLanguage "Short_term option contracts.")
 
 (=>
-  (instance ?Option ConventionalOption)
-  (exists (?Number ?Period)
+  (instance ?OPTION ConventionalOption)
+  (exists (?NUMBER ?PERIOD ?DURATIONMEASURE)
     (and
-      (agreementPeriod ?Option ?Period)
-      (duration ?Period
-        (MeasureFn ?Number MonthDuration))
-      (lessThan ?Number 9))))
+      (agreementPeriod ?OPTION ?PERIOD)
+      (instance ?DURATIONMEASURE TimeDuration)
+      (equal ?DURATIONMEASURE
+        (MeasureFn ?NUMBER MonthDuration))
+      (duration ?PERIOD ?DURATIONMEASURE)
+      (lessThan ?NUMBER 9))))
 
 (subclass LEAPS Option)
 (documentation LEAPS EnglishLanguage "Calls and puts with an expiration as long as thirty_nine months. Currently, equity LEAPS have two series at any time with a January expiration. For example, in October 2000, LEAPS are available with expirations of January 2002 and January 2003.")
 
 (=>
-  (instance ?Option ConventionalOption)
-  (exists (?Number ?Period)
+  (instance ?OPTION ConventionalOption)
+  (exists (?NUMBER ?PERIOD ?DURATIONMEASURE)
     (and
-      (agreementPeriod ?Option ?Period)
-      (duration ?Period
-        (MeasureFn ?Number MonthDuration))
-      (lessThan ?Number 39))))
+      (agreementPeriod ?OPTION ?PERIOD)
+      (instance ?DURATIONMEASURE TimeDuration)
+      (equal ?DURATIONMEASURE
+        (MeasureFn ?NUMBER MonthDuration))
+      (duration ?PERIOD ?DURATIONMEASURE)
+      (lessThan ?NUMBER 39))))
 
 (subrelation optionHolder partyToAgreement)
 (instance optionHolder BinaryPredicate)
@@ -2464,7 +2607,7 @@
 
 (=>
   (optionHolder ?OPTION ?AGENT)
-  (property ?OPTION Option))
+  (instance ?OPTION Option))
 
 (subrelation optionSeller partyToAgreement)
 (instance optionSeller BinaryPredicate)
@@ -2474,7 +2617,7 @@
 
 (=>
   (optionSeller ?OPTION ?AGENT)
-  (property ?OPTION Option))
+  (instance ?OPTION Option))
 
 (instance strikePrice BinaryPredicate)
 (domain strikePrice 1 FinancialInstrument)
@@ -2582,7 +2725,7 @@
   (and
     (instance ?Option StockOption)
     (underlier ?Option ?Stock))
-  (property ?Stock CommonStock))
+  (instance ?Stock CommonStock))
 
 (instance premium BinaryPredicate)
 (domain premium 1 Agreement)
@@ -2591,7 +2734,7 @@
 
 (=>
   (premium ?OPTION ?AMT)
-  (property ?OPTION Option))
+  (instance ?OPTION Option))
 
 ; type conflict [AP]
 ;(=>
@@ -2607,7 +2750,7 @@
 
 (=>
   (underlier ?OPTION ?FI)
-  (property ?OPTION Option))
+  (instance ?OPTION Option))
 
 (subclass ExerciseAnOption FinancialTransaction)
 (documentation ExerciseAnOption EnglishLanguage "An activity when the owner of the the &%Option contract invokes his rights. In the case of a call, the option owner buys the underlying stock. In the case of a put, the option owner sells the underlying stock.")
@@ -2616,7 +2759,7 @@
   (and
     (instance ?Exercise ExerciseAnOption)
     (patient ?Exercise ?Option)
-    (property ?Option CallOption)
+    (instance ?Option CallOption)
     (time ?Exercise ?Time)
     (underlier ?Option ?Stocks))
   (exists (?Buy)
@@ -2631,7 +2774,7 @@
   (and
     (instance ?Exercise ExerciseAnOption)
     (patient ?Exercise ?Option)
-    (property ?Option PutOption)
+    (instance ?Option PutOption)
     (time ?Exercise ?Time)
     (underlier ?Option ?Stocks))
   (exists (?Sell)
@@ -2665,7 +2808,7 @@
 
 (=>
   (and
-    (property ?Option EuropeanStyleOption)
+    (instance ?Option EuropeanStyleOption)
     (agreementExpirationDate ?Option ?Date))
   (exists (?Period ?Time ?Exercise)
     (and
@@ -2781,11 +2924,14 @@
 (documentation DayOrder EnglishLanguage "A type of option order which instructs the &%Broker to cancel any unfilled portion of the order at the close of trading on the day the order is first entered.")
 
 (=>
-  (instance ?Order DayOrder)
-  (and
-    (agreementPeriod ?Order ?Period)
-    (duration ?Period
-      (MeasureFn 1 DayDuration))))
+  (instance ?ORDER DayOrder)
+  (exists (?PERIOD ?ORDERDURATION)
+    (and
+      (agreementPeriod ?ORDER ?PERIOD)
+      (instance ?ORDERDURATION TimeDuration)
+      (equal ?ORDERDURATION
+        (MeasureFn 1 DayDuration))
+      (duration ?PERIOD ?ORDERDURATION))))
 
 (subclass MNHOrder FinancialOrder)
 (documentation MNHOrder EnglishLanguage "A Market_not_held order is a type of market order which allows the investor to give discretion to the floor &%Broker regarding the price and/  or time at which a trade is executed.")
@@ -2968,30 +3114,38 @@
 (documentation ButterflySpread EnglishLanguage "A complex option strategy that involves selling two calls and buying two calls on the same or different markets, with several maturity dates. One of the options has a higher exercise price and the other has a lower exercise price than the other two options. The payoff diagram resembles the shape of a butterfly.")
 
 (=>
-  (instance ?Spread ButterflySpread)
-  (exists (?Call1 ?Call2 ?Call3 ?Call4 ?Price1 ?Price2 ?Price3 ?Price4 ?U)
+  (instance ?SPREAD ButterflySpread)
+  (exists (?CALL1 ?CALL2 ?CALL3 ?CALL4 ?PRICE1 ?PRICE2 ?PRICE3 ?PRICE4 ?U ?STRIKE1 ?STRIKE2 ?STRIKE3 ?STRIKE4)
     (and
-      (instance ?Call1 CallOption)
-      (instance ?Call2 CallOption)
-      (instance ?Call3 CallOption)
-      (instance ?Call4 CallOption)
-      (subProcess ?Call1 ?Spread)
-      (subProcess ?Call2 ?Spread)
-      (subProcess ?Call3 ?Spread)
-      (subProcess ?Call4 ?Spread)
+      (instance ?CALL1 CallOption)
+      (instance ?CALL2 CallOption)
+      (instance ?CALL3 CallOption)
+      (instance ?CALL4 CallOption)
+      (subProcess ?CALL1 ?SPREAD)
+      (subProcess ?CALL2 ?SPREAD)
+      (subProcess ?CALL3 ?SPREAD)
+      (subProcess ?CALL4 ?SPREAD)
       (instance ?U UnitOfCurrency)
-      (strikePrice ?Call1
-        (MeasureFn ?Price1 ?U))
-      (strikePrice ?Call2
-        (MeasureFn ?Price2 ?U))
-      (strikePrice ?Call3
-        (MeasureFn ?Price3 ?U))
-      (strikePrice ?Call4
-        (MeasureFn ?Price4 ?U))
-      (lessThan ?Price1 ?Price2)
-      (lessThan ?Price1 ?Price3)
-      (greaterThan ?Price4 ?Price2)
-      (greaterThan ?Price4 ?Price2))))
+      (instance ?STRIKE1 CurrencyMeasure)
+      (equal ?STRIKE1
+        (MeasureFn ?PRICE1 ?U))
+      (strikePrice ?CALL1 ?STRIKE1)
+      (instance ?STRIKE2 CurrencyMeasure)
+      (equal ?STRIKE2
+        (MeasureFn ?PRICE2 ?U))
+      (strikePrice ?CALL2 ?STRIKE2)
+      (instance ?STRIKE3 CurrencyMeasure)
+      (equal ?STRIKE3
+        (MeasureFn ?PRICE3 ?U))
+      (strikePrice ?CALL3 ?STRIKE3)
+      (instance ?STRIKE4 CurrencyMeasure)
+      (equal ?STRIKE4
+        (MeasureFn ?PRICE4 ?U))
+      (strikePrice ?CALL4 ?STRIKE4)
+      (lessThan ?PRICE1 ?PRICE2)
+      (lessThan ?PRICE1 ?PRICE3)
+      (greaterThan ?PRICE4 ?PRICE2)
+      (greaterThan ?PRICE4 ?PRICE3))))
 
 (subclass Straddle OptionStrategy)
 (documentation Straddle EnglishLanguage "The purchase or sale of an equal number of puts and calls, with the same strike price and expiration dates.")
@@ -3051,60 +3205,68 @@
 
 (=>
   (and
-    (instance ?Uptick Uptick)
-    (patient ?Uptick ?Stock)
-    (equal
-      (WhenFn ?Uptick) ?Time1)
+    (instance ?UPTICK Uptick)
+    (patient ?UPTICK ?STOCK)
     (instance ?U UnitOfCurrency)
-    (price ?Stock
-      (MeasureFn ?Price1 ?U) ?Time1))
-  (exists (?Transaction ?Time2 ?Price2)
+    (instance ?CURRENTVALUE CurrencyMeasure)
+    (equal ?CURRENTVALUE
+      (MeasureFn ?PRICE1 ?U))
+    (holdsDuring
+      (WhenFn ?UPTICK)
+      (monetaryValue ?STOCK ?CURRENTVALUE)))
+  (exists (?TRANSACTION ?PRICE2 ?PREVIOUSVALUE)
     (and
-      (instance ?Transaction StockMarketTransaction)
-      (patient ?Transaction ?Stock)
-      (equal
-        (WhenFn ?Transaction) ?Time2)
-      (meetsTemporally ?Time2 ?Time1)
-      (price ?Stock
-        (MeasureFn ?Price2 ?U) ?Time2)
-      (lessThan ?Price2 ?Price1))))
+      (instance ?TRANSACTION StockMarketTransaction)
+      (patient ?TRANSACTION ?STOCK)
+      (meetsTemporally
+        (WhenFn ?TRANSACTION)
+        (WhenFn ?UPTICK))
+      (instance ?PREVIOUSVALUE CurrencyMeasure)
+      (equal ?PREVIOUSVALUE
+        (MeasureFn ?PRICE2 ?U))
+      (holdsDuring
+        (WhenFn ?TRANSACTION)
+        (monetaryValue ?STOCK ?PREVIOUSVALUE))
+      (lessThan ?PRICE2 ?PRICE1))))
 
 (subclass Downtick StockMarketTransaction)
 (documentation Downtick EnglishLanguage "A stock market transaction (or sometimes, a quote) at a price lower than the preceding one for the same security.")
 
 (=>
   (and
-    (instance ?Downtick Downtick)
-    (patient ?Downtick ?Stock)
-    (equal
-      (WhenFn ?Downtick) ?Time1)
+    (instance ?DOWNTICK Downtick)
+    (patient ?DOWNTICK ?STOCK)
     (instance ?U UnitOfCurrency)
-    (price ?Stock
-      (MeasureFn ?Price1 ?U) ?Time1))
-  (exists (?Transaction ?Time2 ?Price2)
+    (instance ?CURRENTVALUE CurrencyMeasure)
+    (equal ?CURRENTVALUE
+      (MeasureFn ?PRICE1 ?U))
+    (holdsDuring
+      (WhenFn ?DOWNTICK)
+      (monetaryValue ?STOCK ?CURRENTVALUE)))
+  (exists (?TRANSACTION ?PRICE2 ?PREVIOUSVALUE)
     (and
-      (instance ?Transaction StockMarketTransaction)
-      (patient ?Transaction ?Stock)
-      (equal
-        (WhenFn ?Transaction) ?Time2)
-      (meetsTemporally ?Time2 ?Time1)
-      (price ?Stock
-        (MeasureFn ?Price2 ?U) ?Time2)
-      (greaterThan ?Price2 ?Price1))))
+      (instance ?TRANSACTION StockMarketTransaction)
+      (patient ?TRANSACTION ?STOCK)
+      (meetsTemporally
+        (WhenFn ?TRANSACTION)
+        (WhenFn ?DOWNTICK))
+      (instance ?PREVIOUSVALUE CurrencyMeasure)
+      (equal ?PREVIOUSVALUE
+        (MeasureFn ?PRICE2 ?U))
+      (holdsDuring
+        (WhenFn ?TRANSACTION)
+        (monetaryValue ?STOCK ?PREVIOUSVALUE))
+      (greaterThan ?PRICE2 ?PRICE1))))
 
 ;; Income, employment, compensations 
 
-;; KJN: Edit. Incorrect definition, should be subAttribute
-;;(subclass Employment ServiceContract)
-(subAttribute Employment ServiceContract)
-;;(subclass Employment FinancialContract)
-(subAttribute Employment FinancialContract)
+(subclass EmploymentContract FinancialContract)
 
-(<=>
+(=>
   (employs ?Org ?Agent)
   (exists (?Employment)
     (and
-      (property ?Employment Employment)
+      (instance ?Employment EmploymentContract)
       (partyToAgreement ?Employment ?Org)
       (partyToAgreement ?Employment ?Agent))))
 
@@ -3163,15 +3325,24 @@
 
 (=>
   (and
-    (incomeEarned ?Agent
-      (MeasureFn ?Income ?CU) ?Activity)
-    (amountCharged ?Tax
-      (MeasureFn ?TaxAmount ?CU))
-    (causes ?Activity ?Tax)
-    (equal ?ATIncome
-      (SubtractionFn ?Income ?TaxAmount)))
-  (afterTaxIncome ?Agent
-    (MeasureFn ?ATIncome ?CU) ?Activity))
+    (instance ?CU UnitOfCurrency)
+    (instance ?INCOMEMEASURE CurrencyMeasure)
+    (equal ?INCOMEMEASURE
+      (MeasureFn ?INCOME ?CU))
+    (incomeEarned ?AGENT ?INCOMEMEASURE ?ACTIVITY)
+    (instance ?TAXMEASURE CurrencyMeasure)
+    (equal ?TAXMEASURE
+      (MeasureFn ?TAXAMOUNT ?CU))
+    (amountCharged ?TAX ?TAXMEASURE)
+    (causes ?ACTIVITY ?TAX)
+    (equal ?ATINCOME
+      (SubtractionFn ?INCOME ?TAXAMOUNT)))
+  (exists (?AFTERTAXMEASURE)
+    (and
+      (instance ?AFTERTAXMEASURE CurrencyMeasure)
+      (equal ?AFTERTAXMEASURE
+        (MeasureFn ?ATINCOME ?CU))
+      (afterTaxIncome ?AGENT ?AFTERTAXMEASURE ?ACTIVITY))))
 
 (subrelation beforeTaxIncome incomeEarned)
 (instance beforeTaxIncome TernaryPredicate)
@@ -3286,8 +3457,13 @@
     (monetaryValue ?Cash ?Value)))
 
 (instance riskTolerance BinaryPredicate)
-(domain riskTolerance 1 Investor)
+(domain riskTolerance 1 AutonomousAgent)
 (domain riskTolerance 2 RiskAttribute)
+(documentation riskTolerance EnglishLanguage "(riskTolerance ?AGENT ?RISK) means that the autonomous agent ?AGENT has the investment risk-tolerance attribute ?RISK.")
+
+(=>
+  (riskTolerance ?AGENT ?RISK)
+  (attribute ?AGENT Investor))
 
 (=>
   (and
@@ -3481,7 +3657,7 @@
 
 (=>
   (dayPhone ?Number ?Agent)
-  (exists (?Phone ?Hour ?Num)
+  (exists (?Phone ?Num)
     (and
       (phoneNumber ?Number ?Phone)
       (greaterThan ?Num 6)
@@ -3524,7 +3700,7 @@
 
 (=>
   (eveningPhone ?Number ?Agent)
-  (exists (?Phone ?Hour ?Num)
+  (exists (?Phone ?Num)
     (and
       (phoneNumber ?Number ?Phone)
       (greaterThan ?Num 18)
@@ -3599,17 +3775,21 @@
 
 (=>
   (and
-    (instance ?Transaction FinancialTransaction)
-    (origin ?Transaction ?Account)
-    (transactionAmount ?Transaction
-      (MeasureFn ?Amount1 ?U))
+    (instance ?TRANSACTION FinancialTransaction)
+    (origin ?TRANSACTION ?ACCOUNT)
     (instance ?U UnitOfCurrency)
-    (date ?Transaction ?Day))
-  (exists (?Amount2)
+    (instance ?TRANSACTIONAMOUNT CurrencyMeasure)
+    (equal ?TRANSACTIONAMOUNT
+      (MeasureFn ?AMOUNT1 ?U))
+    (transactionAmount ?TRANSACTION ?TRANSACTIONAMOUNT)
+    (date ?TRANSACTION ?DAY))
+  (exists (?AMOUNT2 ?AVAILABLEBALANCE)
     (and
-      (availableBalance ?Account ?Day
-        (MeasureFn ?Amount2 ?U))
-      (greaterThanOrEqualTo ?Amount1 ?Amount2))))
+      (instance ?AVAILABLEBALANCE CurrencyMeasure)
+      (equal ?AVAILABLEBALANCE
+        (MeasureFn ?AMOUNT2 ?U))
+      (availableBalance ?ACCOUNT ?DAY ?AVAILABLEBALANCE)
+      (greaterThanOrEqualTo ?AMOUNT1 ?AMOUNT2))))
 
 (subrelation availableCash availableBalance)
 (domain availableCash 1 FinancialAccount)
@@ -3620,20 +3800,26 @@
 
 (=>
   (and
-    (instance ?Transaction FinancialTransaction)
-    (origin ?Transaction
-      (CurrencyFn ?Account))
-    (transactionAmount ?Transaction
-      (MeasureFn ?Amount1 ?U))
+    (instance ?TRANSACTION FinancialTransaction)
+    (instance ?ACCOUNT FinancialAccount)
+    (origin ?TRANSACTION
+      (CurrencyFn ?ACCOUNT))
     (instance ?U UnitOfCurrency)
-    (instance ?Cash Currency)
-    (patient ?Transaction ?Cash)
-    (date ?Transaction ?Day))
-  (exists (?Amount2)
+    (instance ?TRANSACTIONAMOUNT CurrencyMeasure)
+    (equal ?TRANSACTIONAMOUNT
+      (MeasureFn ?AMOUNT1 ?U))
+    (transactionAmount ?TRANSACTION ?TRANSACTIONAMOUNT)
+    (instance ?CASH Currency)
+    (patient ?TRANSACTION ?CASH)
+    (instance ?DAY Day)
+    (date ?TRANSACTION ?DAY))
+  (exists (?AMOUNT2 ?AVAILABLECASHMEASURE)
     (and
-      (availableCash ?Account ?Day
-        (MeasureFn ?Amount2 ?U))
-      (greaterThanOrEqualTo ?Amount1 ?Amount2))))
+      (instance ?AVAILABLECASHMEASURE CurrencyMeasure)
+      (equal ?AVAILABLECASHMEASURE
+        (MeasureFn ?AMOUNT2 ?U))
+      (availableCash ?ACCOUNT ?DAY ?AVAILABLECASHMEASURE)
+      (greaterThanOrEqualTo ?AMOUNT1 ?AMOUNT2))))
   
 (instance paymentsPerPeriod TernaryPredicate)
 (domain paymentsPerPeriod 1 FinancialAccount)
