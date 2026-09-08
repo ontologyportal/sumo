@@ -475,17 +475,18 @@ in women, it is less than 120 to 130 g/L. [from Wikipedia]")
 (documentation coreBodyTemp EnglishLanguage "Core temperature, also called core body temperature, is the operating temperature of an &%Organism, specifically in deep structures of the body such as the &%Liver, in comparison to temperatures of peripheral tissues. Core temperature is normally maintained within a narrow range so that essential enzymatic reactions can occur. Significant core temperature elevation (&%Hyperthermia) or depression (&%Hypothermia) over more than a brief period of time is incompatible with &%Human life. Temperature examination in the &%Heart, using a catheter, is the traditional gold standard measurement used to estimate core temperature (oral temperature is affected by hot or cold drinks, ambient temperature fluctuations as well as mouth-breathing). Since catheters are highly invasive, the generally accepted alternative for measuring core body temperature is through measurements in the &%Rectum. [from Wikipedia]")
 
 (=>
-   (and
-      (instance ?H Human)
-      (instance ?R Rectum)
-      (part ?R ?H)
-      (holdsDuring ?T
-         (and
-            (coreBodyTemp ?H
-               (MeasureFn ?N ?U))
-            (measure ?R
-               (MeasureFn ?N2 ?U)))))
-   (approximateValue ?N ?N2))
+  (and
+    (instance ?H Human)
+    (instance ?R Rectum)
+    (part ?R ?H)
+    (holdsDuring ?T
+      (and
+        (instance ?TEMP TemperatureMeasure)
+        (equal ?TEMP (MeasureFn ?N ?U))
+        (coreBodyTemp ?H ?TEMP)
+        (measure ?R
+          (MeasureFn ?N2 ?U)))))
+  (approximateValue ?N ?N2))
 
 (subclass Catheter MedicalDevice)
 (subclass Catheter Tube)
@@ -571,8 +572,9 @@ continued until the person has a return of spontaneous circulation (ROSC) or is 
       (instance ?C Compressing)
       (path ?C ?P)
       (subProcess ?C ?CPR)
-      (length ?P
-         (MeasureFn ?L Centimeter)))
+      (instance ?LENGTH LengthMeasure)
+      (equal ?LENGTH (MeasureFn ?L Centimeter))
+      (length ?P ?LENGTH))
    (and
       (greaterThan ?L 5.0)
       (lessThan ?L 6.0)))
@@ -586,14 +588,15 @@ continued until the person has a return of spontaneous circulation (ROSC) or is 
 (termFormat EnglishLanguage Hypothermia "hypothermia")
 
 (=>
-   (and
-      (instance ?H Human)
-      (holdsDuring ?T
-         (and
-            (attribute ?T Hypothermia)
-            (coreBodyTemp ?H
-               (MeasureFn ?N CelsiusDegree)))))
-   (lessThan ?N 35.0))
+  (and
+    (instance ?H Human)
+    (holdsDuring ?T
+      (and
+        (attribute ?T Hypothermia)
+        (instance ?TEMP TemperatureMeasure)
+        (equal ?TEMP (MeasureFn ?N CelsiusDegree))
+        (coreBodyTemp ?H ?TEMP))))
+  (lessThan ?N 35.0))
 
 (subclass MedicalDevice Device)
 (documentation MedicalDevice EnglishLanguage "A &%Device that is intended to be used in a &%DiagnosticProcess or a &%TherapeuticProcess.")
@@ -620,13 +623,14 @@ temperatures above 40 degC (104 degF) can be life threatening.[from Wikipedia]")
 (termFormat EnglishLanguage Hyperthermia "hyperthermia")
 
 (=>
-   (and
-      (instance ?H Human)
-      (holdsDuring ?T
-         (and
-            (attribute ?T Hyperthermia)
-            (coreBodyTemp ?H
-               (MeasureFn ?N CelsiusDegree)))))
+  (and
+    (instance ?H Human)
+    (holdsDuring ?T
+      (and
+        (attribute ?T Hyperthermia)
+        (instance ?TEMP TemperatureMeasure)
+        (equal ?TEMP (MeasureFn ?N CelsiusDegree))
+        (coreBodyTemp ?H ?TEMP))))
    (greaterThan ?N 38.3))
 
 ; injuries to the Airway are often caused by facial trauma or burns
@@ -1487,10 +1491,13 @@ and chronic pain is common. [from Wikipedia]")
 (domain hearingAcuity 3 ConstantQuantity)
 
 (=>
-   (hearingAcuity ?H
-      (MeasureFn ?N1 ?U)
-      (MeasureFn ?N2 ?U))
-   (instance ?U SoundPressureLevelUnit))
+  (and
+    (instance ?LOWERTHRESHOLD ConstantQuantity)
+    (equal ?LOWERTHRESHOLD (MeasureFn ?N1 ?U))
+    (instance ?UPPERTHRESHOLD ConstantQuantity)
+    (equal ?UPPERTHRESHOLD (MeasureFn ?N2 ?U))
+    (hearingAcuity ?H ?LOWERTHRESHOLD ?UPPERTHRESHOLD))
+  (instance ?U SoundPressureLevelUnit))
 
 (termFormat EnglishLanguage hearingAcuity "visual acuity")
 (format EnglishLanguage hearingAcuity "%1 can hear frequency of %2 at %3 decibels")
@@ -1498,26 +1505,34 @@ and chronic pain is common. [from Wikipedia]")
 (documentation hearingAcuity EnglishLanguage "A &%Measuring of auditory acuity defined as the ability to hear frequencies from 250 to 8000 &%Hertz at a certain sound pressure level.")
 
 (=>
-   (and
-      (instance ?MT MusicalTone)
-      (soundFrequency ?MT
-         (MeasureFn ?FREQ Hertz))
-      (loudness ?MT
-         (MeasureFn ?LLB Decibel))
-      (located ?MT
-         (WhereFn ?H
-            (BeginFn
-               (WhenFn ?MT))))
-      (greaterThan ?LLIMIT ?LLB)
-      (greaterThan ?LLB ?ULIMIT)
-      (greaterThan ?FREQ 250)
-      (greaterThan 8000 ?FREQ)
-      (instance ?H Human)
-      (instance ?L Listening)
-      (agent ?L ?H))
-   (hearingAcuity ?H
-      (MeasureFn ?LLIMIT Decibel)
+  (and
+    (instance ?MT MusicalTone)
+    (instance ?FREQUENCY FunctionQuantity)
+    (equal ?FREQUENCY
+      (MeasureFn ?FREQ Hertz))
+    (soundFrequency ?MT ?FREQUENCY)
+    (instance ?LOUDNESS ConstantQuantity)
+    (equal ?LOUDNESS
+      (MeasureFn ?LLB Decibel))
+    (loudness ?MT ?LOUDNESS)
+    (located ?MT
+      (WhereFn ?H
+        (BeginFn
+          (WhenFn ?MT))))
+    (greaterThan ?LLIMIT ?LLB)
+    (greaterThan ?LLB ?ULIMIT)
+    (greaterThan ?FREQ 250)
+    (greaterThan 8000 ?FREQ)
+    (instance ?H Human)
+    (instance ?L Listening)
+    (agent ?L ?H)
+    (instance ?LOWERLIMIT ConstantQuantity)
+    (equal ?LOWERLIMIT
+      (MeasureFn ?LLIMIT Decibel))
+    (instance ?UPPERLIMIT ConstantQuantity)
+    (equal ?UPPERLIMIT
       (MeasureFn ?ULIMIT Decibel)))
+  (hearingAcuity ?H ?LOWERLIMIT ?UPPERLIMIT))
 
 (subclass AuditoryAcuityAttribute BiologicalAttribute)
 (termFormat EnglishLanguage AuditoryAcuityAttribute "auditory acuity attribute")
@@ -1527,10 +1542,13 @@ and chronic pain is common. [from Wikipedia]")
 (termFormat EnglishLanguage NormalHearingSensitivity "normal hearing sensitivity")
 
 (<=>
-   (hearingAcuity ?H
-      (MeasureFn -10 Decibel)
-      (MeasureFn 15 Decibel))
-   (attribute ?H NormalHearingSensitivity))
+  (and
+    (instance ?CONST1 ConstantQuantity)
+    (equal ?CONST1 (MeasureFn -10 Decibel))
+    (instance ?CONST2 ConstantQuantity)
+    (equal ?CONST2 (MeasureFn 15 Decibel))
+    (hearingAcuity ?H ?CONST1 ?CONST2))
+  (attribute ?H NormalHearingSensitivity))
 
 (documentation BorderlineHearingSensitivity EnglishLanguage "Hearing thresholds from 250 to 8,000 Hz between 16 and 25 dB.")
 (instance BorderlineHearingSensitivity AuditoryAcuityAttribute)
@@ -1547,18 +1565,25 @@ and chronic pain is common. [from Wikipedia]")
 (termFormat EnglishLanguage MildHearingLoss "mild hearing loss")
 
 (<=>
-   (hearingAcuity ?H
-      (MeasureFn 26 Decibel)
-      (MeasureFn 40 Decibel))
-   (attribute ?H MildHearingLoss))
+  (and
+    (instance ?CONST1 ConstantQuantity)
+    (equal ?CONST1 (MeasureFn 26 Decibel))
+    (instance ?CONST2 ConstantQuantity)
+    (equal ?CONST2 (MeasureFn 40 Decibel))
+    (hearingAcuity ?H ?CONST1 ?CONST2))
+  (attribute ?H MildHearingLoss))
 
 (documentation ModerateHearingLoss EnglishLanguage "Hearing thresholds from 250 to 8,000 Hz between 41 and 55 dB.")
 (instance ModerateHearingLoss AuditoryAcuityAttribute)
 (termFormat EnglishLanguage ModerateHearingLoss "moderate hearing loss")
+
 (<=>
-   (hearingAcuity ?H
-      (MeasureFn 41 Decibel)
-      (MeasureFn 55 Decibel))
+  (and
+    (instance ?CONST1 ConstantQuantity)
+    (equal ?CONST1 (MeasureFn 41 Decibel))
+    (instance ?CONST2 ConstantQuantity)
+    (equal ?CONST2 (MeasureFn 55 Decibel))
+    (hearingAcuity ?H ?CONST1 ?CONST2))
    (attribute ?H ModerateHearingLoss))
 
 (documentation ModeratelySevereHearingLoss EnglishLanguage "Hearing thresholds from 250 to 8,000 Hz between 56 and 70 dB.")
@@ -1566,19 +1591,27 @@ and chronic pain is common. [from Wikipedia]")
 (termFormat EnglishLanguage ModeratelySevereHearingLoss "moderately severe hearing loss")
 
 (<=>
-   (hearingAcuity ?H
-      (MeasureFn 56 Decibel)
+  (and
+    (instance ?CONST1 ConstantQuantity)
+    (equal ?CONST1
+      (MeasureFn 56 Decibel))
+    (instance ?CONST2 ConstantQuantity)
+    (equal ?CONST2
       (MeasureFn 70 Decibel))
-   (attribute ?H ModeratelySevereHearingLoss))
+    (hearingAcuity ?H ?CONST1 ?CONST2))
+  (attribute ?H ModeratelySevereHearingLoss))
 
 (documentation SevereHearingLoss EnglishLanguage "Hearing thresholds from 250 to 8,000 Hz between 71 and 90 dB.")
 (instance SevereHearingLoss AuditoryAcuityAttribute)
 (termFormat EnglishLanguage SevereHearingLoss "severe hearing loss")
 
 (<=>
-   (hearingAcuity ?H
-      (MeasureFn 71 Decibel)
-      (MeasureFn 90 Decibel))
+  (and
+    (instance ?CONST1 ConstantQuantity)
+    (equal ?CONST1 (MeasureFn 71 Decibel))
+    (instance ?CONST2 ConstantQuantity)
+    (equal ?CONST2 (MeasureFn 90 Decibel))
+   (hearingAcuity ?H ?CONST1 ?CONST2))
    (attribute ?H SevereHearingLoss))
 
 (documentation ProfoundHearingLoss EnglishLanguage "Hearing thresholds from 250 to 8,000 Hz between 91 and 200 dB.")
@@ -1586,10 +1619,13 @@ and chronic pain is common. [from Wikipedia]")
 (termFormat EnglishLanguage ProfoundHearingLoss "profound hearing loss")
 
 (<=>
-   (hearingAcuity ?H
-      (MeasureFn 91 Decibel)
-      (MeasureFn 200 Decibel))
-   (attribute ?H ProfoundHearingLoss))
+  (and
+    (instance ?CONST1 ConstantQuantity)
+    (instance ?CONST2 ConstantQuantity)
+    (equal ?CONST1 (MeasureFn 91 Decibel))
+    (equal ?CONST2 (MeasureFn 200 Decibel))
+    (hearingAcuity ?H ?CONST1 ?CONST2))
+  (attribute ?H ProfoundHearingLoss))
 
 
 (instance FacialParalysis DiseaseOrSyndrome)
@@ -1716,7 +1752,7 @@ and chronic pain is common. [from Wikipedia]")
 ;  (biologicalAgentCarrier ?ID ?M))
 
 (instance JointPain DiseaseOrSyndrome)
-(subAttribute JointPain Pain)
+(subclass JointPain (PainFn BodyJoint))
 (documentation JointPain EnglishLanguage "Pain affecting a body joint.")
 (termFormat EnglishLanguage JointPain "joint pain")
 
@@ -1726,8 +1762,8 @@ and chronic pain is common. [from Wikipedia]")
     (and
       (instance ?JOINT BodyJoint)
       (part ?JOINT ?ORGANISM)
-      (attribute ?ORGANISM
-        (PainFn ?JOINT)))))
+      (instance ?PAIN (PainFn ?JOINT))
+      (experiencer ?PAIN ?ORGANISM))))
 
 (subclass ChestPain Pain)
 (documentation ChestPain EnglishLanguage "&%Pain affecting the &%Chest of an &%Animal.")
@@ -1735,12 +1771,9 @@ and chronic pain is common. [from Wikipedia]")
 
 (=>
   (instance ?CHEST Chest)
-  (subclass
-    (PainFn ?CHEST)
-    ChestPain))
+  (subclass (PainFn ?CHEST) ChestPain))
 
-(subclass Anosmia
-   (SenseImpairmentFn Smelling))
+(subclass Anosmia (SenseImpairmentFn Smelling))
 (documentation Anosmia EnglishLanguage "Loss of the sense of &%Smelling, whether whole or partial.")
 (termFormat EnglishLanguage Anosmia "anosmia")
 (termFormat EnglishLanguage Anosmia "loss of smell")
@@ -1785,14 +1818,14 @@ and chronic pain is common. [from Wikipedia]")
          (patient ?PER ?HEART))))
 
 (=>
-   (and
-      (instance ?P HeartPalpitations)
-      (experiencer ?P ?H))
-   (exists (?HEART)
-      (and
-         (instance ?HEART Heart)
-         (part ?HEART ?H)
-         (located ?P ?HEART))))
+  (and
+    (instance ?P HeartPalpitations)
+    (experiencer ?P ?H))
+  (exists (?HEART)
+    (and
+      (instance ?HEART Heart)
+      (part ?HEART ?H)
+      (located ?P ?HEART))))
 
 (instance Insomnia DiseaseOrSyndrome)
 (subclass Insomnia PathologicProcess)
@@ -1808,8 +1841,9 @@ and chronic pain is common. [from Wikipedia]")
       (and
          (instance ?S Sleeping)
          (experiencer ?S ?H)
-         (duration
-            (WhenFn ?S) ?D)
+         (instance ?TIMEINT TimeInterval)
+         (equal ?TIMEINT (WhenFn ?S))
+         (duration ?TIMEINT ?D)
          (desires ?H
             (and
                (duration
@@ -1856,18 +1890,18 @@ and chronic pain is common. [from Wikipedia]")
 (termFormat EnglishLanguage DiabetesType1 "juvenile diabetes")
 
 (=>
-   (attribute ?H DiabetesType1)
-   (exists (?A)
-      (and
-         (instance ?A AutoImmuneDisorder)
-         (experiencer ?A ?H))))
+  (attribute ?H DiabetesType1)
+  (exists (?A)
+    (and
+        (instance ?A AutoImmuneDisorder)
+        (experiencer ?A ?H))))
 
 (=>
-   (attribute ?H DiabetesType1)
-   (exists (?I)
-      (and
-         (instance ?I Insulin)
-         (lacks ?H ?I))))
+  (attribute ?H DiabetesType1)
+  (exists (?I)
+    (and
+        (instance ?I Insulin)
+        (lacks ?H ?I))))
 
 (instance DiabetesType2 Diabetes)
 (documentation DiabetesType2 EnglishLanguage "Type 2 diabetes begins with insulin resistance, a condition in which cells fail to respond to insulin properly. As the disease progresses, a lack of insulin may also develop. This form was previously referred to as 'non insulin-dependent diabetes mellitus' (NIDDM) or 'adult-onset diabetes'. The most common cause is a combination of excessive body weight and insufficient exercise.[from Wikipedia]")
@@ -2130,7 +2164,7 @@ and chronic pain is common. [from Wikipedia]")
 (termFormat EnglishLanguage VitaminB3 "vitamin B3")
 (termFormat EnglishLanguage VitaminB3 "niacin")
 
-(subclass Pellagra DiseaseOrSyndrome)
+(instance Pellagra DiseaseOrSyndrome)
 (documentation Pellagra EnglishLanguage "Pellagra is a disease caused by a lack of the vitamin niacin (vitamin B3). Symptoms include inflamed skin, diarrhea, dementia, and sores in the mouth. Areas of the skin exposed to either sunlight or friction are typically affected first. Over time affected skin may become darker, stiffen, peel, or bleed. There are two main types of pellagra, primary and secondary. Primary pellagra is due to a diet that does not contain enough niacin and tryptophan. Secondary pellagra is due to a poor ability to use the niacin within the diet. This can occur as a result of alcoholism, long-term diarrhea, carcinoid syndrome, Hartnup disease, and a number of medications such as isoniazid. Diagnosis is typically based on symptoms and may be assisted by urine testing. Treatment is with either niacin or nicotinamide supplementation. Improvements typically begin within a couple of days. General improvements in diet are also frequently recommended. Decreasing sun exposure via sunscreen and proper clothing is important while the skin heals. Without treatment death may occur. The disease occurs most commonly in the developing world, specifically sub-Saharan Africa.[from Wikipedia]")
 (diseaseMedicine Pellagra VitaminB3 Ingesting)
 (termFormat EnglishLanguage Pellagra "pellagra")
@@ -2168,7 +2202,7 @@ and chronic pain is common. [from Wikipedia]")
 (termFormat EnglishLanguage VitaminC "vitamin C")
 (termFormat EnglishLanguage VitaminC "ascorbic acid")
 
-(subclass Scurvy DiseaseOrSyndrome)
+(instance Scurvy DiseaseOrSyndrome)
 (termFormat EnglishLanguage Scurvy "scurvy")
 (diseaseMedicine Scurvy VitaminC Ingesting)
 
@@ -2177,7 +2211,7 @@ and chronic pain is common. [from Wikipedia]")
 (termFormat EnglishLanguage VitaminD "vitamin D")
 (termFormat EnglishLanguage VitaminD "calciferol")
 
-(subclass Rickets DiseaseOrSyndrome)
+(instance Rickets DiseaseOrSyndrome)
 (termFormat EnglishLanguage Rickets "rickets")
 (diseaseMedicine Rickets VitaminD Ingesting)
 
@@ -2189,7 +2223,6 @@ and chronic pain is common. [from Wikipedia]")
 (documentation VitaminK EnglishLanguage "Vitamin K refers to structurally similar, fat-soluble vitamers found in foods and marketed as dietary supplements. The human body requires vitamin K for post-synthesis modification of certain proteins that are required for blood coagulation (K from koagulation, Danish for 'coagulation') or for controlling binding of calcium in bones and other tissues. The complete synthesis involves final modification of these so-called 'Gla proteins' by the enzyme gamma-glutamyl carboxylase that uses vitamin K as a cofactor. The presence of uncarboxylated proteins indicates a vitamin K deficiency. Carboxylation allows them to bind (chelate) calcium ions, which they cannot do otherwise. Without vitamin K, blood coagulation is seriously impaired, and uncontrolled bleeding occurs. Research suggests that deficiency of vitamin K may also weaken bones, potentially contributing to osteoporosis, and may promote calcification of arteries and other soft tissues.[from Wikipedia]")
 (termFormat EnglishLanguage VitaminK "vitamin K")
 
-
 (subclass PerniciousAnemia AutoImmuneDisorder)
 (documentation PerniciousAnemia EnglishLanguage "Pernicious anemia (PA) is a disease in which not enough red blood cells are produced due to a deficiency of vitamin B12. The most common initial symptom is feeling tired. Other symptoms may include shortness of breath, pale skin, chest pain, numbness in the hands and feet, poor balance, a smooth red tongue, poor reflexes, depression and confusion. Without treatment some of these problems may become permanent. [from Wikipedia].")
 (termFormat EnglishLanguage PerniciousAnemia "pernicious anemia")
@@ -2198,10 +2231,12 @@ and chronic pain is common. [from Wikipedia]")
    (and
       (instance ?P PerniciousAnemia)
       (experiencer ?P ?H1)
-      (amount VitaminB12 ?H1
-         (MeasureFn ?N1 ?U))
-      (amount VitaminB12 ?H2
-         (MeasureFn ?N2 ?U))
+      (instance ?MASS1 MassMeasure)
+      (equal ?MASS1 (MeasureFn ?N1 ?U))
+      (amount VitaminB12 ?H1 ?MASS1)
+      (instance ?MASS2 MassMeasure)
+      (equal ?MASS2 (MeasureFn ?N2 ?U))
+      (amount VitaminB12 ?H2 ?MASS2)
       (attribute ?H2 Healthy)
       (not
          (equal ?H1 ?H2)))
@@ -2724,7 +2759,7 @@ others. [from Wikipedia].")
 (termFormat EnglishLanguage Vyvanse "Vyvanse")
 (termFormat EnglishLanguage Vyvanse "lisdexamfetamine")
 
-(subclass ADHD PsychologicalDysfunction)
+(instance ADHD PsychologicalDysfunction)
 (documentation ADHD EnglishLanguage "Attention deficit hyperactivity disorder (ADHD) is a mental, behavioral, and neurodevelopmental disorder characterized by inattention, bouts of excessive energy, hyper-fixation, and impulsivity, which are pervasive, impairing, and otherwise age inappropriate. Some individuals with ADHD also display difficulty regulating emotions or problems with executive function. For a diagnosis, the symptoms have to be present for more than six months, and cause problems in at least two settings (such as school, home, work, or recreational activities). In children, problems paying attention may result in poor school performance. Additionally, it is associated with other mental disorders and substance use disorders. Although it causes impairment, particularly in modern society, many people with ADHD have sustained attention for tasks they find interesting or rewarding, known as hyperfocus.[from Wikipedia]")
 (termFormat EnglishLanguage ADHD "ADHD")
 (termFormat EnglishLanguage ADHD "attention deficit hyperactivity disorder")
@@ -2948,12 +2983,17 @@ Wikipedia]")
 
 (documentation Clarithromycin EnglishLanguage "Clarithromycin, sold under the brand name Biaxin among others, is an antibiotic used to treat various bacterial infections. This includes strep throat, pneumonia, skin infections, H. pylori infection, and Lyme disease, among others. Clarithromycin can be taken by mouth as a pill or liquid. Common side effects include nausea, vomiting, headaches, and diarrhea. Severe allergic reactions are rare. Liver problems have been reported. It may cause harm if taken during pregnancy. It is in the macrolide class and works by decreasing protein production of some bacteria.[from Wikipedia]")
 
+(instance processSideEffect BinaryPredicate)
+(domainSubclass processSideEffect 1 BiologicallyActiveSubstance)
+(domainSubclass processSideEffect 2 BiologicalProcess)
+(documentation processSideEffect EnglishLanguage "(processSideEffect ?SUBSTANCE ?PROCESSCLASS) means that an instance of ?PROCESSCLASS may occur as a side effect of taking an instance of ?SUBSTANCE.")
+
 (diseaseMedicine LymeDisease Clarithromycin Ingesting)
 (diseaseMedicine StrepThroat Clarithromycin Ingesting)
 (diseaseMedicine BacterialPneumonia Clarithromycin Ingesting)
-(sideEffect Clarithromycin Nausea)
-(sideEffect Clarithromycin Vomiting)
-(sideEffect Clarithromycin Headache)
+(processSideEffect Clarithromycin Nausea)
+(processSideEffect Clarithromycin Vomiting)
+(processSideEffect Clarithromycin Headache)
 (sideEffect Clarithromycin Diarrhea)
 
 (subclass Adalimumab Medicine)
@@ -2961,9 +3001,13 @@ Wikipedia]")
 (documentation Adalimumab EnglishLanguage "Adalimumab, is a disease-modifying antirheumatic drug and monoclonal antibody that works by inactivating tumor necrosis factor-alpha (TNFα). It is sold under the brand name Humira, among others. It is a medication used to treat rheumatoid arthritis, psoriatic arthritis, ankylosing spondylitis, &%CrohnsDisease, &%UlcerativeColitis, psoriasis, hidradenitis suppurativa, uveitis, and juvenile idiopathic &%Arthritis. Use is generally only recommended in people who have not responded to other treatments. It is administered by injection under the skin. Common side effects include upper respiratory tract infections, pain at the site of injection, rash, and headache. Other side effects may include serious infections, cancer, anaphylaxis, reactivation of hepatitis B, multiple sclerosis, heart failure, liver failure, and aplastic anemia. Use during pregnancy is not recommended, but some sources show use during breastfeeding may be safe.[from Wikipedia]")
 (termFormat EnglishLanguage Adalimumab "adalimumab")
 
-(diseaseMedicine RheumatoidArthritis Clarithromycin Injecting)
-(sideEffect Adalimumab SkinRash)
-(sideEffect Adalimumab Headache)
+(exists (?R)
+  (and
+    (instance ?R RheumatoidArthritis)
+    (diseaseMedicine ?R Clarithromycin Injecting)))
+
+(processSideEffect Adalimumab SkinRash)
+(processSideEffect Adalimumab Headache)
 
 (=>
    (and
@@ -2994,19 +3038,19 @@ Wikipedia]")
 (termFormat EnglishLanguage Gaslighting "gaslighting")
 
 (=>
-   (and
-      (instance ?G Gaslighting)
-      (agent ?G ?A)
-      (suffers ?G ?H))
-   (exists (?P)
-      (and
-         (instance ?P Perception)
-         (experiencer ?P ?H)
-         (causesProposition
-            (suffers ?G ?H)
-            (not
-               (knows ?H
-                  (result ?P ?R)))))))
+  (and
+    (instance ?G Gaslighting)
+    (agent ?G ?A)
+    (suffers ?G ?H))
+  (exists (?P)
+    (and
+      (instance ?P Perception)
+      (experiencer ?P ?H)
+      (causesProposition
+        (suffers ?G ?H)
+        (not
+          (knows ?H
+            (result ?P ?R)))))))
 
 (subclass SARSCoV1 Coronavirus)
 (documentation SARSCoV1 EnglishLanguage "The &%Virus that caused the original SARS that apparently originated in China in 2003.")
@@ -3016,16 +3060,15 @@ Wikipedia]")
 (subclass Loratadine Antihistamine)
 (documentation Loratadine EnglishLanguage "Loratadine, sold under the brand name Claritin among others, is a medication used to treat allergies. This includes allergic rhinitis (hay fever) and hives. It is also available in combination with pseudoephedrine, a decongestant, known as loratadine/  pseudoephedrine. It is taken by mouth. Common side effects include sleepiness, dry mouth, and headache. Serious side effects are rare and include allergic reactions, seizures, and liver problems. Use during pregnancy appears to be safe but has not been well studied. It is not recommended in children less than two years old. It is in the second-generation antihistamine family of medication.[from Wikipedia]")
 (termFormat EnglishLanguage Loratadine "loratadine")
-(sideEffect Loratadine Headache)
+(processSideEffect Loratadine Headache)
 
 (subclass Claritin Loratadine)
 (termFormat EnglishLanguage Claritin "Claritin")
 
 (subclass Cetirizine Antihistamine)
-(documentation Cetirizine EnglishLanguage "Cetirizine, sold under the brand name Zyrtec among others, is a second-generation antihistamine used to treat &%AllergicRhinitis (hay fever), dermatitis, and urticaria (&%Hives). It is taken by mouth. Effects generally begin within an hour and last for about a day. The degree of benefit is similar to other &%Antihistamines such as diphenhydramine. Common side effects include sleepiness, dry mouth, headache, and abdominal pain.[from Wikipedia]")
-(sideEffect Cetirizine Headache)
-(pathologicSideEffect Cetirizine
-   (PainFn Abdomen))
+(documentation Cetirizine EnglishLanguage "Cetirizine, sold under the brand name Zyrtec among others, is a second-generation antihistamine used to treat allergic rhinitis, dermatitis, and urticaria. Common side effects include sleepiness, dry mouth, headache, and abdominal pain.")
+(pathologicSideEffect Cetirizine Headache)
+(pathologicSideEffect Cetirizine (PainFn Abdomen))
 (termFormat EnglishLanguage Cetirizine "cetirizine")
 (sideEffect Cetirizine Sleepy)
 
@@ -3085,7 +3128,7 @@ during pregnancy may be associated with increased odds of congenital
 heart defects.[from Wikipedia]")
 
 (termFormat EnglishLanguage Bupropion "bupropion")
-(sideEffect Bupropion Nausea)
+(processSideEffect Bupropion Nausea)
 
 (subclass Wellbutrin Bupropion)
 (termFormat EnglishLanguage Wellbutrin "Wellbutrin")
@@ -3099,9 +3142,9 @@ heart defects.[from Wikipedia]")
 
 (subclass Doxycycline Antibiotic)
 (documentation Doxycycline EnglishLanguage "Doxycycline is a broad-spectrum tetracycline-class antibiotic used in the treatment of infections caused by bacteria and certain parasites. It is used to treat bacterial pneumonia, acne, chlamydia infections, Lyme disease, cholera, typhus, and syphilis. It is also used to prevent malaria in combination with quinine. Doxycycline may be taken by mouth or by injection into a vein. Common side effects include diarrhea, nausea, vomiting, and an increased risk of sunburn. [from Wikipedia]")
-(sideEffect Doxycycline Nausea)
+(processSideEffect Doxycycline Nausea)
 (sideEffect Doxycycline Diarrhea)
-(sideEffect Doxycycline Vomiting)
+(processSideEffect Doxycycline Vomiting)
 (roomTempState Doxycycline Solid)
 
 (instance Antivaxxer SocialRole)
@@ -3110,14 +3153,14 @@ heart defects.[from Wikipedia]")
 (termFormat EnglishLanguage Antivaxxer "anti-vaxxer")
 
 (=>
-   (holdsDuring ?T
-      (attribute ?H Antivaxxer))
-   (believes ?H
-      (exists (?V ?D)
-         (and
-            (instance ?V Vaccination)
-            (instance ?D Damaging)
-            (causes ?V ?D)))))
+  (holdsDuring ?T
+    (attribute ?H Antivaxxer))
+  (believes ?H
+    (exists (?V ?D)
+      (and
+        (instance ?V Vaccination)
+        (instance ?D Damaging)
+        (causes ?V ?D)))))
 
 (instance Chiropractor Profession)
 (documentation Chiropractor EnglishLanguage "A practitioner of the alternative medicine of chriropractic. Practitioners believe that manipulation of the spine can be an effective treatment for back pain as well as many other conditions.")
@@ -3161,9 +3204,13 @@ benzodiazepines were the most prescribed medications globally; the
 introduction of selective serotonin reuptake inhibitors (SSRIs), among
 other factors, decreased rates of prescription, but they remain
 frequently used worldwide.[from Wikipedia]")
-(diseaseMedicine Anxiety Benzodiazepine Ingesting)
+
+; Anxiety is not a disease, its a symptom
+;(diseaseMedicine Anxiety Benzodiazepine Ingesting)
+
+
 (diseaseMedicine Insomnia Benzodiazepine Ingesting)
-(diseaseMedicine Seizure Benzodiazepine Ingesting)
+(pathologyTreatment Seizure Benzodiazepine Ingesting)
 (termFormat EnglishLanguage Benzodiazepine "benzodiazepine")
 
 (subclass Chlordiazepoxide Benzodiazepine)
@@ -3181,12 +3228,12 @@ frequently used worldwide.[from Wikipedia]")
 (subclass Sulfasalazine Medicine)
 (documentation Sulfasalazine EnglishLanguage "Sulfasalazine (SSZ), sold under the trade name Azulfidine among others, is a medication used to treat rheumatoid arthritis, ulcerative colitis, and Crohn's disease. It is considered by some to be a first-line treatment in rheumatoid arthritis. It is taken by mouth. Significant side effects occur in about 25% of people. Commonly these include loss of appetite, nausea, headache, and rash. Severe side effects include bone marrow suppression, liver problems, Stevens–Johnson syndrome, and kidney problems. It should not be used in people allergic to aspirin or sulfonamide. Use during pregnancy appears to be safe for the baby. Sulfasalazine is in the disease-modifying antirheumatic drugs (DMARDs) family of medications. It is unclear exactly how it works.[from Wikipedia]")
 (termFormat EnglishLanguage Sulfasalazine "sulfasalazine")
-(diseaseMedicine RheumatoidArthritis Sulfasalazine Ingesting)
-(diseaseMedicine CrohnsDisease Sulfasalazine Ingesting)
-(diseaseMedicine UlcerativeColitis Sulfasalazine Ingesting)
-(sideEffect Sulfasalazine Nausea)
-(sideEffect Sulfasalazine Headache)
-(sideEffect Sulfasalazine SkinRash)
+(pathologyTreatment RheumatoidArthritis Sulfasalazine Ingesting)
+(pathologyTreatment CrohnsDisease Sulfasalazine Ingesting)
+(pathologyTreatment UlcerativeColitis Sulfasalazine Ingesting)
+(processSideEffect Sulfasalazine Nausea)
+(processSideEffect Sulfasalazine Headache)
+(processSideEffect Sulfasalazine SkinRash)
 
 (subclass Azulfidine Sulfasalazine)
 (termFormat EnglishLanguage Azulfidine "azulfidine")
@@ -3195,8 +3242,8 @@ frequently used worldwide.[from Wikipedia]")
 (documentation Roflumilast EnglishLanguage "Roflumilast, sold under the trade name Daxas among others, is a drug that acts as a selective, long-acting inhibitor of the enzyme phosphodiesterase-4 (PDE-4). It has anti-inflammatory effects and is used as an orally administered drug for the treatment of inflammatory conditions of the lungs such as chronic obstructive pulmonary disease (COPD) [from Wikipedia]")
 (termFormat EnglishLanguage Roflumilast "roflumilast")
 (diseaseMedicine ChronicObstructivePulmonaryDisease Roflumilast Ingesting)
-(sideEffect Roflumilast Nausea)
-(sideEffect Roflumilast Headache)
+(processSideEffect Roflumilast Nausea)
+(processSideEffect Roflumilast Headache)
 (sideEffect Roflumilast Diarrhea)
 
 (subclass Daxas Roflumilast)
@@ -3209,16 +3256,16 @@ frequently used worldwide.[from Wikipedia]")
 (termFormat EnglishLanguage Troponin "troponin")
 
 (=>
-   (and
-      (instance ?C MuscularContraction)
-      (moves ?C ?M)
-      (or
-         (instance ?M VoluntaryMuscle)
-         (instance ?M HeartMuscle)))
-   (exists (?T)
-      (and
-         (instance ?T Troponin)
-         (resource ?C ?T))))
+  (and
+    (instance ?C MuscularContraction)
+    (moves ?C ?M)
+    (or
+      (instance ?M VoluntaryMuscle)
+      (instance ?M HeartMuscle)))
+  (exists (?T)
+    (and
+      (instance ?T Troponin)
+      (resource ?C ?T))))
 
 (subclass Lisdexamfetamine Medicine)
 (subclass Lisdexamfetamine Stimulant)
@@ -3230,25 +3277,24 @@ frequently used worldwide.[from Wikipedia]")
 
 (subclass Vyvanse Lisdexamfetamine)
 
-
 (=>
-   (and
-      (attribute ?H1 ADHD)
-      (not
-         (attribute ?H2 ADHD))
-      (not
-         (equal ?H1 ?H2))
-      (instance ?I1 ?IC)
-      (instance ?I2 ?IC)
-      (subclass ?IC IntentionalPsychologicalProcess)
-      (agent ?I1 ?H1)
-      (agent ?I2 ?H2)
-      (duration
-         (WhenFn ?I1) ?D1)
-      (duration
-         (WhenFn ?I2) ?D2))
-   (modalAttribute
-      (greaterThan ?D2 ?D1) Likely))
+  (and
+    (attribute ?H1 ADHD)
+    (not
+      (attribute ?H2 ADHD))
+    (not
+      (equal ?H1 ?H2))
+    (instance ?I1 ?IC)
+    (instance ?I2 ?IC)
+    (subclass ?IC IntentionalPsychologicalProcess)
+    (agent ?I1 ?H1)
+    (agent ?I2 ?H2)
+    (duration
+      (WhenFn ?I1) ?D1)
+    (duration
+      (WhenFn ?I2) ?D2))
+  (modalAttribute
+    (greaterThan ?D2 ?D1) Likely))
 
 (instance ObsessiveCompulsiveDisorder PsychologicalDysfunction)
 
@@ -3257,30 +3303,30 @@ frequently used worldwide.[from Wikipedia]")
 (termFormat EnglishLanguage ObsessiveCompulsiveDisorder "obsessive–compulsive disorder")
 
 (=>
-   (attribute ?H ObsessiveCompulsiveDisorder)
-   (exists (?COL ?C)
-      (and
-         (memberType ?COL ?C)
-         (or
-            (subclass ?C Investigating)
-            (subclass ?C Cleaning))
-         (=>
-            (instance ?CI ?C)
-            (and
-               (agent ?CI ?H)
-               (not
-                  (wants ?H ?CI)))))))
+  (attribute ?H ObsessiveCompulsiveDisorder)
+  (exists (?COL ?C)
+    (and
+      (memberType ?COL ?C)
+      (or
+        (subclass ?C Investigating)
+        (subclass ?C Cleaning))
+      (=>
+        (instance ?CI ?C)
+        (and
+          (agent ?CI ?H)
+          (not
+            (wants ?H ?CI)))))))
 
 (subclass Escitalopram SSRIDrug)
 (documentation Escitalopram EnglishLanguage "Escitalopram, sold under the brand names Cipralex and Lexapro, among others, is an &%Antidepressant of the selective serotonin reuptake inhibitor (&%SSRIDrug) class. Escitalopram is mainly used to treat major &%Depression or generalized anxiety disorder. It is taken by mouth. Common side effects include trouble sleeping, nausea, sexual problems, and feeling tired. More serious side effects may include suicide in people under the age of 25. [from Wikipedia]")
 
 (termFormat EnglishLanguage Escitalopram "escitalopram")
 (diseaseMedicine Depression Escitalopram Ingesting)
-(sideEffect Nausea Escitalopram)
-(sideEffect SexualDysfunction Escitalopram)
-(sideEffect Anxiety Escitalopram)
-(sideEffect Insomnia Escitalopram)
-(sideEffect FeelingTired Escitalopram)
+(processSideEffect Escitalopram Nausea)
+(sideEffect Escitalopram SexualDysfunction)
+(sideEffect Escitalopram Anxiety)
+(sideEffect Escitalopram Insomnia)
+(sideEffect Escitalopram FeelingTired)
 
 (subclass Cipralex Escitalopram)
 (termFormat EnglishLanguage Cipralex "Cipralex")
@@ -3327,46 +3373,46 @@ caused by a number of medical conditions, most prominently
 (documentation InvasiveVentilator EnglishLanguage "A ventilator that requires &%Intubation.")
 
 (=>
-   (and
-      (instance ?IV InvasiveVentilator)
-      (instance ?B Breathing)
-      (experiencer ?B ?H)
-      (instrument ?B ?IV))
-   (exists (?IN)
-      (and
-         (instance ?IN Intubation)
-         (destination ?IN ?H)
-         (earlier
-            (WhenFn ?IN)
-            (WhenFn ?B)))))
+  (and
+    (instance ?IV InvasiveVentilator)
+    (instance ?B Breathing)
+    (experiencer ?B ?H)
+    (instrument ?B ?IV))
+  (exists (?IN)
+    (and
+      (instance ?IN Intubation)
+      (destination ?IN ?H)
+      (earlier
+        (WhenFn ?IN)
+        (WhenFn ?B)))))
 
 (subclass Intubation Inserting)
 (termFormat EnglishLanguage Intubation "intubation")
 (documentation Intubation EnglishLanguage "The process of &%Inserting a &%Tube into the &%Trachea to support &%Breathing.")
 
 (=>
-   (and
-      (instance ?I Intubation)
-      (instance ?T Tube)
-      (objectTransferred ?I ?T)
-      (experiencer ?I ?H))
-   (hasPurpose ?I
-      (exists (?B)
-         (and
-            (instance ?B Breathing)
-            (instrument ?B ?T)))))
+  (and
+    (instance ?I Intubation)
+    (instance ?T Tube)
+    (objectTransferred ?I ?T)
+    (experiencer ?I ?H))
+  (hasPurpose ?I
+    (exists (?B)
+      (and
+        (instance ?B Breathing)
+        (instrument ?B ?T)))))
 
 (=>
-   (and
-      (instance ?I Intubation)
-      (instance ?T Tube)
-      (objectTransferred ?I ?T)
-      (experiencer ?I ?H))
-   (exists (?TH)
-      (and
-         (instance ?TH Trachea)
-         (part ?TH ?H)
-         (destination ?I ?TH))))
+  (and
+    (instance ?I Intubation)
+    (instance ?T Tube)
+    (objectTransferred ?I ?T)
+    (experiencer ?I ?H))
+  (exists (?TH)
+    (and
+      (instance ?TH Trachea)
+      (part ?TH ?H)
+      (destination ?I ?TH))))
 
 (instance SleepApnea DiseaseOrSyndrome)
 
@@ -3377,7 +3423,7 @@ caused by a number of medical conditions, most prominently
    (holdsDuring ?T
       (and
          (attribute ?H SleepApnea)
-         (attribute ?H Sleeping)))
+         (instance ?H Sleeping)))
    (exists (?T2 ?B ?B2)
       (and
          (during ?T2 ?T)
@@ -3412,9 +3458,9 @@ caused by a number of medical conditions, most prominently
       (instance ?P Human))
    (exists (?DIS)
       (and
+         (instance ?DIS DiseaseOrSyndrome)
          (containsFormula ?M
             (attribute ?P ?DIS))
-         (instance ?DIS DiseaseOrSyndrome)
          (believes ?D
             (attribute ?P ?DIS))
          (truth
@@ -3556,18 +3602,19 @@ caused by a number of medical conditions, most prominently
 (termFormat EnglishLanguage Pulmonologist "pulmonologist")
 
 (=>
-   (attribute ?H Pulmonologist)
-   (exists (?P1 ?P2 ?PAT ?L)
-      (and
-         (subclass ?PROCESS1 DiagnosticProcess)
-         (subclass ?PROCESS2 TherapeuticProcess)
-         (patient ?P1 ?PAT)
-         (patient ?P2 ?PAT)
-         (instance ?L Lung)
-         (part ?L ?PAT)
-         (located ?P1 Lung)
-         (located ?P2 Lung))))
-
+  (attribute ?H Pulmonologist)
+  (exists (?P1 ?P2 ?PAT ?L ?LUNG1 ?LUNG2)
+    (and
+      (subclass ?PROCESS1 DiagnosticProcess)
+      (subclass ?PROCESS2 TherapeuticProcess)
+      (patient ?P1 ?PAT)
+      (patient ?P2 ?PAT)
+      (instance ?L Lung)
+      (part ?L ?PAT)
+      (instance ?LUNG1 Lung)
+      (instance ?LUNG2 Lung)
+      (located ?P1 ?LUNG1)
+      (located ?P2 ?LUNG2))))
 
 (subclass Clonazepam Benzodiazepine)
 
@@ -3590,14 +3637,16 @@ caused by a number of medical conditions, most prominently
 (termFormat EnglishLanguage Fibromyalgia "Fibromyalgia")
 
 (=>
-   (holdsDuring ?T
-      (attribute ?H Fibromyalgia))
-   (exists (?P)
+  (and
+    (instance ?F Fibromyalgia)
+    (holdsDuring ?T
+      (attribute ?H ?F)))
+    (exists (?P)
       (and
-         (instance ?P Pain)
-         (experiencer ?P ?H)
-         (during ?T
-            (WhenFn ?P)))))
+        (instance ?P Pain)
+        (experiencer ?P ?H)
+        (during ?T
+          (WhenFn ?P)))))
 
 (instance Netflix Corporation)
 (documentation Netflix EnglishLanguage "Netflix, Inc. is an American over-the-top media service and original programming production company. It offers subscription-based video on demand from a library of films and television series, 40% of which is Netflix original programming produced in-house. Netflix has also played a prominent role in independent film distribution. As of July 2021, Netflix had 209 million subscribers, including 72 million in the United States and &%Canada. It is available worldwide except in mainland China (due to local restrictions), Syria, North Korea, and Crimea (due to US sanctions). Netflix is a member of the Motion Picture Association (MPA).[from Wikipedia]")
@@ -3613,9 +3662,9 @@ caused by a number of medical conditions, most prominently
       (instance ?M MotionPicture)))
 
 (exists (?FM)
-   (and
-      (instance ?FM FilmMaking)
-      (agent ?FM Netflix)))
+  (and
+    (instance ?FM FilmMaking)
+    (agent ?FM Netflix)))
 
 (instance ProPublica Corporation)
 
@@ -3625,9 +3674,9 @@ caused by a number of medical conditions, most prominently
 (termFormat EnglishLanguage ProPublica "Pro Publica Inc.")
 
 (exists (?H)
-   (and
-      (attribute ?H NewsReporter)
-      (employs ProPublica ?H)))
+  (and
+    (attribute ?H NewsReporter)
+    (employs ProPublica ?H)))
 
 (subclass Immunosuppressive Medicine)
 (documentation Immunosuppressive EnglishLanguage "Immunosuppression is a reduction of the activation or efficacy of the immune system. Some portions of the immune system itself have immunosuppressive effects on other parts of the immune system, and immunosuppression may occur as an adverse reaction to treatment of other conditions. In general, deliberately induced immunosuppression is performed to prevent the body from rejecting an organ transplant. Additionally, it is used for treating graft-versus-host disease after a bone marrow transplant, or for the treatment of auto-immune diseases such as systemic &%Lupus erythematosus, &%RheumatoidArthritis, Sjögren's syndrome, or &%CrohnsDisease. This is typically done using medications, but may involve surgery (splenectomy), plasmapheresis, or radiation. A person who is undergoing immunosuppression, or whose immune system is weak for some other reasons (chemotherapy or HIV), is said to be immunocompromised.[from Wikipedia]")
@@ -3635,14 +3684,14 @@ caused by a number of medical conditions, most prominently
 (termFormat EnglishLanguage Immunosuppressive "immunosuppressant")
 
 (=>
-   (and
-      (subclass ?MEDICINE_CLASS Immunosuppressive)
-      (instance ?MEDICINE ?MEDICINE_CLASS))
-   (hasPurpose ?MEDICINE
-      (exists (?AID ?PROCESS_CLASS)
-         (and
-            (instance ?AID AutoImmuneDisorder)
-            (diseaseMedicine ?AID ?MEDICINE_CLASS ?PROCESS_CLASS)))))
+  (and
+    (subclass ?MEDICINE_CLASS Immunosuppressive)
+    (instance ?MEDICINE ?MEDICINE_CLASS))
+  (hasPurpose ?MEDICINE
+    (exists (?AID ?PROCESS_CLASS)
+      (and
+        (instance ?AID AutoImmuneDisorder)
+        (diseaseMedicine ?AID ?MEDICINE_CLASS ?PROCESS_CLASS)))))
 
 (subclass Benelysta Immunosuppressive)
 (documentation Benelysta EnglishLanguage "An &%Immunosuppressive used to treat &%Lupus.")
@@ -3658,9 +3707,9 @@ caused by a number of medical conditions, most prominently
    (instance ?OT OrganTransplant)
    (exists (?H ?O)
       (and
-         (instance ?H Animal)
-         (instance ?O Organ)
-         (needs ?H ?O))))
+        (instance ?H Animal)
+        (instance ?O Organ)
+        (needs ?H ?O))))
 
 (=>
    (instance ?OT OrganTransplant)
@@ -3683,8 +3732,8 @@ caused by a number of medical conditions, most prominently
 (subclass BetaBlocker Medicine)
 
 (documentation BetaBlocker EnglishLanguage "Beta blockers (beta-blockers, β-blockers, etc.) are a class of medications that are predominantly used to manage abnormal heart rhythms, and to protect the heart from a second heart attack (myocardial infarction) after a first heart attack (secondary prevention). They are also widely used to treat high blood pressure (hypertension), although they are no longer the first choice for initial treatment of most patients.[from Wikipedia]")
-(diseaseMedicine HeartAttack BetaBlocker Ingesting)
-(diseaseMedicine HeartPalpitations BetaBlocker Ingesting)
+(pathologyTreatment HeartAttack BetaBlocker Ingesting)
+(pathologyTreatment HeartPalpitations BetaBlocker Ingesting)
 (diseaseMedicine HighBloodPressure BetaBlocker Ingesting)
 (termFormat EnglishLanguage BetaBlocker "beta blocker")
 
@@ -3692,7 +3741,11 @@ caused by a number of medical conditions, most prominently
 
 (documentation Propranolol EnglishLanguage "Propranolol, sold under the brand name Inderal among others, is a medication of the beta blocker class. It is used to treat high blood pressure, a number of types of irregular heart rate, thyrotoxicosis, capillary hemangiomas, performance anxiety, and essential tremors, as well to prevent migraine headaches, and to prevent further heart problems in those with angina or previous heart attacks. It can be taken by mouth or by injection into a vein. The formulation that is taken by mouth comes in short-acting and long-acting versions. Propranolol appears in the blood after 30 minutes and has a maximum effect between 60 and 90 minutes when taken by mouth. Common side effects include nausea, abdominal pain, and constipation. [from Wikipedia]")
 (termFormat EnglishLanguage Propranolol "propranolol")
-(sideEffect Propranolol Nausea)
+
+(exists (?P)
+  (and
+    (instance ?P Propranolol)
+    (processSideEffect ?P Nausea)))
 
 (subclass Inderal Propranolol)
 (termFormat EnglishLanguage Inderal "Inderal")
@@ -3713,8 +3766,17 @@ caused by a number of medical conditions, most prominently
 
 (documentation MycophenolicAcid EnglishLanguage "Mycophenolic acid (MPA) is an immunosuppressant medication used to prevent rejection following organ transplantation and to treat autoimmune conditions such as Crohn's disease and lupus. Specifically it is used following kidney, heart, and liver transplantation. It can be given by mouth or by injection into a vein. It comes as mycophenolate sodium and mycophenolate mofetil. Common side effects include nausea, infections, and diarrhea. [from Wikipedia]")
 (termFormat EnglishLanguage MycophenolicAcid "mycophenolic acid")
-(diseaseMedicine CrohnsDisease MycophenolicAcid Ingesting)
-(diseaseMedicine Lupus MycophenolicAcid Ingesting)
+
+(exists (?C)
+  (and
+    (instance ?C CrohnsDisease)
+    (diseaseMedicine ?C MycophenolicAcid Ingesting)))
+
+(exists (?L)
+  (and
+    (instance ?L Lupus)
+    (diseaseMedicine ?L MycophenolicAcid Ingesting)))
+
 (sideEffect MycophenolicAcid Nausea)
 (sideEffect MycophenolicAcid Diarrhea)
 
@@ -3738,16 +3800,16 @@ caused by a number of medical conditions, most prominently
 (termFormat EnglishLanguage Narcolepsy "narcolepsy")
 
 (=>
-   (holdsDuring ?T
-      (attribute ?H Narcolepsy))
-   (exists (?S)
-      (and
-         (instance ?S Sleeping)
-         (experiencer ?S ?H)
-         (during
-            (WhenFn ?S) ?T)
-         (not
-            (wants ?H ?S)))))
+  (holdsDuring ?T
+    (attribute ?H Narcolepsy))
+  (exists (?S)
+    (and
+      (instance ?S Sleeping)
+      (experiencer ?S ?H)
+      (during
+        (WhenFn ?S) ?T)
+      (not
+        (wants ?H ?S)))))
 
 (instance AstraZeneca Corporation)
 
@@ -3764,24 +3826,24 @@ caused by a number of medical conditions, most prominently
    (instance ?P Pedialyte)
    (hasPurpose ?P
       (exists (?C ?D ?V ?DR)
-         (and
-            (instance ?C HumanChild)
-            (instance ?D Diarrhea)
-            (instance ?V Vomiting)
-            (or
-               (and
-                  (experiencer ?D ?C)
-                  (earlier
-                     (WhenFn ?D)
-                     (WhenFn ?DR)))
-               (and
-                  (experiencer ?V ?C)
-                  (earlier
-                     (WhenFn ?V)
-                     (WhenFn ?DR))))
-            (instance ?DR Drinking)
-            (agent ?DR ?C)
-            (objectTransferred ?DR ?P)))))
+        (and
+          (instance ?C HumanChild)
+          (instance ?D Diarrhea)
+          (instance ?V Vomiting)
+          (or
+            (and
+              (experiencer ?D ?C)
+              (earlier
+                (WhenFn ?D)
+                (WhenFn ?DR)))
+            (and
+              (experiencer ?V ?C)
+              (earlier
+                (WhenFn ?V)
+                (WhenFn ?DR))))
+          (instance ?DR Drinking)
+          (agent ?DR ?C)
+          (objectTransferred ?DR ?P)))))
 
 (subclass Anticoagulant Medicine)
 (documentation Anticoagulant EnglishLanguage "Anticoagulants, commonly known as &%Blood thinners, are chemical substances that prevent or reduce coagulation of blood, prolonging the &%Clotting time. Some of them occur naturally in blood-eating animals such as &%Leeches and &%Mosquitoes, where they help keep the bite area unclotted long enough for the animal to obtain some blood. As a class of medications, anticoagulants are used in therapy for thrombotic disorders. Oral anticoagulants (OACs) are taken by many people in pill or tablet form, and various intravenous anticoagulant dosage forms are used in &%HospitalOrganizations. Some anticoagulants are used in medical equipment, such as sample tubes, blood transfusion bags, heart-lung machines, and dialysis equipment. One of the first anticoagulants, &%Warfarin, was initially approved as a rodenticide. [from Wikipedia]")
@@ -3850,10 +3912,17 @@ caused by a number of medical conditions, most prominently
 (documentation Ferritin EnglishLanguage "Ferritin is a universal intracellular protein that stores &%Iron and releases it in a controlled fashion. The protein is produced by almost all living &%Organisms, including archaea, bacteria, algae, higher plants, and animals. It is the primary intracellular iron-storage protein in both prokaryotes and eukaryotes, keeping iron in a soluble and non-toxic form. In humans, it acts as a buffer against iron deficiency and iron overload. [from Wikipedia]")
 (termFormat EnglishLanguage Ferritin "ferritin")
 
+(instance processSymptom BinaryPredicate)
+(domain processSymptom 1 DiseaseOrSyndrome)
+(domainSubclass processSymptom 2 BiologicalProcess)
+(documentation processSymptom EnglishLanguage "(processSymptom ?CONDITION ?PROCESSCLASS) means that an instance of ?PROCESSCLASS is a possible manifestation associated with the disease or syndrome attribute ?CONDITION.")
+(format EnglishLanguage processSymptom "%2 is a process symptom associated with %1")
+(termFormat EnglishLanguage processSymptom "process symptom")
+
 (instance Hyperferritinemia DiseaseOrSyndrome)
-(documentation Hyperferritinemia EnglishLanguage "If ferritin is high, there is iron in excess or else there is an acute inflammatory reaction in which ferritin is mobilized without &%Iron excess. For example, ferritins may be high in infection without signaling body iron overload. [from Wikipedia]")
+(documentation Hyperferritinemia EnglishLanguage "Hyperferritinemia is an abnormally elevated level of ferritin. It may result from iron excess or an acute inflammatory response in which ferritin is mobilized without iron overload.")
 (termFormat EnglishLanguage Hyperferritinemia "hyperferritinemia")
-(diseaseSymptom Hyperferritinemia Inflammation)
+(processSymptom Hyperferritinemia Inflammation)
 
 (instance PubMed SearchEngine)
 (termFormat EnglishLanguage PubMed "PubMed")
@@ -3864,7 +3933,12 @@ caused by a number of medical conditions, most prominently
 (subclass Abatacept Immunosuppressive)
 (documentation Abatacept EnglishLanguage "Abatacept, sold under the brand name Orencia, is a medication used to treat autoimmune diseases like rheumatoid arthritis, by interfering with the immune activity of T cells. It is a modified antibody.[from Wikipedia]")
 (termFormat EnglishLanguage Abatacept "abatacept")
-(diseaseMedicine Abatacept RheumatoidArthritis Ingesting)
+
+(exists (?A ?R)
+  (and
+    (instance ?A Abatacept)
+    (instance ?R RheumatoidArthritis)
+    (diseaseMedicine ?A ?R Ingesting)))
 
 (subclass Orencia Abatacept)
 (termFormat EnglishLanguage Orencia "Orencia")
@@ -3880,13 +3954,13 @@ caused by a number of medical conditions, most prominently
 (termFormat EnglishLanguage PepticUlcers "stomach ulcers")
 
 (=>
-   (attribute ?H PepticUlcers)
-   (exists (?S ?U)
-      (and
-         (instance ?S Stomach)
-         (instance ?U Ulcer)
-         (part ?S ?H)
-         (located ?U ?S))))
+  (attribute ?H PepticUlcers)
+  (exists (?S ?U)
+    (and
+      (instance ?S Stomach)
+      (instance ?U Ulcer)
+      (part ?S ?H)
+      (located ?U ?S))))
 
 (subclass Tazac Nizatidine)
 (termFormat EnglishLanguage Tazac "Tazac")
@@ -3918,18 +3992,18 @@ later need for social validation. [from Wikipedia]")
 (termFormat EnglishLanguage Bulimia "bulimia nervosa")
 
 (=>
-   (attribute ?H Bulimia)
-   (exists (?E ?P)
-      (and
-         (instance ?E Eating)
-         (or
-            (instance ?P Vomiting)
-            (instance ?P Defecation))
-         (agent ?P ?H)
-         (wants ?H ?P)
-         (earlier
-            (WhenFn ?E)
-            (WhenFn ?P)))))
+  (attribute ?H Bulimia)
+  (exists (?E ?P)
+    (and
+      (instance ?E Eating)
+      (or
+        (instance ?P Vomiting)
+        (instance ?P Defecation))
+      (agent ?P ?H)
+      (wants ?H ?P)
+      (earlier
+        (WhenFn ?E)
+        (WhenFn ?P)))))
 
 (instance Anorexia PsychologicalDysfunction)
 
@@ -3939,40 +4013,41 @@ later need for social validation. [from Wikipedia]")
 (termFormat EnglishLanguage Anorexia "anorexia nervosa")
 
 (=>
-   (attribute ?H Anorexia)
-   (exists (?E)
-      (and
-         (instance ?E Eating)
-         (agent ?E ?H)
-         (needs ?H ?E)
-         (not
-            (wants ?H ?E)))))
+  (attribute ?H Anorexia)
+  (exists (?E)
+    (and
+      (instance ?E Eating)
+      (agent ?E ?H)
+      (needs ?H ?E)
+      (not
+        (wants ?H ?E)))))
 
-(subclass Pyelonephritis
-   (InflammationFn Kidney))
+(instance Pyelonephritis (InflammationFn Kidney))
 (documentation Pyelonephritis EnglishLanguage "Pyelonephritis is &%Inflammation of the &%Kidney, typically due to a bacterial infection. Symptoms most often include fever and flank tenderness. Other symptoms may include nausea, burning with urination, and frequent urination. Complications may include pus around the kidney, sepsis, or kidney failure. It is typically due to a bacterial infection, most commonly Escherichia coli. Risk factors include sexual intercourse, prior urinary tract infections, diabetes, structural problems of the urinary tract, and spermicide use. The mechanism of infection is usually spread up the urinary tract. Less often infection occurs through the bloodstream. Diagnosis is typically based on symptoms and supported by urinalysis. If there is no improvement with treatment, medical imaging may be recommended.[from Wikipedia]")
 (termFormat EnglishLanguage Pyelonephritis "pyelonephritis")
 (termFormat EnglishLanguage Pyelonephritis "urosepsis")
 
 (=>
-   (attribute ?H Pyelonephritis)
-   (modalAttribute
-      (exists (?B ?K)
-         (and
-            (instance ?B Bacterium)
-            (instance ?K Kidney)
-            (part ?K ?H)
-            (located ?B ?K))) Likely))
+  (attribute ?H Pyelonephritis)
+  (modalAttribute
+    (exists (?B ?K)
+      (and
+        (instance ?B Bacterium)
+        (instance ?K Kidney)
+        (part ?K ?H)
+        (located ?B ?K))) Likely))
 
 (subclass Ondansetron Medicine)
 (documentation Ondansetron EnglishLanguage "Ondansetron, sold under the brand name Zofran among others, is a medication used to prevent &%Nausea and &%Vomiting caused by cancer chemotherapy, radiation therapy, or surgery. It is also effective for treating gastroenteritis. It is ineffective for treating vomiting caused by motion sickness. It can be given by &%Mouth or by injection into a &%Muscle or into a &%Vein. Common side effects include &%Diarrhea, constipation, &%Headache, sleepiness, and itchiness. [from Wikipedia]")
 (termFormat EnglishLanguage Ondansetron "ondansetron")
-(diseaseMedicine Ondansetron Nausea Injecting)
-(diseaseMedicine Ondansetron Nausea Ingesting)
-(diseaseMedicine Ondansetron Vomiting Injecting)
-(diseaseMedicine Ondansetron Vomiting Ingesting)
+(pathologyTreatment Nausea Ondansetron Injecting)
+
+(pathologyTreatment Nausea Ondansetron Injecting)
+(pathologyTreatment Nausea Ondansetron Ingesting)
+(pathologyTreatment Vomiting Ondansetron Injecting)
+(diseaseMedicine Vomiting Ondansetron Ingesting)
 (sideEffect Ondansetron Diarrhea)
-(sideEffect Ondansetron Headache)
+(pathologicSideEffect Ondansetron Headache)
 
 (subclass Zofran Ondansetron)
 (termFormat EnglishLanguage Zofran "Zofran")
@@ -4085,10 +4160,11 @@ Wikipedia]")
 (subclass Levocetirizine Antihistamine)
 (termFormat EnglishLanguage Levocetirizine "levocetirizine")
 (documentation Levocetirizine EnglishLanguage "Levocetirizine, sold under the brand name Xyzal among others, is a third generation antihistamine used for the treatment of allergic rhinitis (hay fever) and long term hives of unclear cause. It is less sedating than older antihistamines. It is taken by mouth. Common side effects include sleepiness, dry mouth, cough, vomiting, and diarrhea.[from Wikipedia]")
-(sideEffect Levocetirizine Vomiting)
+
+(processSideEffect Levocetirizine Vomiting)
 (sideEffect Levocetirizine Diarrhea)
 (diseaseMedicine Hives Levocetirizine Ingesting)
-(diseaseMedicine AllergicRhinitis Levocetirizine Ingesting)
+(pathologyTreatment AllergicRhinitis Levocetirizine Ingesting)
 
 (subclass Xyzal Levocetirizine)
 (termFormat EnglishLanguage Xyzal "Xyzal")
@@ -4254,20 +4330,20 @@ Wikipedia]")
 (termFormat EnglishLanguage Sepsis "septic shock")
 
 (=>
-   (and
-      (instance ?S Sepsis)
-      (experiencer ?S ?H))
-   (exists (?I)
-      (and
-         (instance ?I Infecting)
-         (experiencer ?I ?H)
-         (causes ?I ?S))))
+  (and
+    (instance ?S Sepsis)
+    (experiencer ?S ?H))
+  (exists (?I)
+    (and
+      (instance ?I Infecting)
+      (experiencer ?I ?H)
+      (causes ?I ?S))))
 
 (subclass Upadacitinib Medicine)
 
 (documentation Upadacitinib EnglishLanguage "Upadacitinib, sold under the brand name &%Rinvoq, is a Janus kinase (JAK) inhibitor medication for the treatment of moderately to severely active &%RheumatoidArthritis in adults where methotrexate (a drug used to treat active arthritis) did not work well or could not be tolerated. It was developed by the biotech company &%AbbVie. Common side effects include upper respiratory tract infections (common cold, sinus infections), &%Nausea, &%Cough, and &%Fever.[from Wikipedia]")
-(diseaseMedicine Upadacitinib RheumatoidArthritis Ingesting)
-(sideEffect Upadacitinib Nausea)
+(pathologyTreatment RheumatoidArthritis Upadacitinib Ingesting)
+(processSideEffect Upadacitinib Nausea)
 (sideEffect Upadacitinib Fever)
 (termFormat EnglishLanguage Upadacitinib "upadacitinib")
 
@@ -4324,10 +4400,15 @@ Wikipedia]")
 (documentation Hydroxychloroquine EnglishLanguage "Hydroxychloroquine, sold under the brand name Plaquenil among others, is a medication used to prevent and treat malaria in areas where malaria remains sensitive to chloroquine. Other uses include treatment of rheumatoid arthritis, lupus, and porphyria cutanea tarda. It is taken by mouth, often in the form of hydroxychloroquine sulfate. Common side effects may include vomiting, headache, changes in vision, and muscle weakness. [from Wikipedia]")
 (termFormat EnglishLanguage Hydroxychloroquine "hydroxychloroquine")
 (diseaseMedicine Malaria Hydroxychloroquine Ingesting)
-(diseaseMedicine RheumatoidArthritis Hydroxychloroquine Ingesting)
-(diseaseMedicine Lupus Hydroxychloroquine Ingesting)
-(sideEffect Hydroxychloroquine Vomiting)
-(sideEffect Hydroxychloroquine Headache)
+(pathologyTreatment RheumatoidArthritis Hydroxychloroquine Ingesting)
+(pathologyTreatment Lupus Hydroxychloroquine Ingesting)
+(=>
+  (instance ?V Vomiting)
+  (sideEffect Hydroxychloroquine ?V))
+
+(=>
+  (instance ?H Headache)
+  (sideEffect Hydroxychloroquine ?H))
 
 (subclass Plaquenil Hydroxychloroquine)
 (termFormat EnglishLanguage Plaquenil "Plaquenil")
@@ -4336,7 +4417,7 @@ Wikipedia]")
 (documentation Chlorpheniramine EnglishLanguage "Chlorpheniramine (CP, CPM), also known as chlorpheniramine, is an &%Antihistamine used to treat the symptoms of allergic conditions such as &%AllergicRhinitis (hay fever). It is taken by mouth. Common side effects include sleepiness, restlessness, and weakness.[from Wikipedia]")
 
 (termFormat EnglishLanguage Chlorpheniramine "chlorpheniramine")
-(diseaseMedicine AllergicRhinitis Chlorpheniramine Ingesting)
+(pathologyTreatment AllergicRhinitis Chlorpheniramine Ingesting)
 
 (subclass Phlegm Mucus)
 (termFormat EnglishLanguage Phlegm "phlegm")
@@ -4392,13 +4473,13 @@ loosened straps; prolonged loading of this region rather than the
 injury.")
 
 (=>
-   (instance ?L LumbarRegion)
-   (exists (?B ?P)
-      (and
-         (instance ?B HumanBack)
-         (instance ?P Human)
-         (part ?L ?B)
-         (part ?B ?P))))
+  (instance ?L LumbarRegion)
+  (exists (?B ?P)
+    (and
+      (instance ?B HumanBack)
+      (instance ?P Human)
+      (part ?L ?B)
+      (part ?B ?P))))
 
 (instance loadBearingRegion BinaryPredicate)
 (domain loadBearingRegion 1 Physical)
@@ -4426,8 +4507,10 @@ region to the &%LumbarRegion.")
 (termFormat EnglishLanguage Sinusitis "sinus infection")
 
 (=>
-   (holdsDuring ?T
-      (attribute ?H Sinusitis))
+  (and
+    (instance ?SINUSITIS Sinusitis)
+    (holdsDuring ?T
+      (attribute ?H ?SINUSITIS)))
    (exists (?NC ?NCH ?I)
       (and
          (instance ?NC NasalCavity)
@@ -4446,12 +4529,18 @@ region to the &%LumbarRegion.")
 (termFormat EnglishLanguage HeartDisease "cardiovascular disease")
 
 (=>
-   (attribute ?H HeartDisease)
-   (or
-      (attribute ?H
-         (ImpairedBodyPartFn Heart))
-      (attribute ?H
-         (ImpairedBodyPartFn BloodVessel))))
+  (attribute ?H HeartDisease)
+  (exists (?ATTR1 ?ATTR2)
+    (and
+      (instance ?ATTR1 Attribute)
+      (equal ?ATTR1
+        (ImpairedBodyPartFn Heart))
+      (instance ?ATTR2 Attribute)
+      (equal ?ATTR2
+        (ImpairedBodyPartFn BloodVessel))
+      (or
+        (attribute ?H ?ATTR1)
+        (attribute ?H ?ATTR2)))))
 
 (instance OxygenatedBlood SaturationAttribute)
 (documentation OxygenatedBlood EnglishLanguage "The concentrations of &%Oxygen is 20% and that of &%CarbonDioxide is 4% in oxygenated blood. from doi: 10.1183/  20734735.001415")
@@ -4467,13 +4556,17 @@ region to the &%LumbarRegion.")
    (approximateValue ?N 20))
 
 (=>
-   (and
-      (instance ?B Blood)
-      (attribute ?B OxygenatedBlood)
-      (concentration
-         (MeasureFn ?N Milliliter) CarbonDioxide
-         (MeasureFn 100 Milliliter) ?B))
-   (approximateValue ?N 5))
+  (and
+    (instance ?B Blood)
+    (attribute ?B OxygenatedBlood)
+    (instance ?CO2VOLUME VolumeMeasure)
+    (equal ?CO2VOLUME
+      (MeasureFn ?N Milliliter))
+    (instance ?BLOODVOLUME VolumeMeasure)
+    (equal ?BLOODVOLUME
+      (MeasureFn 100 Milliliter))
+    (concentration ?CO2VOLUME CarbonDioxide ?BLOODVOLUME ?B))
+  (approximateValue ?N 5))
 
 (instance DeoxygenatedBlood Blood)
 (documentation DeoxygenatedBlood EnglishLanguage "The concentrations of &%Oxygen is 14% and that of &%CarbonDioxide is 4% in deoxygenated blood. from doi: 10.1183/  20734735.001415")
@@ -4601,32 +4694,34 @@ region to the &%LumbarRegion.")
 (format EnglishLanguage bloodVolume "%1 &%has %2 of blood")
 
 (=>
-   (bloodVolume ?H ?V)
-   (exists (?B)
-      (and
-         (instance ?B Blood)
-         (contains ?H ?B)
-         (instance ?H Human)
-         (measure ?B ?V)
-         (not
-            (exists (?B2)
-               (and
-                  (instance ?B2 Blood)
-                  (contains ?H ?B2)
-                  (not
-                     (piece ?B2 ?B))))))))
+  (bloodVolume ?H ?V)
+  (exists (?B)
+    (and
+      (instance ?B Blood)
+      (contains ?H ?B)
+      (instance ?H Human)
+      (measure ?B ?V)
+      (not
+        (exists (?B2)
+          (and
+            (instance ?B2 Blood)
+            (contains ?H ?B2)
+            (not
+                (piece ?B2 ?B))))))))
 
 (=>
-   (and
-      (instance ?H HumanAdult)
-      (measure ?H
-         (MeasureFn ?N PoundMass)))
-   (and
-      (bloodVolume ?H
-         (MeasureFn ?N2 Liter))
-      (equal ?N2
-         (DivisionFn
-            (MultiplicationFn ?N 0.07) 2.33))))
+  (and
+    (instance ?H HumanAdult)
+    (measure ?H
+      (MeasureFn ?N PoundMass)))
+  (exists (?VOL ?N2)
+  (and
+    (instance ?VOL VolumeMeasure)
+    (equal ?VOL (MeasureFn ?N2 Liter))
+    (bloodVolume ?H ?VOL)
+    (equal ?N2
+      (DivisionFn
+        (MultiplicationFn ?N 0.07) 2.33)))))
 
 (instance typicalBloodVolume BinaryPredicate)
 (termFormat EnglishLanguage typicalBloodVolume "typical blood volume")
@@ -4636,53 +4731,70 @@ region to the &%LumbarRegion.")
 (format EnglishLanguage typicalBloodVolume "the typical &%volume of blood of a %1 is %2")
 
 (=>
-   (and
-      (typicalBloodVolume ?M
-         (MeasureFn ?N ?U))
-      (instance ?MI ?M)
-      (holdsDuring ?T
-         (and
-            (not
-               (attribute ?H DiseaseOrSyndrome))
-            (bloodVolume ?H
-               (MeasureFn ?N2 ?U)))))
-   (approximateValue ?N2 ?N))
+  (and
+    (instance ?U UnitOfVolume)
+    (instance ?VOLUME1 VolumeMeasure)
+    (equal ?VOLUME1
+      (MeasureFn ?N ?U))
+    (typicalBloodVolume ?M ?VOLUME1)
+    (instance ?MI ?M)
+    (instance ?VOLUME2 VolumeMeasure)
+    (equal ?VOLUME2
+      (MeasureFn ?N2 ?U))
+    (holdsDuring ?T
+      (and
+        (not
+          (instance ?H DiseaseOrSyndrome))
+        (bloodVolume ?H ?VOLUME2))))
+  (approximateValue ?N2 ?N))
 
 (instance CatastrophicBloodLoss DiseaseOrSyndrome)
 (documentation CatastrophicBloodLoss EnglishLanguage "Loss of 50% or more of the blood volume of a &%Human.")
 (termFormat EnglishLanguage CatastrophicBloodLoss "catastrophic blood loss")
 
 (=>
-   (and
-      (typicalBloodVolume ?M
-         (MeasureFn ?N ?U))
-      (holdsDuring ?T
-         (bloodVolume ?H
-            (MeasureFn ?N2 ?U)))
-      (instance ?H ?M)
-      (lessThan
-         (MultiplicationFn ?N2 2.0) ?N))
-   (holdsDuring ?T
-      (attribute ?H CatastrophicBloodLoss)))
+  (and
+    (instance ?U UnitOfVolume)
+    (instance ?VOLUME1 VolumeMeasure)
+    (equal ?VOLUME1
+      (MeasureFn ?N ?U))
+    (typicalBloodVolume ?M ?VOLUME1)
+    (instance ?VOLUME2 VolumeMeasure)
+    (equal ?VOLUME2
+      (MeasureFn ?N2 ?U))
+    (holdsDuring ?T
+      (bloodVolume ?H ?VOLUME2))
+    (instance ?H ?M)
+    (lessThan
+      (MultiplicationFn ?N2 2.0)
+      ?N))
+  (holdsDuring ?T
+    (attribute ?H CatastrophicBloodLoss)))
 
 (instance SevereBloodLoss DiseaseOrSyndrome)
 (documentation SevereBloodLoss EnglishLanguage "Loss of 20-50% of the blood volume of a &%Human.")
 (termFormat EnglishLanguage SevereBloodLoss "severe blood loss")
 
 (=>
-   (and
-      (typicalBloodVolume ?M
-         (MeasureFn ?N ?U))
-      (holdsDuring ?T
-         (bloodVolume ?H
-            (MeasureFn ?N2 ?U)))
-      (instance ?H ?M)
-      (greaterThan
-         (MultiplicationFn ?N2 2.0) ?N)
-      (lessThan ?N2
-         (MultiplicationFn 0.8 ?N)))
-   (holdsDuring ?T
-      (attribute ?H SevereBloodLoss)))
+  (and
+    (instance ?U UnitOfVolume)
+    (instance ?VOLUME1 VolumeMeasure)
+    (equal ?VOLUME1
+      (MeasureFn ?N ?U))
+    (typicalBloodVolume ?M ?VOLUME1)
+    (instance ?VOLUME2 VolumeMeasure)
+    (equal ?VOLUME2
+      (MeasureFn ?N2 ?U))
+    (holdsDuring ?T
+      (bloodVolume ?H ?VOLUME2))
+    (instance ?H ?M)
+    (greaterThan
+      (MultiplicationFn ?N2 2.0)
+      ?N)
+    (lessThan ?N2
+      (MultiplicationFn 0.8 ?N)))
+  (holdsDuring ?T
+    (attribute ?H SevereBloodLoss)))
 
 (subclass Transfusion IVTherapy)
 (documentation Transfusion EnglishLanguage "Giving &%Blood to an &%Animal, typically as a &%TherapeuticProcess in response to significant prior loss of &%Blood caused by &%Injuring or &%Surgery.")
@@ -4696,38 +4808,42 @@ region to the &%LumbarRegion.")
          (objectTransferred ?T ?B))))
 
 (=>
-   (and
-      (instance ?T TimeInterval)
-      (duration ?T
-         (MeasureFn ?N MinuteDuration))
-      (greaterThan ?N 5.0)
-      (instance ?H Human)
-      (not
-         (exists (?B)
-            (and
-               (instance ?B Breathing)
-               (during
-                  (WhenFn ?B) ?T)
-               (patient ?B ?H)))))
-   (modalAttribute
-      (exists (?D)
-         (and
-            (instance ?D Death)
-            (experiencer ?D ?H)
-            (meetsTemporally ?T
-               (WhenFn ?D)))) Likely))
+  (and
+    (instance ?T TimeInterval)
+    (instance ?DURATION TimeDuration)
+    (equal ?DURATION
+      (MeasureFn ?N MinuteDuration))
+    (duration ?T ?DURATION)
+    (greaterThan ?N 5.0)
+    (instance ?H Human)
+    (not
+      (exists (?B)
+        (and
+          (instance ?B Breathing)
+          (during
+            (WhenFn ?B)
+            ?T)
+          (patient ?B ?H)))))
+  (modalAttribute
+    (exists (?D)
+      (and
+        (instance ?D Death)
+        (experiencer ?D ?H)
+        (meetsTemporally ?T
+          (WhenFn ?D))))
+    Likely))
 
 (subclass PressureBandage Bandage)
 (documentation PressureBandage EnglishLanguage "A tight-fitting or tightly-wrapped bandage for reducing swelling or blood loss from a wound by applying pressure to the injury.[from Wiktionary]")
 (termFormat EnglishLanguage PressureBandage "pressure bandage")
 
 (=>
-   (instance ?PB PressureBandage)
-   (hasPurpose ?PB
-      (exists (?C)
-         (and
-            (instance ?C Compressing)
-            (instrument ?C ?PB)))))
+  (instance ?PB PressureBandage)
+  (hasPurpose ?PB
+    (exists (?C)
+      (and
+        (instance ?C Compressing)
+        (instrument ?C ?PB)))))
 
 (subAttribute BurnInjury Injury)
 (documentation BurnInjury EnglishLanguage "An &%Injury resulting from &%Combustion.")
@@ -4762,9 +4878,9 @@ region to the &%LumbarRegion.")
 (=>
    (instance ?FMF FleetMarineForce)
    (exists (?M)
-      (and
-         (instance ?M MarinesBranchOfService)
-         (subOrganization ?FMF ?M))))
+    (and
+      (instance ?M MarinesBranchOfService)
+      (subOrganization ?FMF ?M))))
 
 (subclass IED Bomb)
 (documentation IED EnglishLanguage "An improvised explosive device (IED) is a &%Bomb constructed and deployed in ways other than in conventional military action. It may be constructed of conventional military explosives, such as an artillery shell, attached to a detonating mechanism. IEDs are commonly used as roadside bombs, or homemade bombs.[from Wikipedia]")
@@ -4775,9 +4891,9 @@ region to the &%LumbarRegion.")
    (instance ?IED IED)
    (not
       (exists (?M)
-         (and
-            (instance ?M Manufacture)
-            (result ?M ?IED)))))
+        (and
+          (instance ?M Manufacture)
+          (result ?M ?IED)))))
 
 (subclass HemostaticGauze Bandage)
 (documentation HemostaticGauze EnglishLanguage "A &%Bandage that contains &%Medicine designed to stimulate &%Clotting.")
@@ -4841,12 +4957,15 @@ region to the &%LumbarRegion.")
 (termFormat EnglishLanguage IVBolusTherapy "IV bolus therapy")
 
 (=>
-   (instance ?IV IVBolusTherapy)
-   (and
+  (instance ?IV IVBolusTherapy)
+  (exists (?N ?IVDURATION)
+    (and
+      (instance ?IVDURATION TimeDuration)
+      (equal ?IVDURATION
+        (MeasureFn ?N MinuteDuration))
       (duration
-         (WhenFn ?IV)
-         (MeasureFn ?N MinuteDuration))
-      (lessThan ?N 5.0)))
+        (WhenFn ?IV) ?IVDURATION)
+      (lessThan ?N 5.0))))
 
 (subclass Morphine BiologicallyActiveSubstance)
 (subclass Morphine Medicine)
@@ -4951,39 +5070,39 @@ duration of its effect is 3–7 hours.[from Wikipedia]")
 (termFormat EnglishLanguage ShrapnelExplosion "shrapnel explosion")
 
 (=>
-   (instance ?SE ShrapnelExplosion)
-   (exists (?M ?T)
-      (and
-         (instance ?M Metal)
-         (instance ?T Translocation)
-         (causes ?SE ?T)
-         (objectTransferred ?T ?M))))
+  (instance ?SE ShrapnelExplosion)
+  (exists (?M ?T)
+    (and
+      (instance ?M Metal)
+      (instance ?T Translocation)
+      (causes ?SE ?T)
+      (objectTransferred ?T ?M))))
 
 (=>
-   (instance ?SE ShrapnelExplosion)
-   (hasPurpose ?SE
-      (exists (?P)
-         (and
-            (or
-               (instance ?P Injuring)
-               (instance ?P Killing))
-            (causes ?SE ?P)))))
+  (instance ?SE ShrapnelExplosion)
+  (hasPurpose ?SE
+    (exists (?P)
+      (and
+        (or
+          (instance ?P Injuring)
+          (instance ?P Killing))
+        (causes ?SE ?P)))))
 
 (subclass Asphyxiation Death)
 (documentation Asphyxiation EnglishLanguage "A kind of &%Death caused by an inability to perform &%Beathing.")
 (termFormat EnglishLanguage Asphyxiation "asphyxiation")
 
 (=>
-   (and
-      (instance ?A Asphyxiation)
-      (experiencer ?A ?M))
-   (holdsDuring
-      (WhenFn ?A)
-      (not
-         (exists (?B)
-            (and
-               (instance ?B Breathing)
-               (experiencer ?B ?A))))))
+  (and
+    (instance ?A Asphyxiation)
+    (experiencer ?A ?M))
+  (holdsDuring
+    (WhenFn ?A)
+    (not
+      (exists (?B)
+        (and
+          (instance ?B Breathing)
+          (experiencer ?B ?A))))))
 
 (subclass Bleedout Bleeding)
 (subclass Bleedout Death)

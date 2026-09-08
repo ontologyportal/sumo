@@ -40,8 +40,8 @@ Therefore, this is neither a &%SymmetricRelation nor an &%AntisymmetricRelation.
 (instance connectedInSocialNetwork IntentionalRelation)
 (instance connectedInSocialNetwork IrreflexiveRelation)
 (subrelation connectedInSocialNetwork inScopeOfInterest)
-(domain connectedInSocialNetwork 1 SocialNetworkingUser)
-(domain connectedInSocialNetwork 2 SocialNetworkingUser)
+(domain connectedInSocialNetwork 1 SocialNetworkingAccount)
+(domain connectedInSocialNetwork 2 SocialNetworkingAccount)
 (termFormat EnglishLanguage connectedInSocialNetwork "connected in social network")
 
 (=>
@@ -65,8 +65,8 @@ that ?USER2 has posted (&%Posting).")
 (instance follows BinaryPredicate)
 (instance follows IntentionalRelation)
 (subrelation follows connectedInSocialNetwork)
-(domain follows 1 SocialNetworkingUser)
-(domain follows 2 SocialNetworkingUser)
+(domain follows 1 SocialNetworkingAccount)
+(domain follows 2 SocialNetworkingAccount)
 (instance follows IrreflexiveRelation)
 (instance follows AsymmetricRelation)
 
@@ -91,12 +91,12 @@ becomes a social networking user, they are usually asked to make a
 (termFormat EnglishLanguage SocialNetworkingUser "social networking user")
 
 (=>
-  (instance ?USER SocialNetworkingUser)
-    (exists (?SITE ?ACCOUNT)
-      (and
-        (instance ?SITE SocialNetworkingSite)
-        (instance ?ACCOUNT (AccountOfServiceFn ?SITE))       
-        (hasAccount ?USER ?ACCOUNT))))            
+  (attribute ?USER SocialNetworkingUser)
+  (exists (?SITE ?ACCOUNT)
+    (and
+      (instance ?SITE SocialNetworkingSite)
+      (instance ?ACCOUNT (AccountOfServiceFn ?SITE))       
+      (hasAccount ?USER ?ACCOUNT))))            
 
 (documentation AccountOfServiceFn EnglishLanguage "This function takes
 some &%SocialNetworkingSite as an argument and returns a subclass of
@@ -110,13 +110,13 @@ FacebookAccount (AccountOfServiceFn Facebook)).")
 
 ;;If there is an account, then someone owns it.
 (=>
+  (and
+    (instance ?SITE SocialNetworkingSite)
+    (instance ?ACCOUNT (AccountOfServiceFn ?SITE)))
+  (exists (?USER)
     (and
-        (instance ?SITE SocialNetworkingSite)
-        (instance ?ACCOUNT (AccountOfServiceFn ?SITE)))
-    (exists (?USER)
-        (and
-            (instance ?USER SocialNetworkingUser)
-            (hasAccount ?USER ?ACCOUNT))))
+      (attribute ?USER SocialNetworkingUser)
+      (hasAccount ?USER ?ACCOUNT))))
             
 ;; Jennie revision until this line on 8th November 2021
 ;;;;;;;;;;;;
@@ -141,14 +141,19 @@ participate in conversations and activities, among other things.")
 
 ;;If there is a person that has a Facebook account, then that person is at least 13 years of age.
 (=>
+  (and
+    (instance ?FBACCOUNT FacebookAccount)
+    (hasAccount ?USER ?FBACCOUNT))
+  (exists (?NUMBER ?USERAGE)
     (and
-        (instance ?FBACCOUNT FacebookAccount)
-        (hasAccount ?USER ?FBACCOUNT))
-    (and
-        (age ?USER (MeasureFn ?NUMBER YearDuration))
-        (modalAttribute
-            (not
-                (greaterThanOrEqualTo ?NUMBER 13)) Prohibition)))
+      (instance ?USERAGE TimeDuration)
+      (equal ?USERAGE
+        (MeasureFn ?NUMBER YearDuration))
+      (age ?USER ?USERAGE)
+      (modalAttribute
+        (not
+          (greaterThanOrEqualTo ?NUMBER 13))
+        Prohibition))))
 
 (documentation ProfilePage EnglishLanguage "A &%ProfilePage is a
 &%WebPage on which the &%FacebookUser's personal information is displayed.")
@@ -161,7 +166,7 @@ participate in conversations and activities, among other things.")
   (hasPurpose ?PROFILE
     (exists (?USER ?PAGE ?POST)
       (and
-        (instance ?USER FacebookUser)
+        (attribute ?USER FacebookUser)
         (instance ?PAGE WebPage)
         (instance ?POST UploadingOverNetwork)
         (agent ?POST ?USER)
@@ -268,8 +273,8 @@ post, video, photo, or link) onto a &%FacebookFriend's
     (exists (?USER1 ?USER2 ?CREATION ?PROFILEWALL)
         (and
             (instance ?PROFILEWALL ProfileWall)
-            (instance ?USER1 FacebookUser)
-            (instance ?USER2 FacebookUser)
+            (attribute ?USER1 FacebookUser)
+            (attribute ?USER2 FacebookUser)
             (instance ?CREATION Creation)
             (refers ?PROFILEWALL ?USER2)
             (agent ?CREATION ?USER1)
@@ -280,18 +285,19 @@ post, video, photo, or link) onto a &%FacebookFriend's
 
 ;;If there is a wall post, then it is either a text wall post, a video, a photograph, or a link.
 (=>
-    (instance ?WALLPOST WallPost)
-    (or
-        (instance ?WALLPOST TextWallPost)
-        (instance ?WALLPOST MotionPicture)
-        (instance ?WALLPOST Photograph)))
+  (instance ?WALLPOST WallPost)
+  (or
+    (instance ?WALLPOST TextWallPost)
+    (instance ?WALLPOST MotionPicture)
+    (instance ?WALLPOST Photograph)))
+
 ;;If there is an instance of a wall post, then it is the result of an instance of posting.
 (=>
-    (instance ?WALLPOST WallPost)
-    (exists (?POST)
-        (and
-            (instance ?POST Posting)
-            (result ?WALLPOST ?POST))))
+  (instance ?WALLPOST WallPost)
+  (exists (?POST)
+    (and
+      (instance ?POST Posting)
+      (result ?WALLPOST ?POST))))
 
 (documentation TextWallPost EnglishLanguage "This is a term that
 refers specifically to a &%WallPost that is made up entirely of
@@ -310,16 +316,16 @@ This includes every action made by the user except for
 ;; If someone is the agent of an action (that is not a status update) on facebook, then that action counts as
 ;;recent activity.
 (=>
-    (and
-        (instance ?USER InternetUser)
-        (instance ?ACTION IntentionalProcess)
-        (agent ?ACTION ?USER)
-        (patient ?ACTION Facebook)
-        (not
-            (and
-                (instance ?STATUS StatusUpdate)
-                (result ?ACTION ?STATUS))))
-    (result ?ACTION RecentActivity))
+  (and
+    (attribute ?USER InternetUser)
+    (instance ?ACTION IntentionalProcess)
+    (agent ?ACTION ?USER)
+    (patient ?ACTION Facebook)
+    (not
+      (and
+        (instance ?STATUS StatusUpdate)
+        (result ?ACTION ?STATUS))))
+  (result ?ACTION RecentActivity))
 
 ;; WLJ 2012-06-29T17:16 stuff above here (up to the immediately
 ;; preceeding WLJ) needs review/editing.
@@ -333,7 +339,7 @@ This includes every action made by the user except for
 
 ;;If someone is a facebook user, then they have a facebook account.
 (=>
- (instance ?USER FacebookUser)
+ (attribute ?USER FacebookUser)
  (exists (?ACCOUNT)
 	 (and
 	  (instance ?ACCOUNT FacebookAccount)
@@ -348,8 +354,8 @@ It is possible for two people to be &%friends and not
 &%facebookFriends and vice versa.")
 
 (termFormat EnglishLanguage facebookFriend "Facebook friend")
-(domain facebookFriend 1 FacebookUser)
-(domain facebookFriend 2 FacebookUser)
+(domain facebookFriend 1 FacebookAccount)
+(domain facebookFriend 2 FacebookAccount)
 (instance facebookFriend SymmetricRelation)
 (instance facebookFriend IntentionalRelation)
 (instance facebookFriend BinaryPredicate)
@@ -553,8 +559,8 @@ yourself in a post.")
 (instance tags BinaryPredicate)
 (instance tags AntisymmetricRelation)
 (subrelation tags refers)
-(domain tags 1 InternetUser)
-(domain tags 2 InternetUser)
+(domain tags 1 SocialNetworkingAccount)
+(domain tags 2 SocialNetworkingAccount)
 
 ;; WLJ stuff above here (up to the immediately
 ;; preceeding WLJ) needs review/editing.
@@ -594,15 +600,15 @@ receiving an email saying that someone would like them to join
 (termFormat EnglishLanguage FriendRequest "friend request")
 ;;If there is an instance of a friend request, then there is a facebook user who is (friend)requesting a computer user.
 (=>
-    (instance ?FRIENDREQUEST FriendRequest)
-    (exists (?USER1 ?USER2 ?REQUEST)
-        (and
-            (instance ?REQUEST Requesting)
-            (instance ?USER1 FacebookUser)
-            (agent ?REQUEST ?USER1)
-            (instance ?USER2 ComputerUser)
-            (patient ?REQUEST ?USER2)
-            (result ?REQUEST ?FRIENDREQUEST))))
+  (instance ?FRIENDREQUEST FriendRequest)
+  (exists (?USER1 ?USER2 ?REQUEST)
+    (and
+      (instance ?REQUEST Requesting)
+      (attribute ?USER1 FacebookUser)
+      (agent ?REQUEST ?USER1)
+      (attribute ?USER2 ComputerUser)
+      (patient ?REQUEST ?USER2)
+      (result ?REQUEST ?FRIENDREQUEST))))
 
 ;;;;;;;;;;;;;;;;;
 ;;Notifications;;
@@ -649,15 +655,17 @@ actions can be carried out by something other than a
 &%CognitiveAgent.")
 
 (subclass AutomatedSystem AutonomousAgent)
+
 ;;If an automated system is the agent of some process, then a cognitive agent is not the agent of that same process.
 (=>
-    (and
-        (instance ?AUTO AutomatedSystem)
-        (agent ?PROCESS ?AUTO))
-    (and
-        (instance ?COG CognitiveAgent)
-        (not
-            (agent ?PROCESS ?COG))))
+  (and
+    (instance ?AUTO AutomatedSystem)
+    (agent ?PROCESS ?AUTO))
+  (and
+    (instance ?COG CognitiveAgent)
+    (not
+      (agent ?PROCESS ?COG))))
+
 ;;If there is an automated process, then an automated system is the agent of that process.
 (=>
   (instance ?AUTOPROCESS AutomatedProcess)
@@ -698,6 +706,7 @@ connected has a &%birthday. For instance, on &%Facebook, a
 &%birthday.")
 
 (subclass BirthdayNotification Notification)
+
 ;;A birthday notification is the result of an automated notification system.
 (=>
     (instance ?BIRTHDAYNOTIFICATION BirthdayNotification)
@@ -706,37 +715,39 @@ connected has a &%birthday. For instance, on &%Facebook, a
             (instance ?AUTONOTIFY AutomatedNotificationSystem)
             (agent ?PROCESS ?AUTONOTIFY)
             (result ?PROCESS ?BIRTHDAYNOTIFICATION))))
+
 ;;If there is a birthday notification, then it represents someone's birthday.
 ;; JP 31Jan2023 Second argument for birthday is a class of Days
 (=>
-    (instance ?BIRTHDAYNOTIFICATION BirthdayNotification)
-    (exists (?PERSON ?CLASS ?DAY)
-        (and
-            (birthday ?PERSON ?CLASS)
-            (instance ?DAY ?CLASS)
-            (holdsDuring ?DAY
-                (represents ?BIRTHDAYNOTIFICATION ?PERSON)))))
+  (instance ?BIRTHDAYNOTIFICATION BirthdayNotification)
+  (exists (?PERSON ?CLASS ?DAY)
+    (and
+      (birthday ?PERSON ?CLASS)
+      (instance ?DAY ?CLASS)
+      (holdsDuring ?DAY
+        (represents ?BIRTHDAYNOTIFICATION ?PERSON)))))
+
 ;;For all sites that send out birthday notifications: if someone has an account on that site and it is their birthday, then for the length of that day, all 
 ;;of their connections see a birthday notification.
 ;; JP 31Jan2023 2nd argument for birthday is a class of Days
 ;;
 (=>
-    (and
-        (instance ?USER1 SocialNetworkingUser)
-        (birthday ?USER1 ?CLASS)
-        (instance ?DAY ?CLASS)
-        (instance ?AUTONOTIFY AutomatedNotificationSystem)
-        (agent ?PROCESS ?AUTONOTIFY)
-        (result ?PROCESS ?BIRTHDAYNOTIFICATION)
-        (instance ?BIRTHDAYNOTIFICATION BirthdayNotification)
-        (represents ?BIRTHDAYNOTIFICATION ?USER1))
-    (holdsDuring ?DAY
-        (forall (?USER2)
-            (=>
-                (and
-                    (instance ?USER2 SocialNetworkingUser)
-                    (connectedInSocialNetwork ?USER1 ?USER2))
-                (destination ?PROCESS ?USER2)))))
+  (and
+    (attribute ?USER1 SocialNetworkingUser)
+    (birthday ?USER1 ?CLASS)
+    (instance ?DAY ?CLASS)
+    (instance ?AUTONOTIFY AutomatedNotificationSystem)
+    (agent ?PROCESS ?AUTONOTIFY)
+    (result ?PROCESS ?BIRTHDAYNOTIFICATION)
+    (instance ?BIRTHDAYNOTIFICATION BirthdayNotification)
+    (represents ?BIRTHDAYNOTIFICATION ?USER1))
+  (holdsDuring ?DAY
+    (forall (?USER2)
+      (=>
+        (and
+          (attribute ?USER2 SocialNetworkingUser)
+          (connectedInSocialNetwork ?USER1 ?USER2))
+        (destination ?PROCESS ?USER2)))))
 
 (documentation automatedNotification EnglishLanguage "This binary
 relation takes an &%agent and a &%destination describes a
@@ -744,8 +755,8 @@ relation takes an &%agent and a &%destination describes a
 an automated notification that is sent from ?AGENT to ?DESTINATION.")
 
 (instance automatedNotification BinaryPredicate)
-(domain automatedNotification 1 agent)
-(domain automatedNotification 2 destination)
+(domain automatedNotification 1 AutonomousAgent)
+(domain automatedNotification 2 AutonomousAgent)
 
 ;;;;;;;;;;;;;;;;;
 ;;Communication;;
