@@ -56,12 +56,6 @@ type.")
     (vulnerableSystem ?VUL ?SYS ?AGENT))
   (attribute ?SYS ?VUL))
 
-;; the same vulnerability instance can reside on more than one distinct
-;; system (e.g. the same flaw present across every system of a given
-;; type). Non-triviality witness lives at
-;; proof-scenarios/vulnerablesystem_shared_vulnerability.tq, not as a KB
-;; axiom.
-
 ;; ============================================================
 ;; SoftwareBug
 ;; ============================================================
@@ -96,13 +90,6 @@ bugs along multiple dimensions simultaneously, such as crashes,
 security vulnerabilities, incorrect values, or poor performance.
 The agent who discovers a bug (see &%bugDiscoverer) need not be the
 same agent whose specification defines it as a bug.")
-
-;; Relational nature (the same program can be buggy with respect to one
-;; agent's specification but not another's) and multiple dimensions (a
-;; program may exhibit multiple bugs simultaneously relative to the same
-;; agent's specification): non-triviality witnesses live at
-;; proof-scenarios/softwarebug_relational.tq and
-;; proof-scenarios/softwarebug_multidimensional.tq, not as KB axioms.
 
 ;; ============================================================
 ;; bugInProgram : relates bug-attribute to program and agent
@@ -235,7 +222,9 @@ for each combination of agent, time interval, and set of committed
 actions. Non-negative: aggregating non-negative per-action costs
 cannot yield a negative total. Single-valued: for a given agent,
 time interval, and strategy there is at most one aggregate cyber
-cost.")
+cost. The simplest case, a single &%exploitCost and a single
+&%patchCost during the same interval, sums directly; larger
+committed-action sets are not yet enumerated as their own rule.")
 
 (=>
   (and
@@ -244,13 +233,6 @@ cost.")
     (aggregateCyberCost ?AGENT ?T ?TOTAL)
     (measure ?TOTAL ?AMOUNT))
   (greaterThanOrEqualTo ?AMOUNT 0))
-
-;; aggregateCyberCost -- sum-of-sub-costs definition (the precedent
-;; exploitCost's own five-component summation rule below extends).
-;; Universal, not an existence witness: the simplest case of the general
-;; "sum of per-action costs" claim in the documentation -- whenever an
-;; agent has both an exploitCost and a patchCost recorded during the same
-;; TimeInterval, the aggregate for that interval is defined as their sum.
 
 (=>
   (and
@@ -264,12 +246,6 @@ cost.")
     (measure ?C2 ?AMOUNT2)
     (aggregateCyberCost ?AGENT ?T ?TOTAL))
   (measure ?TOTAL (AdditionFn ?AMOUNT1 ?AMOUNT2)))
-
-;; Interval-relative: a distinct aggregate holds for each combination of
-;; agent, time interval, and set of committed actions -- non-triviality
-;; witness lives at proof-scenarios/aggregatecybercost_interval_relative.tq,
-;; not as a KB axiom (a genuine "may differ across intervals" possibility
-;; claim, not an equality claim like the summation rule above).
 
 ;; ============================================================
 ;; ViolatedKnapsack (RelationalAttribute)
@@ -469,17 +445,12 @@ there is at most one exploit cost.")
 or off-the-shelf exploit already exists for it, as opposed to requiring
 custom development. Time-relative: a &%Vulnerability may lack a known
 exploit in one interval (e.g. while still a zero-day) and gain one in a
-later interval once one is discovered, published, or leaked.")
-
-;; When a known exploit is available, expertiseCost tends lower than for
-;; a comparable vulnerability without one -- custom development labor
-;; (see expertiseCost's monetaryWage tie-in) isn't needed, only enough
-;; expertise to deploy the existing exploit successfully. Not a universal
-;; bound -- development time for a custom exploit varies widely (days to
-;; months) depending on desired stealth, which this does not attempt to
-;; formalize. Non-triviality witness lives at
-;; proof-scenarios/knownexploitavailable_expertise_cost.tq, not as a KB
-;; axiom.
+later interval once one is discovered, published, or leaked. When a
+known exploit is available, &%expertiseCost tends lower than for a
+comparable vulnerability without one, since custom development labor
+isn't needed, only enough expertise to deploy the existing exploit
+successfully -- not a universal bound, since development time for a
+custom exploit varies widely depending on desired stealth.")
 
 ;; ============================================================
 ;; toolingAcquisitionCost (TernaryPredicate)
@@ -638,7 +609,8 @@ expertise costs. One of five cost components summed into &%exploitCost.")
     (exploitCost ?VUL ?AGENT ?TOTAL))
   (measure ?TOTAL (AdditionFn ?A1 (AdditionFn ?A2 (AdditionFn ?A3 (AdditionFn ?A4 ?A5))))))
 
-;; rule: exploitCost varies with prior tooling and capability -- holding
+;; This is what backs exploitCost's own "agent-relative... depending on
+;; prior tooling and capability" documentation claim. Holding
 ;; scaling-effort, compute-resource, and operational-overhead cost equal
 ;; between two agents, lower tooling-acquisition cost (more prior tooling
 ;; already possessed) and lower expertise cost (more prior capability
@@ -683,12 +655,6 @@ expertise costs. One of five cost components summed into &%exploitCost.")
       (measure ?TOTAL1 ?AMT1)
       (measure ?TOTAL2 ?AMT2)
       (lessThanOrEqualTo ?AMT1 ?AMT2))))
-
-;; exploitCost is capacity-relative -- the identical cost can be
-;; affordable for one agent and unaffordable for another depending on
-;; operationalBudget, independent of exploitCost's own contribution to
-;; aggregateCyberCost/ViolatedKnapsack above. Non-triviality witness lives
-;; at proof-scenarios/exploitcost_capacity_relative.tq, not as a KB axiom.
 
 ;; ============================================================
 ;; patchCost (TernaryPredicate)
@@ -756,6 +722,9 @@ via &%successorAttribute, from least to most mature.")
 
 (successorAttribute PatchManagementAdvanced PatchManagementFoundational)
 (successorAttribute PatchManagementExpert PatchManagementAdvanced)
+
+;; This is what backs patchCost's own "agent-relative... an organization
+;; with mature patch management pays less" documentation claim.
 
 (=>
   (and
@@ -1001,15 +970,6 @@ are disjoint classes.")
 ;; instance can be both.
 
 (disjoint SoftwareBug Vulnerability)
-
-;; Not every vulnerability originates from a bug (weak default passwords,
-;; misconfigurations, and design flaws are vulnerabilities with no
-;; software bug as their cause), and not every bug is a vulnerability (a
-;; UI glitch is a &%SoftwareBug that causes no &%Vulnerability).
-;; Non-triviality witnesses live at
-;; proof-scenarios/vulnerabilitycause_not_every_vuln_has_bug.tq and
-;; proof-scenarios/vulnerabilitycause_not_every_bug_causes_vuln.tq, not
-;; as KB axioms.
 
 ;; rule: if a bug causes a vulnerability in a program, the program
 ;; carries that vulnerability as an attribute
