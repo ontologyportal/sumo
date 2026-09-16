@@ -204,25 +204,33 @@ a &%Human")
     ?TIME
     (and
       (instance ?ADULT HumanAdult)
-      (age
-        ?ADULT
-        (MeasureFn ?NUMBER YearDuration))))
+      (instance ?AGE TimeDuration)
+      (equal
+        ?AGE
+        (MeasureFn ?NUMBER YearDuration))
+      (age ?ADULT ?AGE)))
   (greaterThanOrEqualTo ?NUMBER 18))
 
 (=>
   (holdsDuring
     ?TIME
     (instance ?H HumanAdult))
-  (exists (?AGE)
+  (exists (?AGE ?MINAGE ?MAXAGE)
     (and
       (holdsDuring
         ?TIME
         (age ?H ?AGE))
+      (instance ?MINAGE TimeDuration)
+      (equal
+        ?MINAGE
+        (MeasureFn 18 YearDuration))
+      (instance ?MAXAGE TimeDuration)
+      (equal
+        ?MAXAGE
+        (MeasureFn 120 YearDuration))
       (instance
         ?AGE
-        (IntervalFn
-          (MeasureFn 18 YearDuration)
-          (MeasureFn 120 YearDuration))))))
+        (IntervalFn ?MINAGE ?MAXAGE)))))
 
 (=>
   (and
@@ -322,11 +330,13 @@ a &%Human")
 (=>
   (and
     (instance ?H Human)
+    (instance ?AGE TimeDuration)
+    (equal
+      ?AGE
+      (MeasureFn ?N YearDuration))
     (holdsDuring
       ?T1
-      (age
-        ?H
-        (MeasureFn ?N YearDuration)))
+      (age ?H ?AGE))
     (lessThan ?N 18))
   (holdsDuring
     ?T1
@@ -1562,7 +1572,7 @@ shot decreases as the number increases.[Wikipedia]")
       (approximateDiameter ?P ?DIAMETER)
       (modalAttribute
         (and
-          (material ?CLASS Lead)
+          (material Lead ?CLASS)
           (lessThan ?X 10))
         Likely))))
 
@@ -2252,25 +2262,23 @@ is used to prevent injuries from &%Weapons.")
   (instance ?S Shield)
   (hasPurpose
     ?S
-    (exists (?P ?H ?I)
+    (exists (?P ?H)
       (and
         (instance ?P Protecting)
         (instrument ?P ?S)
         (instance ?H Human)
         (patient ?P ?H)
-        (prevents
-          ?P
-          (KappaFn
-            ?I
+        (forall (?I ?W)
+          (=>
             (and
               (instance ?I Injuring)
-              (exists (?W)
-                (and
-                  (instance ?W Weapon)
-                  (instrument ?I ?W)))
+              (instance ?W Weapon)
+              (instrument ?I ?W)
               (=>
                 (patient ?I ?H)
-                (not (patient ?P ?H))))))))))
+                (not
+                  (patient ?P ?H))))
+            (prevents ?P ?I)))))))
 
 (=>
   (instance ?S Shield)
@@ -5196,7 +5204,8 @@ surface, including a frozen body of water or snow.")
     ?X
     (exists (?EV ?SURF)
       (and
-        (surface ?SURF GeographicArea)
+        (instance ?GEO GeographicArea)
+        (surface ?SURF ?GEO)
         (instance ?EV Transportation)
         (holdsDuring
           (WhenFn ?EV)
@@ -5981,13 +5990,13 @@ with a post at each corner to support curtains or a canopy")
   (exists (?SHAPE)
     (and
       (attribute ?X ?SHAPE)
-      (instance ?SHAPE Quadrilateral))))
+      (attribute ?SHAPE Quadrilateral))))
 
 (=>
   (and
     (attribute ?X ?SHAPE)
+    (attribute ?SHAPE Quadrilateral)
     (instance ?X FourPosterBed)
-    (instance ?SHAPE Quadrilateral)
     (sideOfFigure ?SIDE1 ?SHAPE)
     (sideOfFigure ?SIDE2 ?SHAPE)
     (not (equal ?SIDE1 ?SIDE2)))
@@ -6256,18 +6265,23 @@ something else, i.e. be the &%instrument of a &%Keeping.")
   "A &%Device which allows a &%Human to ride on a
 &%Horse.")
 
-(capability
-  (KappaFn
-    ?RIDE
-    (exists (?HUMAN ?HORSE)
-      (and
-        (instance ?RIDE Carrying)
-        (patient ?RIDE ?HUMAN)
-        (instance ?HUMAN Human)
-        (agent ?RIDE ?HORSE)
-        (instance ?HORSE Horse))))
-  instrument
-  Saddle)
+(exists (?RIDECLASS)
+  (and
+    (subclass ?RIDECLASS Carrying)
+    (forall (?RIDE)
+      (<=>
+        (instance ?RIDE ?RIDECLASS)
+        (exists (?HUMAN ?HORSE)
+          (and
+            (instance ?RIDE Carrying)
+            (patient ?RIDE ?HUMAN)
+            (instance ?HUMAN Human)
+            (agent ?RIDE ?HORSE)
+            (instance ?HORSE Horse)))))
+    (capability
+      ?RIDECLASS
+      instrument
+      Saddle)))
 
 (documentation
   AnimalGuiding
@@ -6642,7 +6656,7 @@ such as wicker for &%Making &%Artifacts.")
         (part ?WARP ?SUB)
         (part ?WEFT ?SUB)
         (not (equal ?WARP ?WEFT))
-        (orientation ?WARP ?WEFT RightAngle)
+        (orientation ?WARP ?WEFT PerpendicularOrientation)
         (result ?WEAVE ?OBJ)
         (instance ?OBJ Artifact)))))
 
@@ -6650,8 +6664,7 @@ such as wicker for &%Making &%Artifacts.")
 (documentation
   TrapOrCage
   EnglishLanguage
-  "A &%Device whose purpose is to trap or cage &%Animals,
-i.e. to be in instrument in an act of &%Confining.")
+  "A &%Device whose purpose is to trap or cage &%Animals, i.e. to be in instrument in an act of &%Confining.")
 
 (=>
   (instance ?T TrapOrCage)
@@ -6780,7 +6793,7 @@ and that is used for &%Swimming.")
   (and
     (instance ?P SwimmingPool)
     (contains ?P ?F)
-    (instance ?F Fluid))
+    (attribute ?F Fluid))
   (instance ?F FreshWater))
 
 (subclass BoardOrBlock Artifact)
@@ -6841,12 +6854,15 @@ a point, but if extended does not cross it at that point.")
   (equal ?L TangentLine)
   (exists (?C)
     (and
-      (instance ?C Oval)
+      (attribute ?C Oval)
       (tangent ?L ?C))))
 
 (instance tangent BinaryPredicate)
 (domain tangent 1 TangentLine)
-(domain tangent 2 Oval)
+(domain
+  tangent
+  2
+  (ExtensionFn Oval))
 (documentation
   tangent
   EnglishLanguage
@@ -6872,7 +6888,10 @@ with a very flat aspect.  This includes drawings on paper, cave
 paintings and other surface alterations.")
 (=>
   (instance ?T TwoDimensionalObject)
-  (attribute ?T TwoDimensionalFigure))
+  (exists (?ATTR)
+    (and
+      (instance ?ATTR TwoDimensionalFigure)
+      (attribute ?T ?ATTR))))
 
 (instance sliceOfFigure BinaryPredicate)
 (documentation
@@ -6902,7 +6921,7 @@ is, it is the weight of a kilogram under standard gravity. One kilogram-force is
     (MultiplicationFn ?NUMBER 9.80665)
     Newton))
 
-(subclass Polyhedron ThreeDimensionalFigure)
+(instance Polyhedron ThreeDimensionalFigure)
 (documentation
   Polyhedron
   EnglishLanguage
@@ -6912,20 +6931,20 @@ with flat polygonal faces, straight edges and sharp corners or vertices.[Wikiped
 
 (=>
   (and
-    (instance ?P Polyhedron)
+    (attribute ?P Polyhedron)
     (faceOfFigure ?F1 ?P)
-    (instance ?F1 Polygon)
+    (attribute ?F1 Polygon)
     (sideOfFigure ?S ?F1))
   (exists (?F2)
     (and
-      (instance ?F2 Polygon)
+      (attribute ?F2 Polygon)
       (faceOfFigure ?F2 ?P)
       (not (equal ?F1 ?F2))
       (sideOfFigure ?S ?F2)
       (sideOfIntersection ?F1 ?F2 ?S))))
 
 (=>
-  (instance ?P Polyhedron)
+  (attribute ?P Polyhedron)
   (greaterThanOrEqualTo
     (CardinalityFn
       (KappaFn
@@ -6947,7 +6966,7 @@ means that the two &%TwoDimensionalFigure ?FACE is a face of GeometricFigure ?FI
 (subrelation faceOfFigure geometricPart)
 
 (=>
-  (instance ?P Polyhedron)
+  (attribute ?P Polyhedron)
   (exists (?F)
     (and
       (faceOfFigure ?F ?P)
@@ -6975,7 +6994,7 @@ means that the two figures ?FIGURE1 ?FIGURE2 meet at the side ?SIDE.")
     (sideOfFigure ?S ?F1)
     (sideOfFigure ?S ?F2)))
 
-(instance Pyramid Polyhedron)
+(subAttribute Pyramid Polyhedron)
 (documentation
   Pyramid
   EnglishLanguage
@@ -6986,11 +7005,11 @@ face. A pyramid is a conic solid with a polygonal base.[Wikipedia]")
 
 (=>
   (and
-    (instance ?PY Pyramid)
-    (instance ?POL Polygon)
+    (attribute ?PY Pyramid)
+    (attribute ?POL Polygon)
     (faceOfFigure ?POL ?PY)
     (sideOfFigure ?S ?POL)
-    (instance ?T Triangle)
+    (attribute ?T Triangle)
     (faceOfFigure ?T ?PY)
     (sideOfFigure ?S ?T)
     (sideOfIntersection ?POL ?T ?S))
@@ -7014,14 +7033,14 @@ face. A pyramid is a conic solid with a polygonal base.[Wikipedia]")
 (termFormat EnglishLanguage SquarePyramid "square pyramid")
 
 (=>
-  (instance ?P SquarePyramid)
+  (attribute ?P SquarePyramid)
   (exists (?S)
     (and
-      (instance ?S Square)
+      (attribute ?S Square)
       (faceOfFigure ?S ?P))))
 
 (=>
-  (instance ?P SquarePyramid)
+  (attribute ?P SquarePyramid)
   (equal
     (CardinalityFn
       (KappaFn
@@ -7029,7 +7048,7 @@ face. A pyramid is a conic solid with a polygonal base.[Wikipedia]")
         (faceOfFigure ?F ?P)))
     4))
 
-(instance Cube Polyhedron)
+(subAttribute Cube Polyhedron)
 (documentation
   Cube
   EnglishLanguage
@@ -7041,7 +7060,7 @@ pairs of intersecting faces and pairs of intersecting edges.[Wikipedia]")
 (termFormat EnglishLanguage Cube "cube")
 
 (=>
-  (instance ?C Cube)
+  (attribute ?C Cube)
   (equal
     (CardinalityFn
       (KappaFn
@@ -7051,9 +7070,9 @@ pairs of intersecting faces and pairs of intersecting edges.[Wikipedia]")
 
 (=>
   (and
-    (instance ?C Cube)
+    (attribute ?C Cube)
     (faceOfFigure ?S ?C))
-  (instance ?S Square))
+  (attribute ?S Square))
 
 (instance ConvexRoundShape ThreeDimensionalFigure)
 (documentation
@@ -7136,7 +7155,7 @@ all &%GeometricPoints that make up the &%Cylinder are equidistant from a
     (angularMeasure ?A ?ANGLEMEASURE))
   (lessThan ?N 90.0))
 
-(subclass Polygon ClosedTwoDimensionalFigure)
+(instance Polygon ClosedTwoDimensionalFigure)
 (documentation
   Polygon
   EnglishLanguage
@@ -7146,18 +7165,18 @@ exclusively of straight lines.")
 ; meaning expressed in documentation
 (=>
   (and
-    (instance ?POLYGON Polygon)
+    (attribute ?POLYGON Polygon)
     (geometricPart ?PART ?POLYGON))
   (equal ?PART StraightLine))
 
 (=>
-  (instance ?POLYGON Polygon)
+  (attribute ?POLYGON Polygon)
   (exists (?SIDE)
     (and
       (sideOfFigure ?SIDE ?POLYGON)
       (geometricPart ?SIDE ?POLYGON))))
 
-(instance Triangle Polygon)
+(subAttribute Triangle Polygon)
 (documentation Triangle EnglishLanguage "Any three-sided &%Polygon.")
 
 (equal
@@ -7175,7 +7194,7 @@ exclusively of straight lines.")
 
 (=>
   (and
-    (instance ?T Polygon)
+    (attribute ?T Polygon)
     (equal ?T RightTriangle))
   (exists (?A)
     (and
@@ -7183,14 +7202,14 @@ exclusively of straight lines.")
       (angleOfFigure ?A ?T)
       (equal ?A RightAngle))))
 
-(subclass Quadrilateral Polygon)
+(subAttribute Quadrilateral Polygon)
 (documentation
   Quadrilateral
   EnglishLanguage
   "Any four-sided &%Polygon.")
 
 (=>
-  (instance ?QUAD Quadrilateral)
+  (attribute ?QUAD Quadrilateral)
   (equal
     (CardinalityFn
       (KappaFn
@@ -7198,7 +7217,7 @@ exclusively of straight lines.")
         (sideOfFigure ?SIDE ?QUAD)))
     4))
 
-(instance Rectangle Quadrilateral)
+(subAttribute Rectangle Quadrilateral)
 (documentation
   Rectangle
   EnglishLanguage
@@ -7224,7 +7243,7 @@ exclusively of straight lines.")
 diameter of the &%Circle ?CIRCLE.")
 (instance DiameterFn UnaryFunction)
 (instance DiameterFn TotalValuedRelation)
-(domain DiameterFn 1 Circle)
+(domain DiameterFn 1 Object)
 (range DiameterFn LengthMeasure)
 
 (=>
@@ -7249,7 +7268,7 @@ diameter of the &%Circle ?CIRCLE.")
 of the &%Circle ?CIRCLE.")
 (instance RadiusFn UnaryFunction)
 (instance RadiusFn TotalValuedRelation)
-(domain RadiusFn 1 Circle)
+(domain RadiusFn 1 Object)
 (range RadiusFn LengthMeasure)
 
 (=>
@@ -7313,9 +7332,7 @@ form a diameter of the &%Circle.")
     (geometricPart ?S ?C)
     (equal ?L ClosedLineSegment)
     (sideOfFigure ?L ?S))
-  (lineMeasure
-    ?L
-    (RadiusFn ?C)))
+  (lineMeasure ?L (RadiusFn ?C)))
 
 (equal
   (CardinalityFn
@@ -7435,7 +7452,7 @@ is also known as the arc's angular distance.[Wikipedia]")
 ; ?L2)) (pointOfFigure ?P ?A) (pointOfIntersection ?L ?L2 ?P))))
 
 (=>
-  (instance ?A CentralAngle)
+  (attribute ?A CentralAngle)
   (exists (?L ?L2 ?C ?R)
     (and
       (equal ?L ClosedLineSegment)
@@ -7474,7 +7491,7 @@ is also known as the arc's angular distance.[Wikipedia]")
 
 (=>
   (and
-    (instance ?A CentralAngle)
+    (attribute ?A CentralAngle)
     (angleOfFigure ?A ?C)
     (equal ?C Circle))
   (exists (?ANGLEMEASURE)
@@ -8296,6 +8313,8 @@ person who is in bed warm.")
       (instance ?C Cotton)
       (result ?M ?F))))
 
+(subclass Cotton Substance)
+
 (=>
   (instance ?F CottonFabric)
   (material Cotton ?F))
@@ -8662,7 +8681,7 @@ therefore treatments for rashes, vary widely. [from Wikipedia]")
           (WhenFn ?S))))
     Likely))
 
-(instance Hives SkinRash)
+(subclass Hives SkinRash)
 
 (documentation
   Hives
@@ -8863,9 +8882,13 @@ diseases such as hepatitis C and acquired immunodeficiency syndrome.
       (attribute ?H ?C))
     (instance ?C ChronicDisease)
     (duration ?T ?D))
-  (greaterThan
-    ?D
-    (MeasureFn 3 MonthDuration)))
+  (exists (?MONTHS)
+    (and
+      (instance ?MONTHS RealNumber)
+      (equal
+        ?D
+        (MeasureFn ?MONTHS MonthDuration))
+      (greaterThan ?MONTHS 3))))
 
 (subclass TakingIll PathologicProcess)
 (documentation
@@ -9209,11 +9232,13 @@ Wikipedia]")
 
 (=>
   (attribute ?H Pneumonia)
-  (exists (?I)
+  (exists (?I ?LUNG)
     (and
+      (instance ?LUNG Lung)
+      (part ?LUNG ?H)
       (instance
         ?I
-        (InflammationFn Lung))
+        (InflammationFn ?LUNG))
       (experiencer ?I ?H))))
 
 (subAttribute BacterialPneumonia Pneumonia)
@@ -10599,7 +10624,7 @@ by the ?Organization.")
 
 (=>
   (insured ?PROP ?ORG)
-  (property ?PROP Contract))
+  (instance ?PROP Contract))
 
 (subclass InsuranceCompany Business)
 (documentation
@@ -11283,8 +11308,11 @@ Food is selected and purchased at a central counter.")
 
 (=>
   (instance ?COMPANY Cafeteria)
-  (not (exists (?PERSON)
-    (occupiesPosition ?PERSON ServicePosition ?COMPANY))))
+  (exists (?ATTR)
+    (and
+      (instance ?ATTR ServicePosition)      
+      (not (exists (?PERSON)
+        (occupiesPosition ?PERSON ?ATTR ?COMPANY))))))
 
 (subclass Tavern Restaurant)
 (documentation
@@ -12300,13 +12328,14 @@ non-military customer.")
 
 (=>
   (instance ?S MilitarySurplus)
-  (exists (?A ?B)
+  (exists (?A ?B ?MILITARYORG)
     (and
       (instance ?B Buying)
       (patient ?B ?A)
       (objectTransferred ?B ?S)
-      (not (instance ?A MilitaryOrganization))
-      (not (member ?A MilitaryOrganization)))))
+      (instance ?MILITARYORG MilitaryOrganization)
+      (not (instance ?A ?MILITARYORG))
+      (not (member ?A ?MILITARYORG)))))
 
 (documentation
   hostileForces
@@ -13317,8 +13346,8 @@ the ASTM D1037.[Wikipedia]")
         (instance ?W Wood)
         (instance ?P Pushing)
         (destination ?P ?W)
-        (instance ?B Ball)
-        (material ?B Steel)
+        (attribute ?B Sphere)
+        (material Steel ?B)
         (patient ?P ?B)
         (instance ?LENGTH LengthMeasure)
         (equal
@@ -14071,10 +14100,11 @@ instances of &%Parasite.")
         (instance ?I Ingesting)
         (objectTransferred ?I ?AP)
         (agent ?AP ?H)
+        (instance ?ATTR Psychosis)
         (holdsDuring
           (FutureFn
             (WhenFn ?I))
-          (not (attribute ?H Psychosis)))))))
+          (not (attribute ?H ?ATTR)))))))
 
 (subclass PostTraumaticStressDisorder PsychologicalDysfunction)
 
@@ -14224,13 +14254,13 @@ magnesium carbonate and aluminum hydroxide.[from Wikipedia]")
         (WhenFn ?I))
       (and
         (contains ?S ?F1)
-        (instance ?F1 Fluid)))
+        (attribute ?F1 Fluid)))
     (holdsDuring
       (ImmediateFutureFn
         (WhenFn ?I))
       (and
         (contains ?S ?F2)
-        (instance ?F2 Fluid)))
+        (attribute ?F2 Fluid)))
     (phMeasure ?F1 ?N1)
     (phMeasure ?F2 ?N2))
   (greaterThan ?N2 ?N1))
@@ -14299,13 +14329,13 @@ Wikipedia]")
         (WhenFn ?I))
       (and
         (contains ?S ?F1)
-        (instance ?F1 Fluid)))
+        (attribute ?F1 Fluid)))
     (holdsDuring
       (ImmediateFutureFn
         (WhenFn ?I))
       (and
         (contains ?S ?F2)
-        (instance ?F2 Fluid)))
+        (attribute ?F2 Fluid)))
     (phMeasure ?F1 ?N1)
     (phMeasure ?F2 ?N2))
   (greaterThan ?N2 ?N1))
@@ -14366,7 +14396,7 @@ Older people are more commonly affected. [from Wikipedia]")
   (exists (?T ?P ?L)
     (and
       (instance ?T Transfer)
-      (instance ?L Liquid)
+      (attribute ?L Liquid)
       (instance ?P BodyPart)
       (part ?P ?A)
       (destination ?T ?P)
@@ -14381,8 +14411,7 @@ Older people are more commonly affected. [from Wikipedia]")
 (documentation
   EdemaFn
   EnglishLanguage
-  "A &%Function that returns the
-class of &%Edema cases in the given &%BodyPart.")
+  "A &%Function that returns the class of &%Edema cases in the given &%BodyPart.")
 
 (=>
   (and
@@ -14414,14 +14443,16 @@ as vasopressin (antidiuretic hormone), is an agent or drug which
 reduces the excretion of water in urine.[from Wikipedia]")
 
 (=>
-  (instance ?D Diuretic)
+  (and
+    (instance ?ATTR Diuretic)
+    (instance ?D ?ATTR))
   (hasPurpose
     ?D
     (exists (?R ?L ?H ?LOC)
       (and
         (instance ?H Human)
         (instance ?R Removing)
-        (instance ?L Liquid)
+        (attribute ?L Liquid)
         (experiencer ?R ?H)
         (moves ?R ?L)
         (origin ?L ?H)
@@ -16138,7 +16169,7 @@ and connect it to the &%Throat.")
 
 (=>
   (instance ?H Heart)
-  (material InvoluntaryMuscle ?H))
+  (material MuscleTissue ?H))
 
 (externalImage
   Heart
@@ -19556,14 +19587,14 @@ with any proposition that is a &%Law.")
 
 ; TODO - constrain to a jurisdiction
 
-(<=>
+(=>
   (modalAttribute ?F1 Legal)
-  (not (exists (?F2)
-    (and
-      (modalAttribute ?F2 Law)
-      (truth
-        (not (and ?F1 ?F2))
-        True)))))
+  (not
+    (exists (?F2)
+      (and
+        (modalAttribute ?F2 Law)
+        (not
+          (and ?F1 ?F2))))))
 
 (subclass CriminalAction IntentionalProcess)
 (documentation
@@ -19891,7 +19922,7 @@ that is still binding or is still in effect")
 (=>
   (property ?ENTITY Promise)
   (or
-    (property ?ENTITY Contract)
+    (instance ?ENTITY Contract)
     (property ?ENTITY NakedPromise)))
 
 (subAttribute NakedPromise Promise)
@@ -20986,8 +21017,10 @@ as &%DramaticActing.")
     (subProcess ?ACT ?OPERA))
   (instance ?ACT MakingMusic))
 
-(<=>
-  (attribute ?H LiteracyAttribute)
+(=>
+  (and
+    (instance ?ATTR LiteracyAttribute)
+    (attribute ?H ?ATTR))
   (and
     (hasSkill Reading ?H)
     (hasSkill Writing ?H)))
@@ -21349,12 +21382,14 @@ allows them to move in relation to one another.  Examples include &%Hinges, draw
       (and
         (instance ?M Motion)
         (instance ?S PhysicalSystem)
+        (instance ?S Object)
         (instance ?P1 EngineeringComponent)
         (instance ?P2 EngineeringComponent)
-        (part ?P1 PhysicalSystem)
-        (part ?MJ PhysicalSystem)
-        (part ?P2 PhysicalSystem)
-        (not (patient ?M ?P1))
+        (part ?P1 ?S)
+        (part ?MJ ?S)
+        (part ?P2 ?S)
+        (not
+          (patient ?M ?P1))
         (patient ?M ?P2)
         (connectedEngineeringComponents ?P1 ?MJ)
         (connectedEngineeringComponents ?P2 ?MJ)))))
@@ -22070,7 +22105,14 @@ radio or television receiver).")
       (instance ?PROC ChemicalProcess)
       (causes ?PROC ?EXPLOSION))))
 
-(capability Damaging instrument Explosion)
+(=>
+  (instance ?EXPLOSION Explosion)
+  (modalAttribute
+    (exists (?DAMAGE)
+      (and
+        (instance ?DAMAGE Damaging)
+        (causes ?EXPLOSION ?DAMAGE)))
+    Possibility))
 
 (subclass Performance Demonstrating)
 (documentation
@@ -23008,6 +23050,8 @@ travel between different countries.")
     (instance ?P Passport)
     (possesses ?A ?P))
   (confersNorm
+    ?P
+    Permission
     (exists (?T ?N1 ?N2)
       (and
         (instance ?T Translocation)
@@ -23016,9 +23060,8 @@ travel between different countries.")
         (destination ?T ?N2)
         (instance ?N1 Nation)
         (instance ?N2 Nation)
-        (not (equal ?N1 ?N2))))
-    Permission
-    ?P))
+        (not
+          (equal ?N1 ?N2))))))
 
 (subclass PassCertificate Certificate)
 (documentation
@@ -23034,9 +23077,9 @@ absence, a hall pass, a pass to enter a cleared facility, etc.")
     (possesses ?A ?P))
   (exists (?L)
     (confersNorm
-      (located ?A ?L)
+      ?P
       Permission
-      ?P)))
+      (located ?A ?L))))
 
 (subclass Testament Certificate)
 (documentation
@@ -23929,21 +23972,25 @@ in which an object go out of a &%Region. It is the opposite of &%Entering.")
   (and
     (instance ?S Shortening)
     (patient ?S ?O))
-  (exists (?L1 ?L2 ?U)
+  (exists (?L1 ?L2 ?U ?LENGTH1 ?LENGTH2)
     (and
       (instance ?U UnitOfLength)
+      (instance ?LENGTH1 LengthMeasure)
+      (equal
+        ?LENGTH1
+        (MeasureFn ?L1 ?U))
+      (instance ?LENGTH2 LengthMeasure)
+      (equal
+        ?LENGTH2
+        (MeasureFn ?L2 ?U))
       (holdsDuring
         (BeginFn
           (WhenFn ?S))
-        (length
-          ?O
-          (MeasureFn ?L1 ?U)))
+        (length ?O ?LENGTH1))
       (holdsDuring
         (EndFn
           (WhenFn ?S))
-        (length
-          ?O
-          (MeasureFn ?L2 ?U)))
+        (length ?O ?LENGTH2))
       (greaterThan ?L1 ?L2))))
 
 ; ; ; From Transport_2024.kif ;
@@ -26098,8 +26145,10 @@ wills some part of his/her property to someone else upon his/her death.")
         (ImmediatePastFn
           (WhenFn ?D))
         (possesses ?P ?PROP))
+      (instance ?ENTITY Entity)
+      (equal ?ENTITY (possesses ?H ?PROP))
       (confersNorm
-        (possesses ?H ?PROP)
+        ?ENTITY
         Permission
         ?P))))
 
@@ -26173,14 +26222,16 @@ who has completed at least two years and less than three years at the school.")
   (and
     (attribute ?H CollegeJunior)
     (student ?H ?ORG))
-  (exists (?INTERVAL ?YEARS)
+  (exists (?INTERVAL ?YEARS ?DURATION)
     (and
       (holdsDuring
         ?INTERVAL
         (student ?H ?ORG))
-      (duration
-        ?INTERVAL
+      (instance ?DURATION TimeDuration)
+      (equal
+        ?DURATION
         (MeasureFn ?YEARS YearDuration))
+      (duration ?INTERVAL ?DURATION)
       (greaterThanOrEqualTo ?YEARS 2)
       (lessThan ?YEARS 3))))
 
@@ -26437,14 +26488,16 @@ the &%TheaterProfession, &%FilmMakingProfession, being a comedian, etc.")
 (=>
   (and
     (instance ?EP EntertainmentProfession)
-    (attribute ?P ?EP))
+    (attribute ?P ?EP)
+    (instance ?PERFORMANCE Performance)
+    (instance ?CONTENT ContentDevelopment))
   (or
     (occupation
       ?P
-      (OccupationFn Performance))
+      (OccupationFn ?PERFORMANCE))
     (occupation
       ?P
-      (OccupationFn ContentDevelopment))))
+      (OccupationFn ?CONTENT))))
 
 (subclass SportsPosition SkilledOccupation)
 (documentation
@@ -26482,14 +26535,17 @@ investigating and reporting, in a publication or broadcast program, current
 events.")
 
 (=>
-  (attribute ?P Journalist)
+  (and
+    (attribute ?P Journalist)
+    (instance ?CONTENT ContentDevelopment)
+    (instance ?DISS Disseminating))
   (and
     (occupation
       ?P
-      (OccupationFn ContentDevelopment))
+      (OccupationFn ?CONTENT))
     (occupation
       ?P
-      (OccupationFn Disseminating))))
+      (OccupationFn ?DISS))))
 
 (subclass ModellingPosition Position)
 (documentation
@@ -26969,9 +27025,15 @@ such as &%Adjectives, &%Articles, &%Pronouns, or &%Verbs.")
   "A physical sensation of discomfort which can vary widely
 in intensity.")
 
-(subclass
-  Headache
-  (PainFn Head))
+(subclass Headache Pain)
+
+(=>
+  (instance ?HEADACHE Headache)
+  (exists (?HEAD)
+    (and
+      (instance ?HEAD Head)
+      (patient ?HEADACHE ?HEAD))))
+    
 (subclass Headache PathologicProcess)
 (documentation
   Headache
@@ -29196,10 +29258,11 @@ or some of the &%Rooms within a &%Building.")
 (=>
   (and
     (instance ?J Janitor)
-    (attribute ?P ?J))
+    (attribute ?P ?J)
+    (instance ?WASHING Washing))
   (occupation
     ?P
-    (OccupationFn Washing)))
+    (OccupationFn ?WASHING)))
 
 (subclass TheaterProfession EntertainmentProfession)
 
@@ -29244,10 +29307,11 @@ i.e. acting in films, directing films, producing films, etc.")
 (=>
   (and
     (instance ?P FilmMakingProfession)
-    (attribute ?H ?P))
+    (attribute ?H ?P)
+    (instance ?FILM FilmMaking))
   (occupation
     ?H
-    (OccupationFn FilmMaking)))
+    (OccupationFn ?FILM)))
 
 (instance produced BinaryPredicate)
 (documentation
@@ -29526,11 +29590,11 @@ a &%ReligiousOrganization that is held by a layman, which is
 part-time, and which involves assisting a &%Cleric.")
 
 (=>
-  (instance ?D Deacon)
+  (attribute ?D Deacon)
   (exists (?O ?C)
     (and
       (instance ?O ReligiousOrganization)
-      (instance ?C Cleric)
+      (attribute ?C Cleric)
       (subordinateInOrganization ?O ?D ?C))))
 
 (=>
@@ -29704,7 +29768,8 @@ governmental &%JudicialOrganization.")
 (=>
   (and
     (attribute ?PROF Professor)
-    (occupiesPosition ?PROF Professor ?ORG))
+    (instance ?POSITION Position)
+    (occupiesPosition ?PROF ?POSITION ?ORG))
   (and
     (teacher ?PROF ?ORG)
     (instance ?ORG PostSecondarySchool)))
@@ -30465,7 +30530,8 @@ solution mixture.")
 (=>
   (and
     (instance ?X Substance)
-    (attribute ?X Insoluble))
+    (instance ?ATTR Insoluble)
+    (attribute ?X ?ATTR))
   (not (modalAttribute
     (exists (?Y ?Z)
       (and
@@ -30496,7 +30562,8 @@ microscopically dispersed &%Insoluble particles, between 0.95 and 977 &%Nanomete
   (exists (?P ?S ?DIAMETER)
     (and
       (part ?P ?Z)
-      (attribute ?P Insoluble)
+      (instance ?ATTR Insoluble)
+      (attribute ?P ?ATTR)
       (instance ?DIAMETER LengthMeasure)
       (equal
         ?DIAMETER
@@ -31354,26 +31421,25 @@ Whether a person is a professional driver would be by a more specific &%Occupati
   (instance ?X CognitiveAgent))
 
 (=>
-  (instance ?O OccupationalRole)
+  (and
+    (instance ?O OccupationalRole)
+    (instance ?X CognitiveAgent)
+    (attribute ?X ?O))
   (exists (?PCLASS)
-    (typicalAction
-      ?PCLASS
-      (AttrFn CognitiveAgent ?O))))
+    (typicalAction ?PCLASS ?X)))
 
 (=>
   (and
     (instance ?O OccupationalRole)
-    (typicalAction
-      ?PCLASS
-      (AttrFn CognitiveAgent ?O)))
-  (exists (?X ?T ?P ?PT)
+    (instance ?X CognitiveAgent)
+    (holdsDuring
+      ?T
+      (attribute ?X ?O))
+    (typicalAction ?PCLASS ?X))
+  (exists (?P ?PT)
     (and
-      (instance ?X CognitiveAgent)
-      (holdsDuring
-        ?T
-        (attribute ?X ?O))
       (instance ?P ?PCLASS)
-      (agent ?X ?P)
+      (agent ?P ?X)
       (time ?P ?PT)
       (temporalPart ?PT ?T))))
 
@@ -31392,9 +31458,11 @@ least one &%Process &%Class being a &%typicalAction and also the purpose of the 
       (AttrFn CognitiveAgent ?OCCD)))
   (exists (?PCLASS)
     (and
-      (typicalAction
-        ?PCLASS
+      (instance ?AUTO AutonomousAgent)
+      (equal
+        ?AUTO
         (AttrFn CognitiveAgent ?OCCD))
+      (typicalAction ?PCLASS ?AUTO)
       (hasPurpose
         ?X
         (exists (?P)
@@ -35759,7 +35827,7 @@ centre of the &%AstronomicalBody.")
         ?P
         (CenterOfPlanetFn ?A)
         ?L)
-      (orientation ?PLANE ?L RightAngle))))
+      (orientation ?PLANE ?L PerpendicularOrientation))))
 
 (instance CenterOfPlanetFn UnaryFunction)
 (instance CenterOfPlanetFn SpatialRelation)
@@ -37008,7 +37076,8 @@ provide a handgrip for steadying yourself")
   (modalAttribute
     (exists (?HUMAN)
       (and
-        (attribute ?HUMAN PhysicalDisability)
+        (instance ?ATTR PhysicalDisability)
+        (attribute ?HUMAN ?ATTR)
         (inScopeOfInterest ?HUMAN ?X)))
     Likely))
 
@@ -37174,11 +37243,12 @@ usually &%Paved, that is used for outdoor activities")
     (modalAttribute
       (attribute ?X Paved)
       Likely)
-    (exists (?BLDG)
+    (exists (?BLDG ?OBJ)
       (and
         (instance ?BLDG Building)
         (orientation ?X ?BLDG Adjacent)
-        (located ?X Outdoors)))))
+        (instance ?OBJ Outdoors)
+        (located ?X ?OBJ)))))
 
 (subclass Lanai Patio)
 (subclass Lanai StationaryArtifact)
@@ -37468,7 +37538,7 @@ typically opens at &%NightTime and has a &%Tavern located in it")
       (instance ?BAR Tavern)
       (located ?BAR ?X))))
 
-(subclass Bartender SkilledOccupation)
+(instance Bartender SkilledOccupation)
 (documentation
   Bartender
   EnglishLanguage
@@ -37595,7 +37665,8 @@ certain location and showing it instantly to people, presumably a &%SecurityUnit
         (instance ?PROC Process)
         (eventLocated ?PROC ?LOC1)
         (represents ?VID ?PROC)
-        (instrument ?CAPTURE Camera)
+        (instance ?CAM Camera)
+        (instrument ?CAPTURE ?CAM)
         (result ?CAPTURE ?VID)
         (instance ?RL RadiatingLight)
         (instrument ?RL ?DISPLAY)
@@ -43535,12 +43606,23 @@ subfamily Cricetinae. The subfamily contains about 25 species, classified in six
 or seven genera. They have become established as popular small house pets,
 and, partly because they are easy to breed in captivity, hamsters are often used
 as laboratory animals. [Wikipedia]")
-(defaultMaximumLength
-  Hamster
-  (MeasureFn 10.0 Centimeter))
-(defaultMinimumLength
-  Hamster
-  (MeasureFn 5.0 Centimeter))
+
+(exists (?MAXLENGTH)
+  (and
+    (instance ?MAXLENGTH LengthMeasure)
+    (equal
+      ?MAXLENGTH
+      (MeasureFn 10.0 Centimeter))
+    (defaultMaximumLength Hamster ?MAXLENGTH)))
+
+(exists (?MINLENGTH)
+  (and
+    (instance ?MINLENGTH LengthMeasure)
+    (equal
+      ?MINLENGTH
+      (MeasureFn 5.0 Centimeter))
+    (defaultMinimumLength Hamster ?MINLENGTH)))
+
 (property Hamster LeastConcernSpecies)
 (subclass Hamster Rodent)
 (subclass Hamster DomesticAnimal)
@@ -43630,32 +43712,34 @@ where the purpose of the job is to prevent &%Injuring to another
 (termFormat EnglishLanguage SafetyPosition "safety position")
 
 (=>
-  (holdsDuring
-    ?T
-    (attribute ?X SafetyPosition))
+  (and
+    (instance ?ATTR SafetyPosition)
+    (holdsDuring
+      ?T
+      (attribute ?X ?ATTR)))
   (holdsDuring
     ?T
     (hasPurpose
       ?X
-      (exists (?P ?H ?I ?T2)
+      (exists (?P ?H ?T2)
         (and
           (instance ?H Human)
           (instance ?P Process)
           (patient ?P ?H)
           (agent ?P ?X)
-          (prevents
-            ?P
-            (KappaFn
-              ?I
+          (forall (?I)
+            (=>
               (and
                 (instance ?I Injuring)
                 (=>
                   (holdsDuring
                     ?T2
                     (experiencer ?I ?H))
-                  (not (holdsDuring
-                    ?T2
-                    (patient ?P ?H))))))))))))
+                  (not
+                    (holdsDuring
+                      ?T2
+                      (patient ?P ?H)))))
+              (prevents ?P ?I))))))))
 
 (instance passenger CaseRole)
 (subrelation passenger objectTransferred)
@@ -43771,25 +43855,25 @@ prevent (or lessen the likelihood of) the &%Injuring of a &%Human.")
   (instance ?X SafetyDevice)
   (hasPurpose
     ?X
-    (exists (?P ?H ?I ?T)
+    (exists (?P ?H ?T)
       (and
         (instance ?H Human)
         (instance ?P Process)
         (patient ?P ?H)
         (instrument ?P ?X)
-        (prevents
-          ?P
-          (KappaFn
-            ?I
+        (forall (?I)
+          (=>
             (and
               (instance ?I Injuring)
               (=>
                 (holdsDuring
                   ?T
                   (experiencer ?I ?H))
-                (not (holdsDuring
-                  ?T
-                  (patient ?P ?H)))))))))))
+                (not
+                  (holdsDuring
+                    ?T
+                    (patient ?P ?H)))))
+            (prevents ?P ?I)))))))
 
 (documentation
   UncertifiedCarabiner
@@ -44102,7 +44186,7 @@ Circumference of an &%Object is the length of the boundary of circle.")
 ?LENGTH) means that the circumference of the Circle ?CIRCLE has a
 circumference of ?LENGTH.")
 
-(domain circumference 1 Circle)
+(domain circumference 1 Object)
 
 (domain circumference 2 LengthMeasure)
 
@@ -44670,9 +44754,10 @@ between two objects at the end of the motion is less than at the beginning.")
       (equal
         ?NASCENTDURATION
         (ImmediateFutureFn ?BEGINMOMENT))
+      (instance ?ATTR Nascent)
       (holdsDuring
         ?NASCENTDURATION
-        (attribute ?PHYSICAL Nascent)))))
+        (attribute ?PHYSICAL ?ATTR)))))
 
 (documentation
   Moribund
@@ -44694,9 +44779,10 @@ between two objects at the end of the motion is less than at the beginning.")
       (equal
         ?MORIBUNDDURATION
         (ImmediatePastFn ?ENDMOMENT))
+      (instance ?ATTR Moribund)
       (holdsDuring
         ?MORIBUNDDURATION
-        (attribute ?PHYSICAL Moribund)))))
+        (attribute ?PHYSICAL ?ATTR)))))
 
 (subclass Ruler MeasuringDevice)
 (termFormat EnglishLanguage Ruler "ruler")
@@ -44750,7 +44836,7 @@ is a &%Class of &%Device.")
 (format EnglishLanguage MTBFFn "The MTBF of %1")
 (termFormat EnglishLanguage MTBFFn "mean time between failures")
 (domainSubclass MTBFFn 1 Device)
-(range MTBFFn HourDuration)
+(range MTBFFn TimeDuration)
 (relatedInternalConcept MTBFFn MTBFInstanceFn)
 
 (=>
@@ -44849,18 +44935,28 @@ values of a list of %1")
 
 (=>
   (and
+    (instance ?QLIST MeasuringResultList)
     (equal
       ?NLIST
       (PhysicalQuantityToNumberFn ?QLIST))
+    (instance ?NLIST NumberList)
+    (instance ?N PositiveInteger)
+    (lessThanOrEqualTo ?N (ListLengthFn ?QLIST))
+    (lessThanOrEqualTo ?N (ListLengthFn ?NLIST))
     (equal
       ?QUANT
       (ListOrderFn ?QLIST ?N))
+    (instance ?QUANT ConstantQuantity)
     (equal
       ?NUM
-      (ListOrderFn ?NLIST ?N)))
-  (equal
-    (MeasureFn ?NUM ?UNIT)
-    ?QUANT))
+      (ListOrderFn ?NLIST ?N))
+    (instance ?NUM RealNumber))
+  (exists (?UNIT)
+    (and
+      (instance ?UNIT UnitOfMeasure)
+      (equal
+        (MeasureFn ?NUM ?UNIT)
+        ?QUANT))))
 
 (instance DeviceUpTimeDurationListFn UnaryFunction)
 (documentation
@@ -45236,11 +45332,17 @@ use the &%Function (&%MTTRecoveryFn ?CLASS). Note that the argument for TimeToFa
     (deviceFailTime ?D ?F)
     (deviceUpTime ?D ?U)
     (earlier ?F ?U))
-  (duration
-    (TimeIntervalFn
-      (BeginFn ?F)
-      (BeginFn ?U))
-    (MeasureFn ?X HourDuration)))
+  (exists (?TIMEDURATION)
+    (and
+      (instance ?TIMEDURATION TimeDuration)
+      (equal
+        ?TIMEDURATION
+        (MeasureFn ?X HourDuration))
+      (duration
+        (TimeIntervalFn
+          (BeginFn ?F)
+          (BeginFn ?U))
+        ?TIMEDURATION))))
 
 (instance TimeToRecoveryDurationListFn UnaryFunction)
 (documentation

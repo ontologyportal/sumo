@@ -38,15 +38,19 @@
       (containsInformation ?CBO ?PLAN)
       (result ?PLANNING ?CBO)
       (earlier
-        (BeginFn
-          (WhenFn ?PLANNING))
-        (BeginFn
-          (WhenFn ?PROC)))
+        (TimeIntervalFn
+          (BeginFn (WhenFn ?PLANNING))
+          (BeginFn (WhenFn ?PLANNING)))
+        (TimeIntervalFn
+          (BeginFn (WhenFn ?PROC))
+          (BeginFn (WhenFn ?PROC))))
       (earlier
-        (EndFn
-          (WhenFn ?PLANNING))
-        (EndFn
-          (WhenFn ?PROC))))))
+        (TimeIntervalFn
+          (EndFn (WhenFn ?PLANNING))
+          (EndFn (WhenFn ?PLANNING)))
+        (TimeIntervalFn
+          (EndFn (WhenFn ?PROC))
+          (EndFn (WhenFn ?PROC)))))))
 
 (documentation FoodDistributionOperation EnglishLanguage "Military operations conducted to distribute food to the friendly force. (from FM 100-40)")
 (subclass FoodDistributionOperation MilitaryOperation)
@@ -85,11 +89,22 @@
 (subclass PeacekeepingUnit MilitaryUnit)
 (documentation PeacekeepingUnit EnglishLanguage "A &%MilitaryUnit, the purpose of which is to prevent violent actions but providing deterrent to such actions through the threat of overwhelming retaliation.")
 
-(capability
-  (KappaFn ?P
-    (and
-      (instance ?P Process)
-      (prevents ?P ViolentContest))) agent PeacekeepingUnit)
+(exists (?PREVENTIONCLASS)
+  (and
+    (subclass ?PREVENTIONCLASS Process)
+    (forall (?P)
+      (<=>
+        (instance ?P ?PREVENTIONCLASS)
+        (and
+          (instance ?P Process)
+          (exists (?CONTEST)
+            (and
+              (instance ?CONTEST ViolentContest)
+              (prevents ?P ?CONTEST))))))
+    (capability
+      ?PREVENTIONCLASS
+      agent
+      PeacekeepingUnit)))
 
 (subclass MilitaryConvoy Convoy)
 (documentation MilitaryConvoy EnglishLanguage "A &%Convoy of &%MilitaryVehicles, travelling to the same at least intermediate destination, in relatively close proximity.")
@@ -164,7 +179,7 @@
         (instance ?M MilitaryAssault)
         (instrument ?A ?TANK)))))
 
-(instance ContinuousTrack VehicleWheel)
+(subclass ContinuousTrack VehicleWheel)
 (documentation ContinuousTrack EnglishLanguage "&%ContinuousTrack or tracked treads are a system of vehicle propulsion used in tracked vehicles, running on a continuous band of treads or track plates driven by two or more wheels.Modern continuous tracks can be made with soft belts of synthetic rubber, reinforced with steel wires, in the case of lighter agricultural machinery. The more common classical type is a solid chain track made of steel plates (with or without rubber pads), also called caterpillar tread or tank tread, which is preferred for robust and heavy construction vehicles and military vehicles.[Wikipedia]")
 (termFormat EnglishLanguage ContinuousTrack "Continuous track")
 
@@ -428,15 +443,23 @@ but must do so at the time the target is at that position. [Wikipedia]")
 
 (documentation MilitaryFoodTruck EnglishLanguage "Trucks used by a military to transport food.")
 (subclass MilitaryFoodTruck MilitarySupportVehicle)
-(capability
-  (KappaFn ?P
-    (and
-      (instance ?P Transportation)
-      (exists (?FOOD)
+(exists (?TRANSPORTCLASS)
+  (and
+    (subclass ?TRANSPORTCLASS Transportation)
+    (forall (?P)
+      (<=>
+        (instance ?P ?TRANSPORTCLASS)
         (and
-          (instance ?FOOD
-            (FoodForFn Animal))
-          (patient ?P ?FOOD))))) instrument MilitaryFoodTruck)
+          (instance ?P Transportation)
+          (exists (?FOOD)
+            (and
+              (instance ?FOOD
+                (FoodForFn Animal))
+              (patient ?P ?FOOD))))))
+    (capability
+      ?TRANSPORTCLASS
+      instrument
+      MilitaryFoodTruck)))
 
 ;; Military ranks and echelons
 (subAttribute StandardBearer Soldier)
@@ -463,8 +486,9 @@ but must do so at the time the target is at that position. [Wikipedia]")
 (=>
   (and
     (attribute ?P ?R)
-    (instance ?R MilitaryRank))
-  (member ?P MilitaryService))
+    (instance ?R MilitaryRank)
+    (instance ?MIL MilitaryService))
+  (member ?P ?MIL))
 
 (subclass USMilitaryRank MilitaryRank)
 (documentation USMilitaryRank EnglishLanguage "The class of &%Positions in the &%USMilitary.")
@@ -878,8 +902,8 @@ military.")
 (subclass CompanyMilitary MilitaryUnit)
 (subEchelon CompanyMilitary Platoon)
 (documentation CompanyMilitary EnglishLanguage "A company is a military unit, typically consisting of 100-200 soldiers. Most companies are formed of three or four platoons although the exact number may vary by country, unit type and structure. (from Wikipedia)")
-(commandRankOfEchelon CompanyMilitary
-  (UnionFn USMilitaryRankO3 USMilitaryRankO4))
+(commandRankOfEchelon CompanyMilitary USMilitaryRankO3)
+(commandRankOfEchelon CompanyMilitary USMilitaryRankO4)
 
 (subclass Platoon MilitaryUnit)
 (documentation Platoon EnglishLanguage "Platoon is a term from military science. In an army, a platoon is a unit of thirty to forty soldiers typically commanded by a Lieutenant assisted by a non-commissioned officer. A platoon is formed by at least two squads (usually 3 or 4) and is smaller than a company (typically there are 3 or 4 platoons per company). Most platoons are infantry platoons, some carry other designations such as mortar or heavy weapons platoons. A platoon is the smallest military unit led by a commissioned officer. (from Wikipedia)")
@@ -954,24 +978,34 @@ military.")
 
 (=>
   (and
-    (militaryAge ?AREA
+    (instance ?REQUIREDAGE TimeDuration)
+    (equal
+      ?REQUIREDAGE
       (MeasureFn ?MILITARYAGE YearDuration))
+    (militaryAge ?AREA ?REQUIREDAGE)
     (militaryOfArea ?MILITARY ?AREA)
-    (member ?AGENT ?MILITARY))
-  (exists (?AGE)
-    (and
-      (age ?AGENT
-        (MeasureFn ?AGE YearDuration))
-      (greaterThanOrEqualTo ?AGE ?MILITARYAGE))))
+    (member ?AGENT ?MILITARY)
+    (instance ?AGENTAGE TimeDuration)
+    (equal
+      ?AGENTAGE
+      (MeasureFn ?AGE YearDuration))
+    (age ?AGENT ?AGENTAGE))
+  (greaterThanOrEqualTo ?AGE ?MILITARYAGE))
 
 (=>
   (and
-    (militaryAge ?AREA
+    (instance ?REQUIREDAGE TimeDuration)
+    (equal
+      ?REQUIREDAGE
       (MeasureFn ?MILITARYAGE YearDuration))
+    (militaryAge ?AREA ?REQUIREDAGE)
     (militaryOfArea ?MILITARY ?AREA)
     (member ?AGENT ?MILITARY)
-    (age ?AGENT
-      (MeasureFn ?AGE YearDuration)))
+    (instance ?AGENTAGE TimeDuration)
+    (equal
+      ?AGENTAGE
+      (MeasureFn ?AGE YearDuration))
+    (age ?AGENT ?AGENTAGE))
   (greaterThanOrEqualTo ?AGE ?MILITARYAGE))
 
 ;;	C. Military manpower - availability
