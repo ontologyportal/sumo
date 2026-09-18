@@ -8,12 +8,25 @@
 ;; Load after ROE_Master.kif and ROE_Supplementary.kif.
 ;; ===========================================================================
 
+;; Converse class definitions for the force-character subclasses.
+;;
+;; Class definitions in this file are otherwise written in the sufficient
+;; direction only, because the converse pulls in the SUMO axioms behind
+;; &%prevents and &%hinders. The ten subclasses below are the exception. Their
+;; defining condition is a single &%property assertion and touches none of that
+;; machinery, so the converse costs nothing to carry, and it is what allows a
+;; prover to establish that a deadly application of force is NOT an instance of
+;; a non-deadly class rather than merely failing to establish that it is. That
+;; distinction is the difference between a derivation and an exhausted search.
+;; The converse is added next to each sufficient rule rather than collected
+;; here, so that each pair reads together.
+
 ;; ===========================================================================
 ;; 92. Series 20 -- Use of Force for Mission Accomplishment
 ;; ===========================================================================
 
-(subclass MissionInterference Process)
-(documentation MissionInterference EnglishLanguage "A process that decreases the likelihood of a military operation being carried out. Newport rules 20 B and 20 D regulate the use of force to counter processes of this kind.")
+(subclass MissionInterference Interference)
+(documentation MissionInterference EnglishLanguage "Interference with the carrying out of a military operation. Rules 20 B and 20 D speak of force used to interfere, so the interference this class covers is itself a use of force, which is narrower than interference generally. Newport rules 20 B and 20 D regulate the use of force to counter processes of this kind.")
 (termFormat EnglishLanguage MissionInterference "mission interference")
 
 (=>
@@ -42,6 +55,10 @@
     (property ?A NonDeadlyForce))
   (instance ?A NonDeadlyMissionAccomplishmentForce))
 
+(=>
+  (instance ?A NonDeadlyMissionAccomplishmentForce)
+  (property ?A NonDeadlyForce))
+
 (subclass CounterInterferenceForce UseOfForce)
 (documentation CounterInterferenceForce EnglishLanguage "The use of force to counter a process that interferes with a military operation. This is the action class regulated by Newport rules 20 B and 20 D. It is distinct from self-defense, which is governed by Series 10 through 14 and which mission restrictions do not limit.")
 (termFormat EnglishLanguage CounterInterferenceForce "force countering interference")
@@ -61,17 +78,31 @@
     (property ?A NonDeadlyForce))
   (instance ?A NonDeadlyCounterInterferenceForce))
 
-;; Negative subclass anchors between the sibling branches. &%disjoint does not
-;; entail these: two disjoint classes may share a subclass provided it is
-;; empty, so disjointness constrains instances only. Without these anchors a
-;; negative subsumption query has nothing to close against and must exhaust
-;; the SUMO subclass graph.
+(=>
+  (instance ?A NonDeadlyCounterInterferenceForce)
+  (property ?A NonDeadlyForce))
+
+;; Negative subclass facts between the sibling branches. These are ontological
+;; claims first: force countering interference with a mission is not force
+;; accomplishing it, and the Handbook treats the two as separately grantable,
+;; so a commander holding rule 20 C does not thereby hold what rule 20 D
+;; authorizes. They are also what makes a negative subsumption query tractable.
+;; &%disjoint does not entail them, since two disjoint classes may share a
+;; subclass provided it is empty, and disjointness therefore constrains
+;; instances only. Nothing else in SUMO bears on the question, so without them
+;; the query can be settled only by exhausting the subclass graph.
+;;
+;; The corresponding facts for a class and its own non-deadly subclass were
+;; asserted at first and then removed after measurement. SUMO declares
+;; &%subclass a &%PartialOrderingRelation and therefore antisymmetric, which
+;; gives a prover a route to those negatives without being given them. The
+;; route costs almost nothing: a reverse-direction query saturates in one
+;; given-clause step with the facts present and four without, and Vampire
+;; returns CounterSatisfiable in a tenth of a second either way.
 (not (subclass CounterInterferenceForce MissionAccomplishmentForce))
 (not (subclass MissionAccomplishmentForce CounterInterferenceForce))
 (not (subclass NonDeadlyCounterInterferenceForce MissionAccomplishmentForce))
 (not (subclass NonDeadlyMissionAccomplishmentForce CounterInterferenceForce))
-(not (subclass MissionAccomplishmentForce NonDeadlyMissionAccomplishmentForce))
-(not (subclass CounterInterferenceForce NonDeadlyCounterInterferenceForce))
 
 (instance ROESeries20 ROESeries)
 (documentation ROESeries20 EnglishLanguage "Newport ROE Handbook Series 20, Use of Force for Mission Accomplishment. Purpose: to regulate the use of force for the purposes of mission accomplishment. Handbook note: where there is no armed conflict, some States will permit the use of deadly force only in self-defense; that is a national caveat and is not asserted here as an axiom. The 2022 edition requires that the specific nature of the mission be included. Series 20 contains no prohibitive measure, so for this subject matter the restrictive default rests entirely on the absence of an authorization.")
@@ -113,7 +144,7 @@
 ;; 93. Series 21 -- Protection of Freedom of Movement of Persons
 ;; ===========================================================================
 
-(subclass MovementInterference Process)
+(subclass MovementInterference Interference)
 (documentation MovementInterference EnglishLanguage "A process that decreases the likelihood of &%Translocation occurring, that is, one that interferes with freedom of movement.")
 (termFormat EnglishLanguage MovementInterference "movement interference")
 
@@ -173,6 +204,10 @@
     (property ?A NonDeadlyForce))
   (instance ?A NonDeadlyForceMovementProtection))
 
+(=>
+  (instance ?A NonDeadlyForceMovementProtection)
+  (property ?A NonDeadlyForce))
+
 (subclass DesignatedMovementProtection UseOfForce)
 (documentation DesignatedMovementProtection EnglishLanguage "The use of force to prevent interference with the freedom of movement of persons named by the (SPECIFY persons) placeholder. This is the action class regulated by Newport rules 21 D through 21 F.")
 (termFormat EnglishLanguage DesignatedMovementProtection "force protecting movement of designated persons")
@@ -192,12 +227,14 @@
     (property ?A NonDeadlyForce))
   (instance ?A NonDeadlyDesignatedMovementProtection))
 
+(=>
+  (instance ?A NonDeadlyDesignatedMovementProtection)
+  (property ?A NonDeadlyForce))
+
 (not (subclass DesignatedMovementProtection ForceMovementProtection))
 (not (subclass ForceMovementProtection DesignatedMovementProtection))
 (not (subclass NonDeadlyDesignatedMovementProtection ForceMovementProtection))
 (not (subclass NonDeadlyForceMovementProtection DesignatedMovementProtection))
-(not (subclass ForceMovementProtection NonDeadlyForceMovementProtection))
-(not (subclass DesignatedMovementProtection NonDeadlyDesignatedMovementProtection))
 (not (subclass ForceMovementInterference DesignatedMovementInterference))
 (not (subclass DesignatedMovementInterference ForceMovementInterference))
 
@@ -284,10 +321,13 @@
     (property ?A NonDeadlyForce))
   (instance ?A NonDeadlyVesselProtection))
 
+(=>
+  (instance ?A NonDeadlyVesselProtection)
+  (property ?A NonDeadlyForce))
+
 (not (subclass VesselProtection ForceMovementProtection))
 (not (subclass ForceMovementProtection VesselProtection))
 (not (subclass VesselProtection MissionAccomplishmentForce))
-(not (subclass VesselProtection NonDeadlyVesselProtection))
 
 (instance ROESeries22 ROESeries)
 (documentation ROESeries22 EnglishLanguage "Newport ROE Handbook Series 22, Prevention of Interference with Ships and Aircraft. Purpose: to regulate the circumstances in which force may be used to prevent unauthorized boarding or seizure of ships or aircraft. Rule 22 A prohibits generally and carries no placeholder, while 22 B and 22 C are scoped to specified ships or aircraft, so the prohibition is wider than either authorization.")
@@ -474,3 +514,446 @@
 (roeMeasureAuthorizes ROE24F DisablingFire)
 (documentation ROE24F EnglishLanguage "Disabling fire is permitted.")
 (termFormat EnglishLanguage ROE24F "rule 24 F")
+
+;; ===========================================================================
+;; 97. Group 10-19 -- Use of Force in Self-Defense
+;;
+;; The self-defense group is added after Series 20 through 24 because it was
+;; formalized later; item numbers record the order in which terms were added,
+;; not the order of the compendium.
+;;
+;; Handbook notes on the group. For purposes of self-defense, the Force
+;; includes persons accompanying the Force, prisoners of war, and internees and
+;; detainees under its control. Many States do not carry self-defense measures
+;; in their ROE at all; the Handbook includes them so that in a multinational
+;; operation each contributing State's authorizations and limits are visible to
+;; the Force Commander. Cyber attacks in self-defense are governed by Series
+;; 131 and not by this group.
+;;
+;; The classes these measures regulate are defined in ROE_Master.kif, since
+;; self-defense is a doctrinal category in its own right rather than a
+;; construct of the compendium. What is added here is the intersection of each
+;; self-defense category with &%UseOfForce, because the measures regulate the
+;; use of force in self-defense rather than self-defense as such: a unit may
+;; defend itself by manoeuvring away, and no measure bears on that.
+;; ===========================================================================
+
+(subclass ForceInIndividualSelfDefense UseOfForce)
+(documentation ForceInIndividualSelfDefense EnglishLanguage "The use of force in individual self-defense, the action class regulated by Newport Series 10.")
+(termFormat EnglishLanguage ForceInIndividualSelfDefense "force in individual self-defense")
+
+(=>
+  (and
+    (instance ?A UseOfForce)
+    (instance ?A IndividualSelfDefense))
+  (instance ?A ForceInIndividualSelfDefense))
+
+(subclass NonDeadlyForceInIndividualSelfDefense ForceInIndividualSelfDefense)
+(termFormat EnglishLanguage NonDeadlyForceInIndividualSelfDefense "non-deadly force in individual self-defense")
+
+(=>
+  (and
+    (instance ?A ForceInIndividualSelfDefense)
+    (property ?A NonDeadlyForce))
+  (instance ?A NonDeadlyForceInIndividualSelfDefense))
+
+(=>
+  (instance ?A NonDeadlyForceInIndividualSelfDefense)
+  (property ?A NonDeadlyForce))
+
+(subclass ForceInUnitSelfDefense UseOfForce)
+(documentation ForceInUnitSelfDefense EnglishLanguage "The use of force in unit self-defense, the action class regulated by Newport Series 11.")
+(termFormat EnglishLanguage ForceInUnitSelfDefense "force in unit self-defense")
+
+(=>
+  (and
+    (instance ?A UseOfForce)
+    (instance ?A UnitSelfDefense))
+  (instance ?A ForceInUnitSelfDefense))
+
+(subclass NonDeadlyForceInUnitSelfDefense ForceInUnitSelfDefense)
+(termFormat EnglishLanguage NonDeadlyForceInUnitSelfDefense "non-deadly force in unit self-defense")
+
+(=>
+  (and
+    (instance ?A ForceInUnitSelfDefense)
+    (property ?A NonDeadlyForce))
+  (instance ?A NonDeadlyForceInUnitSelfDefense))
+
+(=>
+  (instance ?A NonDeadlyForceInUnitSelfDefense)
+  (property ?A NonDeadlyForce))
+
+(subclass ForceInDefenseOfOthers UseOfForce)
+(documentation ForceInDefenseOfOthers EnglishLanguage "The use of force for the defense of persons who are not members of the Force, the action class regulated by Newport Series 12.")
+(termFormat EnglishLanguage ForceInDefenseOfOthers "force in defense of others")
+
+(=>
+  (and
+    (instance ?A UseOfForce)
+    (instance ?A DefenseOfOthers))
+  (instance ?A ForceInDefenseOfOthers))
+
+(subclass NonDeadlyForceInDefenseOfOthers ForceInDefenseOfOthers)
+(termFormat EnglishLanguage NonDeadlyForceInDefenseOfOthers "non-deadly force in defense of others")
+
+(=>
+  (and
+    (instance ?A ForceInDefenseOfOthers)
+    (property ?A NonDeadlyForce))
+  (instance ?A NonDeadlyForceInDefenseOfOthers))
+
+(=>
+  (instance ?A NonDeadlyForceInDefenseOfOthers)
+  (property ?A NonDeadlyForce))
+
+(subclass ForceInNationalSelfDefense UseOfForce)
+(documentation ForceInNationalSelfDefense EnglishLanguage "The use of force in the self-defense of a State by members of that State's armed forces, the action class regulated by Newport Series 13.")
+(termFormat EnglishLanguage ForceInNationalSelfDefense "force in national self-defense")
+
+(=>
+  (and
+    (instance ?A UseOfForce)
+    (instance ?A NationalSelfDefense))
+  (instance ?A ForceInNationalSelfDefense))
+
+(subclass NonDeadlyForceInNationalSelfDefense ForceInNationalSelfDefense)
+(termFormat EnglishLanguage NonDeadlyForceInNationalSelfDefense "non-deadly force in national self-defense")
+
+(=>
+  (and
+    (instance ?A ForceInNationalSelfDefense)
+    (property ?A NonDeadlyForce))
+  (instance ?A NonDeadlyForceInNationalSelfDefense))
+
+(=>
+  (instance ?A NonDeadlyForceInNationalSelfDefense)
+  (property ?A NonDeadlyForce))
+
+(subclass ForceInCollectiveSelfDefense UseOfForce)
+(documentation ForceInCollectiveSelfDefense EnglishLanguage "The use of force in the defense of another State, the action class regulated by Newport Series 14.")
+(termFormat EnglishLanguage ForceInCollectiveSelfDefense "force in collective self-defense")
+
+(=>
+  (and
+    (instance ?A UseOfForce)
+    (instance ?A CollectiveSelfDefense))
+  (instance ?A ForceInCollectiveSelfDefense))
+
+(subclass NonDeadlyForceInCollectiveSelfDefense ForceInCollectiveSelfDefense)
+(termFormat EnglishLanguage NonDeadlyForceInCollectiveSelfDefense "non-deadly force in collective self-defense")
+
+(=>
+  (and
+    (instance ?A ForceInCollectiveSelfDefense)
+    (property ?A NonDeadlyForce))
+  (instance ?A NonDeadlyForceInCollectiveSelfDefense))
+
+(=>
+  (instance ?A NonDeadlyForceInCollectiveSelfDefense)
+  (property ?A NonDeadlyForce))
+
+;; Serious crime prevention, the class regulated by rule 12 D. It is placed
+;; with the self-defense group because the Handbook places the measure there,
+;; although the act defended against is a crime rather than an attack.
+
+(subclass ForcePreventingSeriousCrime UseOfForce)
+(documentation ForcePreventingSeriousCrime EnglishLanguage "The use of force to prevent the commission of a serious crime against specified persons, the action class regulated by Newport rule 12 D. What counts as serious is left to the issuing authority and is not represented.")
+(termFormat EnglishLanguage ForcePreventingSeriousCrime "force preventing a serious crime")
+
+(=>
+  (and
+    (instance ?A UseOfForce)
+    (prevents ?A CriminalAction))
+  (instance ?A ForcePreventingSeriousCrime))
+
+;; Negative subclass anchors between the branches. Without these a disproof of
+;; subsumption across two self-defense categories has nothing to close against.
+
+(not (subclass ForceInUnitSelfDefense ForceInIndividualSelfDefense))
+(not (subclass ForceInIndividualSelfDefense ForceInUnitSelfDefense))
+(not (subclass ForceInDefenseOfOthers ForceInUnitSelfDefense))
+(not (subclass ForceInUnitSelfDefense ForceInDefenseOfOthers))
+(not (subclass ForceInCollectiveSelfDefense ForceInNationalSelfDefense))
+(not (subclass ForceInNationalSelfDefense ForceInCollectiveSelfDefense))
+(not (subclass ForceInDefenseOfOthers ForceInIndividualSelfDefense))
+(not (subclass ForceInNationalSelfDefense ForceInUnitSelfDefense))
+(not (subclass ForcePreventingSeriousCrime ForceInDefenseOfOthers))
+
+;; ===========================================================================
+;; 98. Series 10 -- Use of Force in Individual Self-Defense
+;; ===========================================================================
+
+(instance ROESeries10 ROESeries)
+(documentation ROESeries10 EnglishLanguage "Newport ROE Handbook Series 10, Use of Force in Individual Self-Defense. Purpose: to regulate the right to use force in individual self-defense. Rules 10 A, 10 D and 10 E are recorded but not encoded; see the notes on each.")
+(termFormat EnglishLanguage ROESeries10 "Series 10")
+
+;; Rule 10 A is recorded without an action class. Its (SPECIFY) placeholder
+;; carves an exception out of a permission rather than scoping it: the measure
+;; permits force in individual self-defense EXCEPT in the cases named. Every
+;; placeholder handled so far narrows a permission inward, and the parameter
+;; machinery of ROE_Supplementary.kif reflects that by requiring the supplied
+;; value to be involved in the authorized action. An exception requires the
+;; opposite, that the action NOT fall within the excepted case, and expressing
+;; that needs either a closure fact of the kind used for prohibitions or a
+;; representation of the exception as a class subtracted from the authorized
+;; one.
+(instance ROE10A ROEMeasure)
+(roeMeasureInSeries ROE10A ROESeries10)
+(instance ROE10A TemplateROEMeasure)
+(roeMeasureRequiresParameter ROE10A Entity)
+(documentation ROE10A EnglishLanguage "Use of force, up to and including deadly force, in individual self-defense is permitted, except as follows: (SPECIFY).")
+(termFormat EnglishLanguage ROE10A "rule 10 A")
+
+(instance ROE10B ROEMeasure)
+(roeMeasureInSeries ROE10B ROESeries10)
+(instance ROE10B CompleteROEMeasure)
+(roeMeasureAuthorizes ROE10B NonDeadlyForceInIndividualSelfDefense)
+(documentation ROE10B EnglishLanguage "Use of non-deadly force in individual self-defense is permitted.")
+(termFormat EnglishLanguage ROE10B "rule 10 B")
+
+(instance ROE10C ROEMeasure)
+(roeMeasureInSeries ROE10C ROESeries10)
+(instance ROE10C CompleteROEMeasure)
+(roeMeasureAuthorizes ROE10C ForceInIndividualSelfDefense)
+(documentation ROE10C EnglishLanguage "Use of force, up to and including deadly force, in individual self-defense is permitted. Rule 10 A states the same permission subject to exceptions; 10 C is the unrestricted form.")
+(termFormat EnglishLanguage ROE10C "rule 10 C")
+
+;; Rule 10 D is recorded without an action class. Its condition is a causal
+;; chain qualified by probability: a likelihood that damage to property will
+;; lead to injury of specified persons. The class definitions used so far state
+;; what an action prevents or furthers; none of them states a condition on the
+;; state of the world, still less one carrying a probability and a consequence
+;; two steps away. SUMO has the vocabulary, in &%Likely and
+;; &%increasesLikelihood, but the shape of the rule is different from
+;; everything else in this compendium and is the subject of separate work.
+(instance ROE10D ROEMeasure)
+(roeMeasureInSeries ROE10D ROESeries10)
+(instance ROE10D TemplateROEMeasure)
+(roeMeasureRequiresParameter ROE10D Human)
+(documentation ROE10D EnglishLanguage "Use of non-deadly force in defense of property where there is likelihood that destruction of, or damage to, that property will lead to the injury of (SPECIFY persons) is permitted.")
+(termFormat EnglishLanguage ROE10D "rule 10 D")
+
+;; Rule 10 E is recorded without an action class. It is not a rule about the
+;; use of force but a rule about who may restrict a rule about the use of
+;; force, and its subject is another measure rather than an action. Expressing
+;; it requires quantifying over measures within a measure.
+(instance ROE10E ROEMeasure)
+(roeMeasureInSeries ROE10E ROESeries10)
+(instance ROE10E CompleteROEMeasure)
+(documentation ROE10E EnglishLanguage "Use of force in individual self-defense may be limited by a unit commander when an individual is assigned to and acting as a part of that unit.")
+(termFormat EnglishLanguage ROE10E "rule 10 E")
+
+;; ===========================================================================
+;; 99. Series 11 -- Use of Force in Unit Self-Defense
+;; ===========================================================================
+
+(instance ROESeries11 ROESeries)
+(documentation ROESeries11 EnglishLanguage "Newport ROE Handbook Series 11, Use of Force in Unit Self-Defense. Purpose: to regulate the right to use force in unit self-defense. Rules 11 A and 11 E through 11 G are recorded but not encoded. The Handbook note to 11 G states that defense of property in such situations is an exercise of the right of unit self-defense where the unit or persons in it are in peril, which reclassifies an act by the circumstances surrounding it rather than by what the act is; class inclusion cannot carry that.")
+(termFormat EnglishLanguage ROESeries11 "Series 11")
+
+;; Rule 11 A carries an exception-carving placeholder; see the note on 10 A.
+(instance ROE11A ROEMeasure)
+(roeMeasureInSeries ROE11A ROESeries11)
+(instance ROE11A TemplateROEMeasure)
+(roeMeasureRequiresParameter ROE11A Entity)
+(documentation ROE11A EnglishLanguage "Use of force, up to and including deadly force, is permitted in unit self-defense, except as follows: (SPECIFY e.g., in defense of units of other States in the Force).")
+(termFormat EnglishLanguage ROE11A "rule 11 A")
+
+(instance ROE11B ROEMeasure)
+(roeMeasureInSeries ROE11B ROESeries11)
+(instance ROE11B CompleteROEMeasure)
+(roeMeasureAuthorizes ROE11B NonDeadlyForceInUnitSelfDefense)
+(documentation ROE11B EnglishLanguage "Use of non-deadly force in unit self-defense is permitted.")
+(termFormat EnglishLanguage ROE11B "rule 11 B")
+
+(instance ROE11C ROEMeasure)
+(roeMeasureInSeries ROE11C ROESeries11)
+(instance ROE11C TemplateROEMeasure)
+(roeMeasureAuthorizes ROE11C ForceInUnitSelfDefense)
+(roeMeasureRequiresParameter ROE11C AutonomousAgent)
+(documentation ROE11C EnglishLanguage "Use of force, up to and including deadly force, in unit self-defense of (SPECIFY groups or units, e.g., the Force, civilians) is permitted.")
+(termFormat EnglishLanguage ROE11C "rule 11 C")
+
+(instance ROE11D ROEMeasure)
+(roeMeasureInSeries ROE11D ROESeries11)
+(instance ROE11D TemplateROEMeasure)
+(roeMeasureAuthorizes ROE11D NonDeadlyForceInUnitSelfDefense)
+(roeMeasureRequiresParameter ROE11D AutonomousAgent)
+(documentation ROE11D EnglishLanguage "Use of non-deadly force in unit self-defense of (SPECIFY groups or units) is permitted.")
+(termFormat EnglishLanguage ROE11D "rule 11 D")
+
+;; Rules 11 E, 11 F and 11 G are recorded without an action class. Each
+;; conditions the authorization on a causal chain qualified by probability, and
+;; 11 G adds imminence: a likelihood of damage to property that will lead to an
+;; imminent threat to life. See the note on 10 D.
+(instance ROE11E ROEMeasure)
+(roeMeasureInSeries ROE11E ROESeries11)
+(instance ROE11E CompleteROEMeasure)
+(documentation ROE11E EnglishLanguage "Use of non-deadly force where there is likelihood of damage to property that will lead to injury of persons in own unit or other units of own State is permitted.")
+(termFormat EnglishLanguage ROE11E "rule 11 E")
+
+(instance ROE11F ROEMeasure)
+(roeMeasureInSeries ROE11F ROESeries11)
+(instance ROE11F TemplateROEMeasure)
+(roeMeasureRequiresParameter ROE11F AutonomousAgent)
+(documentation ROE11F EnglishLanguage "Use of non-deadly force where there is likelihood of damage to property that will lead to injury of persons in (SPECIFY groups or units, e.g., the Force, civilians) is permitted.")
+(termFormat EnglishLanguage ROE11F "rule 11 F")
+
+(instance ROE11G ROEMeasure)
+(roeMeasureInSeries ROE11G ROESeries11)
+(instance ROE11G CompleteROEMeasure)
+(documentation ROE11G EnglishLanguage "Use of force, up to and including deadly force, where there is a likelihood of damage to property that will lead to an imminent threat to life in own unit or other units of own State is permitted. Handbook note: defense of property in such situations is an exercise of the right of unit self-defense in situations where the unit or persons in the unit are in peril; for the use of force to protect property generally, see Series 40.")
+(termFormat EnglishLanguage ROE11G "rule 11 G")
+
+;; ===========================================================================
+;; 100. Series 12 -- Use of Force for the Defense of Others
+;; ===========================================================================
+
+(instance ROESeries12 ROESeries)
+(documentation ROESeries12 EnglishLanguage "Newport ROE Handbook Series 12, Use of Force for the Defense of Others. Purpose: to regulate the use of force for the protection of persons who are not members of the Force. The Handbook notes that the series can be used to clarify authorizations for hostage recovery among other things. Rules 12 E and 12 F are recorded but not encoded.")
+(termFormat EnglishLanguage ROESeries12 "Series 12")
+
+(instance ROE12A ROEMeasure)
+(roeMeasureInSeries ROE12A ROESeries12)
+(instance ROE12A CompleteROEMeasure)
+(roeMeasureProhibits ROE12A ForceInDefenseOfOthers)
+(documentation ROE12A EnglishLanguage "Use of force for the defense of others is prohibited.")
+(termFormat EnglishLanguage ROE12A "rule 12 A")
+
+(instance ROE12B ROEMeasure)
+(roeMeasureInSeries ROE12B ROESeries12)
+(instance ROE12B TemplateROEMeasure)
+(roeMeasureAuthorizes ROE12B NonDeadlyForceInDefenseOfOthers)
+(roeMeasureRequiresParameter ROE12B AutonomousAgent)
+(documentation ROE12B EnglishLanguage "Use of non-deadly force for the defense of others in (SPECIFY group) is permitted.")
+(termFormat EnglishLanguage ROE12B "rule 12 B")
+
+(instance ROE12C ROEMeasure)
+(roeMeasureInSeries ROE12C ROESeries12)
+(instance ROE12C TemplateROEMeasure)
+(roeMeasureAuthorizes ROE12C ForceInDefenseOfOthers)
+(roeMeasureRequiresParameter ROE12C AutonomousAgent)
+(documentation ROE12C EnglishLanguage "Use of force, up to and including deadly force, for the defense of others in (SPECIFY group) is permitted.")
+(termFormat EnglishLanguage ROE12C "rule 12 C")
+
+(instance ROE12D ROEMeasure)
+(roeMeasureInSeries ROE12D ROESeries12)
+(instance ROE12D TemplateROEMeasure)
+(roeMeasureAuthorizes ROE12D ForcePreventingSeriousCrime)
+(roeMeasureRequiresParameter ROE12D Human)
+(documentation ROE12D EnglishLanguage "Use of force, up to and including deadly force, to prevent the commission of a serious crime against (SPECIFY) persons is permitted. Which crimes count as serious is left to the issuing authority and is not represented.")
+(termFormat EnglishLanguage ROE12D "rule 12 D")
+
+;; Rule 12 E carries the same causal chain as 11 G; see the note on 10 D.
+(instance ROE12E ROEMeasure)
+(roeMeasureInSeries ROE12E ROESeries12)
+(instance ROE12E TemplateROEMeasure)
+(roeMeasureRequiresParameter ROE12E Human)
+(documentation ROE12E EnglishLanguage "Use of force, up to and including deadly force, in defense of property where there is a likelihood that destruction of, or damage to, that property will lead to an imminent threat to life of (SPECIFY persons) is permitted. Handbook note: defense of property in such situations is an exercise of the right to defend the specified persons.")
+(termFormat EnglishLanguage ROE12E "rule 12 E")
+
+;; Rule 12 F is recorded without an action class. It does two things at once:
+;; it assigns a status to named individuals and it authorizes engaging them.
+;; Every other measure in the compendium points at a class of action; this one
+;; changes the standing of an entity, and the authorization follows from the
+;; status rather than from the measure. &%DeclaredHostileStatus in
+;; ROE_Master.kif carries the status, but the link from measure to status
+;; assignment is not represented.
+(instance ROE12F ROEMeasure)
+(roeMeasureInSeries ROE12F ROESeries12)
+(instance ROE12F TemplateROEMeasure)
+(roeMeasureRequiresParameter ROE12F Human)
+(documentation ROE12F EnglishLanguage "(SPECIFY individuals) are declared hostile and may be engaged. Handbook note: for some States this measure could be used outside armed conflict, in extraordinary self-defense situations including hostage rescue, where the targets have engaged in conduct that threatened lives and continue to demonstrate an imminent threat to life. The measure places the decision with the Force Commander, higher authority, or a designated commander rather than with subordinate personnel. The domestic law of some States might not permit it.")
+(termFormat EnglishLanguage ROE12F "rule 12 F")
+
+;; ===========================================================================
+;; 101. Series 13 -- Use of Force in National Self-Defense
+;; ===========================================================================
+
+(instance ROESeries13 ROESeries)
+(documentation ROESeries13 EnglishLanguage "Newport ROE Handbook Series 13, Use of Force in National Self-Defense. Purpose: to regulate the use of force in national self-defense. Handbook note: the series covers self-defense of a State by members of that State's armed forces against threats from State and non-State actors; for collective self-defense see Series 14. Rules 13 C and 13 E are recorded but not encoded.")
+(termFormat EnglishLanguage ROESeries13 "Series 13")
+
+(instance ROE13A ROEMeasure)
+(roeMeasureInSeries ROE13A ROESeries13)
+(instance ROE13A CompleteROEMeasure)
+(roeMeasureProhibits ROE13A ForceInNationalSelfDefense)
+(documentation ROE13A EnglishLanguage "Use of force in national self-defense is prohibited.")
+(termFormat EnglishLanguage ROE13A "rule 13 A")
+
+(instance ROE13B ROEMeasure)
+(roeMeasureInSeries ROE13B ROESeries13)
+(instance ROE13B TemplateROEMeasure)
+(roeMeasureAuthorizes ROE13B NonDeadlyForceInNationalSelfDefense)
+(roeMeasureRequiresParameter ROE13B Nation)
+(documentation ROE13B EnglishLanguage "Use of non-deadly force in national self-defense of (SPECIFY State) is permitted.")
+(termFormat EnglishLanguage ROE13B "rule 13 B")
+
+;; Rules 13 C and 13 E are recorded without an action class. Each carries more
+;; than one placeholder, and 13 E carries three: the State defended, the
+;; commander acting, and the authority granting. &%roeActivationParameter is a
+;; binary relation and an activation therefore supplies one value; several
+;; values would need either a relation carrying a role alongside the value or
+;; one activation per placeholder. The authority placeholder is a further
+;; matter, since the value supplied is not something involved in the action but
+;; a condition on who may order it.
+(instance ROE13C ROEMeasure)
+(roeMeasureInSeries ROE13C ROESeries13)
+(instance ROE13C TemplateROEMeasure)
+(roeMeasureRequiresParameter ROE13C Nation)
+(documentation ROE13C EnglishLanguage "Use of non-deadly force in national self-defense of (SPECIFY State) when authorized by (SPECIFY authority) is permitted.")
+(termFormat EnglishLanguage ROE13C "rule 13 C")
+
+(instance ROE13D ROEMeasure)
+(roeMeasureInSeries ROE13D ROESeries13)
+(instance ROE13D TemplateROEMeasure)
+(roeMeasureAuthorizes ROE13D ForceInNationalSelfDefense)
+(roeMeasureRequiresParameter ROE13D Nation)
+(documentation ROE13D EnglishLanguage "Use of force, up to and including deadly force, in national self-defense of (SPECIFY State) is permitted.")
+(termFormat EnglishLanguage ROE13D "rule 13 D")
+
+(instance ROE13E ROEMeasure)
+(roeMeasureInSeries ROE13E ROESeries13)
+(instance ROE13E TemplateROEMeasure)
+(roeMeasureRequiresParameter ROE13E Nation)
+(documentation ROE13E EnglishLanguage "Use of force, up to and including deadly force, in national self-defense of (SPECIFY State) by (SPECIFY Commander) when authorized by (SPECIFY authority) is permitted.")
+(termFormat EnglishLanguage ROE13E "rule 13 E")
+
+;; ===========================================================================
+;; 102. Series 14 -- Use of Force in Collective Self-Defense
+;; ===========================================================================
+
+(instance ROESeries14 ROESeries)
+(documentation ROESeries14 EnglishLanguage "Newport ROE Handbook Series 14, Use of Force in Collective Self-Defense. Purpose: to regulate the use of force in the collective self-defense of other States. Handbook note: States may be listed individually or by a category such as all States contributing elements to the Force. The series is new in the 2022 edition. Rule 14 C is recorded but not encoded.")
+(termFormat EnglishLanguage ROESeries14 "Series 14")
+
+(instance ROE14A ROEMeasure)
+(roeMeasureInSeries ROE14A ROESeries14)
+(instance ROE14A CompleteROEMeasure)
+(roeMeasureProhibits ROE14A ForceInCollectiveSelfDefense)
+(documentation ROE14A EnglishLanguage "Use of force in collective self-defense is prohibited.")
+(termFormat EnglishLanguage ROE14A "rule 14 A")
+
+(instance ROE14B ROEMeasure)
+(roeMeasureInSeries ROE14B ROESeries14)
+(instance ROE14B TemplateROEMeasure)
+(roeMeasureAuthorizes ROE14B NonDeadlyForceInCollectiveSelfDefense)
+(roeMeasureRequiresParameter ROE14B Nation)
+(documentation ROE14B EnglishLanguage "Use of non-deadly force in collective self-defense of (SPECIFY States or category of States) is permitted.")
+(termFormat EnglishLanguage ROE14B "rule 14 B")
+
+;; Rule 14 C is recorded without an action class. It is the only measure in the
+;; five groups formalized here whose own text names necessity and
+;; proportionality as conditions on the force authorized. Section VI.C of the
+;; OCEANS paper sets out why neither is represented: proportionality weighs
+;; expected incidental harm against anticipated advantage, and necessity
+;; asserts that no less harmful means was available, which is a negative
+;; existential over the state of the world with no authoritative message to
+;; close over.
+(instance ROE14C ROEMeasure)
+(roeMeasureInSeries ROE14C ROESeries14)
+(instance ROE14C TemplateROEMeasure)
+(roeMeasureRequiresParameter ROE14C Nation)
+(documentation ROE14C EnglishLanguage "Use of necessary and proportional force, up to and including deadly force, in collective self-defense of (SPECIFY States or category of States) is permitted.")
+(termFormat EnglishLanguage ROE14C "rule 14 C")
