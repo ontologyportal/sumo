@@ -3841,11 +3841,14 @@ value &%Tuesday.")
     (domainSubclass ?REL ?NUMBER ?CLASS)
     (instance ?REL Predicate)
     (?REL @ROW))
-  (subclass
-    (ListOrderFn
-      (ListFn @ROW)
-      ?NUMBER)
-    ?CLASS))
+  (exists (?ARG)
+    (and
+      (equal ?ARG
+        (ListOrderFn
+          (ListFn @ROW)
+          ?NUMBER))
+      (instance ?ARG Class)
+      (subclass ?ARG ?CLASS))))
 
 (instance ListLengthFn UnaryFunction)
 (instance ListLengthFn TotalValuedRelation)
@@ -4258,17 +4261,17 @@ domain of F, if X is not identical to Y, then F(X) is not identical to F(Y).")
 
 (=>
   (instance ?FUN OneToOneFunction)
-  (forall (?ARG1 ?ARG2)
+  (forall (?ARG1 ?ARG2 ?CLASS)
     (=>
-      (exists (?CLASS)
-        (and
-          (domain ?FUN 1 ?CLASS)
-          (instance ?ARG1 ?CLASS)
-          (instance ?ARG2 ?CLASS)
-          (not (equal ?ARG1 ?ARG2))))
-      (not (equal
-        (AssignmentFn ?FUN ?ARG1)
-        (AssignmentFn ?FUN ?ARG2))))))
+      (and
+        (domain ?FUN 1 ?CLASS)
+        (instance ?ARG1 ?CLASS)
+        (instance ?ARG2 ?CLASS)
+        (not (equal ?ARG1 ?ARG2)))
+      (not
+        (equal
+          (AssignmentFn ?FUN ?ARG1)
+          (AssignmentFn ?FUN ?ARG2))))))
 
 (subclass SequenceFunction OneToOneFunction)
 
@@ -5345,11 +5348,11 @@ also exists.")
 
 (=>
   (precondition ?PROC1 ?PROC2)
-  (=>
-    (exists (?INST2)
-      (instance ?INST2 ?PROC2))
-    (exists (?INST1)
-      (instance ?INST1 ?PROC1))))
+  (forall (?INST2)
+    (=>
+      (instance ?INST2 ?PROC2)
+      (exists (?INST1)
+        (instance ?INST1 ?PROC1)))))
 
 (instance hindersSubclass BinaryPredicate)
 (instance hindersSubclass IrreflexiveRelation)
@@ -5404,19 +5407,21 @@ between instances.")
 (=>
   (preventsSubclass ?PROC1 ?PROC2)
   (forall (?TIME ?PLACE)
-    (=>
-      (holdsDuring
-        ?TIME
-        (exists (?INST1)
-          (and
-            (instance ?INST1 ?PROC1)
-            (eventLocated ?INST1 ?PLACE))))
-      (not (holdsDuring
-        ?TIME
-        (exists (?INST2)
-          (and
-            (instance ?INST2 ?PROC2)
-            (eventLocated ?INST2 ?PLACE))))))))
+    (or
+      (not
+        (holdsDuring
+          ?TIME
+          (exists (?INST1)
+            (and
+              (instance ?INST1 ?PROC1)
+              (eventLocated ?INST1 ?PLACE)))))
+      (not
+        (holdsDuring
+          ?TIME
+          (exists (?INST2)
+            (and
+              (instance ?INST2 ?PROC2)
+              (eventLocated ?INST2 ?PLACE))))))))
 
 (instance prevents BinaryPredicate)
 (instance prevents PartialValuedRelation)
@@ -6682,7 +6687,7 @@ of another &%Entity only if the latter is a &%Set.")
     (instance ?SET1 Set)
     (instance ?SET2 Set)
     (forall (?ELEMENT)
-      (<=>
+      (=>
         (element ?ELEMENT ?SET1)
         (element ?ELEMENT ?SET2))))
   (equal ?SET1 ?SET2))
@@ -7963,7 +7968,7 @@ on its single argument, a &%UnitOfMeasure, produces another
     (instance ?FUNCTION UnitOfMeasureMultiplier)
     (instance ?UNIT CompositeUnitOfMeasure))
   (instance
-    (?FUNCTION ?UNIT)
+    (AssignmentFn ?FUNCTION ?UNIT)
     CompositeUnitOfMeasure))
 
 (=>
@@ -7971,7 +7976,7 @@ on its single argument, a &%UnitOfMeasure, produces another
     (instance ?FUNCTION UnitOfMeasureMultiplier)
     (instance ?UNIT NonCompositeUnitOfMeasure))
   (instance
-    (?FUNCTION ?UNIT)
+    (AssignmentFn ?FUNCTION ?UNIT)
     NonCompositeUnitOfMeasure))
 
 (instance KiloFn UnitOfMeasureMultiplier)
@@ -10020,10 +10025,9 @@ is part of &%TimePosition ?POS2.  Note that since &%temporalPart is a
 
 (=>
   (and
-    (instance ?REL Relation)
     (holdsDuring
       ?INTERVAL
-      (?REL ?INST1 ?INST2))
+      (located ?INST1 ?INST2))
     (instance ?INST1 Physical)
     (instance ?INST2 Physical))
   (and

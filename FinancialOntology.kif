@@ -682,7 +682,7 @@
     (principalAmount ?Account ?Principal))
   (amountDue ?Account ?Principal ?Date))
 
-(<=>
+(=>
   (and
     (agreementPeriod ?Account ?Period)
     (finishes ?End ?Period))
@@ -1065,9 +1065,8 @@
 (disjoint FixedRateAccount AdjustableRateAccount)
 (documentation FixedRateAccount EnglishWrittenLanguage "An &%InterestBearingAccount in which the interest rate does not change during the entire term of the loan.")
 
-(<=>
-  (exists (?Rate)
-    (fixedInterestRate ?Account ?Rate))
+(=>
+  (fixedInterestRate ?Account ?Rate)
   (instance ?Account FixedRateAccount))
 
 (subclass AdjustableRateAccount InterestBearingAccount)
@@ -1405,7 +1404,7 @@
 (subclass Collateral FinancialAsset)
 (documentation Collateral EnglishWrittenLanguage "Assets pledged by a borrower to secure a loan or other credit, and subject to seizure in the event of &%FinancialDefault.")
 
-(<=>
+(=>
   (instance ?Collateral Collateral)
   (exists (?Loan)
     (and
@@ -1433,7 +1432,7 @@
 (subclass SecuredLoan Loan)
 (disjoint SecuredLoan UnsecuredLoan)
 
-(<=>
+(=>
   (instance ?Loan SecuredLoan)
   (exists (?Security)
     (securedBy ?Loan ?Security)))
@@ -1764,7 +1763,7 @@
 (documentation InflationIndex EnglishWrittenLanguage "An &%InflationIndex is a kind of &%Index that serves as a &%PerformanceMeasure to quantify the rate at which the general level of prices for goods and services rises, thereby reflecting the loss of purchasing power of a currency over a specific period of time.")
 (subclass InflationIndex Index)
 
-(<=>
+(=>
   (instance ?Index InflationIndex)
   (exists (?Inflation)
     (and
@@ -1786,7 +1785,7 @@
 (subclass StockIndex Index)
 (documentation StockIndex EnglishWrittenLanguage "Any index which is intended to gauge upward or downward trends in stock prices.")
 
-(<=>
+(=>
   (instance ?Index StockIndex)
   (exists (?Stock)
     (and
@@ -1904,20 +1903,26 @@
 (instance liquidity BinaryPredicate)
 (documentation liquidity EnglishWrittenLanguage "Degree to which accounts can be easily converted to cash.")
 
-(<=>
+(=>
   (and
     (instance ?Withdrawal Withdrawal)
     (instance ?Account FinancialAccount)
-    (origin ?Withdrawal
-      (CurrencyFn ?Account))
-    (not
-      (exists (?Penalty)
-        (and
-          (instance ?Penalty Penalty)
-          (destination ?Penalty
-            (CurrencyFn ?Account))
-          (causes ?Withdrawal ?Penalty)))))
-  (liquidity ?Account HighLiquidity))
+    (origin
+      ?Withdrawal
+      (CurrencyFn ?Account)))
+  (or
+    (exists (?Penalty)
+      (and
+        (instance ?Penalty Penalty)
+        (destination
+          ?Penalty
+          (CurrencyFn ?Account))
+        (causes
+          ?Withdrawal
+          ?Penalty)))
+    (liquidity
+      ?Account
+      HighLiquidity)))
 
 (subclass LiquidityAttribute RelationalAttribute)
 (exhaustiveAttribute LiquidityAttribute HighLiquidity LowLiquidity)
@@ -2369,7 +2374,7 @@
 (range AccountFn FinancialAccount)
 (documentation AccountFn EnglishWrittenLanguage "A unary function that maps a &%FinancialAsset to the &%FinancialAccount associated with the Asset.")
 
-(<=>
+(=>
   (and
     (instance ?Account FinancialAccount)
     (possesses ?Agent ?Asset)
@@ -2994,7 +2999,7 @@
 (domain inTheMoney 2 TimePosition)
 (documentation inTheMoney EnglishWrittenLanguage "A call option is in the money if the stock price is above the strike price. A put option is in the money if the stock price is below the strike price.")
 
-;(<=>
+;(=>
 ;  (exists (?Stock ?StockPrice ?StrikePrice)
 ;    (and
 ;      (instance ?Option CallOption)
@@ -3007,7 +3012,7 @@
 ;      (lessThan ?StrikePrice ?StockPrice)))
 ;  (inTheMoney ?Option ?Time))
 
-;(<=>
+;(=>
 ;  (exists (?Stock ?StockPrice ?StrikePrice)
 ;    (and
 ;      (instance ?Option PutOption)
@@ -3307,7 +3312,7 @@
 (instance monthlyIncome BinaryPredicate)
 (documentation monthlyIncome EnglishWrittenLanguage "(&%monthlyIncome ?Agent ?Money) means that ?Money is the amount of money received during one month period")
 
-(<=>
+(=>
   (monthlyIncome ?Agent ?Money)
   (exists (?Month)
     (and
@@ -3615,7 +3620,7 @@
 ;;the &%destination of the &%FinancialTransaction and the second is the
 ;;&%agent.")
 
-;;(<=>
+;;(=>
 ;;  (customer ?Agent1 ?Agent2)
 ;;  (exists (?Service)
 ;;    (and
@@ -3635,7 +3640,7 @@
 (domain customerRepresentative 3 Organization)
 (documentation customerRepresentative EnglishWrittenLanguage "(&%customerRepresentative ?PERSON1 ?PERSON2 ?ORG) means that ?PERSON1 acts as a representative of &%Organization ?ORG in a &%SocialInteraction involving ?PERSON2.")
 
-(<=>
+(=>
   (customerRepresentative ?Person1 ?Person2 ?Org)
   (exists (?Service)
     (and
@@ -3920,12 +3925,11 @@
 (domain loanInterest 1 Loan)
 (domain loanInterest 2 CurrencyMeasure)
 
-(<=>
-  (exists (?Period)
-    (and
-      (instance ?Loan Loan)
-      (agreementPeriod ?Loan ?Period)
-      (interestEarned ?Loan ?Amount ?Period)))
+(=>
+  (and
+    (instance ?Loan Loan)
+    (agreementPeriod ?Loan ?Period)
+    (interestEarned ?Loan ?Amount ?Period))
   (loanInterest ?Loan ?Amount))
 
 (subclass Title FinancialInstrument)
@@ -3942,7 +3946,7 @@
 (domain bankAccount 2 BankFinancialOrganization)
 (documentation bankAccount EnglishWrittenLanguage "(&%bankAccount ?Type ?Bank) holds if ?Type is a type of the financial accounts offered by the bank.")
 
-(<=>
+(=>
   (bankAccount ?AccountType ?Bank)
   (exists (?Account)
     (and
