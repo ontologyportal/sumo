@@ -729,14 +729,16 @@
     (instance ?A2 Automobile)
     (instance ?S1 AutomobileShock)
     (part ?S1 ?A1)
-    (not
-      (exists (?S2)
-        (and
-          (instance ?S2 AutomobileShock)
-          (part ?S2 ?A2))))
     (dampingRatio ?A1 ?R1)
     (dampingRatio ?A2 ?R2))
-  (greaterThan ?R2 ?R1))
+  (or
+    (exists (?S2)
+      (and
+        (instance ?S2 AutomobileShock)
+        (part ?S2 ?A2)))
+    (greaterThan
+      ?R2
+      ?R1)))
 
 (typicalPart AutomobileShock Automobile)
 (typicallyContainsPart AutomobileShock Automobile)
@@ -1256,21 +1258,28 @@
 (=>
   (and
     (typicalTemporalPart ?PART ?WHOLE)
-    (instance ?X ?PART)
-    (equal ?PARTPROB
-      (ProbabilityFn
-        (exists (?Y)
-          (and
-            (instance ?Y ?WHOLE)
-            (temporalPart ?X ?Y)))))
-    (equal ?NOTPARTPROB
-      (ProbabilityFn
-        (not
-          (exists (?Z)
+    (instance ?X ?PART))
+  (or
+    (not
+      (equal
+        ?PARTPROB
+        (ProbabilityFn
+          (exists (?Y)
             (and
-              (instance ?Z ?WHOLE)
-              (temporalPart ?X ?Z)))))))
-  (greaterThan ?PARTPROB ?NOTPARTPROB))
+              (instance ?Y ?WHOLE)
+              (temporalPart ?X ?Y))))))
+    (not
+      (equal
+        ?NOTPARTPROB
+        (ProbabilityFn
+          (not
+            (exists (?Z)
+              (and
+                (instance ?Z ?WHOLE)
+                (temporalPart ?X ?Z)))))))
+    (greaterThan
+      ?PARTPROB
+      ?NOTPARTPROB)))
 
 (subclass BleedingAir LiquidMotion)
 (subclass BleedingAir Removing)
@@ -1641,7 +1650,7 @@
 (format EnglishWrittenLanguage compressionRatio "the compression ratio of %1 is %n %2")
 (documentation compressionRatio EnglishWrittenLanguage "The ratio of the volume of the &%CombustionChamber of the &%EngineCylinder at the maximum point of compression of the cylinder, to the volume of the chamber with the piston fully retracted.")
 
-(<=>
+(=>
   (compressionRatio ?E ?R)
   (and
     (instance ?VOL1 VolumeMeasure)
@@ -1938,7 +1947,7 @@
 (documentation relativeOrientationAngle EnglishWrittenLanguage
   "(relativeOrientationAngle ?OBJ1 ?OBJ2 ?ANGLE) means that the principal axes of ?OBJ1 and ?OBJ2 have the angular offset ?ANGLE.")
 
-(<=>
+(=>
   (orientation ?OBJ1 ?OBJ2 PerpendicularOrientation)
   (relativeOrientationAngle ?OBJ1 ?OBJ2 RightAngle))
 
@@ -3520,22 +3529,23 @@
       (instrument ?M ?EM))))
 
 (=>
-  (and
-    (instance ?EM Electromagnet)
-    (not
-      (holdsDuring ?T1
-        (exists (?T ?E)
-          (and
-            (instance ?T Transfer)
-            (instance ?E Electricity)
-            (objectTransferred ?T ?E)
-            (path ?T ?EM))))))
-  (not
-    (holdsDuring ?T1
-      (exists (?M)
+  (instance ?EM Electromagnet)
+  (or
+    (holdsDuring
+      ?T1
+      (exists (?T ?E)
         (and
-          (instance ?M Magnetism)
-          (instrument ?M ?EM))))))
+          (instance ?T Transfer)
+          (instance ?E Electricity)
+          (objectTransferred ?T ?E)
+          (path ?T ?EM))))
+    (not
+      (holdsDuring
+        ?T1
+        (exists (?M)
+          (and
+            (instance ?M Magnetism)
+            (instrument ?M ?EM)))))))
 
 (subclass Solenoid ElectricDevice)
 (termFormat EnglishWrittenLanguage Solenoid "solenoid")

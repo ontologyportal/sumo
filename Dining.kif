@@ -127,22 +127,22 @@
     (customer ?CUST ?AGENT)
     (corkageFee ?AMT ?ITEM ?AGENT)
     (instance ?X ?ITEM)
-    (not
-      (exists (?B)
-        (and
-          (instance ?B Buying)
-          (patient ?B ?X)
-          (destination ?B ?CUST)
-          (origin ?B ?AGENT))))
     (instance ?D Drinking)
     (agent ?D ?CUST)
     (resource ?D ?X))
-  (exists (?C)
-    (and
-      (instance ?C Corkage)
-      (agent ?C ?CUST)
-      (refers ?C ?X)
-      (destination ?C ?AGENT))))
+  (or
+    (exists (?B)
+      (and
+        (instance ?B Buying)
+        (patient ?B ?X)
+        (destination ?B ?CUST)
+        (origin ?B ?AGENT)))
+    (exists (?C)
+      (and
+        (instance ?C Corkage)
+        (agent ?C ?CUST)
+        (refers ?C ?X)
+        (destination ?C ?AGENT)))))
 
 ;; Outdoor Dining 
 (subclass OutdoorDiningArea DiningArea)
@@ -324,16 +324,22 @@
   (and
     (facility ?AGENT ?OBJ)
     (customer ?CUST ?AGENT)
-    (instance ?X ?OBJ)
-    (desires ?CUST
-      (exists (?PROC)
-        (and
-          (instance ?PROC IntentionalProcess)
-          (patient ?PROC ?X)
-          (agent ?PROC ?CUST)))))
-  (modalAttribute
-    (confersRight ?AGENT ?CUST
-      (uses ?X ?CUST)) Possibility))
+    (instance ?X ?OBJ))
+  (or
+    (not
+      (desires
+        ?CUST
+        (exists (?PROC)
+          (and
+            (instance ?PROC IntentionalProcess)
+            (patient ?PROC ?X)
+            (agent ?PROC ?CUST)))))
+    (modalAttribute
+      (confersRight
+        ?AGENT
+        ?CUST
+        (uses ?X ?CUST))
+      Possibility)))
       
 ;; NOTE: You can use RecurrentTimeIntervalFn(HourFn HourFn) to come up with
 ;; ?TIMEINT
@@ -564,18 +570,20 @@
     (agent ?C ?AGENT)
     (destination ?C ?CUST)
     (located ?AGENT ?LOC1)
-    (customer ?CUST ?AGENT)
-    (exists (?S ?FOOD ?E)
-      (and
-        (instance ?S Cooking)
-        (agent ?S ?AGENT)
-        (result ?S ?FOOD)
-        (patient ?C ?FOOD)
-        (instance ?E Eating)
-        (agent ?E ?CUST)
-        (eventLocated ?E ?LOC2))))
-  (not
-    (equal ?LOC1 ?LOC2)))
+    (customer ?CUST ?AGENT))
+  (or
+    (not
+      (exists (?S ?FOOD ?E)
+        (and
+          (instance ?S Cooking)
+          (agent ?S ?AGENT)
+          (result ?S ?FOOD)
+          (patient ?C ?FOOD)
+          (instance ?E Eating)
+          (agent ?E ?CUST)
+          (eventLocated ?E ?LOC2))))
+    (not
+      (equal ?LOC1 ?LOC2))))
         
 (subclass FoodPickup CateringService)
 (documentation FoodPickup EnglishWrittenLanguage "&%FoodPickup is a type of &%CateringService where the customer has to pick up the food from the agent's location with the intent of eating it somewhere else.")
@@ -726,30 +734,37 @@
 ;; axiom for 'Requires Reservation' --> if a restaurant requires 
 ;; reservation, then the probability of a potentialCustomer becoming a 
 ;; customer if a reservation exists is higher
-(=>
-  (and
-    (instance ?AGENT AutonomousAgent)
-    (potentialCustomer ?CUST ?AGENT)
-    (modalAttribute
-      (and
-        (instance ?R Reserving)
-        (destination ?R ?AGENT)) Necessity)
-    (conditionalProbability
-      (exists (?RES1)
+(forall (?NUM1 ?NUM2)
+  (=>
+    (and
+      (instance ?AGENT AutonomousAgent)
+      (potentialCustomer ?CUST ?AGENT)
+      (modalAttribute
         (and
-          (instance ?RES1 Reservation)
-          (reservingEntity ?CUST ?RES1)
-          (fulfillingEntity ?AGENT ?RES1)))
-      (customer ?CUST ?AGENT) ?NUM1)
-    (conditionalProbability
+          (instance ?R Reserving)
+          (destination ?R ?AGENT))
+        Necessity))
+    (or
       (not
-        (exists (?RES2)
-          (and
-            (instance ?RES2 Reservation)
-            (reservingEntity ?CUST ?RES2)
-            (fulfillingEntity ?AGENT ?RES2))))
-      (customer ?CUST ?AGENT) ?NUM2))
-  (lessThan ?NUM2 ?NUM1))
+        (conditionalProbability
+          (exists (?RES1)
+            (and
+              (instance ?RES1 Reservation)
+              (reservingEntity ?CUST ?RES1)
+              (fulfillingEntity ?AGENT ?RES1)))
+          (customer ?CUST ?AGENT)
+          ?NUM1))
+      (not
+        (conditionalProbability
+          (not
+            (exists (?RES2)
+              (and
+                (instance ?RES2 Reservation)
+                (reservingEntity ?CUST ?RES2)
+                (fulfillingEntity ?AGENT ?RES2))))
+          (customer ?CUST ?AGENT)
+          ?NUM2))
+      (lessThan ?NUM2 ?NUM1))))
       
 
 ;; ----------------------------------------------------------------------------
