@@ -1,0 +1,42 @@
+name: Sigma validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate SUMO
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out ontology
+        uses: actions/checkout@v4
+        with:
+          path: ontology
+          persist-credentials: false
+
+      - name: Check out sigma-rs
+        uses: actions/checkout@v4
+        with:
+          repository: ontologyportal/sigma-rs
+          ref: main
+          path: sigma-rs
+          persist-credentials: false
+
+      - name: Set up Rust
+        run: rustup update stable --no-self-update
+
+      - name: Build sigma-rs CLI
+        working-directory: sigma-rs
+        run: |
+          cargo +stable build --release --locked --bin sumo \
+            --no-default-features --features ask,parallel,alloc-mi
+
+      - name: Validate ontology
+        working-directory: ontology
+        run: ../sigma-rs/target/release/sumo --no-db -W all -d . validate
