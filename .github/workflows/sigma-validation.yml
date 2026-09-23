@@ -1,0 +1,135 @@
+name: Sigma validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate SUMO
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out ontology
+        uses: actions/checkout@v4
+        with:
+          path: ontology
+          persist-credentials: false
+
+      - name: Check out sigma-rs
+        uses: actions/checkout@v4
+        with:
+          repository: ontologyportal/sigma-rs
+          # Pin the revision targeted by the temporary fix below.
+          ref: e3cebe1c5f41beb609eec17853d886bf6ffc58a5
+          path: sigma-rs
+          persist-credentials: false
+
+      - name: Set up Rust
+        run: rustup update stable --no-self-update
+
+      - name: Fix sigma-rs validation exit status
+        working-directory: sigma-rs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("crates/cli/src/cli/validate.rs")
+          source = path.read_text()
+
+          old = "\n    hard_error\n}"
+          new = "\n    !hard_error\n}"
+
+          if source.count(old) != 1:
+              raise SystemExit(
+                  "sigma-rs validation code has changed; review this patch."
+              )
+
+          path.write_text(source.replace(old, new, 1))
+          PY
+
+      - name: Build sigma-rs CLI
+        working-directory: sigma-rs
+        run: |
+          cargo +stable build --release --locked --bin sumo \
+            --no-default-features --features ask,parallel,alloc-mi
+
+      - name: Validate Full SUMO
+        working-directory: ontology
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/sigma-config.xml" <<'XML'
+          <configuration>
+            <preference name="sumokbname" value="SUMO" />
+            <kb name="SUMO"></kb>
+          </configuration>
+          XML
+
+          constituents=(
+            english_format.kif
+            domainEnglishFormat.kif
+            ArabicCulture.kif
+            Anatomy.kif
+            arteries.kif
+            Biography.kif
+            Cars.kif
+            Catalog.kif
+            Communications.kif
+            ComputerInput.kif
+            ComputingBrands.kif
+            CountriesAndRegions.kif
+            Dining.kif
+            Economy.kif
+            emotion.kif
+            engineering.kif
+            Facebook.kif
+            FinancialOntology.kif
+            Food.kif
+            Geography.kif
+            Government.kif
+            Hotel.kif
+            Justice.kif
+            Languages.kif
+            Law.kif
+            Media.kif
+            Medicine.kif
+            Merge.kif
+            Mid-level-ontology.kif
+            MilitaryDevices.kif
+            Military.kif
+            MilitaryPersons.kif
+            MilitaryProcesses.kif
+            Music.kif
+            naics.kif
+            People.kif
+            pictureList.kif
+            pictureList-ImageNet.kif
+            QoSontology.kif
+            Sports.kif
+            TransnationalIssues.kif
+            Transportation.kif
+            TransportDetail.kif
+            UXExperimentalTerms.kif
+            VirusProteinAndCellPart.kif
+            Weather.kif
+            WMD.kif
+            capabilities.kif
+          )
+
+          args=()
+          for file in "${constituents[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "::error::Missing Full SUMO constituent: $file"
+              exit 1
+            fi
+            args+=(-f "$file")
+          done
+
+          ../sigma-rs/target/release/sumo \
+            --config "$RUNNER_TEMP/sigma-config.xml" \
+            --no-db "${args[@]}" validate
