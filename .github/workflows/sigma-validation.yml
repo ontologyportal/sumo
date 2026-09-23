@@ -24,12 +24,34 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ontologyportal/sigma-rs
-          ref: main
+          # Pin the revision targeted by the temporary fix below.
+          ref: e3cebe1c5f41beb609eec17853d886bf6ffc58a5
           path: sigma-rs
           persist-credentials: false
 
       - name: Set up Rust
         run: rustup update stable --no-self-update
+
+      - name: Fix sigma-rs validation exit status
+        working-directory: sigma-rs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("crates/cli/src/cli/validate.rs")
+          source = path.read_text()
+
+          old = "\n    hard_error\n}"
+          new = "\n    !hard_error\n}"
+
+          if source.count(old) != 1:
+              raise SystemExit(
+                  "sigma-rs validation code has changed; review this patch."
+              )
+
+          path.write_text(source.replace(old, new, 1))
+          PY
 
       - name: Build sigma-rs CLI
         working-directory: sigma-rs
