@@ -1,0 +1,1869 @@
+; ; Written By Bradford Sweeter ; Astronomy File
+
+; ; ========== Planets and Astronomical Bodies =================
+
+; ; ------------- Planets ------------
+
+; ; Planets must orbit a star or stellar remnant
+(=>
+  (instance ?PLANET Planet)
+  (exists (?STAR)
+    (and
+      (or
+        (instance ?STAR Star)
+        (instance ?STAR StellarRemnant))
+      (orbits ?PLANET ?STAR))))
+
+(=>
+  (or
+    (instance ?PLANET Planet)
+    (instance ?PLANET DwarfPlanet))
+  (exists (?M ?U)
+    (causesProposition
+      (measure ?PLANET
+        (MeasureFn ?M ?U))
+      (instance ?PLANET SphericalObject))))
+
+; ; 1 ; Exoplanet
+(subclass Exoplanet Planet)
+(termFormat EnglishWrittenLanguage Exoplanet "exoplanet")
+(termFormat EnglishWrittenLanguage Exoplanet "extrasolar planet")
+(documentation Exoplanet EnglishWrittenLanguage "An exoplanet, or extrasolar planet, is a planet located outside the Solar System.")
+
+; ; Exoplanets cannot orbit our solarsystem and must orbit anoter star
+; in a different solarsystem
+(=>
+  (instance ?EX Exoplanet)
+  (exists (?STAR ?SS)
+    (and
+      (instance ?STAR Star)
+      (not
+        (equal ?STAR Sol))
+      (instance ?SS PlanetarySystem)
+      (not
+        (equal ?SS TheSolarSystem))
+      (orbits ?EX ?STAR))))
+
+; ; ------- 'Planets' --------
+
+; ; 2 ; Dwarf Planet
+(subclass DwarfPlanet AstronomicalBody)
+(termFormat EnglishWrittenLanguage DwarfPlanet "dwarf planet")
+(documentation DwarfPlanet EnglishWrittenLanguage "A roughly sphereical celestial body that orbits a sun but cannot clear its own neighborhood of debris.")
+
+; ; 3 ; Pluto orbits sol
+(instance DwarfPlanetPluto DwarfPlanet)
+(orbits DwarfPlanetPluto Sol)
+
+; ; 4 ; RoguePlanet
+(subclass RoguePlanet InterstellarObject)
+(termFormat EnglishWrittenLanguage RoguePlanet "rogue planet")
+(documentation RoguePlanet EnglishWrittenLanguage "A planet sized astronomical body whos mass makes it round and is not bound by any orbit.")
+
+; ; 5 ; Brown Dwarf
+(subclass BrownDwarf AstronomicalBody)
+(termFormat EnglishWrittenLanguage BrownDwarf "brown dwarf")
+(documentation BrownDwarf EnglishWrittenLanguage "A substellar AstronomicalBody with insufficient mass to sustain hydrogen fusion. Spans SpectralClass LClass and TClass.")
+; ; A brown dwarf can exhibit fusion at some point in its life but
+; cannot sustain it and it is sphereical becuase of its mass ; and must
+; be between .013 (13 times the mass of jupiter) to .08 (the low mass
+; star limit)
+(=>
+  (instance ?BD BrownDwarf)
+  (and
+    (exists (?M ?U)
+      (and
+        (measure ?BD
+          (MeasureFn ?M ?U))
+        (greaterThan ?M 0.013)
+        (lessThan ?M 0.08)
+        (causesProposition
+          (measure ?BD
+            (MeasureFn ?M ?U))
+          (and
+            (instance ?BD SphericalObject)
+            (not
+              (instance ?BD Planet))
+            (not
+              (instance ?BD Star))))))
+    (modalAttribute
+      (exists (?F)
+        (and
+          (instance ?F NuclearFusion)
+          (resource ?F ?BD))) Possibility)
+    (not
+      (holdsDuring
+        (WhenFn ?BD)
+        (exists (?F2)
+          (and
+            (instance ?F2 NuclearFusion)
+            (resource ?F2 ?BD)))))))
+
+; ; ---------- Small Object ----------
+
+; ; If there is a moon then there is an AstronomicalBody it orbits
+(=>
+  (instance ?M Moon)
+  (exists (?AB)
+    (and
+      (or
+        (instance ?AB Planet)
+        (instance ?AB SmallSolarSystemBody)
+        (instance ?AB DwarfPlanet))
+      (orbits ?M ?AB))))
+
+; ; If something is a natural satelite, it must orbit something that is
+; not a sun
+(=>
+  (instance ?NS NaturalSatellite)
+  (exists (?AB)
+    (and
+      (not
+        (instance ?AB Star))
+      (orbits ?NS ?AB))))
+
+; ; Meteroids are less than or equal to 1 meter in length
+(=>
+  (instance ?M Meteoroid)
+  (exists (?L ?N)
+    (and
+      (instance ?L LengthMeasure)
+      (equal ?L
+        (MeasureFn ?N Meter))
+      (length ?M ?L)
+      (lessThanOrEqualTo ?N 1.0))))
+
+; ; 6 ; Small Solar System Body
+(subclass SmallSolarSystemBody AstronomicalBody)
+(termFormat EnglishWrittenLanguage SmallSolarSystemBody "small Solar System body")
+(documentation SmallSolarSystemBody EnglishWrittenLanguage "A 2006 IAU category for an AstronomicalBody that orbits the Sun but whose mass is too small for it to be classified as a Planet or a DwarfPlanet. Includes Asteroids, Comets, and some Centaurs and trans-Neptunian objects.")
+; ; The mass of the sssb is what makes it not a planet, dp, or star and
+; must orbit the star
+(=>
+  (instance ?SSSB SmallSolarSystemBody)
+  (exists (?M ?U)
+    (and
+      (orbits ?SSSB Sol)
+      (not
+        (instance ?SSSB NaturalSatellite))
+      (causesProposition
+        (measure ?SSSB
+          (MeasureFn ?M ?U))
+        (and
+          (not
+            (instance ?SSSB Planet))
+          (not
+            (instance ?SSSB DwarfPlanet))
+          (not
+            (instance ?SSSB Star)))))))
+
+; ; 7 ; trans-Neptunian Object
+(subclass TransNeptunianObject AstronomicalBody)
+(termFormat EnglishWrittenLanguage TransNeptunianObject "trans-Neptunian object")
+(documentation TransNeptunianObject EnglishWrittenLanguage "An AstronomicalBody that, at some point in its orbit, is farther from Sol than PlanetNeptune's average distance of about 30.1 AstronomicalUnits. Includes small Kuiper belt objects as well as DwarfPlanets like DwarfPlanetPluto.")
+; ; Must have an orbit that is further than 30.1 Astronomical Units
+(=>
+  (instance ?TNO TransNeptunianObject)
+  (exists (?T ?D ?Q)
+    (and
+      (orbits ?TNO Sol)
+      (instance ?Q LengthMeasure)
+      (equal ?Q
+        (MeasureFn ?D AstronomicalUnit))
+      (holdsDuring ?T
+        (distance ?TNO Sol ?Q))
+      (greaterThan ?D 30.1))))
+
+; ; 8 ; Comet
+(subclass Comet SmallSolarSystemBody)
+(termFormat EnglishWrittenLanguage Comet "comet")
+(documentation Comet EnglishWrittenLanguage "A small icy AstronomicalBody that, when its orbit brings it close to a Star, releases gas and dust to form a visible coma and tail.")
+(=>
+  (instance ?C Comet)
+  (and
+    (material Ice ?C)
+    (material Rock ?C)))
+
+; ; 9 ; Asteroid
+(subclass Asteroid SmallSolarSystemBody)
+(termFormat EnglishWrittenLanguage Asteroid "asteroid")
+(documentation Asteroid EnglishWrittenLanguage "Small, irregular shaped planet-like rocky objects left over from the formation of the solar system located within the solarsystem and orbit a star. They span from 1 meter to sometimes over 500km.")
+
+; ; Asteroids are greater than 1m long
+(=>
+  (instance ?A Asteroid)
+  (exists (?L ?N)
+    (and
+      (instance ?L LengthMeasure)
+      (equal ?L
+        (MeasureFn ?N Meter))
+      (length ?A ?L)
+      (greaterThan ?N 1.0))))
+
+; ; 10 ; Interstellar Object
+(subclass InterstellarObject AstronomicalBody)
+(termFormat EnglishWrittenLanguage InterstellarObject "interstellar object")
+(documentation Asteroid EnglishWrittenLanguage "An astronomical object in interstellar space, not gravitationally bound to a star. ")
+
+; ; Interstellar objects do not orbit a star or similar
+(=>
+  (instance ?IO InterstellarObject)
+  (and
+    (not
+      (or
+        (instance ?IO Star)
+        (instance ?IO StellarRemnant)))
+    (not
+      (exists (?STAR)
+        (and
+          (or
+            (instance ?STAR Star)
+            (instance ?STAR BrownDwarf)
+            (instance ?STAR StellarRemnant))
+          (orbits ?IO ?STAR))))))
+
+; ; 11 ; Exomoon
+(subclass ExoMoon NaturalSatellite)
+(termFormat EnglishWrittenLanguage ExoMoon "exomoon")
+(documentation ExoMoon EnglishWrittenLanguage "A NaturalSatellite that orbits an Exoplanet.")
+; ; An exomoon should orbit an exoplanet
+(=>
+  (instance ?EM ExoMoon)
+  (exists (?EX)
+    (and
+      (instance ?EX Exoplanet)
+      (orbits ?EM ?EX))))
+
+; ; 12 ; Centaur
+(subclass Centaur SmallSolarSystemBody)
+(termFormat EnglishWrittenLanguage Centaur "centaur")
+(documentation Centaur EnglishWrittenLanguage "A SmallSolarSystemBody that orbits Sol between Jupiter and Neptune and crosses the orbits of one or more of the giant planets.")
+; ; The orbit around Sol has to be between orbits of the Jupiter and
+; Naptune
+(=>
+  (instance ?CE Centaur)
+  (exists (?GIANT ?T1 ?T2 ?DC1 ?DC2 ?DG1 ?DG2 ?QC1 ?QG1 ?QC2 ?QG2)
+    (and
+      (orbits ?CE Sol)
+      (or
+        (equal ?GIANT PlanetJupiter)
+        (equal ?GIANT PlanetSaturn)
+        (equal ?GIANT PlanetUranus)
+        (equal ?GIANT PlanetNeptune))
+      (instance ?QC1 LengthMeasure)
+      (instance ?QG1 LengthMeasure)
+      (equal ?QC1
+        (MeasureFn ?DC1 AstronomicalUnit))
+      (equal ?QG1
+        (MeasureFn ?DG1 AstronomicalUnit))
+      (holdsDuring ?T1
+        (and
+          (distance ?CE Sol ?QC1)
+          (distance ?GIANT Sol ?QG1)
+          (greaterThan ?DC1 ?DG1)))
+      (instance ?QC2 LengthMeasure)
+      (instance ?QG2 LengthMeasure)
+      (equal ?QC2
+        (MeasureFn ?DC2 AstronomicalUnit))
+      (equal ?QG2
+        (MeasureFn ?DG2 AstronomicalUnit))
+      (holdsDuring ?T2
+        (and
+          (distance ?CE Sol ?QC2)
+          (distance ?GIANT Sol ?QG2)
+          (lessThan ?DC2 ?DG2))))))
+
+; ; --------- General Astronomical Bodies ------
+
+; ; 13 ; All Astronomical Bodies are one object
+(subclass AstronomicalBody SelfConnectedObject)
+
+; ; The reason planets, DPs, and stars are round are because of their
+; mass
+(=>
+  (or
+    (instance ?PLANET Planet)
+    (instance ?PLANET DwarfPlanet)
+    (instance ?PLANET BrownDwarf)
+    (instance ?PLANET StellarRemnant)
+    (instance ?PLANET Star))
+  (exists (?M ?U)
+    (causesProposition
+      (measure ?PLANET
+        (MeasureFn ?M ?U))
+      (instance ?PLANET SphericalObject))))
+
+; ; IAUs split of three types of astronomical bodies
+(disjoint SmallSolarSystemBody Planet)
+(disjoint DwarfPlanet Planet)
+(disjoint SmallSolarSystemBody DwarfPlanet)
+(disjoint Planet Comet)
+
+; ; Every Astronomical Body is located in a OuterSpaceRegion
+(=>
+  (instance ?AB AstronomicalBody)
+  (exists (?REG)
+    (and
+      (instance ?REG OuterSpaceRegion)
+      (located ?AB ?REG))))
+
+; ; All astronomical objects have some rotational axis they rotate
+; around
+(=>
+  (instance ?AO AstronomicalBody)
+  (exists (?ROT ?RA)
+    (and
+      (instance ?ROT Rotating)
+      (rotationalAxis ?ROT ?RA)
+      (patient ?ROT ?AO))))
+
+; ; ========================= Stars ============================ ; A
+; star is made of hydrogen and helium at least and as some fusion that
+; is in the star every second
+(=>
+  (instance ?STAR Star)
+  (forall (?T)
+    (=>
+      (and
+        (instance ?T TimeInterval)
+        (instance ?QSEC TimeDuration)
+        (equal ?QSEC
+          (MeasureFn 1 SecondDuration))
+        (duration ?T ?QSEC)
+        (during ?T
+          (WhenFn ?STAR)))
+      (holdsDuring ?T
+        (exists (?FUSIONCOL ?N)
+          (and
+            (material Hydrogen ?STAR)
+            (material Helium ?STAR)
+            (instance ?FUSIONCOL CollectionOfProcesses)
+            (memberType ?FUSIONCOL NuclearFusion)
+            (memberCount ?FUSIONCOL ?N)
+            (greaterThan ?N 100000.0)
+            (forall (?FUSION)
+              (=>
+                (member ?FUSION ?FUSIONCOL)
+                (located ?FUSION ?STAR)))))))))
+
+; ; A star must have some spectral class and is in some stage
+(=>
+  (holdsDuring ?T
+    (instance ?STAR Star))
+  (holdsDuring ?T
+    (exists (?C ?SES)
+      (and
+        (instance ?C SpectralClass)
+        (attribute ?STAR ?C)
+        (instance ?SES StellarEvolutionaryStage)
+        (attribute ?STAR ?SES)))))
+
+; ; Stars loose mass over time
+(=>
+  (and
+    (instance ?S Star)
+    (instance ?T1 TimePosition)
+    (instance ?T2 TimePosition)
+    (before ?T1 ?T2)
+    (not
+      (equal ?T1 ?T2))
+    (holdsDuring ?T1
+      (measure ?S
+        (MeasureFn ?M1 SolarMass)))
+    (holdsDuring ?T2
+      (measure ?S
+        (MeasureFn ?M2 SolarMass))))
+  (lessThan ?M2 ?M1))
+
+; ; All stars are a source of some radiatingLight
+(=>
+  (instance ?STAR Star)
+  (exists (?RL)
+    (and
+      (instance ?RL RadiatingLight)
+      (origin ?RL ?STAR))))
+
+; ; The larger the star is, the shorter its life
+(=>
+  (and
+    (instance ?STAR1 Star)
+    (instance ?STAR2 Star)
+    (holdsDuring
+      (BeginFn
+        (WhenFn ?STAR1))
+      (measure ?STAR1
+        (MeasureFn ?M1 ?U1)))
+    (holdsDuring
+      (BeginFn
+        (WhenFn ?STAR2))
+      (measure ?STAR2
+        (MeasureFn ?M2 ?U1)))
+    (greaterThan ?M1 ?M2)
+    (instance ?QD1 TimeDuration)
+    (instance ?QD2 TimeDuration)
+    (equal ?QD1
+      (MeasureFn ?D1 ?U2))
+    (equal ?QD2
+      (MeasureFn ?D2 ?U2))
+    (duration
+      (WhenFn ?STAR1) ?QD1)
+    (duration
+      (WhenFn ?STAR2) ?QD2))
+  (lessThan ?D1 ?D2))
+
+; ; ----------- Star Phases ------------
+
+; ; 14 ; Evolutionary Stage
+(subclass StellarEvolutionaryStage InternalAttribute)
+(termFormat EnglishWrittenLanguage StellarEvolutionaryStage "stellar evolutionary stage")
+(documentation StellarEvolutionaryStage EnglishWrittenLanguage "Subclass of attributes that describe the stage of life the star is in.")
+; ; If something has a StellarEvolutionaryStage it is a star
+(=>
+  (and
+    (instance ?PHASE StellarEvolutionaryStage)
+    (attribute ?AB ?PHASE))
+  (instance ?AB Star))
+
+; ; 15 ; Main Sequence Star Phase
+(instance MainSequenceStarPhase StellarEvolutionaryStage)
+(termFormat EnglishWrittenLanguage MainSequenceStarPhase "main sequence star phase")
+(documentation MainSequenceStarPhase EnglishWrittenLanguage "Stage of star where the star actively fuses hydrogen into helium.")
+(=>
+  (holdsDuring ?T
+    (attribute ?STAR MainSequenceStarPhase))
+  (exists (?FUSION ?H ?HE)
+    (holdsDuring ?T
+      (and
+        (instance ?STAR Star)
+        (instance ?FUSION NuclearFusion)
+        (instance ?H Hydrogen)
+        (instance ?HE Helium)
+        (resource ?FUSION ?STAR)
+        (resource ?FUSION ?H)
+        (result ?FUSION ?HE)
+        (located ?FUSION ?STAR)))))
+
+; ; 16 ; Subgiant Star Phase
+(instance SubgiantStarPhase StellarEvolutionaryStage)
+(termFormat EnglishWrittenLanguage SubgiantStarPhase "subgiant phase")
+(documentation SubgiantStarPhase EnglishWrittenLanguage "Stage of a Star after core hydrogen fusion has ended but before the star has expanded into a full Giant; the core contracts and heats while hydrogen fusion continues in a surrounding shell.")
+; ; In the subgiant star phase the temperature is decreasing
+(=>
+  (holdsDuring ?T2
+    (attribute ?STAR SubgiantStarPhase))
+  (exists (?T1 ?TEMP1 ?TEMP2)
+    (and
+      (instance ?T1 TimePosition)
+      (before ?T1 ?T2)
+      (holdsDuring ?T1
+        (attribute ?STAR MainSequenceStarPhase))
+      (holdsDuring ?T1
+        (measure ?STAR
+          (MeasureFn ?TEMP1 KelvinDegree)))
+      (holdsDuring ?T2
+        (measure ?STAR
+          (MeasureFn ?TEMP2 KelvinDegree)))
+      (lessThan ?TEMP2 ?TEMP1))))
+
+; ; 17 ; Red Giant Star Phase
+(instance RedGiantStarPhase StellarEvolutionaryStage)
+(termFormat EnglishWrittenLanguage RedGiantStarPhase "red giant star phase")
+(documentation RedGiantStarPhase EnglishWrittenLanguage "Stage of a low- or medium-mass Star, after core hydrogen is exhausted, in which the star fuses helium at its core and hydrogen in a surrounding shell.")
+(=>
+  (holdsDuring ?T
+    (attribute ?STAR RedGiantStarPhase))
+  (or
+    (instance ?STAR LowMassStar)
+    (instance ?STAR IntermediateMassStar)))
+
+; ; A star in the red giant star phase came from a subgiant star phase
+(=>
+  (and
+    (or
+      (instance ?STAR LowMassStar)
+      (instance ?STAR IntermediateMassStar))
+    (holdsDuring ?T2
+      (attribute ?STAR RedGiantStarPhase)))
+  (exists (?T1)
+    (and
+      (instance ?T1 TimePosition)
+      (before ?T1 ?T2)
+      (holdsDuring ?T1
+        (attribute ?STAR SubgiantStarPhase)))))
+
+; ; 18 ; Bright Giant Star Phase
+(instance BrightGiantStarPhase StellarEvolutionaryStage)
+(termFormat EnglishWrittenLanguage BrightGiantStarPhase "bright giant phase")
+(documentation BrightGiantStarPhase EnglishWrittenLanguage "Stage of a high-mass Star between SubgiantStarPhase and RedSupergiantStarPhase, more luminous than a RedGiantStarPhase Star of the same SpectralClass. Corresponds to Yerkes luminosity class II.")
+(=>
+  (and
+    (instance ?STAR HighMassStar)
+    (holdsDuring ?T2
+      (attribute ?STAR BrightGiantStarPhase)))
+  (exists (?T1)
+    (and
+      (instance ?T1 TimePosition)
+      (instance ?T2 TimePosition)
+      (before ?T1 ?T2)
+      (holdsDuring ?T1
+        (attribute ?STAR SubgiantStarPhase)))))
+
+; ; 19 ; Red Supergiant Star Phase
+(instance RedSupergiantStarPhase StellarEvolutionaryStage)
+(termFormat EnglishWrittenLanguage RedSupergiantStarPhase "red supergiant star phase")
+(documentation RedSupergiantStarPhase EnglishWrittenLanguage "Stage of a high-mass Star after core hydrogen is exhausted, in which the star expands and fuses progressively heavier elements in its core, ending in a Supernova.")
+; ; Any super red giant has to be a high mass star
+(=>
+  (holdsDuring ?T
+    (attribute ?STAR RedSupergiantStarPhase))
+  (instance ?STAR HighMassStar))
+
+; ; 20 ; Hypergiant Star Phase
+(instance HypergiantStarPhase StellarEvolutionaryStage)
+(termFormat EnglishWrittenLanguage HypergiantStarPhase "hypergiant phase")
+(documentation HypergiantStarPhase EnglishWrittenLanguage "Stage of the most extreme high-mass Stars, more luminous and unstable than RedSupergiantStarPhase, often preceding Supernova directly. Corresponds to Yerkes luminosity class 0.")
+(=>
+  (holdsDuring ?T
+    (attribute ?STAR HypergiantStarPhase))
+  (instance ?STAR HighMassStar))
+
+; ; ------------- Star Types -----------
+
+; ; 21 ; Low Mass Star
+(subclass LowMassStar Star)
+(termFormat EnglishWrittenLanguage LowMassStar "low mass star")
+(documentation LowMassStar EnglishWrittenLanguage "A star with less than .8 times the mass of Sol but greater than .08 solar masses. This is typically spectral M-Class stars.")
+
+; ; Low Mass Star
+(=>
+  (instance ?STAR LowMassStar)
+  (exists (?MASS)
+    (and
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?STAR))
+        (measure ?STAR
+          (MeasureFn ?MASS SolarMass)))
+      (lessThanOrEqualTo ?MASS .8)
+      (greaterThan ?MASS .08))))
+
+; ; 22 ; Intermediate Mass Star
+(subclass IntermediateMassStar Star)
+(termFormat EnglishWrittenLanguage IntermediateMassStar "very high mass star")
+(documentation IntermediateMassStar EnglishWrittenLanguage "A star with more than .8 times the mass of Sol but less than or equal to 8 solar masses. Sol is an intermediate sized star.")
+; ; Intermediate mass stars start with more than .8 solar Mass but less
+; than 8
+(=>
+  (instance ?STAR IntermediateMassStar)
+  (exists (?MASS)
+    (and
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?STAR))
+        (measure ?STAR
+          (MeasureFn ?MASS SolarMass)))
+      (greaterThan ?MASS .8)
+      (lessThanOrEqualTo ?MASS 8.0))))
+
+; ; 23 ; High Mass Star
+(subclass HighMassStar Star)
+(termFormat EnglishWrittenLanguage HighMassStar "high mass star")
+(documentation HighMassStar EnglishWrittenLanguage "A star with more than 8 times the mass of Sol. High mass stars utiilize carbon-nitrogen-oxygen (CNO) sequence in order to fuse hydrogen into helium.")
+; ; High Mass stars start at 8 solar masses or more
+(=>
+  (instance ?STAR HighMassStar)
+  (exists (?MASS)
+    (and
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?STAR))
+        (measure ?STAR
+          (MeasureFn ?MASS SolarMass)))
+      (greaterThan ?MASS 8.0))))
+
+; ; ----------- Star Attributes --------
+
+; ; 24 ; Spectral Star Classes
+(subclass SpectralClass InternalAttribute)
+(termFormat EnglishWrittenLanguage SpectralClass "spectral class")
+(documentation SpectralClass EnglishWrittenLanguage "Subclass of attributes classifying an AstronomicalBody by surface temperature and color, following the O-B-A-F-G-K-M sequence from hottest/bluest to coolest/reddest.")
+
+; ; A star must have some spectral class
+(=>
+  (instance ?STAR Star)
+  (exists (?C)
+    (holdsDuring
+      (WhenFn ?STAR)
+      (and
+        (instance ?C SpectralClass)
+        (attribute ?STAR ?C)))))
+
+; ; If something has a spectral class then it is a star
+(=>
+  (and
+    (instance ?SC SpectralClass)
+    (holdsDuring ?T
+      (attribute ?STAR ?SC)))
+  (instance ?STAR Star))
+
+; ; 25
+(instance OSpectralClass SpectralClass)
+(termFormat EnglishWrittenLanguage OSpectralClass "spectral class O")
+(documentation OSpectralClass EnglishWrittenLanguage "The hottest and most massive SpectralClass, appearing blue, with surface temperatures above 30000K.")
+
+; ; For every star, the star is G-class if and only if its temperature
+; is at least 30000 K.
+(=>
+  (and
+    (instance ?STAR Star)
+    (holdsDuring ?T
+      (attribute ?STAR OSpectralClass)))
+  (exists (?TEMP)
+    (and
+      (holdsDuring ?T
+        (measure ?STAR
+          (MeasureFn ?TEMP KelvinDegree)))
+      (greaterThanOrEqualTo ?TEMP 33000))))
+
+; ; 26
+(instance BSpectralClass SpectralClass)
+(termFormat EnglishWrittenLanguage BSpectralClass "spectral class B")
+(documentation BSpectralClass EnglishWrittenLanguage "A hot, blue-white SpectralClass, with surface temperatures roughly between 10000K and 30000K.")
+
+; ; B-class: 10,000 K to 33,000 K
+(=>
+  (and
+    (instance ?STAR Star)
+    (holdsDuring ?T
+      (attribute ?STAR BSpectralClass)))
+  (exists (?TEMP)
+    (and
+      (holdsDuring ?T
+        (measure ?STAR
+          (MeasureFn ?TEMP KelvinDegree)))
+      (greaterThanOrEqualTo ?TEMP 10000)
+      (lessThan ?TEMP 33000))))
+
+; ; 27
+(instance ASpectralClass SpectralClass)
+(termFormat EnglishWrittenLanguage ASpectralClass "spectral class A")
+(documentation ASpectralClass EnglishWrittenLanguage "A white SpectralClass, with surface temperatures roughly between 7500K and 10000K.")
+
+; ; For every star, the star is A-class if and only if its temperature
+; is between 7500 K and 10000 K.
+(=>
+  (and
+    (instance ?STAR Star)
+    (holdsDuring ?T
+      (attribute ?STAR ASpectralClass)))
+  (exists (?TEMP)
+    (and
+      (holdsDuring ?T
+        (measure ?STAR
+          (MeasureFn ?TEMP KelvinDegree)))
+      (greaterThanOrEqualTo ?TEMP 7300)
+      (lessThan ?TEMP 10000))))
+
+; ; 28
+(instance FSpectralClass SpectralClass)
+(termFormat EnglishWrittenLanguage FSpectralClass "spectral class F")
+(documentation FSpectralClass EnglishWrittenLanguage "A yellow-white SpectralClass, with surface temperatures roughly between 6000K and 7500K.")
+
+; ; For every star, the star is F-class if and only if its temperature
+; is between 6000 K and 7500 K.
+(=>
+  (and
+    (instance ?STAR Star)
+    (holdsDuring ?T
+      (attribute ?STAR FSpectralClass)))
+  (exists (?TEMP)
+    (and
+      (holdsDuring ?T
+        (measure ?STAR
+          (MeasureFn ?TEMP KelvinDegree)))
+      (greaterThanOrEqualTo ?TEMP 6000)
+      (lessThan ?TEMP 7300))))
+
+; ; 29
+(instance GSpectralClass SpectralClass)
+(termFormat EnglishWrittenLanguage GSpectralClass "spectral class G")
+(documentation GSpectralClass EnglishWrittenLanguage "A yellow SpectralClass, with surface temperatures roughly between 5000K and 6000K. Sol is a member of this SpectralClass.")
+
+; ; For every star, the star is G-class if and only if its temperature
+; is between 5300 K and 6000 K.
+(=>
+  (and
+    (instance ?STAR Star)
+    (holdsDuring ?T
+      (attribute ?STAR GSpectralClass)))
+  (exists (?TEMP)
+    (and
+      (holdsDuring ?T
+        (measure ?STAR
+          (MeasureFn ?TEMP KelvinDegree)))
+      (greaterThanOrEqualTo ?TEMP 5300)
+      (lessThan ?TEMP 6000))))
+
+; ; 30
+(instance KSpectralClass SpectralClass)
+(termFormat EnglishWrittenLanguage KSpectralClass "spectral class K")
+(documentation KSpectralClass EnglishWrittenLanguage "An orange SpectralClass, with surface temperatures roughly between 3500K and 5000K.")
+
+; ; For every star, the star is K-class if and only if its temperature
+; is between 3900 K and 5300 K.
+(=>
+  (and
+    (instance ?STAR Star)
+    (holdsDuring ?T
+      (attribute ?STAR KSpectralClass)))
+  (exists (?TEMP)
+    (and
+      (holdsDuring ?T
+        (measure ?STAR
+          (MeasureFn ?TEMP KelvinDegree)))
+      (greaterThanOrEqualTo ?TEMP 3500)
+      (lessThan ?TEMP 5000))))
+
+; ; 31
+(instance MSpectralClass SpectralClass)
+(termFormat EnglishWrittenLanguage MSpectralClass "spectral class M")
+(documentation MSpectralClass EnglishWrittenLanguage "The coolest and most common SpectralClass among true Stars, appearing red, with surface temperatures below roughly 3500K.")
+
+; ; For every star, the star is M-class if and only if its temperature
+; is between 2300 K and 3900 K.
+(=>
+  (and
+    (instance ?STAR Star)
+    (holdsDuring ?T
+      (attribute ?STAR MSpectralClass)))
+  (exists (?TEMP)
+    (and
+      (holdsDuring ?T
+        (measure ?STAR
+          (MeasureFn ?TEMP KelvinDegree)))
+      (greaterThanOrEqualTo ?TEMP 2300)
+      (lessThan ?TEMP 3500))))
+
+; ; --------- Non-typical Stars --------
+
+; ; 32 ; Stellar Remnant
+(subclass StellarRemnant AstronomicalBody)
+(termFormat EnglishWrittenLanguage StellarRemnant "stellar remnant")
+(documentation StellarRemnant EnglishWrittenLanguage "An AstronomicalBody left behind after a Star has ceased nuclear fusion.")
+; ; If there is a stellar remnant, then there is a star that it came
+; from and an astronomical process that formed it
+(=>
+  (instance ?SR StellarRemnant)
+  (exists (?STAR ?AP)
+    (and
+      (instance ?STAR Star)
+      (instance ?AP AstronomicalProcess)
+      (result ?AP ?SR)
+      (resource ?AP ?STAR))))
+
+; ; 33 ; White Dwarf
+(subclass WhiteDwarf StellarRemnant)
+(termFormat EnglishWrittenLanguage WhiteDwarf "white dwarf")
+(documentation WhiteDwarf EnglishWrittenLanguage "A dense stellar remnant composed of electron-degenerate matter, left behind after a low- or medium-mass Star has exhausted its fuel and shed its outer layers. No longer undergoing nuclear fusion.")
+; ; If there is a white dwarf, then there exists a star that the white
+; dwarf was the result of the envolopshedding and the white dwarf must
+; be below 1.44 solar masses
+(=>
+  (instance ?WD WhiteDwarf)
+  (exists (?STAR ?SES ?N)
+    (and
+      (instance ?STAR LowMassStar)
+      (instance ?SES StellarEnvelopeShedding)
+      (before
+        (BeginFn
+          (WhenFn ?SES))
+        (BeginFn
+          (WhenFn ?WD)))
+      (result ?SES ?WD)
+      (resource ?SES ?STAR)
+      (measure ?WD
+        (MeasureFn ?N SolarMass))
+      (lessThanOrEqualTo ?N 1.44))))
+
+; ; 34 ; Black Dwarf
+(subclass BlackDwarf StellarRemnant)
+(termFormat EnglishWrittenLanguage BlackDwarf "black dwarf")
+(documentation BlackDwarf EnglishWrittenLanguage "A WhiteDwarf that has fully cooled and no longer emits detectable heat or light.")
+; ; Black Dwarfs are fully cooled white dwarfs
+(=>
+  (holdsDuring ?T
+    (instance ?BD BlackDwarf))
+  (exists (?T1 ?SC)
+    (and
+      (instance ?T1 TimePosition)
+      (before ?T1 ?T)
+      (holdsDuring ?T1
+        (instance ?BD WhiteDwarf))
+      (not
+        (holdsDuring ?T
+          (and
+            (instance ?SC Cooling)
+            (patient ?SC ?BD)))))))
+
+; ; 35 ; NeutronStar
+(subclass NeutronStar StellarRemnant)
+(termFormat EnglishWrittenLanguage NeutronStar "neutron star")
+(documentation NeutronStar EnglishWrittenLanguage "The stellar remnant left over from a supernova explosion if the supergiant star has a mass less than 25 solar masses. Neutron stars are the second-smallest and second-densest known class of stellar objects")
+; ; Every neutron star came from a supernova and a high mass star
+(=>
+  (instance ?NS NeutronStar)
+  (exists (?SN ?STAR ?N)
+    (and
+      (instance ?SN TypeIISupernova)
+      (instance ?STAR HighMassStar)
+      (resource ?SN ?STAR)
+      (result ?SN ?NS)
+      (measure ?NS
+        (MeasureFn ?N SolarMass))
+      (lessThan ?N 3.0)
+      (greaterThan ?N 1.4))))
+
+; ; 36 ; Black Hole
+(subclass BlackHole StellarRemnant)
+(termFormat EnglishWrittenLanguage BlackHole "black hole")
+(documentation BlackHole EnglishWrittenLanguage "A celestial body with gravity so strong that light cannot escape.")
+; ; Light cannot escape
+(=>
+  (instance ?BH BlackHole)
+  (not
+    (exists (?RL)
+      (and
+        (instance ?RL RadiatingLight)
+        (origin ?RL ?BH)))))
+
+; ; If something is located in a black hole, there is no seeing it
+(=>
+  (and
+    (instance ?BH BlackHole)
+    (instance ?A Object)
+    (not
+      (instance ?A Region))
+    (located ?A ?BH))
+  (not
+    (exists (?SEE)
+      (and
+        (instance ?SEE Seeing)
+        (patient ?SEE ?A)))))
+
+; ; =================== Collections ========================
+
+; ; 37 ; Planetary System
+(subclass PlanetarySystem CollectionOfObjects)
+(termFormat EnglishWrittenLanguage PlanetarySystem "planetary system")
+(documentation PlanetarySystem EnglishWrittenLanguage "A system where one or more planets orbit one or more stars, brown dwarfs, and/or stellar remnants. Our Solar System is a planetary system with the Sun at its center. A few cases are known where the central object of a planetary system is a brown dwarf, or a stellar remnant such as a neutron star or white dwarf.")
+
+; ; If planetary system and something orbits something in the
+; solarsystem, then the first thing is part of that solarsystem
+(=>
+  (and
+    (instance ?PS PlanetarySystem)
+    (member ?AB ?PS)
+    (orbits ?S ?AB))
+  (member ?S ?PS))
+
+; ; 38 ; The Solar System
+(instance TheSolarSystem PlanetarySystem)
+(termFormat EnglishWrittenLanguage TheSolarSystem "The Solar System")
+(documentation TheSolarSystem EnglishWrittenLanguage "The Solar System is the gravitationally bound system of the Sun and the masses that orbit it, most prominently its eight planets, of which Earth is one. The Solar System is an isolated single-star planetary system not part of a larger star system) within the Milky Way Galaxy. The system formed about 4.6 billion years ago when a dense region of a molecular cloud collapsed, creating the Sun and a protoplanetary disc from which the orbiting bodies assembled.")
+(names "The Solar System" TheSolarSystem)
+
+; ; If a astronomical object orbits sol or orbits a planet that orbits
+; sol, it is in our solarsystem and vise versa
+(=>
+  (and
+    (instance ?AO AstronomicalBody)
+    (or
+      (and
+        (orbits ?AO ?ANY)
+        (member ?ANY TheSolarSystem))
+      (orbits ?AO Sol)))
+  (member ?AO TheSolarSystem))
+
+(=>
+  (member ?AO TheSolarSystem)
+  (and
+    (instance ?AO AstronomicalBody)
+    (or
+      (exists (?ANY)
+        (and
+          (orbits ?AO ?ANY)
+          (member ?ANY TheSolarSystem)))
+      (orbits ?AO Sol))))
+
+; ; 39 ; Galaxy
+(subclass Galaxy CollectionOfObjects)
+(termFormat EnglishWrittenLanguage Galaxy "galaxy")
+(documentation Galaxy EnglishWrittenLanguage "Any of the very large groups of stars and associated matter that are found throughout the universe.")
+; ; All galaxies have at least a star and a planetary system
+(=>
+  (instance ?G Galaxy)
+  (exists (?S ?PS)
+    (and
+      (instance ?S Star)
+      (member ?S ?G)
+      (instance ?PS PlanetarySystem)
+      (member ?S ?PS)
+      (member ?PS ?G))))
+
+; ; 40 ; Debris Disks
+(subclass DebrisDisks CollectionOfObjects)
+(termFormat EnglishWrittenLanguage DebrisDisks "debris disks")
+(documentation DebrisDisks EnglishWrittenLanguage "A collection of astronomical bodies or debri that orbit a star")
+(=>
+  (instance ?RINGS DebrisDisks)
+  (exists (?AB)
+    (and
+      (instance ?AB DebrisDisks)
+      (memberType ?RINGS DebrisDisks)
+      (not
+        (member ?AB ?RINGS))
+      (forall (?RINGMEMBER)
+        (=>
+          (member ?RINGMEMBER ?RINGS)
+          (orbits ?RINGMEMBER ?AB))))))
+
+; ; 41 ; Planetary Rings
+(subclass PlanetaryRings DebrisDisks)
+(termFormat EnglishWrittenLanguage PlanetaryRings "planetary rings")
+(documentation PlanetaryRings EnglishWrittenLanguage "A disc or torus orbiting a astronomical body that is not a star that is composed of numerous solid bodies such as dust particles, meteoroids, minor planets, moonlets, or stellar objects.")
+; ; Planetary rings are a colleciton of astronomical bodies all orbiting
+; anything but a star
+(=>
+  (instance ?DD PlanetaryRings)
+  (forall (?MEMBER ?NOTSTAR)
+    (=>
+      (and
+        (member ?MEMBER ?DD)
+        (orbits ?MEMBER ?NOTSTAR))
+      (not
+        (or
+          (instance ?NOTSTAR Star)
+          (instance ?NOTSTAR StellarRemnant))))))
+
+; ; 42 ; Planetary Nebula
+(subclass PlanetaryNebula CollectionOfObjects)
+(termFormat EnglishWrittenLanguage PlanetaryNebula "planetary nebula")
+(documentation PlanetaryNebula EnglishWrittenLanguage "A class of Nebula that is created as a byproduct of a dying low- or intermediate-mass Star shedding its outer layers.")
+(=>
+  (instance ?PN PlanetaryNebula)
+  (exists (?STAR ?SES)
+    (and
+      (instance ?SES StellarEnvelopeShedding)
+      (instance ?STAR Star)
+      (before
+        (BeginFn
+          (WhenFn ?SES))
+        (BeginFn
+          (WhenFn ?PN)))
+      (resource ?SES ?STAR)
+      (result ?SES ?PN))))
+
+; ; =============== Spatial Relationships ======================
+
+; ; Something cannot orbit itself
+(=>
+  (orbits ?A ?B)
+  (not
+    (equal ?A ?B)))
+
+; ; 43 ; Constellation
+(instance constellation TernaryPredicate)
+(instance constellation SpatialRelation)
+(termFormat EnglishWrittenLanguage constellation "constellation")
+(documentation constellation EnglishWrittenLanguage "A relationship between an observer, a collection of Stars, and an apparent shape formed by those Stars from the observer's position.")
+(domain constellation 1 PointInSpace)
+(domain constellation 2 Collection)
+(domain constellation 3 ShapeAttribute)
+(format EnglishWrittenLanguage constellation "%2 %n{doesn't} appear%p{s} as a %3 shape located at %1")
+
+; ; For all constelations where there is a seeing and an object that is
+; the agent of the seeing in the point in space , then that think knows
+; there is a constellation
+(=>
+  (and
+    (constellation ?LOC ?C ?SHAPE)
+    (instance ?O AutonomousAgent)
+    (instance ?S Seeing)
+    (agent ?S ?O)
+    (located ?O ?LOC))
+  (knows ?O
+    (shape ?C ?SHAPE)))
+
+; ; Constellation have a plane lines sit on between the viewer and the
+; stars and represents an Icon with shape
+(=>
+  (constellation ?STARS ?LOC ?SHAPE)
+  (exists (?LINES ?PLANE ?POINT ?SIGHTLINE ?ICON)
+    (and
+      (instance ?PLANE PlaneInSpace)
+      (memberType ?LINES LineInSpace)
+      (part ?POINT ?PLANE)
+      (endPointsOfLineInSpace ?LOC ?POINT ?SIGHTLINE)
+      (orientation ?SIGHTLINE ?PLANE PerpendicularOrientation)
+      (represents ?LINES ?ICON)
+      (represents ?ICON ?SHAPE)
+      (betweenCollection ?STARS ?PLANE ?LOC))))
+
+; ; 44 ; Eclipses
+(instance eclipses QuaternaryPredicate)
+(instance eclipses SpatialRelation)
+(termFormat EnglishWrittenLanguage eclipses "eclipse")
+(documentation eclipses EnglishWrittenLanguage "(eclipses ?LOC ?BODY ?BLOCKER ?BLOCKED) means ?LOC is the PointInSpace, located on AstronomicalBody ?BODY, such that some Region of ?BLOCKED is not visible to any agent standing at ?LOC, because ?BLOCKER obstructs it.")
+(domain eclipses 1 PointInSpace)
+(domain eclipses 2 AstronomicalBody)
+(domain eclipses 3 AstronomicalBody)
+(domain eclipses 4 AstronomicalBody)
+(format EnglishWrittenLanguage eclipses "%3 %n blocks part of %4 from %1 on %2")
+
+(=>
+  (eclipses ?LOC ?BODY ?BLOCKER ?BLOCKED)
+  (and
+    (located ?LOC ?BODY)
+    (between ?BODY ?BLOCKER ?BLOCKED)
+    (objectFacing ?BODY ?LOC ?BLOCKED)
+    (exists (?R)
+      (and
+        (instance ?R Region)
+        (superficialPart ?R ?BLOCKED)
+        (not
+          (exists (?S ?O)
+            (and
+              (instance ?S Seeing)
+              (instance ?O AutonomousAgent)
+              (origin ?S ?LOC)
+              (agent ?S ?O)
+              (located ?O ?LOC)
+              (patient ?S ?R))))))))
+
+; ; 45 ; betweenCollection
+(instance betweenCollection TernaryPredicate)
+(domain betweenCollection 1 Collection)
+(domain betweenCollection 2 Object)
+(domain betweenCollection 3 Object)
+(documentation betweenCollection EnglishWrittenLanguage "(betweenCollection ?COLL ?OBJ1 ?OBJ2) means that ?OBJ1 is spacially betwen every member of ?COLL that is an Object and ?OBJ2.")
+(<=>
+  (betweenCollection ?COLL ?OBJ1 ?OBJ2)
+  (forall (?MEMBER)
+    (=>
+      (and
+        (member ?MEMBER ?COLL)
+        (instance ?MEMBER Object))
+      (between ?MEMBER ?OBJ1 ?OBJ2))))
+
+; ; 46 ; collectionBetween
+(instance collectionBetween TernaryPredicate)
+(domain collectionBetween 1 Object)
+(domain collectionBetween 2 Collection)
+(domain collectionBetween 3 Object)
+(documentation collectionBetween EnglishWrittenLanguage "(collectionBetween ?OBJ1 ?COLL ?OBJ2) means that every member of ?COLL that is an Object is spacially betwen ?OBJ1 and ?OBJ2.")
+(<=>
+  (collectionBetween ?OBJ1 ?COLL ?OBJ2)
+  (forall (?MEMBER)
+    (=>
+      (and
+        (member ?MEMBER ?COLL)
+        (instance ?MEMBER Object))
+      (between ?OBJ1 ?MEMBER ?OBJ2))))
+
+; ; ======================= Processess =========================
+
+; ; 47 ; Astronomical Process
+(subclass AstronomicalProcess NaturalProcess)
+(documentation AstronomicalProcess EnglishWrittenLanguage "The subclass of all natural processes that take place outside of EarthPlanet and it's atmosphere")
+(termFormat EnglishWrittenLanguage AstronomicalProcess "astronomical process")
+
+; ; For all astronomical processes, that process takes place in space
+
+(=>
+  (and
+    (instance ?P Process)
+    (instance ?L OuterSpaceRegion)
+    (eventLocated ?P ?L))
+  (instance ?P AstronomicalProcess))
+
+(=>
+  (instance ?P AstronomicalProcess)
+  (exists (?L)
+    (and
+      (instance ?L OuterSpaceRegion)
+      (eventLocated ?P ?L))))
+
+; ; ----------- Star Processess -------
+
+; ; 48 ; Supernova
+(subclass Supernova AstronomicalProcess)
+(termFormat EnglishWrittenLanguage Supernova "supernova")
+(documentation Supernova EnglishWrittenLanguage "A supernova is a massive stellar explosion. Supernovae briefly become by far the most luminous object in their galaxy before fading over the course of a few years.")
+; ; A supernova will emmit light and be the brightest in their galaxy
+(=>
+  (instance ?SN Supernova)
+  (exists (?RL ?REGION)
+    (and
+      (instance ?RL RadiatingLight)
+      (instance ?REGION Region)
+      (patient ?RL ?REGION)
+      (causes ?SN ?RL))))
+
+; ; 49 ; Type ia Supernova
+(subclass TypeIaSupernova Supernova)
+(termFormat EnglishWrittenLanguage TypeIaSupernova "type 1-a supernova")
+(documentation TypeIaSupernova EnglishWrittenLanguage "A Supernova in which a WhiteDwarf, destabilized after accreting matter from a binary companion Star, explodes and leaves no remnant body behind.")
+
+(=>
+  (instance ?SN TypeIaSupernova)
+  (exists (?WD ?STAR ?M)
+    (and
+      (instance ?WD WhiteDwarf)
+      (instance ?STAR Star)
+      (resource ?SN ?WD)
+      (patient ?SN ?STAR)
+      (holdsDuring
+        (WhenFn ?SN)
+        (and
+          (measure ?WD
+            (MeasureFn ?M SolarMass))
+          (greaterThan ?M 1.44)))
+      (not
+        (exists (?R)
+          (and
+            (instance ?R AstronomicalBody)
+            (result ?SN ?R)))))))
+; ; 50 ; Type II Supernova
+(subclass TypeIISupernova Supernova)
+(termFormat EnglishWrittenLanguage TypeIISupernova "type II supernova")
+(documentation TypeIISupernova EnglishWrittenLanguage "A Supernova formed at the end of a high-mass Star's evolution (over 8 solar masses), resulting in a NeutronStar or, for the most massive progenitor stars, a stellar-mass BlackHole.")
+; ;
+(=>
+  (instance ?SN TypeIISupernova)
+  (exists (?STAR ?SR ?M)
+    (and
+      (instance ?STAR HighMassStar)
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?SN))
+        (measure ?STAR
+          (MeasureFn ?M SolarMass)))
+      (greaterThan ?M 8.0)
+      (resource ?SN ?STAR)
+      (result ?SN ?SR)
+      (or
+        (and
+          (greaterThanOrEqualTo ?M 20.0)
+          (instance ?SR BlackHole))
+        (and
+          (lessThan ?M 20.0)
+          (instance ?SR NeutronStar))))))
+
+; ; 51 ; Nova
+(subclass Nova AstronomicalProcess)
+(termFormat EnglishWrittenLanguage Nova "nova")
+(documentation Nova EnglishWrittenLanguage "An explosive thermonuclear eruption on the surface of a WhiteDwarf in a binary system, caused by hydrogen pulled from a companion Star accumulating on the WhiteDwarf until it ignites. Unlike a Supernova, the WhiteDwarf survives the eruption and may undergo the Process again as a RecurrentNova.")
+; ; A nova is a binary system with a white dwarf and a star where the
+; star material gets pulled in
+(=>
+  (instance ?N Nova)
+  (exists (?WD ?STAR)
+    (and
+      (instance ?WD WhiteDwarf)
+      (instance ?STAR Star)
+      (patient ?N ?WD)
+      (resource ?N ?STAR)
+      (result ?N ?WD)
+      (orbits ?WD ?STAR)
+      (orbits ?STAR ?WD)
+      (holdsDuring
+        (WhenFn ?N)
+        (or
+          (attribute ?STAR MainSequenceStarPhase)
+          (attribute ?STAR SubgiantStarPhase)
+          (attribute ?STAR RedGiantStarPhase))))))
+
+; ; 52 ; Stellar Envelope Shedding
+(subclass StellarEnvelopeShedding AstronomicalProcess)
+(termFormat EnglishWrittenLanguage StellarEnvelopeShedding "stellar envelope shedding")
+(documentation StellarEnvelopeShedding EnglishWrittenLanguage "The Process by which a single low- or medium-mass Star, while in RedGiantStarPhase,sheds its outer layers of gas and dust through stellar winds. The shed material disperses into a PlanetaryNebula, while the Star's exposed core remains behind and becomes a WhiteDwarf.")
+; ; If there is an envolope shedding, then the star stars with more mass
+; it ends with and it is in the redGiantStarPhase and a white dwarf
+(=>
+  (instance ?E StellarEnvelopeShedding)
+  (exists (?STAR ?M1 ?M2 ?U ?WD ?NEB)
+    (and
+      (instance ?STAR Star)
+      (resource ?E ?STAR)
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?E))
+        (and
+          (attribute ?STAR RedGiantStarPhase)
+          (not
+            (attribute ?STAR MainSequenceStarPhase))))
+      (holdsDuring
+        (BeginFn
+          (WhenFn ?E))
+        (measure ?STAR
+          (MeasureFn ?M1 ?U)))
+      (holdsDuring
+        (EndFn
+          (WhenFn ?E))
+        (measure ?STAR
+          (MeasureFn ?M2 ?U)))
+      (greaterThan ?M1 ?M2)
+      (instance ?WD WhiteDwarf)
+      (result ?E ?WD)
+      (instance ?NEB PlanetaryNebula)
+      (result ?E ?NEB))))
+
+; ; --------- Other Processes ---------
+
+; ; 53 ; Stellar Collision
+(subclass StellarCollision AstronomicalProcess)
+(termFormat EnglishWrittenLanguage StellarCollision "stellar merger")
+(documentation StellarCollision EnglishWrittenLanguage "The Process in which two stellar objects in a binary system collide or transfer mass until they combine")
+; ; A stellar collision is a combination of two stellar objects
+(=>
+  (instance ?SC StellarCollision)
+  (exists (?STAR1 ?STAR2 ?STAR3)
+    (and
+      (resource ?SC ?STAR1)
+      (resource ?SC ?STAR2)
+      (result ?SC ?STAR3)
+      (or
+        (instance ?STAR1 Star)
+        (instance ?STAR1 StellarRemnant)
+        (instance ?STAR1 BrownDwarf))
+      (or
+        (instance ?STAR2 Star)
+        (instance ?STAR2 StellarRemnant)
+        (instance ?STAR2 BrownDwarf))
+      (or
+        (instance ?STAR3 Star)
+        (instance ?STAR3 StellarRemnant))
+      (before
+        (BeginFn
+          (WhenFn ?SC))
+        (BeginFn
+          (WhenFn ?STAR3))))))
+
+; ; 54 ; Lunar Eclipse
+(subclass EclipseLunar AstronomicalProcess)
+(termFormat EnglishWrittenLanguage EclipseLunar "eclipse lunar")
+(termFormat EnglishWrittenLanguage EclipseLunar "lunar eclipse")
+(documentation EclipseLunar EnglishWrittenLanguage "An astronomical event that occurs when the Moon orbits through Earth's shadow. Lunar eclipses occur during eclipse season, when the Moon's orbital plane is approximately in line with Earth and the Sun.")
+
+; ; If there is a lunar eclipse then the earth is blocking Sol from the
+; moon
+(=>
+  (instance ?LE EclipseLunar)
+  (exists (?AB ?P ?M ?S)
+    (and
+      (instance ?AB AstronomicalBody)
+      (instance ?M Moon)
+      (equal ?AB PlanetEarth)
+      (equal ?S Sol)
+      (eclipses ?P ?M ?AB ?S))))
+
+; ; 55 ; Solar Eclipse
+(subclass EclipseSolar AstronomicalProcess)
+(termFormat EnglishWrittenLanguage EclipseSolar "eclipse solar")
+(termFormat EnglishWrittenLanguage EclipseSolar "solar eclipse")
+(documentation EclipseSolar EnglishWrittenLanguage "A solar eclipse occurs when the Moon passes between Earth and the Sun, thereby obscuring the view of the Sun from a small part of Earth, totally or partially.")
+
+; ; If there is a solar eclipse then a moon blocks Sol
+(=>
+  (instance ?SE EclipseSolar)
+  (exists (?AB ?P ?M ?S)
+    (and
+      (instance ?AB AstronomicalBody)
+      (instance ?M Moon)
+      (equal ?AB PlanetEarth)
+      (equal ?S Sol)
+      (eclipses ?P ?AB ?M ?S))))
+
+; ; ======================== Units and Other
+; ============================
+
+; ; 56 ; Light Year
+(instance LightYear UnitOfLength)
+(termFormat EnglishWrittenLanguage LightYear "light year")
+(documentation LightYear EnglishWrittenLanguage "This is the distance that a beam of light travels through a vacuum in one Earth year at a speed of about 300,000 kilometers per second.")
+
+; ; Light year is ~9.46e12
+(equal
+  (MeasureFn ?NUMBER LightYear)
+  (MeasureFn
+    (MultiplicationFn ?NUMBER 9460730472580.0) Kilometer))
+
+; ; 57 ; Solar Mass
+(instance SolarMass UnitOfMass)
+(termFormat EnglishWrittenLanguage SolarMass "solar mass")
+(documentation SolarMass EnglishWrittenLanguage "A UnitOfMass equal to the mass of Sol, commonly used to express the mass of Stars and other large AstronomicalBodies. Equal to 1.989e30 kilograms")
+
+; ; The mass of Sol is 1 Solar Mass
+(measure Sol
+  (MeasureFn 1.0 SolarMass))
+
+; ; One solar mass is a 1.989e30 kilogram
+(equal
+  (MeasureFn ?NUMBER SolarMass)
+  (MeasureFn 1989000000000000000000000000000.0 Kilogram))
+
+; ; 58 ; Astronomical Unit
+(instance AstronomicalUnit UnitOfLength)
+(documentation AstronomicalUnit EnglishWrittenLanguage "The astronomical unit is a unit of length defined as 149597870700 meters. The astronomical unit is used primarily for measuring distances within the Solar System or around other stars.")
+(termFormat EnglishWrittenLanguage AstronomicalUnit "astronomical unit")
+
+; ; Astronomical unit is 149,597,870.7 km
+(equal
+  (MeasureFn ?NUMBER AstronomicalUnit)
+  (MeasureFn
+    (MultiplicationFn ?NUMBER 149597870700) Meter))
+
+; ; 59 ; Telescope
+(subclass Telescope OpticalDevice)
+(termFormat EnglishWrittenLanguage Telescope "telescope")
+(documentation Telescope EnglishWrittenLanguage "Optical instrument for viewing distant objects by means of the refraction of light rays through a lens or the reflection of light rays by a concave mirror.")
+
+; ; angularSeperration was undefined (used in telescope axiom below),
+; added by Shaun Rose after submission by Bradford
+(instance angularSeparation QuaternaryPredicate)
+
+(domain angularSeparation 1 Object)
+(domain angularSeparation 2 Object)
+(domain angularSeparation 3 Object)
+(domain angularSeparation 4 PlaneAngleMeasure)
+
+(documentation angularSeparation EnglishWrittenLanguage "(angularSeparation ?OBSERVER ?OBJECT1 ?OBJECT2 ?ANGLE) means that
+?ANGLE is the angle between the directions from ?OBSERVER to ?OBJECT1
+and from ?OBSERVER to ?OBJECT2.")
+
+; ; When using a telescope, the angle between
+(=>
+  (and
+    (instance ?AB AstronomicalBody)
+    (instance ?TEL Telescope)
+    (instance ?SEE1 Seeing)
+    (patient ?SEE1 ?AB)
+    (instrument ?SEE1 ?TEL))
+  (exists (?P1 ?P2 ?SEE1 ?SEE2 ?LOC ?I ?A1 ?A2)
+    (and
+      (superficialPart ?P1 ?AB)
+      (superficialPart ?P2 ?AB)
+      (not
+        (equal ?P1 ?P2))
+      ; ; The furthest points across the object
+      (forall (?Q1 ?Q2)
+        (=>
+          (and
+            (superficialPart ?Q1 ?AB)
+            (superficialPart ?Q2 ?AB))
+          (exists (?DQ ?DP ?LENGTH1 ?LENGTH2)
+            (and
+              (instance ?LENGTH1 LengthMeasure)
+              (equal ?LENGTH1
+                (MeasureFn ?DQ Meter))
+              (distance ?Q1 ?Q2 ?LENGTH1)
+              (instance ?LENGTH2 LengthMeasure)
+              (equal ?LENGTH2
+                (MeasureFn ?DP Meter))
+              (distance ?P1 ?P2 ?LENGTH2)
+              (greaterThanOrEqualTo ?DP ?DQ)))))
+      (instance ?SEE2 Seeing)
+      (patient ?SEE1 ?AB)
+      (patient ?SEE2 ?AB)
+      (not
+        (instance ?I Telescope))
+      (eventLocated ?SEE1 ?LOC)
+      (eventLocated ?SEE2 ?LOC)
+      (angularSeparation ?P1 ?I ?P2 ?A1)
+      (angularSeparation ?P1 ?TEL ?P2 ?A2)
+      (greaterThan ?A2 ?A1))))
+
+; ; 60 ; Habitable Zone
+(subclass HabitableZone OuterSpaceRegion)
+(termFormat EnglishWrittenLanguage HabitableZone "habitable zone")
+(documentation HabitableZone EnglishWrittenLanguage "A Region around a Star where a Planet could have liquid water on its surface.")
+(=>
+  (instance ?HZ HabitableZone)
+  (exists (?STAR ?P)
+    (and
+      (instance ?STAR Star)
+      (instance ?P Planet)
+      (located ?P ?HZ)
+      (orbits ?P ?STAR)
+      (modalAttribute
+        (material Water ?P) Possibility))))
+
+; ; betweenCollection
+(instance betweenCollection TernaryPredicate)
+(instance betweenCollection SpatialRelation)
+(domain betweenCollection 1 CollectionOfObjects)
+(domain betweenCollection 2 Object)
+(domain betweenCollection 3 Object)
+(documentation betweenCollection EnglishWrittenLanguage "(betweenCollection ?COLL ?OBJ1 ?OBJ2) means that ?OBJ1 is spacially betwen every member of ?COLL that is an Object and ?OBJ2.")
+(=>
+  (betweenCollection ?COLL ?OBJ1 ?OBJ2)
+  (forall (?MEMBER)
+    (=>
+      (member ?MEMBER ?COLL)
+      (between ?MEMBER ?OBJ1 ?OBJ2))))
+
+; ; collectionBetween
+(instance collectionBetween TernaryPredicate)
+(instance collectionBetween SpatialRelation)
+(domain collectionBetween 1 Object)
+(domain collectionBetween 2 CollectionOfObjects)
+(domain collectionBetween 3 Object)
+(documentation collectionBetween EnglishWrittenLanguage "(collectionBetween ?OBJ1 ?COLL ?OBJ2) means that every member of ?COLL that is an Object is spacially betwen ?OBJ1 and ?OBJ2.")
+(=>
+  (collectionBetween ?OBJ1 ?COLL ?OBJ2)
+  (forall (?MEMBER)
+    (=>
+      (member ?MEMBER ?COLL)
+      (between ?OBJ1 ?MEMBER ?OBJ2))))
+
+; ; 61 ; InteriorPoint
+(instance interiorPoint BinaryPredicate)
+(instance interiorPoint SpatialRelation)
+(termFormat EnglishWrittenLanguage interiorPoint "interior point")
+(documentation interiorPoint EnglishWrittenLanguage "(interiorPoint ?POINT ?OBJ) means ?POINT is located on the inside of ?OBJ and does not overlap with any superficial part of ?OBJ.")
+(domain interiorPoint 1 PointInSpace)
+(domain interiorPoint 2 Object)
+(format EnglishWrittenLanguage interiorPoint "%1 is %n an interior point of %2")
+
+(=>
+  (interiorPoint ?POINT ?OBJ)
+  (and
+    (located ?POINT ?OBJ)
+    (not
+      (exists (?SURF)
+        (and
+          (superficialPart ?SURF ?OBJ)
+          (or
+            (overlapsSpatially ?POINT ?SURF)
+            (meetsSpatially ?POINT ?SURF)))))))
+
+; ; 62 ; middlePointOfFiniteLineInSpace
+(instance middlePointOfFiniteLineInSpace BinaryPredicate)
+(instance middlePointOfFiniteLineInSpace SpatialRelation)
+(domain middlePointOfFiniteLineInSpace 1 PointInSpace)
+(domain middlePointOfFiniteLineInSpace 2 FiniteLineInSpace)
+(format EnglishWrittenLanguage middlePointOfFiniteLineInSpace "%1 is %n the midpoint of %2")
+(documentation middlePointOfFiniteLineInSpace EnglishWrittenLanguage "(middlePointOfFiniteLineInSpace ?MID ?LINE) means ?MID is the PointInSpace on ?LINE equidistant from ?LINE's two endpoints.")
+
+(=>
+  (middlePointOfFiniteLineInSpace ?MID ?LINE)
+  (exists (?P1 ?P2 ?D)
+    (and
+      (endPointsOfLineInSpace ?P1 ?P2 ?LINE)
+      (located ?MID ?LINE)
+      (between ?P1 ?MID ?P2)
+      (distance ?P1 ?MID ?D)
+      (distance ?MID ?P2 ?D))))
+
+; ; 63 ; Foci
+(instance foci TernaryPredicate)
+(domain foci 1 Object)
+(domain foci 2 PointInSpace)
+(domain foci 3 PointInSpace)
+(termFormat EnglishWrittenLanguage foci "foci")
+(format EnglishWrittenLanguage foci "%2 and %3 are %n the foci of %1")
+(documentation foci EnglishWrittenLanguage "(foci ?ELIPSE ?FOCI1 ?FOCI2) means ?FOCI1 and ?FOCI2 are foci of ?ELLIPSE.")
+
+(=>
+  (foci ?OBJ ?PIS1 ?PIS2)
+  (and
+    (attribute ?OBJ Ellipse)
+    (instance ?PIS1 PointInSpace)
+    (instance ?PIS2 PointInSpace)
+    (interiorPoint ?PIS1 ?OBJ)
+    (interiorPoint ?PIS2 ?OBJ)
+    (forall (?P1 ?P2)
+      (=>
+        (and
+          (superficialPart ?P1 ?OBJ)
+          (superficialPart ?P2 ?OBJ)
+          (not
+            (equal ?P1 ?P2)))
+        (exists (?N1 ?N2 ?N3 ?N4 ?U ?Q1 ?Q2 ?Q3 ?Q4)
+          (and
+            (instance ?Q1 LengthMeasure)
+            (instance ?Q2 LengthMeasure)
+            (instance ?Q3 LengthMeasure)
+            (instance ?Q4 LengthMeasure)
+            (equal ?Q1
+              (MeasureFn ?N1 ?U))
+            (equal ?Q2
+              (MeasureFn ?N2 ?U))
+            (equal ?Q3
+              (MeasureFn ?N3 ?U))
+            (equal ?Q4
+              (MeasureFn ?N4 ?U))
+            (distance ?PIS1 ?P1 ?Q1)
+            (distance ?PIS2 ?P1 ?Q2)
+            (distance ?PIS1 ?P2 ?Q3)
+            (distance ?PIS2 ?P2 ?Q4)
+            (equal
+              (AdditionFn ?N1 ?N2)
+              (AdditionFn ?N3 ?N4))))))))
+
+(=>
+  (and
+    (instance ?X PointInSpace)
+    (instance ?Y PointInSpace)
+    (interiorPoint ?X ?O)
+    (interiorPoint ?Y ?O)
+    (superficialPart ?P1 ?O)
+    (superficialPart ?P2 ?O)
+    (instance ?O Object)
+    (instance ?QX1 LengthMeasure)
+    (instance ?QY1 LengthMeasure)
+    (instance ?QX2 LengthMeasure)
+    (instance ?QY2 LengthMeasure)
+    (equal ?QX1
+      (MeasureFn ?N1 ?U))
+    (equal ?QY1
+      (MeasureFn ?N2 ?U))
+    (equal ?QX2
+      (MeasureFn ?N3 ?U))
+    (equal ?QY2
+      (MeasureFn ?N4 ?U))
+    (distance ?X ?P1 ?QX1)
+    (distance ?Y ?P1 ?QY1)
+    (distance ?X ?P2 ?QX2)
+    (distance ?Y ?P2 ?QY2)
+    (not
+      (equal ?P1 ?P2))
+    (equal
+      (AdditionFn ?N1 ?N2)
+      (AdditionFn ?N3 ?N4)))
+  (and
+    (attribute ?O Ellipse)
+    (foci ?O ?X ?Y)))
+
+; ; 64 ; Ellipse
+(subAttribute Ellipse Oval)
+(termFormat EnglishWrittenLanguage Ellipse "ellipse")
+(documentation Ellipse EnglishWrittenLanguage "A subAttribute of Oval whose points each sum to the same total distance from two fixed positions, called its foci.")
+; ; If an object is an ellipse, then it has two foci
+(=>
+  (and
+    (instance ?A Object)
+    (attribute ?A Ellipse))
+  (exists (?P1 ?P2)
+    (foci ?A ?P1 ?P2)))
+
+; ; If an ellipse has two foci then the points are equidistnat from the
+; addition of the lengths to all outside points
+(=>
+  (and
+    (instance ?A Object)
+    (attribute ?A Ellipse)
+    (instance ?P1 PointInSpace)
+    (instance ?P2 PointInSpace)
+    (superficialPart ?P1 ?A)
+    (superficialPart ?P2 ?A)
+    (foci ?A ?F1 ?F2)
+    (instance ?Q1 LengthMeasure)
+    (instance ?Q2 LengthMeasure)
+    (instance ?Q3 LengthMeasure)
+    (instance ?Q4 LengthMeasure)
+    (equal ?Q1
+      (MeasureFn ?N1 ?U))
+    (equal ?Q2
+      (MeasureFn ?N2 ?U))
+    (equal ?Q3
+      (MeasureFn ?N3 ?U))
+    (equal ?Q4
+      (MeasureFn ?N4 ?U))
+    (distance ?P1 ?F1 ?Q1)
+    (distance ?P1 ?F2 ?Q2)
+    (distance ?P2 ?F1 ?Q3)
+    (distance ?P2 ?F2 ?Q4))
+  (approximateValue
+    (AdditionFn ?N1 ?N2)
+    (AdditionFn ?N3 ?N4)))
+
+; ; 65 ; Facing
+(instance objectFacing TernaryPredicate)
+(instance objectFacing SpatialRelation)
+(termFormat EnglishWrittenLanguage objectFacing "object facing")
+(documentation objectFacing EnglishWrittenLanguage "(facing ?BODY ?POINT1 ?FACING) means ?POINT1 is the PointInSpace on the surface of ?BODY that faces the PointInSpace ?FACING -- i.e. no other surface point of ?BODY lies between ?POINT1 and ?FACING.")
+(domain objectFacing 1 Object)
+(domain objectFacing 2 PointInSpace)
+(domain objectFacing 3 Object)
+(format EnglishWrittenLanguage objectFacing "%2 on %1 %n{doesn't} face%p{s} %3")
+; ; No object on the surface of the object is in between the point and
+; the object it is ffacing
+(=>
+  (objectFacing ?BODY ?POINT1 ?FACING)
+  (and
+    (superficialPart ?POINT1 ?BODY)
+    (not
+      (exists (?POINT2)
+        (and
+          (superficialPart ?POINT2 ?BODY)
+          (between ?POINT1 ?POINT2 ?FACING))))))
+
+; ; Circles are ellipses with the same foci
+(=>
+  (attribute ?O Circle)
+  (and
+    (attribute ?O Ellipse)
+    (exists (?F1 ?F2)
+      (and
+        (foci ?O ?F1 ?F2)
+        (equal ?F1 ?F2)))))
+(=>
+  (and
+    (attribute ?O Ellipse)
+    (foci ?O ?F1 ?F2)
+    (equal ?F1 ?F2))
+  (attribute ?O Circle))
+
+; ; Between implies that it lies between the two and that the distance
+; between the point between must be less than the full distance
+(=>
+  (and
+    (between ?A ?B ?C)
+    (instance ?QAB LengthMeasure)
+    (instance ?QBC LengthMeasure)
+    (instance ?QAC LengthMeasure)
+    (equal ?QAB
+      (MeasureFn ?N1 ?U))
+    (equal ?QBC
+      (MeasureFn ?N2 ?U))
+    (equal ?QAC
+      (MeasureFn ?N3 ?U))
+    (distance ?A ?B ?QAB)
+    (distance ?B ?C ?QBC)
+    (distance ?A ?C ?QAC))
+  (and
+    (lessThan ?N1 ?N3)
+    (lessThan ?N2 ?N3)
+    (approximateValue ?N3
+      (AdditionFn ?N1 ?N2))))
+
+; ; Tangent Line ; Two points exist on a line tangent to an object and
+; the objec then they must be equal
+(=>
+  (tangent ?LINE ?FIGURE)
+  (and
+    (instance ?LINE TangentLine)
+    (exists (?P)
+      (and
+        (pointOfFigure ?P ?LINE)
+        (pointOfFigure ?P ?FIGURE)
+        (=>
+          (and
+            (pointOfFigure ?P2 ?LINE)
+            (pointOfFigure ?P2 ?FIGURE))
+          (equal ?P2 ?P))))))
+
+; ; 66 ; Semi-Major Axis
+(instance semiMajorAxis BinaryPredicate)
+(instance semiMajorAxis SpatialRelation)
+(domain semiMajorAxis 1 Object)
+(domain semiMajorAxis 2 LengthMeasure)
+(termFormat EnglishWrittenLanguage semiMajorAxis "semi-major axis")
+(documentation semiMajorAxis EnglishWrittenLanguage "(semiMajorAxis ?ELLIPSE ?LEN) means ?LEN is half the length of ?ELLIPSE's major axis - the line that passes through both of ?ELLIPSE's foci and ends where it meets ?ELLIPSE's own boundary.")
+
+(=>
+  (semiMajorAxis ?ELLIPSE ?LEN)
+  (exists (?P1 ?P2 ?F1 ?F2 ?LINE ?D ?U ?Q)
+    (and
+      (attribute ?ELLIPSE Ellipse)
+      (foci ?ELLIPSE ?F1 ?F2)
+      (superficialPart ?P1 ?ELLIPSE)
+      (superficialPart ?P2 ?ELLIPSE)
+      (endPointsOfLineInSpace ?P1 ?P2 ?LINE)
+      (located ?F1 ?LINE)
+      (located ?F2 ?LINE)
+      (between ?P1 ?F1 ?P2)
+      (between ?P1 ?F2 ?P2)
+      (instance ?Q LengthMeasure)
+      (equal ?Q
+        (MeasureFn ?D ?U))
+      (distance ?P1 ?P2 ?Q)
+      (equal ?LEN
+        (MeasureFn
+          (DivisionFn ?D 2) ?U)))))
+
+; ; 67
+(instance angularSeparation QuaternaryPredicate)
+(instance angularSeparation SpatialRelation)
+(domain angularSeparation 1 Object)
+(domain angularSeparation 2 Object)
+(domain angularSeparation 3 Object)
+(domain angularSeparation 4 AngleMeasure)
+(termFormat EnglishWrittenLanguage angularSeparation "angular separation")
+(documentation angularSeparation EnglishWrittenLanguage "(angularSeparation ?POINT1 ?VERTEX ?POINT2 ?ANGLE) means the positive angle at ?VERTEX between the directions to ?POINT1 and ?POINT2 is ?ANGLE.")
+
+; ; The angle of separation between two points
+(=>
+  (angularSeparation ?POINT1 ?VERTEX ?POINT2 ?ANGLE)
+  (exists (?LINE1 ?LINE2)
+    (and
+      (endPointsOfLineInSpace ?VERTEX ?POINT1 ?LINE1)
+      (endPointsOfLineInSpace ?VERTEX ?POINT2 ?LINE2)
+      (meetsSpatially ?LINE1 ?LINE2)
+      (relativeAngle ?LINE1 ?LINE2 ?ANGLE)
+      (not
+        (equal ?POINT1 ?VERTEX))
+      (not
+        (equal ?POINT2 ?VERTEX))
+      (not
+        (equal ?POINT1 ?POINT2))
+      (greaterThanOrEqualTo ?ANGLE 0.0))))
+
+; ; 68 ; Farthest member in collectio
+(instance farthestMemberInCollection TernaryPredicate)
+(instance farthestMemberInCollection SpatialRelation)
+(domain farthestMemberInCollection 1 Object)
+(domain farthestMemberInCollection 2 CollectionOfObjects)
+(domain farthestMemberInCollection 3 Object)
+(termFormat EnglishWrittenLanguage farthestMemberInCollection "farthest member")
+(documentation farthestMemberInCollection EnglishWrittenLanguage "(farthestMemberInCollection ?OBJ ?COLL ?FAR) means ?FAR is a member of ?COLL, and no other member of ?COLL is farther from ?OBJ than ?FAR is.")
+
+(=>
+  (farthestMemberInCollection ?OBJ ?COLL ?FAR)
+  (and
+    (member ?FAR ?COLL)
+    (forall (?MEM)
+      (=>
+        (and
+          (member ?MEM ?COLL)
+          (not
+            (equal ?FAR ?MEM)))
+        (exists (?D1 ?D2 ?U ?Q1 ?Q2)
+          (and
+            (instance ?Q1 LengthMeasure)
+            (instance ?Q2 LengthMeasure)
+            (equal ?Q1
+              (MeasureFn ?D1 ?U))
+            (equal ?Q2
+              (MeasureFn ?D2 ?U))
+            (distance ?FAR ?OBJ ?Q1)
+            (distance ?MEM ?OBJ ?Q2)
+            (greaterThanOrEqualTo ?D1 ?D2)))))))
+
+; ; 69 ; Nuclear Fusion
+(subclass NuclearFusion Combining)
+(termFormat EnglishWrittenLanguage NuclearFusion "nuclear fusion")
+(documentation NuclearFusion EnglishWrittenLanguage "A Combining in which two or more AtomicNucleus instances are the resource and merge into a single AtomicNucleus as the result, releasing energy in the process.")
+; ; If there is nuclear fusion, there must exists two atomic nuclei that
+; combine to be a new Atomic Nucleus and the energy output of the
+; process is becuase of mass defect.
+(=>
+  (instance ?FUSION NuclearFusion)
+  (exists (?N1 ?N2 ?PRODUCT ?E ?AU1 ?AU2 ?AU3 ?U)
+    (and
+      (instance ?N1 AtomicNucleus)
+      (instance ?N2 AtomicNucleus)
+      (not
+        (equal ?N1 ?N2))
+      (resource ?FUSION ?N1)
+      (resource ?FUSION ?N2)
+      (instance ?PRODUCT AtomicNucleus)
+      (result ?FUSION ?PRODUCT)
+      (measure ?FUSION
+        (MeasureFn ?E Joule))
+      (measure ?N1
+        (MeasureFn ?AU1 ?U))
+      (measure ?N2
+        (MeasureFn ?AU2 ?U))
+      (measure ?PRODUCT
+        (MeasureFn ?AU3 ?U))
+      (causesProposition
+        (lessThan ?AU3
+          (AdditionFn ?AU1 ?AU2))
+        (greaterThan ?E 0)))))
+
+; ; --------- ENTITIES -------
+
+; ; 70
+(instance collectionPhysicallySurrounds SpatialRelation)
+(instance collectionPhysicallySurrounds BinaryPredicate)
+(domain collectionPhysicallySurrounds 1 CollectionOfObjects)
+(domain collectionPhysicallySurrounds 2 Object)
+(termFormat EnglishWrittenLanguage collectionPhysicallySurrounds "collection physically surrounds")
+(documentation collectionPhysicallySurrounds EnglishWrittenLanguage "(collectionPhysicallySurrounds ?COLL ?OBJ) means that ?COLL is spread around ?OBJ in a ring tourus shaped region where each subsection of that region is approxamatley dispursed with the members of that collection. **The limitation of this is that they currently all have to exist at least partly on a plane**")
+
+(=>
+  (collectionPhysicallySurrounds ?COLL ?OBJ)
+  (exists (?RINGTORUS ?VOL)
+    (and
+      (instance ?RINGTORUS Region)
+      (shape ?RINGTORUS RingTorus)
+      (measure ?VOL
+        (MeasureFn 10000 SquareKilometer))
+      (homogenouslyDispersed ?COLL ?RINGTORUS ?VOL))))
+
+; ; 71
+(instance collectionPhysicallySurrounds2D SpatialRelation)
+(instance collectionPhysicallySurrounds2D BinaryPredicate)
+(domain collectionPhysicallySurrounds2D 1 CollectionOfObjects)
+(domain collectionPhysicallySurrounds2D 2 Object)
+(termFormat EnglishWrittenLanguage collectionPhysicallySurrounds2D "collection physically surrounds 2d")
+(documentation collectionPhysicallySurrounds2D EnglishWrittenLanguage "(collectionPhysicallySurrounds2D ?COLL ?OBJ) means that ?COLL is spread around ?OBJ closely enough that there is no direction from ?OBJ with a gap of 90 degrees or more containing no member of ?COLL. Formally, for every possible reference direction from ?OBJ, some member of ?COLL lies within a 90-degree angular separation of that direction. **The limitation of this is that they currently all have to exist at least partly on a plane**")
+
+(=>
+  (not
+    (collectionPhysicallySurrounds2D ?COLL ?CENTER))
+  (exists (?P1 ?P2 ?P3 ?LINE1 ?LINE2 ?U1 ?PLANE ?OBJ ?DIST ?PO1 ?QDIST ?QANG ?Q2 ?Q3)
+    (and
+      (farthestMemberInCollection ?CENTER ?COLL ?PO1)
+      (instance ?QDIST LengthMeasure)
+      (equal ?QDIST
+        (MeasureFn ?DIST ?U1))
+      (distance ?PO1 ?CENTER ?QDIST)
+      ; ; Right Triangle with points at the ends and vertex
+      (instance ?OBJ Object)
+      (shape ?OBJ RightTriangle)
+      (located ?P1 ?OBJ)
+      (located ?P2 ?OBJ)
+      (located ?P3 ?OBJ)
+      (not
+        (equal ?P2 ?P3))
+      (not
+        (equal ?P2 ?P1))
+      (not
+        (equal ?P3 ?P1))
+      (endPointsOfLineInSpace ?P1 ?P2 ?LINE1)
+      (endPointsOfLineInSpace ?P1 ?P3 ?LINE2)
+      (located ?LINE1 ?OBJ)
+      (located ?LINE2 ?OBJ)
+      (located ?P1 ?CENTER)
+      (meetsSpatially ?LINE1 ?LINE2)
+      (instance ?QANG AngleMeasure)
+      (equal ?QANG
+        (MeasureFn 90.0 AngularDegree))
+      (angularSeparation ?P2 ?P1 ?P3 ?QANG)
+      ; ; The triangle legs are as long as double the furthest object
+      (instance ?Q2 LengthMeasure)
+      (equal ?Q2
+        (MeasureFn
+          (MultiplicationFn ?DIST 2) ?U1))
+      (distance ?P1 ?P2 ?Q2)
+      (instance ?Q3 LengthMeasure)
+      (equal ?Q3
+        (MeasureFn
+          (MultiplicationFn ?DIST 2) ?U1))
+      (distance ?P1 ?P3 ?Q3)
+      (located ?LINE1 ?PLANE)
+      (located ?LINE2 ?PLANE)
+      (instance ?PLANE PlaneInSpace)
+      (partlyLocated ?CENTER ?PLANE)
+      (forall (?MEMBERCOLL)
+        (=>
+          (member ?MEMBERCOLL ?COLL)
+          (partlyLocated ?MEMBERCOLL ?PLANE)))
+      (not
+        (exists (?MEMBERCOLL)
+          (and
+            (member ?MEMBERCOLL ?COLL)
+            (partlyLocated ?MEMBERCOLL ?OBJ)))))))
