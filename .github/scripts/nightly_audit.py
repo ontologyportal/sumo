@@ -83,6 +83,51 @@ def execute(command, stdout, stderr, seconds, cwd):
             return None
 
 
+def contradiction_key(contradiction):
+    """Stable identity for deduplicating the same cited axiom set."""
+    return tuple(sorted(
+        (a.get("file"), a.get("line"), a.get("kif"))
+        for a in contradiction.get("axioms", [])
+    ))
+
+
+def contradiction_report(findings):
+    """Render exact reproduction coordinates and cited axioms as Markdown."""
+    lines = [
+        "# Full SUMO contradiction report",
+        "",
+        "Open https://sigmakee.dev/audit, select the SUPr backend, and use",
+        "the seed and start step shown for a contradiction below. Set both audit count fields to 1.",
+        "",
+    ]
+    for number, finding in enumerate(findings, 1):
+        lines.extend([
+            f"## Contradiction {number}",
+            "",
+            f"- Seed: `{finding['seed']}`",
+            f"- Start step: `{finding['step']}`",
+            "- Axioms to check: `1`",
+            "- Axioms per subproblem: `1`",
+            "- Backend: `SUPr`",
+            f"- Proof steps reported by Sigma: `{finding['proof_steps']}`",
+            "",
+            "### Cited source axioms",
+            "",
+        ])
+        for axiom in finding["axioms"]:
+            lines.extend([
+                f"#### {axiom.get('file') or '?'}:{axiom.get('line') or '?'}",
+                "",
+                "```lisp",
+                axiom.get("kif", ""),
+                "```",
+                "",
+            ])
+    if not findings:
+        lines.extend(["No contradictions were reported in this run.", ""])
+    return "\n".join(lines)
+
+
 def run(args):
     root = Path.cwd()
     output = Path(args.output).resolve()
@@ -95,6 +140,8 @@ def run(args):
     sumo = str(Path(args.sumo).resolve())
     completed = contradictions = 0
     interrupted = False
+    findings = []
+    seen_findings = set()
     try:
         with tempfile.TemporaryDirectory(prefix="sumo-audit-") as scratch:
             config = ET.Element("configuration")
@@ -133,6 +180,20 @@ def run(args):
                 if type(result.get("inconsistent")) is not bool or code != int(result["inconsistent"]):
                     raise RuntimeError(f"Unexpected audit exit status: {code}")
                 updated = advance(state, result, args.chunk_size)
+                for contradiction in result.get("contradictions", []):
+                    # One formula per invocation makes this the exact sweep
+                    # position whose selected neighborhood produced the proof.
+                    contradiction["audit_seed"] = result["seed"]
+                    contradiction["audit_step"] = result["step"]
+                    key = contradiction_key(contradiction)
+                    if key not in seen_findings:
+                        seen_findings.add(key)
+                        findings.append({
+                            "seed": result["seed"],
+                            "step": result["step"],
+                            "proof_steps": contradiction.get("steps", 0),
+                            "axioms": contradiction.get("axioms", []),
+                        })
                 with (output / "results.jsonl").open("a") as reports:
                     reports.write(json.dumps(result) + "\n")
                 contradictions += len(result.get("contradictions", []))
@@ -140,14 +201,30 @@ def run(args):
                 state = updated
                 atomic_json(state_path, state)
     finally:
+        report = contradiction_report(findings)
+        (output / "contradictions.md").write_text(report)
+        positions = "\n".join(
+            f"- Seed `{f['seed']}`, step `{f['step']}`"
+            for f in findings[:20]
+        )
+        if len(findings) > 20:
+            positions += f"\n- ...and {len(findings) - 20} more in `contradictions.md`"
+        if not positions:
+            positions = "- None"
         summary = (
             "# Full SUMO nightly audit\n\n"
             f"- Started: seed {initial['seed']}, step {initial['next_step']}\n"
             f"- Resume: seed {state['seed']}, step {state['next_step']}\n"
             f"- Completed formula checks: {completed}\n"
             f"- Contradictions reported (may repeat across chunks): {contradictions}\n"
+            f"- Distinct cited axiom sets: {len(findings)}\n"
             f"- Deadline interrupted a chunk: {interrupted}\n"
             f"- Full SUMO fingerprint: {fingerprint}\n\n"
+            "## Reproduction positions\n\n"
+            f"{positions}\n\n"
+            "At https://sigmakee.dev/audit select SUPr, enter the seed and "
+            "start step, and set both count fields to 1. The complete formatted "
+            "report is in `contradictions.md` in the workflow artifact.\n\n"
             "An unfinished chunk is retried next night. Finding no contradiction "
             "does not certify consistency. See the job status for execution errors.\n"
         )
@@ -171,6 +248,6 @@ if __name__ == "__main__":
     parser.add_argument("--sumo", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--seconds", type=positive, default=7200)
-    parser.add_argument("--chunk-size", type=positive, default=100)
+    parser.add_argument("--chunk-size", type=positive, default=1)
     parser.add_argument("--timeout", type=positive, default=10)
     raise SystemExit(run(parser.parse_args()))

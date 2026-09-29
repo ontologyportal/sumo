@@ -74,6 +74,19 @@ class AuditTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit.checkpoint(path, "abc")
 
+    def test_contradiction_report_has_reproduction_coordinates_and_kif(self):
+        report = audit.contradiction_report([{
+            "seed": 7,
+            "step": 42,
+            "proof_steps": 3,
+            "axioms": [{"file": "Merge.kif", "line": 10,
+                        "kif": "(instance A B)"}],
+        }])
+        self.assertIn("Seed: `7`", report)
+        self.assertIn("Start step: `42`", report)
+        self.assertIn("Merge.kif:10", report)
+        self.assertIn("```lisp\n(instance A B)\n```", report)
+
     def test_deadline_terminates_process(self):
         with (self.root / "log").open("w") as log:
             started = time.monotonic()
@@ -111,7 +124,10 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(audit.run(args), 1)
         saved = json.loads((output / "checkpoint.json").read_text())
         self.assertEqual((saved["seed"], saved["next_step"]), (0, 5))
-        self.assertEqual(len((output / "results.jsonl").read_text().splitlines()), 1)
+        result = json.loads((output / "results.jsonl").read_text())
+        self.assertEqual(result["contradictions"][0]["audit_seed"], 0)
+        self.assertEqual(result["contradictions"][0]["audit_step"], 0)
+        self.assertIn("Seed: `0`", (output / "contradictions.md").read_text())
         self.assertIn("Deadline interrupted a chunk: True", (output / "summary.md").read_text())
 
 

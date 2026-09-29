@@ -37,7 +37,9 @@ The checkpoint contains a constituent fingerprint, seed, and next step:
 - On completing a sweep, increment the seed and start at step 0.
 - A change to any file named in `full-sumo.txt`, or to the list of names/order,
   resets both seed and step to 0. Files outside that list do not reset it.
-- Completed chunks (100 formulas by default) update the checkpoint atomically.
+- Each CLI invocation checks one formula, so every contradiction has an exact
+  seed and step that can be reproduced in sigmakee.dev. Completed formula
+  checks update the checkpoint atomically.
   At the deadline, the unfinished chunk is killed and retried next night.
   No position from a partially completed chunk is committed.
 - Runs are serialized. Saving uses the restored GitHub file SHA so an
@@ -52,7 +54,16 @@ the saved checkpoint if its sweep ordering or eligibility rules change.
 
 Each completed chunk's JSON (including contradiction axioms) is retained in
 the run's `full-sumo-audit-...` artifact for 30 days, alongside logs, checkpoint,
-and a summary. The Actions job summary shows progress and finding counts.
+and a summary. `contradictions.md` formats each distinct cited axiom set as
+SUO-KIF and gives its exact seed and step. The Actions job summary lists the
+first 20 reproduction positions.
+
+To reproduce one in sigmakee.dev, load the same SUMO revision, open Audit,
+select the SUPr backend, enter the reported seed and start step, and set both
+`axioms to check` and `axioms per subproblem` to 1. Prover settings must also
+match for the closest reproduction; the workflow currently uses a 10-second
+time limit.
+
 Finding contradictions makes the audit step fail **after** the audit window;
 the checkpoint and reports are still saved. Counts can include duplicate
 contradictions across chunks. No contradictions found is not a proof of
