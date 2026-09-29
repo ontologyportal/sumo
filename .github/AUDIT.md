@@ -4,8 +4,19 @@
 at 00:10 America/Los_Angeles, including daylight-saving changes. GitHub may
 delay scheduled starts. Merge the workflow onto the default branch to enable
 it; **Actions > Nightly contradiction audit > Run workflow** also runs it.
-Manual runs are restricted to the default branch so they cannot overwrite
-production progress with a different ontology.
+Manual runs may target any branch containing this workflow:
+
+```sh
+gh workflow run contradiction-audit.yml --ref contradiction-detection-workflow
+gh run list --workflow contradiction-audit.yml
+gh run watch
+```
+
+Scheduled runs are allowed only on `master`. GitHub schedules originate on the
+default branch, so keep `master` as the default branch for nightly runs.
+Manual and scheduled runs share the `audit-state` checkpoint and are serialized.
+A manual run with different Full SUMO contents resets the checkpoint; the next
+run on `master` resets it again if its contents differ.
 
 One runner builds the pinned Sigma CLI, restores its checkpoint, loads a fresh
 Full SUMO database, and then audits for 7,200 seconds. Build and initial load
