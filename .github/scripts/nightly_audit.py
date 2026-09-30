@@ -15,6 +15,39 @@ import xml.etree.ElementTree as ET
 MANIFEST = Path(__file__).resolve().parents[1] / "full-sumo.txt"
 
 
+def engine_identity(root):
+    """Match the source fingerprint stamped into the browser's WASM package."""
+    paths = subprocess.check_output(
+        ["git", "ls-files", "-z", "--", "Cargo.toml", "Cargo.lock", ".cargo", "crates"],
+        cwd=root).decode().split("\0")
+    digest = hashlib.sha256()
+    for name in sorted(filter(None, paths)):
+        digest.update(name.encode() + b"\0")
+        digest.update(hashlib.sha256((root / name).read_bytes()).digest())
+    return {
+        "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root).decode().strip(),
+        "fingerprint": digest.hexdigest(),
+    }
+
+
+def replay_metadata(root, names, fingerprint, timeout):
+    return {
+        "version": 1,
+        "complete": False,
+        "sumo_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root).decode().strip(),
+        "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+        "run_attempt": int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")),
+        "engine": engine_identity(Path(os.environ.get("SIGMA_SOURCE_DIR", root.parent / "sigma-rs"))),
+        "fingerprint": fingerprint,
+        "constituents": [{"name": name, "sha256": hashlib.sha256((root / name).read_bytes()).hexdigest()}
+                         for name in names],
+        "config": {"backend": "native", "timeLimitSecs": timeout,
+                   "maxSteps": 500000, "maxLits": 12, "forwardClose": True,
+                   "wantProof": True, "profile": False, "selectionTolerancePct": 0},
+        "request": {"count": 1, "batch": 1, "limit": 64},
+    }
+
+
 def constituents(root, manifest=MANIFEST):
     names = [s.strip() for s in manifest.read_text().splitlines()
              if s.strip() and not s.lstrip().startswith("#")]
@@ -91,13 +124,14 @@ def contradiction_key(contradiction):
     ))
 
 
-def contradiction_report(findings):
+def contradiction_report(findings, replay=None):
     """Render exact reproduction coordinates and cited axioms as Markdown."""
     lines = [
         "# Full SUMO contradiction report",
         "",
-        "Open https://sigmakee.dev/audit, select the SUPr backend, and use",
-        "the seed and start step shown for a contradiction below. Set both audit count fields to 1.",
+        "Open https://sigmakee.dev/audit and choose Latest master contradiction report.",
+        "Save any work you want to keep before confirming replacement and replay.",
+        "The app verifies master, constituents, and engine inputs before replaying only the steps below.",
         "",
     ]
     for number, finding in enumerate(findings, 1):
@@ -125,14 +159,20 @@ def contradiction_report(findings):
             ])
     if not findings:
         lines.extend(["No contradictions were reported in this run.", ""])
+    if replay is not None:
+        lines.extend(["## Replay metadata", "", "```sigma-audit-replay",
+                      json.dumps({**replay, "findings": findings}, indent=2), "```", ""])
     return "\n".join(lines)
 
 
 def run(args):
+    if args.chunk_size != 1:
+        raise ValueError("Replay reports require --chunk-size 1 for exact contradiction coordinates")
     root = Path.cwd()
     output = Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
     names, fingerprint = constituents(root)
+    replay = replay_metadata(root, names, fingerprint, args.timeout)
     state_path = output / "checkpoint.json"
     state = checkpoint(state_path, fingerprint)
     initial = dict(state)
@@ -200,8 +240,9 @@ def run(args):
                 completed += result["next_step"] - result["step"]
                 state = updated
                 atomic_json(state_path, state)
+            replay["complete"] = True
     finally:
-        report = contradiction_report(findings)
+        report = contradiction_report(findings, replay)
         (output / "contradictions.md").write_text(report)
         positions = "\n".join(
             f"- Seed `{f['seed']}`, step `{f['step']}`"
@@ -222,8 +263,8 @@ def run(args):
             f"- Full SUMO fingerprint: {fingerprint}\n\n"
             "## Reproduction positions\n\n"
             f"{positions}\n\n"
-            "At https://sigmakee.dev/audit select SUPr, enter the seed and "
-            "start step, and set both count fields to 1. The complete formatted "
+            "At https://sigmakee.dev/audit open Latest master contradiction report "
+            "to verify and replay the findings. The complete formatted "
             "report is in `contradictions.md` in the workflow artifact.\n\n"
             "An unfinished chunk is retried next night. Finding no contradiction "
             "does not certify consistency. See the job status for execution errors.\n"

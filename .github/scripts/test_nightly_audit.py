@@ -110,25 +110,60 @@ class AuditTests(unittest.TestCase):
                 (Path(directory) / "SUMO.lmdb").mkdir()
                 return 0
             if len(calls) == 2:
-                json.dump({"seed": 0, "step": 0, "next_step": 5, "total": 20,
+                json.dump({"seed": 0, "step": 0, "next_step": 1, "total": 20,
                            "inconsistent": True, "contradictions": [{"axioms": []}]}, stdout)
                 stdout.flush()
                 return 1
             return None
 
         args = argparse.Namespace(output=str(output), sumo="/fake/sumo",
-                                  seconds=10, chunk_size=5, timeout=1)
+                                  seconds=10, chunk_size=1, timeout=1)
         with patch.object(audit, "constituents", return_value=(["a.kif"], "abc")), (
             patch.object(audit, "execute", side_effect=execute)
+        ), (
+            patch.object(audit, "replay_metadata", return_value={"complete": False})
         ):
             self.assertEqual(audit.run(args), 1)
         saved = json.loads((output / "checkpoint.json").read_text())
-        self.assertEqual((saved["seed"], saved["next_step"]), (0, 5))
+        self.assertEqual((saved["seed"], saved["next_step"]), (0, 1))
         result = json.loads((output / "results.jsonl").read_text())
         self.assertEqual(result["contradictions"][0]["audit_seed"], 0)
         self.assertEqual(result["contradictions"][0]["audit_step"], 0)
         self.assertIn("Seed: `0`", (output / "contradictions.md").read_text())
         self.assertIn("Deadline interrupted a chunk: True", (output / "summary.md").read_text())
+        report = (output / "contradictions.md").read_text()
+        replay = json.loads(report.split("```sigma-audit-replay\n")[1].split("\n```")[0])
+        self.assertTrue(replay["complete"])
+        self.assertEqual(replay["findings"][0]["step"], 0)
+
+    def test_multi_step_chunks_are_rejected_before_loading(self):
+        with self.assertRaisesRegex(ValueError, "chunk-size 1"):
+            audit.run(argparse.Namespace(chunk_size=2))
+
+    def test_replay_metadata_pins_bytes_run_and_cli_settings(self):
+        (self.root / "a.kif").write_bytes(b"(instance A B)\r\n")
+        with patch.object(audit.subprocess, "check_output", return_value=b"a" * 40 + b"\n"), (
+            patch.object(audit, "engine_identity", return_value={"commit": "b" * 40, "fingerprint": "c" * 64})
+        ), patch.dict(audit.os.environ, {"GITHUB_RUN_ID": "12", "GITHUB_RUN_ATTEMPT": "2"}):
+            replay = audit.replay_metadata(self.root, ["a.kif"], "fingerprint", 10)
+        self.assertEqual(replay["sumo_commit"], "a" * 40)
+        self.assertEqual((replay["run_id"], replay["run_attempt"]), ("12", 2))
+        self.assertEqual(replay["constituents"][0]["sha256"], audit.hashlib.sha256(b"(instance A B)\r\n").hexdigest())
+        self.assertEqual(replay["config"]["maxSteps"], 500000)
+        self.assertEqual(replay["config"]["maxLits"], 12)
+        self.assertEqual(replay["request"], {"count": 1, "batch": 1, "limit": 64})
+        self.assertFalse(replay["complete"])
+
+    def test_failed_load_report_cannot_be_replayed(self):
+        args = argparse.Namespace(output=str(self.root / "out"), sumo="/fake/sumo",
+                                  seconds=10, chunk_size=1, timeout=1)
+        with patch.object(audit, "constituents", return_value=(["a.kif"], "abc")), (
+            patch.object(audit, "replay_metadata", return_value={"complete": False})
+        ), patch.object(audit, "execute", return_value=2):
+            with self.assertRaises(RuntimeError):
+                audit.run(args)
+        report = (self.root / "out" / "contradictions.md").read_text()
+        self.assertIn('"complete": false', report)
 
 
 if __name__ == "__main__":
