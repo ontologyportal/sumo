@@ -69,10 +69,12 @@ def atomic_json(path, value):
     temporary.replace(path)
 
 
-def checkpoint(path, fingerprint):
+def checkpoint(path, fingerprint, engine_fingerprint):
     state = json.loads(path.read_text()) if path.exists() else {}
-    if state.get("fingerprint") != fingerprint:
-        state = {"version": 1, "fingerprint": fingerprint, "seed": 0, "next_step": 0}
+    if (state.get("fingerprint") != fingerprint
+            or state.get("engine_fingerprint") != engine_fingerprint):
+        state = {"version": 1, "fingerprint": fingerprint,
+                 "engine_fingerprint": engine_fingerprint, "seed": 0, "next_step": 0}
     if state.get("version") != 1:
         raise ValueError("Unsupported checkpoint version")
     for key in ("seed", "next_step"):
@@ -174,7 +176,7 @@ def run(args):
     names, fingerprint = constituents(root)
     replay = replay_metadata(root, names, fingerprint, args.timeout)
     state_path = output / "checkpoint.json"
-    state = checkpoint(state_path, fingerprint)
+    state = checkpoint(state_path, fingerprint, replay["engine"]["fingerprint"])
     initial = dict(state)
     atomic_json(state_path, state)
     sumo = str(Path(args.sumo).resolve())
