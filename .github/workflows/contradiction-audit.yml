@@ -1,0 +1,160 @@
+name: Nightly contradiction audit
+
+on:
+  schedule:
+    - cron: '10 0 * * *'
+      timezone: America/Los_Angeles
+  workflow_dispatch:
+  # Temporary: remove this push trigger after branch testing.
+  push:
+    branches:
+      - contradiction-detection-workflow
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-sumo-nightly-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/contradiction-detection-workflow') ||
+      (github.event_name == 'schedule' && github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    timeout-minutes: 210
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ontology
+          persist-credentials: false
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ontologyportal/sigma-rs
+          ref: 2aa73f715cb7ed68893301fb1a6012ad47c4d050
+          path: sigma-rs
+          persist-credentials: false
+
+      - name: Test checkpoint runner
+        working-directory: ontology
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
+
+      - name: Set up Rust
+        run: rustup update stable --no-self-update
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sigma-rs
+          key: nightly-audit
+
+      - name: Build audit CLI
+        working-directory: sigma-rs
+        run: cargo +stable build --release --locked --bin sumo --no-default-features --features ask,parallel,alloc-mi
+
+      - name: Restore checkpoint
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            fs.mkdirSync('audit-output', {recursive: true});
+            let sha = null;
+            try {
+              const {data} = await github.rest.repos.getContent({
+                ...context.repo, path: '.github/audit-checkpoint.json', ref: 'audit-state'
+              });
+              fs.writeFileSync('audit-output/checkpoint.json', Buffer.from(data.content, 'base64'));
+              sha = data.sha;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              core.info('No saved checkpoint; starting at seed 0, step 0.');
+            }
+            fs.writeFileSync('audit-output/remote.json', JSON.stringify({sha}));
+
+      - name: Audit Full SUMO for two hours
+        working-directory: ontology
+        run: |
+          python3 .github/scripts/nightly_audit.py \
+            --sumo ../sigma-rs/target/release/sumo \
+            --output ../audit-output --seconds 7200
+
+      - name: Save checkpoint
+        if: ${{ always() && hashFiles('audit-output/checkpoint.json', 'audit-output/remote.json') != '' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('audit-output/checkpoint.json') ||
+                !fs.existsSync('audit-output/remote.json')) return;
+            const branch = 'audit-state';
+            try {
+              await github.rest.git.getRef({...context.repo, ref: 'heads/' + branch});
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.git.createRef({
+                ...context.repo, ref: 'refs/heads/' + branch, sha: context.sha
+              });
+            }
+            const {sha} = JSON.parse(fs.readFileSync('audit-output/remote.json', 'utf8'));
+            await github.rest.repos.createOrUpdateFileContents({
+              ...context.repo,
+              path: '.github/audit-checkpoint.json',
+              branch,
+              message: 'ci: save nightly audit checkpoint',
+              content: fs.readFileSync('audit-output/checkpoint.json').toString('base64'),
+              ...(sha ? {sha} : {})
+            });
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-sumo-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            audit-output/checkpoint.json
+            audit-output/*.jsonl
+            audit-output/*.log
+            audit-output/contradictions.md
+            audit-output/summary.md
+          retention-days: 30
+          if-no-files-found: ignore
+
+      # This is the same report as the artifact, exposed without an Actions
+      # download token. The app verifies run identity and current master SHA.
+      - name: Publish latest master contradiction report
+        if: ${{ always() && github.ref == 'refs/heads/master' && hashFiles('audit-output/contradictions.md') != '' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('audit-output/contradictions.md', 'utf8');
+            const match = report.match(/```sigma-audit-replay\n([\s\S]*?)\n```/);
+            if (!match || JSON.parse(match[1]).complete !== true) {
+              core.info('Incomplete audit: no replay report published.');
+              return;
+            }
+            const branch = 'audit-state';
+            try {
+              await github.rest.git.getRef({...context.repo, ref: 'heads/' + branch});
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.git.createRef({...context.repo, ref: 'refs/heads/' + branch, sha: context.sha});
+            }
+            const path = '.github/latest-contradictions.md';
+            let sha;
+            try {
+              const {data} = await github.rest.repos.getContent({...context.repo, path, ref: branch});
+              sha = data.sha;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            await github.rest.repos.createOrUpdateFileContents({
+              ...context.repo, path, branch,
+              message: 'ci: publish master contradiction replay report',
+              content: Buffer.from(report).toString('base64'),
+              ...(sha ? {sha} : {})
+            });
