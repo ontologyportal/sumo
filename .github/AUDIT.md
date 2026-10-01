@@ -18,9 +18,14 @@ Manual and scheduled runs share the `audit-state` checkpoint and are serialized.
 A manual run with different Full SUMO contents resets the checkpoint; the next
 run on `master` resets it again if its contents differ.
 
-One runner builds the pinned Sigma CLI, restores its checkpoint, loads a fresh
+One runner checks out the latest commit on sigma-rs's `main` branch, builds
+that Sigma CLI, restores its checkpoint, loads a fresh
 Full SUMO database, and then audits for 7,200 seconds. Build and initial load
 time are additional. The job has a 210-minute safety limit.
+The checkout stays fixed for the entire run, even if `main` advances meanwhile.
+Each replay report records that exact commit and its engine source fingerprint.
+The app must have a matching engine fingerprint; following `main` does not
+bypass compatibility checks or automatically update an already deployed app.
 
 ## Progress
 
@@ -30,13 +35,16 @@ branch does not need an active runner. Repository rules must allow the
 workflow's `GITHUB_TOKEN` to create/update that branch (`contents: write`).
 Do not merge the state branch into the default branch.
 
-The checkpoint contains a constituent fingerprint, seed, and next step:
+The checkpoint contains constituent and engine fingerprints, seed, and next step:
 
 - Initially seed 0, step 0.
 - The seed determines the formula order; the step advances through it.
 - On completing a sweep, increment the seed and start at step 0.
 - A change to any file named in `full-sumo.txt`, or to the list of names/order,
   resets both seed and step to 0. Files outside that list do not reset it.
+- A change to the engine source fingerprint also resets both seed and step.
+  Legacy checkpoints without that fingerprint restart once. Frontend-only
+  commits that leave the engine fingerprint unchanged preserve progress.
 - Each CLI invocation checks one formula, so every contradiction has an exact
   seed and step that can be reproduced in sigmakee.dev. Completed formula
   checks update the checkpoint atomically.
@@ -46,9 +54,9 @@ The checkpoint contains a constituent fingerprint, seed, and next step:
   unexpected concurrent state edit fails instead of silently overwriting it.
 
 The Full SUMO manifest is also used by `sigma-validation.yml`. Keep the list
-aligned with the intended Full SUMO definition. Sigma is pinned to a commit
-supporting `audit --seed --step --count --json`; when upgrading Sigma, reset
-the saved checkpoint if its sweep ordering or eligibility rules change.
+aligned with the intended Full SUMO definition. Sigma's `main` branch must
+support `audit --seed --step --count --json`; incompatible upstream changes
+fail the run rather than silently falling back to an older engine.
 
 ## Results and failures
 
@@ -81,7 +89,7 @@ From the repository root:
 ```sh
 python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
 python3 .github/scripts/nightly_audit.py --sumo /path/to/sumo \
-  --output /tmp/sumo-audit-results --seconds 60 --chunk-size 5 --timeout 1
+  --output /tmp/sumo-audit-results --seconds 60 --chunk-size 1 --timeout 1
 ```
 
 The local command performs a real Full SUMO load and short audit. It uses the

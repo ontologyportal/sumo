@@ -22,15 +22,33 @@ class AuditTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        self.state = {"version": 1, "fingerprint": "abc", "seed": 0, "next_step": 0}
+        self.state = {"version": 1, "fingerprint": "abc", "engine_fingerprint": "engine",
+                      "seed": 0, "next_step": 0}
 
     def test_resume_and_changed_input_reset(self):
         path = self.root / "checkpoint.json"
         self.state.update(seed=3, next_step=200)
         audit.atomic_json(path, self.state)
-        self.assertEqual(audit.checkpoint(path, "abc"), self.state)
-        reset = audit.checkpoint(path, "changed")
+        self.assertEqual(audit.checkpoint(path, "abc", "engine"), self.state)
+        reset = audit.checkpoint(path, "changed", "engine")
         self.assertEqual((reset["seed"], reset["next_step"]), (0, 0))
+
+    def test_changed_engine_and_legacy_checkpoints_restart_the_sweep(self):
+        path = self.root / "checkpoint.json"
+        self.state.update(seed=3, next_step=200)
+        audit.atomic_json(path, self.state)
+        reset = audit.checkpoint(path, "abc", "new-engine")
+        self.assertEqual((reset["seed"], reset["next_step"]), (0, 0))
+        self.assertEqual(reset["engine_fingerprint"], "new-engine")
+        del self.state["engine_fingerprint"]
+        audit.atomic_json(path, self.state)
+        self.assertEqual(audit.checkpoint(path, "abc", "new-engine"), reset)
+
+    def test_frontend_only_engine_commit_change_preserves_progress(self):
+        path = self.root / "checkpoint.json"
+        self.state.update(seed=3, next_step=200)
+        audit.atomic_json(path, self.state)
+        self.assertEqual(audit.checkpoint(path, "abc", "engine"), self.state)
 
     def test_manifest_membership_and_content_are_hashed(self):
         manifest = self.root / "manifest"
@@ -72,7 +90,7 @@ class AuditTests(unittest.TestCase):
         self.state["next_step"] = -1
         audit.atomic_json(path, self.state)
         with self.assertRaises(ValueError):
-            audit.checkpoint(path, "abc")
+            audit.checkpoint(path, "abc", "engine")
 
     def test_contradiction_report_has_reproduction_coordinates_and_kif(self):
         report = audit.contradiction_report([{
@@ -121,7 +139,7 @@ class AuditTests(unittest.TestCase):
         with patch.object(audit, "constituents", return_value=(["a.kif"], "abc")), (
             patch.object(audit, "execute", side_effect=execute)
         ), (
-            patch.object(audit, "replay_metadata", return_value={"complete": False})
+            patch.object(audit, "replay_metadata", return_value={"complete": False, "engine": {"fingerprint": "engine"}})
         ):
             self.assertEqual(audit.run(args), 1)
         saved = json.loads((output / "checkpoint.json").read_text())
@@ -158,7 +176,7 @@ class AuditTests(unittest.TestCase):
         args = argparse.Namespace(output=str(self.root / "out"), sumo="/fake/sumo",
                                   seconds=10, chunk_size=1, timeout=1)
         with patch.object(audit, "constituents", return_value=(["a.kif"], "abc")), (
-            patch.object(audit, "replay_metadata", return_value={"complete": False})
+            patch.object(audit, "replay_metadata", return_value={"complete": False, "engine": {"fingerprint": "engine"}})
         ), patch.object(audit, "execute", return_value=2):
             with self.assertRaises(RuntimeError):
                 audit.run(args)
