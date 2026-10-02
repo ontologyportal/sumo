@@ -1641,16 +1641,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Process Physical)
 ```
 
-#### Merge.kif:13076
+#### Merge.kif:13075
 
 ```lisp
-(subclass Breathing AutonomicProcess)
+(subclass Breathing OrganismProcess)
 ```
 
-#### Merge.kif:12985
+#### Merge.kif:13012
 
 ```lisp
-(subclass AutonomicProcess PhysiologicProcess)
+(subclass OrganismProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -1724,10 +1724,10 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass PartialOrderingRelation TransitiveRelation)
 ```
 
-#### Merge.kif:13075
+#### Merge.kif:13076
 
 ```lisp
-(subclass Breathing OrganismProcess)
+(subclass Breathing AutonomicProcess)
 ```
 
 #### Merge.kif:929
@@ -1742,10 +1742,10 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Process Physical)
 ```
 
-#### Merge.kif:13012
+#### Merge.kif:12985
 
 ```lisp
-(subclass OrganismProcess PhysiologicProcess)
+(subclass AutonomicProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -7514,16 +7514,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Process Physical)
 ```
 
-#### Merge.kif:13076
+#### Merge.kif:13075
 
 ```lisp
-(subclass Breathing AutonomicProcess)
+(subclass Breathing OrganismProcess)
 ```
 
-#### Merge.kif:12985
+#### Merge.kif:13012
 
 ```lisp
-(subclass AutonomicProcess PhysiologicProcess)
+(subclass OrganismProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -7645,10 +7645,10 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass PartialOrderingRelation TransitiveRelation)
 ```
 
-#### Merge.kif:13075
+#### Merge.kif:13076
 
 ```lisp
-(subclass Breathing OrganismProcess)
+(subclass Breathing AutonomicProcess)
 ```
 
 #### Merge.kif:929
@@ -7663,10 +7663,10 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Process Physical)
 ```
 
-#### Merge.kif:13012
+#### Merge.kif:12985
 
 ```lisp
-(subclass OrganismProcess PhysiologicProcess)
+(subclass AutonomicProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -11542,7 +11542,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `21`
+- Proof steps reported by Sigma: `25`
 
 ### Cited source axioms
 
@@ -11594,10 +11594,34 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance SouthAtlanticOcean BodyOfWater)
 ```
 
-#### Merge.kif:961
+#### Geography.kif:7070
 
 ```lisp
-(subclass SelfConnectedObject Object)
+(instance SouthAtlanticOcean SaltWaterArea)
+```
+
+#### Merge.kif:18254
+
+```lisp
+(subclass SaltWaterArea WaterArea)
+```
+
+#### Merge.kif:18234
+
+```lisp
+(subclass WaterArea GeographicArea)
+```
+
+#### Merge.kif:18124
+
+```lisp
+(subclass GeographicArea Region)
+```
+
+#### Merge.kif:1532
+
+```lisp
+(subclass Region Object)
 ```
 
 #### Merge.kif:946
@@ -15454,16 +15478,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Process Physical)
 ```
 
-#### Merge.kif:13075
+#### Merge.kif:13076
 
 ```lisp
-(subclass Breathing OrganismProcess)
+(subclass Breathing AutonomicProcess)
 ```
 
-#### Merge.kif:13012
+#### Merge.kif:12985
 
 ```lisp
-(subclass OrganismProcess PhysiologicProcess)
+(subclass AutonomicProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -15585,10 +15609,10 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass PartialOrderingRelation TransitiveRelation)
 ```
 
-#### Merge.kif:13076
+#### Merge.kif:13075
 
 ```lisp
-(subclass Breathing AutonomicProcess)
+(subclass Breathing OrganismProcess)
 ```
 
 #### Merge.kif:929
@@ -15603,10 +15627,10 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Process Physical)
 ```
 
-#### Merge.kif:12985
+#### Merge.kif:13012
 
 ```lisp
-(subclass AutonomicProcess PhysiologicProcess)
+(subclass OrganismProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -16669,7 +16693,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `30`
+- Proof steps reported by Sigma: `28`
 
 ### Cited source axioms
 
@@ -16713,12 +16737,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
 
 ```lisp
 (instance meetsSpatially IrreflexiveRelation)
-```
-
-#### Merge.kif:5011
-
-```lisp
-(subrelation overlapsSpatially connected)
 ```
 
 #### Merge.kif:12357
@@ -16773,6 +16791,12 @@ The app verifies master, constituents, and engine inputs before replaying only t
 
 ```lisp
 (subclass Region Object)
+```
+
+#### Merge.kif:5011
+
+```lisp
+(subrelation overlapsSpatially connected)
 ```
 
 ## Contradiction 210
@@ -16877,7 +16901,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `30`
+- Proof steps reported by Sigma: `28`
 
 ### Cited source axioms
 
@@ -16921,12 +16945,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
 
 ```lisp
 (instance meetsSpatially IrreflexiveRelation)
-```
-
-#### Merge.kif:5011
-
-```lisp
-(subrelation overlapsSpatially connected)
 ```
 
 #### Merge.kif:12357
@@ -16981,6 +16999,12 @@ The app verifies master, constituents, and engine inputs before replaying only t
 
 ```lisp
 (subclass Region Object)
+```
+
+#### Merge.kif:5011
+
+```lisp
+(subrelation overlapsSpatially connected)
 ```
 
 ## Contradiction 212
@@ -17145,7 +17169,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `63`
+- Proof steps reported by Sigma: `62`
 
 ### Cited source axioms
 
@@ -17311,12 +17335,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance overlapsSpatially SymmetricRelation)
 ```
 
-#### Merge.kif:5011
-
-```lisp
-(subrelation overlapsSpatially connected)
-```
-
 #### Merge.kif:12357
 
 ```lisp
@@ -17341,6 +17359,12 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance LosAngelesCalifornia AmericanCity)
 ```
 
+#### Merge.kif:5011
+
+```lisp
+(subrelation overlapsSpatially connected)
+```
+
 #### Merge.kif:12259
 
 ```lisp
@@ -17354,7 +17378,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `81`
+- Proof steps reported by Sigma: `80`
 
 ### Cited source axioms
 
@@ -17605,7 +17629,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `104`
+- Proof steps reported by Sigma: `103`
 
 ### Cited source axioms
 
@@ -17992,16 +18016,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Process Physical)
 ```
 
-#### Merge.kif:13075
+#### Merge.kif:13076
 
 ```lisp
-(subclass Breathing OrganismProcess)
+(subclass Breathing AutonomicProcess)
 ```
 
-#### Merge.kif:13012
+#### Merge.kif:12985
 
 ```lisp
-(subclass OrganismProcess PhysiologicProcess)
+(subclass AutonomicProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -18825,7 +18849,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `19`
+- Proof steps reported by Sigma: `18`
 
 ### Cited source axioms
 
@@ -18847,22 +18871,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (and (instance ?X MobileCellPhone) (instance ?P PublicSwitchedTelephoneNetwork) (not (component ?X ?P)))
 ```
 
-#### Military.kif:832
+#### Military.kif:833
 
 ```lisp
-(instance USMilitaryRankWO3 USWarrantOfficerRank)
+(instance USMilitaryRankWO3 USMilitaryRank)
 ```
 
-#### Military.kif:807
+#### Military.kif:493
 
 ```lisp
-(subclass USWarrantOfficerRank CommissionedOfficerRank)
-```
-
-#### Military.kif:508
-
-```lisp
-(subclass CommissionedOfficerRank MilitaryRank)
+(subclass USMilitaryRank MilitaryRank)
 ```
 
 #### Military.kif:484
@@ -19287,11 +19305,11 @@ The app verifies master, constituents, and engine inputs before replaying only t
   "version": 1,
   "complete": true,
   "sumo_commit": "8d86020fc77e46353ad66167ea6ba3f66c161162",
-  "run_id": "36930514293",
+  "run_id": "37015586523",
   "run_attempt": 1,
   "engine": {
-    "commit": "7a2994b7d779c9074c1d46c0c647ff5e3b76517a",
-    "fingerprint": "89d63d28e814e6044efaac7baa2f5f6770c3252a9bc3d4752ef46ba3f4895288"
+    "commit": "ad12c018ee0fa5dd557f0958b122764bac10797c",
+    "fingerprint": "f9280cb3dbe2a73bc04dc37d429d8e4dc2f6681ecf54bffb96a590f782a6fe55"
   },
   "fingerprint": "76fef8c8b329d8665e3b4ecebe5f6e2eb12b5eba0574447cc1877ce8cb777f66",
   "constituents": [
@@ -20826,13 +20844,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing AutonomicProcess)",
-          "line": 13076
+          "kif": "(subclass Breathing OrganismProcess)",
+          "line": 13075
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
-          "line": 12985
+          "kif": "(subclass OrganismProcess PhysiologicProcess)",
+          "line": 13012
         },
         {
           "file": "Merge.kif",
@@ -20893,8 +20911,8 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing OrganismProcess)",
-          "line": 13075
+          "kif": "(subclass Breathing AutonomicProcess)",
+          "line": 13076
         },
         {
           "file": "Merge.kif",
@@ -20908,8 +20926,8 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass OrganismProcess PhysiologicProcess)",
-          "line": 13012
+          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
+          "line": 12985
         },
         {
           "file": "Merge.kif",
@@ -25575,13 +25593,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing AutonomicProcess)",
-          "line": 13076
+          "kif": "(subclass Breathing OrganismProcess)",
+          "line": 13075
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
-          "line": 12985
+          "kif": "(subclass OrganismProcess PhysiologicProcess)",
+          "line": 13012
         },
         {
           "file": "Merge.kif",
@@ -25682,8 +25700,8 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing OrganismProcess)",
-          "line": 13075
+          "kif": "(subclass Breathing AutonomicProcess)",
+          "line": 13076
         },
         {
           "file": "Merge.kif",
@@ -25697,8 +25715,8 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass OrganismProcess PhysiologicProcess)",
-          "line": 13012
+          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
+          "line": 12985
         },
         {
           "file": "Merge.kif",
@@ -28814,7 +28832,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 410,
-      "proof_steps": 21,
+      "proof_steps": 25,
       "axioms": [
         {
           "file": "Merge.kif",
@@ -28857,9 +28875,29 @@ The app verifies master, constituents, and engine inputs before replaying only t
           "line": 7071
         },
         {
+          "file": "Geography.kif",
+          "kif": "(instance SouthAtlanticOcean SaltWaterArea)",
+          "line": 7070
+        },
+        {
           "file": "Merge.kif",
-          "kif": "(subclass SelfConnectedObject Object)",
-          "line": 961
+          "kif": "(subclass SaltWaterArea WaterArea)",
+          "line": 18254
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass WaterArea GeographicArea)",
+          "line": 18234
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass GeographicArea Region)",
+          "line": 18124
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass Region Object)",
+          "line": 1532
         },
         {
           "file": "Merge.kif",
@@ -31975,13 +32013,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing OrganismProcess)",
-          "line": 13075
+          "kif": "(subclass Breathing AutonomicProcess)",
+          "line": 13076
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass OrganismProcess PhysiologicProcess)",
-          "line": 13012
+          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
+          "line": 12985
         },
         {
           "file": "Merge.kif",
@@ -32082,8 +32120,8 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing AutonomicProcess)",
-          "line": 13076
+          "kif": "(subclass Breathing OrganismProcess)",
+          "line": 13075
         },
         {
           "file": "Merge.kif",
@@ -32097,8 +32135,8 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
-          "line": 12985
+          "kif": "(subclass OrganismProcess PhysiologicProcess)",
+          "line": 13012
         },
         {
           "file": "Merge.kif",
@@ -32950,7 +32988,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 550,
-      "proof_steps": 30,
+      "proof_steps": 28,
       "axioms": [
         {
           "file": "Cellular&TelephoneArchitecture.kif",
@@ -32986,11 +33024,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
           "file": "Merge.kif",
           "kif": "(instance meetsSpatially IrreflexiveRelation)",
           "line": 12338
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subrelation overlapsSpatially connected)",
-          "line": 5011
         },
         {
           "file": "Merge.kif",
@@ -33036,6 +33069,11 @@ The app verifies master, constituents, and engine inputs before replaying only t
           "file": "Merge.kif",
           "kif": "(subclass Region Object)",
           "line": 1532
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subrelation overlapsSpatially connected)",
+          "line": 5011
         }
       ]
     },
@@ -33119,7 +33157,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 550,
-      "proof_steps": 30,
+      "proof_steps": 28,
       "axioms": [
         {
           "file": "Cellular&TelephoneArchitecture.kif",
@@ -33155,11 +33193,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
           "file": "Merge.kif",
           "kif": "(instance meetsSpatially IrreflexiveRelation)",
           "line": 12338
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subrelation overlapsSpatially connected)",
-          "line": 5011
         },
         {
           "file": "Merge.kif",
@@ -33205,6 +33238,11 @@ The app verifies master, constituents, and engine inputs before replaying only t
           "file": "Merge.kif",
           "kif": "(subclass Region Object)",
           "line": 1532
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subrelation overlapsSpatially connected)",
+          "line": 5011
         }
       ]
     },
@@ -33338,7 +33376,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 550,
-      "proof_steps": 63,
+      "proof_steps": 62,
       "axioms": [
         {
           "file": "CountriesAndRegions.kif",
@@ -33477,11 +33515,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subrelation overlapsSpatially connected)",
-          "line": 5011
-        },
-        {
-          "file": "Merge.kif",
           "kif": "(=> (and (part ?OBJ3 ?OBJ1) (part ?OBJ3 ?OBJ2)) (overlapsSpatially ?OBJ1 ?OBJ2))",
           "line": 12357
         },
@@ -33502,6 +33535,11 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
+          "kif": "(subrelation overlapsSpatially connected)",
+          "line": 5011
+        },
+        {
+          "file": "Merge.kif",
           "kif": "(instance connected SymmetricRelation)",
           "line": 12259
         }
@@ -33510,7 +33548,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 550,
-      "proof_steps": 81,
+      "proof_steps": 80,
       "axioms": [
         {
           "file": "Merge.kif",
@@ -33717,7 +33755,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 550,
-      "proof_steps": 104,
+      "proof_steps": 103,
       "axioms": [
         {
           "file": "Merge.kif",
@@ -34038,13 +34076,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing OrganismProcess)",
-          "line": 13075
+          "kif": "(subclass Breathing AutonomicProcess)",
+          "line": 13076
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass OrganismProcess PhysiologicProcess)",
-          "line": 13012
+          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
+          "line": 12985
         },
         {
           "file": "Merge.kif",
@@ -34712,7 +34750,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 573,
-      "proof_steps": 19,
+      "proof_steps": 18,
       "axioms": [
         {
           "file": "Merge.kif",
@@ -34731,18 +34769,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Military.kif",
-          "kif": "(instance USMilitaryRankWO3 USWarrantOfficerRank)",
-          "line": 832
+          "kif": "(instance USMilitaryRankWO3 USMilitaryRank)",
+          "line": 833
         },
         {
           "file": "Military.kif",
-          "kif": "(subclass USWarrantOfficerRank CommissionedOfficerRank)",
-          "line": 807
-        },
-        {
-          "file": "Military.kif",
-          "kif": "(subclass CommissionedOfficerRank MilitaryRank)",
-          "line": 508
+          "kif": "(subclass USMilitaryRank MilitaryRank)",
+          "line": 493
         },
         {
           "file": "Military.kif",
