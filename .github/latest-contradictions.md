@@ -1641,16 +1641,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Process Physical)
 ```
 
-#### Merge.kif:13075
+#### Merge.kif:13076
 
 ```lisp
-(subclass Breathing OrganismProcess)
+(subclass Breathing AutonomicProcess)
 ```
 
-#### Merge.kif:13012
+#### Merge.kif:12985
 
 ```lisp
-(subclass OrganismProcess PhysiologicProcess)
+(subclass AutonomicProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -1724,10 +1724,10 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass PartialOrderingRelation TransitiveRelation)
 ```
 
-#### Merge.kif:13076
+#### Merge.kif:13075
 
 ```lisp
-(subclass Breathing AutonomicProcess)
+(subclass Breathing OrganismProcess)
 ```
 
 #### Merge.kif:929
@@ -1742,10 +1742,10 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Process Physical)
 ```
 
-#### Merge.kif:12985
+#### Merge.kif:13012
 
 ```lisp
-(subclass AutonomicProcess PhysiologicProcess)
+(subclass OrganismProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -2010,7 +2010,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `25`
+- Proof steps reported by Sigma: `21`
 
 ### Cited source axioms
 
@@ -2062,34 +2062,10 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance NorthAtlanticOcean BodyOfWater)
 ```
 
-#### Geography.kif:7056
+#### Merge.kif:961
 
 ```lisp
-(instance NorthAtlanticOcean SaltWaterArea)
-```
-
-#### Merge.kif:18254
-
-```lisp
-(subclass SaltWaterArea WaterArea)
-```
-
-#### Merge.kif:18234
-
-```lisp
-(subclass WaterArea GeographicArea)
-```
-
-#### Merge.kif:18124
-
-```lisp
-(subclass GeographicArea Region)
-```
-
-#### Merge.kif:1532
-
-```lisp
-(subclass Region Object)
+(subclass SelfConnectedObject Object)
 ```
 
 #### Merge.kif:946
@@ -2444,7 +2420,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `25`
+- Proof steps reported by Sigma: `21`
 
 ### Cited source axioms
 
@@ -2496,34 +2472,10 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance SouthPacificOcean BodyOfWater)
 ```
 
-#### Geography.kif:7135
+#### Merge.kif:961
 
 ```lisp
-(instance SouthPacificOcean SaltWaterArea)
-```
-
-#### Merge.kif:18254
-
-```lisp
-(subclass SaltWaterArea WaterArea)
-```
-
-#### Merge.kif:18234
-
-```lisp
-(subclass WaterArea GeographicArea)
-```
-
-#### Merge.kif:18124
-
-```lisp
-(subclass GeographicArea Region)
-```
-
-#### Merge.kif:1532
-
-```lisp
-(subclass Region Object)
+(subclass SelfConnectedObject Object)
 ```
 
 #### Merge.kif:946
@@ -11114,7 +11066,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `27`
+- Proof steps reported by Sigma: `28`
 
 ### Cited source axioms
 
@@ -11202,10 +11154,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance instance BinaryPredicate)
 ```
 
-#### Merge.kif:4214
+#### Merge.kif:4396
 
 ```lisp
-(subclass Predicate Relation)
+(subclass BinaryPredicate BinaryRelation)
+```
+
+#### Merge.kif:2918
+
+```lisp
+(subclass BinaryRelation Relation)
 ```
 
 #### Merge.kif:2843
@@ -11315,22 +11273,22 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (domain memberType 1 Collection)
 ```
 
-#### Merge.kif:768
+#### Merge.kif:767
 
 ```lisp
-(instance subAttribute PartialOrderingRelation)
+(instance subAttribute BinaryPredicate)
 ```
 
-#### Merge.kif:3077
+#### Merge.kif:4396
 
 ```lisp
-(subclass PartialOrderingRelation TotalValuedRelation)
+(subclass BinaryPredicate BinaryRelation)
 ```
 
-#### Merge.kif:2884
+#### Merge.kif:2918
 
 ```lisp
-(subclass TotalValuedRelation Relation)
+(subclass BinaryRelation Relation)
 ```
 
 #### Merge.kif:2843
@@ -11453,95 +11411,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `21`
-
-### Cited source axioms
-
-#### Merge.kif:3839
-
-```lisp
-(=> (and (domainSubclass ?REL ?NUMBER ?CLASS) (instance ?REL Predicate) (?REL @ROW)) (exists (?ARG) (and (equal ?ARG (ListOrderFn (ListFn @ROW) ?NUMBER)) (instance ?ARG Class) (subclass ?ARG ?CLASS))))
-```
-
-#### Merge.kif:355
-
-```lisp
-(domainSubclass rangeSubclass 2 Class)
-```
-
-#### Merge.kif:353
-
-```lisp
-(instance rangeSubclass BinaryPredicate)
-```
-
-#### Merge.kif:4395
-
-```lisp
-(subclass BinaryPredicate Predicate)
-```
-
-#### Merge.kif:19245
-
-```lisp
-(rangeSubclass FoodForFn SelfConnectedObject)
-```
-
-#### Merge.kif:146
-
-```lisp
-(=> (and (subclass ?X ?Y) (instance ?Z ?X)) (instance ?Z ?Y))
-```
-
-#### Geography.kif:6970
-
-```lisp
-(subclass BodyOfWater SelfConnectedObject)
-```
-
-#### Geography.kif:7057
-
-```lisp
-(instance NorthAtlanticOcean BodyOfWater)
-```
-
-#### Merge.kif:961
-
-```lisp
-(subclass SelfConnectedObject Object)
-```
-
-#### Merge.kif:946
-
-```lisp
-(subclass Object Physical)
-```
-
-#### Merge.kif:2814
-
-```lisp
-(subclass Class SetOrClass)
-```
-
-#### Merge.kif:2803
-
-```lisp
-(subclass SetOrClass Abstract)
-```
-
-#### Merge.kif:911
-
-```lisp
-(partition Entity Physical Abstract)
-```
-
-## Contradiction 146
-
-- Seed: `0`
-- Start step: `410`
-- Axioms to check: `1`
-- Axioms per subproblem: `1`
-- Backend: `SUPr`
 - Proof steps reported by Sigma: `25`
 
 ### Cited source axioms
@@ -11648,7 +11517,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (partition Entity Physical Abstract)
 ```
 
-## Contradiction 147
+## Contradiction 146
 
 - Seed: `0`
 - Start step: `410`
@@ -11761,7 +11630,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (partition Entity Physical Abstract)
 ```
 
-## Contradiction 148
+## Contradiction 147
 
 - Seed: `0`
 - Start step: `422`
@@ -11838,7 +11707,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 149
+## Contradiction 148
 
 - Seed: `0`
 - Start step: `422`
@@ -11889,6 +11758,95 @@ The app verifies master, constituents, and engine inputs before replaying only t
 
 ```lisp
 (geographicSubregion SierraNevada California)
+```
+
+#### Geography.kif:6432
+
+```lisp
+(subclass MountainRange LandForm)
+```
+
+#### Merge.kif:18156
+
+```lisp
+(subclass LandForm GeographicArea)
+```
+
+#### Merge.kif:18124
+
+```lisp
+(subclass GeographicArea Region)
+```
+
+#### Merge.kif:1532
+
+```lisp
+(subclass Region Object)
+```
+
+## Contradiction 149
+
+- Seed: `0`
+- Start step: `422`
+- Axioms to check: `1`
+- Axioms per subproblem: `1`
+- Backend: `SUPr`
+- Proof steps reported by Sigma: `21`
+
+### Cited source axioms
+
+#### Cellular&TelephoneArchitecture.kif:1161
+
+```lisp
+(and (instance ?X MobileCellPhone) (instance ?P PublicSwitchedTelephoneNetwork) (not (component ?X ?P)))
+```
+
+#### Geography.kif:6439
+
+```lisp
+(=> (and (instance ?Range MountainRange) (part ?Mountain1 ?Range)) (exists (?Mountain2) (and (component ?Mountain2 ?Range) (instance ?Mountain2 Mountain) (meetsSpatially ?Mountain1 ?Mountain2))))
+```
+
+#### Geography.kif:1411
+
+```lisp
+(instance SierraNevada MountainRange)
+```
+
+#### Merge.kif:12350
+
+```lisp
+(=> (overlapsSpatially ?OBJ1 ?OBJ2) (exists (?OBJ3) (and (part ?OBJ3 ?OBJ1) (part ?OBJ3 ?OBJ2))))
+```
+
+#### Merge.kif:5045
+
+```lisp
+(=> (and (instance ?OBJ1 Object) (partlyLocated ?OBJ1 ?OBJ2)) (overlapsSpatially ?OBJ1 ?OBJ2))
+```
+
+#### Merge.kif:5063
+
+```lisp
+(subrelation located partlyLocated)
+```
+
+#### Merge.kif:18146
+
+```lisp
+(subrelation geographicSubregion located)
+```
+
+#### Geography.kif:1418
+
+```lisp
+(geographicSubregion SierraNevada Nevada)
+```
+
+#### Merge.kif:5016
+
+```lisp
+(instance overlapsSpatially SymmetricRelation)
 ```
 
 #### Geography.kif:6432
@@ -11968,95 +11926,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subrelation geographicSubregion located)
 ```
 
-#### Geography.kif:1418
-
-```lisp
-(geographicSubregion SierraNevada Nevada)
-```
-
-#### Merge.kif:5016
-
-```lisp
-(instance overlapsSpatially SymmetricRelation)
-```
-
-#### Geography.kif:6432
-
-```lisp
-(subclass MountainRange LandForm)
-```
-
-#### Merge.kif:18156
-
-```lisp
-(subclass LandForm GeographicArea)
-```
-
-#### Merge.kif:18124
-
-```lisp
-(subclass GeographicArea Region)
-```
-
-#### Merge.kif:1532
-
-```lisp
-(subclass Region Object)
-```
-
-## Contradiction 151
-
-- Seed: `0`
-- Start step: `422`
-- Axioms to check: `1`
-- Axioms per subproblem: `1`
-- Backend: `SUPr`
-- Proof steps reported by Sigma: `21`
-
-### Cited source axioms
-
-#### Cellular&TelephoneArchitecture.kif:1161
-
-```lisp
-(and (instance ?X MobileCellPhone) (instance ?P PublicSwitchedTelephoneNetwork) (not (component ?X ?P)))
-```
-
-#### Geography.kif:6439
-
-```lisp
-(=> (and (instance ?Range MountainRange) (part ?Mountain1 ?Range)) (exists (?Mountain2) (and (component ?Mountain2 ?Range) (instance ?Mountain2 Mountain) (meetsSpatially ?Mountain1 ?Mountain2))))
-```
-
-#### Geography.kif:1411
-
-```lisp
-(instance SierraNevada MountainRange)
-```
-
-#### Merge.kif:12350
-
-```lisp
-(=> (overlapsSpatially ?OBJ1 ?OBJ2) (exists (?OBJ3) (and (part ?OBJ3 ?OBJ1) (part ?OBJ3 ?OBJ2))))
-```
-
-#### Merge.kif:5045
-
-```lisp
-(=> (and (instance ?OBJ1 Object) (partlyLocated ?OBJ1 ?OBJ2)) (overlapsSpatially ?OBJ1 ?OBJ2))
-```
-
-#### Merge.kif:5063
-
-```lisp
-(subrelation located partlyLocated)
-```
-
-#### Merge.kif:18146
-
-```lisp
-(subrelation geographicSubregion located)
-```
-
 #### Geography.kif:1417
 
 ```lisp
@@ -12093,7 +11962,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 152
+## Contradiction 151
 
 - Seed: `0`
 - Start step: `422`
@@ -12182,7 +12051,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 153
+## Contradiction 152
 
 - Seed: `0`
 - Start step: `422`
@@ -12223,7 +12092,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (=> (instance ?AREA MountainRange) (attribute ?AREA MountainousTerrain))
 ```
 
-## Contradiction 154
+## Contradiction 153
 
 - Seed: `0`
 - Start step: `422`
@@ -12300,7 +12169,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 155
+## Contradiction 154
 
 - Seed: `0`
 - Start step: `422`
@@ -12389,7 +12258,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 156
+## Contradiction 155
 
 - Seed: `0`
 - Start step: `422`
@@ -12484,7 +12353,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 157
+## Contradiction 156
 
 - Seed: `0`
 - Start step: `422`
@@ -12579,7 +12448,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 158
+## Contradiction 157
 
 - Seed: `0`
 - Start step: `422`
@@ -12668,7 +12537,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 159
+## Contradiction 158
 
 - Seed: `0`
 - Start step: `422`
@@ -12775,7 +12644,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 160
+## Contradiction 159
 
 - Seed: `0`
 - Start step: `422`
@@ -12876,7 +12745,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 161
+## Contradiction 160
 
 - Seed: `0`
 - Start step: `422`
@@ -12953,7 +12822,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 162
+## Contradiction 161
 
 - Seed: `0`
 - Start step: `422`
@@ -13036,7 +12905,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 163
+## Contradiction 162
 
 - Seed: `0`
 - Start step: `422`
@@ -13143,7 +13012,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 164
+## Contradiction 163
 
 - Seed: `0`
 - Start step: `422`
@@ -13232,7 +13101,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 165
+## Contradiction 164
 
 - Seed: `0`
 - Start step: `422`
@@ -13345,7 +13214,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 166
+## Contradiction 165
 
 - Seed: `0`
 - Start step: `422`
@@ -13396,6 +13265,95 @@ The app verifies master, constituents, and engine inputs before replaying only t
 
 ```lisp
 (geographicSubregion CaliforniaCoastRanges California)
+```
+
+#### Geography.kif:6432
+
+```lisp
+(subclass MountainRange LandForm)
+```
+
+#### Merge.kif:18156
+
+```lisp
+(subclass LandForm GeographicArea)
+```
+
+#### Merge.kif:18124
+
+```lisp
+(subclass GeographicArea Region)
+```
+
+#### Merge.kif:1532
+
+```lisp
+(subclass Region Object)
+```
+
+## Contradiction 166
+
+- Seed: `0`
+- Start step: `422`
+- Axioms to check: `1`
+- Axioms per subproblem: `1`
+- Backend: `SUPr`
+- Proof steps reported by Sigma: `21`
+
+### Cited source axioms
+
+#### Cellular&TelephoneArchitecture.kif:1161
+
+```lisp
+(and (instance ?X MobileCellPhone) (instance ?P PublicSwitchedTelephoneNetwork) (not (component ?X ?P)))
+```
+
+#### Geography.kif:6439
+
+```lisp
+(=> (and (instance ?Range MountainRange) (part ?Mountain1 ?Range)) (exists (?Mountain2) (and (component ?Mountain2 ?Range) (instance ?Mountain2 Mountain) (meetsSpatially ?Mountain1 ?Mountain2))))
+```
+
+#### Geography.kif:443
+
+```lisp
+(instance CaliforniaCoastRanges MountainRange)
+```
+
+#### Merge.kif:12350
+
+```lisp
+(=> (overlapsSpatially ?OBJ1 ?OBJ2) (exists (?OBJ3) (and (part ?OBJ3 ?OBJ1) (part ?OBJ3 ?OBJ2))))
+```
+
+#### Merge.kif:5045
+
+```lisp
+(=> (and (instance ?OBJ1 Object) (partlyLocated ?OBJ1 ?OBJ2)) (overlapsSpatially ?OBJ1 ?OBJ2))
+```
+
+#### Merge.kif:5063
+
+```lisp
+(subrelation located partlyLocated)
+```
+
+#### Merge.kif:18146
+
+```lisp
+(subrelation geographicSubregion located)
+```
+
+#### Geography.kif:452
+
+```lisp
+(geographicSubregion CaliforniaCoastRanges California)
+```
+
+#### Merge.kif:5016
+
+```lisp
+(instance overlapsSpatially SymmetricRelation)
 ```
 
 #### Geography.kif:6432
@@ -13429,7 +13387,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `21`
+- Proof steps reported by Sigma: `22`
 
 ### Cited source axioms
 
@@ -13457,10 +13415,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (=> (overlapsSpatially ?OBJ1 ?OBJ2) (exists (?OBJ3) (and (part ?OBJ3 ?OBJ1) (part ?OBJ3 ?OBJ2))))
 ```
 
-#### Merge.kif:5045
+#### Merge.kif:12357
 
 ```lisp
-(=> (and (instance ?OBJ1 Object) (partlyLocated ?OBJ1 ?OBJ2)) (overlapsSpatially ?OBJ1 ?OBJ2))
+(=> (and (part ?OBJ3 ?OBJ1) (part ?OBJ3 ?OBJ2)) (overlapsSpatially ?OBJ1 ?OBJ2))
+```
+
+#### Merge.kif:5051
+
+```lisp
+(=> (and (instance ?OBJ1 Object) (partlyLocated ?OBJ1 ?OBJ2)) (exists (?SUB) (and (part ?SUB ?OBJ1) (located ?SUB ?OBJ2))))
 ```
 
 #### Merge.kif:5063
@@ -13479,12 +13443,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
 
 ```lisp
 (geographicSubregion CaliforniaCoastRanges California)
-```
-
-#### Merge.kif:5016
-
-```lisp
-(instance overlapsSpatially SymmetricRelation)
 ```
 
 #### Geography.kif:6432
@@ -13518,95 +13476,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `22`
-
-### Cited source axioms
-
-#### Cellular&TelephoneArchitecture.kif:1161
-
-```lisp
-(and (instance ?X MobileCellPhone) (instance ?P PublicSwitchedTelephoneNetwork) (not (component ?X ?P)))
-```
-
-#### Geography.kif:6439
-
-```lisp
-(=> (and (instance ?Range MountainRange) (part ?Mountain1 ?Range)) (exists (?Mountain2) (and (component ?Mountain2 ?Range) (instance ?Mountain2 Mountain) (meetsSpatially ?Mountain1 ?Mountain2))))
-```
-
-#### Geography.kif:443
-
-```lisp
-(instance CaliforniaCoastRanges MountainRange)
-```
-
-#### Merge.kif:12350
-
-```lisp
-(=> (overlapsSpatially ?OBJ1 ?OBJ2) (exists (?OBJ3) (and (part ?OBJ3 ?OBJ1) (part ?OBJ3 ?OBJ2))))
-```
-
-#### Merge.kif:12357
-
-```lisp
-(=> (and (part ?OBJ3 ?OBJ1) (part ?OBJ3 ?OBJ2)) (overlapsSpatially ?OBJ1 ?OBJ2))
-```
-
-#### Merge.kif:5051
-
-```lisp
-(=> (and (instance ?OBJ1 Object) (partlyLocated ?OBJ1 ?OBJ2)) (exists (?SUB) (and (part ?SUB ?OBJ1) (located ?SUB ?OBJ2))))
-```
-
-#### Merge.kif:5063
-
-```lisp
-(subrelation located partlyLocated)
-```
-
-#### Merge.kif:18146
-
-```lisp
-(subrelation geographicSubregion located)
-```
-
-#### Geography.kif:452
-
-```lisp
-(geographicSubregion CaliforniaCoastRanges California)
-```
-
-#### Geography.kif:6432
-
-```lisp
-(subclass MountainRange LandForm)
-```
-
-#### Merge.kif:18156
-
-```lisp
-(subclass LandForm GeographicArea)
-```
-
-#### Merge.kif:18124
-
-```lisp
-(subclass GeographicArea Region)
-```
-
-#### Merge.kif:1532
-
-```lisp
-(subclass Region Object)
-```
-
-## Contradiction 169
-
-- Seed: `0`
-- Start step: `422`
-- Axioms to check: `1`
-- Axioms per subproblem: `1`
-- Backend: `SUPr`
 - Proof steps reported by Sigma: `8`
 
 ### Cited source axioms
@@ -13641,7 +13510,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (=> (instance ?AREA MountainRange) (attribute ?AREA MountainousTerrain))
 ```
 
-## Contradiction 170
+## Contradiction 169
 
 - Seed: `0`
 - Start step: `422`
@@ -13692,6 +13561,95 @@ The app verifies master, constituents, and engine inputs before replaying only t
 
 ```lisp
 (geographicSubregion PeninsularRanges California)
+```
+
+#### Geography.kif:6432
+
+```lisp
+(subclass MountainRange LandForm)
+```
+
+#### Merge.kif:18156
+
+```lisp
+(subclass LandForm GeographicArea)
+```
+
+#### Merge.kif:18124
+
+```lisp
+(subclass GeographicArea Region)
+```
+
+#### Merge.kif:1532
+
+```lisp
+(subclass Region Object)
+```
+
+## Contradiction 170
+
+- Seed: `0`
+- Start step: `422`
+- Axioms to check: `1`
+- Axioms per subproblem: `1`
+- Backend: `SUPr`
+- Proof steps reported by Sigma: `21`
+
+### Cited source axioms
+
+#### Cellular&TelephoneArchitecture.kif:1161
+
+```lisp
+(and (instance ?X MobileCellPhone) (instance ?P PublicSwitchedTelephoneNetwork) (not (component ?X ?P)))
+```
+
+#### Geography.kif:6439
+
+```lisp
+(=> (and (instance ?Range MountainRange) (part ?Mountain1 ?Range)) (exists (?Mountain2) (and (component ?Mountain2 ?Range) (instance ?Mountain2 Mountain) (meetsSpatially ?Mountain1 ?Mountain2))))
+```
+
+#### Geography.kif:1373
+
+```lisp
+(instance PeninsularRanges MountainRange)
+```
+
+#### Merge.kif:12350
+
+```lisp
+(=> (overlapsSpatially ?OBJ1 ?OBJ2) (exists (?OBJ3) (and (part ?OBJ3 ?OBJ1) (part ?OBJ3 ?OBJ2))))
+```
+
+#### Merge.kif:5045
+
+```lisp
+(=> (and (instance ?OBJ1 Object) (partlyLocated ?OBJ1 ?OBJ2)) (overlapsSpatially ?OBJ1 ?OBJ2))
+```
+
+#### Merge.kif:5063
+
+```lisp
+(subrelation located partlyLocated)
+```
+
+#### Merge.kif:18146
+
+```lisp
+(subrelation geographicSubregion located)
+```
+
+#### Geography.kif:1383
+
+```lisp
+(geographicSubregion PeninsularRanges California)
+```
+
+#### Merge.kif:5016
+
+```lisp
+(instance overlapsSpatially SymmetricRelation)
 ```
 
 #### Geography.kif:6432
@@ -13725,95 +13683,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `21`
-
-### Cited source axioms
-
-#### Cellular&TelephoneArchitecture.kif:1161
-
-```lisp
-(and (instance ?X MobileCellPhone) (instance ?P PublicSwitchedTelephoneNetwork) (not (component ?X ?P)))
-```
-
-#### Geography.kif:6439
-
-```lisp
-(=> (and (instance ?Range MountainRange) (part ?Mountain1 ?Range)) (exists (?Mountain2) (and (component ?Mountain2 ?Range) (instance ?Mountain2 Mountain) (meetsSpatially ?Mountain1 ?Mountain2))))
-```
-
-#### Geography.kif:1373
-
-```lisp
-(instance PeninsularRanges MountainRange)
-```
-
-#### Merge.kif:12350
-
-```lisp
-(=> (overlapsSpatially ?OBJ1 ?OBJ2) (exists (?OBJ3) (and (part ?OBJ3 ?OBJ1) (part ?OBJ3 ?OBJ2))))
-```
-
-#### Merge.kif:5045
-
-```lisp
-(=> (and (instance ?OBJ1 Object) (partlyLocated ?OBJ1 ?OBJ2)) (overlapsSpatially ?OBJ1 ?OBJ2))
-```
-
-#### Merge.kif:5063
-
-```lisp
-(subrelation located partlyLocated)
-```
-
-#### Merge.kif:18146
-
-```lisp
-(subrelation geographicSubregion located)
-```
-
-#### Geography.kif:1383
-
-```lisp
-(geographicSubregion PeninsularRanges California)
-```
-
-#### Merge.kif:5016
-
-```lisp
-(instance overlapsSpatially SymmetricRelation)
-```
-
-#### Geography.kif:6432
-
-```lisp
-(subclass MountainRange LandForm)
-```
-
-#### Merge.kif:18156
-
-```lisp
-(subclass LandForm GeographicArea)
-```
-
-#### Merge.kif:18124
-
-```lisp
-(subclass GeographicArea Region)
-```
-
-#### Merge.kif:1532
-
-```lisp
-(subclass Region Object)
-```
-
-## Contradiction 172
-
-- Seed: `0`
-- Start step: `422`
-- Axioms to check: `1`
-- Axioms per subproblem: `1`
-- Backend: `SUPr`
 - Proof steps reported by Sigma: `22`
 
 ### Cited source axioms
@@ -13896,7 +13765,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 173
+## Contradiction 172
 
 - Seed: `0`
 - Start step: `422`
@@ -13937,7 +13806,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (=> (instance ?AREA MountainRange) (attribute ?AREA MountainousTerrain))
 ```
 
-## Contradiction 174
+## Contradiction 173
 
 - Seed: `0`
 - Start step: `422`
@@ -14014,7 +13883,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 175
+## Contradiction 174
 
 - Seed: `0`
 - Start step: `422`
@@ -14103,7 +13972,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 176
+## Contradiction 175
 
 - Seed: `0`
 - Start step: `422`
@@ -14192,7 +14061,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 177
+## Contradiction 176
 
 - Seed: `0`
 - Start step: `422`
@@ -14233,7 +14102,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (=> (instance ?AREA MountainRange) (attribute ?AREA MountainousTerrain))
 ```
 
-## Contradiction 178
+## Contradiction 177
 
 - Seed: `0`
 - Start step: `422`
@@ -14316,7 +14185,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (geographicSubregion SierraNevada Nevada)
 ```
 
-## Contradiction 179
+## Contradiction 178
 
 - Seed: `0`
 - Start step: `422`
@@ -14399,7 +14268,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (geographicSubregion SierraNevada California)
 ```
 
-## Contradiction 180
+## Contradiction 179
 
 - Seed: `0`
 - Start step: `422`
@@ -14482,7 +14351,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (geographicSubregion RockyMountains NorthAmerica)
 ```
 
-## Contradiction 181
+## Contradiction 180
 
 - Seed: `0`
 - Start step: `422`
@@ -14583,7 +14452,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance NorthAmerica GeographicArea)
 ```
 
-## Contradiction 182
+## Contradiction 181
 
 - Seed: `0`
 - Start step: `422`
@@ -14684,7 +14553,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance NorthAmerica GeographicArea)
 ```
 
-## Contradiction 183
+## Contradiction 182
 
 - Seed: `0`
 - Start step: `422`
@@ -14791,7 +14660,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance overlapsSpatially SymmetricRelation)
 ```
 
-## Contradiction 184
+## Contradiction 183
 
 - Seed: `0`
 - Start step: `422`
@@ -14874,7 +14743,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (geographicSubregion AndesMountains SouthAmerica)
 ```
 
-## Contradiction 185
+## Contradiction 184
 
 - Seed: `0`
 - Start step: `422`
@@ -14987,7 +14856,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass LandArea GeographicArea)
 ```
 
-## Contradiction 186
+## Contradiction 185
 
 - Seed: `0`
 - Start step: `422`
@@ -15076,7 +14945,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance overlapsSpatially SymmetricRelation)
 ```
 
-## Contradiction 187
+## Contradiction 186
 
 - Seed: `0`
 - Start step: `422`
@@ -15195,7 +15064,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance overlapsSpatially SymmetricRelation)
 ```
 
-## Contradiction 188
+## Contradiction 187
 
 - Seed: `0`
 - Start step: `422`
@@ -15278,7 +15147,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (geographicSubregion CaliforniaCoastRanges California)
 ```
 
-## Contradiction 189
+## Contradiction 188
 
 - Seed: `0`
 - Start step: `452`
@@ -15307,7 +15176,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (diseaseSymptom CrimeanCongoHemorrhagicFever Fever)
 ```
 
-## Contradiction 190
+## Contradiction 189
 
 - Seed: `0`
 - Start step: `452`
@@ -15336,7 +15205,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Arachnid Arthropod)
 ```
 
-## Contradiction 191
+## Contradiction 190
 
 - Seed: `0`
 - Start step: `452`
@@ -15365,7 +15234,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Rodent Mammal)
 ```
 
-## Contradiction 192
+## Contradiction 191
 
 - Seed: `0`
 - Start step: `474`
@@ -15508,7 +15377,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass InternalChange Process)
 ```
 
-## Contradiction 193
+## Contradiction 192
 
 - Seed: `0`
 - Start step: `474`
@@ -15651,7 +15520,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass InternalChange Process)
 ```
 
-## Contradiction 194
+## Contradiction 193
 
 - Seed: `0`
 - Start step: `475`
@@ -15698,7 +15567,279 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))
 ```
 
+## Contradiction 194
+
+- Seed: `0`
+- Start step: `475`
+- Axioms to check: `1`
+- Axioms per subproblem: `1`
+- Backend: `SUPr`
+- Proof steps reported by Sigma: `21`
+
+### Cited source axioms
+
+#### Merge.kif:3828
+
+```lisp
+(=> (and (domain ?REL ?NUMBER ?CLASS) (instance ?REL Predicate) (?REL @ROW)) (instance (ListOrderFn (ListFn @ROW) ?NUMBER) ?CLASS))
+```
+
+#### Merge.kif:146
+
+```lisp
+(=> (and (subclass ?X ?Y) (instance ?Z ?X)) (instance ?Z ?Y))
+```
+
+#### Merge.kif:4395
+
+```lisp
+(subclass BinaryPredicate Predicate)
+```
+
+#### Merge.kif:135
+
+```lisp
+(instance subclass BinaryPredicate)
+```
+
+#### Merge.kif:14696
+
+```lisp
+(subclass Touching Transfer)
+```
+
+#### Merge.kif:14457
+
+```lisp
+(subclass Transfer Translocation)
+```
+
+#### Merge.kif:14800
+
+```lisp
+(subclass Translocation Motion)
+```
+
+#### Merge.kif:14063
+
+```lisp
+(subclass Motion Process)
+```
+
+#### Merge.kif:2120
+
+```lisp
+(subclass Process Physical)
+```
+
+#### Merge.kif:929
+
+```lisp
+(subclass Physical Entity)
+```
+
+#### Merge.kif:137
+
+```lisp
+(domain subclass 1 Class)
+```
+
+#### Merge.kif:925
+
+```lisp
+(=> (instance ?CLASS Class) (subclass ?CLASS Entity))
+```
+
+#### WMD.kif:760
+
+```lisp
+(=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))
+```
+
+#### WMD.kif:178
+
+```lisp
+(biochemicalAgentDelivery BacterialAgent Touching)
+```
+
 ## Contradiction 195
+
+- Seed: `0`
+- Start step: `475`
+- Axioms to check: `1`
+- Axioms per subproblem: `1`
+- Backend: `SUPr`
+- Proof steps reported by Sigma: `15`
+
+### Cited source axioms
+
+#### Merge.kif:3828
+
+```lisp
+(=> (and (domain ?REL ?NUMBER ?CLASS) (instance ?REL Predicate) (?REL @ROW)) (instance (ListOrderFn (ListFn @ROW) ?NUMBER) ?CLASS))
+```
+
+#### Merge.kif:146
+
+```lisp
+(=> (and (subclass ?X ?Y) (instance ?Z ?X)) (instance ?Z ?Y))
+```
+
+#### Merge.kif:4395
+
+```lisp
+(subclass BinaryPredicate Predicate)
+```
+
+#### Merge.kif:135
+
+```lisp
+(instance subclass BinaryPredicate)
+```
+
+#### Merge.kif:137
+
+```lisp
+(domain subclass 1 Class)
+```
+
+#### Merge.kif:925
+
+```lisp
+(=> (instance ?CLASS Class) (subclass ?CLASS Entity))
+```
+
+#### WMD.kif:760
+
+```lisp
+(=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))
+```
+
+#### WMD.kif:177
+
+```lisp
+(biochemicalAgentDelivery BacterialAgent Breathing)
+```
+
+## Contradiction 196
+
+- Seed: `0`
+- Start step: `475`
+- Axioms to check: `1`
+- Axioms per subproblem: `1`
+- Backend: `SUPr`
+- Proof steps reported by Sigma: `15`
+
+### Cited source axioms
+
+#### Merge.kif:3828
+
+```lisp
+(=> (and (domain ?REL ?NUMBER ?CLASS) (instance ?REL Predicate) (?REL @ROW)) (instance (ListOrderFn (ListFn @ROW) ?NUMBER) ?CLASS))
+```
+
+#### Merge.kif:146
+
+```lisp
+(=> (and (subclass ?X ?Y) (instance ?Z ?X)) (instance ?Z ?Y))
+```
+
+#### Merge.kif:4395
+
+```lisp
+(subclass BinaryPredicate Predicate)
+```
+
+#### Merge.kif:135
+
+```lisp
+(instance subclass BinaryPredicate)
+```
+
+#### Merge.kif:138
+
+```lisp
+(domain subclass 2 Class)
+```
+
+#### Merge.kif:925
+
+```lisp
+(=> (instance ?CLASS Class) (subclass ?CLASS Entity))
+```
+
+#### WMD.kif:760
+
+```lisp
+(=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))
+```
+
+#### WMD.kif:177
+
+```lisp
+(biochemicalAgentDelivery BacterialAgent Breathing)
+```
+
+## Contradiction 197
+
+- Seed: `0`
+- Start step: `475`
+- Axioms to check: `1`
+- Axioms per subproblem: `1`
+- Backend: `SUPr`
+- Proof steps reported by Sigma: `15`
+
+### Cited source axioms
+
+#### Merge.kif:3828
+
+```lisp
+(=> (and (domain ?REL ?NUMBER ?CLASS) (instance ?REL Predicate) (?REL @ROW)) (instance (ListOrderFn (ListFn @ROW) ?NUMBER) ?CLASS))
+```
+
+#### Merge.kif:146
+
+```lisp
+(=> (and (subclass ?X ?Y) (instance ?Z ?X)) (instance ?Z ?Y))
+```
+
+#### Merge.kif:4395
+
+```lisp
+(subclass BinaryPredicate Predicate)
+```
+
+#### Merge.kif:135
+
+```lisp
+(instance subclass BinaryPredicate)
+```
+
+#### Merge.kif:138
+
+```lisp
+(domain subclass 2 Class)
+```
+
+#### Merge.kif:925
+
+```lisp
+(=> (instance ?CLASS Class) (subclass ?CLASS Entity))
+```
+
+#### WMD.kif:760
+
+```lisp
+(=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))
+```
+
+#### WMD.kif:178
+
+```lisp
+(biochemicalAgentDelivery BacterialAgent Touching)
+```
+
+## Contradiction 198
 
 - Seed: `0`
 - Start step: `476`
@@ -15727,7 +15868,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Ingesting Transfer)
 ```
 
-## Contradiction 196
+## Contradiction 199
 
 - Seed: `0`
 - Start step: `476`
@@ -15780,7 +15921,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))
 ```
 
-## Contradiction 197
+## Contradiction 200
 
 - Seed: `0`
 - Start step: `476`
@@ -15839,7 +15980,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (biochemicalAgentDelivery BurkholderiaPseudomallei Breathing)
 ```
 
-## Contradiction 198
+## Contradiction 201
 
 - Seed: `0`
 - Start step: `476`
@@ -15892,7 +16033,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))
 ```
 
-## Contradiction 199
+## Contradiction 202
 
 - Seed: `0`
 - Start step: `499`
@@ -15927,7 +16068,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Transfer Translocation)
 ```
 
-## Contradiction 200
+## Contradiction 203
 
 - Seed: `0`
 - Start step: `499`
@@ -15992,16 +16133,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (biochemicalAgentDelivery BacterialAgent Breathing)
 ```
 
-#### Merge.kif:13075
+#### Merge.kif:13076
 
 ```lisp
-(subclass Breathing OrganismProcess)
+(subclass Breathing AutonomicProcess)
 ```
 
-#### Merge.kif:13012
+#### Merge.kif:12985
 
 ```lisp
-(subclass OrganismProcess PhysiologicProcess)
+(subclass AutonomicProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -16022,7 +16163,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass InternalChange Process)
 ```
 
-## Contradiction 201
+## Contradiction 204
 
 - Seed: `0`
 - Start step: `499`
@@ -16111,7 +16252,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass InternalChange Process)
 ```
 
-## Contradiction 202
+## Contradiction 205
 
 - Seed: `0`
 - Start step: `499`
@@ -16152,7 +16293,72 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (domain objectTransferred 1 Transfer)
 ```
 
-## Contradiction 203
+## Contradiction 206
+
+- Seed: `0`
+- Start step: `499`
+- Axioms to check: `1`
+- Axioms per subproblem: `1`
+- Backend: `SUPr`
+- Proof steps reported by Sigma: `14`
+
+### Cited source axioms
+
+#### Merge.kif:233
+
+```lisp
+(=> (and (domain ?REL ?NUMBER ?CLASS1) (domain ?REL ?NUMBER ?CLASS2)) (or (subclass ?CLASS1 ?CLASS2) (subclass ?CLASS2 ?CLASS1)))
+```
+
+#### Merge.kif:3246
+
+```lisp
+(domain resource 1 Process)
+```
+
+#### WMD.kif:760
+
+```lisp
+(=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))
+```
+
+#### WMD.kif:177
+
+```lisp
+(biochemicalAgentDelivery BacterialAgent Breathing)
+```
+
+#### Merge.kif:13076
+
+```lisp
+(subclass Breathing AutonomicProcess)
+```
+
+#### Merge.kif:12985
+
+```lisp
+(subclass AutonomicProcess PhysiologicProcess)
+```
+
+#### Merge.kif:12977
+
+```lisp
+(subclass PhysiologicProcess BiologicalProcess)
+```
+
+#### Merge.kif:12953
+
+```lisp
+(subclass BiologicalProcess InternalChange)
+```
+
+#### Merge.kif:16162
+
+```lisp
+(subclass InternalChange Process)
+```
+
+## Contradiction 207
 
 - Seed: `0`
 - Start step: `499`
@@ -16217,7 +16423,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass InternalChange Process)
 ```
 
-## Contradiction 204
+## Contradiction 208
 
 - Seed: `0`
 - Start step: `499`
@@ -16288,16 +16494,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (domain objectTransferred 1 Transfer)
 ```
 
-#### Merge.kif:13075
+#### Merge.kif:13076
 
 ```lisp
-(subclass Breathing OrganismProcess)
+(subclass Breathing AutonomicProcess)
 ```
 
-#### Merge.kif:13012
+#### Merge.kif:12985
 
 ```lisp
-(subclass OrganismProcess PhysiologicProcess)
+(subclass AutonomicProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -16330,7 +16536,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Translocation Motion)
 ```
 
-## Contradiction 205
+## Contradiction 209
 
 - Seed: `0`
 - Start step: `499`
@@ -16383,7 +16589,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Translocation Motion)
 ```
 
-## Contradiction 206
+## Contradiction 210
 
 - Seed: `0`
 - Start step: `550`
@@ -16472,7 +16678,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 207
+## Contradiction 211
 
 - Seed: `0`
 - Start step: `550`
@@ -16567,7 +16773,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance overlapsSpatially SymmetricRelation)
 ```
 
-## Contradiction 208
+## Contradiction 212
 
 - Seed: `0`
 - Start step: `550`
@@ -16686,7 +16892,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subrelation properPart part)
 ```
 
-## Contradiction 209
+## Contradiction 213
 
 - Seed: `0`
 - Start step: `550`
@@ -16799,7 +17005,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subrelation overlapsSpatially connected)
 ```
 
-## Contradiction 210
+## Contradiction 214
 
 - Seed: `0`
 - Start step: `550`
@@ -16894,7 +17100,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Region Object)
 ```
 
-## Contradiction 211
+## Contradiction 215
 
 - Seed: `0`
 - Start step: `550`
@@ -17007,7 +17213,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subrelation overlapsSpatially connected)
 ```
 
-## Contradiction 212
+## Contradiction 216
 
 - Seed: `0`
 - Start step: `550`
@@ -17162,7 +17368,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance overlapsSpatially SymmetricRelation)
 ```
 
-## Contradiction 213
+## Contradiction 217
 
 - Seed: `0`
 - Start step: `550`
@@ -17371,7 +17577,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance connected SymmetricRelation)
 ```
 
-## Contradiction 214
+## Contradiction 218
 
 - Seed: `0`
 - Start step: `550`
@@ -17622,7 +17828,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass AutonomousAgent Object)
 ```
 
-## Contradiction 215
+## Contradiction 219
 
 - Seed: `0`
 - Start step: `550`
@@ -17909,7 +18115,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subrelation properPart part)
 ```
 
-## Contradiction 216
+## Contradiction 220
 
 - Seed: `0`
 - Start step: `560`
@@ -18016,16 +18222,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass Process Physical)
 ```
 
-#### Merge.kif:13076
+#### Merge.kif:13075
 
 ```lisp
-(subclass Breathing AutonomicProcess)
+(subclass Breathing OrganismProcess)
 ```
 
-#### Merge.kif:12985
+#### Merge.kif:13012
 
 ```lisp
-(subclass AutonomicProcess PhysiologicProcess)
+(subclass OrganismProcess PhysiologicProcess)
 ```
 
 #### Merge.kif:12977
@@ -18046,7 +18252,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass InternalChange Process)
 ```
 
-## Contradiction 217
+## Contradiction 221
 
 - Seed: `0`
 - Start step: `560`
@@ -18105,7 +18311,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (=> (instance ?CLASS Class) (subclass ?CLASS Entity))
 ```
 
-## Contradiction 218
+## Contradiction 222
 
 - Seed: `0`
 - Start step: `560`
@@ -18158,7 +18364,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (biochemicalAgentDelivery BacterialAgent Breathing)
 ```
 
-## Contradiction 219
+## Contradiction 223
 
 - Seed: `0`
 - Start step: `560`
@@ -18271,7 +18477,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (domain subclass 1 Class)
 ```
 
-## Contradiction 220
+## Contradiction 224
 
 - Seed: `0`
 - Start step: `560`
@@ -18396,7 +18602,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (range ListOrderFn Entity)
 ```
 
-## Contradiction 221
+## Contradiction 225
 
 - Seed: `0`
 - Start step: `560`
@@ -18521,14 +18727,14 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (range KappaFn Class)
 ```
 
-## Contradiction 222
+## Contradiction 226
 
 - Seed: `0`
 - Start step: `573`
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `18`
+- Proof steps reported by Sigma: `19`
 
 ### Cited source axioms
 
@@ -18550,10 +18756,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (and (instance ?X MobileCellPhone) (instance ?P PublicSwitchedTelephoneNetwork) (not (component ?X ?P)))
 ```
 
-#### Military.kif:845
+#### Military.kif:843
 
 ```lisp
-(instance USMilitaryRankWO4 CommissionedOfficerRank)
+(instance USMilitaryRankWO4 USWarrantOfficerRank)
+```
+
+#### Military.kif:807
+
+```lisp
+(subclass USWarrantOfficerRank CommissionedOfficerRank)
 ```
 
 #### Military.kif:508
@@ -18634,7 +18846,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (partition Entity Physical Abstract)
 ```
 
-## Contradiction 223
+## Contradiction 227
 
 - Seed: `0`
 - Start step: `573`
@@ -18663,16 +18875,16 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (and (instance ?X MobileCellPhone) (instance ?P PublicSwitchedTelephoneNetwork) (not (component ?X ?P)))
 ```
 
-#### Military.kif:822
+#### Military.kif:823
 
 ```lisp
-(instance USMilitaryRankWO2 USMilitaryRank)
+(instance USMilitaryRankWO2 CommissionedOfficerRank)
 ```
 
-#### Military.kif:493
+#### Military.kif:508
 
 ```lisp
-(subclass USMilitaryRank MilitaryRank)
+(subclass CommissionedOfficerRank MilitaryRank)
 ```
 
 #### Military.kif:484
@@ -18747,7 +18959,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (partition Entity Physical Abstract)
 ```
 
-## Contradiction 224
+## Contradiction 228
 
 - Seed: `0`
 - Start step: `573`
@@ -18842,14 +19054,14 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (partition Entity Physical Abstract)
 ```
 
-## Contradiction 225
+## Contradiction 229
 
 - Seed: `0`
 - Start step: `573`
 - Axioms to check: `1`
 - Axioms per subproblem: `1`
 - Backend: `SUPr`
-- Proof steps reported by Sigma: `18`
+- Proof steps reported by Sigma: `19`
 
 ### Cited source axioms
 
@@ -18871,16 +19083,22 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (and (instance ?X MobileCellPhone) (instance ?P PublicSwitchedTelephoneNetwork) (not (component ?X ?P)))
 ```
 
-#### Military.kif:833
+#### Military.kif:832
 
 ```lisp
-(instance USMilitaryRankWO3 USMilitaryRank)
+(instance USMilitaryRankWO3 USWarrantOfficerRank)
 ```
 
-#### Military.kif:493
+#### Military.kif:807
 
 ```lisp
-(subclass USMilitaryRank MilitaryRank)
+(subclass USWarrantOfficerRank CommissionedOfficerRank)
+```
+
+#### Military.kif:508
+
+```lisp
+(subclass CommissionedOfficerRank MilitaryRank)
 ```
 
 #### Military.kif:484
@@ -18955,7 +19173,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (partition Entity Physical Abstract)
 ```
 
-## Contradiction 226
+## Contradiction 230
 
 - Seed: `0`
 - Start step: `573`
@@ -19056,7 +19274,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (partition Entity Physical Abstract)
 ```
 
-## Contradiction 227
+## Contradiction 231
 
 - Seed: `0`
 - Start step: `573`
@@ -19085,7 +19303,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (instance IBookstore WebSite)
 ```
 
-## Contradiction 228
+## Contradiction 232
 
 - Seed: `0`
 - Start step: `583`
@@ -19114,7 +19332,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (subclass HoofedMammal Mammal)
 ```
 
-## Contradiction 229
+## Contradiction 233
 
 - Seed: `0`
 - Start step: `596`
@@ -19209,7 +19427,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
 (disjoint TotalValuedRelation PartialValuedRelation)
 ```
 
-## Contradiction 230
+## Contradiction 234
 
 - Seed: `0`
 - Start step: `596`
@@ -19304,12 +19522,12 @@ The app verifies master, constituents, and engine inputs before replaying only t
 {
   "version": 1,
   "complete": true,
-  "sumo_commit": "8d86020fc77e46353ad66167ea6ba3f66c161162",
-  "run_id": "37015586523",
+  "sumo_commit": "85ef956959adbae21564a710f86647edfe0c9587",
+  "run_id": "37123026459",
   "run_attempt": 1,
   "engine": {
-    "commit": "ad12c018ee0fa5dd557f0958b122764bac10797c",
-    "fingerprint": "f9280cb3dbe2a73bc04dc37d429d8e4dc2f6681ecf54bffb96a590f782a6fe55"
+    "commit": "d416f9f6c836d9bbab31ce028c16035d465bd54f",
+    "fingerprint": "82b958b3104df4cb7576711153b2e3ddb631e9f2094df084f7f2d9b343e352ac"
   },
   "fingerprint": "76fef8c8b329d8665e3b4ecebe5f6e2eb12b5eba0574447cc1877ce8cb777f66",
   "constituents": [
@@ -20844,13 +21062,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing OrganismProcess)",
-          "line": 13075
+          "kif": "(subclass Breathing AutonomicProcess)",
+          "line": 13076
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass OrganismProcess PhysiologicProcess)",
-          "line": 13012
+          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
+          "line": 12985
         },
         {
           "file": "Merge.kif",
@@ -20911,8 +21129,8 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing AutonomicProcess)",
-          "line": 13076
+          "kif": "(subclass Breathing OrganismProcess)",
+          "line": 13075
         },
         {
           "file": "Merge.kif",
@@ -20926,8 +21144,8 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
-          "line": 12985
+          "kif": "(subclass OrganismProcess PhysiologicProcess)",
+          "line": 13012
         },
         {
           "file": "Merge.kif",
@@ -21140,7 +21358,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 92,
-      "proof_steps": 25,
+      "proof_steps": 21,
       "axioms": [
         {
           "file": "Merge.kif",
@@ -21183,29 +21401,9 @@ The app verifies master, constituents, and engine inputs before replaying only t
           "line": 7057
         },
         {
-          "file": "Geography.kif",
-          "kif": "(instance NorthAtlanticOcean SaltWaterArea)",
-          "line": 7056
-        },
-        {
           "file": "Merge.kif",
-          "kif": "(subclass SaltWaterArea WaterArea)",
-          "line": 18254
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass WaterArea GeographicArea)",
-          "line": 18234
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass GeographicArea Region)",
-          "line": 18124
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass Region Object)",
-          "line": 1532
+          "kif": "(subclass SelfConnectedObject Object)",
+          "line": 961
         },
         {
           "file": "Merge.kif",
@@ -21493,7 +21691,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 107,
-      "proof_steps": 25,
+      "proof_steps": 21,
       "axioms": [
         {
           "file": "Merge.kif",
@@ -21536,29 +21734,9 @@ The app verifies master, constituents, and engine inputs before replaying only t
           "line": 7136
         },
         {
-          "file": "Geography.kif",
-          "kif": "(instance SouthPacificOcean SaltWaterArea)",
-          "line": 7135
-        },
-        {
           "file": "Merge.kif",
-          "kif": "(subclass SaltWaterArea WaterArea)",
-          "line": 18254
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass WaterArea GeographicArea)",
-          "line": 18234
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass GeographicArea Region)",
-          "line": 18124
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass Region Object)",
-          "line": 1532
+          "kif": "(subclass SelfConnectedObject Object)",
+          "line": 961
         },
         {
           "file": "Merge.kif",
@@ -28484,7 +28662,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 396,
-      "proof_steps": 27,
+      "proof_steps": 28,
       "axioms": [
         {
           "file": "Merge.kif",
@@ -28558,8 +28736,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Predicate Relation)",
-          "line": 4214
+          "kif": "(subclass BinaryPredicate BinaryRelation)",
+          "line": 4396
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass BinaryRelation Relation)",
+          "line": 2918
         },
         {
           "file": "Merge.kif",
@@ -28650,18 +28833,18 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(instance subAttribute PartialOrderingRelation)",
-          "line": 768
+          "kif": "(instance subAttribute BinaryPredicate)",
+          "line": 767
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass PartialOrderingRelation TotalValuedRelation)",
-          "line": 3077
+          "kif": "(subclass BinaryPredicate BinaryRelation)",
+          "line": 4396
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass TotalValuedRelation Relation)",
-          "line": 2884
+          "kif": "(subclass BinaryRelation Relation)",
+          "line": 2918
         },
         {
           "file": "Merge.kif",
@@ -28729,78 +28912,6 @@ The app verifies master, constituents, and engine inputs before replaying only t
           "file": "Geography.kif",
           "kif": "(instance AtlanticOcean Ocean)",
           "line": 7049
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass SelfConnectedObject Object)",
-          "line": 961
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass Object Physical)",
-          "line": 946
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass Class SetOrClass)",
-          "line": 2814
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass SetOrClass Abstract)",
-          "line": 2803
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(partition Entity Physical Abstract)",
-          "line": 911
-        }
-      ]
-    },
-    {
-      "seed": 0,
-      "step": 410,
-      "proof_steps": 21,
-      "axioms": [
-        {
-          "file": "Merge.kif",
-          "kif": "(=> (and (domainSubclass ?REL ?NUMBER ?CLASS) (instance ?REL Predicate) (?REL @ROW)) (exists (?ARG) (and (equal ?ARG (ListOrderFn (ListFn @ROW) ?NUMBER)) (instance ?ARG Class) (subclass ?ARG ?CLASS))))",
-          "line": 3839
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(domainSubclass rangeSubclass 2 Class)",
-          "line": 355
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(instance rangeSubclass BinaryPredicate)",
-          "line": 353
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(subclass BinaryPredicate Predicate)",
-          "line": 4395
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(rangeSubclass FoodForFn SelfConnectedObject)",
-          "line": 19245
-        },
-        {
-          "file": "Merge.kif",
-          "kif": "(=> (and (subclass ?X ?Y) (instance ?Z ?X)) (instance ?Z ?Y))",
-          "line": 146
-        },
-        {
-          "file": "Geography.kif",
-          "kif": "(subclass BodyOfWater SelfConnectedObject)",
-          "line": 6970
-        },
-        {
-          "file": "Geography.kif",
-          "kif": "(instance NorthAtlanticOcean BodyOfWater)",
-          "line": 7057
         },
         {
           "file": "Merge.kif",
@@ -32194,6 +32305,224 @@ The app verifies master, constituents, and engine inputs before replaying only t
     },
     {
       "seed": 0,
+      "step": 475,
+      "proof_steps": 21,
+      "axioms": [
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (and (domain ?REL ?NUMBER ?CLASS) (instance ?REL Predicate) (?REL @ROW)) (instance (ListOrderFn (ListFn @ROW) ?NUMBER) ?CLASS))",
+          "line": 3828
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (and (subclass ?X ?Y) (instance ?Z ?X)) (instance ?Z ?Y))",
+          "line": 146
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass BinaryPredicate Predicate)",
+          "line": 4395
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(instance subclass BinaryPredicate)",
+          "line": 135
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass Touching Transfer)",
+          "line": 14696
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass Transfer Translocation)",
+          "line": 14457
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass Translocation Motion)",
+          "line": 14800
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass Motion Process)",
+          "line": 14063
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass Process Physical)",
+          "line": 2120
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass Physical Entity)",
+          "line": 929
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(domain subclass 1 Class)",
+          "line": 137
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (instance ?CLASS Class) (subclass ?CLASS Entity))",
+          "line": 925
+        },
+        {
+          "file": "WMD.kif",
+          "kif": "(=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))",
+          "line": 760
+        },
+        {
+          "file": "WMD.kif",
+          "kif": "(biochemicalAgentDelivery BacterialAgent Touching)",
+          "line": 178
+        }
+      ]
+    },
+    {
+      "seed": 0,
+      "step": 475,
+      "proof_steps": 15,
+      "axioms": [
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (and (domain ?REL ?NUMBER ?CLASS) (instance ?REL Predicate) (?REL @ROW)) (instance (ListOrderFn (ListFn @ROW) ?NUMBER) ?CLASS))",
+          "line": 3828
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (and (subclass ?X ?Y) (instance ?Z ?X)) (instance ?Z ?Y))",
+          "line": 146
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass BinaryPredicate Predicate)",
+          "line": 4395
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(instance subclass BinaryPredicate)",
+          "line": 135
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(domain subclass 1 Class)",
+          "line": 137
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (instance ?CLASS Class) (subclass ?CLASS Entity))",
+          "line": 925
+        },
+        {
+          "file": "WMD.kif",
+          "kif": "(=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))",
+          "line": 760
+        },
+        {
+          "file": "WMD.kif",
+          "kif": "(biochemicalAgentDelivery BacterialAgent Breathing)",
+          "line": 177
+        }
+      ]
+    },
+    {
+      "seed": 0,
+      "step": 475,
+      "proof_steps": 15,
+      "axioms": [
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (and (domain ?REL ?NUMBER ?CLASS) (instance ?REL Predicate) (?REL @ROW)) (instance (ListOrderFn (ListFn @ROW) ?NUMBER) ?CLASS))",
+          "line": 3828
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (and (subclass ?X ?Y) (instance ?Z ?X)) (instance ?Z ?Y))",
+          "line": 146
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass BinaryPredicate Predicate)",
+          "line": 4395
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(instance subclass BinaryPredicate)",
+          "line": 135
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(domain subclass 2 Class)",
+          "line": 138
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (instance ?CLASS Class) (subclass ?CLASS Entity))",
+          "line": 925
+        },
+        {
+          "file": "WMD.kif",
+          "kif": "(=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))",
+          "line": 760
+        },
+        {
+          "file": "WMD.kif",
+          "kif": "(biochemicalAgentDelivery BacterialAgent Breathing)",
+          "line": 177
+        }
+      ]
+    },
+    {
+      "seed": 0,
+      "step": 475,
+      "proof_steps": 15,
+      "axioms": [
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (and (domain ?REL ?NUMBER ?CLASS) (instance ?REL Predicate) (?REL @ROW)) (instance (ListOrderFn (ListFn @ROW) ?NUMBER) ?CLASS))",
+          "line": 3828
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (and (subclass ?X ?Y) (instance ?Z ?X)) (instance ?Z ?Y))",
+          "line": 146
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass BinaryPredicate Predicate)",
+          "line": 4395
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(instance subclass BinaryPredicate)",
+          "line": 135
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(domain subclass 2 Class)",
+          "line": 138
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (instance ?CLASS Class) (subclass ?CLASS Entity))",
+          "line": 925
+        },
+        {
+          "file": "WMD.kif",
+          "kif": "(=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))",
+          "line": 760
+        },
+        {
+          "file": "WMD.kif",
+          "kif": "(biochemicalAgentDelivery BacterialAgent Touching)",
+          "line": 178
+        }
+      ]
+    },
+    {
+      "seed": 0,
       "step": 476,
       "proof_steps": 5,
       "axioms": [
@@ -32424,13 +32753,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing OrganismProcess)",
-          "line": 13075
+          "kif": "(subclass Breathing AutonomicProcess)",
+          "line": 13076
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass OrganismProcess PhysiologicProcess)",
-          "line": 13012
+          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
+          "line": 12985
         },
         {
           "file": "Merge.kif",
@@ -32575,6 +32904,58 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "WMD.kif",
+          "kif": "(biochemicalAgentDelivery BacterialAgent Breathing)",
+          "line": 177
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass Breathing AutonomicProcess)",
+          "line": 13076
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
+          "line": 12985
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass PhysiologicProcess BiologicalProcess)",
+          "line": 12977
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass BiologicalProcess InternalChange)",
+          "line": 12953
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(subclass InternalChange Process)",
+          "line": 16162
+        }
+      ]
+    },
+    {
+      "seed": 0,
+      "step": 499,
+      "proof_steps": 14,
+      "axioms": [
+        {
+          "file": "Merge.kif",
+          "kif": "(=> (and (domain ?REL ?NUMBER ?CLASS1) (domain ?REL ?NUMBER ?CLASS2)) (or (subclass ?CLASS1 ?CLASS2) (subclass ?CLASS2 ?CLASS1)))",
+          "line": 233
+        },
+        {
+          "file": "Merge.kif",
+          "kif": "(domain resource 1 Process)",
+          "line": 3246
+        },
+        {
+          "file": "WMD.kif",
+          "kif": "(=> (and (biochemicalAgentDelivery ?AGENT ?SUB) (subclass ?SUB ?PROCESS)) (biochemicalAgentDelivery ?AGENT ?PROCESS))",
+          "line": 760
+        },
+        {
+          "file": "WMD.kif",
           "kif": "(biochemicalAgentDelivery EscherichiaColi0157H7 Ingesting)",
           "line": 1657
         },
@@ -32662,13 +33043,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing OrganismProcess)",
-          "line": 13075
+          "kif": "(subclass Breathing AutonomicProcess)",
+          "line": 13076
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass OrganismProcess PhysiologicProcess)",
-          "line": 13012
+          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
+          "line": 12985
         },
         {
           "file": "Merge.kif",
@@ -34076,13 +34457,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass Breathing AutonomicProcess)",
-          "line": 13076
+          "kif": "(subclass Breathing OrganismProcess)",
+          "line": 13075
         },
         {
           "file": "Merge.kif",
-          "kif": "(subclass AutonomicProcess PhysiologicProcess)",
-          "line": 12985
+          "kif": "(subclass OrganismProcess PhysiologicProcess)",
+          "line": 13012
         },
         {
           "file": "Merge.kif",
@@ -34489,7 +34870,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 573,
-      "proof_steps": 18,
+      "proof_steps": 19,
       "axioms": [
         {
           "file": "Merge.kif",
@@ -34508,8 +34889,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Military.kif",
-          "kif": "(instance USMilitaryRankWO4 CommissionedOfficerRank)",
-          "line": 845
+          "kif": "(instance USMilitaryRankWO4 USWarrantOfficerRank)",
+          "line": 843
+        },
+        {
+          "file": "Military.kif",
+          "kif": "(subclass USWarrantOfficerRank CommissionedOfficerRank)",
+          "line": 807
         },
         {
           "file": "Military.kif",
@@ -34600,13 +34986,13 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Military.kif",
-          "kif": "(instance USMilitaryRankWO2 USMilitaryRank)",
-          "line": 822
+          "kif": "(instance USMilitaryRankWO2 CommissionedOfficerRank)",
+          "line": 823
         },
         {
           "file": "Military.kif",
-          "kif": "(subclass USMilitaryRank MilitaryRank)",
-          "line": 493
+          "kif": "(subclass CommissionedOfficerRank MilitaryRank)",
+          "line": 508
         },
         {
           "file": "Military.kif",
@@ -34750,7 +35136,7 @@ The app verifies master, constituents, and engine inputs before replaying only t
     {
       "seed": 0,
       "step": 573,
-      "proof_steps": 18,
+      "proof_steps": 19,
       "axioms": [
         {
           "file": "Merge.kif",
@@ -34769,13 +35155,18 @@ The app verifies master, constituents, and engine inputs before replaying only t
         },
         {
           "file": "Military.kif",
-          "kif": "(instance USMilitaryRankWO3 USMilitaryRank)",
-          "line": 833
+          "kif": "(instance USMilitaryRankWO3 USWarrantOfficerRank)",
+          "line": 832
         },
         {
           "file": "Military.kif",
-          "kif": "(subclass USMilitaryRank MilitaryRank)",
-          "line": 493
+          "kif": "(subclass USWarrantOfficerRank CommissionedOfficerRank)",
+          "line": 807
+        },
+        {
+          "file": "Military.kif",
+          "kif": "(subclass CommissionedOfficerRank MilitaryRank)",
+          "line": 508
         },
         {
           "file": "Military.kif",
