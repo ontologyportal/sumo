@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import textwrap
 import unittest
 from unittest.mock import patch
 import xml.etree.ElementTree as ET
@@ -23,7 +24,7 @@ class AuditTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.state = {"version": 1, "fingerprint": "abc", "engine_fingerprint": "engine",
-                      "seed": 0, "next_step": 0}
+                      "seed": 0, "next_step": 0, "findings": []}
 
     def test_resume_and_changed_input_reset(self):
         path = self.root / "checkpoint.json"
@@ -50,22 +51,74 @@ class AuditTests(unittest.TestCase):
         audit.atomic_json(path, self.state)
         self.assertEqual(audit.checkpoint(path, "abc", "engine"), self.state)
 
-    def test_manifest_membership_and_content_are_hashed(self):
-        manifest = self.root / "manifest"
-        manifest.write_text("a.kif\n")
+    def test_findings_reset_with_changed_inputs(self):
+        path = self.root / "checkpoint.json"
+        finding = {
+            "seed": 3,
+            "step": 20,
+            "proof_steps": 4,
+            "axioms": [{"file": "Merge.kif", "line": 10, "kif": "(p A)"}],
+        }
+        self.state["findings"] = [finding]
+        audit.atomic_json(path, self.state)
+        self.assertEqual(audit.checkpoint(path, "abc", "engine")["findings"], [finding])
+        self.assertEqual(audit.checkpoint(path, "changed", "engine")["findings"], [])
+        self.assertEqual(audit.checkpoint(path, "abc", "changed")["findings"], [])
+
+    def test_root_membership_and_content_are_hashed(self):
         (self.root / "a.kif").write_text("(instance A B)")
-        (self.root / "excluded.kif").write_text("old")
-        _, first = audit.constituents(self.root, manifest)
-        (self.root / "excluded.kif").write_text("changed")
-        self.assertEqual(audit.constituents(self.root, manifest)[1], first)
+        nested = self.root / "nested"
+        nested.mkdir()
+        (nested / "excluded.kif").write_text("old")
+        names, first = audit.constituents(self.root)
+        self.assertEqual(names, ["a.kif"])
+        (nested / "excluded.kif").write_text("changed")
+        (self.root / "test.kif.tq").write_text("test")
+        self.assertEqual(audit.constituents(self.root)[1], first)
         (self.root / "a.kif").write_text("(instance A C)")
-        second = audit.constituents(self.root, manifest)[1]
+        second = audit.constituents(self.root)[1]
         self.assertNotEqual(first, second)
-        manifest.write_text("a.kif\nexcluded.kif\n")
-        self.assertNotEqual(second, audit.constituents(self.root, manifest)[1])
-        manifest.write_text("missing.kif\n")
-        with self.assertRaises(FileNotFoundError):
-            audit.constituents(self.root, manifest)
+        (self.root / "Added.kif").write_text("new")
+        names, third = audit.constituents(self.root)
+        self.assertEqual(names, ["Added.kif", "a.kif"])
+        self.assertNotEqual(second, third)
+        (self.root / "Added.kif").unlink()
+        self.assertEqual(audit.constituents(self.root)[1], second)
+
+    def test_empty_root_is_rejected_and_kif_directories_and_symlinks_are_ignored(self):
+        (self.root / "directory.kif").mkdir()
+        (self.root / "outside.txt").write_text("not a KIF file")
+        (self.root / "link.kif").symlink_to(self.root / "outside.txt")
+        with self.assertRaisesRegex(ValueError, "No root KIF files"):
+            audit.constituents(self.root)
+
+    def test_validation_workflow_selects_the_same_root_files_as_the_audit(self):
+        ontology = self.root / "ontology"
+        ontology.mkdir()
+        (ontology / "z&root.kif").write_text("(p)")
+        (ontology / "A.kif").write_text("(q)")
+        (ontology / "nested").mkdir()
+        (ontology / "nested" / "skip.kif").write_text("(r)")
+        (ontology / "skip.kif.tq").write_text("test")
+        cli = self.root / "sigma-rs" / "target" / "release" / "sumo"
+        cli.parent.mkdir(parents=True)
+        cli.write_text('#!/bin/bash\nprintf "%s\\n" "$@"\n')
+        cli.chmod(0o755)
+        workflow = Path(__file__).resolve().parents[1] / "workflows" / "sigma-validation.yml"
+        command = textwrap.dedent(workflow.read_text().split("      - name: Validate root KIF files\n", 1)[1].split("        run: |\n", 1)[1])
+        env = {**audit.os.environ, "RUNNER_TEMP": str(self.root)}
+        result = subprocess.run(["bash", "-c", command], cwd=ontology, env=env,
+                                check=True, text=True, capture_output=True)
+        args = result.stdout.splitlines()
+        selected = [args[i + 1] for i, arg in enumerate(args) if arg == "-f"]
+        self.assertEqual(selected, audit.constituents(ontology)[0])
+        self.assertEqual(selected, ["A.kif", "z&root.kif"])
+        (ontology / "A.kif").unlink()
+        (ontology / "z&root.kif").unlink()
+        result = subprocess.run(["bash", "-c", command], cwd=ontology, env=env,
+                                text=True, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("No root KIF files found", result.stdout)
 
     def test_advance_and_finish_sweep(self):
         result = {"seed": 0, "step": 0, "next_step": 10, "total": 20}
@@ -92,18 +145,36 @@ class AuditTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit.checkpoint(path, "abc", "engine")
 
-    def test_contradiction_report_has_reproduction_coordinates_and_kif(self):
+    def test_invalid_checkpoint_findings_fail_closed(self):
+        path = self.root / "checkpoint.json"
+        self.state["findings"] = [{
+            "seed": 0, "step": 0, "proof_steps": 1, "axioms": [],
+        }]
+        audit.atomic_json(path, self.state)
+        with self.assertRaisesRegex(ValueError, "findings"):
+            audit.checkpoint(path, "abc", "engine")
+
+    def test_contradiction_report_is_json_with_reproduction_coordinates_and_kif(self):
         report = audit.contradiction_report([{
             "seed": 7,
             "step": 42,
             "proof_steps": 3,
             "axioms": [{"file": "Merge.kif", "line": 10,
                         "kif": "(instance A B)"}],
-        }])
-        self.assertIn("Seed: `7`", report)
-        self.assertIn("Start step: `42`", report)
-        self.assertIn("Merge.kif:10", report)
-        self.assertIn("```lisp\n(instance A B)\n```", report)
+        }], {"version": 1, "complete": True})
+        encoded = json.dumps(report)
+        self.assertEqual(report["findings"][0]["seed"], 7)
+        self.assertEqual(report["findings"][0]["step"], 42)
+        self.assertEqual(report["findings"][0]["axioms"][0]["file"], "Merge.kif")
+        self.assertIn("(instance A B)", encoded)
+
+    def test_contradiction_key_handles_missing_source_locations(self):
+        first = {"axioms": [
+            {"file": None, "line": None, "kif": "(p A)"},
+            {"file": "Merge.kif", "line": 10, "kif": "(q A)"},
+        ]}
+        second = {"axioms": list(reversed(first["axioms"]))}
+        self.assertEqual(audit.contradiction_key(first), audit.contradiction_key(second))
 
     def test_deadline_terminates_process(self):
         with (self.root / "log").open("w") as log:
@@ -115,6 +186,15 @@ class AuditTests(unittest.TestCase):
 
     def test_findings_and_interrupted_chunk_preserve_completed_progress(self):
         output = self.root / "out"
+        output.mkdir()
+        prior = {
+            "seed": 9,
+            "step": 8,
+            "proof_steps": 2,
+            "axioms": [{"file": "Merge.kif", "line": 9, "kif": "(p Prior)"}],
+        }
+        self.state["findings"] = [prior]
+        audit.atomic_json(output / "checkpoint.json", self.state)
         calls = []
 
         def execute(command, stdout, stderr, seconds, cwd):
@@ -129,7 +209,11 @@ class AuditTests(unittest.TestCase):
                 return 0
             if len(calls) == 2:
                 json.dump({"seed": 0, "step": 0, "next_step": 1, "total": 20,
-                           "inconsistent": True, "contradictions": [{"axioms": []}]}, stdout)
+                           "inconsistent": True, "contradictions": [{
+                               "steps": 3,
+                               "axioms": [{"file": "Merge.kif", "line": 10,
+                                           "kif": "(p Current)"}],
+                           }]}, stdout)
                 stdout.flush()
                 return 1
             return None
@@ -147,12 +231,13 @@ class AuditTests(unittest.TestCase):
         result = json.loads((output / "results.jsonl").read_text())
         self.assertEqual(result["contradictions"][0]["audit_seed"], 0)
         self.assertEqual(result["contradictions"][0]["audit_step"], 0)
-        self.assertIn("Seed: `0`", (output / "contradictions.md").read_text())
+        report = json.loads((output / "contradictions.json").read_text())
+        self.assertEqual([(f["seed"], f["step"]) for f in report["findings"]],
+                         [(9, 8), (0, 0)])
+        self.assertEqual(saved["findings"], report["findings"])
         self.assertIn("Deadline interrupted a chunk: True", (output / "summary.md").read_text())
-        report = (output / "contradictions.md").read_text()
-        replay = json.loads(report.split("```sigma-audit-replay\n")[1].split("\n```")[0])
-        self.assertTrue(replay["complete"])
-        self.assertEqual(replay["findings"][0]["step"], 0)
+        self.assertTrue(report["complete"])
+        self.assertEqual(report["findings"][1]["step"], 0)
 
     def test_multi_step_chunks_are_rejected_before_loading(self):
         with self.assertRaisesRegex(ValueError, "chunk-size 1"):
@@ -180,8 +265,8 @@ class AuditTests(unittest.TestCase):
         ), patch.object(audit, "execute", return_value=2):
             with self.assertRaises(RuntimeError):
                 audit.run(args)
-        report = (self.root / "out" / "contradictions.md").read_text()
-        self.assertIn('"complete": false', report)
+        report = json.loads((self.root / "out" / "contradictions.json").read_text())
+        self.assertFalse(report["complete"])
 
 
 if __name__ == "__main__":

@@ -1,5 +1,8 @@
 # Nightly contradiction audit
 
+Full SUMO in this workflow means all regular `.kif` files in the repository
+root, sorted by filename. Nested files, tests, and symlinks are excluded.
+
 `workflows/contradiction-audit.yml` schedules Full SUMO's native Sigma audit
 at 00:10 America/Los_Angeles, including daylight-saving changes. GitHub may
 delay scheduled starts. Merge the workflow onto the default branch to enable
@@ -35,26 +38,32 @@ branch does not need an active runner. Repository rules must allow the
 workflow's `GITHUB_TOKEN` to create/update that branch (`contents: write`).
 Do not merge the state branch into the default branch.
 
-The checkpoint contains constituent and engine fingerprints, seed, and next step:
+The checkpoint contains constituent and engine fingerprints, seed, next step,
+and the cumulative distinct contradiction findings:
 
 - Initially seed 0, step 0.
 - The seed determines the formula order; the step advances through it.
 - On completing a sweep, increment the seed and start at step 0.
-- A change to any file named in `full-sumo.txt`, or to the list of names/order,
-  resets both seed and step to 0. Files outside that list do not reset it.
+- Root-directory `.kif` files are discovered automatically and sorted by filename.
+  Adding, removing, renaming, or editing one resets the seed and step to 0 and
+  clears the cumulative findings. Nested KIF files and other extensions do not
+  reset it.
 - A change to the engine source fingerprint also resets both seed and step.
-  Legacy checkpoints without that fingerprint restart once. Frontend-only
-  commits that leave the engine fingerprint unchanged preserve progress.
+  It also clears cumulative findings because their replay coordinates may no
+  longer be valid. Legacy checkpoints without that fingerprint restart once.
+  Frontend-only commits that leave the engine fingerprint unchanged preserve
+  progress and findings.
 - Each CLI invocation checks one formula, so every contradiction has an exact
   seed and step that can be reproduced in sigmakee.dev. Completed formula
-  checks update the checkpoint atomically.
+  checks and their newly discovered contradictions update the checkpoint
+  atomically.
   At the deadline, the unfinished chunk is killed and retried next night.
   No position from a partially completed chunk is committed.
 - Runs are serialized. Saving uses the restored GitHub file SHA so an
   unexpected concurrent state edit fails instead of silently overwriting it.
 
-The Full SUMO manifest is also used by `sigma-validation.yml`. Keep the list
-aligned with the intended Full SUMO definition. Sigma's `main` branch must
+`sigma-validation.yml` selects the same root-directory KIF files. No fixed
+constituent manifest is maintained. Sigma's `main` branch must
 support `audit --seed --step --count --json`; incompatible upstream changes
 fail the run rather than silently falling back to an older engine.
 
@@ -62,9 +71,17 @@ fail the run rather than silently falling back to an older engine.
 
 Each completed chunk's JSON (including contradiction axioms) is retained in
 the run's `full-sumo-audit-...` artifact for 30 days, alongside logs, checkpoint,
-and a summary. `contradictions.md` formats each distinct cited axiom set as
-SUO-KIF and gives its exact seed and step. The Actions job summary lists the
-first 20 reproduction positions.
+and a summary. `contradictions.json` is a versioned replay document containing
+metadata and every distinct cited axiom set accumulated since the SUMO or
+engine inputs last changed. It gives each finding's exact seed, step, proof-step
+count, and source axioms. The Actions job summary lists the first 20
+reproduction positions.
+
+The same complete JSON document is published as
+`.github/latest-contradictions.json` on the `audit-state` branch after each
+complete master run. Daily runs merge newly discovered cited axiom sets into
+the checkpoint, so loading the latest report includes the entire unchanged-input
+period rather than only the most recent two-hour window.
 
 To reproduce one in sigmakee.dev, load the same SUMO revision, open Audit,
 select the SUPr backend, enter the reported seed and start step, and set both
