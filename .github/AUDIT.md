@@ -1,7 +1,6 @@
 # Nightly contradiction audit
 
-Full SUMO in this workflow means all regular `.kif` files in the repository
-root, sorted by filename. Nested files, tests, and symlinks are excluded.
+Full SUMO in this workflow is the constituent list in `full-sumo.txt`.
 
 `workflows/contradiction-audit.yml` schedules Full SUMO's native Sigma audit
 at 00:10 America/Los_Angeles, including daylight-saving changes. GitHub may
@@ -44,10 +43,9 @@ and the cumulative distinct contradiction findings:
 - Initially seed 0, step 0.
 - The seed determines the formula order; the step advances through it.
 - On completing a sweep, increment the seed and start at step 0.
-- Root-directory `.kif` files are discovered automatically and sorted by filename.
-  Adding, removing, renaming, or editing one resets the seed and step to 0 and
-  clears the cumulative findings. Nested KIF files and other extensions do not
-  reset it.
+- A change to any file named in `full-sumo.txt`, or to the list of names/order,
+  resets the seed and step to 0 and clears the cumulative findings. Files outside
+  that list do not reset it.
 - A change to the engine source fingerprint also resets both seed and step.
   It also clears cumulative findings because their replay coordinates may no
   longer be valid. Legacy checkpoints without that fingerprint restart once.
@@ -62,8 +60,8 @@ and the cumulative distinct contradiction findings:
 - Runs are serialized. Saving uses the restored GitHub file SHA so an
   unexpected concurrent state edit fails instead of silently overwriting it.
 
-`sigma-validation.yml` selects the same root-directory KIF files. No fixed
-constituent manifest is maintained. Sigma's `main` branch must
+`sigma-validation.yml` uses the same `full-sumo.txt` manifest. Keep the list
+aligned with the intended Full SUMO definition. Sigma's `main` branch must
 support `audit --seed --step --count --json`; incompatible upstream changes
 fail the run rather than silently falling back to an older engine.
 

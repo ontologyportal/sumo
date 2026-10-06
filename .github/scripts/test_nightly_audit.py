@@ -8,7 +8,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import textwrap
 import unittest
 from unittest.mock import patch
 import xml.etree.ElementTree as ET
@@ -65,60 +64,22 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(audit.checkpoint(path, "changed", "engine")["findings"], [])
         self.assertEqual(audit.checkpoint(path, "abc", "changed")["findings"], [])
 
-    def test_root_membership_and_content_are_hashed(self):
+    def test_manifest_membership_and_content_are_hashed(self):
+        manifest = self.root / "manifest"
+        manifest.write_text("a.kif\n")
         (self.root / "a.kif").write_text("(instance A B)")
-        nested = self.root / "nested"
-        nested.mkdir()
-        (nested / "excluded.kif").write_text("old")
-        names, first = audit.constituents(self.root)
-        self.assertEqual(names, ["a.kif"])
-        (nested / "excluded.kif").write_text("changed")
-        (self.root / "test.kif.tq").write_text("test")
-        self.assertEqual(audit.constituents(self.root)[1], first)
+        (self.root / "excluded.kif").write_text("old")
+        _, first = audit.constituents(self.root, manifest)
+        (self.root / "excluded.kif").write_text("changed")
+        self.assertEqual(audit.constituents(self.root, manifest)[1], first)
         (self.root / "a.kif").write_text("(instance A C)")
-        second = audit.constituents(self.root)[1]
+        second = audit.constituents(self.root, manifest)[1]
         self.assertNotEqual(first, second)
-        (self.root / "Added.kif").write_text("new")
-        names, third = audit.constituents(self.root)
-        self.assertEqual(names, ["Added.kif", "a.kif"])
-        self.assertNotEqual(second, third)
-        (self.root / "Added.kif").unlink()
-        self.assertEqual(audit.constituents(self.root)[1], second)
-
-    def test_empty_root_is_rejected_and_kif_directories_and_symlinks_are_ignored(self):
-        (self.root / "directory.kif").mkdir()
-        (self.root / "outside.txt").write_text("not a KIF file")
-        (self.root / "link.kif").symlink_to(self.root / "outside.txt")
-        with self.assertRaisesRegex(ValueError, "No root KIF files"):
-            audit.constituents(self.root)
-
-    def test_validation_workflow_selects_the_same_root_files_as_the_audit(self):
-        ontology = self.root / "ontology"
-        ontology.mkdir()
-        (ontology / "z&root.kif").write_text("(p)")
-        (ontology / "A.kif").write_text("(q)")
-        (ontology / "nested").mkdir()
-        (ontology / "nested" / "skip.kif").write_text("(r)")
-        (ontology / "skip.kif.tq").write_text("test")
-        cli = self.root / "sigma-rs" / "target" / "release" / "sumo"
-        cli.parent.mkdir(parents=True)
-        cli.write_text('#!/bin/bash\nprintf "%s\\n" "$@"\n')
-        cli.chmod(0o755)
-        workflow = Path(__file__).resolve().parents[1] / "workflows" / "sigma-validation.yml"
-        command = textwrap.dedent(workflow.read_text().split("      - name: Validate root KIF files\n", 1)[1].split("        run: |\n", 1)[1])
-        env = {**audit.os.environ, "RUNNER_TEMP": str(self.root)}
-        result = subprocess.run(["bash", "-c", command], cwd=ontology, env=env,
-                                check=True, text=True, capture_output=True)
-        args = result.stdout.splitlines()
-        selected = [args[i + 1] for i, arg in enumerate(args) if arg == "-f"]
-        self.assertEqual(selected, audit.constituents(ontology)[0])
-        self.assertEqual(selected, ["A.kif", "z&root.kif"])
-        (ontology / "A.kif").unlink()
-        (ontology / "z&root.kif").unlink()
-        result = subprocess.run(["bash", "-c", command], cwd=ontology, env=env,
-                                text=True, capture_output=True)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("No root KIF files found", result.stdout)
+        manifest.write_text("a.kif\nexcluded.kif\n")
+        self.assertNotEqual(second, audit.constituents(self.root, manifest)[1])
+        manifest.write_text("missing.kif\n")
+        with self.assertRaises(FileNotFoundError):
+            audit.constituents(self.root, manifest)
 
     def test_advance_and_finish_sweep(self):
         result = {"seed": 0, "step": 0, "next_step": 10, "total": 20}

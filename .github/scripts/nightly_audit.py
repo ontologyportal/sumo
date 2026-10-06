@@ -12,6 +12,8 @@ import tempfile
 import time
 import xml.etree.ElementTree as ET
 
+MANIFEST = Path(__file__).resolve().parents[1] / "full-sumo.txt"
+
 
 def engine_identity(root):
     """Match the source fingerprint stamped into the browser's WASM package."""
@@ -46,14 +48,16 @@ def replay_metadata(root, names, fingerprint, timeout):
     }
 
 
-def constituents(root):
-    names = sorted(path.name for path in root.glob("*.kif")
-                   if path.is_file() and not path.is_symlink())
-    if not names:
-        raise ValueError("No root KIF files found")
+def constituents(root, manifest=MANIFEST):
+    names = [s.strip() for s in manifest.read_text().splitlines()
+             if s.strip() and not s.lstrip().startswith("#")]
+    if not names or len(names) != len(set(names)):
+        raise ValueError("Full SUMO manifest must be nonempty and contain no duplicates")
     digest = hashlib.sha256()
     for name in names:
         path = root / name
+        if Path(name).is_absolute() or ".." in Path(name).parts:
+            raise ValueError(f"Invalid constituent: {name}")
         digest.update(name.encode() + b"\0")
         digest.update(hashlib.sha256(path.read_bytes()).digest())
     return names, digest.hexdigest()
