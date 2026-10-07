@@ -1,0 +1,1350 @@
+;;Cyber.kif - cybersecurity domain ontology
+;;
+;; Initial introduction with two foundational terms: Vulnerability and
+;; vulnerableSystem. Every claim in each term's documentation string is
+;; backed by at least one axiom in this file.
+
+;; ============================================================
+;; Vulnerability (RelationalAttribute)
+;; ============================================================
+
+(subclass Vulnerability RelationalAttribute)
+(termFormat EnglishLanguage Vulnerability "vulnerability")
+(documentation Vulnerability EnglishLanguage "A &%RelationalAttribute of a
+&%Physical entity (typically a &%ComputerNetwork, &%Computer, or
+&%ComputerProgram) indicating a weakness exploitable by some
+&%AutonomousAgent. Vulnerability is relational because the same flaw on the
+same system may be exploitable by one agent without being exploitable by
+another, formalized through the agent argument of &%vulnerableSystem.
+Vulnerabilities are latent: an instance may exist on a system whether or
+not any agent has discovered it.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (attribute ?SYS ?VUL))
+  (exists (?AGENT)
+    (and
+      (instance ?AGENT AutonomousAgent)
+      (vulnerableSystem ?VUL ?SYS ?AGENT))))
+
+;; ============================================================
+;; vulnerableSystem (TernaryPredicate)
+;; ============================================================
+
+(instance vulnerableSystem TernaryPredicate)
+(domain vulnerableSystem 1 Vulnerability)
+(domain vulnerableSystem 2 Physical)
+(domain vulnerableSystem 3 AutonomousAgent)
+(termFormat EnglishLanguage vulnerableSystem "vulnerable system")
+(format EnglishLanguage vulnerableSystem "%2 is vulnerable to %1 from the perspective of %3")
+(documentation vulnerableSystem EnglishLanguage "(&%vulnerableSystem ?VUL
+?SYSTEM ?AGENT) means that ?SYSTEM bears the &%Vulnerability ?VUL and ?VUL
+is exploitable on ?SYSTEM by ?AGENT given the agent's available resources.
+The agent argument is what makes &%Vulnerability relational: the same flaw
+on the same system may stand in &%vulnerableSystem to one agent without
+standing in &%vulnerableSystem to another.  The same &%Vulnerability
+instance may also reside on more than one distinct system, as when the
+same underlying flaw is present across multiple systems of the same
+type.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?SYS Physical)
+    (instance ?AGENT AutonomousAgent)
+    (vulnerableSystem ?VUL ?SYS ?AGENT))
+  (attribute ?SYS ?VUL))
+
+;; ============================================================
+;; SoftwareBug
+;; ============================================================
+
+;; A bug is relational: it exists only with respect to some agent's
+;; specification of correct behavior.  The specifying agent is often
+;; but not always the author, it could be a standards body, a
+;; security policy, or a product owner.  The same code may be buggy
+;; from one specification's perspective but correct from another's,
+;; and may be buggy along multiple dimensions simultaneously (crash,
+;; security, performance, incorrect value, etc.).
+;;
+;; Separately, the agent who discovers a bug may differ from the
+;; agent who specified correctness (e.g., a white-hat hacker in a
+;; bug bounty program discovers bugs relative to the developer's spec).
+;;
+;; We therefore model SoftwareBug as a RelationalAttribute rather
+;; than a standalone class.  A program "has" the SoftwareBug attribute
+;; only relative to some agent's specification and some execution context.
+
+(subclass SoftwareBug RelationalAttribute)
+(termFormat EnglishLanguage SoftwareBug "software bug")
+(documentation SoftwareBug EnglishLanguage "A &%RelationalAttribute
+of a &%ComputerProgram indicating that the program contains a latent
+error relative to some &%AutonomousAgent's specification of correct
+behavior.  The specifying agent may be the program's author, a
+standards body, a security policy, or any stakeholder who defines
+what the program should do.  A &%SoftwareBug is relational because
+the same code may be correct with respect to one agent's specification
+but erroneous with respect to another's.  A program may also exhibit
+bugs along multiple dimensions simultaneously, such as crashes,
+security vulnerabilities, incorrect values, or poor performance.
+The agent who discovers a bug (see &%bugDiscoverer) need not be the
+same agent whose specification defines it as a bug.")
+
+;; ============================================================
+;; bugInProgram : relates bug-attribute to program and agent
+;; ============================================================
+
+;; Ternary: the bug exists in a program WITH RESPECT TO a specifying
+;; agent.  The specifying agent is whoever defines correct behavior 
+;; often the author, but could be a security standard, a product spec,
+;; or a client.  This is distinct from who discovers the bug.
+
+(instance bugInProgram TernaryPredicate)
+(domain bugInProgram 1 SoftwareBug)
+(domain bugInProgram 2 ComputerProgram)
+(domain bugInProgram 3 AutonomousAgent)
+(termFormat EnglishLanguage bugInProgram "bug in program")
+(format EnglishLanguage bugInProgram "%1 is a &%bug in %2 relative to %3")
+(documentation bugInProgram EnglishLanguage "(&%bugInProgram ?BUG ?PROG ?AGENT)
+means that ?BUG is a &%SoftwareBug present in ?PROG relative to the
+specification of correct behavior held by ?AGENT.  ?AGENT is the
+specifying agent — the one whose intent or specification defines
+what the program should do.  This may be the program's author, a
+standards body, a client, or any stakeholder.  The agent who
+discovers the bug may be a different party entirely (see
+&%bugDiscoverer).  The same program may have a bug with respect to
+one agent's specification but not another's.")
+
+;; rule: if a program has a bug relative to some agent, then the
+;; program carries that bug as an attribute
+
+(=>
+  (and
+    (instance ?BUG SoftwareBug)
+    (instance ?PROG ComputerProgram)
+    (instance ?AGENT AutonomousAgent)
+    (bugInProgram ?BUG ?PROG ?AGENT))
+  (attribute ?PROG ?BUG))
+
+;; ============================================================
+;; bugDiscoverer : who found the bug
+;; ============================================================
+
+;; The discovering agent is often different from the specifying agent.
+;; Examples: a white-hat hacker discovers a bug defined relative to
+;; the developer's spec; a QA tester discovers a bug defined relative
+;; to a product requirements document, which is a potentially unique agent than the original programmer.
+
+(instance bugDiscoverer TernaryPredicate)
+(domain bugDiscoverer 1 SoftwareBug)
+(domain bugDiscoverer 2 ComputerProgram)
+(domain bugDiscoverer 3 AutonomousAgent)
+(termFormat EnglishLanguage bugDiscoverer "bug discoverer")
+(format EnglishLanguage bugDiscoverer "%3 discovered &%bug %1 in %2")
+(documentation bugDiscoverer EnglishLanguage "(&%bugDiscoverer ?BUG ?PROG ?DISCOVERER)
+means that ?DISCOVERER identified &%SoftwareBug ?BUG in ?PROG.
+The discoverer need not be the same agent whose specification
+defines the bug (see &%bugInProgram).  For example, in a bug bounty
+program, an &%EthicalHacker discovers bugs relative to the
+developer's or organization's specification of correct behavior.")
+
+;; rule: latency — a bug exists before it is discovered.
+;; At the beginning of the discovery process, the bug was already present.
+
+(=>
+  (and
+    (instance ?BUG SoftwareBug)
+    (instance ?PROG ComputerProgram)
+    (bugDiscoverer ?BUG ?PROG ?DISCOVERER)
+    (bugInProgram ?BUG ?PROG ?AGENT))
+  (exists (?DISCOVER)
+    (and
+      (instance ?DISCOVER Discovering)
+      (agent ?DISCOVER ?DISCOVERER)
+      (patient ?DISCOVER ?BUG)
+      (holdsDuring (BeginFn (WhenFn ?DISCOVER))
+        (bugInProgram ?BUG ?PROG ?AGENT)))))
+
+;; ============================================================
+;; operationalBudget (BinaryPredicate)
+;; ============================================================
+
+(instance operationalBudget BinaryPredicate)
+(instance operationalBudget SingleValuedRelation)
+(domain operationalBudget 1 AutonomousAgent)
+(domain operationalBudget 2 CurrencyMeasure)
+(termFormat EnglishLanguage operationalBudget "operational budget")
+(format EnglishLanguage operationalBudget "%1 has an operational budget of %2")
+(documentation operationalBudget EnglishLanguage "(&%operationalBudget
+?AGENT ?BUDGET) means that ?AGENT has a total resource budget of
+?BUDGET available for cyber operations in the current operational
+period. Constrains which vulnerabilities the agent can act upon:
+for a defender, how many can be patched; for an attacker, how many
+can be exploited. Agent-relative: different agents have different
+budgets reflecting their resource endowments. Common knowledge in
+adversarial settings: an attacker targeting a defender's system and
+the defender both know the defender's operational budget, and the
+defender knows the attacker's. Non-negative: a budget cannot fall
+below zero. Single-valued: for a given agent and operational period
+there is at most one operational budget.")
+
+(=>
+  (and
+    (instance ?AGENT AutonomousAgent)
+    (operationalBudget ?AGENT ?BUDGET)
+    (measure ?BUDGET ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?SYS Physical)
+    (vulnerableSystem ?VUL ?SYS ?ATTACKER)
+    (possesses ?DEFENDER ?SYS)
+    (operationalBudget ?DEFENDER ?DBUDGET)
+    (operationalBudget ?ATTACKER ?ABUDGET))
+  (and
+    (knows ?ATTACKER (operationalBudget ?DEFENDER ?DBUDGET))
+    (knows ?DEFENDER (operationalBudget ?ATTACKER ?ABUDGET))))
+
+;; ============================================================
+;; operationalBudgetInPeriod (TernaryPredicate)
+;; ============================================================
+
+;; Reifies the "current operational period" referenced in
+;; operationalBudget's own documentation as an explicit argument,
+;; following the same base-predicate / InPeriod-predicate pattern used
+;; throughout Economy.kif's Budget section (e.g. annualRevenuesOfArea /
+;; annualRevenuesOfAreaInPeriod).
+
+(instance operationalBudgetInPeriod TernaryPredicate)
+(domain operationalBudgetInPeriod 1 AutonomousAgent)
+(domain operationalBudgetInPeriod 2 CurrencyMeasure)
+(domainSubclass operationalBudgetInPeriod 3 TimeInterval)
+(termFormat EnglishLanguage operationalBudgetInPeriod "operational budget in period")
+(format EnglishLanguage operationalBudgetInPeriod "%1 has an operational budget of %2 for %3")
+(documentation operationalBudgetInPeriod EnglishLanguage "(&%operationalBudgetInPeriod
+?AGENT ?BUDGET ?PERIOD) means that ?AGENT has a total resource budget of
+?BUDGET available for cyber operations during the &%TimeInterval
+indicated by ?PERIOD.  Reifies the operational period referenced in
+&%operationalBudget's own documentation as an explicit argument, the
+same way &%annualRevenuesOfAreaInPeriod reifies a period for
+&%annualRevenuesOfArea.")
+
+(<=>
+  (operationalBudgetInPeriod ?AGENT ?BUDGET ?PERIOD)
+  (exists (?TIME)
+    (and
+      (instance ?TIME ?PERIOD)
+      (holdsDuring ?TIME (operationalBudget ?AGENT ?BUDGET)))))
+
+;; ============================================================
+;; aggregateCyberCost (TernaryPredicate)
+;; ============================================================
+
+(instance aggregateCyberCost TernaryPredicate)
+(instance aggregateCyberCost SingleValuedRelation)
+(domain aggregateCyberCost 1 AutonomousAgent)
+(domain aggregateCyberCost 2 TimeInterval)
+(domain aggregateCyberCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage aggregateCyberCost "aggregate cyber cost")
+(format EnglishLanguage aggregateCyberCost "%1 incurred an aggregate cyber cost of %3 during %2")
+(documentation aggregateCyberCost EnglishLanguage "(&%aggregateCyberCost
+?AGENT ?T ?TOTAL) means that the sum of per-action costs over the
+cyber actions ?AGENT commits to during &%TimeInterval ?T equals
+?TOTAL. Denominated in a &%CurrencyMeasure so that heterogeneous
+inputs, tooling acquisition, compute, personnel time, patch
+development, and operational disruption, can be added on a common
+scale. Computed per candidate strategy: a distinct aggregate holds
+for each combination of agent, time interval, and set of committed
+actions. Non-negative: aggregating non-negative per-action costs
+cannot yield a negative total. Single-valued: for a given agent,
+time interval, and strategy there is at most one aggregate cyber
+cost. The simplest case, a single &%exploitCost and a single
+&%patchCost during the same interval, sums directly; larger
+committed-action sets are not yet enumerated as their own rule.")
+
+(=>
+  (and
+    (instance ?AGENT AutonomousAgent)
+    (instance ?T TimeInterval)
+    (aggregateCyberCost ?AGENT ?T ?TOTAL)
+    (measure ?TOTAL ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+(=>
+  (and
+    (instance ?AGENT AutonomousAgent)
+    (instance ?T TimeInterval)
+    (instance ?VUL1 Vulnerability)
+    (instance ?VUL2 Vulnerability)
+    (holdsDuring ?T (exploitCost ?VUL1 ?AGENT ?C1))
+    (holdsDuring ?T (patchCost ?VUL2 ?AGENT ?C2))
+    (measure ?C1 ?AMOUNT1)
+    (measure ?C2 ?AMOUNT2)
+    (aggregateCyberCost ?AGENT ?T ?TOTAL))
+  (measure ?TOTAL (AdditionFn ?AMOUNT1 ?AMOUNT2)))
+
+;; ============================================================
+;; ViolatedKnapsack (RelationalAttribute)
+;; ============================================================
+
+(instance ViolatedKnapsack RelationalAttribute)
+(termFormat EnglishLanguage ViolatedKnapsack "violated knapsack")
+(documentation ViolatedKnapsack EnglishLanguage "An &%Attribute of an
+&%AutonomousAgent that holds during a &%TimeInterval when the agent's
+&%aggregateCyberCost for that interval exceeds their
+&%operationalBudget. Agent-relative: within the same interval one
+agent may violate while another satisfies. Interval-relative: the
+same agent may satisfy in one interval and violate in another.")
+
+(=>
+  (and
+    (instance ?AGENT AutonomousAgent)
+    (instance ?T TimeInterval)
+    (operationalBudget ?AGENT ?BUDGET)
+    (aggregateCyberCost ?AGENT ?T ?TOTAL)
+    (measure ?BUDGET ?BUDGET_AMOUNT)
+    (measure ?TOTAL ?TOTAL_AMOUNT)
+    (greaterThan ?TOTAL_AMOUNT ?BUDGET_AMOUNT))
+  (holdsDuring ?T
+    (attribute ?AGENT ViolatedKnapsack)))
+
+;; ============================================================
+;; operationalTempo (TernaryPredicate)
+;; ============================================================
+
+(instance operationalTempo TernaryPredicate)
+(domain operationalTempo 1 AutonomousAgent)
+(domain operationalTempo 2 RealNumber)
+(domain operationalTempo 3 TimeInterval)
+(termFormat EnglishLanguage operationalTempo "operational tempo")
+(format EnglishLanguage operationalTempo "%1 operates at a tempo factor of %2 during %3")
+(documentation operationalTempo EnglishLanguage "(&%operationalTempo
+?AGENT ?FACTOR ?T) means that ?AGENT's effective &%operationalBudget
+during &%TimeInterval ?T is modulated by the multiplicative ?FACTOR
+relative to their baseline budget.  A ?FACTOR greater than 1 represents
+an effort surge (e.g. 1.15 for a 15% surge); a ?FACTOR less than 1
+represents an effort back-off.  Adapted from the elastic capacity
+modulation parameter beta in Goohs, Dykstra, Melaragno, and Casey,
+'A Game Theory for Resource-Constrained Tactical Cyber Operations,'
+MILCOM 2024, where a surge is modeled as (1+beta)C, a multiplicative
+adjustment to the baseline capacity C.")
+
+(=>
+  (and
+    (instance ?AGENT AutonomousAgent)
+    (instance ?T TimeInterval)
+    (instance ?T ?PERIOD)
+    (operationalTempo ?AGENT ?FACTOR ?T)
+    (operationalBudget ?AGENT ?BASELINE)
+    (measure ?BASELINE ?BASEAMOUNT)
+    (operationalBudgetInPeriod ?AGENT ?PERIODBUDGET ?PERIOD)
+    (measure ?PERIODBUDGET ?PERIODAMOUNT))
+  (equal ?PERIODAMOUNT (MultiplicationFn ?FACTOR ?BASEAMOUNT)))
+
+;; ============================================================
+;; ZeroSumContest (subclass of Contest)
+;; ============================================================
+
+(subclass ZeroSumContest Contest)
+(termFormat EnglishLanguage ZeroSumContest "zero sum contest")
+(documentation ZeroSumContest EnglishLanguage "A &%Contest between two
+participants where one participant's utility gain during any
+&%TimeInterval is exactly offset by the other participant's utility
+loss during that same interval. Formalizes the zero-sum utility
+gradient in Goohs, Savin, Starks, Dykstra, and Casey, 'Adversarial
+Knapsack and Secondary Effects of Common Information for Cyber
+Operations,' arXiv:2403.10789, equation 8 (the first-difference
+utility gained by one player equals the negative of the other's).")
+
+(instance utilityGained QuaternaryPredicate)
+(domain utilityGained 1 Contest)
+(domain utilityGained 2 AutonomousAgent)
+(domain utilityGained 3 TimeInterval)
+(domain utilityGained 4 RealNumber)
+(termFormat EnglishLanguage utilityGained "utility gained")
+(format EnglishLanguage utilityGained "%1 gained a utility of %3 for %2 during %4")
+(documentation utilityGained EnglishLanguage "(&%utilityGained ?CONTEST
+?AGENT ?T ?AMOUNT) means ?AGENT gained a signed ?AMOUNT of utility from
+?CONTEST during ?T. A negative ?AMOUNT represents a loss. Terminology
+and formalization follow Goohs, Savin, Starks, Dykstra, and Casey,
+'Adversarial Knapsack and Secondary Effects of Common Information for
+Cyber Operations,' arXiv:2403.10789, equation 6 (the first-difference
+utility gained by player x for a fixed round).")
+
+(=>
+  (and
+    (instance ?ZSC ZeroSumContest)
+    (agent ?ZSC ?A1)
+    (agent ?ZSC ?A2)
+    (not (equal ?A1 ?A2))
+    (instance ?T TimeInterval)
+    (utilityGained ?ZSC ?A1 ?T ?DELTA1)
+    (utilityGained ?ZSC ?A2 ?T ?DELTA2))
+  (equal ?DELTA2 (SubtractionFn 0 ?DELTA1)))
+
+(=>
+  (and
+    (instance ?ZSC ZeroSumContest)
+    (agent ?ZSC ?A1)
+    (instance ?T TimeInterval))
+  (exists (?DELTA)
+    (and
+      (greaterThan ?DELTA 0)
+      (modalAttribute
+        (hasPurposeForAgent ?ZSC ?A1
+          (utilityGained ?ZSC ?A1 ?T ?DELTA))
+        Likely))))
+
+;; ============================================================
+;; AdversarialKnapsack (subclass of Contest)
+;; ============================================================
+
+(subclass AdversarialKnapsack Contest)
+(termFormat EnglishLanguage AdversarialKnapsack "adversarial knapsack")
+(documentation AdversarialKnapsack EnglishLanguage "A &%Contest between
+&%AutonomousAgents competing under resource constraints. Every
+&%AdversarialKnapsack has at least two distinct participant agents,
+and each participant has an &%operationalBudget bounding the cyber
+actions they can commit to. Formalizes the Adversarial Knapsack game
+from arXiv:2403.10789.")
+
+(=>
+  (instance ?AK AdversarialKnapsack)
+  (exists (?A1 ?A2)
+    (and
+      (instance ?A1 AutonomousAgent)
+      (instance ?A2 AutonomousAgent)
+      (not (equal ?A1 ?A2))
+      (contestParticipant ?AK ?A1)
+      (contestParticipant ?AK ?A2))))
+
+(=>
+  (and
+    (instance ?AK AdversarialKnapsack)
+    (instance ?AGENT AutonomousAgent)
+    (contestParticipant ?AK ?AGENT))
+  (exists (?BUDGET)
+    (operationalBudget ?AGENT ?BUDGET)))
+
+;; ============================================================
+;; exploitCost (TernaryPredicate)
+;; ============================================================
+
+(instance exploitCost TernaryPredicate)
+(instance exploitCost SingleValuedRelation)
+(domain exploitCost 1 Vulnerability)
+(domain exploitCost 2 AutonomousAgent)
+(domain exploitCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage exploitCost "exploit cost")
+(format EnglishLanguage exploitCost "exploiting %1 costs %2 an amount of %3")
+(documentation exploitCost EnglishLanguage "(&%exploitCost ?VUL ?AGENT
+?COST) means that it costs ?AGENT an amount of ?COST to exploit
+&%Vulnerability ?VUL. Encompasses tooling acquisition, scaling effort,
+compute resources, expertise, and operational overhead. Agent-relative:
+different agents may face different exploit costs for the same
+vulnerability depending on prior tooling and capability. Not common
+knowledge by default: discovering that a vulnerability exists is
+necessary before an agent can meaningfully estimate its exploit cost, but
+does not by itself determine that estimate. What most directly shapes it
+is whether a known or off-the-shelf exploit already exists (see
+&%KnownExploitAvailable) versus one needing custom development.
+Capacity-relative: the same exploit cost can be
+affordable for one agent and unaffordable for another depending on their
+&%operationalBudget, both directly and as a contributor to
+&%aggregateCyberCost, which &%ViolatedKnapsack compares against
+&%operationalBudget. Single-valued: for a given vulnerability and agent
+there is at most one exploit cost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (exploitCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+(=>
+  (and
+    (instance ?SYS Physical)
+    (vulnerableSystem ?VUL ?SYS ?AGENT))
+  (exists (?COST)
+    (exploitCost ?VUL ?AGENT ?COST)))
+
+;; ============================================================
+;; KnownExploitAvailable (RelationalAttribute)
+;; ============================================================
+
+(instance KnownExploitAvailable RelationalAttribute)
+(termFormat EnglishLanguage KnownExploitAvailable "known exploit available")
+(documentation KnownExploitAvailable EnglishLanguage "An &%Attribute of a
+&%Vulnerability that holds during a &%TimeInterval when a publicly known
+or off-the-shelf exploit already exists for it, as opposed to requiring
+custom development. Time-relative: a &%Vulnerability may lack a known
+exploit in one interval (e.g. while still a zero-day) and gain one in a
+later interval once one is discovered, published, or leaked. When a
+known exploit is available, &%expertiseCost tends lower than for a
+comparable vulnerability without one, since custom development labor
+isn't needed, only enough expertise to deploy the existing exploit
+successfully -- not a universal bound, since development time for a
+custom exploit varies widely depending on desired stealth.")
+
+;; ============================================================
+;; toolingAcquisitionCost (TernaryPredicate)
+;; ============================================================
+
+(instance toolingAcquisitionCost TernaryPredicate)
+(instance toolingAcquisitionCost SingleValuedRelation)
+(domain toolingAcquisitionCost 1 Vulnerability)
+(domain toolingAcquisitionCost 2 AutonomousAgent)
+(domain toolingAcquisitionCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage toolingAcquisitionCost "tooling acquisition cost")
+(format EnglishLanguage toolingAcquisitionCost "%2's tooling acquisition cost for exploiting %1 is %3")
+(documentation toolingAcquisitionCost EnglishLanguage "(&%toolingAcquisitionCost
+?VUL ?AGENT ?COST) means ?AGENT spends ?COST acquiring the tools used to
+exploit &%Vulnerability ?VUL. Typically the &%transactionAmount of one or
+more &%Buying transactions in which ?AGENT is the &%agent and the acquired
+tool serves as the &%instrument of later exploit development. One of five
+cost components summed into &%exploitCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (toolingAcquisitionCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; scalingEffortCost (TernaryPredicate)
+;; ============================================================
+
+(instance scalingEffortCost TernaryPredicate)
+(instance scalingEffortCost SingleValuedRelation)
+(domain scalingEffortCost 1 Vulnerability)
+(domain scalingEffortCost 2 AutonomousAgent)
+(domain scalingEffortCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage scalingEffortCost "scaling effort cost")
+(format EnglishLanguage scalingEffortCost "%2's scaling effort cost for exploiting %1 is %3")
+(documentation scalingEffortCost EnglishLanguage "(&%scalingEffortCost ?VUL
+?AGENT ?COST) means ?AGENT spends ?COST on the effort to scale an exploit
+for &%Vulnerability ?VUL across additional targets or capacity. Related to
+&%operationalTempo, which models the same effort-surge dynamic as a
+multiplicative factor on &%operationalBudget rather than as a
+&%CurrencyMeasure; here the scaling effort is priced rather than measured
+as tempo. One of five cost components summed into &%exploitCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (scalingEffortCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; computeResourceCost (TernaryPredicate)
+;; ============================================================
+
+(instance computeResourceCost TernaryPredicate)
+(instance computeResourceCost SingleValuedRelation)
+(domain computeResourceCost 1 Vulnerability)
+(domain computeResourceCost 2 AutonomousAgent)
+(domain computeResourceCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage computeResourceCost "compute resource cost")
+(format EnglishLanguage computeResourceCost "%2's compute resource cost for exploiting %1 is %3")
+(documentation computeResourceCost EnglishLanguage "(&%computeResourceCost
+?VUL ?AGENT ?COST) means ?AGENT spends ?COST on compute resources consumed
+developing or running an exploit for &%Vulnerability ?VUL. One of five cost
+components summed into &%exploitCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (computeResourceCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; expertiseCost (TernaryPredicate)
+;; ============================================================
+
+(instance expertiseCost TernaryPredicate)
+(instance expertiseCost SingleValuedRelation)
+(domain expertiseCost 1 Vulnerability)
+(domain expertiseCost 2 AutonomousAgent)
+(domain expertiseCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage expertiseCost "expertise cost")
+(format EnglishLanguage expertiseCost "%2's expertise cost for exploiting %1 is %3")
+(documentation expertiseCost EnglishLanguage "(&%expertiseCost ?VUL ?AGENT
+?COST) means ?AGENT spends ?COST compensating the expertise needed to
+exploit &%Vulnerability ?VUL. Typically the sum of &%monetaryWage payments
+?AGENT, when acting as an &%Organization, pays &%Human personnel it
+&%employs to develop the exploit; a solo &%Human agent's expertise cost is
+the opportunity cost of their own time rather than a wage payment. Tends
+lower when &%KnownExploitAvailable holds for ?VUL, since deploying an
+existing exploit successfully needs less expertise than developing one
+from scratch. One of five cost components summed into &%exploitCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (expertiseCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; operationalOverheadCost (TernaryPredicate)
+;; ============================================================
+
+(instance operationalOverheadCost TernaryPredicate)
+(instance operationalOverheadCost SingleValuedRelation)
+(domain operationalOverheadCost 1 Vulnerability)
+(domain operationalOverheadCost 2 AutonomousAgent)
+(domain operationalOverheadCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage operationalOverheadCost "operational overhead cost")
+(format EnglishLanguage operationalOverheadCost "%2's operational overhead cost for exploiting %1 is %3")
+(documentation operationalOverheadCost EnglishLanguage
+"(&%operationalOverheadCost ?VUL ?AGENT ?COST) means ?AGENT spends ?COST on
+the ongoing operational overhead of maintaining an exploit for
+&%Vulnerability ?VUL, beyond its initial acquisition, scaling, compute, and
+expertise costs. One of five cost components summed into &%exploitCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (operationalOverheadCost ?VUL ?AGENT ?COST)
+    (measure ?COST ?AMOUNT))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; exploitCost -- sum-of-sub-costs definition (extends the existing
+;; aggregateCyberCost summation rule, above, to exploitCost's own five
+;; components). Universal, not an existence witness: this is
+;; our interpretation of how the five components compose -- whenever an
+;; agent has all five sub-costs recorded for a vulnerability, the total
+;; exploitCost is defined as their sum.
+;; ============================================================
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (toolingAcquisitionCost ?VUL ?AGENT ?C1)
+    (scalingEffortCost ?VUL ?AGENT ?C2)
+    (computeResourceCost ?VUL ?AGENT ?C3)
+    (expertiseCost ?VUL ?AGENT ?C4)
+    (operationalOverheadCost ?VUL ?AGENT ?C5)
+    (measure ?C1 ?A1)
+    (measure ?C2 ?A2)
+    (measure ?C3 ?A3)
+    (measure ?C4 ?A4)
+    (measure ?C5 ?A5)
+    (exploitCost ?VUL ?AGENT ?TOTAL))
+  (measure ?TOTAL (AdditionFn ?A1 (AdditionFn ?A2 (AdditionFn ?A3 (AdditionFn ?A4 ?A5))))))
+
+;; This is what backs exploitCost's own "agent-relative... depending on
+;; prior tooling and capability" documentation claim. Holding
+;; scaling-effort, compute-resource, and operational-overhead cost equal
+;; between two agents, lower tooling-acquisition cost (more prior tooling
+;; already possessed) and lower expertise cost (more prior capability
+;; already possessed) do not increase total exploitCost. Derives each
+;; total's measure directly via the same AdditionFn chain as the
+;; summation rule above, rather than requiring the totals as
+;; independently-given facts -- the ordering follows as a genuine
+;; consequence of the tooling/expertise comparison, not a separate
+;; assertion (revised 2026-08-08 after Diagnostics flagged the prior
+;; version's consequent variables as disconnected from the antecedent).
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?A1 AutonomousAgent)
+    (instance ?A2 AutonomousAgent)
+    (toolingAcquisitionCost ?VUL ?A1 ?T1)
+    (toolingAcquisitionCost ?VUL ?A2 ?T2)
+    (expertiseCost ?VUL ?A1 ?E1)
+    (expertiseCost ?VUL ?A2 ?E2)
+    (scalingEffortCost ?VUL ?A1 ?S)
+    (scalingEffortCost ?VUL ?A2 ?S)
+    (computeResourceCost ?VUL ?A1 ?C)
+    (computeResourceCost ?VUL ?A2 ?C)
+    (operationalOverheadCost ?VUL ?A1 ?O)
+    (operationalOverheadCost ?VUL ?A2 ?O)
+    (exploitCost ?VUL ?A1 ?TOTAL1)
+    (exploitCost ?VUL ?A2 ?TOTAL2)
+    (measure ?T1 ?AT1)
+    (measure ?T2 ?AT2)
+    (measure ?E1 ?AE1)
+    (measure ?E2 ?AE2)
+    (measure ?S ?AS)
+    (measure ?C ?AC)
+    (measure ?O ?AO)
+    (measure ?TOTAL1 (AdditionFn ?AT1 (AdditionFn ?AS (AdditionFn ?AC (AdditionFn ?AO ?AE1)))))
+    (measure ?TOTAL2 (AdditionFn ?AT2 (AdditionFn ?AS (AdditionFn ?AC (AdditionFn ?AO ?AE2)))))
+    (lessThanOrEqualTo ?AT1 ?AT2)
+    (lessThanOrEqualTo ?AE1 ?AE2))
+  (exists (?AMT1 ?AMT2)
+    (and
+      (measure ?TOTAL1 ?AMT1)
+      (measure ?TOTAL2 ?AMT2)
+      (lessThanOrEqualTo ?AMT1 ?AMT2))))
+
+;; ============================================================
+;; patchCost (TernaryPredicate)
+;; ============================================================
+
+(instance patchCost TernaryPredicate)
+(instance patchCost SingleValuedRelation)
+(domain patchCost 1 Vulnerability)
+(domain patchCost 2 AutonomousAgent)
+(domain patchCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage patchCost "patch cost")
+(format EnglishLanguage patchCost "patching %1 costs %2 an amount of %3")
+(documentation patchCost EnglishLanguage "(&%patchCost ?VUL ?AGENT ?COST)
+means that it costs ?AGENT an amount of ?COST to patch or remediate
+&%Vulnerability ?VUL. Includes development, testing, deployment, and any
+operational disruption overhead (see &%patchDevelopmentCost,
+&%patchTestingCost, &%patchDeploymentCost, &%operationalDisruptionCost).
+Agent-relative: an organization with mature patch management pays less
+than one building remediation capability from scratch (see
+&%PatchManagementMaturityAttribute). Discovery-gated, not common
+knowledge by default: the attacker for whom the vulnerability is
+exploitable and the defender possessing the vulnerable system each know
+the patch cost only once that side has discovered the vulnerability
+exists on the system. Single-valued: for a given vulnerability and agent
+there is at most one patch cost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; PatchManagementMaturityAttribute (RelationalAttribute)
+;; ============================================================
+
+(subclass PatchManagementMaturityAttribute RelationalAttribute)
+(termFormat EnglishLanguage PatchManagementMaturityAttribute "patch management maturity attribute")
+(documentation PatchManagementMaturityAttribute EnglishLanguage "A &%RelationalAttribute
+grading an &%Organization's patch management capability, based on CMMC 2.0's
+three-level maturity structure. &%PatchManagementFoundational,
+&%PatchManagementAdvanced, and &%PatchManagementExpert form an ordered chain
+via &%successorAttribute, from least to most mature.")
+
+(instance PatchManagementFoundational PatchManagementMaturityAttribute)
+(termFormat EnglishLanguage PatchManagementFoundational "foundational patch management maturity")
+(documentation PatchManagementFoundational EnglishLanguage "The lowest
+&%PatchManagementMaturityAttribute level, corresponding to CMMC 2.0 Level 1
+(Foundational): basic, largely ad hoc patch practices.")
+
+(instance PatchManagementAdvanced PatchManagementMaturityAttribute)
+(termFormat EnglishLanguage PatchManagementAdvanced "advanced patch management maturity")
+(documentation PatchManagementAdvanced EnglishLanguage "The middle
+&%PatchManagementMaturityAttribute level, corresponding to CMMC 2.0 Level 2
+(Advanced): documented, managed patch processes.")
+
+(instance PatchManagementExpert PatchManagementMaturityAttribute)
+(termFormat EnglishLanguage PatchManagementExpert "expert patch management maturity")
+(documentation PatchManagementExpert EnglishLanguage "The highest
+&%PatchManagementMaturityAttribute level, corresponding to CMMC 2.0 Level 3
+(Expert): optimized, proactive patch management capability.")
+
+(successorAttribute PatchManagementAdvanced PatchManagementFoundational)
+(successorAttribute PatchManagementExpert PatchManagementAdvanced)
+
+;; This is what backs patchCost's own "agent-relative... an organization
+;; with mature patch management pays less" documentation claim.
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?ORG1 Organization)
+    (instance ?ORG2 Organization)
+    (not (equal ?ORG1 ?ORG2))
+    (attribute ?ORG1 ?LEVEL1)
+    (attribute ?ORG2 ?LEVEL2)
+    (instance ?LEVEL1 PatchManagementMaturityAttribute)
+    (instance ?LEVEL2 PatchManagementMaturityAttribute)
+    (successorAttributeClosure ?LEVEL2 ?LEVEL1)
+    (patchCost ?VUL ?ORG1 ?COST1)
+    (patchCost ?VUL ?ORG2 ?COST2)
+    (equal ?COST1 (MeasureFn ?AMT1 ?UNIT))
+    (equal ?COST2 (MeasureFn ?AMT2 ?UNIT)))
+  (lessThanOrEqualTo ?AMT1 ?AMT2))
+
+(=>
+  (and
+    (instance ?ATTACKER AutonomousAgent)
+    (vulnerableSystem ?VUL ?SYS ?ATTACKER)
+    (possesses ?DEFENDER ?SYS))
+  (exists (?COST)
+    (patchCost ?VUL ?DEFENDER ?COST)))
+
+(=>
+  (and
+    (vulnerableSystem ?VUL ?SYS ?ATTACKER)
+    (possesses ?DEFENDER ?SYS)
+    (patchCost ?VUL ?DEFENDER ?COST)
+    (knows ?ATTACKER (attribute ?SYS ?VUL)))
+  (knows ?ATTACKER (patchCost ?VUL ?DEFENDER ?COST)))
+
+(=>
+  (and
+    (vulnerableSystem ?VUL ?SYS ?ATTACKER)
+    (possesses ?DEFENDER ?SYS)
+    (patchCost ?VUL ?DEFENDER ?COST)
+    (knows ?DEFENDER (attribute ?SYS ?VUL)))
+  (knows ?DEFENDER (patchCost ?VUL ?DEFENDER ?COST)))
+
+;; ============================================================
+;; patchDevelopmentCost (TernaryPredicate)
+;; ============================================================
+
+(instance patchDevelopmentCost TernaryPredicate)
+(instance patchDevelopmentCost SingleValuedRelation)
+(domain patchDevelopmentCost 1 Vulnerability)
+(domain patchDevelopmentCost 2 AutonomousAgent)
+(domain patchDevelopmentCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage patchDevelopmentCost "patch development cost")
+(format EnglishLanguage patchDevelopmentCost "%2's patch development cost for %1 is %3")
+(documentation patchDevelopmentCost EnglishLanguage "(&%patchDevelopmentCost
+?VUL ?AGENT ?COST) means ?AGENT spends ?COST developing a fix for
+&%Vulnerability ?VUL. One of four cost components summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchDevelopmentCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; patchTestingCost (TernaryPredicate)
+;; ============================================================
+
+(instance patchTestingCost TernaryPredicate)
+(instance patchTestingCost SingleValuedRelation)
+(domain patchTestingCost 1 Vulnerability)
+(domain patchTestingCost 2 AutonomousAgent)
+(domain patchTestingCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage patchTestingCost "patch testing cost")
+(format EnglishLanguage patchTestingCost "%2's patch testing cost for %1 is %3")
+(documentation patchTestingCost EnglishLanguage "(&%patchTestingCost ?VUL
+?AGENT ?COST) means ?AGENT spends ?COST verifying that a fix for
+&%Vulnerability ?VUL closes the vulnerability without introducing
+regressions. One of four cost components summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchTestingCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; patchDeploymentCost (TernaryPredicate)
+;; ============================================================
+
+(instance patchDeploymentCost TernaryPredicate)
+(instance patchDeploymentCost SingleValuedRelation)
+(domain patchDeploymentCost 1 Vulnerability)
+(domain patchDeploymentCost 2 AutonomousAgent)
+(domain patchDeploymentCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage patchDeploymentCost "patch deployment cost")
+(format EnglishLanguage patchDeploymentCost "%2's patch deployment cost for %1 is %3")
+(documentation patchDeploymentCost EnglishLanguage "(&%patchDeploymentCost
+?VUL ?AGENT ?COST) means ?AGENT spends ?COST rolling a fix for
+&%Vulnerability ?VUL out across the affected systems it possesses. One of
+four cost components summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchDeploymentCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; operationalDisruptionCost (TernaryPredicate)
+;; ============================================================
+
+(instance operationalDisruptionCost TernaryPredicate)
+(instance operationalDisruptionCost SingleValuedRelation)
+(domain operationalDisruptionCost 1 Vulnerability)
+(domain operationalDisruptionCost 2 AutonomousAgent)
+(domain operationalDisruptionCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage operationalDisruptionCost "operational disruption cost")
+(format EnglishLanguage operationalDisruptionCost "%2's operational disruption cost for patching %1 is %3")
+(documentation operationalDisruptionCost EnglishLanguage
+"(&%operationalDisruptionCost ?VUL ?AGENT ?COST) means ?AGENT bears ?COST
+in lost or degraded operations while patching &%Vulnerability ?VUL, distinct
+from the direct cost of the patch work itself. One of four cost components
+summed into &%patchCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (operationalDisruptionCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; ============================================================
+;; patchCost -- sum-of-sub-costs definition. Universal, not an existence
+;; witness: whenever an agent has all four sub-costs recorded for a
+;; vulnerability, the total patchCost is defined as their sum, unified to
+;; a shared currency unit across all four components and the total.
+;; ============================================================
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (patchDevelopmentCost ?VUL ?AGENT ?C1)
+    (patchTestingCost ?VUL ?AGENT ?C2)
+    (patchDeploymentCost ?VUL ?AGENT ?C3)
+    (operationalDisruptionCost ?VUL ?AGENT ?C4)
+    (equal ?C1 (MeasureFn ?A1 ?UNIT))
+    (equal ?C2 (MeasureFn ?A2 ?UNIT))
+    (equal ?C3 (MeasureFn ?A3 ?UNIT))
+    (equal ?C4 (MeasureFn ?A4 ?UNIT))
+    (instance ?UNIT UnitOfCurrency)
+    (patchCost ?VUL ?AGENT ?TOTAL))
+  (equal ?TOTAL (MeasureFn (AdditionFn ?A1 (AdditionFn ?A2 (AdditionFn ?A3 ?A4))) ?UNIT)))
+
+;; ============================================================
+;; defenderLossCost (TernaryPredicate)
+;; ============================================================
+
+(instance defenderLossCost TernaryPredicate)
+(instance defenderLossCost SingleValuedRelation)
+(domain defenderLossCost 1 Vulnerability)
+(domain defenderLossCost 2 AutonomousAgent)
+(domain defenderLossCost 3 CurrencyMeasure)
+(termFormat EnglishLanguage defenderLossCost "defender loss cost")
+(format EnglishLanguage defenderLossCost "%2's expected loss from %1 being exploited is %3")
+(documentation defenderLossCost EnglishLanguage "(&%defenderLossCost ?VUL
+?AGENT ?COST) means ?AGENT, as the defender possessing a system vulnerable
+to &%Vulnerability ?VUL, expects to lose an amount of ?COST if ?VUL is
+successfully exploited against that system. Distinct from &%exploitCost,
+which prices the attacker's cost to carry out the exploitation, not the
+defender's loss from it. Grounds &%patchCost's rational-choice condition:
+patching is the cost-minimizing choice exactly when patchCost is less
+than defenderLossCost.")
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?AGENT AutonomousAgent)
+    (defenderLossCost ?VUL ?AGENT ?COST)
+    (equal ?COST (MeasureFn ?AMOUNT ?UNIT))
+    (instance ?UNIT UnitOfCurrency))
+  (greaterThanOrEqualTo ?AMOUNT 0))
+
+;; rule: patchCost's essential rational-choice condition -- patching is the
+;; cost-minimizing choice exactly when patchCost is less than
+;; defenderLossCost. operationalDisruptionCost (a patchCost sub-cost) already
+;; prices the disruption caused by patching itself, so no separate
+;; opportunity-cost term is needed on the other side of the comparison.
+
+(=>
+  (and
+    (instance ?VUL Vulnerability)
+    (instance ?DEFENDER AutonomousAgent)
+    (patchCost ?VUL ?DEFENDER ?PCOST)
+    (defenderLossCost ?VUL ?DEFENDER ?LCOST)
+    (equal ?PCOST (MeasureFn ?PAMT ?UNIT))
+    (equal ?LCOST (MeasureFn ?LAMT ?UNIT))
+    (lessThan ?PAMT ?LAMT))
+  (exists (?PATCH)
+    (and
+      (instance ?PATCH Repairing)
+      (agent ?PATCH ?DEFENDER)
+      (patient ?PATCH ?VUL)
+      (modalAttribute
+        (hasPurposeForAgent ?PATCH ?DEFENDER
+          (defenderLossCost ?VUL ?DEFENDER ?LCOST))
+        Likely))))
+
+;; ============================================================
+;; vulnerabilityCause (BinaryPredicate)
+;; ============================================================
+
+;; SUMO's existing &%causes relation requires both arguments to be
+;; &%Process, but &%SoftwareBug and &%Vulnerability are
+;; &%RelationalAttribute, not processes, so a dedicated relation is
+;; needed to bridge them.
+
+(instance vulnerabilityCause BinaryPredicate)
+(domain vulnerabilityCause 1 Entity)
+(domain vulnerabilityCause 2 Vulnerability)
+(termFormat EnglishLanguage vulnerabilityCause "vulnerability cause")
+(format EnglishLanguage vulnerabilityCause "%1 is a &%cause of vulnerability %2")
+(documentation vulnerabilityCause EnglishLanguage "(&%vulnerabilityCause
+?CAUSE ?VUL) means that ?CAUSE, which may be a &%SoftwareBug, a
+misconfiguration, a design flaw, or any other &%Entity, gives rise to
+&%Vulnerability ?VUL.  ?CAUSE need not be a &%SoftwareBug: not every
+&%Vulnerability originates from a bug, and not every &%SoftwareBug
+gives rise to a &%Vulnerability.  &%SoftwareBug and &%Vulnerability
+are disjoint classes.")
+
+;; &%SoftwareBug and &%Vulnerability are distinct classes: no
+;; instance can be both.
+
+(disjoint SoftwareBug Vulnerability)
+
+;; rule: if a bug causes a vulnerability in a program, the program
+;; carries that vulnerability as an attribute
+
+(=>
+  (and
+    (instance ?BUG SoftwareBug)
+    (instance ?PROG ComputerProgram)
+    (bugInProgram ?BUG ?PROG ?AGENT)
+    (instance ?VUL Vulnerability)
+    (vulnerabilityCause ?BUG ?VUL))
+  (attribute ?PROG ?VUL))
+
+;; rule: temporal persistence — while the cause persists as an
+;; attribute of the program, the vulnerability it gives rise to
+;; persists as an attribute of the program over that same interval
+
+(=>
+  (and
+    (instance ?PROG ComputerProgram)
+    (instance ?VUL Vulnerability)
+    (vulnerabilityCause ?CAUSE ?VUL)
+    (attribute ?PROG ?VUL)
+    (holdsDuring ?T (attribute ?PROG ?CAUSE)))
+  (holdsDuring ?T (attribute ?PROG ?VUL)))
+
+;; ============================================================
+;; SecurityControl (Physical)
+;; ============================================================
+
+(instance SecurityControl Class)
+(subclass SecurityControl Physical)
+(termFormat EnglishLanguage SecurityControl "security control")
+(documentation SecurityControl EnglishLanguage "A &%Physical safeguard or
+mechanism -- an &%Object, a &%Process, or several acting in tandem -- put in
+place to satisfy an &%Obligation a &%Policy confers on the &%CognitiveAgent
+accountable for meeting a defined security requirement. A &%SecurityControl
+applies to a given context only when a matching &%Obligation actually holds
+there. It is not universally applicable regardless of context.")
+
+;; rule: a SecurityControl is always either an Object (a lock, an RFID
+;; reader) or a Process (a guard's periodic credential check, a firewall
+;; actively filtering) -- never a merely-specified, undeployed plan
+
+(=>
+  (instance ?X SecurityControl)
+  (or
+    (instance ?X Object)
+    (instance ?X Process)))
+
+;; rule: a SecurityControl's purpose, when tied to a specific agent, must
+;; trace back to a real obligation that agent holds -- not asserted
+;; freestanding. This is the applicability-gating claim: an autonomous
+;; system checking whether a control is warranted for a given context
+;; checks for a matching holdsObligation first (e.g. no obligation covers
+;; a public library computer, so MFA's purpose cannot legitimately be
+;; asserted for it there -- provable as this rule's contrapositive)
+
+(=>
+  (and
+    (instance ?X SecurityControl)
+    (instance ?AGENT CognitiveAgent)
+    (hasPurposeForAgent ?X ?AGENT ?FORMULA))
+  (holdsObligation ?AGENT ?FORMULA))
+
+;; TIER 2 -- capability: the class affords being used toward Protecting,
+;; independent of whether a given instance is currently deployed
+
+(capability Protecting instrument SecurityControl)
+
+;; TIER 3 -- hasPurpose: agent-neutral designed intent, distinct from the
+;; agent-specific obligation-satisfaction rule above
+
+(=>
+  (instance ?X SecurityControl)
+  (hasPurpose ?X
+    (exists (?P)
+      (and
+        (instance ?P Protecting)
+        (instrument ?P ?X)))))
+
+;; TIER 5 -- consequences, Process branch (strict): a Process-typed
+;; SecurityControl instance just is a Protecting occurrence
+
+(=>
+  (and
+    (instance ?X SecurityControl)
+    (instance ?X Process))
+  (exists (?P)
+    (and
+      (instance ?P Protecting)
+      (equal ?P ?X))))
+
+;; TIER 5 -- consequences, Object branch (modal): an Object-typed instance
+;; being deployed does not guarantee it is currently effective (a lock can
+;; be picked, a firewall misconfigured)
+
+(=>
+  (and
+    (instance ?X SecurityControl)
+    (instance ?X Object))
+  (modalAttribute
+    (exists (?P)
+      (and
+        (instance ?P Protecting)
+        (instrument ?P ?X)))
+    Likely))
+
+;; ============================================================
+;; ControlException (Policy)
+;; ============================================================
+
+(instance ControlException Class)
+(subclass ControlException Policy)
+(termFormat EnglishLanguage ControlException "control exception")
+(documentation ControlException EnglishLanguage "A &%Policy documenting an
+organization's knowing acceptance of risk: it records that a &%CognitiveAgent
+has acknowledged a security requirement or vulnerability which a specific
+&%SecurityControl would address, and has deliberately chosen not to apply
+that &%SecurityControl because of a conflicting business, technological, or
+resource constraint. A &%ControlException is never permanent: it holds only
+while the constraint that justified it remains and the underlying
+vulnerability's risk stays within the accepted tolerance, and lapses once
+either condition fails.")
+
+;; rule: a ControlException always presupposes a prior identified
+;; SecurityControl requirement tied to a specific agent's obligation, and
+;; confers that agent the right to not bring the excepted formula about
+
+(=>
+  (instance ?CE ControlException)
+  (exists (?X ?AGENT ?FORMULA)
+    (and
+      (instance ?X SecurityControl)
+      (instance ?AGENT CognitiveAgent)
+      (hasPurposeForAgent ?X ?AGENT ?FORMULA)
+      (confersRight ?CE ?AGENT (not ?FORMULA)))))
+
+;; rule: whoever a ControlException confers a right on also knows what
+;; they are accepting -- a knowing acceptance of risk, not administrative
+;; cover the agent is unaware of
+
+(=>
+  (and
+    (instance ?CE ControlException)
+    (confersRight ?CE ?AGENT ?RIGHTFORMULA))
+  (knows ?AGENT ?RIGHTFORMULA))
+
+(instance exceptionExpirationDate BinaryPredicate)
+(domain exceptionExpirationDate 1 ControlException)
+(domainSubclass exceptionExpirationDate 2 TimePosition)
+(termFormat EnglishLanguage exceptionExpirationDate "exception expiration date")
+(documentation exceptionExpirationDate EnglishLanguage "(&%exceptionExpirationDate
+?CE ?DATE) means that the &%ControlException ?CE ceases to confer its right
+at the time indicated by ?DATE.")
+
+;; rule: an exception typically stops holding once its expiration date
+;; passes -- modal, not strict, since enforcement lag means the right can
+;; still be exercised in practice past its formal expiration
+
+(=>
+  (and
+    (exceptionExpirationDate ?CE ?DATE)
+    (confersRight ?CE ?AGENT ?FORMULA)
+    (instance ?TIME ?DATE))
+  (modalAttribute
+    (not (holdsDuring (ImmediateFutureFn ?TIME) (holdsRight ?AGENT ?FORMULA)))
+    Likely))
+
+;; ============================================================
+;; authorizedAccess (BinaryPredicate)
+;; ============================================================
+
+(instance authorizedAccess BinaryPredicate)
+(domain authorizedAccess 1 CognitiveAgent)
+(domain authorizedAccess 2 Object)
+(termFormat EnglishLanguage authorizedAccess "authorized access")
+(format EnglishLanguage authorizedAccess "%1 has &%authorized access to %2")
+(documentation authorizedAccess EnglishLanguage "(&%authorizedAccess ?AGENT
+?SYSTEM) means that ?SYSTEM's owner has conferred on ?AGENT the right to
+access ?SYSTEM. Formalized via &%confersRight and &%holdsRight: the owner
+confers the right, and ?AGENT then holds it.")
+
+(<=>
+  (authorizedAccess ?AGENT ?SYSTEM)
+  (exists (?OWNER)
+    (and
+      (possesses ?OWNER ?SYSTEM)
+      (confersRight ?OWNER ?AGENT (authorizedAccess ?AGENT ?SYSTEM)))))
+
+;; ============================================================
+;; DefensiveStrategy
+;; ============================================================
+
+(subclass DefensiveStrategy Plan)
+(termFormat EnglishLanguage DefensiveStrategy "defensive strategy")
+(documentation DefensiveStrategy EnglishLanguage "A &%Plan employed by a
+defender to protect an &%Object they possess, such that only agents
+holding &%authorizedAccess to it ever use it.")
+
+;; rule: purpose -- executing a DefensiveStrategy has the purpose, for the
+;; defender, that only agents holding authorizedAccess ever use the
+;; protected asset
+
+(=>
+  (and
+    (instance ?STRAT DefensiveStrategy)
+    (instance ?EXEC Process)
+    (realization ?EXEC ?STRAT)
+    (agent ?EXEC ?DEFENDER)
+    (instance ?ASSET Object)
+    (possesses ?DEFENDER ?ASSET))
+  (hasPurposeForAgent ?EXEC ?DEFENDER
+    (forall (?AGENT)
+      (=>
+        (and
+          (instance ?AGENT CognitiveAgent)
+          (uses ?ASSET ?AGENT))
+        (authorizedAccess ?AGENT ?ASSET)))))
+
+;; ============================================================
+;; EthicalHacker (SocialRole)
+;; ============================================================
+
+(instance EthicalHacker SocialRole)
+(termFormat EnglishLanguage EthicalHacker "ethical hacker")
+(documentation EthicalHacker EnglishLanguage "A &%SocialRole for a
+&%CognitiveAgent who identifies and responsibly discloses &%SoftwareBug
+instances to the agent whose specification defines the bug. Also known as
+a white-hat hacker.")
+
+;; rule: an ethical hacker who discovers a bug discloses it to the agent
+;; whose specification defines the bug (uses bugInProgram's specifier
+;; rather than programCreator, because programCreator uses domainSubclass
+;; for arg 2)
+
+(=>
+  (and
+    (attribute ?AGENT EthicalHacker)
+    (instance ?BUG SoftwareBug)
+    (instance ?PROG ComputerProgram)
+    (bugDiscoverer ?BUG ?PROG ?AGENT)
+    (bugInProgram ?BUG ?PROG ?SPECIFIER))
+  (exists (?DISCLOSURE)
+    (and
+      (instance ?DISCLOSURE Stating)
+      (agent ?DISCLOSURE ?AGENT)
+      (patient ?DISCLOSURE ?BUG)
+      (destination ?DISCLOSURE ?SPECIFIER))))
+
+;; ============================================================
+;; BlackHatHacker (SocialRole)
+;; ============================================================
+
+(instance BlackHatHacker SocialRole)
+(termFormat EnglishLanguage BlackHatHacker "black hat hacker")
+(documentation BlackHatHacker EnglishLanguage "A &%SocialRole for a
+&%CognitiveAgent who identifies &%SoftwareBug instances without disclosing
+them to the agent whose specification defines the bug. Contrasted with
+&%EthicalHacker: an agent cannot hold both roles simultaneously.")
+
+(contraryAttribute EthicalHacker BlackHatHacker)
+
+;; rule: a black hat who discovers a bug does not disclose it to the
+;; specifying agent
+
+(=>
+  (and
+    (attribute ?AGENT BlackHatHacker)
+    (instance ?BUG SoftwareBug)
+    (instance ?PROG ComputerProgram)
+    (bugDiscoverer ?BUG ?PROG ?AGENT)
+    (bugInProgram ?BUG ?PROG ?SPECIFIER))
+  (not
+    (exists (?DISCLOSURE)
+      (and
+        (instance ?DISCLOSURE Stating)
+        (agent ?DISCLOSURE ?AGENT)
+        (patient ?DISCLOSURE ?BUG)
+        (destination ?DISCLOSURE ?SPECIFIER)))))
+
+;; ============================================================
+;; valuation (TernaryPredicate)
+;; ============================================================
+
+(instance valuation TernaryPredicate)
+(domain valuation 1 Physical)
+(domain valuation 2 CurrencyMeasure)
+(domain valuation 3 CognitiveAgent)
+(termFormat EnglishLanguage valuation "valuation")
+(format EnglishLanguage valuation "%1 has a &%valuation of %2 as assessed by %3")
+(documentation valuation EnglishLanguage "(&%valuation ?ASSET ?VALUE
+?ASSESSOR) means that ?ASSET has an economic value of ?VALUE as assessed
+by ?ASSESSOR. Distinct from &%monetaryValue, which is single-valued and
+assessor-free: valuation is assessor-relative, so the same asset can have
+different values for different assessors. An asset with a valuation,
+possessed by some owner, is a &%financialAsset of that owner.")
+
+;; rule: an asset with an assessed valuation, possessed by some owner, is
+;; a financial asset of that owner
+
+(=>
+  (and
+    (valuation ?ASSET ?VALUE ?ASSESSOR)
+    (possesses ?OWNER ?ASSET))
+  (financialAsset ?OWNER ?ASSET))
+
+;; ============================================================
+;; ProprietaryData (Attribute)
+;; ============================================================
+
+(instance ProprietaryData Attribute)
+(termFormat EnglishLanguage ProprietaryData "proprietary data")
+(documentation ProprietaryData EnglishLanguage "An &%Attribute of an
+&%Object, typically a data asset or system, indicating that its value is
+undermined when an agent lacking &%authorizedAccess comes to know its
+contents.")
+
+;; rule: an unauthorized agent coming to know a proprietary asset's
+;; contents decreases the asset's valuation (information scarcity
+;; erosion)
+
+(=>
+  (and
+    (financialAsset ?OWNER ?ASSET)
+    (attribute ?ASSET ProprietaryData)
+    (instance ?T1 TimePoint)
+    (holdsDuring ?T1 (valuation ?ASSET ?V1 ?OWNER))
+    (measure ?V1 ?AMOUNT1)
+    (instance ?THIEF CognitiveAgent)
+    (not (authorizedAccess ?THIEF ?ASSET))
+    (instance ?T2 TimePoint)
+    (holdsDuring ?T2 (knows ?THIEF (attribute ?ASSET ProprietaryData)))
+    (before ?T1 ?T2))
+  (exists (?V2 ?AMOUNT2)
+    (and
+      (holdsDuring ?T2 (valuation ?ASSET ?V2 ?OWNER))
+      (measure ?V2 ?AMOUNT2)
+      (lessThan ?AMOUNT2 ?AMOUNT1))))

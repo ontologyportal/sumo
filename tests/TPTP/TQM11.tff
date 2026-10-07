@@ -1,0 +1,471 @@
+%------------------------------------------------------------------------------
+% File     : naval_operations_scenario.tff
+% Authors  : Adam Pease, Pante Stanica 
+% Domain   : Multi-Jurisdictional Naval Operations
+% Problem  : Conflicting obligations in territorial waters engagement
+% Version  : 2.1 (TFF - Typed First-Order Form, Vampire-Compatible)
+% English  : A naval vessel encounters a suspicious craft in disputed waters.
+%            Three authorities issue potentially conflicting obligations:
+%            1. International Maritime Law (UNCLOS) - requires warning before action
+%            2. Rules of Engagement (ROE) - permits immediate defensive action if threatened
+%            3. National Security Directive (NSD) - obligates protection of strategic assets
+%
+%            The commanding officer must determine effective obligations under
+%            epistemic uncertainty about which authority applies.
+% Accompanying paper:        A. Pease, P. Stanica, "When Laws Collide: Automated Reasoning 
+%                         About Conflicting Obligations in Multi-Jurisdictional Environments"
+%------------------------------------------------------------------------------
+
+
+%------------------------------------------------------------------------------
+% Type Declarations (TFF - Typed First-Order Form)
+%------------------------------------------------------------------------------
+
+% Basic ontological types used throughout the model.
+tff(world_type, type, world: $tType).
+
+% Possible situations or epistemic/deontic alternatives
+tff(agent_type, type, agent: $tType).
+
+% Entities that know, believe, or act (e.g., commander)
+tff(authority_type, type, authority: $tType).
+
+% Sources of normative force (laws, directives, etc.)
+tff(prop_type, type, prop: $tType).
+
+% Atomic propositions describing facts or actions
+
+% Modal accessibility relations define how worlds are connected for different modalities.
+% These encode the semantics of knowledge, belief, and obligation as Kripke-style frames.
+tff(knowledge_accessible_type, type, 
+    k_accessible: (agent * world * world) > $o).
+
+% k_accessible(a, w1, w2): world w2 is epistemically possible for agent a in world w1.
+tff(belief_accessible_type, type,
+    b_accessible: (agent * world * world) > $o).
+
+% b_accessible(a, w1, w2): world w2 is doxastically (belief-wise) possible for agent a in w1.
+tff(obligation_accessible_type, type,
+    o_accessible: (authority * world * world) > $o).
+
+% o_accessible(auth, w1, w2): world w2 is deontically ideal according to authority 'auth' in w1.
+tff(authority_priority_type, type,
+    auth_priority: (authority * authority * world) > $o).
+
+% auth_priority(A1, A2, w): authority A2 overrides A1 in world w (i.e., A2 has higher priority).
+tff(authority_active_type, type,
+    active: (authority * world) > $o).
+
+% active(auth, w): the normative system 'auth' is applicable or in force in world w.
+tff(holds_type, type, holds: (prop * world) > $o).
+
+% holds(p, w): proposition p is true in world w.
+tff(knows_type, type, knows: (agent * prop * world) > $o).
+
+% knows(a, p, w): agent a knows proposition p in world w.
+tff(believes_type, type, believes: (agent * prop * world) > $o).
+
+% believes(a, p, w): agent a believes p in world w.
+tff(obligatory_type, type, obligatory: (authority * prop * world) > $o).
+
+% obligatory(auth, p, w): according to authority 'auth', p ought to hold in world w.
+
+%------------------------------------------------------------------------------
+% Constants for the Scenario
+%------------------------------------------------------------------------------
+
+% The decision-making agent in this scenario.
+tff(commander_decl, type, commander: agent).
+
+% The naval officer who must resolve conflicting obligations.
+tff(unclos_decl, type, unclos: authority).
+
+% International Maritime Law (UNCLOS)
+tff(roe_decl, type, roe: authority).
+
+% Military Rules of Engagement
+tff(nsd_decl, type, nsd: authority).
+
+% National Security Directive
+tff(issue_warning_decl, type, issue_warning: prop).
+
+% Must issue warning before force
+tff(immediate_action_decl, type, immediate_action: prop).
+
+% Take immediate defensive action
+tff(protect_asset_decl, type, protect_asset: prop).
+
+% Protect nearby strategic asset
+tff(threat_detected_decl, type, threat_detected: prop).
+
+% Hostile intent or capability observed
+tff(in_territorial_waters_decl, type, in_territorial_waters: prop).
+
+% Location is contested territorial sea
+tff(strategic_asset_nearby_decl, type, strategic_asset_nearby: prop).
+
+% Critical infrastructure is present
+tff(w0_decl, type, w0: world).
+
+% Current operational world
+tff(w1_decl, type, w1: world).
+
+% Epistemically possible alternative
+tff(w2_decl, type, w2: world).
+
+% Deontic alternative (ideal world)
+
+%------------------------------------------------------------------------------
+% Modal Operators Definitions (Explicit World Parameters)
+%------------------------------------------------------------------------------
+
+% Standard possible-worlds semantics for knowledge (S5-style, but frame properties added later).
+% Agent a knows p in w iff p holds in every world epistemically accessible from w for a.
+tff(knows_def, axiom,
+    ![A: agent, P: prop, W: world]: 
+      (knows(A, P, W) <=> 
+       ![W2: world]: (k_accessible(A, W, W2) => holds(P, W2)))).
+
+% Belief is modeled similarly, but over belief-accessible worlds (KD45 logic assumed).
+tff(believes_def, axiom,
+    ![A: agent, P: prop, W: world]: 
+      (believes(A, P, W) <=> 
+       ![W2: world]: (b_accessible(A, W, W2) => holds(P, W2)))).
+
+% Obligation: p is obligatory under authority 'auth' in w iff p holds in all deontically ideal worlds
+% accessible from w according to that authority.
+tff(obligatory_def, axiom,
+    ![Auth: authority, P: prop, W: world]: 
+      (obligatory(Auth, P, W) <=> 
+       ![W2: world]: (o_accessible(Auth, W, W2) => holds(P, W2)))).
+
+%------------------------------------------------------------------------------
+% Scenario Facts: Current World State (w0)
+%------------------------------------------------------------------------------
+
+% Ground truth in the actual world w0: threat is present, asset is nearby, and location is territorial waters.
+tff(threat_at_w0, axiom, holds(threat_detected, w0)).
+tff(asset_at_w0, axiom, holds(strategic_asset_nearby, w0)).
+tff(territorial_at_w0, axiom, holds(in_territorial_waters, w0)).
+
+% Structural constraint: issuing a warning only makes sense (or is only required) in territorial waters.
+% This links the action 'issue_warning' to its contextual precondition.
+tff(issue_warning_requires_territorial, axiom,
+    ![W: world]: (holds(issue_warning, W) => holds(in_territorial_waters, W))).
+
+% Commander’s epistemic state: she knows the threat and asset presence.
+% These axioms say: in every world she considers epistemically possible from w0, these facts hold.
+tff(commander_knows_threat, axiom,
+    ![W: world]: (k_accessible(commander, w0, W) => holds(threat_detected, W))).
+tff(commander_knows_asset, axiom,
+    ![W: world]: (k_accessible(commander, w0, W) => holds(strategic_asset_nearby, W))).
+
+% Therefore, by the knowledge definition, the commander knows these facts in w0.
+tff(commander_knows_threat_at_w0, axiom,
+    knows(commander, threat_detected, w0)).
+tff(commander_knows_asset_at_w0, axiom,
+    knows(commander, strategic_asset_nearby, w0)).
+
+% However, the commander is uncertain about jurisdictional status (territorial waters).
+% She considers at least one world where they ARE in territorial waters...
+tff(commander_believes_territorial, axiom,
+    ?[W: world]: (b_accessible(commander, w0, W) & holds(in_territorial_waters, W))).
+
+% ...and at least one where they are NOT—modeling real-world ambiguity in disputed zones.
+tff(commander_uncertain_territorial, axiom,
+    ?[W: world]: (b_accessible(commander, w0, W) & ~holds(in_territorial_waters, W))).
+
+% Belief is consistent with knowledge: everything believed is also epistemically possible.
+% This ensures that belief worlds are a subset of knowledge worlds (plausible doxastic logic).
+tff(belief_in_knowledge, axiom,
+    ![W: world]: (b_accessible(commander, w0, W) => k_accessible(commander, w0, W))).
+
+%------------------------------------------------------------------------------
+% Authority Activation Conditions
+%------------------------------------------------------------------------------
+
+% UNCLOS only applies if the vessel is in territorial waters (per international law).
+tff(unclos_activation, axiom,
+    ![W: world]: (holds(in_territorial_waters, W) => active(unclos, W))).
+
+% ROE are always in effect for military personnel—no contextual precondition.
+tff(roe_activation, axiom,
+    ![W: world]: active(roe, W)).
+
+% NSD is triggered only when a strategic asset is at risk (proximity-based activation).
+tff(nsd_activation, axiom,
+    ![W: world]: (holds(strategic_asset_nearby, W) => active(nsd, W))).
+
+% Given the facts in w0, all three authorities are active simultaneously.
+tff(unclos_active_at_w0, axiom, active(unclos, w0)).
+tff(roe_active_at_w0, axiom, active(roe, w0)).
+tff(nsd_active_at_w0, axiom, active(nsd, w0)).
+
+%------------------------------------------------------------------------------
+% Obligations from Each Authority
+%------------------------------------------------------------------------------
+
+% UNCLOS mandates that a warning must be issued before using force in territorial waters.
+tff(unclos_obligation, axiom,
+    ![W: world]: (active(unclos, W) => obligatory(unclos, issue_warning, W))).
+
+% ROE permit (and in this encoding, obligate) immediate defensive action when a threat is detected.
+tff(roe_obligation, axiom,
+    ![W: world]: ((active(roe, W) & holds(threat_detected, W)) => 
+                  obligatory(roe, immediate_action, W))).
+
+% NSD requires protection of strategic assets whenever they are nearby.
+tff(nsd_obligation, axiom,
+    ![W: world]: (active(nsd, W) => obligatory(nsd, protect_asset, W))).
+
+% Therefore, in w0, all three obligations are in force:
+% - UNCLOS says "warn first"
+% - ROE says "act immediately"
+% - NSD says "protect the asset"
+tff(unclos_obligates_warning_at_w0, axiom,
+    obligatory(unclos, issue_warning, w0)).
+tff(roe_obligates_action_at_w0, axiom,
+    obligatory(roe, immediate_action, w0)).
+tff(nsd_obligates_protection_at_w0, axiom,
+    obligatory(nsd, protect_asset, w0)).
+
+%------------------------------------------------------------------------------
+% Conflict: Warning vs Immediate Action
+%------------------------------------------------------------------------------
+
+% Immediate action and issuing a warning are mutually exclusive in practice:
+% you cannot both shout a warning and fire simultaneously in this model.
+tff(action_conflicts_warning, axiom,
+    ![W: world]: (holds(immediate_action, W) => ~holds(issue_warning, W))).
+
+% For completeness and symmetry (helps automated provers), we also state the converse.
+tff(warning_conflicts_action, axiom,
+    ![W: world]: (holds(issue_warning, W) => ~holds(immediate_action, W))).
+
+% Note: No such conflict is asserted between 'protect_asset' and 'immediate_action'—
+% they may be compatible (e.g., immediate action could be the means of protection).
+
+%------------------------------------------------------------------------------
+% Authority Priority Structure at w0
+%------------------------------------------------------------------------------
+
+% In threat scenarios, military ROE override international law (UNCLOS).
+% This encodes a real-world legal exception: self-defense trumps procedural requirements.
+tff(roe_priority_over_unclos, axiom,
+    auth_priority(unclos, roe, w0)).
+
+% NSD and ROE are treated as co-equal: neither dominates the other.
+% This models a policy stance where national security and tactical engagement are aligned but independent.
+tff(nsd_roe_incomparable_1, axiom, ~auth_priority(nsd, roe, w0)).
+tff(nsd_roe_incomparable_2, axiom, ~auth_priority(roe, nsd, w0)).
+
+% NSD (national interest) overrides UNCLOS (international procedure).
+tff(nsd_priority_over_unclos, axiom,
+    auth_priority(unclos, nsd, w0)).
+
+%------------------------------------------------------------------------------
+% Authority Consistency Axiom
+%------------------------------------------------------------------------------
+
+% Ensures that an authority’s obligations are consistent with its own deontic ideal worlds.
+% If an authority declares P obligatory, then P must hold in all its accessible ideal worlds.
+% Prevents self-contradictory normative systems.
+tff(authority_consistency, axiom,
+    ![Auth: authority, P: prop, W: world]:
+      ~(obligatory(Auth, P, W) & 
+        ?[W2: world]: (o_accessible(Auth, W, W2) & ~holds(P, W2)))).
+
+%------------------------------------------------------------------------------
+% Epistemic Axioms (S5 for Knowledge)
+%------------------------------------------------------------------------------
+
+% Knowledge is reflexive: agents know what is true in their actual world.
+tff(knowledge_reflexive, axiom,
+    ![A: agent, W: world]: k_accessible(A, W, W)).
+
+% Knowledge is symmetric: if w2 is possible from w1, then w1 is possible from w2.
+% (Strong assumption—models infallible introspection.)
+tff(knowledge_symmetric, axiom,
+    ![A: agent, W1: world, W2: world]: 
+      (k_accessible(A, W1, W2) => k_accessible(A, W2, W1))).
+
+% Knowledge is transitive: if w2 is accessible from w1, and w3 from w2, then w3 from w1.
+tff(knowledge_transitive, axiom,
+    ![A: agent, W1: world, W2: world, W3: world]:
+      ((k_accessible(A, W1, W2) & k_accessible(A, W2, W3)) => 
+       k_accessible(A, W1, W3))).
+
+% Together, these give S5 knowledge: the strongest common epistemic logic.
+
+%------------------------------------------------------------------------------
+% Belief Axioms (KD45)
+%------------------------------------------------------------------------------
+
+% Belief is serial: every world has at least one doxastically accessible alternative.
+% Prevents "no beliefs" — ensures beliefs are non-empty.
+tff(belief_serial, axiom,
+    ![A: agent, W: world]: ?[W2: world]: b_accessible(A, W, W2)).
+
+% Belief is transitive: if the agent believes X, and X implies Y, then she believes Y.
+tff(belief_transitive, axiom,
+    ![A: agent, W1: world, W2: world, W3: world]:
+      ((b_accessible(A, W1, W2) & b_accessible(A, W2, W3)) => 
+       b_accessible(A, W1, W3))).
+
+% Belief is Euclidean: if two worlds are compatible with current beliefs, they are compatible with each other.
+% Captures "positive introspection": if I believe P, I believe that I believe P.
+tff(belief_euclidean, axiom,
+    ![A: agent, W1: world, W2: world, W3: world]:
+      ((b_accessible(A, W1, W2) & b_accessible(A, W1, W3)) => 
+       b_accessible(A, W2, W3))).
+
+% KD45 is a standard doxastic logic for rational (but possibly mistaken) belief.
+
+%------------------------------------------------------------------------------
+% Deontic Axioms (Serial)
+%------------------------------------------------------------------------------
+
+% Active authorities must have at least one deontically ideal world.
+% Ensures obligations are meaningful (not vacuously true).
+tff(obligation_serial, axiom,
+    ![Auth: authority, W: world]: 
+      (active(Auth, W) => ?[W2: world]: o_accessible(Auth, W, W2))).
+
+%------------------------------------------------------------------------------
+% Conflict Detection
+%------------------------------------------------------------------------------
+
+% A predicate to explicitly represent conflicts between two propositions under different authorities.
+tff(conflict_type, type, conflict: (prop * prop * world) > $o).
+
+% Definition: P1 and P2 conflict in world W if:
+% - They are obligatory under different authorities,
+% - And they are mutually exclusive in all worlds (i.e., cannot both be true).
+tff(conflict_def, axiom,
+    ![P1: prop, P2: prop, W: world]:
+      (conflict(P1, P2, W) <=>
+       (?[Auth1: authority, Auth2: authority]:
+         (~(Auth1 = Auth2) &
+          obligatory(Auth1, P1, W) &
+          obligatory(Auth2, P2, W) &
+          ![W2: world]: (holds(P1, W2) => ~holds(P2, W2)))))).
+
+%------------------------------------------------------------------------------
+% Compatibility of NSD and ROE obligations
+%------------------------------------------------------------------------------
+
+% NSD and ROE obligations are compatible: immediate action can fulfill asset protection.
+tff(nsd_roe_compatible, axiom,
+    ?[W: world]: (holds(immediate_action, W) & holds(protect_asset, W))).
+
+% Only known conflict is between warning and immediate action.
+%tff(only_known_conflict, axiom,
+%    ![P1: prop, P2: prop, W: world]:
+%      (conflict(P1, P2, W) =>
+%       ((P1 = issue_warning & P2 = immediate_action) |
+%        (P1 = immediate_action & P2 = issue_warning)))).
+
+%------------------------------------------------------------------------------
+% Effective Obligation (After Conflict Resolution)
+%------------------------------------------------------------------------------
+
+% Represents the obligation that survives normative conflict resolution via priority.
+tff(effective_obligation_type, type, effective_obligation: (prop * world) > $o).
+
+% Priority-based resolution: if two obligations conflict, and Auth2 has priority over Auth1,
+% then the obligation from Auth2 becomes effective.
+tff(priority_resolution, axiom,
+    ![P1: prop, P2: prop, Auth1: authority, Auth2: authority, W: world]:
+      ((obligatory(Auth1, P1, W) &
+        obligatory(Auth2, P2, W) &
+        auth_priority(Auth1, Auth2, W) &          % Auth2 overrides Auth1
+        ![W2: world]: (holds(P1, W2) => ~holds(P2, W2))) =>  % Conflict condition
+       effective_obligation(P2, W))).
+
+% Given ROE > UNCLOS and the conflict between immediate_action and issue_warning,
+% immediate_action becomes the effective obligation in w0.
+tff(effective_obligation_immediate_action, axiom,
+    effective_obligation(immediate_action, w0)).
+
+%------------------------------------------------------------------------------
+% Unresolvable Conflicts
+%------------------------------------------------------------------------------
+
+% A world has an unresolvable conflict if two incompatible obligations exist
+% under authorities with no priority relation between them.
+tff(unresolvable_conflict_type, type, unresolvable_conflict: world > $o).
+
+tff(unresolvable_def, axiom,
+    ![W: world]:
+      (unresolvable_conflict(W) <=>
+       ?[P1: prop, P2: prop, Auth1: authority, Auth2: authority]:
+         (conflict(P1, P2, W) &
+          obligatory(Auth1, P1, W) &
+          obligatory(Auth2, P2, W) &
+          ~auth_priority(Auth1, Auth2, W) &   % No priority in either direction
+          ~auth_priority(Auth2, Auth1, W)))).
+
+% Enumerate all possible propositions to keep the domain finite (helps automated reasoning).
+% This is a common trick in TFF to avoid unintended models with extra propositions.
+tff(prop_exhaustive, axiom,
+    ![P: prop]: (
+      P = issue_warning |
+      P = immediate_action |
+      P = protect_asset |
+      P = threat_detected |
+      P = in_territorial_waters |
+      P = strategic_asset_nearby
+    )).
+
+%------------------------------------------------------------------------------
+% Queries (Conjectures)
+% Uncomment to test specific properties. Currently, only one is active.
+%------------------------------------------------------------------------------
+
+% Question 1: Is there a conflict between ROE and UNCLOS?
+%tff(query_conflict, conjecture,
+%    conflict(immediate_action, issue_warning, w0)).            % Should be provable
+
+% Question 2: What is the effective obligation given the threat?
+%tff(query_effective_immediate_action, conjecture,
+%    effective_obligation(immediate_action, w0)).               % Should be provable
+
+% Question 3: Can the commander know which obligation applies?
+% Since commander knows threat and asset, but UNCLOS depends on location,
+% and belief is uncertain, they cannot know UNCLOS applies for sure.
+% However, since we asserted territorial waters as fact, this is subtle.
+% We conjecture they do NOT know that "issue_warning" is effectively required.
+%tff(query_epistemic_uncertainty, conjecture,
+%    ~knows(commander, issue_warning, w0)).                     % Subtle—depends on modeling choices
+
+% Question 4: Prove that there is NO unresolvable conflict in w0.
+% Expected answer: YES, because  NSD and ROE are incomparable, and
+% their obligations (protect_asset and immediate_action) are NOT mutually exclusive.
+% Thus, no conflict arises between them—only between ROE and UNCLOS.
+% This conjecture claims there IS an unresolvable conflict, which should be refutable. 
+% However, Vampire times out after 300s, so I split it in 4 sub-questions
+tff(query_no_unresolvable_conflict, conjecture,
+    ~unresolvable_conflict(w0)).
+
+% Q4a: Only incomparable pair is NSD/ROE
+%tff(q4a, conjecture,
+%    (~auth_priority(nsd, roe, w0) & ~auth_priority(roe, nsd, w0)) &
+%    auth_priority(unclos, roe, w0) &
+%    auth_priority(unclos, nsd, w0)).
+
+% Q4b: NSD and ROE obligations are compossible
+%tff(q4b, conjecture,
+%    ?[W: world]: (holds(immediate_action, W) & holds(protect_asset, W))).
+
+% Q4c: Therefore, no conflict between them
+%tff(q4c, conjecture,
+%    ~conflict(protect_asset, immediate_action, w0)).
+
+% Q4d: And thus no unresolvable conflict
+% Interestingly, even though the proof exists, Vampire may struggle 
+% with the fully quantified definition of unresolvable_conflict:
+%tff(query_no_unresolvable_conflict, conjecture,
+%    ~unresolvable_conflict(w0)).
+
+
+%------------------------------------------------------------------------------

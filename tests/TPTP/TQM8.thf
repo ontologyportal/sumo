@@ -1,0 +1,92 @@
+% TQM8.thf
+% GDPR tests with modals
+% higher order encoding
+
+thf(worlds_tp,type,(w : $tType)).
+%tff(individuals_tp,type,($i : $tType)).
+thf(modals_tp,type,(m : $tType)).
+
+thf(prohibits_tp,type,(prohibits : m)).
+thf(knows_tp,type,(knows : m)).
+
+thf(employs_tp,type,(employs : ($i > $i > w > $o))).
+thf(agent_tp,type,(agent : ($i > $i > w > $o))).
+thf(patient_tp,type,(patient : ($i > $i > w > $o))).
+thf(attribute_tp,type,(attribute : ($i > $i > w > $o))).
+thf(instance_tp,type,(instance : ($i > $i > $o))).
+thf(containsInformation_tp,type,(containsInformation : ($i > $i > w > $o))).
+
+thf(lawyerSmith_tp,type,(lawyerSmith : $i)).
+thf(msJones_tp,type,(msJones : $i)).
+thf(somePII_tp,type,(somePII : $i)).
+thf(pII_tp,type,(pII : $i)).
+thf(acme_tp,type,(acme : $i)).
+thf(acmeMarketingDoc_tp,type,(acmeMarketingDoc : $i)).
+thf(text_tp,type,(text : $i)).
+thf(disseminating_tp,type,(disseminating : $i)).
+thf(human_tp,type,(human : $i)).
+thf(lawyer_tp,type,(lawyer : $i)).
+
+% modality, agent, consequent world, antecedent world
+thf(accreln_tp,type,(accreln : (m > $i > w > w > $o))).
+
+%tff(axiom_t_knows,axiom,(! [X:$i] : (! [W:w] : (accreln(knows,X,W,W))))).
+%tff(axiom_t_prohibits,axiom,(! [X:$i] : (! [W:w] : (accreln(prohibits,X,W,W))))).
+
+thf(smithInst,axiom,(instance @ lawyerSmith @ human)).
+thf(smithLawyer,axiom,(![W:w]:(attribute @ lawyerSmith @ lawyer @ W))).
+
+thf(pii,axiom,(![W:w]:(attribute @ somePII @ pII @ W))). % personally identifiable information
+thf(smithLawyer,axiom,(![W:w]:(containsInformation @ somePII @ acmeMarketingDoc @ W))).
+
+thf(msJones,axiom,(instance @ msJones @ human)).
+thf(employsJones,axiom,(![W:w]:(employs @ acme @ msJones @ W))).
+thf(acmeInst,axiom,(instance @ acmeMarketingDoc @ text)).
+
+%tff(axiom_t_knows,axiom,(! [X:$i] : (! [W:w] : (accreln(knows,X,W,W))))).
+%tff(axiom_t_prohibits,axiom,(! [X:$i] : (! [W:w] : (accreln(prohibits,X,W,W))))).
+
+% if Lawyer Smith knows that a document contains personally identifiable
+% information then he prohibits distributing it
+thf(lawyerKnows,axiom,
+  (![W1:w,W2:w]:(
+    (accreln @ knows @ lawyerSmith @ W1 @ W2) =>
+      (![I:$i,H:$i,DOC:$i,D:$i]:(
+        ((attribute @ I @ pII @ W2) &
+         (containsInformation @ I @ D @ W2) &
+         (employs @ acme @ H @ W2) &
+         (instance @ DOC @ text)) =>
+         (![W3:w]:(
+           ((accreln @ prohibits @ lawyerSmith @ W2 @ W3) =>
+             (?[DIS:$i]:(
+               ((agent @ DIS @ H @ W3) &
+                (patient @ DIS @ DOC @ W3) &
+                (instance @ DIS @ disseminating)))))))))))).
+
+% If someone knows a->b and a then he knows b                
+thf(knowsMPonens,axiom,
+  ![A:$i,W1:w,W2:w]:
+    (accreln @ knows @ A @ W1 @ W2) =>
+      (![FA:$o,FC:$o]:     
+        (((FA => FC) &
+          FA) =>
+       FC))).
+
+% if someone prohibits something he knows it's false/doesn't happen
+thf(prohib,axiom,  
+  (![A:$i,W1:w,W2:w,F:$o]:   
+    (((accreln @ prohibits @ A @ W1 @ W2) => F) => 
+      (![W3:w]:(
+        ((accreln @ knows @ A @ W2 @ W3) => (~F))))))).
+
+
+% query
+% does lawyer smith knows that acme marketing doc is disseminated?
+thf(conj,conjecture,(![W1:w,W2:w]:(
+    (accreln @ knows @ lawyerSmith @ W1 @ W2) =>
+      ~(?[DIS:$i,H:$i]:(
+        ((agent @ DIS @ H @ W2) &
+         (patient @ DIS @ acmeMarketingDoc @ W2) &
+         (instance @ DIS @ disseminating))))))).
+         
+       

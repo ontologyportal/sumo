@@ -1,0 +1,28 @@
+name: SUMO Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      vampire_timeout_minutes:
+        description: 'How long vampire should run in minutes'
+        required: true
+        type: number
+        default: 180
+
+jobs:
+  derive_vampire_timeout:
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      vampire_timeout: ${{ steps.step1.outputs.vampire_timeout }}
+    steps:
+      - id: step1
+        env:
+          VAMPIRE_TIMEOUT_MINUTES: ${{ inputs.vampire_timeout_minutes }}
+        run: echo "vampire_timeout=$((VAMPIRE_TIMEOUT_MINUTES * 60))" >> "$GITHUB_OUTPUT"
+
+  call-sumo-check-workflow:
+    needs: derive_vampire_timeout
+    uses: ./.github/workflows/sumo-ci.yml
+    with:
+      vampire_timeout: ${{ needs.derive_vampire_timeout.outputs.vampire_timeout }}

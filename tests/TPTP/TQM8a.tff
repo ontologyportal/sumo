@@ -1,0 +1,113 @@
+% TQM8.kif 
+% GDPR tests with modals
+% first order encoding
+
+tff(worlds_tp,type,(w : $tType)).
+%tff(individuals_tp,type,($i : $tType)).
+tff(modals_tp,type,(m : $tType)).
+
+tff(prohibits_tp,type,(prohibits : m)).
+tff(knows_tp,type,(knows : m)).
+
+tff(employs_tp,type,(employs : ($i * $i * w) > $o)).
+tff(agent_tp,type,(agent : ($i * $i * w) > $o)).
+tff(patient_tp,type,(patient : ($i * $i * w) > $o)).
+tff(attribute_tp,type,(attribute : ($i * $i * w) > $o)).
+tff(instance_tp,type,(instance : ($i * $i) > $o)).
+tff(containsInformation_tp,type,(containsInformation : ($i * $i * w) > $o)).
+
+tff(lawyerSmith_tp,type,(lawyerSmith : $i)).
+tff(msJones_tp,type,(msJones : $i)).
+tff(somePII_tp,type,(somePII : $i)).
+tff(pII_tp,type,(pII : $i)).
+tff(acme_tp,type,(acme : $i)).
+tff(acmeMarketingDoc_tp,type,(acmeMarketingDoc : $i)).
+tff(text_tp,type,(text : $i)).
+tff(disseminating_tp,type,(disseminating : $i)).
+tff(human_tp,type,(human : $i)).
+tff(lawyer_tp,type,(lawyer : $i)).
+
+% modality, agent, consequent world, antecedent world
+tff(accreln_tp,type,(accreln : (m * $i * w * w) > $o)).
+
+%tff(axiom_t_knows,axiom,(! [X:$i] : (! [W:w] : (accreln(knows,X,W,W))))).
+%tff(axiom_t_prohibits,axiom,(! [X:$i] : (! [W:w] : (accreln(prohibits,X,W,W))))).
+
+tff(smithInst,axiom,(instance(lawyerSmith,human))).
+tff(smithLawyer_1,axiom,![W:w]: (attribute(lawyerSmith,lawyer, W))).
+
+tff(pii,axiom,![W:w]: (attribute(somePII,pII, W))). % personally identifiable information
+tff(smithLawyer_2,axiom,![W:w]: (containsInformation(somePII,acmeMarketingDoc,W))).
+
+tff(msJones,axiom,(instance(msJones,human))).
+tff(employsJones,axiom,![W:w]: (employs(acme,msJones, W))).
+tff(acmeInst,axiom,(instance(acmeMarketingDoc,text))).
+
+tff(currentworld_tp, type, cw:w).
+
+% adam:
+%tff(lawyerKnows,axiom,
+%  (![W1:w,W2:w]:(
+%    (accreln(knows,lawyerSmith,W1,W2) =>
+%      (![I:$i,H:$i,DOC:$i,D:$i]:(
+%        (attribute(I,pII,W2) &
+%         containsInformation(I,D,W2) &
+%         employs(acme,H,W2) &
+%         instance(DOC,text)) =>
+%         (![W3:w]:(
+%           (accreln(prohibits,lawyerSmith,W2,W3) =>
+%             (?[DIS:$i]:(
+%               (agent(DIS,H,W3) &
+%                patient(DIS,DOC,W3) &
+%                instance(DIS,disseminating))))))))))))).
+
+
+% alex:
+tff(lawyerKnows, axiom, ![W:w]: (
+    accreln(knows,lawyerSmith,cw,W) =>
+    (![I:$i,H:$i,DOC:$i,D:$i]:
+    (( attribute(I,pII,W) &
+         containsInformation(I,D,W) &
+         employs(acme,H,W) &
+         instance(DOC,text) )
+    =>
+    (![V:w]: (
+    (accreln(prohibits,lawyerSmith,W,V) =>
+             (?[DIS:$i]:(
+               (agent(DIS,H,V) &
+                patient(DIS,DOC,V) &
+                instance(DIS,disseminating)))))
+    ))))
+  ) 
+).
+
+%(knows ?A   % not expressible in first order
+%   (=>
+%     (and
+%       (=> ?FA ?FC)
+%       ?FA)
+%     ?FC))
+% alex: not necessary, provided by kripke semantics
+
+
+%(=>         % not expressible in first order
+%   (knows ?A
+%     (modalAttribute ?F Prohibition))
+%   (knows ?A (not ?F)))
+
+thf(interaction_knows_prohib, axiom,
+  ![W:w, Formula:w>$o]: 
+  ((![V:w]: (accreln(prohibits,lawyerSmith,W,V)=>(Formula @ V)))
+   => 
+   (![V:w]: (accreln(knows,lawyerSmith,W,V)=>~(Formula @ V))))
+  ).
+
+% query
+tff(conj,conjecture,(![W:w]:(
+    (accreln(knows,lawyerSmith,cw,W) =>
+      (?[DIS:$i,DOC:$i,H:$i]:(
+        (agent(DIS,H,W) &
+         patient(DIS,DOC,W) &
+         instance(DIS,disseminating)))))))).
+         
+       

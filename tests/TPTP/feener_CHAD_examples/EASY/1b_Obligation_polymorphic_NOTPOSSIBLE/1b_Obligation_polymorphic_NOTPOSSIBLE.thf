@@ -1,0 +1,85 @@
+% CF
+% 1b_Obligation_polymorphic_NOTPOSSIBLE.thf
+% Option 1: Full $tType encoding, no $i
+% NOTE: s__instance is redundant in this case and is removed from axioms 
+% ERROR: Leo-III does not support $tType variable instantiatiation inside an existential
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Types %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+thf(world_tp,        type, w:              $tType).
+thf(cw_tp,           type, cw:             w).
+thf(modal_tp,        type, m:              $tType).
+thf(obligation_tp,   type, s__Obligation:  m).
+thf(accreln1_tp,     type, accreln1:       m > w > w > $o).
+
+% SUMO classes as types
+thf(flying_tp,       type, s__Flying:      $tType).
+thf(human_tp,        type, s__Human:       $tType).
+thf(grocerystore_tp, type, s__GroceryStore:$tType).
+thf(moon_tp,         type, s__Moon:        $tType).
+thf(giving_tp,       type, s__Giving:      $tType).
+thf(paycheck_tp,     type, s__PayCheck:    $tType).
+
+% Bill is a human (term of type s__Human, not $i)
+thf(bill_tp,         type, s__Bill:        s__Human).
+
+% Polymorphic relations, no $i anywhere
+thf(instance_tp, type,
+  s__instance: !>[A: $tType]: (A > $o)).
+
+thf(agent_tp, type,
+  s__agent: !>[A: $tType, B: $tType]: (A > B > w > $o)).
+
+thf(destination_tp, type,
+  s__destination: !>[A: $tType, B: $tType]: (A > B > w > $o)).
+
+thf(patient_tp, type,
+  s__patient: !>[A: $tType, B: $tType]: (A > B > w > $o)).
+
+%%%%%%%%%%%%%%%%%%%%%% System T: Reflexive %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+thf(reflexive_obligation, axiom,
+  ![W: w]: (accreln1 @ s__Obligation @ W @ W)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%% Axioms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Bill is a human (membership, not just typing)
+thf(bill_always_human, axiom,
+  s__instance @ s__Bill).
+
+% Obligation 1: It is obligatory for Bill to fly to the moon
+thf(obligatory_bill_fly_modal, axiom,
+  ![W1: w, W2: w]:
+    ((accreln1 @ s__Obligation @ W1 @ W2)
+     => ?[FLY: s__Flying, MOON: s__Moon]:
+          ( (s__agent @ FLY @ s__Bill @ W2) &
+            (s__destination @ FLY @ MOON @ W2) ))).            
+
+% Obligation 2: If Bill flies to moon, it is obligatory he gets a paycheck
+thf(must_be_paid, axiom,
+  ![W1: w, W2: w, FLY: s__Flying, MOON: s__Moon]:
+    (( (s__agent @ FLY @ s__Bill @ W1) &
+       (s__destination @ FLY @ MOON @ W1) &
+       (accreln1 @ s__Obligation @ W1 @ W2) )
+     =>
+     ?[G: s__Giving, P: s__PayCheck]:
+       ( (s__patient @ G @ P @ W2) &
+         (s__destination @ G @ s__Bill @ W2) ))).
+
+% Option A: Bill flies to the moon
+thf(flies_to_moon, axiom,
+  ?[FLY: s__Flying, MOON: s__Moon]:
+    ( (s__agent @ FLY @ s__Bill @ cw) &
+      (s__destination @ FLY @ MOON @ cw) )).
+
+% Option B: Bill flies to the grocery store
+%thf(flies_to_gs, axiom,
+%  ?[FLY: s__Flying, GS: s__GroceryStore]:
+%    ( (s__agent @ FLY @ s__Bill @ cw) &
+%      (s__destination @ FLY @ GS @ cw) )).
+
+% Conjecture: It is obligatory that Bill gets a paycheck          
+thf(obligatory_he_get_paycheck, conjecture,
+  ![W1: w]:
+    ((accreln1 @ s__Obligation @ cw @ W1)
+     => ?[G: s__Giving > $o, P: s__PayCheck > $o]:
+          ( (s__patient @ G @ P @ W1) &
+            (s__destination @ G @ s__Bill @ W1) ))).            

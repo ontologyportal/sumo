@@ -1,0 +1,123 @@
+% 5b scenario 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Bridge axioms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% This first axiom does not need a negated inner formula
+% Ob(x) -> Per(x)          -- if obligatory then permitted
+% (=>
+%   (modalAttribute ?F Obligation)
+%   (modalAttribute ?F Permission))
+thf(bridge1_O_P, axiom,
+  ![W1:w, W2:w]:
+    ((accreln1 @ s__Obligation @ W1 @ W2)
+     => (accreln1 @ s__Permission @ W1 @ W2))).
+
+% Ob(x) <-> ~Per(~x)        -- obligatory IFF not permitted to not do it
+% (<=> 
+%   (modalAttribute ?F Obligation) 
+%   (not (modalAttribute (not ?F) Permission)))
+thf(bridge2_O_neg_P, axiom,
+  ![W1:w, W2:w, W3:w, F: w>$o] : (
+    ( (accreln1 @ s__Obligation @ W1 @ W2) &
+      (F @ W2) )
+    =>
+    ~( (accreln1 @ s__Permission @ W1 @ W3) &
+       ~(F @ W3) ))).
+
+% Pro(x) -> Ob(~x)         -- forbidden IFF obligatory to not do it
+% (<=> 
+%   (modalAttribute ?F Prohibition)
+%   (modalAttribute (not ?F) Obligation))
+thf(bridge3_F_O_neg, axiom,
+  ![W1:w, W2:w, W3:w, F: w>$o] : (
+    ( ?[Wa:w] : (F @ Wa) &
+      ?[Wb:w] : (~(F @ Wb)) )
+    =>
+    ( ((accreln1 @ s__Obligation @ W1 @ W2) => (F @ W2))
+      <=>
+      ((accreln1 @ s__Prohibition @ W1 @ W3) => ~(F @ W3)) ))).
+%  ![W1:w, W2:w, W3:w, F:w>$o] : (
+%    (((accreln1 @ s__Prohibition @ W1 @ W2) => ~(F @ W2)) )
+%    <=>
+%    (((accreln1 @ s__Obligation @ W1 @ W3) => (F @ W3)) ))).
+      
+%%%%%%%%%%%%%%%%%%%%%%%%%%% End of Systems %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Relations:
+thf(instance_t, type, s__instance:($i > $i > $o)).
+thf(agent_t, type, s__agent:($i > $i > w > $o)).
+thf(destination_t, type, s__destination:($i > $i > w > $o)).
+thf(located_t, type, s__located:($i > $i > w > $o)).
+thf(origin_t, type, s__origin:($i > $i > w > $o)).
+
+% Terms:
+thf(officebuilding_t, type, s__OfficeBuilding: $i).
+thf(smoking_t, type, s__Smoking: $i).
+thf(paycheck_t, type, s__PayCheck: $i).
+thf(taxes_t, type, s__Tax: $i).
+thf(human_t, type, s__Human: $i).
+
+% Globals: "Bill is a human" 
+thf(bill_t, type, s__Bill: $i).
+thf(bill_is_human, axiom,
+  s__instance @ s__Bill @ s__Human).
+
+% Distinctness:
+thf(dist_officebuilding_smoking,   axiom, ~(s__OfficeBuilding = s__Smoking)).
+thf(dist_officebuilding_paycheck,  axiom, ~(s__OfficeBuilding = s__PayCheck)).
+thf(dist_officebuilding_tax,       axiom, ~(s__OfficeBuilding = s__Tax)).
+thf(dist_officebuilding_human,     axiom, ~(s__OfficeBuilding = s__Human)).
+thf(dist_smoking_paycheck,         axiom, ~(s__Smoking = s__PayCheck)).
+thf(dist_smoking_tax,              axiom, ~(s__Smoking = s__Tax)).
+thf(dist_smoking_human,            axiom, ~(s__Smoking = s__Human)).
+thf(dist_paycheck_tax,             axiom, ~(s__PayCheck = s__Tax)).
+thf(dist_paycheck_human,           axiom, ~(s__PayCheck = s__Human)).
+thf(dist_tax_human,                axiom, ~(s__Tax = s__Human)).
+
+% Prohibition: "If Bill is at the office, prohibited to smoke"
+% (=> 
+%   (and 
+%     (instance ?OB OfficeBuilding)
+%     (located Bill ?OB))
+%   (modalAttribute
+%     (exists (?SMOK)
+%       (and
+%         (instance ?SMOK Smoking)
+%         (located ?SMOK ?OB)
+%         (agent ?SMOK Bill))) Prohibition))
+thf(prohibition1_smoking_in_office, axiom,
+  ![W1:w, W2:w]: (
+    ![OB: $i] : (( 
+      (s__instance @ OB @ s__OfficeBuilding) & 
+      (s__located @ s__Bill @ OB @ W1)) => (
+          (accreln1 @ s__Prohibition @ W1 @ W2) => 
+            ( ?[SMOK: $i] : (
+              (s__instance @ SMOK @ s__Smoking) & 
+              (s__located @ SMOK @ OB @ W2) & 
+              (s__agent @ SMOK @ s__Bill @ W2))))))).
+
+% (bridge4 F-O converts above into an obligation)
+
+% Obligation: "... obligated NOT to smoke ..."
+% (Intermediate step)
+
+% Permission:
+% (Merged into conjecture)
+
+% Conjecture: "Bill is permitted to NOT smoke in office"
+% (modalAttribute 
+%   (not (exists (?SMK ?OB)
+%     (and 
+%       (instance ?SMK Smoking)
+%       (instance ?OB OfficeBuilding)
+%       (agent ?SMK Bill)
+%       (located ?SMK ?OB)))) Permission)
+thf(conjecture_permitted_not_smoke, conjecture,
+  ?[Wx:w, OB:$i] : (
+    (s__instance @ OB @ s__OfficeBuilding) &
+    (accreln1 @ s__Permission @ cw @ Wx) &
+    ~?[SMOK:$i] : (
+      (s__instance @ SMOK @ s__Smoking) &
+      (s__agent @ SMOK @ s__Bill @ Wx) &
+      (s__located @ SMOK @ OB @ Wx) ))).
+      

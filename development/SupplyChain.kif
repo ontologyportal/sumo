@@ -1,0 +1,964 @@
+;; Access to and use of these products is governed by the GNU General Public
+;; License <http://www.gnu.org/copyleft/gpl.html>.
+;; By using these products, you agree to be bound by the terms
+;; of the GPL.
+
+;; We ask that people using or referencing this work cite our primary paper:
+
+;; Niles, I., and Pease, A.  2001.  Towards a Standard Upper Ontology.  In
+;; Proceedings of the 2nd International Conference on Formal Ontology in
+;; Information Systems (FOIS-2001), Chris Welty and Barry Smith, eds,
+;; Ogunquit, Maine, October 17-19, 2001.  See also www.ontologyportal.org
+
+;; A domain ontology for commercial supply-chain operations: delivery,
+;; inventory, replenishment lead time, and the order-fulfilment relations that
+;; ground a neuro-symbolic backorder-prediction pipeline. Depends on Merge.kif,
+;; Mid-level-ontology.kif, and (for PerformanceMeasure) FinancialOntology.kif.
+
+;; =======================
+;; Delivering
+;; =======================
+
+(subclass Delivering Transportation)
+(termFormat EnglishLanguage Delivering "delivering")
+
+(documentation Delivering EnglishLanguage
+  "A &%Transportation in which a &%CorpuscularObject moves from a supplier or
+   distribution-centre origin to a destination. A &%Delivering is most often the
+   fulfilment of an active &%PurchaseOrder, but the class also covers transfers
+   with no purchase, such as barter exchange or the internal redistribution of
+   goods within an organization. As a &%Translocation, a &%Delivering carries its
+   &%patient from its &%origin to its &%destination over the extent of the process;
+   for a &%Delivering both the &%origin and the &%destination are instances of
+   &%GeographicArea, and the patient is the &%CorpuscularObject being shipped. The
+   in-transit state of units whose &%Delivering has begun but not terminated is
+   formalized with the in-transit terms of this series.")
+
+(=>
+  (instance ?d Delivering)
+  (exists (?p)
+    (and (patient ?d ?p)
+         (instance ?p CorpuscularObject))))
+
+(=>
+  (instance ?d Delivering)
+  (exists (?o)
+    (and (origin ?d ?o)
+         (instance ?o GeographicArea))))
+
+(=>
+  (instance ?d Delivering)
+  (exists (?dest)
+    (and (destination ?d ?dest)
+         (instance ?dest GeographicArea))))
+
+(=>
+  (instance ?d Delivering)
+  (modalAttribute
+    (exists (?po)
+      (and (instance ?po PurchaseOrder)
+           (refers ?po ?d)))
+    Likely))
+
+;; =======================
+;; National Inventory Count
+;; =======================
+
+(instance nationalInventoryCount BinaryRelation)
+(domain nationalInventoryCount 1 CorpuscularObject)
+(domain nationalInventoryCount 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage nationalInventoryCount "national inventory count")
+
+(documentation nationalInventoryCount EnglishLanguage
+  "A count of product units physically available for order fulfillment,
+   scoped to a national &%GeographicArea. The count is a &%NonnegativeRealNumber.
+   Negative values indicate an ERP data-integrity failure and are not valid
+   inventory states. A value greater than zero confers the &%capability for the
+   product to be the patient of a &%Delivering process. Zero denotes either an
+   empty stock position or an unlogged entry; discrimination between these cases
+   requires contextual inference and is not resolvable at the ontological layer.")
+
+(=>
+  (and (nationalInventoryCount ?sku ?qty)
+       (greaterThan ?qty 0))
+  (capability Delivering patient ?sku))
+
+;; =======================
+;; Lead Time Duration
+;; =======================
+
+(instance leadTimeDuration BinaryRelation)
+(domain leadTimeDuration 1 CorpuscularObject)
+(domain leadTimeDuration 2 TimeDuration)
+(termFormat EnglishLanguage leadTimeDuration "lead time duration")
+
+(documentation leadTimeDuration EnglishLanguage
+  "The &%TimeDuration in &%DayDuration units between order placement and
+   supplier &%Delivering for a given &%CorpuscularObject. When present,
+   the value must be a &%PositiveRealNumber: zero is physically impossible
+   for external replenishment. Absence of any asserted value is ontologically
+   valid and may reflect no &%serviceLevelAgreement from the supplier, a
+   &%LocallyStocked item where external replenishment is inapplicable, or simply
+   no &%historicalLeadTime recorded yet, as for a newly introduced product or
+   customer. Discrimination between these cases requires modal inference over
+   contextual attributes and is not resolvable at the ontological layer.")
+
+(=>
+  (leadTimeDuration ?sku ?dur)
+  (exists (?n)
+    (and (instance ?n PositiveRealNumber)
+         (equal ?dur (MeasureFn ?n DayDuration)))))
+
+;; =======================
+;; Supporting terms for the lead-time absence explanation
+;; =======================
+
+(instance serviceLevelAgreement BinaryPredicate)
+(domain serviceLevelAgreement 1 Agreement)
+(domain serviceLevelAgreement 2 CorpuscularObject)
+(termFormat EnglishLanguage serviceLevelAgreement "service level agreement")
+
+(documentation serviceLevelAgreement EnglishLanguage
+  "(&%serviceLevelAgreement ?SLA ?PRODUCT) means the &%Agreement ?SLA specifies
+   contractual fulfilment terms, including replenishment lead time, for the
+   &%CorpuscularObject ?PRODUCT. A product covered by a service level agreement is
+   therefore likely to have a defined &%leadTimeDuration.")
+
+(=>
+  (serviceLevelAgreement ?sla ?sku)
+  (modalAttribute (exists (?dur) (leadTimeDuration ?sku ?dur)) Likely))
+
+(instance contractualObligation BinaryPredicate)
+(domain contractualObligation 1 Agreement)
+(domain contractualObligation 2 CorpuscularObject)
+(termFormat EnglishLanguage contractualObligation "contractual obligation")
+
+(documentation contractualObligation EnglishLanguage
+  "(&%contractualObligation ?AGREEMENT ?PRODUCT) means the &%Agreement ?AGREEMENT
+   imposes a binding supply obligation with respect to the &%CorpuscularObject
+   ?PRODUCT. A product under a contractual obligation is likely covered by a
+   &%serviceLevelAgreement.")
+
+(=>
+  (contractualObligation ?agr ?sku)
+  (modalAttribute (exists (?sla) (serviceLevelAgreement ?sla ?sku)) Likely))
+
+(instance historicalLeadTime BinaryPredicate)
+(domain historicalLeadTime 1 TimeDuration)
+(domain historicalLeadTime 2 CorpuscularObject)
+(termFormat EnglishLanguage historicalLeadTime "historical lead time")
+
+(documentation historicalLeadTime EnglishLanguage
+  "(&%historicalLeadTime ?DURATION ?PRODUCT) records an observed past
+   replenishment &%TimeDuration ?DURATION, in &%DayDuration units, for the
+   &%CorpuscularObject ?PRODUCT. A recorded duration is a &%PositiveRealNumber.")
+
+(=>
+  (historicalLeadTime ?h ?sku)
+  (exists (?n)
+    (and (instance ?n PositiveRealNumber)
+         (equal ?h (MeasureFn ?n DayDuration)))))
+
+(instance LocallyStocked Attribute)
+(termFormat EnglishLanguage LocallyStocked "locally stocked")
+
+(documentation LocallyStocked EnglishLanguage
+  "An &%Attribute asserting that a &%CorpuscularObject is replenished from local
+   stock rather than external supplier &%Delivering, so external replenishment
+   lead time is inapplicable to it.")
+
+(=>
+  (attribute ?sku LocallyStocked)
+  (modalAttribute
+    (not (exists (?dur) (leadTimeDuration ?sku ?dur))) Likely))
+
+;; Lead-time absence: contextual explanations
+
+(=>
+  (and (instance ?sku CorpuscularObject)
+       (not (exists (?dur) (leadTimeDuration ?sku ?dur)))
+       (not (exists (?contract) (contractualObligation ?contract ?sku))))
+  (modalAttribute
+    (not (exists (?sla) (serviceLevelAgreement ?sla ?sku))) Likely))
+
+(=>
+  (and (instance ?sku CorpuscularObject)
+       (not (exists (?dur) (leadTimeDuration ?sku ?dur)))
+       (modalAttribute (attribute ?sku LocallyStocked) Likely))
+  (modalAttribute
+    (not (capability Delivering patient ?sku)) Likely))
+
+;; ============================================================
+;; Add historical sales volume to SupplyChain.kif
+;; ============================================================
+
+(instance historicalSalesVolume TernaryRelation)
+(domain historicalSalesVolume 1 CorpuscularObject)
+(domain historicalSalesVolume 2 TimeDuration)
+(domain historicalSalesVolume 3 NonnegativeRealNumber)
+(termFormat EnglishLanguage historicalSalesVolume "historical sales volume")
+
+(documentation historicalSalesVolume EnglishLanguage
+  "A &%TernaryRelation mapping a &%CorpuscularObject (the product SKU),
+   a &%TimeDuration window expressed as &%MeasureFn applied to a
+   &%PositiveInteger and &%MonthDuration, and a &%NonnegativeRealNumber
+   count of completed &%Selling events in which the product was patient
+   within that trailing window. A &%Selling event requires an exchange of
+   &%CurrencyMeasure for a &%Physical object; partial or unfilled orders
+   do not qualify. A count of zero is ontologically valid only when the
+   customer relationship age is likely less than the window &%TimeDuration;
+   for an established account zero likely exhibits a &%DataIntegrityViolation.
+   A nonzero count confirms the product was patient of at least one
+   completed &%Delivering within the window.")
+
+(=>
+  (historicalSalesVolume ?sku ?window ?count)
+  (exists (?n)
+    (and (instance ?n PositiveInteger)
+         (equal ?window (MeasureFn ?n MonthDuration)))))
+
+(=>
+  (and (historicalSalesVolume ?sku ?window ?count)
+       (greaterThan ?count 0))
+  (exists (?sale)
+    (and (instance ?sale Selling)
+         (patient ?sale ?sku))))
+
+(=>
+  (and (historicalSalesVolume ?sku ?window ?count)
+       (greaterThan ?count 0))
+  (exists (?delivery)
+    (and (instance ?delivery Delivering)
+         (patient ?delivery ?sku))))
+
+(=>
+  (and (historicalSalesVolume ?sku ?window 0)
+       (modalAttribute
+         (exists (?age)
+           (and (customerRelationshipAge ?sku ?age)
+                (lessThan ?age ?window)))
+         Likely))
+  (modalAttribute (attribute ?sku NewAccountException) Likely))
+
+(=>
+  (and (historicalSalesVolume ?sku ?window 0)
+       (not
+         (modalAttribute
+           (exists (?age)
+             (and (customerRelationshipAge ?sku ?age)
+                  (lessThan ?age ?window)))
+           Likely)))
+  (modalAttribute (attribute ?sku DataIntegrityViolation) Likely))
+
+;; Supporting terms
+
+(instance customerRelationshipAge BinaryPredicate)
+(domain customerRelationshipAge 1 CorpuscularObject)
+(domain customerRelationshipAge 2 TimeDuration)
+(termFormat EnglishLanguage customerRelationshipAge "customer relationship age")
+
+(documentation customerRelationshipAge EnglishLanguage
+  "(&%customerRelationshipAge ?PRODUCT ?DURATION) means the customer relationship
+   under which the &%CorpuscularObject ?PRODUCT is ordered has been active for the
+   &%TimeDuration ?DURATION, measured in &%DayDuration units. Used to distinguish a
+   legitimate zero &%historicalSalesVolume on a young account from a data fault.")
+
+(=>
+  (customerRelationshipAge ?sku ?age)
+  (exists (?n)
+    (and (instance ?n PositiveRealNumber)
+         (equal ?age (MeasureFn ?n DayDuration)))))
+
+(instance NewAccountException Attribute)
+(termFormat EnglishLanguage NewAccountException "new account exception")
+
+(documentation NewAccountException EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose zero &%historicalSalesVolume
+   is explained by a customer relationship younger than the sales window rather than
+   by a data fault. Mutually exclusive with &%DataIntegrityViolation.")
+
+(=>
+  (attribute ?sku NewAccountException)
+  (not (attribute ?sku DataIntegrityViolation)))
+
+(instance DataIntegrityViolation Attribute)
+(termFormat EnglishLanguage DataIntegrityViolation "data integrity violation")
+
+(documentation DataIntegrityViolation EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose recorded supply-chain data,
+   such as a zero &%historicalSalesVolume on an established account, is inconsistent
+   with its true state and requires correction.")
+
+(=>
+  (attribute ?sku DataIntegrityViolation)
+  (instance ?sku CorpuscularObject))
+
+;; ============================================================
+;; Add supplier fulfillment rate to SupplyChain.kif
+;; ============================================================
+
+(subclass FulfillmentRate PerformanceMeasure)
+(termFormat EnglishLanguage FulfillmentRate "fulfillment rate")
+
+(documentation FulfillmentRate EnglishLanguage
+  "A &%PerformanceMeasure naming the ratio of &%Delivering events completed to
+   &%Delivering events requested for a &%CorpuscularObject over a specified
+   &%TimeDuration. The reported value, carried by &%supplierFulfillmentRate, is a
+   &%NonnegativeRealNumber bounded above by 1: zero indicates no fulfillment occurred
+   or the metric was not logged; 1 indicates complete fulfillment. Values are produced
+   by applying &%AverageFn to a &%List of per-period fill ratios across the window. A
+   value of zero where &%historicalSalesVolume is nonzero for the same &%CorpuscularObject
+   and window indicates a data logging gap. The shorter-window value relative to a
+   longer-window value signals recent performance trend direction.")
+
+(instance supplierFulfillmentRate TernaryRelation)
+(domain supplierFulfillmentRate 1 CorpuscularObject)
+(domain supplierFulfillmentRate 2 TimeDuration)
+(domain supplierFulfillmentRate 3 NonnegativeRealNumber)
+(termFormat EnglishLanguage supplierFulfillmentRate "supplier fulfillment rate")
+
+(documentation supplierFulfillmentRate EnglishLanguage
+  "(&%supplierFulfillmentRate ?PRODUCT ?WINDOW ?VALUE) holds the &%FulfillmentRate
+   ?VALUE, a &%NonnegativeRealNumber in the interval from 0 to 1, achieved for the
+   &%CorpuscularObject ?PRODUCT over the trailing &%TimeDuration ?WINDOW.")
+
+(=>
+  (supplierFulfillmentRate ?sku ?window ?val)
+  (and (instance ?val NonnegativeRealNumber)
+       (lessThanOrEqualTo ?val 1)))
+
+(=>
+  (supplierFulfillmentRate ?sku ?window ?val)
+  (exists (?list)
+    (and (instance ?list List)
+         (equal ?val (AverageFn ?list)))))
+
+(=>
+  (and (supplierFulfillmentRate ?sku ?window 0)
+       (exists (?count)
+         (and (historicalSalesVolume ?sku ?window ?count)
+              (greaterThan ?count 0))))
+  (modalAttribute (dataLoggingGap ?sku ?window) Likely))
+
+(=>
+  (and (supplierFulfillmentRate ?sku ?windowShort 0)
+       (supplierFulfillmentRate ?sku ?windowLong 0)
+       (greaterThan ?windowLong ?windowShort))
+  (modalAttribute
+    (not (exists (?s)
+           (and (instance ?s Selling)
+                (patient ?s ?sku))))
+    Likely))
+
+(=>
+  (and (supplierFulfillmentRate ?sku ?windowShort ?valShort)
+       (supplierFulfillmentRate ?sku ?windowLong ?valLong)
+       (greaterThan ?windowLong ?windowShort)
+       (lessThan ?valShort ?valLong))
+  (modalAttribute (attribute ?sku RecentPerformanceDegradation) Likely))
+
+(=>
+  (and (supplierFulfillmentRate ?sku ?windowShort ?valShort)
+       (supplierFulfillmentRate ?sku ?windowLong ?valLong)
+       (greaterThan ?windowLong ?windowShort)
+       (greaterThan ?valShort ?valLong))
+  (modalAttribute (attribute ?sku RecentPerformanceImprovement) Likely))
+
+;; Supporting terms
+
+(instance dataLoggingGap BinaryPredicate)
+(domain dataLoggingGap 1 CorpuscularObject)
+(domain dataLoggingGap 2 TimeDuration)
+(termFormat EnglishLanguage dataLoggingGap "data logging gap")
+
+(documentation dataLoggingGap EnglishLanguage
+  "(&%dataLoggingGap ?PRODUCT ?WINDOW) means a reported zero metric value for the
+   &%CorpuscularObject ?PRODUCT over the &%TimeDuration ?WINDOW is attributable to a
+   gap in data logging rather than to a true absence of activity.")
+
+(=>
+  (dataLoggingGap ?sku ?window)
+  (modalAttribute (attribute ?sku DataIntegrityViolation) Likely))
+
+(instance RecentPerformanceDegradation Attribute)
+(termFormat EnglishLanguage RecentPerformanceDegradation "recent performance degradation")
+
+(documentation RecentPerformanceDegradation EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose shorter-window
+   &%supplierFulfillmentRate is below its longer-window value, indicating a recent
+   decline in supplier performance. Mutually exclusive with
+   &%RecentPerformanceImprovement.")
+
+(=>
+  (attribute ?sku RecentPerformanceDegradation)
+  (not (attribute ?sku RecentPerformanceImprovement)))
+
+(instance RecentPerformanceImprovement Attribute)
+(termFormat EnglishLanguage RecentPerformanceImprovement "recent performance improvement")
+
+(documentation RecentPerformanceImprovement EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose shorter-window
+   &%supplierFulfillmentRate exceeds its longer-window value, indicating a recent
+   improvement in supplier performance.")
+
+(=>
+  (attribute ?sku RecentPerformanceImprovement)
+  (instance ?sku CorpuscularObject))
+
+;; ============================================================
+;; Add backorder event and local backorder quantity to SupplyChain.kif
+;; ============================================================
+
+(subclass BackorderEvent Process)
+(termFormat EnglishLanguage BackorderEvent "backorder event")
+
+(documentation BackorderEvent EnglishLanguage
+  "A &%Process in which an active &%PurchaseOrder for a &%CorpuscularObject cannot
+   be fulfilled because the product cannot be replenished within the committed
+   delivery &%TimeDuration: its &%leadTimeDuration exceeds, or is unknown within,
+   that window, given by &%committedDeliveryDurationFn. The unfulfillable product is
+   the &%patient of the &%BackorderEvent. A &%BackorderEvent is distinct from a
+   stockout: a stockout is a property of inventory, whereas a &%BackorderEvent is a
+   property of an unfulfilled &%PurchaseOrder.")
+
+(=>
+  (instance ?B BackorderEvent)
+  (exists (?sku)
+    (and (patient ?B ?sku)
+         (instance ?sku CorpuscularObject))))
+
+(=>
+  (instance ?B BackorderEvent)
+  (exists (?po)
+    (and (instance ?po PurchaseOrder)
+         (refers ?po ?B))))
+
+(=>
+  (instance ?B BackorderEvent)
+  (exists (?sku)
+    (and (patient ?B ?sku)
+         (not
+           (exists (?lt)
+             (and (leadTimeDuration ?sku ?lt)
+                  (lessThanOrEqualTo ?lt (committedDeliveryDurationFn ?B))))))))
+
+(instance committedDeliveryDurationFn UnaryFunction)
+(domain committedDeliveryDurationFn 1 BackorderEvent)
+(range committedDeliveryDurationFn TimeDuration)
+(termFormat EnglishLanguage committedDeliveryDurationFn "committed delivery duration")
+
+(documentation committedDeliveryDurationFn EnglishLanguage
+  "(&%committedDeliveryDurationFn ?B) is the &%TimeDuration within which the
+   &%PurchaseOrder underlying the &%BackorderEvent ?B was committed to be fulfilled,
+   measured in &%DayDuration units. It is a &%PositiveRealNumber of days.")
+
+(=>
+  (instance ?B BackorderEvent)
+  (exists (?n)
+    (and (instance ?n PositiveRealNumber)
+         (equal (committedDeliveryDurationFn ?B) (MeasureFn ?n DayDuration)))))
+
+(instance localBackorderQuantity BinaryRelation)
+(domain localBackorderQuantity 1 CorpuscularObject)
+(domain localBackorderQuantity 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage localBackorderQuantity "local backorder quantity")
+
+(documentation localBackorderQuantity EnglishLanguage
+  "The count of units of a &%CorpuscularObject currently in a &%BackorderEvent
+   state: demanded via active &%PurchaseOrder but unreachable within the committed
+   delivery &%TimeDuration. The value is a &%NonnegativeRealNumber. Zero indicates
+   no active backorder for this product within the delivery window. A nonzero value
+   is a predictor of future &%BackorderEvent recurrence for the same product.")
+
+(=>
+  (and (localBackorderQuantity ?sku ?qty)
+       (greaterThan ?qty 0))
+  (exists (?b)
+    (and (instance ?b BackorderEvent)
+         (patient ?b ?sku))))
+
+(=>
+  (and (localBackorderQuantity ?sku ?qty)
+       (greaterThan ?qty 0)
+       (exists (?natQty)
+         (and (nationalInventoryCount ?sku ?natQty)
+              (greaterThan ?natQty 0))))
+  (modalAttribute (attribute ?sku RedistributionRequired) Likely))
+
+(instance RedistributionRequired Attribute)
+(termFormat EnglishLanguage RedistributionRequired "redistribution required")
+
+(documentation RedistributionRequired EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject for which a local backorder coexists
+   with positive &%nationalInventoryCount, so the shortfall is resolvable by internal
+   redistribution rather than by supplier replenishment.")
+
+(=>
+  (attribute ?sku RedistributionRequired)
+  (modalAttribute
+    (exists (?b)
+      (and (instance ?b BackorderEvent)
+           (patient ?b ?sku)))
+    Likely))
+
+;; ============================================================
+;; Add in-transit quantity and total pipeline stock to SupplyChain.kif
+;; ============================================================
+
+(instance inTransitQuantity BinaryRelation)
+(domain inTransitQuantity 1 CorpuscularObject)
+(domain inTransitQuantity 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage inTransitQuantity "in-transit quantity")
+
+(documentation inTransitQuantity EnglishLanguage
+  "The count of units of a &%CorpuscularObject currently in an active
+   &%Delivering process: the units have departed their &%origin but have not
+   yet arrived at their &%destination. In-transit units are mutually exclusive
+   with on-hand inventory counted by &%nationalInventoryCount. Total pipeline
+   stock, given by &%totalPipelineStock, equals the sum of both. A nonzero value
+   with zero &%nationalInventoryCount indicates a temporary shortage with inbound
+   resolution. Zero in-transit combined with zero &%nationalInventoryCount and a
+   zero &%historicalSalesVolume indicates the SKU has likely never been listed.
+   Zero in-transit combined with zero &%nationalInventoryCount and a nonzero
+   &%historicalSalesVolume indicates either a temporary shortage or an inactive
+   product, an ambiguity the &%SKUInactive attribute resolves.")
+
+(=>
+  (and (inTransitQuantity ?sku ?qty)
+       (greaterThan ?qty 0))
+  (exists (?d)
+    (and (instance ?d Delivering)
+         (patient ?d ?sku))))
+
+(=>
+  (and (inTransitQuantity ?sku 0)
+       (nationalInventoryCount ?sku 0)
+       (historicalSalesVolume ?sku ?window 0))
+  (modalAttribute (attribute ?sku NeverListed) Likely))
+
+(=>
+  (and (inTransitQuantity ?sku 0)
+       (nationalInventoryCount ?sku 0)
+       (exists (?window ?count)
+         (and (historicalSalesVolume ?sku ?window ?count)
+              (greaterThan ?count 0)))
+       (not (attribute ?sku SKUInactive)))
+  (modalAttribute (attribute ?sku TemporaryShortage) Likely))
+
+(=>
+  (and (inTransitQuantity ?sku ?qty)
+       (greaterThan ?qty 0)
+       (nationalInventoryCount ?sku 0))
+  (modalAttribute (attribute ?sku TemporaryShortage) Likely))
+
+;; Total pipeline stock is the sum of the two disjoint counts
+(=>
+  (and (inTransitQuantity ?sku ?qt)
+       (nationalInventoryCount ?sku ?qo))
+  (totalPipelineStock ?sku (AdditionFn ?qt ?qo)))
+
+;; Supporting terms
+
+(instance totalPipelineStock BinaryRelation)
+(domain totalPipelineStock 1 CorpuscularObject)
+(domain totalPipelineStock 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage totalPipelineStock "total pipeline stock")
+
+(documentation totalPipelineStock EnglishLanguage
+  "(&%totalPipelineStock ?PRODUCT ?TOTAL) holds the &%NonnegativeRealNumber
+   ?TOTAL of all units of the &%CorpuscularObject ?PRODUCT in the supply
+   pipeline, the sum of its on-hand &%nationalInventoryCount and its
+   &%inTransitQuantity. The two summands count disjoint sets of units, so the
+   total is never less than either.")
+
+(=>
+  (totalPipelineStock ?sku ?total)
+  (exists (?qt ?qo)
+    (and (inTransitQuantity ?sku ?qt)
+         (nationalInventoryCount ?sku ?qo)
+         (equal ?total (AdditionFn ?qt ?qo)))))
+
+(=>
+  (and (totalPipelineStock ?sku ?total)
+       (inTransitQuantity ?sku ?qt))
+  (greaterThanOrEqualTo ?total ?qt))
+
+(=>
+  (and (totalPipelineStock ?sku ?total)
+       (nationalInventoryCount ?sku ?qo))
+  (greaterThanOrEqualTo ?total ?qo))
+
+(instance NeverListed Attribute)
+(termFormat EnglishLanguage NeverListed "never listed")
+
+(documentation NeverListed EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject for which no in-transit, on-hand,
+   or historical sales record exists, indicating the SKU has never been listed for
+   sale. Mutually exclusive with &%SKUInactive, which presupposes prior sales
+   history.")
+
+(=>
+  (attribute ?sku NeverListed)
+  (not (attribute ?sku SKUInactive)))
+
+(=>
+  (attribute ?sku NeverListed)
+  (not (exists (?window ?count)
+         (and (historicalSalesVolume ?sku ?window ?count)
+              (greaterThan ?count 0)))))
+
+(=>
+  (attribute ?sku NeverListed)
+  (not (attribute ?sku TemporaryShortage)))
+
+(instance TemporaryShortage Attribute)
+(termFormat EnglishLanguage TemporaryShortage "temporary shortage")
+
+(documentation TemporaryShortage EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose on-hand
+   &%nationalInventoryCount is zero but whose &%inTransitQuantity is positive or
+   whose recent sales history is nonzero, so the zero on-hand position is a
+   transient stockout expected to resolve from the inbound pipeline rather than a
+   permanent state. Mutually exclusive with &%SKUInactive.")
+
+(=>
+  (attribute ?sku TemporaryShortage)
+  (not (attribute ?sku SKUInactive)))
+
+(instance SKUInactive Attribute)
+(termFormat EnglishLanguage SKUInactive "SKU inactive")
+
+(documentation SKUInactive EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject that has prior &%Selling history
+   but has been withdrawn from active sale, so a zero on-hand and zero in-transit
+   position reflects deliberate discontinuation rather than a temporary stockout.
+   A product carrying this attribute is not expected to be the patient of a new
+   &%Delivering process.")
+
+(=>
+  (attribute ?sku SKUInactive)
+  (modalAttribute
+    (not (exists (?d)
+           (and (instance ?d Delivering)
+                (patient ?d ?sku))))
+    Likely))
+
+;; ============================================================
+;; Add minimum stock threshold and pieces past due to SupplyChain.kif
+;; ============================================================
+
+(instance minimumStockThreshold BinaryRelation)
+(domain minimumStockThreshold 1 CorpuscularObject)
+(domain minimumStockThreshold 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage minimumStockThreshold "minimum stock threshold")
+
+(documentation minimumStockThreshold EnglishLanguage
+  "The minimum recommended on-hand quantity of a &%CorpuscularObject below
+   which replenishment is recommended. The value is a &%NonnegativeRealNumber.
+   Zero is valid and indicates the product is managed without a standing buffer,
+   typically under a just-in-time regime. When &%nationalInventoryCount falls
+   below a positive threshold the product is marked &%ReorderRecommended. When
+   &%nationalInventoryCount falls to zero and this threshold is positive the
+   product is at immediate &%BackorderEvent risk, marked &%BackorderRisk.")
+
+(=>
+  (and (minimumStockThreshold ?sku ?threshold)
+       (nationalInventoryCount ?sku ?qty)
+       (lessThan ?qty ?threshold)
+       (greaterThan ?threshold 0))
+  (modalAttribute (attribute ?sku ReorderRecommended) Likely))
+
+(=>
+  (and (minimumStockThreshold ?sku ?threshold)
+       (nationalInventoryCount ?sku 0)
+       (greaterThan ?threshold 0))
+  (modalAttribute (attribute ?sku BackorderRisk) Likely))
+
+;;
+
+(instance piecesPastDue BinaryRelation)
+(domain piecesPastDue 1 CorpuscularObject)
+(domain piecesPastDue 2 NonnegativeRealNumber)
+(termFormat EnglishLanguage piecesPastDue "pieces past due")
+
+(documentation piecesPastDue EnglishLanguage
+  "The count of units of a &%CorpuscularObject from active &%PurchaseOrder
+   instances whose committed delivery &%TimeDuration has expired without
+   fulfilment. The value is a &%NonnegativeRealNumber and a direct measure
+   of &%BackorderEvent severity: each unit counted belongs to an unfulfilled
+   &%PurchaseOrder past its committed delivery window. Zero indicates all
+   active orders are within their committed delivery window. A nonzero value
+   with zero &%nationalInventoryCount and zero &%inTransitQuantity indicates
+   no resolution path is currently in the pipeline.")
+
+(=>
+  (and (piecesPastDue ?sku ?qty)
+       (greaterThan ?qty 0))
+  (exists (?b ?po)
+    (and (instance ?b BackorderEvent)
+         (patient ?b ?sku)
+         (instance ?po PurchaseOrder)
+         (refers ?po ?sku)
+         (refers ?po ?b))))
+
+(=>
+  (and (piecesPastDue ?sku ?qty)
+       (greaterThan ?qty 0)
+       (nationalInventoryCount ?sku 0)
+       (inTransitQuantity ?sku 0))
+  (modalAttribute
+    (not (exists (?d)
+           (and (instance ?d Delivering)
+                (patient ?d ?sku))))
+    Likely))
+
+;; Deontic treatment of the past-due obligation (HOL DRAFT, for discussion).
+;; A PurchaseOrder confers on the fulfilling CognitiveAgent the obligation to
+;; bring about delivery of the product; a nonzero past-due count witnesses that
+;; such an obligation was conferred and remains unfulfilled past its window.
+;; Drafted with confersObligation per the holdsObligation / confersObligation
+;; convention in Merge.kif (C. Feener). The axiom type-checks in isolation, but is
+;; left commented pending review: its Formula argument is higher-order, the FOF
+;; checker rejects it, and the THF/LEO-III route is not yet generating for this KB.
+;; Kept here for Chad's review and for proof reps once the HOL path is green.
+;;
+;; (=>
+;;   (and (piecesPastDue ?sku ?qty)
+;;        (greaterThan ?qty 0))
+;;   (exists (?po ?agent)
+;;     (and (instance ?po PurchaseOrder)
+;;          (refers ?po ?sku)
+;;          (instance ?agent CognitiveAgent)
+;;          (confersObligation
+;;            (exists (?d)
+;;              (and (instance ?d Delivering)
+;;                   (patient ?d ?sku)))
+;;            ?po ?agent))))
+
+;; Supporting terms
+
+(instance ReorderRecommended Attribute)
+(termFormat EnglishLanguage ReorderRecommended "reorder recommended")
+
+(documentation ReorderRecommended EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose on-hand
+   &%nationalInventoryCount has fallen below its positive &%minimumStockThreshold,
+   so replenishment is recommended. The attribute is a defeasible operational
+   signal, not a hard obligation.")
+
+(=>
+  (attribute ?sku ReorderRecommended)
+  (modalAttribute
+    (exists (?threshold ?qty)
+      (and (minimumStockThreshold ?sku ?threshold)
+           (nationalInventoryCount ?sku ?qty)
+           (lessThan ?qty ?threshold)))
+    Likely))
+
+(instance BackorderRisk Attribute)
+(termFormat EnglishLanguage BackorderRisk "backorder risk")
+
+(documentation BackorderRisk EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose on-hand
+   &%nationalInventoryCount is zero while its &%minimumStockThreshold is positive,
+   so any new demand is at immediate risk of producing a &%BackorderEvent.")
+
+(=>
+  (attribute ?sku BackorderRisk)
+  (modalAttribute
+    (exists (?d)
+      (and (instance ?d Delivering)
+           (patient ?d ?sku)
+           (modalAttribute
+             (exists (?b)
+               (and (instance ?b BackorderEvent)
+                    (patient ?b ?sku)))
+             Likely)))
+    Likely))
+
+;; ============================================================
+;; Add demand forecast to SupplyChain.kif
+;; ============================================================
+
+(instance demandForecast TernaryRelation)
+(domain demandForecast 1 CorpuscularObject)
+(domain demandForecast 2 TimeDuration)
+(domain demandForecast 3 NonnegativeRealNumber)
+(termFormat EnglishLanguage demandForecast "demand forecast")
+
+(documentation demandForecast EnglishLanguage
+  "A &%TernaryRelation mapping a &%CorpuscularObject, a forward &%TimeDuration
+   window expressed as &%MeasureFn applied to a &%PositiveInteger and
+   &%MonthDuration, and a &%NonnegativeRealNumber estimate of units expected
+   to be the patient of &%Selling events within that forward window. The
+   estimate is the quantitative output of a &%Predicting process. The value is
+   interpreted as a cumulative forecast over the full window, so it is
+   monotonically non-decreasing as the window lengthens: a 3-month forecast
+   cannot exceed the 6-month forecast for the same product. A forecast
+   exceeding &%historicalSalesVolume for the corresponding window by at least
+   half again signals an anticipated demand surge, marked &%DemandSurgeAnticipated.
+   A forecast below half of the corresponding historical volume signals an
+   anticipated demand decline, marked &%DemandDeclineAnticipated.")
+
+(=>
+  (demandForecast ?sku ?window ?est)
+  (exists (?n)
+    (and (instance ?n PositiveInteger)
+         (equal ?window (MeasureFn ?n MonthDuration)))))
+
+;; A demand forecast is the quantitative output of a Predicting process
+(=>
+  (demandForecast ?sku ?window ?est)
+  (modalAttribute
+    (exists (?p)
+      (and (instance ?p Predicting)
+           (patient ?p ?sku)))
+    Likely))
+
+;; Monotonicity for cumulative forecasts: shorter window must not exceed longer
+(=>
+  (and (demandForecast ?sku ?windowShort ?estShort)
+       (demandForecast ?sku ?windowLong ?estLong)
+       (greaterThan ?windowLong ?windowShort))
+  (lessThanOrEqualTo ?estShort ?estLong))
+
+;; Forecast exceeds historical sales by half again -> demand surge signal
+(=>
+  (and (demandForecast ?sku ?window ?est)
+       (historicalSalesVolume ?sku ?window ?actual)
+       (greaterThan ?est (MultiplicationFn ?actual 1.5)))
+  (modalAttribute (attribute ?sku DemandSurgeAnticipated) Likely))
+
+;; Forecast below half historical sales -> demand decline signal
+(=>
+  (and (demandForecast ?sku ?window ?est)
+       (historicalSalesVolume ?sku ?window ?actual)
+       (lessThan ?est (MultiplicationFn ?actual 0.5)))
+  (modalAttribute (attribute ?sku DemandDeclineAnticipated) Likely))
+
+;; Supporting terms
+
+(instance DemandSurgeAnticipated Attribute)
+(termFormat EnglishLanguage DemandSurgeAnticipated "demand surge anticipated")
+
+(documentation DemandSurgeAnticipated EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose &%demandForecast for a
+   window exceeds its &%historicalSalesVolume for the same window by at least half
+   again, indicating an anticipated rise in demand. Mutually exclusive with
+   &%DemandDeclineAnticipated.")
+
+(=>
+  (attribute ?sku DemandSurgeAnticipated)
+  (not (attribute ?sku DemandDeclineAnticipated)))
+
+(instance DemandDeclineAnticipated Attribute)
+(termFormat EnglishLanguage DemandDeclineAnticipated "demand decline anticipated")
+
+(documentation DemandDeclineAnticipated EnglishLanguage
+  "An &%Attribute marking a &%CorpuscularObject whose &%demandForecast for a
+   window is below half of its &%historicalSalesVolume for the same window,
+   indicating an anticipated drop in demand that warrants inventory drawdown.")
+
+(=>
+  (attribute ?sku DemandDeclineAnticipated)
+  (instance ?sku CorpuscularObject))
+
+;; ============================================================
+;; Add went-on-backorder ground-truth observation to SupplyChain.kif
+;; ============================================================
+
+(instance wentOnBackorder BinaryPredicate)
+(domain wentOnBackorder 1 CorpuscularObject)
+(domain wentOnBackorder 2 TimeInterval)
+(termFormat EnglishLanguage wentOnBackorder "went on backorder")
+
+(documentation wentOnBackorder EnglishLanguage
+  "(&%wentOnBackorder ?SKU ?INTERVAL) holds when at least one &%BackorderEvent
+   instance is observed to occur for &%CorpuscularObject ?SKU during &%TimeInterval
+   ?INTERVAL. The predicate is the ground-truth observation in a supervised
+   classification task: positive when a backorder was observed. Its absence records
+   that none was observed, which the &%observationLoggingGap case distinguishes from
+   an event that occurred but went unlogged. It is distinct from
+   &%localBackorderQuantity, which measures the current count of units in a backorder
+   state, and from &%piecesPastDue, which measures the age of unfulfilled obligations.
+   A positive observation is consistent with any combination of prior inventory
+   signals. The formal axioms of this series define what configurations of those
+   signals make a positive observation likely.")
+
+;; FOF: a positive observation implies a BackorderEvent and its order occurred.
+(=>
+  (wentOnBackorder ?SKU ?INTERVAL)
+  (exists (?B ?PO)
+    (and
+      (instance ?B BackorderEvent)
+      (patient ?B ?SKU)
+      (instance ?PO PurchaseOrder)
+      (refers ?PO ?SKU)
+      (refers ?PO ?B))))
+
+;; HOL: the observed BackorderEvent holds during the interval (temporal, LEO-III route).
+(=>
+  (wentOnBackorder ?SKU ?INTERVAL)
+  (exists (?B)
+    (and
+      (instance ?B BackorderEvent)
+      (patient ?B ?SKU)
+      (holdsDuring ?INTERVAL
+        (instance ?B BackorderEvent)))))
+
+;; HOL: audit axiom. A BackorderEvent observed in the interval but not logged as
+;; wentOnBackorder indicates a gap in the observation record.
+(=>
+  (and
+    (instance ?B BackorderEvent)
+    (patient ?B ?SKU)
+    (instance ?PO PurchaseOrder)
+    (refers ?PO ?SKU)
+    (refers ?PO ?B)
+    (holdsDuring ?INTERVAL
+      (instance ?B BackorderEvent))
+    (not
+      (wentOnBackorder ?SKU ?INTERVAL)))
+  (modalAttribute
+    (observationLoggingGap ?SKU ?INTERVAL) Likely))
+
+;; A positive observation makes a nonzero current local backorder likely, not
+;; certain: the interval is historical and the current snapshot may have cleared.
+(=>
+  (and
+    (wentOnBackorder ?SKU ?INTERVAL)
+    (localBackorderQuantity ?SKU ?QTY))
+  (modalAttribute
+    (greaterThan ?QTY 0) Likely))
+
+;; A positive observation with zero on-hand and zero in-transit makes it likely no
+;; resolution was in the pipeline at observation time.
+(=>
+  (and
+    (wentOnBackorder ?SKU ?INTERVAL)
+    (nationalInventoryCount ?SKU 0)
+    (inTransitQuantity ?SKU 0))
+  (modalAttribute
+    (not
+      (exists (?D)
+        (and
+          (instance ?D Delivering)
+          (patient ?D ?SKU)))) Likely))
+
+;; Supporting terms
+
+(instance observationLoggingGap BinaryPredicate)
+(domain observationLoggingGap 1 CorpuscularObject)
+(domain observationLoggingGap 2 TimeInterval)
+(termFormat EnglishLanguage observationLoggingGap "observation logging gap")
+
+(documentation observationLoggingGap EnglishLanguage
+  "(&%observationLoggingGap ?SKU ?INTERVAL) means a &%BackorderEvent occurred for
+   the &%CorpuscularObject ?SKU during &%TimeInterval ?INTERVAL but was not recorded
+   by &%wentOnBackorder, so the ground-truth observation record is incomplete for
+   that SKU and interval.")
+
+(=>
+  (observationLoggingGap ?SKU ?INTERVAL)
+  (not
+    (wentOnBackorder ?SKU ?INTERVAL)))
