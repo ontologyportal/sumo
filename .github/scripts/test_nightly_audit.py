@@ -23,7 +23,7 @@ class AuditTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.state = {"version": 1, "fingerprint": "abc", "engine_fingerprint": "engine",
-                      "seed": 0, "next_step": 0}
+                      "seed": 0, "next_step": 0, "findings": []}
 
     def test_resume_and_changed_input_reset(self):
         path = self.root / "checkpoint.json"
@@ -49,6 +49,20 @@ class AuditTests(unittest.TestCase):
         self.state.update(seed=3, next_step=200)
         audit.atomic_json(path, self.state)
         self.assertEqual(audit.checkpoint(path, "abc", "engine"), self.state)
+
+    def test_findings_reset_with_changed_inputs(self):
+        path = self.root / "checkpoint.json"
+        finding = {
+            "seed": 3,
+            "step": 20,
+            "proof_steps": 4,
+            "axioms": [{"file": "Merge.kif", "line": 10, "kif": "(p A)"}],
+        }
+        self.state["findings"] = [finding]
+        audit.atomic_json(path, self.state)
+        self.assertEqual(audit.checkpoint(path, "abc", "engine")["findings"], [finding])
+        self.assertEqual(audit.checkpoint(path, "changed", "engine")["findings"], [])
+        self.assertEqual(audit.checkpoint(path, "abc", "changed")["findings"], [])
 
     def test_manifest_membership_and_content_are_hashed(self):
         manifest = self.root / "manifest"
@@ -92,18 +106,36 @@ class AuditTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit.checkpoint(path, "abc", "engine")
 
-    def test_contradiction_report_has_reproduction_coordinates_and_kif(self):
+    def test_invalid_checkpoint_findings_fail_closed(self):
+        path = self.root / "checkpoint.json"
+        self.state["findings"] = [{
+            "seed": 0, "step": 0, "proof_steps": 1, "axioms": [],
+        }]
+        audit.atomic_json(path, self.state)
+        with self.assertRaisesRegex(ValueError, "findings"):
+            audit.checkpoint(path, "abc", "engine")
+
+    def test_contradiction_report_is_json_with_reproduction_coordinates_and_kif(self):
         report = audit.contradiction_report([{
             "seed": 7,
             "step": 42,
             "proof_steps": 3,
             "axioms": [{"file": "Merge.kif", "line": 10,
                         "kif": "(instance A B)"}],
-        }])
-        self.assertIn("Seed: `7`", report)
-        self.assertIn("Start step: `42`", report)
-        self.assertIn("Merge.kif:10", report)
-        self.assertIn("```lisp\n(instance A B)\n```", report)
+        }], {"version": 1, "complete": True})
+        encoded = json.dumps(report)
+        self.assertEqual(report["findings"][0]["seed"], 7)
+        self.assertEqual(report["findings"][0]["step"], 42)
+        self.assertEqual(report["findings"][0]["axioms"][0]["file"], "Merge.kif")
+        self.assertIn("(instance A B)", encoded)
+
+    def test_contradiction_key_handles_missing_source_locations(self):
+        first = {"axioms": [
+            {"file": None, "line": None, "kif": "(p A)"},
+            {"file": "Merge.kif", "line": 10, "kif": "(q A)"},
+        ]}
+        second = {"axioms": list(reversed(first["axioms"]))}
+        self.assertEqual(audit.contradiction_key(first), audit.contradiction_key(second))
 
     def test_deadline_terminates_process(self):
         with (self.root / "log").open("w") as log:
@@ -115,6 +147,15 @@ class AuditTests(unittest.TestCase):
 
     def test_findings_and_interrupted_chunk_preserve_completed_progress(self):
         output = self.root / "out"
+        output.mkdir()
+        prior = {
+            "seed": 9,
+            "step": 8,
+            "proof_steps": 2,
+            "axioms": [{"file": "Merge.kif", "line": 9, "kif": "(p Prior)"}],
+        }
+        self.state["findings"] = [prior]
+        audit.atomic_json(output / "checkpoint.json", self.state)
         calls = []
 
         def execute(command, stdout, stderr, seconds, cwd):
@@ -129,7 +170,11 @@ class AuditTests(unittest.TestCase):
                 return 0
             if len(calls) == 2:
                 json.dump({"seed": 0, "step": 0, "next_step": 1, "total": 20,
-                           "inconsistent": True, "contradictions": [{"axioms": []}]}, stdout)
+                           "inconsistent": True, "contradictions": [{
+                               "steps": 3,
+                               "axioms": [{"file": "Merge.kif", "line": 10,
+                                           "kif": "(p Current)"}],
+                           }]}, stdout)
                 stdout.flush()
                 return 1
             return None
@@ -147,12 +192,13 @@ class AuditTests(unittest.TestCase):
         result = json.loads((output / "results.jsonl").read_text())
         self.assertEqual(result["contradictions"][0]["audit_seed"], 0)
         self.assertEqual(result["contradictions"][0]["audit_step"], 0)
-        self.assertIn("Seed: `0`", (output / "contradictions.md").read_text())
+        report = json.loads((output / "contradictions.json").read_text())
+        self.assertEqual([(f["seed"], f["step"]) for f in report["findings"]],
+                         [(9, 8), (0, 0)])
+        self.assertEqual(saved["findings"], report["findings"])
         self.assertIn("Deadline interrupted a chunk: True", (output / "summary.md").read_text())
-        report = (output / "contradictions.md").read_text()
-        replay = json.loads(report.split("```sigma-audit-replay\n")[1].split("\n```")[0])
-        self.assertTrue(replay["complete"])
-        self.assertEqual(replay["findings"][0]["step"], 0)
+        self.assertTrue(report["complete"])
+        self.assertEqual(report["findings"][1]["step"], 0)
 
     def test_multi_step_chunks_are_rejected_before_loading(self):
         with self.assertRaisesRegex(ValueError, "chunk-size 1"):
@@ -180,8 +226,8 @@ class AuditTests(unittest.TestCase):
         ), patch.object(audit, "execute", return_value=2):
             with self.assertRaises(RuntimeError):
                 audit.run(args)
-        report = (self.root / "out" / "contradictions.md").read_text()
-        self.assertIn('"complete": false', report)
+        report = json.loads((self.root / "out" / "contradictions.json").read_text())
+        self.assertFalse(report["complete"])
 
 
 if __name__ == "__main__":

@@ -74,7 +74,8 @@ def checkpoint(path, fingerprint, engine_fingerprint):
     if (state.get("fingerprint") != fingerprint
             or state.get("engine_fingerprint") != engine_fingerprint):
         state = {"version": 1, "fingerprint": fingerprint,
-                 "engine_fingerprint": engine_fingerprint, "seed": 0, "next_step": 0}
+                 "engine_fingerprint": engine_fingerprint, "seed": 0, "next_step": 0,
+                 "findings": []}
     if state.get("version") != 1:
         raise ValueError("Unsupported checkpoint version")
     for key in ("seed", "next_step"):
@@ -82,6 +83,9 @@ def checkpoint(path, fingerprint, engine_fingerprint):
             raise ValueError(f"Invalid checkpoint {key}")
     if state["seed"] > 0xffffffff:
         raise ValueError("Seed exceeds the CLI's u32 range")
+    state.setdefault("findings", [])
+    if not valid_findings(state["findings"]):
+        raise ValueError("Invalid checkpoint findings")
     return state
 
 
@@ -120,51 +124,43 @@ def execute(command, stdout, stderr, seconds, cwd):
 
 def contradiction_key(contradiction):
     """Stable identity for deduplicating the same cited axiom set."""
-    return tuple(sorted(
-        (a.get("file"), a.get("line"), a.get("kif"))
+    axioms = [
+        [a.get("file"), a.get("line"), a.get("kif")]
         for a in contradiction.get("axioms", [])
-    ))
-
-
-def contradiction_report(findings, replay=None):
-    """Render exact reproduction coordinates and cited axioms as Markdown."""
-    lines = [
-        "# Full SUMO contradiction report",
-        "",
-        "Open https://sigmakee.dev/audit and choose Latest master contradiction report.",
-        "Save any work you want to keep before confirming replacement and replay.",
-        "The app verifies master, constituents, and engine inputs before replaying only the steps below.",
-        "",
     ]
-    for number, finding in enumerate(findings, 1):
-        lines.extend([
-            f"## Contradiction {number}",
-            "",
-            f"- Seed: `{finding['seed']}`",
-            f"- Start step: `{finding['step']}`",
-            "- Axioms to check: `1`",
-            "- Axioms per subproblem: `1`",
-            "- Backend: `SUPr`",
-            f"- Proof steps reported by Sigma: `{finding['proof_steps']}`",
-            "",
-            "### Cited source axioms",
-            "",
-        ])
-        for axiom in finding["axioms"]:
-            lines.extend([
-                f"#### {axiom.get('file') or '?'}:{axiom.get('line') or '?'}",
-                "",
-                "```lisp",
-                axiom.get("kif", ""),
-                "```",
-                "",
-            ])
-    if not findings:
-        lines.extend(["No contradictions were reported in this run.", ""])
-    if replay is not None:
-        lines.extend(["## Replay metadata", "", "```sigma-audit-replay",
-                      json.dumps({**replay, "findings": findings}, indent=2), "```", ""])
-    return "\n".join(lines)
+    return json.dumps(sorted(axioms, key=lambda axiom: json.dumps(axiom)),
+                      separators=(",", ":"))
+
+
+def valid_findings(findings):
+    if not isinstance(findings, list):
+        return False
+    for finding in findings:
+        if not isinstance(finding, dict):
+            return False
+        if any(type(finding.get(key)) is not int or finding[key] < 0
+               or (key in ("seed", "step") and finding[key] > 0xffffffff)
+               for key in ("seed", "step", "proof_steps")):
+            return False
+        axioms = finding.get("axioms")
+        if not isinstance(axioms, list) or not axioms:
+            return False
+        for axiom in axioms:
+            if not isinstance(axiom, dict) or not isinstance(axiom.get("kif"), str):
+                return False
+            if axiom.get("file") is not None and not isinstance(axiom.get("file"), str):
+                return False
+            if axiom.get("line") is not None and (
+                    type(axiom.get("line")) is not int or axiom["line"] < 1):
+                return False
+    return True
+
+
+def contradiction_report(findings, replay):
+    """Build the versioned JSON replay report."""
+    if not valid_findings(findings):
+        raise ValueError("Invalid contradiction findings")
+    return {**replay, "findings": findings}
 
 
 def run(args):
@@ -182,8 +178,8 @@ def run(args):
     sumo = str(Path(args.sumo).resolve())
     completed = contradictions = 0
     interrupted = False
-    findings = []
-    seen_findings = set()
+    findings = list(state["findings"])
+    seen_findings = {contradiction_key(finding) for finding in findings}
     try:
         with tempfile.TemporaryDirectory(prefix="sumo-audit-") as scratch:
             config = ET.Element("configuration")
@@ -227,31 +223,35 @@ def run(args):
                     # position whose selected neighborhood produced the proof.
                     contradiction["audit_seed"] = result["seed"]
                     contradiction["audit_step"] = result["step"]
+                    finding = {
+                        "seed": result["seed"],
+                        "step": result["step"],
+                        "proof_steps": contradiction.get("steps", 0),
+                        "axioms": contradiction.get("axioms", []),
+                    }
+                    if not valid_findings([finding]):
+                        raise RuntimeError("Invalid contradiction in audit result")
                     key = contradiction_key(contradiction)
                     if key not in seen_findings:
                         seen_findings.add(key)
-                        findings.append({
-                            "seed": result["seed"],
-                            "step": result["step"],
-                            "proof_steps": contradiction.get("steps", 0),
-                            "axioms": contradiction.get("axioms", []),
-                        })
+                        findings.append(finding)
                 with (output / "results.jsonl").open("a") as reports:
                     reports.write(json.dumps(result) + "\n")
                 contradictions += len(result.get("contradictions", []))
                 completed += result["next_step"] - result["step"]
                 state = updated
+                state["findings"] = findings
                 atomic_json(state_path, state)
             replay["complete"] = True
     finally:
         report = contradiction_report(findings, replay)
-        (output / "contradictions.md").write_text(report)
+        atomic_json(output / "contradictions.json", report)
         positions = "\n".join(
             f"- Seed `{f['seed']}`, step `{f['step']}`"
             for f in findings[:20]
         )
         if len(findings) > 20:
-            positions += f"\n- ...and {len(findings) - 20} more in `contradictions.md`"
+            positions += f"\n- ...and {len(findings) - 20} more in `contradictions.json`"
         if not positions:
             positions = "- None"
         summary = (
@@ -260,14 +260,14 @@ def run(args):
             f"- Resume: seed {state['seed']}, step {state['next_step']}\n"
             f"- Completed formula checks: {completed}\n"
             f"- Contradictions reported (may repeat across chunks): {contradictions}\n"
-            f"- Distinct cited axiom sets: {len(findings)}\n"
+            f"- Cumulative distinct cited axiom sets: {len(findings)}\n"
             f"- Deadline interrupted a chunk: {interrupted}\n"
             f"- Full SUMO fingerprint: {fingerprint}\n\n"
             "## Reproduction positions\n\n"
             f"{positions}\n\n"
             "At https://sigmakee.dev/audit open Latest master contradiction report "
             "to verify and replay the findings. The complete formatted "
-            "report is in `contradictions.md` in the workflow artifact.\n\n"
+            "report is in `contradictions.json` in the workflow artifact.\n\n"
             "An unfinished chunk is retried next night. Finding no contradiction "
             "does not certify consistency. See the job status for execution errors.\n"
         )
