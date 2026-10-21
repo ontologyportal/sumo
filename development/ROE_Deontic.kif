@@ -1,0 +1,542 @@
+;; ===========================================================================
+;; ROE_Deontic.kif
+;;
+;; The deontic layer of the ROE formalization. Load it after ROE_Master.kif,
+;; ROE_Supplementary.kif and ROE_Series.kif, and only for experiments with the
+;; deontic or modal reading of measures, never with the main test suite.
+;;
+;; The catalog relations state what a measure covers. They are not themselves
+;; normative: a measure sitting in the compendium binds no one. The norm arises
+;; when competent authority places the measure in force, and that is what the
+;; SUMO relations &%permits and &%prohibits express here, asserted of the
+;; issuing authority rather than of the measure.
+;;
+;; Law.kif makes permitting a formula and prohibiting it mutually exclusive.
+;; Where a scenario puts in force an authorization and a prohibition naming the
+;; same class, as rules 84 A and 84 D do, these two rules therefore make the
+;; knowledge base inconsistent, and an inconsistent knowledge base proves every
+;; query, including those a test expects to fail. The flag &%roeMeasureConflict
+;; in ROE_Supplementary.kif identifies the cause but cannot prevent the
+;; inconsistency. That is why this file is kept apart from the main knowledge
+;; base. The authorization layer does not use these rules: &%permits and
+;; &%prohibits take a reified &%Formula, where search cost concentrates, so
+;; inference runs on &%roeActionAuthorized instead.
+;;
+;; The two rules are also weaker in meaning than an ROE measure, and are not a
+;; basis for the results of the thesis. The permitted formula says only that
+;; some act of class ?C may occur; it does not carry the conditions of the
+;; measure, the particular act, or the operation. ?OP appears only in the
+;; antecedent, so permissions granted for different operations become the same
+;; deontic statement. A faithful deontic reading would need the operation, and
+;; the conditions of the measure, inside the formula.
+;; ===========================================================================
+
+;; Rule 1: A measure in force confers a permission held by the authority.
+(=>
+  (and
+    (roeInForce ?M ?OP)
+    (roeMeasureAuthorizes ?M ?C)
+    (roeIssuingAuthority ?OP ?AUTH))
+  (permits ?AUTH
+    (exists (?A)
+      (instance ?A ?C))))
+
+;; Rule 2: A measure in force imposes a prohibition held by the authority.
+(=>
+  (and
+    (roeInForce ?M ?OP)
+    (roeMeasureProhibits ?M ?C)
+    (roeIssuingAuthority ?OP ?AUTH))
+  (prohibits ?AUTH
+    (exists (?A)
+      (instance ?A ?C))))
+
+;; ===========================================================================
+;; Deontic rules from ROE_Master.kif
+;;
+;; Every rule of ROE_Master.kif that concluded &%permits, (not (permits ...))
+;; or &%prohibits is collected here, under the heading of the item it came
+;; from. Several pairs could not hold together: WeaponsFree Rule 1 permits an
+;; attack on any Combatant, while the NoStrikeList, NonCombatant, HorsDeCombat
+;; and FriendlyForce rules deny permission for the same formula, so a target
+;; meeting both conditions made the main knowledge base inconsistent. The
+;; self-defense permissions and Harassment Rule 3 form another such pair. No
+;; test of the authorization layer used these rules.
+;;
+;; HigherHeadquarters Rule 3 has been corrected on the way: it used an
+;; &%Order, a &%Sentence, as the agent of a process; the act of ordering is an
+;; &%Ordering.
+;; ===========================================================================
+
+;; --- from item 3. Harassment
+
+;; Rule 3: Harassment does NOT trigger self-defense authorization
+(=>
+  (and
+    (instance ?H Harassment)
+    (patient ?H ?TARGET)
+    (instance ?TARGET AutonomousAgent))
+  (not
+    (permits ?TARGET
+      (exists (?S)
+        (and
+          (instance ?S SelfDefense)
+          (patient ?S ?H))))))
+
+;; --- from item 5. IndividualSelfDefense
+
+;; Rule 2: If HostileAct or HostileIntent targets a Human,
+;; that individual is permitted to use IndividualSelfDefense
+(=>
+  (and
+    (instance ?T HostileConduct)
+    (patient ?T ?A)
+    (instance ?A Human))
+  (permits ?A
+    (exists (?S)
+      (and
+        (instance ?S IndividualSelfDefense)
+        (agent ?S ?A)
+        (causes ?T ?S)))))
+
+;; --- from item 6. UnitSelfDefense
+
+;; Rule 2: UnitSelfDefense protects units from the same State
+(=>
+  (and
+    (instance ?T Attack)
+    (instance ?TARGET MilitaryOrganization)
+    (patient ?T ?TARGET)
+    (instance ?U MilitaryOrganization)
+    (not
+      (equal ?U ?TARGET))
+    (instance ?HQ MilitaryOrganization)
+    (subOrganization ?U ?HQ)
+    (subOrganization ?TARGET ?HQ))
+  (permits ?U
+    (exists (?S)
+      (and
+        (instance ?S UnitSelfDefense)
+        (agent ?S ?U)
+        (patient ?S ?TARGET)
+        (causes ?T ?S)))))
+
+;; Rule 3: If HostileAct or HostileIntent targets a MilitaryOrganization,
+;; UnitSelfDefense is permitted
+(=>
+  (and
+    (instance ?T HostileConduct)
+    (patient ?T ?U)
+    (instance ?U MilitaryOrganization))
+  (permits ?U
+    (exists (?S)
+      (and
+        (instance ?S UnitSelfDefense)
+        (agent ?S ?U)
+        (causes ?T ?S)))))
+
+;; --- from item 7. DefenseOfOthers
+
+;; Rule: If a HostileAct or HostileIntent threatens a designated entity ?Y,
+;; then ?X who is protecting ?Y is permitted to use DefenseOfOthers.
+(=>
+  (and
+    (instance ?T HostileConduct)
+    (patient ?T ?Y)
+    (instance ?Y AutonomousAgent)
+    (instance ?DES Designating)
+    (patient ?DES ?Y)
+    (instance ?PR Protecting)
+    (agent ?PR ?X)
+    (patient ?PR ?Y)
+    (instance ?X AutonomousAgent))
+  (permits ?X
+    (exists (?S)
+      (and
+        (instance ?S DefenseOfOthers)
+        (agent ?S ?X)
+        (patient ?S ?Y)
+        (causes ?T ?S)))))
+
+;; --- from item 8. NationalSelfDefense
+
+;; Rule: If a Nation faces a HostileAct or HostileIntent,
+;; it is permitted to use NationalSelfDefense.
+(=>
+  (and
+    (instance ?T HostileConduct)
+    (patient ?T ?ST)
+    (instance ?ST Nation))
+  (permits ?ST
+    (exists (?S)
+      (and
+        (instance ?S NationalSelfDefense)
+        (agent ?S ?ST)
+        (causes ?T ?S)))))
+
+;; --- from item 9. CollectiveSelfDefense
+
+;; Rule: If an allied Nation (?ALLY2) faces a HostileAct or HostileIntent,
+;; then another allied Nation (?ALLY1) is permitted to use CollectiveSelfDefense.
+(=>
+  (and
+    (instance ?H HostileConduct)
+    (patient ?H ?ALLY2)
+    (instance ?ALLY2 Nation)
+    (instance ?ALLY1 Nation)
+    (not
+      (equal ?ALLY1 ?ALLY2))
+    (allied ?ALLY1 ?ALLY2))
+  (permits ?ALLY1
+    (exists (?CSD)
+      (and
+        (instance ?CSD CollectiveSelfDefense)
+        (agent ?CSD ?ALLY1)
+        (patient ?CSD ?ALLY2)))))
+
+;; --- from item 10. Declared
+
+;; Rule 2: A unit that has received the declaration is permitted by the
+;; declaring authority to engage the declared hostile force
+(=>
+  (and
+    (property ?F DeclaredHostileStatus)
+    (instance ?F Physical)
+    (instance ?DECL Directing)
+    (instance ?HQ HigherHeadquarters)
+    (agent ?DECL ?HQ)
+    (patient ?DECL ?F)
+    (destination ?DECL ?UNIT)
+    (instance ?UNIT MilitaryOrganization))
+  (permits ?HQ
+    (exists (?E)
+      (and
+        (instance ?E Attack)
+        (agent ?E ?UNIT)
+        (patient ?E ?F)))))
+
+;; --- from item 19. TacticalQuestioning
+
+;; Rule 3: If higher authority approves the requesting agent,
+;; BoardingOperation is permitted
+(=>
+  (and
+    (instance ?REQ Requesting)
+    (agent ?REQ ?A)
+    (instance ?CMD CognitiveAgent)
+    (destination ?REQ ?CMD)
+    (patient ?REQ ?BO)
+    (instance ?BO BoardingOperation)
+    (approves ?CMD ?A))
+  (permits ?CMD
+    (and
+      (instance ?BO BoardingOperation)
+      (agent ?BO ?A))))
+
+;; --- from item 20. BoardingOperation
+
+;; Rule 3: During a BoardingOperation, SearchOperation is permitted
+(=>
+  (and
+    (instance ?BO BoardingOperation)
+    (agent ?BO ?A)
+    (instance ?A AutonomousAgent)
+    (patient ?BO ?P)
+    (instance ?P Physical))
+  (permits ?A
+    (exists (?S)
+      (and
+        (instance ?S SearchOperation)
+        (patient ?S ?P)
+        (agent ?S ?A)
+        (subProcess ?S ?BO)))))
+
+;; --- from item 23. SearchOperation
+
+;; Rule 2: A SearchOperation may lead to Detention of persons or seizure of vessels
+(=>
+  (and
+    (instance ?S SearchOperation)
+    (patient ?S ?P)
+    (instance ?P Physical)
+    (agent ?S ?A)
+    (instance ?A AutonomousAgent)
+    (property ?P Illegal))
+  (permits ?A
+    (exists (?D)
+      (and
+        (instance ?D Detention)
+        (patient ?D ?P)
+        (agent ?D ?A)
+        (earlier
+          (WhenFn ?S)
+          (WhenFn ?D))))))
+
+;; --- from item 27. HigherHeadquarters
+
+;; Rule 3: HigherHeadquarters orders trigger permitted MilitaryOperations
+(=>
+  (and
+    (instance ?HQ HigherHeadquarters)
+    (instance ?UNIT MilitaryOrganization)
+    (ancestorOrganization ?UNIT ?HQ)
+    (instance ?ORD Ordering)
+    (agent ?ORD ?HQ)
+    (destination ?ORD ?UNIT))
+  (permits ?HQ
+    (exists (?OP)
+      (and
+        (instance ?OP MilitaryOperation)
+        (agent ?OP ?UNIT)
+        (causes ?ORD ?OP)))))
+
+;; --- from item 28. OpposedBoarding
+
+;; Rule 2: OpposedBoarding triggers UnitSelfDefense
+(=>
+  (and
+    (instance ?OB OpposedBoarding)
+    (agent ?OB ?TEAM)
+    (instance ?TEAM MilitaryOrganization)
+    (instance ?T HostileConduct)
+    (patient ?T ?TEAM))
+  (permits ?TEAM
+    (exists (?SD)
+      (and
+        (instance ?SD UnitSelfDefense)
+        (agent ?SD ?TEAM)
+        (causes ?T ?SD)))))
+
+;; Rule 3: After OpposedBoarding, Detention is permitted
+(=>
+  (and
+    (instance ?OB OpposedBoarding)
+    (agent ?OB ?TEAM)
+    (instance ?TEAM MilitaryOrganization)
+    (patient ?OB ?SHIP)
+    (instance ?SHIP Ship))
+  (permits ?TEAM
+    (exists (?DET ?P)
+      (and
+        (instance ?DET Detention)
+        (agent ?DET ?TEAM)
+        (instance ?P Human)
+        (patient ?DET ?P)
+        (earlier
+          (WhenFn ?OB)
+          (WhenFn ?DET))))))
+
+;; --- from item 32. MaritimeInterdictionOperation
+
+;; Rule 2: MIO permits SearchOperation and Detention
+(=>
+  (and
+    (instance ?MIO MaritimeInterdictionOperation)
+    (agent ?MIO ?A)
+    (instance ?A AutonomousAgent))
+  (permits ?A
+    (exists (?SO ?DET ?P)
+      (and
+        (instance ?SO SearchOperation)
+        (instance ?DET Detention)
+        (instance ?P Human)
+        (agent ?SO ?A)
+        (agent ?DET ?A)
+        (patient ?DET ?P)
+        (subProcess ?DET ?MIO)
+        (subProcess ?SO ?MIO)
+        (earlier
+          (WhenFn ?SO)
+          (WhenFn ?DET))))))
+
+;; --- from item 33. VisitAndSearchOperation
+
+;; Rule 2: If a searched person is found to be Illegal, Detention is permitted
+;; as a subprocess of VisitAndSearchOperation
+(=>
+  (and
+    (instance ?VAS VisitAndSearchOperation)
+    (instance ?SO SearchOperation)
+    (subProcess ?SO ?VAS)
+    (agent ?SO ?A)
+    (instance ?A AutonomousAgent)
+    (patient ?SO ?P)
+    (instance ?P Human)
+    (attribute ?P Illegal))
+  (permits ?A
+    (exists (?DET)
+      (and
+        (instance ?DET Detention)
+        (agent ?DET ?A)
+        (patient ?DET ?P)
+        (subProcess ?DET ?VAS)
+        (earlier
+          (WhenFn ?SO)
+          (WhenFn ?DET))))))
+
+;; --- from item 41. HorsDeCombat
+
+;; Rule 1: HorsDeCombat person cannot be attacked
+(=>
+  (and
+    (instance ?P Human)
+    (attribute ?P HorsDeCombat)
+    (instance ?A AutonomousAgent))
+  (not
+    (permits ?A
+      (exists (?ATK)
+        (and
+          (instance ?ATK Attack)
+          (patient ?ATK ?P)
+          (agent ?ATK ?A))))))
+
+;; --- from item 59. NonCombatant
+
+;; Rule 1: NonCombatant cannot be targeted
+(=>
+  (and
+    (property ?P NonCombatant)
+    (instance ?A AutonomousAgent))
+  (not
+    (permits ?A
+      (exists (?ATK)
+        (and
+          (instance ?ATK Attack)
+          (agent ?ATK ?A)
+          (patient ?ATK ?P))))))
+
+;; --- from item 61. NoStrikeList
+
+;; Rule 1: NoStrikeList members cannot be targeted
+(=>
+  (and
+    (instance ?NSL NoStrikeList)
+    (inList ?E ?NSL)
+    (instance ?A AutonomousAgent))
+  (not
+    (permits ?A
+      (exists (?ATK)
+        (and
+          (instance ?ATK Attack)
+          (agent ?ATK ?A)
+          (patient ?ATK ?E))))))
+
+;; --- from item 76. WeaponsFree
+
+;; Rule 1: Under WeaponsFree, attack on Combatant targets is permitted
+(=>
+  (and
+    (attribute ?UNIT WeaponsFree)
+    (instance ?UNIT MilitaryOrganization)
+    (instance ?TARGET Physical)
+    (property ?TARGET Combatant))
+  (permits ?UNIT
+    (exists (?ATK)
+      (and
+        (instance ?ATK Attack)
+        (agent ?ATK ?UNIT)
+        (patient ?ATK ?TARGET)))))
+
+;; Rule 2: WeaponsFree does not override NoStrikeList protections
+(=>
+  (and
+    (attribute ?UNIT WeaponsFree)
+    (instance ?UNIT MilitaryOrganization)
+    (instance ?NSL NoStrikeList)
+    (inList ?TARGET ?NSL))
+  (not
+    (permits ?UNIT
+      (exists (?ATK)
+        (and
+          (instance ?ATK Attack)
+          (agent ?ATK ?UNIT)
+          (patient ?ATK ?TARGET))))))
+
+;; --- from item 86. FriendlyForce
+
+;; Rule 3: FriendlyForce is not a valid target under any WeaponControlStatus
+(=>
+  (and
+    (instance ?UNIT MilitaryOrganization)
+    (instance ?WCS WeaponControlStatus)
+    (attribute ?UNIT ?WCS)
+    (instance ?FF FriendlyForce))
+  (not
+    (permits ?UNIT
+      (exists (?ATK)
+        (and
+          (instance ?ATK Attack)
+          (agent ?ATK ?UNIT)
+          (patient ?ATK ?FF))))))
+
+;; ===========================================================================
+;; Legal status of flight, from ROE_Master.kif
+;;
+;; Four rules on entry into airspace and no-fly zones, moved here because they
+;; concern the legal status of a flight rather than ROE authorization, and none
+;; is used by the authorization layer. They have been typed on the way: the
+;; aircraft is the instrument of the flight, not its agent, and the flight is
+;; located in the airspace by &%eventLocated rather than &%meetsSpatially,
+;; which relates objects; permission is stated of a formula, as &%modalAttribute
+;; and &%confersNorm require. Three of them still carry a negated permission
+;; condition in the antecedent. Under the open world that condition holds only
+;; where a denial of permission is asserted, so the rules are inert as written;
+;; if airspace enters a scenario, the condition should become an asserted
+;; closure like roeNoProhibitionReaches.
+;; ===========================================================================
+
+;; --- from item 46. Airspace
+;; Rule 2: Sovereign Airspace -- unauthorized entry is illegal
+(=>
+  (and
+    (instance ?AS Airspace)
+    (instance ?GA GeographicArea)
+    (orientation ?AS ?GA Above)
+    (instance ?STATE Nation)
+    (claimedTerritory ?GA ?STATE)
+    (instance ?AC Aircraft)
+    (instance ?T Flying)
+    (instrument ?T ?AC)
+    (eventLocated ?T ?AS)
+    (not
+      (confersNorm ?STATE Permission
+        (eventLocated ?T ?AS))))
+  (property ?T Illegal))
+
+;; --- from item 47. InternationalAirspace
+;; Rule 3: Transit freedom
+(=>
+  (and
+    (instance ?IA InternationalAirspace)
+    (instance ?AC Aircraft)
+    (instance ?T Translocation)
+    (instrument ?T ?AC)
+    (eventLocated ?T ?IA))
+  (modalAttribute
+    (eventLocated ?T ?IA) Permission))
+
+;; --- from item 54. NationalAirspace
+;; Rule 2: NationalAirspace is sovereign -- unauthorized entry is Illegal
+(=>
+  (and
+    (instance ?NA NationalAirspace)
+    (instance ?AC Aircraft)
+    (instance ?T Flying)
+    (instrument ?T ?AC)
+    (eventLocated ?T ?NA)
+    (not
+      (modalAttribute
+        (eventLocated ?T ?NA) Permission)))
+  (property ?T Illegal))
+
+;; --- from item 57. NoFlyZone
+;; Rule 2: Unauthorized flying in a NoFlyZone is Illegal
+(=>
+  (and
+    (instance ?NFZ NoFlyZone)
+    (instance ?F Flying)
+    (eventLocated ?F ?NFZ)
+    (not
+      (modalAttribute
+        (eventLocated ?F ?NFZ) Permission)))
+  (property ?F Illegal))

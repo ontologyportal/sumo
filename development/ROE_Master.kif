@@ -104,7 +104,7 @@
 ;; Numbered 2a rather than given a new number so that cross-references from
 ;; ROE_Supplementary.kif and ROE_Series.kif remain valid.
 
-(subclass HostileConduct IntentionalProcess)
+(subclass HostileConduct SocialInteraction)
 (documentation HostileConduct EnglishWrittenLanguage "Conduct that triggers the right of self-defense under the Newport ROE Handbook: either a hostile act, which is an attack or other use of force already under way, or hostile intent, which is the threat of an imminent hostile act. Harassment is excluded.")
 (termFormat EnglishWrittenLanguage HostileConduct "hostile conduct")
 
@@ -124,7 +124,7 @@
 ;; Declared here rather than in ROE_Supplementary.kif because &%Harassment
 ;; depends on it and ROE_Master.kif loads first.
 
-(subclass Interference IntentionalProcess)
+(subclass Interference SocialInteraction)
 (documentation Interference EnglishWrittenLanguage "An intentional process that impedes another party's activity, whether by reducing the likelihood that some process occurs, by restricting movement, or by disrupting a capability. SUMO provides the relation &%hinders but no process class corresponding to it, and the Newport compendium regulates interference across at least six series: the mission in Series 20, freedom of movement in Series 21, ships and aircraft in Series 22, the activities of neutrals in Series 32, harassment in Series 61, and satellite communications in Series 140. This class carries no defining condition of its own; each subclass carries its own, which is what keeps the SUMO axioms behind &%hinders out of the inference path. It cuts across series, so it is not placed with any one of them.")
 (termFormat EnglishWrittenLanguage Interference "interference")
 
@@ -144,32 +144,28 @@
 ;; result in physical damage". The no-damage condition belongs to the 61 B
 ;; subclass, NonDamagingHarassment in ROE_Series.kif, and is stated there.
 
-;; Rule 3: Harassment does NOT trigger self-defense authorization
-(=>
-  (and
-    (instance ?H Harassment)
-    (patient ?H ?TARGET)
-    (instance ?TARGET AutonomousAgent))
-  (not
-    (permits ?TARGET
-      (exists (?S)
-        (and
-          (instance ?S SelfDefense)
-          (patient ?S ?H))))))
+;; Rule 3 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
-;; Rule 4: Harassment has the purpose of interfering with a desired operation
+;; Rule 4: Harassment has the purpose of interfering with a military operation
+;; of its target. An earlier version gave a process where &%desires and &%hasPurpose
+;; take a &%Formula; the purpose is now stated as a formula, and the condition
+;; that the operation is desired, which added nothing the agent relation does
+;; not, is dropped.
 (=>
   (and
     (instance ?H Harassment)
     (patient ?H ?TARGET)
     (instance ?TARGET AutonomousAgent)
-    (instance ?OP Process)
-    (agent ?OP ?TARGET)
-    (desires ?TARGET ?OP))
-  (hasPurpose ?H ?OP))
+    (instance ?OP MilitaryOperation)
+    (agent ?OP ?TARGET))
+  (hasPurpose ?H
+    (exists (?I)
+      (and
+        (instance ?I Interference)
+        (patient ?I ?OP)))))
 
 ;; 4. SelfDefense
-(subclass SelfDefense Process)
+(subclass SelfDefense UseOfForce)
 
 ;; Documentation
 (documentation SelfDefense EnglishWrittenLanguage "The use of force to defend against an attack (hostile act) or imminent attack (hostile intent). Self-defense is available in all situations, including armed conflict. This ontology follows the Newport Rules of Engagement (ROE) Handbook categories: individual self-defense, unit self-defense, defense of others, national self-defense, and collective self-defense. Necessity exists when one faces a hostile act or hostile intent, and the authority continues so long as that act or intent continues.")
@@ -232,19 +228,7 @@
     (agent ?S ?A2))
   (equal ?A1 ?A2))
 
-;; Rule 2: If HostileAct or HostileIntent targets a Human,
-;; that individual is permitted to use IndividualSelfDefense
-(=>
-  (and
-    (instance ?T HostileConduct)
-    (patient ?T ?A)
-    (instance ?A Human))
-  (permits ?A
-    (exists (?S)
-      (and
-        (instance ?S IndividualSelfDefense)
-        (agent ?S ?A)
-        (causes ?T ?S)))))
+;; Rule 2 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 6. UnitSelfDefense
 (subclass UnitSelfDefense SelfDefense)
@@ -262,39 +246,9 @@
       (instance ?U MilitaryOrganization)
       (agent ?S ?U))))
 
-;; Rule 2: UnitSelfDefense protects units from the same State
-(=>
-  (and
-    (instance ?T Attack)
-    (instance ?TARGET MilitaryOrganization)
-    (patient ?T ?TARGET)
-    (instance ?U MilitaryOrganization)
-    (not
-      (equal ?U ?TARGET))
-    (instance ?HQ MilitaryOrganization)
-    (subOrganization ?U ?HQ)
-    (subOrganization ?TARGET ?HQ))
-  (permits ?U
-    (exists (?S)
-      (and
-        (instance ?S UnitSelfDefense)
-        (agent ?S ?U)
-        (patient ?S ?TARGET)
-        (causes ?T ?S)))))
+;; Rule 2 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
-;; Rule 3: If HostileAct or HostileIntent targets a MilitaryOrganization,
-;; UnitSelfDefense is permitted
-(=>
-  (and
-    (instance ?T HostileConduct)
-    (patient ?T ?U)
-    (instance ?U MilitaryOrganization))
-  (permits ?U
-    (exists (?S)
-      (and
-        (instance ?S UnitSelfDefense)
-        (agent ?S ?U)
-        (causes ?T ?S)))))
+;; Rule 3 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 7. DefenseOfOthers
 (subclass DefenseOfOthers SelfDefense)
@@ -304,26 +258,7 @@
 ;; Term format
 (termFormat EnglishWrittenLanguage DefenseOfOthers "defense of others")
 
-;; Rule: If a HostileAct or HostileIntent threatens a designated entity ?Y,
-;; then ?X who is protecting ?Y is permitted to use DefenseOfOthers.
-(=>
-  (and
-    (instance ?T HostileConduct)
-    (patient ?T ?Y)
-    (instance ?Y AutonomousAgent)
-    (instance ?DES Designating)
-    (patient ?DES ?Y)
-    (instance ?PR Protecting)
-    (agent ?PR ?X)
-    (patient ?PR ?Y)
-    (instance ?X AutonomousAgent))
-  (permits ?X
-    (exists (?S)
-      (and
-        (instance ?S DefenseOfOthers)
-        (agent ?S ?X)
-        (patient ?S ?Y)
-        (causes ?T ?S)))))
+;; Rule moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 8. NationalSelfDefense
 (subclass NationalSelfDefense SelfDefense)
@@ -333,19 +268,7 @@
 ;; Term format
 (termFormat EnglishWrittenLanguage NationalSelfDefense "national self-defense")
 
-;; Rule: If a Nation faces a HostileAct or HostileIntent,
-;; it is permitted to use NationalSelfDefense.
-(=>
-  (and
-    (instance ?T HostileConduct)
-    (patient ?T ?ST)
-    (instance ?ST Nation))
-  (permits ?ST
-    (exists (?S)
-      (and
-        (instance ?S NationalSelfDefense)
-        (agent ?S ?ST)
-        (causes ?T ?S)))))
+;; Rule moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 9. CollectiveSelfDefense
 (subclass CollectiveSelfDefense SelfDefense)
@@ -355,23 +278,7 @@
 ;; Term format
 (termFormat EnglishWrittenLanguage CollectiveSelfDefense "collective self-defense")
 
-;; Rule: If an allied Nation (?ALLY2) faces a HostileAct or HostileIntent,
-;; then another allied Nation (?ALLY1) is permitted to use CollectiveSelfDefense.
-(=>
-  (and
-    (instance ?H HostileConduct)
-    (patient ?H ?ALLY2)
-    (instance ?ALLY2 Nation)
-    (instance ?ALLY1 Nation)
-    (not
-      (equal ?ALLY1 ?ALLY2))
-    (allied ?ALLY1 ?ALLY2))
-  (permits ?ALLY1
-    (exists (?CSD)
-      (and
-        (instance ?CSD CollectiveSelfDefense)
-        (agent ?CSD ?ALLY1)
-        (patient ?CSD ?ALLY2)))))
+;; Rule moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 10. Declared Hostile Force
 (instance DeclaredHostileStatus RelationalAttribute)
@@ -390,24 +297,7 @@
       (agent ?DECL ?HQ)
       (patient ?DECL ?F))))
 
-;; Rule 2: A unit that has received the declaration is permitted by the
-;; declaring authority to engage the declared hostile force
-(=>
-  (and
-    (property ?F DeclaredHostileStatus)
-    (instance ?F Physical)
-    (instance ?DECL Directing)
-    (instance ?HQ HigherHeadquarters)
-    (agent ?DECL ?HQ)
-    (patient ?DECL ?F)
-    (destination ?DECL ?UNIT)
-    (instance ?UNIT MilitaryOrganization))
-  (permits ?HQ
-    (exists (?E)
-      (and
-        (instance ?E Attack)
-        (agent ?E ?UNIT)
-        (patient ?E ?F)))))
+;; Rule 2 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 11. UseOfForce
 (subclass UseOfForce IntentionalProcess)
@@ -448,9 +338,9 @@
   (instance ?PROC UseOfForce))
 
 ;; 12. Deadly Force
-(subclass ForceCharacter Attribute)
+(subclass ForceCharacter InternalAttribute)
 
-(documentation ForceCharacter EnglishWrittenLanguage "An attribute characterizing the nature of force used, such as deadly or non-deadly, in rules of engagement contexts. Per the Newport glossary the distinction is a property of the force applied, not of the weapon employed: the same weapon may be used in a deadly or a non-deadly manner.")
+(documentation ForceCharacter EnglishWrittenLanguage "An attribute characterizing the nature of force used, such as deadly or non-deadly, in rules of engagement contexts. Per the Newport glossary the distinction is a property of the force applied, not of the weapon employed: the same weapon may be used in a deadly or a non-deadly manner. It sits under &%InternalAttribute; SUMO has no class for the character of an application of force, and the attribute is kept rather than replaced by classes because the non-deadly action classes of ROE_Series.kif are defined through it.")
 (termFormat EnglishWrittenLanguage ForceCharacter "force character")
 
 (instance DeadlyForce ForceCharacter)
@@ -467,13 +357,12 @@
     (causes ?P ?E))
   (property ?P DeadlyForce))
 
-;; Rule 2: A process that causes injury is an application of deadly force
-(=>
-  (and
-    (instance ?P Process)
-    (instance ?E Injuring)
-    (causes ?P ?E))
-  (property ?P DeadlyForce))
+;; Rule 2 removed. It made every process causing &%Injuring an application of
+;; deadly force. The Handbook defines deadly force as force intended or likely
+;; to cause death or serious bodily harm, and non-deadly force can injure; with
+;; Rule 3 of item 13 (deadly implies not non-deadly), any non-deadly force that
+;; injured made the knowledge base inconsistent. Only Rule 1, death caused,
+;; remains as a sufficient condition.
 
 ;; 13. Non-deadly Force
 (instance NonDeadlyForce ForceCharacter)
@@ -536,8 +425,9 @@
 
 ;; 15. Disabling Fire
 (subclass DisablingFire Shooting)
+(subclass DisablingFire UseOfForce)
 
-(documentation DisablingFire EnglishWrittenLanguage "Disabling fire is fire directed at a target (usually a vessel or vehicle) to impair its ability to function or maneuver, without necessarily destroying it (Newport Rules of Engagement (ROE) Series 24).")
+(documentation DisablingFire EnglishWrittenLanguage "Disabling fire is fire directed at a target (usually a vessel or vehicle) to impair its ability to function or maneuver, without necessarily destroying it (Newport Rules of Engagement (ROE) Series 24). It is a &%UseOfForce by its purpose, since it is fired in order to damage, and is classified so before it is fired. Deriving that status only from damage actually caused, through Rule 3a, would make the same planned act a use of force after the fact and not before, and a decision taken before firing could not rely on it. Warning shots and non-disabling fire are not fired to damage and are not classified as a use of force.")
 
 (termFormat EnglishWrittenLanguage DisablingFire "disabling fire")
 
@@ -681,21 +571,7 @@
         (WhenFn ?TQ)
         (WhenFn ?REQ)))))
 
-;; Rule 3: If higher authority approves the requesting agent,
-;; BoardingOperation is permitted
-(=>
-  (and
-    (instance ?REQ Requesting)
-    (agent ?REQ ?A)
-    (instance ?CMD CognitiveAgent)
-    (destination ?REQ ?CMD)
-    (patient ?REQ ?BO)
-    (instance ?BO BoardingOperation)
-    (approves ?CMD ?A))
-  (permits ?CMD
-    (and
-      (instance ?BO BoardingOperation)
-      (agent ?BO ?A))))
+;; Rule 3 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 20. BoardingOperation
 (subclass BoardingOperation MaritimeOperation)
@@ -727,21 +603,7 @@
       (WhenFn ?BO))
     (onboard ?A ?S)))
 
-;; Rule 3: During a BoardingOperation, SearchOperation is permitted
-(=>
-  (and
-    (instance ?BO BoardingOperation)
-    (agent ?BO ?A)
-    (instance ?A AutonomousAgent)
-    (patient ?BO ?P)
-    (instance ?P Physical))
-  (permits ?A
-    (exists (?S)
-      (and
-        (instance ?S SearchOperation)
-        (patient ?S ?P)
-        (agent ?S ?A)
-        (subProcess ?S ?BO)))))
+;; Rule 3 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 21. CompliantBoarding
 (subclass CompliantBoarding BoardingOperation)
@@ -750,9 +612,10 @@
 
 (termFormat EnglishWrittenLanguage CompliantBoarding "compliant boarding")
 
-(instance ShipCaptain Position)
-(documentation ShipCaptain EnglishWrittenLanguage "The position of master of a vessel, holding command authority over the ship and its crew.")
-(termFormat EnglishWrittenLanguage ShipCaptain "ship's captain")
+;; ShipCaptain is defined in SUMO (Mid-level-ontology.kif, a subAttribute of
+;; Sailor, with its documentation and termFormat), so it is not redeclared
+;; here. An earlier declaration as an instance of Position duplicated it and
+;; added a second documentation string.
 
 ;; Rule 1: A compliant boarding involves cooperation from the ship's captain
 (=>
@@ -832,24 +695,7 @@
   (exists (?T)
     (patient ?S ?T)))
 
-;; Rule 2: A SearchOperation may lead to Detention of persons or seizure of vessels
-(=>
-  (and
-    (instance ?S SearchOperation)
-    (patient ?S ?P)
-    (instance ?P Physical)
-    (agent ?S ?A)
-    (instance ?A AutonomousAgent)
-    (property ?P Illegal))
-  (permits ?A
-    (exists (?D)
-      (and
-        (instance ?D Detention)
-        (patient ?D ?P)
-        (agent ?D ?A)
-        (earlier
-          (WhenFn ?S)
-          (WhenFn ?D))))))
+;; Rule 2 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 24. Detention
 (subclass Detention Confining)
@@ -946,21 +792,7 @@
   (modalAttribute
     (approves ?HQ ?UNIT) Possibility))
 
-;; Rule 3: HigherHeadquarters orders trigger permitted MilitaryOperations
-(=>
-  (and
-    (instance ?HQ HigherHeadquarters)
-    (instance ?UNIT MilitaryOrganization)
-    (ancestorOrganization ?UNIT ?HQ)
-    (instance ?ORD Order)
-    (agent ?ORD ?HQ)
-    (destination ?ORD ?UNIT))
-  (permits ?HQ
-    (exists (?OP)
-      (and
-        (instance ?OP MilitaryOperation)
-        (agent ?OP ?UNIT)
-        (causes ?ORD ?OP)))))
+;; Rule 3 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 28. OpposedBoarding
 (subclass OpposedBoarding NonCompliantBoarding)
@@ -980,39 +812,9 @@
       (instance ?T HostileConduct)
       (patient ?T ?TEAM))))
 
-;; Rule 2: OpposedBoarding triggers UnitSelfDefense
-(=>
-  (and
-    (instance ?OB OpposedBoarding)
-    (agent ?OB ?TEAM)
-    (instance ?TEAM MilitaryOrganization)
-    (instance ?T HostileConduct)
-    (patient ?T ?TEAM))
-  (permits ?TEAM
-    (exists (?SD)
-      (and
-        (instance ?SD UnitSelfDefense)
-        (agent ?SD ?TEAM)
-        (causes ?T ?SD)))))
+;; Rule 2 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
-;; Rule 3: After OpposedBoarding, Detention is permitted
-(=>
-  (and
-    (instance ?OB OpposedBoarding)
-    (agent ?OB ?TEAM)
-    (instance ?TEAM MilitaryOrganization)
-    (patient ?OB ?SHIP)
-    (instance ?SHIP Ship))
-  (permits ?TEAM
-    (exists (?DET ?P)
-      (and
-        (instance ?DET Detention)
-        (agent ?DET ?TEAM)
-        (instance ?P Human)
-        (patient ?DET ?P)
-        (earlier
-          (WhenFn ?OB)
-          (WhenFn ?DET))))))
+;; Rule 3 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 29. InnocentPassage
 (subclass InnocentPassage MaritimeOperation)
@@ -1090,12 +892,15 @@
 (documentation EscalationOfForce EnglishWrittenLanguage "A process in which an agent increases the level or intensity of force in response to a developing threat, typically moving from non-lethal measures such as warnings and warning shots to disabling fire and, if necessary, deadly force, consistent with ROE use of force continuum. Per the Newport Handbook, escalation of force procedures do not limit the right of self-defense.")
 (termFormat EnglishWrittenLanguage EscalationOfForce "escalation of force")
 
-;; Rule 1: EscalationOfForce is composed of ordered UseOfForce subprocesses
+;; Rule 1: EscalationOfForce is composed of two ordered subprocesses, the later
+;; a UseOfForce. The earlier need not be one: Rule 2 builds an escalation from a
+;; warning shot, which is not a use of force in this ontology, and requiring
+;; two uses of force made Rule 2 conjure a use of force that never occurred.
 (=>
   (instance ?EOF EscalationOfForce)
   (exists (?U1 ?U2)
     (and
-      (instance ?U1 UseOfForce)
+      (instance ?U1 Process)
       (instance ?U2 UseOfForce)
       (subProcess ?U1 ?EOF)
       (subProcess ?U2 ?EOF)
@@ -1158,26 +963,7 @@
       (instance ?BO BoardingOperation)
       (subProcess ?BO ?MIO))))
 
-;; Rule 2: MIO permits SearchOperation and Detention
-(=>
-  (and
-    (instance ?MIO MaritimeInterdictionOperation)
-    (agent ?MIO ?A)
-    (instance ?A AutonomousAgent))
-  (permits ?A
-    (exists (?SO ?DET ?P)
-      (and
-        (instance ?SO SearchOperation)
-        (instance ?DET Detention)
-        (instance ?P Human)
-        (agent ?SO ?A)
-        (agent ?DET ?A)
-        (patient ?DET ?P)
-        (subProcess ?DET ?MIO)
-        (subProcess ?SO ?MIO)
-        (earlier
-          (WhenFn ?SO)
-          (WhenFn ?DET))))))
+;; Rule 2 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 33. VisitAndSearchOperation
 (subclass VisitAndSearchOperation MaritimeInterdictionOperation)
@@ -1198,28 +984,7 @@
       (subProcess ?SO ?VAS)
       (subProcess ?SO ?BO))))
 
-;; Rule 2: If a searched person is found to be Illegal, Detention is permitted
-;; as a subprocess of VisitAndSearchOperation
-(=>
-  (and
-    (instance ?VAS VisitAndSearchOperation)
-    (instance ?SO SearchOperation)
-    (subProcess ?SO ?VAS)
-    (agent ?SO ?A)
-    (instance ?A AutonomousAgent)
-    (patient ?SO ?P)
-    (instance ?P Human)
-    (attribute ?P Illegal))
-  (permits ?A
-    (exists (?DET)
-      (and
-        (instance ?DET Detention)
-        (agent ?DET ?A)
-        (patient ?DET ?P)
-        (subProcess ?DET ?VAS)
-        (earlier
-          (WhenFn ?SO)
-          (WhenFn ?DET))))))
+;; Rule 2 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 34. IndirectFire
 (subclass IndirectFire Shooting)
@@ -1386,7 +1151,7 @@
         (subProcess ?ATK ?FP)))))
 
 ;; 41. HorsDeCombat
-(instance HorsDeCombat PhysicalAttribute)
+(instance HorsDeCombat SocialRole)
 (documentation HorsDeCombat EnglishWrittenLanguage
   "A person who: (1) is in the power of an adverse party;
    (2) clearly expresses an intention to surrender; or
@@ -1401,23 +1166,17 @@
 (documentation Surrendering EnglishWrittenLanguage "An intentional process by which a person clearly expresses the intention to cease resistance and submit to an adverse party.")
 (termFormat EnglishWrittenLanguage Surrendering "surrendering")
 
-(instance Incapacitated PhysicalAttribute)
-(instance Wounded PhysicalAttribute)
-(instance Shipwrecked PhysicalAttribute)
+(instance Incapacitated BiologicalAttribute)
+(documentation Incapacitated EnglishWrittenLanguage "The attribute of a person rendered unable to fight by wounds, sickness or other cause. A person bearing it is hors de combat under the law of armed conflict (Newport ROE Handbook, Annex D).")
+(termFormat EnglishWrittenLanguage Incapacitated "incapacitated")
+(instance Wounded BiologicalAttribute)
+(documentation Wounded EnglishWrittenLanguage "The attribute of a person who has been wounded. A wounded person who abstains from hostile acts is hors de combat under the law of armed conflict (Newport ROE Handbook, Annex D).")
+(termFormat EnglishWrittenLanguage Wounded "wounded")
+(instance Shipwrecked SocialRole)
+(documentation Shipwrecked EnglishWrittenLanguage "The attribute of a person in peril at sea as a result of misfortune affecting the person or the vessel or aircraft carrying them. A shipwrecked person who abstains from hostile acts is hors de combat under the law of armed conflict (Newport ROE Handbook, Annex D).")
+(termFormat EnglishWrittenLanguage Shipwrecked "shipwrecked")
 
-;; Rule 1: HorsDeCombat person cannot be attacked
-(=>
-  (and
-    (instance ?P Human)
-    (attribute ?P HorsDeCombat)
-    (instance ?A AutonomousAgent))
-  (not
-    (permits ?A
-      (exists (?ATK)
-        (and
-          (instance ?ATK Attack)
-          (patient ?ATK ?P)
-          (agent ?ATK ?A))))))
+;; Rule 1 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; Rule 2a: Detention implies HorsDeCombat
 (=>
@@ -1446,9 +1205,9 @@
   (attribute ?P HorsDeCombat))
 
 ;; 42. HostNation
-(subclass HostNation Nation)
-(documentation HostNation EnglishWrittenLanguage "A State that receives, with its consent, the forces and/or supplies of allied States and/or coalition partners, to be located on, to operate in, or to transit through its territory (Newport ROE Handbook).")
-(termFormat EnglishWrittenLanguage HostNation "host nation")
+;; HostNation is defined in SUMO (MilitaryProcesses.kif), with the same
+;; superclass, documentation and termFormat, so it is not redeclared here. The
+;; rules below use the SUMO term.
 
 ;; Rule 1: HostNation consents to foreign forces operating on or transiting
 ;; its territory
@@ -1535,7 +1294,7 @@
         (patient ?ATK ?TARGET))) Possibility))
 
 ;; 45. InformationEnvironment
-(subclass InformationEnvironment Collection)
+(subclass InformationEnvironment CollectionOfObjects)
 (documentation InformationEnvironment EnglishWrittenLanguage "The aggregate of individuals, organizations, and systems that collect, process, disseminate, or act on information. The information environment is where humans and automated systems observe, orient, decide, and act upon information (Newport ROE Handbook).")
 (termFormat EnglishWrittenLanguage InformationEnvironment "information environment")
 
@@ -1572,19 +1331,7 @@
       (instance ?GA GeographicArea)
       (orientation ?AS ?GA Above))))
 
-;; Rule 2: Sovereign Airspace -- unauthorized entry is illegal
-(=>
-  (and
-    (instance ?AS Airspace)
-    (instance ?STATE Nation)
-    (claimedTerritory ?AS ?STATE)
-    (instance ?AC Aircraft)
-    (instance ?T Flying)
-    (agent ?T ?AC)
-    (meetsSpatially ?T ?AS)
-    (not
-      (modalAttribute ?T Permission)))
-  (property ?T Illegal))
+;; Rule 2 moved to ROE_Deontic.kif (legal status of flight, kept out of the main knowledge base).
 
 ;; 47. InternationalAirspace
 (subclass InternationalAirspace Airspace)
@@ -1608,15 +1355,7 @@
     (orientation ?AS ?IW Above))
   (instance ?AS InternationalAirspace))
 
-;; Rule 3: Transit freedom
-(=>
-  (and
-    (instance ?IA InternationalAirspace)
-    (instance ?AC Aircraft)
-    (instance ?T Translocation)
-    (agent ?T ?AC)
-    (meetsSpatially ?T ?IA))
-  (modalAttribute ?T Permission))
+;; Rule 3 moved to ROE_Deontic.kif (legal status of flight, kept out of the main knowledge base).
 
 ;; 48. LawOfArmedConflict
 (instance LawOfArmedConflict Agreement)
@@ -1762,17 +1501,7 @@
       (claimedTerritory ?TERR ?STATE)
       (orientation ?NA ?TERR Above))))
 
-;; Rule 2: NationalAirspace is sovereign -- unauthorized entry is Illegal
-(=>
-  (and
-    (instance ?NA NationalAirspace)
-    (instance ?AC Aircraft)
-    (instance ?T Flying)
-    (agent ?T ?AC)
-    (meetsSpatially ?T ?NA)
-    (not
-      (modalAttribute ?T Permission)))
-  (property ?T Illegal))
+;; Rule 2 moved to ROE_Deontic.kif (legal status of flight, kept out of the main knowledge base).
 
 ;; Rule 3: NationalAirspace and InternationalAirspace are disjoint
 (disjoint NationalAirspace InternationalAirspace)
@@ -1869,15 +1598,7 @@
             (instance ?F Flying)
             (eventLocated ?F ?NFZ)))))))
 
-;; Rule 2: Unauthorized flying in a NoFlyZone is Illegal
-(=>
-  (and
-    (instance ?NFZ NoFlyZone)
-    (instance ?F Flying)
-    (eventLocated ?F ?NFZ)
-    (not
-      (modalAttribute ?F Permission)))
-  (property ?F Illegal))
+;; Rule 2 moved to ROE_Deontic.kif (legal status of flight, kept out of the main knowledge base).
 
 ;; 58. Combatant
 (instance Combatant OccupationalRole)
@@ -1899,18 +1620,7 @@
 (documentation NonCombatant EnglishWrittenLanguage "A person who is not a member of the armed forces and does not directly participate in hostilities, including civilians, medical personnel, and chaplains. NonCombatants are protected under LOAC and may not be targeted (Newport ROE Handbook, Geneva Convention IV).")
 (termFormat EnglishWrittenLanguage NonCombatant "non-combatant")
 
-;; Rule 1: NonCombatant cannot be targeted
-(=>
-  (and
-    (property ?P NonCombatant)
-    (instance ?A AutonomousAgent))
-  (not
-    (permits ?A
-      (exists (?ATK)
-        (and
-          (instance ?ATK Attack)
-          (agent ?ATK ?A)
-          (patient ?ATK ?P))))))
+;; Rule 1 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; Rule 2: Combatant and NonCombatant are disjoint
 (contraryAttribute Combatant NonCombatant)
@@ -1965,19 +1675,7 @@
 (documentation NoStrikeList EnglishWrittenLanguage "A list of objects or entities protected from the effects of military operations under the law of armed conflict and/or rules of engagement (Newport ROE Handbook).")
 (termFormat EnglishWrittenLanguage NoStrikeList "no-strike list")
 
-;; Rule 1: NoStrikeList members cannot be targeted
-(=>
-  (and
-    (instance ?NSL NoStrikeList)
-    (inList ?E ?NSL)
-    (instance ?A AutonomousAgent))
-  (not
-    (permits ?A
-      (exists (?ATK)
-        (and
-          (instance ?ATK Attack)
-          (agent ?ATK ?A)
-          (patient ?ATK ?E))))))
+;; Rule 1 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; Rule 2: NoStrikeList is given effect by a prohibition from competent authority
 (=>
@@ -2202,7 +1900,7 @@
 
 ;; 66. Covert
 (instance Covert RelationalAttribute)
-(documentation Covert EnglishWrittenLanguage "An attribute indicating that an operation or action is planned and executed so as to conceal the identity of the sponsor or to permit plausible deniability (Newport ROE Handbook).")
+(documentation Covert EnglishWrittenLanguage "An attribute indicating that an operation or action is planned and executed so as to conceal the identity of the sponsor or to permit plausible deniability (Newport ROE Handbook). It is a &%RelationalAttribute because whether an operation is covert depends on who observes it; SUMO has no closer class for attributes of processes.")
 (termFormat EnglishWrittenLanguage Covert "covert")
 (contraryAttribute Covert Overt)
 
@@ -2221,7 +1919,7 @@
 
 ;; 67. Overt
 (instance Overt RelationalAttribute)
-(documentation Overt EnglishWrittenLanguage "An attribute indicating that an operation or action is conducted openly, without concealment of the identity of the sponsor or the nature of the operation (Newport ROE Handbook).")
+(documentation Overt EnglishWrittenLanguage "An attribute indicating that an operation or action is conducted openly, without concealment of the identity of the sponsor or the nature of the operation (Newport ROE Handbook). It is a &%RelationalAttribute for the same reason as &%Covert.")
 (termFormat EnglishWrittenLanguage Overt "overt")
 
 ;; Rule 1: An overt operation's sponsor is identifiable by observers
@@ -2517,7 +2215,7 @@
       (causes ?AUTH ?IMP))))
 
 ;; 75. WeaponControlStatus
-(subclass WeaponControlStatus RelationalAttribute)
+(subclass WeaponControlStatus DeonticAttribute)
 (documentation WeaponControlStatus EnglishWrittenLanguage "A status issued by the Officer in Tactical Command (OTC) or the relevant warfare commander to state general direction or policy with regard to weapon employment for all or a particular warfare area. Weapon control status is general in nature and does not overrule ROE, weapon system management, specific weapon control orders, specific engagement orders, or command by veto (MTP-01).")
 (termFormat EnglishWrittenLanguage WeaponControlStatus "weapon control status")
 
@@ -2552,34 +2250,9 @@
 (documentation WeaponsFree EnglishWrittenLanguage "A weapon control status in which fire may be opened on any target that has not been identified as friendly (MTP-01).")
 (termFormat EnglishWrittenLanguage WeaponsFree "weapons free")
 
-;; Rule 1: Under WeaponsFree, attack on Combatant targets is permitted
-(=>
-  (and
-    (attribute ?UNIT WeaponsFree)
-    (instance ?UNIT MilitaryOrganization)
-    (instance ?TARGET Physical)
-    (property ?TARGET Combatant))
-  (permits ?UNIT
-    (exists (?ATK)
-      (and
-        (instance ?ATK Attack)
-        (agent ?ATK ?UNIT)
-        (patient ?ATK ?TARGET)))))
+;; Rule 1 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
-;; Rule 2: WeaponsFree does not override NoStrikeList protections
-(=>
-  (and
-    (attribute ?UNIT WeaponsFree)
-    (instance ?UNIT MilitaryOrganization)
-    (instance ?NSL NoStrikeList)
-    (inList ?TARGET ?NSL))
-  (not
-    (permits ?UNIT
-      (exists (?ATK)
-        (and
-          (instance ?ATK Attack)
-          (agent ?ATK ?UNIT)
-          (patient ?ATK ?TARGET))))))
+;; Rule 2 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
 ;; 77. WeaponsTight
 (instance WeaponsTight WeaponControlStatus)
@@ -2676,7 +2349,7 @@
         (causes ?ATK ?D)))))
 
 ;; 80. ProportionateAttack
-(instance ProportionateAttack NormativeAttribute)
+(instance ProportionateAttack DeonticAttribute)
 (documentation ProportionateAttack EnglishWrittenLanguage
   "An attribute of an attack that complies with the principle
    of proportionality; expected collateral damage is not
@@ -2701,19 +2374,14 @@
   (property ?ATK Illegal))
 
 ;; 81. MilitaryNecessity
-(instance MilitaryNecessity NormativeAttribute)
+(instance MilitaryNecessity ObjectiveNorm)
 (documentation MilitaryNecessity EnglishWrittenLanguage "The principle whereby a belligerent has the right to apply any measures that are required to bring about the successful conclusion of a military operation and which are not forbidden by the law of armed conflict. It forbids the intentional destruction or seizure of enemy property unless imperatively demanded by the necessities of war. Military necessity does not authorize acts otherwise prohibited by LOAC (Newport ROE Handbook).")
 (termFormat EnglishWrittenLanguage MilitaryNecessity "military necessity")
 
-;; Rule 1: MilitaryNecessity permits measures required for mission success
-(=>
-  (and
-    (instance ?OP MilitaryOperation)
-    (property ?OP MilitaryNecessity))
-  (exists (?GOAL)
-    (and
-      (instance ?GOAL IntentionalProcess)
-      (hasPurpose ?OP ?GOAL))))
+;; Rule 1 removed. It concluded that an operation under military necessity has
+;; the purpose that some intentional process exist, which holds of every
+;; operation and constrained nothing. Binding a real purpose would need the
+;; objective of the operation, which is not represented.
 
 ;; Rule 2: MilitaryNecessity does not override LOAC
 (=>
@@ -2889,17 +2557,4 @@
     (instance ?FF FriendlyForce))
   (property ?ATK Illegal))
 
-;; Rule 3: FriendlyForce is not a valid target under any WeaponControlStatus
-(=>
-  (and
-    (instance ?UNIT MilitaryOrganization)
-    (instance ?WCS WeaponControlStatus)
-    (attribute ?UNIT ?WCS)
-    (instance ?FF FriendlyForce))
-  (not
-    (permits ?UNIT
-      (exists (?ATK)
-        (and
-          (instance ?ATK Attack)
-          (agent ?ATK ?UNIT)
-          (patient ?ATK ?FF))))))
+;; Rule 3 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
