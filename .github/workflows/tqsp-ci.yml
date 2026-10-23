@@ -2,69 +2,87 @@ name: TQSP CI
 
 on: workflow_dispatch
 
+permissions:
+  contents: read
+
 env:
-  DEFAULT_DOCKER_ACCOUNT: apease
+  VAMPIRE_VERSION: v5.0.1
 
 jobs:
-  derive_docker:
-    runs-on: ubuntu-latest
-    # Map a step output to a job output
-    outputs:
-      image_account: ${{ steps.step1.outputs.image_account }}
-    steps:
-      - id: step1
-        env:
-          DOCKER_ACCOUNT: ${{ vars.DOCKER_ACCOUNT }}
-        run: echo "image_account=${DOCKER_ACCOUNT:-$DEFAULT_DOCKER_ACCOUNT}" >> "$GITHUB_OUTPUT"
-
   build_sumo_tptp:
-    strategy:
-      matrix:
-        logic: [ tptp, tff ]
-        sumo_size: [ top ] # mid, full
-        include:
-          - logic: tptp
-            class: com.articulate.sigma.trans.SUMOKBtoTPTPKB
-          - logic: tff
-            class: com.articulate.sigma.trans.SUMOKBtoTFAKB
     runs-on: ubuntu-latest
-    needs: derive_docker
-    container:
-      image: ${{ needs.derive_docker.outputs.image_account }}/sumo-ci:latest
-    env:
-      SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
-
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
-          path: sumo
+          path: ontology
+          persist-credentials: false
 
-      - name: Setup SigmaKEE
-        env:
-          ONTOLOGYPORTAL_GIT: ${{ github.workspace }}
-          SUMO_SIZE: ${{ matrix.sumo_size }}
+      - uses: actions/checkout@v4
+        with:
+          repository: ontologyportal/sigma-rs
+          ref: e3cebe1c5f41beb609eec17853d886bf6ffc58a5
+          path: sigma-rs
+          persist-credentials: false
+
+      - name: Set up Rust
+        run: rustup update stable --no-self-update
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sigma-rs
+          key: tqsp-ci
+
+      - name: Test TQSP result handling
+        working-directory: ontology
+        run: python3 -m unittest discover -s .github/scripts -p 'test_tqsp_ci.py' -v
+
+      - name: Build sigma-rs CLI
+        working-directory: sigma-rs
+        run: cargo +stable build --release --locked --bin sumo --no-default-features --features ask,parallel,alloc-mi
+
+      - name: Translate top SUMO with sigma-rs
+        working-directory: ontology
         run: |
-          echo "SIGMA_HOME: $SIGMA_HOME"
-          mkdir -p $SIGMA_HOME/KBs/WordNetMappings
-          wget https://raw.githubusercontent.com/ontologyportal/sigmakee/master/config.xml
-          sed -f ./sumo/tests/TQSP/$SUMO_SIZE.sed ./config.xml > $SIGMA_HOME/KBs/config.xml
-          sed -i '/<!--/,/-->/d' $SIGMA_HOME/KBs/config.xml
-          cat $SIGMA_HOME/KBs/config.xml
-          cp -R $ONTOLOGYPORTAL_GIT/sumo/* $SIGMA_HOME/KBs
-          cp /opt/WordNet-3.0/dict/* $SIGMA_HOME/KBs/WordNetMappings/
-          sed -i "s|/home/theuser/.sigmakee|$SIGMA_HOME|g" $SIGMA_HOME/KBs/config.xml
-          sed -i "s|/home/theuser/workspace/sumo|$ONTOLOGYPORTAL_GIT/sumo|g" $SIGMA_HOME/KBs/config.xml
-          sed -i "s|/home/theuser/E/bin/e_ltb_runner|/usr/local/bin/e_ltb_runner|g" $SIGMA_HOME/KBs/config.xml
-          sed -i "s|/home/theuser/Programs/vampire/build/vampire|/usr/local/bin/vampire|g" $SIGMA_HOME/KBs/config.xml
+          cat > "$RUNNER_TEMP/sigma-config.xml" <<'XML'
+          <configuration>
+            <preference name="sumokbname" value="SUMO" />
+            <kb name="SUMO"></kb>
+          </configuration>
+          XML
+          for dialect in 'tptp fof' 'tff tff'; do
+            read -r extension lang <<< "$dialect"
+            ../sigma-rs/target/release/sumo \
+              --config "$RUNNER_TEMP/sigma-config.xml" --no-db \
+              -f Merge.kif translate --lang "$lang" \
+              > "SUMO-top.$extension" 2> "SUMO-top.$extension.log"
+            cat "SUMO-top.$extension.log"
+            if grep -Eq 'ERROR]|^error\[' "SUMO-top.$extension.log"; then
+              echo "::error::sigma-rs reported errors translating SUMO-top.$extension"
+              exit 1
+            fi
+            grep -q "^$lang(" "SUMO-top.$extension"
+          done
 
-      - name: Produce SUMO-${{ matrix.sumo_size }}.${{ matrix.logic }}
-        run: java -Xmx8g -cp "/root/sigmakee/*" ${{ matrix.class }}
-
-      - name: Upload SUMO-${{ matrix.sumo_size }}.${{ matrix.logic }}
+      - name: Upload translation diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SUMO-${{ matrix.sumo_size }}.${{ matrix.logic }}
-          path: ${{ env.SIGMA_HOME }}
+          name: tqsp-translation-diagnostics
+          path: ontology/SUMO-top.*.log
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SUMO-top.tptp
+          path: ontology/SUMO-top.tptp
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SUMO-top.tff
+          path: ontology/SUMO-top.tff
+          if-no-files-found: error
 
   run_vampire:
     strategy:
@@ -132,60 +150,63 @@ jobs:
         - test_file: TQG33S
           logic: tptp
     runs-on: ubuntu-latest
-    needs: [ derive_docker,build_sumo_tptp ]
-    container:
-      image: ${{ needs.derive_docker.outputs.image_account }}/sumo-ci:latest
-    env:
-      SIGMA_HOME: ${{ github.workspace }}/sigmakee-runtime
+    needs: build_sumo_tptp
+    timeout-minutes: 25
 
     steps:
-      - name: Setup SigmaKEE
-        run: |
-          echo "SIGMA_HOME: $SIGMA_HOME"
-          mkdir -p $SIGMA_HOME
+      - uses: actions/checkout@v4
+        with:
+          path: ontology
+          persist-credentials: false
 
       - uses: actions/download-artifact@v4
         with:
           name: SUMO-top.${{ matrix.logic }}
-          path: ${{ env.SIGMA_HOME }}
+          path: background
 
-      - name: Run vampire against SUMO-top.${{ matrix.logic }}
+      - name: Cache Vampire binary
+        id: cache-vampire
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/vampire-bin
+          key: vampire-${{ env.VAMPIRE_VERSION }}-linux-x64
+
+      - name: Install Vampire
+        if: steps.cache-vampire.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/.local/vampire-bin"
+          curl -fsSL -o "$RUNNER_TEMP/vampire.zip" \
+            "https://github.com/vprover/vampire/releases/download/${VAMPIRE_VERSION}/vampire-Linux-X64.zip"
+          unzip -q "$RUNNER_TEMP/vampire.zip" -d "$HOME/.local/vampire-bin"
+          chmod +x "$HOME/.local/vampire-bin/vampire"
+
+      - name: Add Vampire to PATH
+        run: |
+          echo "$HOME/.local/vampire-bin" >> "$GITHUB_PATH"
+          "$HOME/.local/vampire-bin/vampire" --version
+
+      - name: Run Vampire against ${{ matrix.test_file }}.${{ matrix.logic }}
         env:
           VAMPIRE_TIMEOUT: 900
-          TEMPLATE_FILE: ${{ matrix.test_file }}.${{ matrix.logic }}
-          TEST_FILE: ${{ matrix.test_file }}-top.${{ matrix.logic }}
-          PROOF_TYPE: ${{ matrix.logic }}
+          TEMPLATE_NAME: ${{ matrix.test_file }}.${{ matrix.logic }}
+          PROBLEM_NAME: ${{ matrix.test_file }}-top.${{ matrix.logic }}
+          BACKGROUND_NAME: SUMO-top.${{ matrix.logic }}
         run: |
-          pwd
-          ls -l .
-          sed "1i include('$SIGMA_HOME/KBs/SUMO.$PROOF_TYPE')." $SIGMA_HOME/KBs/tests/TQSP/TPTP/$TEMPLATE_FILE > $TEST_FILE
-          cat $TEST_FILE
-          /usr/local/bin/vampire --cores 0 --mode portfolio --schedule snake_tptp_uns --proof tptp --input_syntax tptp --output_axiom_names on -t $VAMPIRE_TIMEOUT $TEST_FILE > vamp-out.txt || echo "Ignoring vampire exit code"
-          mkdir -p $SIGMA_HOME/webapps/sigma/graph
-          CATALINA_HOME=$SIGMA_HOME
-          java -Xmx8g -cp "/root/sigmakee/*" com.articulate.sigma.trans.TPTP3ProofProcessor -f vamp-out.txt
-          cp $SIGMA_HOME/webapps/sigma/graph/proof.* .
+          printf "include('background/%s').\n" "$BACKGROUND_NAME" > "$PROBLEM_NAME"
+          cat "ontology/tests/TQSP/TPTP/$TEMPLATE_NAME" >> "$PROBLEM_NAME"
+          status=0
+          vampire --cores 0 --mode portfolio -sched snake_tptp_uns \
+            -p tptp --input_syntax tptp --output_axiom_names on \
+            -t "$VAMPIRE_TIMEOUT" "$PROBLEM_NAME" > vamp-out.txt 2>&1 || status=$?
+          python3 ontology/.github/scripts/tqsp_ci.py \
+            --log vamp-out.txt --exit-code "$status" | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload vamp-out.txt
-        if: success() || failure()
+      - name: Upload Vampire problem and log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.test_file }}.${{ matrix.logic }}.logs
           path: |
-            ./vamp-out.txt
-            ./proof.*
-
-      - name: Check results
-        if: success() || failure()
-        run: |
-          #allow errors
-          set +e
-          grep "Refutation found" vamp-out.txt
-          if [ $? -eq 0 ]
-          then
-            #If refutation found but it's a negated_conjecture then it's OK
-            grep negated_conjecture vamp-out.txt
-            exit $?
-          else
-            exit 0
-          fi
+            vamp-out.txt
+            ${{ matrix.test_file }}-top.${{ matrix.logic }}
+          if-no-files-found: warn

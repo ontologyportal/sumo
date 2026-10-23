@@ -19,6 +19,8 @@ The separate `sigma-validation.yml` workflow performs semantic validation.
 Both workflows currently pin the same sigma-rs revision and apply the same
 guarded validation exit-status fix. Update the pin and remove the fix together
 once the upstream correction is available.
+The CI build also applies a guarded logging patch to show the source line and
+formula for ingest errors. Remove it once sigma-rs renders source context itself.
 The syntax runner also rejects logged ingest errors: this pinned CLI can
 return zero after logging a malformed constituent and loading only part of it.
 Translation also rejects logged errors and uploads diagnostics separately.
@@ -27,6 +29,10 @@ The `fof-logs-and-graphs` and `tff-logs-and-graphs` artifact names are retained
 for compatibility. They contain the raw Vampire log, including any TPTP
 proof. The Java-generated HTML/Graphviz proof files are no longer produced.
 TFF input is no longer stripped of arithmetic formulas before checking.
-The manually dispatched `tqsp-ci.yml` is separate from this PR pipeline.
+The manually dispatched `tqsp-ci.yml` is separate from this PR pipeline. It
+builds the same pinned sigma-rs CLI, translates `Merge.kif` as top SUMO to
+FOF and TFF, and runs the existing SP/TQG TPTP templates with Vampire.
+It uploads each generated problem and raw proof log. Java proof graphs are
+not generated.
 
 Local helper tests: `python3 -m unittest discover -s .github/scripts -p test_pr_ci.py -v`.

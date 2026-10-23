@@ -30,7 +30,9 @@ def parse_kif(sumo, root, config, output):
             log = result.stdout
             # This pinned CLI logs constituent ingest errors without propagating
             # them to its exit status. Do not let a partial parse pass CI.
-            failed = result.returncode != 0 or bool(re.search(r"\bERROR\]", log))
+            failed = result.returncode != 0 or bool(
+                re.search(r"\bERROR\]|^error\[", log, re.MULTILINE)
+            )
         except (OSError, subprocess.TimeoutExpired) as error:
             log = str(error)
             failed = True

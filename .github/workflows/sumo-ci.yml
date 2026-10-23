@@ -61,6 +61,28 @@ jobs:
           path.write_text(source.replace(old, new, 1))
           PY
 
+      - name: Show source context for sigma-rs ingest errors
+        working-directory: sigma-rs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("crates/cli/src/main.rs")
+          source = path.read_text()
+          old = '                    log::error!("ingest: {e}");'
+          new = '''                    match &e {
+                      sigmakee_rs_sdk::SdkError::Kb(d) =>
+                        session.kb().pretty_print_error(d, log::Level::Error),
+                      _ => log::error!("ingest: {e}"),
+                    }'''
+
+          if source.count(old) != 1:
+              raise SystemExit("sigma-rs ingest logging changed; review this patch.")
+
+          path.write_text(source.replace(old, new, 1))
+          PY
+
       - name: Build sigma-rs CLI
         working-directory: sigma-rs
         run: cargo +stable build --release --locked --bin sumo --no-default-features --features ask,parallel,alloc-mi
@@ -110,7 +132,7 @@ jobs:
               --config "$RUNNER_TEMP/sigma-config.xml" --no-db "${args[@]}" \
               translate --lang "$lang" > "SUMO.$lang" 2> "SUMO.$lang.log"
             cat "SUMO.$lang.log"
-            if grep -q 'ERROR]' "SUMO.$lang.log"; then
+            if grep -Eq 'ERROR]|^error\[' "SUMO.$lang.log"; then
               echo "::error::sigma-rs reported errors while translating SUMO.$lang"
               exit 1
             fi

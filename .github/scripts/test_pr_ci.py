@@ -60,9 +60,13 @@ class ParseReportTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "bad.kif").write_text("(p a")
-            result = subprocess.CompletedProcess([], 0, "[2026-10-23 ERROR] ingest: unbalanced parentheses")
-            with patch("pr_ci.subprocess.run", return_value=result):
-                self.assertTrue(parse_kif(Path("sumo"), root, Path("config.xml"), root))
+            for log in ("[2026-10-23 ERROR] ingest: unbalanced parentheses",
+                        "error[parse/unbalanced-parens]: unbalanced parentheses\n"
+                        "  --> bad.kif:1"):
+                with self.subTest(log=log):
+                    result = subprocess.CompletedProcess([], 0, log)
+                    with patch("pr_ci.subprocess.run", return_value=result):
+                        self.assertTrue(parse_kif(Path("sumo"), root, Path("config.xml"), root))
 
     def test_empty_suite_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
