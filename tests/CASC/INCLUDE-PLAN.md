@@ -25,4 +25,4 @@ Some `Merge.kif` formulas use higher-order features. A reusable FOF `.ax` cannot
 
 ## Migration check
 
-CASC source tests now contain include metadata. Implement it in both TQ runners and the exporter, then check an arithmetic TFF problem whose include resolves to a translated Merge axiom set. Follow with a Merge + Mid-level case and a GEO case using the populated full-SUMO manifest. Keep axiom-sets/*.sources as reusable presets; no separate per-test source mapping is needed.
+CASC source tests now contain include metadata. Implement it in both TQ runners and the exporter, then check an arithmetic TFF problem whose include resolves to a translated Merge axiom set. Follow with a Merge + Mid-level case and a GEG case using the populated full-SUMO manifest. Keep axiom-sets/*.sources as reusable presets; no separate per-test source mapping is needed.
