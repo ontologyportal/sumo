@@ -1,6 +1,6 @@
 # Source and generated problems
 
-ARI is TFF only; BIO, TIM, GEG, GEO, PUZ, NUM, and CSR may have FOF, TFF, and THF formulations. BIO groups problems by biological topic and declares per-problem KIF sources. TIM covers temporal reasoning across geochronology, causation, duration units, communication, medicine, astronomy, weather, government, and walking. Each TIM source test names the KIF files needed for its conjecture. Source topics can differ from TPTP export domains.
+ARI is TFF only; BIO, TIM, TRN, GEG, GEO, PUZ, NUM, and CSR may have FOF, TFF, and THF formulations. BIO groups problems by biological topic and declares per-problem KIF sources. TIM covers temporal reasoning across geochronology, causation, duration units, communication, medicine, astronomy, weather, government, and walking. TRN covers transportation services, vehicles, transit infrastructure, shipping, and parking. Each source test names the KIF files needed for its conjecture. Source topics can differ from TPTP export domains; TRN has no assigned TPTP export domain yet.
 
 Source files use stable SUMO IDs with a form/version suffix, such as `kif/ARI/SMO_ARI_0001_1.kif.tq`. Generated problems use `DDDNNNFV[.SSS].p` when assigned a TPTP number (`-` CNF, `+` FOF, `_` TFF, `^` THF). Included axiom files use the `.ax` extension.
 
