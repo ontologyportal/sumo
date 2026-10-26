@@ -2,14 +2,14 @@
 
 ## Source contract
 
-`(include Merge.kif)` is TQ metadata: it names required background KIF, not a SUMO formula. Allow repeated `include` directives in source order. `(minLang fof)`, `(minLang tff)`, or `(minLang thf)` selects the language for the query and all included axioms. The existing arithmetic test should eventually contain:
+`(include Merge.kif)` is TQ metadata: it names required background KIF, not a SUMO formula. Allow repeated `include` directives in source order. `(minLang fof)`, `(minLang tff)`, or `(minLang thf)` selects the language for the query and all included axioms. For example, existing arithmetic sources declare:
 
 ```lisp
 (include Merge.kif)
 (minLang tff)
 ```
 
-The `merge-mid` preset means both `Merge.kif` and `Mid-level-ontology.kif`. For full SUMO, support `(include axiom-sets/full.sources)` as a source-list include that expands to its KIF entries. Resolve both kinds of path relative to the SUMO root. Reject missing or out-of-root files, empty lists, and circular lists. Deduplicate repeated files while preserving first occurrence and order. Do not silently add axioms beyond those requested.
+The `merge-mid` preset means both `Merge.kif` and `Mid-level-ontology.kif`. For full SUMO, support `(include tests/CASC/axiom-sets/full.sources)` as a source-list include that expands to its KIF entries. Resolve both kinds of path relative to the SUMO root. Reject missing or out-of-root files, empty lists, and circular lists. Deduplicate repeated files while preserving first occurrence and order. Do not silently add axioms beyond those requested.
 
 ## Implementation sequence
 
@@ -25,4 +25,4 @@ Some `Merge.kif` formulas use higher-order features. A reusable FOF `.ax` cannot
 
 ## Migration check
 
-The current arithmetic test names `Merge.kif` in its header. When both TQ runners and the exporter understand `include`, add `(include Merge.kif)` to the test. Keep `axiom-sets/*.sources` as reusable presets; no separate per-test source mapping is needed. The first end-to-end check is a TFF `.p` for the arithmetic test whose include resolves to a translated Merge `.ax`, with the SUO-KIF runner and TPTP parser both accepting the same source selection. Follow with a Merge + Mid-level case; add a full-SUMO case after finalizing `full.sources`.
+CASC source tests now contain include metadata. Implement it in both TQ runners and the exporter, then check an arithmetic TFF problem whose include resolves to a translated Merge axiom set. Follow with a Merge + Mid-level case and a GEO case using the populated full-SUMO manifest. Keep axiom-sets/*.sources as reusable presets; no separate per-test source mapping is needed.
