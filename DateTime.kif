@@ -4,8 +4,10 @@
 ;; Benchmark conjectures are in DateTime-benchmarks.kif and are not axioms.
 ;; FloorFn is an identity on the integer arithmetic used below; it exposes
 ;; the Integer result type to validators that only inspect declared ranges.
-;; Five-input functions retain Function + valence 5 because core SUMO has
-;; no fixed-arity class for a six-place function graph.
+;; Date and month classes group coordinates without variadic tuples.
+;; Active calendar predicates have at most four arguments; functions have
+;; at most three inputs (four-place graphs). Unused normalization signatures
+;; are omitted. This variant changes the public interfaces; see README.md.
 
 ;; ============================================================================
 ;; Signatures
@@ -25,16 +27,13 @@
 (documentation DateFromYMDFn EnglishWrittenLanguage
   "Maps numeric year, month, and day values to the corresponding SUMO Day subclass.")
 
-(instance DateTimeFromYMDHMFn Function)
-(valence DateTimeFromYMDHMFn 5)
-(domain DateTimeFromYMDHMFn 1 Integer)
-(domain DateTimeFromYMDHMFn 2 Integer)
-(domain DateTimeFromYMDHMFn 3 Integer)
-(domain DateTimeFromYMDHMFn 4 Integer)
-(domain DateTimeFromYMDHMFn 5 Integer)
-(rangeSubclass DateTimeFromYMDHMFn Minute)
-(documentation DateTimeFromYMDHMFn EnglishWrittenLanguage
-  "Maps numeric year, month, day, hour, and minute values to the corresponding SUMO Minute subclass.")
+(instance DateTimeOnDateFn TernaryFunction)
+(domainSubclass DateTimeOnDateFn 1 Day)
+(domain DateTimeOnDateFn 2 Integer)
+(domain DateTimeOnDateFn 3 Integer)
+(rangeSubclass DateTimeOnDateFn Minute)
+(documentation DateTimeOnDateFn EnglishWrittenLanguage
+  "DateTimeOnDateFn(D,H,M) denotes minute M of hour H on date class D.")
 
 (instance daysInMonth TernaryPredicate)
 (domain daysInMonth 1 Integer)
@@ -57,40 +56,15 @@
 (documentation dateCalculation EnglishWrittenLanguage
   "dateCalculation(D,M,Y,R) states that day coordinate D in month M of year Y normalizes to date class R.")
 
-(instance timeNormalization Predicate)
-(valence timeNormalization 7)
-(domain timeNormalization 1 Integer)
-(domain timeNormalization 2 Integer)
-(domain timeNormalization 3 Integer)
-(domain timeNormalization 4 Integer)
-(domain timeNormalization 5 Integer)
-(domain timeNormalization 6 Integer)
-(domain timeNormalization 7 Integer)
-(documentation timeNormalization EnglishWrittenLanguage
-  "Minute/hour normalization relation inherited from the temporal arithmetic layer.")
 
-(instance dateTimeCalculation Predicate)
-(valence dateTimeCalculation 9)
-(domain dateTimeCalculation 1 Integer)
-(domain dateTimeCalculation 2 Integer)
-(domain dateTimeCalculation 3 Integer)
-(domain dateTimeCalculation 4 Integer)
-(domain dateTimeCalculation 5 Integer)
-(domain dateTimeCalculation 6 Integer)
-(domain dateTimeCalculation 7 Integer)
-(domain dateTimeCalculation 8 Integer)
-(domainSubclass dateTimeCalculation 9 Minute)
-(documentation dateTimeCalculation EnglishWrittenLanguage
-  "Date-time normalization relation inherited from the temporal arithmetic layer.")
 
-(instance nthWeekdayDate QuintaryPredicate)
-(domain nthWeekdayDate 1 Integer)
-(domainSubclass nthWeekdayDate 2 Day)
-(domain nthWeekdayDate 3 Integer)
-(domain nthWeekdayDate 4 Integer)
-(domainSubclass nthWeekdayDate 5 Day)
-(documentation nthWeekdayDate EnglishWrittenLanguage
-  "nthWeekdayDate(N,W,M,Y,D) states that D is the N-th weekday-class W date in month M of year Y.")
+(instance nthWeekdayInMonth QuaternaryPredicate)
+(domain nthWeekdayInMonth 1 Integer)
+(domainSubclass nthWeekdayInMonth 2 Day)
+(domainSubclass nthWeekdayInMonth 3 Month)
+(domainSubclass nthWeekdayInMonth 4 Day)
+(documentation nthWeekdayInMonth EnglishWrittenLanguage
+  "nthWeekdayInMonth(N,W,M,D) states that D is the N-th weekday-class W date in month class M.")
 
 (instance validCalendarDate TernaryPredicate)
 (domain validCalendarDate 1 Integer)
@@ -120,23 +94,16 @@
 (documentation DayIntervalFn EnglishWrittenLanguage
   "Returns the interval realizing numeric year Y, month M, and day D.")
 
-(instance DateTimeMinuteIntervalFn Function)
-(valence DateTimeMinuteIntervalFn 5)
-(domain DateTimeMinuteIntervalFn 1 Integer)
-(domain DateTimeMinuteIntervalFn 2 Integer)
-(domain DateTimeMinuteIntervalFn 3 Integer)
-(domain DateTimeMinuteIntervalFn 4 Integer)
-(domain DateTimeMinuteIntervalFn 5 Integer)
-(range DateTimeMinuteIntervalFn TimeInterval)
-(documentation DateTimeMinuteIntervalFn EnglishWrittenLanguage
-  "Returns the interval realizing numeric year, month, day, hour, and minute coordinates.")
+(instance MinuteIntervalFn UnaryFunction)
+(domainSubclass MinuteIntervalFn 1 Minute)
+(range MinuteIntervalFn TimeInterval)
+(documentation MinuteIntervalFn EnglishWrittenLanguage
+  "MinuteIntervalFn(M) returns the interval realizing minute class M.")
 
 ;; Allen-style relations used by this package are the existing SUMO
 ;; temporal predicates where available: earlier, meetsTemporally, starts,
 ;; finishes, and during.  The package intentionally does not declare
 ;; parallel allen* predicates for those relations.
-
-
 
 ;; ============================================================================
 ;; Gregorian arithmetic
@@ -176,7 +143,7 @@
       (instance ?H Integer)
       (instance ?Min Integer))
     (equal
-      (DateTimeFromYMDHMFn ?Y ?M ?D ?H ?Min)
+      (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) ?H ?Min)
       (MinuteFn ?Min (HourFn ?H (DateFromYMDFn ?Y ?M ?D))))))
 
 (forall (?Y ?M ?D)
@@ -428,7 +395,6 @@
 ;; This optional predicate is intentionally not active in the current package since we do not use it.
 ;; =================================================================================================
 
-
 ;; ============================================================================
 ;; Interval bridges
 ;;
@@ -472,8 +438,8 @@
       (instance ?H Integer)
       (instance ?Min Integer))
     (instance
-      (DateTimeMinuteIntervalFn ?Y ?M ?D ?H ?Min)
-      (DateTimeFromYMDHMFn ?Y ?M ?D ?H ?Min))))
+      (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) ?H ?Min))
+      (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) ?H ?Min))))
 
 (forall (?Y)
   (=>
@@ -558,10 +524,10 @@
     (validCalendarDate ?Y ?M ?D)
     (and
       (starts
-        (DateTimeMinuteIntervalFn ?Y ?M ?D 0 0)
+        (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) 0 0))
         (DayIntervalFn ?Y ?M ?D))
       (finishes
-        (DateTimeMinuteIntervalFn ?Y ?M ?D 23 59)
+        (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) 23 59))
         (DayIntervalFn ?Y ?M ?D)))))
 
 (forall (?Y ?M ?D ?H ?Min)
@@ -577,7 +543,7 @@
       (not (and (equal ?H 0) (equal ?Min 0)))
       (not (and (equal ?H 23) (equal ?Min 59))))
     (during
-      (DateTimeMinuteIntervalFn ?Y ?M ?D ?H ?Min)
+      (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) ?H ?Min))
       (DayIntervalFn ?Y ?M ?D))))
 
 ;; Consecutive minute intervals meet within an hour.
@@ -592,8 +558,8 @@
       (greaterThan ?Min -1)
       (lessThanOrEqualTo ?Min 58))
     (meetsTemporally
-      (DateTimeMinuteIntervalFn ?Y ?M ?D ?H ?Min)
-      (DateTimeMinuteIntervalFn ?Y ?M ?D ?H (FloorFn (AdditionFn ?Min 1))))))
+      (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) ?H ?Min))
+      (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) ?H (FloorFn (AdditionFn ?Min 1)))))))
 
 ;; The final minute of an hour meets the first minute of the next hour.
 (forall (?Y ?M ?D ?H)
@@ -604,8 +570,8 @@
       (greaterThan ?H -1)
       (lessThanOrEqualTo ?H 22))
     (meetsTemporally
-      (DateTimeMinuteIntervalFn ?Y ?M ?D ?H 59)
-      (DateTimeMinuteIntervalFn ?Y ?M ?D (FloorFn (AdditionFn ?H 1)) 0))))
+      (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) ?H 59))
+      (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) (FloorFn (AdditionFn ?H 1)) 0)))))
 
 ;; The final minute of a day meets the first minute of the normalized successor day.
 (forall (?Y ?M ?D ?Y2 ?M2 ?D2)
@@ -618,5 +584,5 @@
         ?Y
         (DateFromYMDFn ?Y2 ?M2 ?D2)))
     (meetsTemporally
-      (DateTimeMinuteIntervalFn ?Y ?M ?D 23 59)
-      (DateTimeMinuteIntervalFn ?Y2 ?M2 ?D2 0 0))))
+      (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) 23 59))
+      (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y2 ?M2 ?D2) 0 0)))))
