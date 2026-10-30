@@ -81,6 +81,13 @@
 (termFormat EnglishWrittenLanguage roeMeasureRequiresParameter "measure requires parameter")
 (format EnglishWrittenLanguage roeMeasureRequiresParameter "%1 %n requires a parameter of class %2")
 
+(instance roeMeasureRequiresTypeParameter BinaryPredicate)
+(domain roeMeasureRequiresTypeParameter 1 ROEMeasure)
+(domainSubclass roeMeasureRequiresTypeParameter 2 Process)
+(documentation roeMeasureRequiresTypeParameter EnglishWrittenLanguage "(roeMeasureRequiresTypeParameter ?M ?CLASS) means the measure ?M carries a (SPECIFY ...) placeholder to be filled by a subclass of ?CLASS, a type of action rather than an entity involved in the action, for example the riding off or use of fire hoses of rule 61 F. An action falls within such a measure only if it is an instance of the supplied type. As with &%roeMeasureRequiresParameter, the class named here is not checked by the authorization rules.")
+(termFormat EnglishWrittenLanguage roeMeasureRequiresTypeParameter "measure requires type parameter")
+(format EnglishWrittenLanguage roeMeasureRequiresTypeParameter "%1 %n requires a type of action under %2 as its parameter")
+
 ;; The class named here is not checked by the authorization rules. Whether the
 ;; value supplied is of the right kind is a question about how the ROE were
 ;; issued, not about whether an action falls within them, so it belongs to
@@ -109,6 +116,10 @@
 (subclass TemplateROEMeasure ROEMeasure)
 (documentation TemplateROEMeasure EnglishWrittenLanguage "A measure that carries a (SPECIFY ...) placeholder and is therefore a template rather than a complete norm, for example rule 21 E. It has effect only when an &%ROEActivation supplies a value through &%roeActivationParameter.")
 (termFormat EnglishWrittenLanguage TemplateROEMeasure "template ROE measure")
+
+(subclass TypeTemplateROEMeasure TemplateROEMeasure)
+(documentation TypeTemplateROEMeasure EnglishWrittenLanguage "A template measure whose (SPECIFY ...) placeholder names a type of action rather than an entity involved in the action, for example rule 61 F, which authorizes responses to harassment of a specified type. The scope of such a measure is fixed by a class of processes: an action falls within it only if it is an instance of the supplied type.")
+(termFormat EnglishWrittenLanguage TypeTemplateROEMeasure "type template ROE measure")
 
 
 
@@ -173,7 +184,7 @@
 (instance roeActivationParameter BinaryPredicate)
 (domain roeActivationParameter 1 ROEActivation)
 (domain roeActivationParameter 2 Entity)
-(documentation roeActivationParameter EnglishWrittenLanguage "(roeActivationParameter ?ACTV ?X) means ?X is the entity supplied for the (SPECIFY ...) placeholder of the measure activated by ?ACTV. An action falls within a parameterized measure only if ?X is involved in it, in the sense of &%involvedInEvent.")
+(documentation roeActivationParameter EnglishWrittenLanguage "(roeActivationParameter ?ACTV ?X) means ?X is the entity supplied for the (SPECIFY ...) placeholder of the measure activated by ?ACTV. An action falls within a parameterized measure only if ?X is involved in it, in the sense of &%involvedInEvent, or, for a measure whose placeholder names a type of action (&%roeMeasureRequiresTypeParameter), only if the action is an instance of ?X.")
 (termFormat EnglishWrittenLanguage roeActivationParameter "activation parameter")
 (format EnglishWrittenLanguage roeActivationParameter "%1 %n supplies %2 as its parameter")
 
@@ -401,6 +412,27 @@
     (roeMeasureAuthorizes ?M ?C)
     (instance ?ACT ?C)
     (involvedInEvent ?ACT ?X))
+  (roeActionAuthorized ?ACT ?OP))
+
+;; Rule 4c: Under a measure whose placeholder names a type of action, an
+;; action is authorized only when it belongs both to the class the measure
+;; authorizes and to the type supplied. Rule 61 F authorizes a response to
+;; harassment, and the activation says which type of response. The rule is
+;; limited to TypeTemplateROEMeasure, so a measure whose placeholder names an
+;; entity cannot authorize through it, even if a class is supplied by mistake.
+;; The class is tested instead of roeMeasureRequiresTypeParameter, whose type
+;; guard made the ROE48 query take about three times as long.
+(=>
+  (and
+    (roeActivationMeasure ?ACTV ?M)
+    (roeActivationOperation ?ACTV ?OP)
+    (roeActivationParameter ?ACTV ?X)
+    (instance ?M TypeTemplateROEMeasure)
+    (roeMeasureInSeries ?M ?S)
+    (instance ?S AuthoritySeries)
+    (roeMeasureAuthorizes ?M ?C)
+    (instance ?ACT ?C)
+    (instance ?ACT ?X))
   (roeActionAuthorized ?ACT ?OP))
 
 ;; Rules 3b and 4b: An authorizing measure of a means series does not authorize
