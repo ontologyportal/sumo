@@ -60,8 +60,11 @@
 ;; attack on any Combatant, while the NoStrikeList, NonCombatant, HorsDeCombat
 ;; and FriendlyForce rules deny permission for the same formula, so a target
 ;; meeting both conditions made the main knowledge base inconsistent. The
-;; self-defense permissions and Harassment Rule 3 form another such pair. No
-;; test of the authorization layer used these rules.
+;; self-defense permissions and Harassment Rule 3 formed another such pair;
+;; they now state rights with &%holdsRight, and Harassment Rule 3 reaches only
+;; a self-defense caused by the harassment, which a hostile act cannot be, so
+;; the pair no longer conflicts. No test of the authorization layer used these
+;; rules.
 ;;
 ;; HigherHeadquarters Rule 3 has been corrected on the way: it used an
 ;; &%Order, a &%Sentence, as the agent of a process; the act of ordering is an
@@ -70,29 +73,57 @@
 
 ;; --- from item 3. Harassment
 
-;; Rule 3: Harassment does NOT trigger self-defense authorization
+;; Rule 3: Harassment does NOT give rise to a right of self-defense. The
+;; captain of the harassed ship does not hold the right to a self-defense by
+;; the crew against the harassing ship that is caused by the harassment. A
+;; self-defense caused by something else, such as a hostile act at the same
+;; time, is not reached. The right is the captain's: unit self-defense is the
+;; right of the unit commander to defend the unit (Newport glossary).
 (=>
   (and
     (instance ?H Harassment)
-    (patient ?H ?TARGET)
-    (instance ?TARGET AutonomousAgent))
+    (agent ?H ?A)
+    (patient ?H ?T)
+    (instance ?T Ship)
+    (member ?A
+      (ShipCrewFn ?S))
+    (member ?CAPT
+      (ShipCrewFn ?T))
+    (attribute ?CAPT ShipCaptain))
   (not
-    (permits ?TARGET
-      (exists (?S)
+    (holdsRight ?CAPT
+      (exists (?SD ?X)
         (and
-          (instance ?S SelfDefense)
-          (patient ?S ?H))))))
+          (instance ?SD SelfDefense)
+          (agent ?SD ?X)
+          (member ?X
+            (ShipCrewFn ?T))
+          (patient ?SD ?S)
+          (causes ?H ?SD))))))
+
+;; --- Rights of self-defense
+;;
+;; Self-defense is an inherent right, so these rules use &%holdsRight, which
+;; names the holder of a right and no source for it. &%permits is the act of
+;; an agent with the power to prohibit (Law.kif), and &%confersRight names an
+;; entity that grants the right; both fit authority granted by ROE, not an
+;; inherent right. SUMO draws the same line in MilitaryProcesses.kif. The
+;; holder must be a &%CognitiveAgent: for a ship it is the captain, and for a
+;; State its chief of state or head of government. Until SUMO can represent
+;; the intentions of an organization, the captain stands for the ship: the
+;; ship acts as a cognitive agent through its captain, and through the captain
+;; its crew.
 
 ;; --- from item 5. IndividualSelfDefense
 
-;; Rule 2: If HostileAct or HostileIntent targets a Human,
-;; that individual is permitted to use IndividualSelfDefense
+;; Rule 2: A human who is the target of a hostile act or hostile intent holds
+;; the right of individual self-defense against it
 (=>
   (and
     (instance ?T HostileConduct)
     (patient ?T ?A)
     (instance ?A Human))
-  (permits ?A
+  (holdsRight ?A
     (exists (?S)
       (and
         (instance ?S IndividualSelfDefense)
@@ -101,98 +132,133 @@
 
 ;; --- from item 6. UnitSelfDefense
 
-;; Rule 2: UnitSelfDefense protects units from the same State
+;; Rule 2: The captain of a ship holds the right to defend another ship of the
+;; same military organization against an attack
 (=>
   (and
     (instance ?T Attack)
-    (instance ?TARGET MilitaryOrganization)
     (patient ?T ?TARGET)
-    (instance ?U MilitaryOrganization)
+    (instance ?TARGET Ship)
+    (instance ?SHIP Ship)
     (not
-      (equal ?U ?TARGET))
-    (instance ?HQ MilitaryOrganization)
-    (subOrganization ?U ?HQ)
-    (subOrganization ?TARGET ?HQ))
-  (permits ?U
-    (exists (?S)
+      (equal ?SHIP ?TARGET))
+    (member ?CAPT
+      (ShipCrewFn ?SHIP))
+    (attribute ?CAPT ShipCaptain)
+    (member ?CAPT2
+      (ShipCrewFn ?TARGET))
+    (attribute ?CAPT2 ShipCaptain)
+    (instance ?ORG MilitaryOrganization)
+    (member ?CAPT ?ORG)
+    (member ?CAPT2 ?ORG))
+  (holdsRight ?CAPT
+    (exists (?S ?X)
       (and
         (instance ?S UnitSelfDefense)
-        (agent ?S ?U)
-        (patient ?S ?TARGET)
+        (agent ?S ?X)
+        (member ?X
+          (ShipCrewFn ?SHIP))
         (causes ?T ?S)))))
 
-;; Rule 3: If HostileAct or HostileIntent targets a MilitaryOrganization,
-;; UnitSelfDefense is permitted
+;; Rule 3: The captain of a ship that is the target of a hostile act or
+;; hostile intent holds the right of unit self-defense against it
 (=>
   (and
     (instance ?T HostileConduct)
-    (patient ?T ?U)
-    (instance ?U MilitaryOrganization))
-  (permits ?U
-    (exists (?S)
+    (patient ?T ?SHIP)
+    (instance ?SHIP Ship)
+    (member ?CAPT
+      (ShipCrewFn ?SHIP))
+    (attribute ?CAPT ShipCaptain))
+  (holdsRight ?CAPT
+    (exists (?S ?X)
       (and
         (instance ?S UnitSelfDefense)
-        (agent ?S ?U)
+        (agent ?S ?X)
+        (member ?X
+          (ShipCrewFn ?SHIP))
         (causes ?T ?S)))))
 
 ;; --- from item 7. DefenseOfOthers
 
-;; Rule: If a HostileAct or HostileIntent threatens a designated entity ?Y,
-;; then ?X who is protecting ?Y is permitted to use DefenseOfOthers.
+;; Rule: When a higher headquarters designates persons who are not part of the
+;; Force and the captain of a ship protects them, the headquarters confers on
+;; the captain the right to defend them against a hostile act or hostile
+;; intent. By Merge.kif, the captain then holds that right. Defense of others
+;; is conferred, not inherent, because the persons to be defended are
+;; specified by authority (Newport Series 12); for some States the right is
+;; inherent under national law, which this rule does not represent. A friendly
+;; unit of another State is not covered here: that is an extension of unit
+;; self-defense under Series 11.
 (=>
   (and
     (instance ?T HostileConduct)
     (patient ?T ?Y)
-    (instance ?Y AutonomousAgent)
+    (instance ?HQ HigherHeadquarters)
     (instance ?DES Designating)
+    (agent ?DES ?HQ)
     (patient ?DES ?Y)
     (instance ?PR Protecting)
-    (agent ?PR ?X)
+    (agent ?PR ?CAPT)
     (patient ?PR ?Y)
-    (instance ?X AutonomousAgent))
-  (permits ?X
-    (exists (?S)
+    (instance ?SHIP Ship)
+    (member ?CAPT
+      (ShipCrewFn ?SHIP))
+    (attribute ?CAPT ShipCaptain))
+  (confersRight ?HQ ?CAPT
+    (exists (?S ?X)
       (and
         (instance ?S DefenseOfOthers)
         (agent ?S ?X)
-        (patient ?S ?Y)
+        (member ?X
+          (ShipCrewFn ?SHIP))
         (causes ?T ?S)))))
 
 ;; --- from item 8. NationalSelfDefense
 
-;; Rule: If a Nation faces a HostileAct or HostileIntent,
-;; it is permitted to use NationalSelfDefense.
+;; Rule: The leader of a State that is the target of a hostile act or hostile
+;; intent holds the right of national self-defense against it. This is the
+;; inherent right recognized in Article 51 of the UN Charter (jus ad bellum).
+;; Which office decides differs between States, hence the disjunction; the
+;; Handbook says the decision is retained at the highest levels of
+;; governmental or executive authority.
 (=>
   (and
     (instance ?T HostileConduct)
     (patient ?T ?ST)
-    (instance ?ST Nation))
-  (permits ?ST
+    (instance ?ST Nation)
+    (or
+      (chiefOfState ?ST ?POS ?LEADER)
+      (headOfGovernment ?ST ?POS ?LEADER)))
+  (holdsRight ?LEADER
     (exists (?S)
       (and
         (instance ?S NationalSelfDefense)
-        (agent ?S ?ST)
         (causes ?T ?S)))))
 
 ;; --- from item 9. CollectiveSelfDefense
 
-;; Rule: If an allied Nation (?ALLY2) faces a HostileAct or HostileIntent,
-;; then another allied Nation (?ALLY1) is permitted to use CollectiveSelfDefense.
+;; Rule: If a State is the target of a hostile act or hostile intent, the
+;; leader of an allied State holds the right of collective self-defense to
+;; defend it (UN Charter, Article 51).
 (=>
   (and
-    (instance ?H HostileConduct)
-    (patient ?H ?ALLY2)
+    (instance ?T HostileConduct)
+    (patient ?T ?ALLY2)
     (instance ?ALLY2 Nation)
     (instance ?ALLY1 Nation)
     (not
       (equal ?ALLY1 ?ALLY2))
-    (allied ?ALLY1 ?ALLY2))
-  (permits ?ALLY1
+    (allied ?ALLY1 ?ALLY2)
+    (or
+      (chiefOfState ?ALLY1 ?POS ?LEADER)
+      (headOfGovernment ?ALLY1 ?POS ?LEADER)))
+  (holdsRight ?LEADER
     (exists (?CSD)
       (and
         (instance ?CSD CollectiveSelfDefense)
-        (agent ?CSD ?ALLY1)
-        (patient ?CSD ?ALLY2)))))
+        (patient ?CSD ?ALLY2)
+        (causes ?T ?CSD)))))
 
 ;; --- from item 10. Declared
 
@@ -215,7 +281,41 @@
         (agent ?E ?UNIT)
         (patient ?E ?F)))))
 
-;; --- from item 19. TacticalQuestioning
+;; --- from item 19b. VesselHailing
+
+;; Rule 3: If the agent of a hailing doubts that the activity of the hailed
+;; vessel is legal, the agent is obliged to report it to a higher
+;; headquarters. Whether a boarding follows is the decision of that
+;; headquarters, so the rule states an obligation to report, not a boarding.
+(=>
+  (and
+    (instance ?H VesselHailing)
+    (agent ?H ?A)
+    (instance ?A CognitiveAgent)
+    (destination ?H ?V)
+    (instance ?ACT IntentionalProcess)
+    (instrument ?ACT ?V)
+    (overlapsTemporally
+      (WhenFn ?ACT)
+      (WhenFn ?H))
+    (doubts ?A
+      (modalAttribute
+        (instrument ?ACT ?V)
+        Legal)))
+  (modalAttribute
+    (exists (?REP ?HQ)
+      (and
+        (instance ?REP Stating)
+        (agent ?REP ?A)
+        (instance ?HQ HigherHeadquarters)
+        (destination ?REP ?HQ)
+        (refers ?REP ?ACT)
+        (earlier
+          (WhenFn ?H)
+          (WhenFn ?REP))))
+    Obligation))
+
+;; --- requests for boarding (formerly under item 19. TacticalQuestioning)
 
 ;; Rule 3: If higher authority approves the requesting agent,
 ;; BoardingOperation is permitted
@@ -247,7 +347,7 @@
     (exists (?S)
       (and
         (instance ?S SearchOperation)
-        (patient ?S ?P)
+        (eventLocated ?S ?P)
         (agent ?S ?A)
         (subProcess ?S ?BO)))))
 
