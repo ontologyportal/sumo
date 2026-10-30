@@ -1,0 +1,622 @@
+;; DateTime.kif
+;; Gregorian calendar arithmetic and interval bridges for SUMO.
+;; Load after Merge.kif. See README.md for validation limits and dependencies.
+;; Benchmark conjectures are in DateTime-benchmarks.kif and are not axioms.
+;; FloorFn is an identity on the integer arithmetic used below; it exposes
+;; the Integer result type to validators that only inspect declared ranges.
+;; Five-input functions retain Function + valence 5 because core SUMO has
+;; no fixed-arity class for a six-place function graph.
+
+;; ============================================================================
+;; Signatures
+;; ============================================================================
+
+(instance MonthNumberFn UnaryFunction)
+(domain MonthNumberFn 1 Integer)
+(rangeSubclass MonthNumberFn Month)
+(documentation MonthNumberFn EnglishWrittenLanguage
+  "Maps a numeric month 1--12 to the corresponding SUMO month class.")
+
+(instance DateFromYMDFn TernaryFunction)
+(domain DateFromYMDFn 1 Integer)
+(domain DateFromYMDFn 2 Integer)
+(domain DateFromYMDFn 3 Integer)
+(rangeSubclass DateFromYMDFn Day)
+(documentation DateFromYMDFn EnglishWrittenLanguage
+  "Maps numeric year, month, and day values to the corresponding SUMO Day subclass.")
+
+(instance DateTimeFromYMDHMFn Function)
+(valence DateTimeFromYMDHMFn 5)
+(domain DateTimeFromYMDHMFn 1 Integer)
+(domain DateTimeFromYMDHMFn 2 Integer)
+(domain DateTimeFromYMDHMFn 3 Integer)
+(domain DateTimeFromYMDHMFn 4 Integer)
+(domain DateTimeFromYMDHMFn 5 Integer)
+(rangeSubclass DateTimeFromYMDHMFn Minute)
+(documentation DateTimeFromYMDHMFn EnglishWrittenLanguage
+  "Maps numeric year, month, day, hour, and minute values to the corresponding SUMO Minute subclass.")
+
+(instance daysInMonth TernaryPredicate)
+(domain daysInMonth 1 Integer)
+(domain daysInMonth 2 Integer)
+(domain daysInMonth 3 Integer)
+(documentation daysInMonth EnglishWrittenLanguage
+  "daysInMonth(M,Y,L) states that numeric month M in numeric year Y has L days.")
+
+(instance daysInYear BinaryPredicate)
+(domain daysInYear 1 Integer)
+(domain daysInYear 2 Integer)
+(documentation daysInYear EnglishWrittenLanguage
+  "daysInYear(Y,L) states that numeric year Y has L days.")
+
+(instance dateCalculation QuaternaryPredicate)
+(domain dateCalculation 1 Integer)
+(domain dateCalculation 2 Integer)
+(domain dateCalculation 3 Integer)
+(domainSubclass dateCalculation 4 Day)
+(documentation dateCalculation EnglishWrittenLanguage
+  "dateCalculation(D,M,Y,R) states that day coordinate D in month M of year Y normalizes to date class R.")
+
+(instance timeNormalization Predicate)
+(valence timeNormalization 7)
+(domain timeNormalization 1 Integer)
+(domain timeNormalization 2 Integer)
+(domain timeNormalization 3 Integer)
+(domain timeNormalization 4 Integer)
+(domain timeNormalization 5 Integer)
+(domain timeNormalization 6 Integer)
+(domain timeNormalization 7 Integer)
+(documentation timeNormalization EnglishWrittenLanguage
+  "Minute/hour normalization relation inherited from the temporal arithmetic layer.")
+
+(instance dateTimeCalculation Predicate)
+(valence dateTimeCalculation 9)
+(domain dateTimeCalculation 1 Integer)
+(domain dateTimeCalculation 2 Integer)
+(domain dateTimeCalculation 3 Integer)
+(domain dateTimeCalculation 4 Integer)
+(domain dateTimeCalculation 5 Integer)
+(domain dateTimeCalculation 6 Integer)
+(domain dateTimeCalculation 7 Integer)
+(domain dateTimeCalculation 8 Integer)
+(domainSubclass dateTimeCalculation 9 Minute)
+(documentation dateTimeCalculation EnglishWrittenLanguage
+  "Date-time normalization relation inherited from the temporal arithmetic layer.")
+
+(instance nthWeekdayDate QuintaryPredicate)
+(domain nthWeekdayDate 1 Integer)
+(domainSubclass nthWeekdayDate 2 Day)
+(domain nthWeekdayDate 3 Integer)
+(domain nthWeekdayDate 4 Integer)
+(domainSubclass nthWeekdayDate 5 Day)
+(documentation nthWeekdayDate EnglishWrittenLanguage
+  "nthWeekdayDate(N,W,M,Y,D) states that D is the N-th weekday-class W date in month M of year Y.")
+
+(instance validCalendarDate TernaryPredicate)
+(domain validCalendarDate 1 Integer)
+(domain validCalendarDate 2 Integer)
+(domain validCalendarDate 3 Integer)
+(documentation validCalendarDate EnglishWrittenLanguage
+  "validCalendarDate(Y,M,D) states that Y-M-D is a valid Gregorian calendar coordinate relative to daysInMonth.")
+
+(instance YearIntervalFn UnaryFunction)
+(domain YearIntervalFn 1 Integer)
+(range YearIntervalFn TimeInterval)
+(documentation YearIntervalFn EnglishWrittenLanguage
+  "Returns the interval realizing numeric year Y.")
+
+(instance MonthIntervalFn BinaryFunction)
+(domain MonthIntervalFn 1 Integer)
+(domain MonthIntervalFn 2 Integer)
+(range MonthIntervalFn TimeInterval)
+(documentation MonthIntervalFn EnglishWrittenLanguage
+  "Returns the interval realizing numeric year Y and month M.")
+
+(instance DayIntervalFn TernaryFunction)
+(domain DayIntervalFn 1 Integer)
+(domain DayIntervalFn 2 Integer)
+(domain DayIntervalFn 3 Integer)
+(range DayIntervalFn TimeInterval)
+(documentation DayIntervalFn EnglishWrittenLanguage
+  "Returns the interval realizing numeric year Y, month M, and day D.")
+
+(instance DateTimeMinuteIntervalFn Function)
+(valence DateTimeMinuteIntervalFn 5)
+(domain DateTimeMinuteIntervalFn 1 Integer)
+(domain DateTimeMinuteIntervalFn 2 Integer)
+(domain DateTimeMinuteIntervalFn 3 Integer)
+(domain DateTimeMinuteIntervalFn 4 Integer)
+(domain DateTimeMinuteIntervalFn 5 Integer)
+(range DateTimeMinuteIntervalFn TimeInterval)
+(documentation DateTimeMinuteIntervalFn EnglishWrittenLanguage
+  "Returns the interval realizing numeric year, month, day, hour, and minute coordinates.")
+
+;; Allen-style relations used by this package are the existing SUMO
+;; temporal predicates where available: earlier, meetsTemporally, starts,
+;; finishes, and during.  The package intentionally does not declare
+;; parallel allen* predicates for those relations.
+
+
+
+;; ============================================================================
+;; Gregorian arithmetic
+;;
+;; Modest Gregorian arithmetic component.
+;; ============================================================================
+
+(equal (MonthNumberFn 1) January)
+(equal (MonthNumberFn 2) February)
+(equal (MonthNumberFn 3) March)
+(equal (MonthNumberFn 4) April)
+(equal (MonthNumberFn 5) May)
+(equal (MonthNumberFn 6) June)
+(equal (MonthNumberFn 7) July)
+(equal (MonthNumberFn 8) August)
+(equal (MonthNumberFn 9) September)
+(equal (MonthNumberFn 10) October)
+(equal (MonthNumberFn 11) November)
+(equal (MonthNumberFn 12) December)
+
+(forall (?Y ?M ?D)
+  (=>
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer)
+      (instance ?D Integer))
+    (equal
+      (DateFromYMDFn ?Y ?M ?D)
+      (DayFn ?D (MonthFn (MonthNumberFn ?M) (YearFn ?Y))))))
+
+(forall (?Y ?M ?D ?H ?Min)
+  (=>
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer)
+      (instance ?D Integer)
+      (instance ?H Integer)
+      (instance ?Min Integer))
+    (equal
+      (DateTimeFromYMDHMFn ?Y ?M ?D ?H ?Min)
+      (MinuteFn ?Min (HourFn ?H (DateFromYMDFn ?Y ?M ?D))))))
+
+(forall (?Y ?M ?D)
+  (=>
+    (validCalendarDate ?Y ?M ?D)
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer)
+      (instance ?D Integer)
+      (greaterThan ?M 0)
+      (lessThanOrEqualTo ?M 12)
+      (exists (?L)
+        (and
+          (instance ?L Integer)
+          (daysInMonth ?M ?Y ?L)
+          (greaterThan ?D 0)
+          (lessThanOrEqualTo ?D ?L))))))
+
+(forall (?Y ?M ?D ?L)
+  (=>
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer)
+      (instance ?D Integer)
+      (instance ?L Integer)
+      (greaterThan ?M 0)
+      (lessThanOrEqualTo ?M 12)
+      (daysInMonth ?M ?Y ?L)
+      (greaterThan ?D 0)
+      (lessThanOrEqualTo ?D ?L))
+    (validCalendarDate ?Y ?M ?D)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 1 ?Y 31)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (and
+      (=>
+        (and
+          (equal (RemainderFn ?Y 4) 0)
+          (or
+            (not (equal (RemainderFn ?Y 100) 0))
+            (equal (RemainderFn ?Y 400) 0)))
+        (daysInMonth 2 ?Y 29))
+      (=>
+        (or
+          (not (equal (RemainderFn ?Y 4) 0))
+          (and
+            (equal (RemainderFn ?Y 100) 0)
+            (not (equal (RemainderFn ?Y 400) 0))))
+        (daysInMonth 2 ?Y 28)))))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 3 ?Y 31)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 4 ?Y 30)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 5 ?Y 31)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 6 ?Y 30)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 7 ?Y 31)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 8 ?Y 31)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 9 ?Y 30)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 10 ?Y 31)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 11 ?Y 30)))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (daysInMonth 12 ?Y 31)))
+
+(forall (?D ?M ?Y ?Limit)
+  (=>
+    (and
+      (instance ?D Integer)
+      (instance ?M Integer)
+      (instance ?Y Integer)
+      (instance ?Limit Integer)
+      (daysInMonth ?M ?Y ?Limit)
+      (greaterThan ?D 0)
+      (lessThanOrEqualTo ?D ?Limit))
+    (dateCalculation ?D ?M ?Y (DateFromYMDFn ?Y ?M ?D))))
+
+(forall (?D ?M ?Y ?Limit ?Res)
+  (=>
+    (and
+      (instance ?D Integer)
+      (instance ?M Integer)
+      (instance ?Y Integer)
+      (instance ?Limit Integer)
+      (subclass ?Res Day)
+      (daysInMonth ?M ?Y ?Limit)
+      (greaterThan ?D ?Limit)
+      (not (equal ?M 12))
+      (dateCalculation
+        (FloorFn (SubtractionFn ?D ?Limit))
+        (FloorFn (AdditionFn ?M 1))
+        ?Y
+        ?Res))
+    (dateCalculation ?D ?M ?Y ?Res)))
+
+(forall (?D ?M ?Y ?Limit ?Res)
+  (=>
+    (and
+      (instance ?D Integer)
+      (instance ?M Integer)
+      (instance ?Y Integer)
+      (instance ?Limit Integer)
+      (subclass ?Res Day)
+      (daysInMonth ?M ?Y ?Limit)
+      (greaterThan ?D ?Limit)
+      (equal ?M 12)
+      (dateCalculation
+        (FloorFn (SubtractionFn ?D ?Limit))
+        1
+        (FloorFn (AdditionFn ?Y 1))
+        ?Res))
+    (dateCalculation ?D ?M ?Y ?Res)))
+
+(forall (?D ?M ?Y ?Limit ?Res)
+  (=>
+    (and
+      (instance ?D Integer)
+      (instance ?M Integer)
+      (instance ?Y Integer)
+      (instance ?Limit Integer)
+      (subclass ?Res Day)
+      (lessThanOrEqualTo ?D 0)
+      (not (equal ?M 1))
+      (daysInMonth (FloorFn (SubtractionFn ?M 1)) ?Y ?Limit)
+      (dateCalculation
+        (FloorFn (AdditionFn ?D ?Limit))
+        (FloorFn (SubtractionFn ?M 1))
+        ?Y
+        ?Res))
+    (dateCalculation ?D ?M ?Y ?Res)))
+
+(forall (?D ?M ?Y ?Limit ?Res)
+  (=>
+    (and
+      (instance ?D Integer)
+      (instance ?M Integer)
+      (instance ?Y Integer)
+      (instance ?Limit Integer)
+      (subclass ?Res Day)
+      (lessThanOrEqualTo ?D 0)
+      (equal ?M 1)
+      (daysInMonth 12 (FloorFn (SubtractionFn ?Y 1)) ?Limit)
+      (dateCalculation
+        (FloorFn (AdditionFn ?D ?Limit))
+        12
+        (FloorFn (SubtractionFn ?Y 1))
+        ?Res))
+    (dateCalculation ?D ?M ?Y ?Res)))
+
+;; ============================================================================
+;; Allen compatibility
+;;
+;; SUMO-aligned Allen compatibility note.
+;;
+;; This file intentionally introduces no duplicate allen* predicates.  The
+;; relevant endpoint relations already exist in SUMO and are used directly:
+;;
+;;   Allen before   -> earlier
+;;   Allen meets    -> meetsTemporally
+;;   Allen starts   -> starts
+;;   Allen finishes -> finishes
+;;   Allen during   -> during
+;;
+;; Converse Allen cases are expressed by reversing arguments.  For example,
+;; Allen after is (earlier ?J ?I), Allen met-by is
+;; (meetsTemporally ?J ?I), Allen contains is (during ?J ?I), and so on.
+;;
+;; ---------------------------------------------------------------------------
+;; The overlap caveat
+;; ---------------------------------------------------------------------------
+;;
+;; SUMO's overlapsTemporally is not Allen's strict directional overlap.
+;;
+;; In SUMO, overlapsTemporally means that two intervals have a common temporal
+;; part.  It is declared symmetric and reflexive.  That is the right relation
+;; for "there exists some shared temporal subinterval."
+;;
+;; Allen's strict overlap relation is directional.  In endpoint notation:
+;;
+;;     Begin(I) < Begin(J) < End(I) < End(J).
+;;
+;; Therefore, this file does not identify strict Allen overlap with
+;; overlapsTemporally.
+;;
+;; The present calendar interval package does not use strict directional
+;; overlap in its bridge axioms or benchmark conjectures.  Hence no new
+;; predicate is declared here.
+;;
+;; If strict directional overlap becomes necessary later, it should be added
+;; deliberately, preferably under a name that does not suggest it is the same
+;; as SUMO overlapsTemporally.  A possible optional extension would be:
+;;
+;;   strictTemporalOverlap(I,J)  iff
+;;      before(BeginFn(I), BeginFn(J)) and
+;;      before(BeginFn(J), EndFn(I)) and
+;;      before(EndFn(I), EndFn(J)).
+;;
+;; The corresponding SUO-KIF axiom would be:
+;;
+;; (<=> (strictTemporalOverlap ?I ?J)
+;;      (and
+;;        (instance ?I TimeInterval)
+;;        (instance ?J TimeInterval)
+;;        (before (BeginFn ?I) (BeginFn ?J))
+;;        (before (BeginFn ?J) (EndFn ?I))
+;;        (before (EndFn ?I) (EndFn ?J))))
+;;
+;; This optional predicate is intentionally not active in the current package since we do not use it.
+;; =================================================================================================
+
+
+;; ============================================================================
+;; Interval bridges
+;;
+;; Interval realization functions and bridge axioms.
+;; Requires CalendarSUMO_Core.kif, CalendarSUMO_Arithmetic.kif, and
+;; Allen compatibility to be loaded first.
+;; ============================================================================
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (instance
+      (YearIntervalFn ?Y)
+      (YearFn ?Y))))
+
+(forall (?Y ?M)
+  (=>
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer))
+    (instance
+      (MonthIntervalFn ?Y ?M)
+      (MonthFn (MonthNumberFn ?M) (YearFn ?Y)))))
+
+(forall (?Y ?M ?D)
+  (=>
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer)
+      (instance ?D Integer))
+    (instance
+      (DayIntervalFn ?Y ?M ?D)
+      (DateFromYMDFn ?Y ?M ?D))))
+
+(forall (?Y ?M ?D ?H ?Min)
+  (=>
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer)
+      (instance ?D Integer)
+      (instance ?H Integer)
+      (instance ?Min Integer))
+    (instance
+      (DateTimeMinuteIntervalFn ?Y ?M ?D ?H ?Min)
+      (DateTimeFromYMDHMFn ?Y ?M ?D ?H ?Min))))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (and
+      (starts (MonthIntervalFn ?Y 1) (YearIntervalFn ?Y))
+      (finishes (MonthIntervalFn ?Y 12) (YearIntervalFn ?Y)))))
+
+(forall (?Y ?M)
+  (=>
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer)
+      (greaterThan ?M 1)
+      (lessThan ?M 12))
+    (during
+      (MonthIntervalFn ?Y ?M)
+      (YearIntervalFn ?Y))))
+
+(forall (?Y ?M ?L)
+  (=>
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer)
+      (instance ?L Integer)
+      (daysInMonth ?M ?Y ?L))
+    (and
+      (starts
+        (DayIntervalFn ?Y ?M 1)
+        (MonthIntervalFn ?Y ?M))
+      (finishes
+        (DayIntervalFn ?Y ?M ?L)
+        (MonthIntervalFn ?Y ?M)))))
+
+(forall (?Y ?M ?D ?L)
+  (=>
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer)
+      (instance ?D Integer)
+      (instance ?L Integer)
+      (daysInMonth ?M ?Y ?L)
+      (greaterThan ?D 1)
+      (lessThan ?D ?L))
+    (during
+      (DayIntervalFn ?Y ?M ?D)
+      (MonthIntervalFn ?Y ?M))))
+
+(forall (?Y ?M)
+  (=>
+    (and
+      (instance ?Y Integer)
+      (instance ?M Integer)
+      (greaterThan ?M 0)
+      (lessThanOrEqualTo ?M 11))
+    (meetsTemporally
+      (MonthIntervalFn ?Y ?M)
+      (MonthIntervalFn ?Y (FloorFn (AdditionFn ?M 1))))))
+
+(forall (?Y)
+  (=>
+    (instance ?Y Integer)
+    (meetsTemporally
+      (MonthIntervalFn ?Y 12)
+      (MonthIntervalFn (FloorFn (AdditionFn ?Y 1)) 1))))
+
+(forall (?Y ?M ?D ?Y2 ?M2 ?D2)
+  (=>
+    (and
+      (validCalendarDate ?Y ?M ?D)
+      (dateCalculation
+        (FloorFn (AdditionFn ?D 1))
+        ?M
+        ?Y
+        (DateFromYMDFn ?Y2 ?M2 ?D2)))
+    (meetsTemporally
+      (DayIntervalFn ?Y ?M ?D)
+      (DayIntervalFn ?Y2 ?M2 ?D2))))
+
+(forall (?Y ?M ?D)
+  (=>
+    (validCalendarDate ?Y ?M ?D)
+    (and
+      (starts
+        (DateTimeMinuteIntervalFn ?Y ?M ?D 0 0)
+        (DayIntervalFn ?Y ?M ?D))
+      (finishes
+        (DateTimeMinuteIntervalFn ?Y ?M ?D 23 59)
+        (DayIntervalFn ?Y ?M ?D)))))
+
+(forall (?Y ?M ?D ?H ?Min)
+  (=>
+    (and
+      (validCalendarDate ?Y ?M ?D)
+      (instance ?H Integer)
+      (instance ?Min Integer)
+      (greaterThan ?H -1)
+      (lessThanOrEqualTo ?H 23)
+      (greaterThan ?Min -1)
+      (lessThanOrEqualTo ?Min 59)
+      (not (and (equal ?H 0) (equal ?Min 0)))
+      (not (and (equal ?H 23) (equal ?Min 59))))
+    (during
+      (DateTimeMinuteIntervalFn ?Y ?M ?D ?H ?Min)
+      (DayIntervalFn ?Y ?M ?D))))
+
+;; Consecutive minute intervals meet within an hour.
+(forall (?Y ?M ?D ?H ?Min)
+  (=>
+    (and
+      (validCalendarDate ?Y ?M ?D)
+      (instance ?H Integer)
+      (instance ?Min Integer)
+      (greaterThan ?H -1)
+      (lessThanOrEqualTo ?H 23)
+      (greaterThan ?Min -1)
+      (lessThanOrEqualTo ?Min 58))
+    (meetsTemporally
+      (DateTimeMinuteIntervalFn ?Y ?M ?D ?H ?Min)
+      (DateTimeMinuteIntervalFn ?Y ?M ?D ?H (FloorFn (AdditionFn ?Min 1))))))
+
+;; The final minute of an hour meets the first minute of the next hour.
+(forall (?Y ?M ?D ?H)
+  (=>
+    (and
+      (validCalendarDate ?Y ?M ?D)
+      (instance ?H Integer)
+      (greaterThan ?H -1)
+      (lessThanOrEqualTo ?H 22))
+    (meetsTemporally
+      (DateTimeMinuteIntervalFn ?Y ?M ?D ?H 59)
+      (DateTimeMinuteIntervalFn ?Y ?M ?D (FloorFn (AdditionFn ?H 1)) 0))))
+
+;; The final minute of a day meets the first minute of the normalized successor day.
+(forall (?Y ?M ?D ?Y2 ?M2 ?D2)
+  (=>
+    (and
+      (validCalendarDate ?Y ?M ?D)
+      (dateCalculation
+        (FloorFn (AdditionFn ?D 1))
+        ?M
+        ?Y
+        (DateFromYMDFn ?Y2 ?M2 ?D2)))
+    (meetsTemporally
+      (DateTimeMinuteIntervalFn ?Y ?M ?D 23 59)
+      (DateTimeMinuteIntervalFn ?Y2 ?M2 ?D2 0 0))))

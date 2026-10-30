@@ -1,39 +1,43 @@
 ;; DateTime.kif
 ;; Gregorian calendar arithmetic and interval bridges for SUMO.
-;; Load after Merge.kif. See README.md for validation limits and dependencies.
-;; Benchmark conjectures are in DateTime-benchmarks.kif and are not axioms.
+;; Load after Merge.kif. See tests/DateTime/README.md for integration tests.
+;; Calendar constructors return SUMO classes; interval functions return instances.
 ;; FloorFn is an identity on the integer arithmetic used below; it exposes
 ;; the Integer result type to validators that only inspect declared ranges.
 ;; Date and month classes group coordinates without variadic tuples.
 ;; Active calendar predicates have at most four arguments; functions have
-;; at most three inputs (four-place graphs). Unused normalization signatures
-;; are omitted. This variant changes the public interfaces; see README.md.
+;; at most three inputs (four-place graphs). Invalid coordinates are not realized.
+;; Normalization input coordinates may still be zero, negative, or overflow.
+;; Shared validity guards keep CNF clauses within the native default of 8 literals.
 
 ;; ============================================================================
 ;; Signatures
 ;; ============================================================================
 
 (instance MonthNumberFn UnaryFunction)
+(instance MonthNumberFn PartialValuedRelation)
 (domain MonthNumberFn 1 Integer)
 (rangeSubclass MonthNumberFn Month)
 (documentation MonthNumberFn EnglishWrittenLanguage
   "Maps a numeric month 1--12 to the corresponding SUMO month class.")
 
 (instance DateFromYMDFn TernaryFunction)
+(instance DateFromYMDFn PartialValuedRelation)
 (domain DateFromYMDFn 1 Integer)
 (domain DateFromYMDFn 2 Integer)
 (domain DateFromYMDFn 3 Integer)
 (rangeSubclass DateFromYMDFn Day)
 (documentation DateFromYMDFn EnglishWrittenLanguage
-  "Maps numeric year, month, and day values to the corresponding SUMO Day subclass.")
+  "Maps valid numeric year, month, and day coordinates to the corresponding SUMO Day subclass. Use dateCalculation for overflow or negative day coordinates.")
 
 (instance DateTimeOnDateFn TernaryFunction)
+(instance DateTimeOnDateFn PartialValuedRelation)
 (domainSubclass DateTimeOnDateFn 1 Day)
 (domain DateTimeOnDateFn 2 Integer)
 (domain DateTimeOnDateFn 3 Integer)
 (rangeSubclass DateTimeOnDateFn Minute)
 (documentation DateTimeOnDateFn EnglishWrittenLanguage
-  "DateTimeOnDateFn(D,H,M) denotes minute M of hour H on date class D.")
+  "DateTimeOnDateFn(D,H,M) denotes minute M (0--59) of hour H (0--23) on any supplied SUMO Day subclass D; it does not assert that D has an instance.")
 
 (instance daysInMonth TernaryPredicate)
 (domain daysInMonth 1 Integer)
@@ -46,7 +50,7 @@
 (domain daysInYear 1 Integer)
 (domain daysInYear 2 Integer)
 (documentation daysInYear EnglishWrittenLanguage
-  "daysInYear(Y,L) states that numeric year Y has L days.")
+  "daysInYear(Y,L) states that numeric year Y has 365 or 366 Gregorian calendar days. This count is not a conversion of YearDuration.")
 
 (instance dateCalculation QuaternaryPredicate)
 (domain dateCalculation 1 Integer)
@@ -66,6 +70,18 @@
 (documentation nthWeekdayInMonth EnglishWrittenLanguage
   "nthWeekdayInMonth(N,W,M,D) states that D is the N-th weekday-class W date in month class M.")
 
+(instance validCalendarMonth BinaryPredicate)
+(domain validCalendarMonth 1 Integer)
+(domain validCalendarMonth 2 Integer)
+(documentation validCalendarMonth EnglishWrittenLanguage
+  "validCalendarMonth(Y,M) states that Y and M are integers and M is a month number from 1 through 12.")
+
+(instance validClockTime BinaryPredicate)
+(domain validClockTime 1 Integer)
+(domain validClockTime 2 Integer)
+(documentation validClockTime EnglishWrittenLanguage
+  "validClockTime(H,M) states that H and M are nonnegative integers with H less than 24 and M less than 60.")
+
 (instance validCalendarDate TernaryPredicate)
 (domain validCalendarDate 1 Integer)
 (domain validCalendarDate 2 Integer)
@@ -80,6 +96,7 @@
   "Returns the interval realizing numeric year Y.")
 
 (instance MonthIntervalFn BinaryFunction)
+(instance MonthIntervalFn PartialValuedRelation)
 (domain MonthIntervalFn 1 Integer)
 (domain MonthIntervalFn 2 Integer)
 (range MonthIntervalFn TimeInterval)
@@ -87,6 +104,7 @@
   "Returns the interval realizing numeric year Y and month M.")
 
 (instance DayIntervalFn TernaryFunction)
+(instance DayIntervalFn PartialValuedRelation)
 (domain DayIntervalFn 1 Integer)
 (domain DayIntervalFn 2 Integer)
 (domain DayIntervalFn 3 Integer)
@@ -95,10 +113,11 @@
   "Returns the interval realizing numeric year Y, month M, and day D.")
 
 (instance MinuteIntervalFn UnaryFunction)
+(instance MinuteIntervalFn PartialValuedRelation)
 (domainSubclass MinuteIntervalFn 1 Minute)
 (range MinuteIntervalFn TimeInterval)
 (documentation MinuteIntervalFn EnglishWrittenLanguage
-  "MinuteIntervalFn(M) returns the interval realizing minute class M.")
+  "MinuteIntervalFn(M) selects an interval realizing an inhabited minute class M. The calendar bridge also realizes validated concrete date/time coordinates; an arbitrary empty Minute subclass is not instantiated.")
 
 ;; Allen-style relations used by this package are the existing SUMO
 ;; temporal predicates where available: earlier, meetsTemporally, starts,
@@ -124,25 +143,35 @@
 (equal (MonthNumberFn 11) November)
 (equal (MonthNumberFn 12) December)
 
-(=>
+(<=>
+  (validCalendarMonth ?Y ?M)
   (and
     (instance ?Y Integer)
     (instance ?M Integer)
-    (instance ?D Integer))
+    (greaterThan ?M 0)
+    (lessThanOrEqualTo ?M 12)))
+
+(<=>
+  (validClockTime ?H ?Min)
+  (and
+    (instance ?H NonnegativeInteger)
+    (instance ?Min NonnegativeInteger)
+    (lessThan ?H 24)
+    (lessThan ?Min 60)))
+
+(=>
+  (validCalendarDate ?Y ?M ?D)
   (equal
     (DateFromYMDFn ?Y ?M ?D)
     (DayFn ?D (MonthFn (MonthNumberFn ?M) (YearFn ?Y)))))
 
 (=>
   (and
-    (instance ?Y Integer)
-    (instance ?M Integer)
-    (instance ?D Integer)
-    (instance ?H Integer)
-    (instance ?Min Integer))
+    (subclass ?Date Day)
+    (validClockTime ?H ?Min))
   (equal
-    (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) ?H ?Min)
-    (MinuteFn ?Min (HourFn ?H (DateFromYMDFn ?Y ?M ?D)))))
+    (DateTimeOnDateFn ?Date ?H ?Min)
+    (MinuteFn ?Min (HourFn ?H ?Date))))
 
 (=>
   (validCalendarDate ?Y ?M ?D)
@@ -161,38 +190,64 @@
 
 (=>
   (and
-    (instance ?Y Integer)
-    (instance ?M Integer)
+    (validCalendarMonth ?Y ?M)
     (instance ?D Integer)
     (instance ?L Integer)
-    (greaterThan ?M 0)
-    (lessThanOrEqualTo ?M 12)
     (daysInMonth ?M ?Y ?L)
     (greaterThan ?D 0)
     (lessThanOrEqualTo ?D ?L))
   (validCalendarDate ?Y ?M ?D))
 
 (=>
+  (daysInMonth ?M ?Y ?L)
+  (and
+    (instance ?M Integer)
+    (instance ?Y Integer)
+    (instance ?L Integer)))
+
+(=>
   (instance ?Y Integer)
   (daysInMonth 1 ?Y 31))
 
 (=>
-  (instance ?Y Integer)
   (and
-    (=>
+    (instance ?Y Integer)
+    (equal (RemainderFn ?Y 4) 0)
+    (or
+      (not (equal (RemainderFn ?Y 100) 0))
+      (equal (RemainderFn ?Y 400) 0)))
+  (daysInYear ?Y 366))
+
+(=>
+  (and
+    (instance ?Y Integer)
+    (or
+      (not (equal (RemainderFn ?Y 4) 0))
       (and
-        (equal (RemainderFn ?Y 4) 0)
-        (or
-          (not (equal (RemainderFn ?Y 100) 0))
-          (equal (RemainderFn ?Y 400) 0)))
-      (daysInMonth 2 ?Y 29))
-    (=>
-      (or
-        (not (equal (RemainderFn ?Y 4) 0))
-        (and
-          (equal (RemainderFn ?Y 100) 0)
-          (not (equal (RemainderFn ?Y 400) 0))))
-      (daysInMonth 2 ?Y 28))))
+        (equal (RemainderFn ?Y 100) 0)
+        (not (equal (RemainderFn ?Y 400) 0)))))
+  (daysInYear ?Y 365))
+
+(=>
+  (daysInYear ?Y 366)
+  (daysInMonth 2 ?Y 29))
+
+(=>
+  (daysInYear ?Y 365)
+  (daysInMonth 2 ?Y 28))
+
+;; Classify every corresponding SUMO year instance, not only this package's term.
+(=>
+  (and
+    (daysInYear ?Y 366)
+    (instance ?Year (YearFn ?Y)))
+  (instance ?Year LeapYear))
+
+(=>
+  (and
+    (daysInYear ?Y 365)
+    (instance ?Year (YearFn ?Y)))
+  (not (instance ?Year LeapYear)))
 
 (=>
   (instance ?Y Integer)
@@ -235,22 +290,13 @@
   (daysInMonth 12 ?Y 31))
 
 (=>
-  (and
-    (instance ?D Integer)
-    (instance ?M Integer)
-    (instance ?Y Integer)
-    (instance ?Limit Integer)
-    (daysInMonth ?M ?Y ?Limit)
-    (greaterThan ?D 0)
-    (lessThanOrEqualTo ?D ?Limit))
+  (validCalendarDate ?Y ?M ?D)
   (dateCalculation ?D ?M ?Y (DateFromYMDFn ?Y ?M ?D)))
 
 (=>
   (and
     (instance ?D Integer)
-    (instance ?M Integer)
-    (instance ?Y Integer)
-    (instance ?Limit Integer)
+    (validCalendarMonth ?Y ?M)
     (subclass ?Res Day)
     (daysInMonth ?M ?Y ?Limit)
     (greaterThan ?D ?Limit)
@@ -265,9 +311,7 @@
 (=>
   (and
     (instance ?D Integer)
-    (instance ?M Integer)
-    (instance ?Y Integer)
-    (instance ?Limit Integer)
+    (validCalendarMonth ?Y ?M)
     (subclass ?Res Day)
     (daysInMonth ?M ?Y ?Limit)
     (greaterThan ?D ?Limit)
@@ -282,9 +326,7 @@
 (=>
   (and
     (instance ?D Integer)
-    (instance ?M Integer)
-    (instance ?Y Integer)
-    (instance ?Limit Integer)
+    (validCalendarMonth ?Y ?M)
     (subclass ?Res Day)
     (lessThanOrEqualTo ?D 0)
     (not (equal ?M 1))
@@ -299,9 +341,7 @@
 (=>
   (and
     (instance ?D Integer)
-    (instance ?M Integer)
-    (instance ?Y Integer)
-    (instance ?Limit Integer)
+    (validCalendarMonth ?Y ?M)
     (subclass ?Res Day)
     (lessThanOrEqualTo ?D 0)
     (equal ?M 1)
@@ -378,8 +418,7 @@
 ;; Interval bridges
 ;;
 ;; Interval realization functions and bridge axioms.
-;; Requires CalendarSUMO_Core.kif, CalendarSUMO_Arithmetic.kif, and
-;; Allen compatibility to be loaded first.
+;; Reuses SUMO calendar classes and duration units from Merge.kif.
 ;; ============================================================================
 
 (=>
@@ -389,32 +428,48 @@
     (YearFn ?Y)))
 
 (=>
-  (and
-    (instance ?Y Integer)
-    (instance ?M Integer))
+  (validCalendarMonth ?Y ?M)
   (instance
     (MonthIntervalFn ?Y ?M)
     (MonthFn (MonthNumberFn ?M) (YearFn ?Y))))
 
 (=>
-  (and
-    (instance ?Y Integer)
-    (instance ?M Integer)
-    (instance ?D Integer))
+  (validCalendarDate ?Y ?M ?D)
   (instance
     (DayIntervalFn ?Y ?M ?D)
     (DateFromYMDFn ?Y ?M ?D)))
 
 (=>
   (and
-    (instance ?Y Integer)
-    (instance ?M Integer)
-    (instance ?D Integer)
-    (instance ?H Integer)
-    (instance ?Min Integer))
+    (validCalendarDate ?Y ?M ?D)
+    (validClockTime ?H ?Min))
   (instance
     (MinuteIntervalFn (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) ?H ?Min))
     (DateTimeOnDateFn (DateFromYMDFn ?Y ?M ?D) ?H ?Min)))
+
+(=>
+  (and
+    (subclass ?Minute Minute)
+    (instance ?Existing ?Minute))
+  (instance (MinuteIntervalFn ?Minute) ?Minute))
+
+;; A dated month specializes its existing named SUMO month class.
+(=>
+  (validCalendarMonth ?Y ?M)
+  (subclass
+    (MonthFn (MonthNumberFn ?M) (YearFn ?Y))
+    (MonthNumberFn ?M)))
+
+(=>
+  (and
+    (validCalendarMonth ?Y ?M)
+    (instance ?L Integer)
+    (daysInMonth ?M ?Y ?L))
+  (exists (?Duration)
+    (and
+      (instance ?Duration TimeDuration)
+      (equal ?Duration (MeasureFn ?L DayDuration))
+      (duration (MonthIntervalFn ?Y ?M) ?Duration))))
 
 (=>
   (instance ?Y Integer)
@@ -478,6 +533,7 @@
 (=>
   (and
     (validCalendarDate ?Y ?M ?D)
+    (validCalendarDate ?Y2 ?M2 ?D2)
     (dateCalculation
       (FloorFn (AdditionFn ?D 1))
       ?M
@@ -500,12 +556,7 @@
 (=>
   (and
     (validCalendarDate ?Y ?M ?D)
-    (instance ?H Integer)
-    (instance ?Min Integer)
-    (greaterThan ?H -1)
-    (lessThanOrEqualTo ?H 23)
-    (greaterThan ?Min -1)
-    (lessThanOrEqualTo ?Min 59)
+    (validClockTime ?H ?Min)
     (not (and (equal ?H 0) (equal ?Min 0)))
     (not (and (equal ?H 23) (equal ?Min 59))))
   (during
@@ -541,6 +592,7 @@
 (=>
   (and
     (validCalendarDate ?Y ?M ?D)
+    (validCalendarDate ?Y2 ?M2 ?D2)
     (dateCalculation
       (FloorFn (AdditionFn ?D 1))
       ?M
