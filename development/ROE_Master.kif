@@ -125,13 +125,51 @@
 ;; depends on it and ROE_Master.kif loads first.
 
 (subclass Interference SocialInteraction)
-(documentation Interference EnglishWrittenLanguage "An intentional process that impedes another party's activity, whether by reducing the likelihood that some process occurs, by restricting movement, or by disrupting a capability. SUMO provides the relation &%hinders but no process class corresponding to it, and the Newport compendium regulates interference across at least six series: the mission in Series 20, freedom of movement in Series 21, ships and aircraft in Series 22, the activities of neutrals in Series 32, harassment in Series 61, and satellite communications in Series 140. This class carries no defining condition of its own; each subclass carries its own, which is what keeps the SUMO axioms behind &%hinders out of the inference path. It cuts across series, so it is not placed with any one of them.")
+(documentation Interference EnglishWrittenLanguage "A &%SocialInteraction in which an agent has the purpose of making it possible that another agent does not carry out, during the interference, an activity that the other agent desires to perform. The target of the interference is that agent or, when the target is a &%Ship, the ship whose captain that agent is. An interference that fails is still an interference.")
 (termFormat EnglishWrittenLanguage Interference "interference")
+
+;; Rule 1: An interference has an agent, a target, and a cognitive agent whose
+;; desired activity it is meant to stop during the interference. That agent is
+;; the target itself or, when the target is a ship, its captain: desires
+;; requires a CognitiveAgent, and a ship is an Artifact.
+(=>
+  (instance ?I Interference)
+  (exists (?A ?T ?B ?C)
+    (and
+      (agent ?I ?A)
+      (patient ?I ?T)
+      (instance ?B CognitiveAgent)
+      (not
+        (equal ?A ?B))
+      (or
+        (equal ?B ?T)
+        (and
+          (instance ?T Ship)
+          (member ?B
+            (ShipCrewFn ?T))
+          (attribute ?B ShipCaptain)))
+      (subclass ?C IntentionalProcess)
+      (desires ?B
+        (exists (?P)
+          (and
+            (instance ?P ?C)
+            (agent ?P ?B))))
+      (hasPurposeForAgent ?I ?A
+        (modalAttribute
+          (not
+            (exists (?P)
+              (and
+                (instance ?P ?C)
+                (agent ?P ?B)
+                (overlapsTemporally
+                  (WhenFn ?P)
+                  (WhenFn ?I)))))
+          Possibility)))))
 
 ;; 3. Harassment
 (subclass Harassment Interference)
 
-(documentation Harassment EnglishWrittenLanguage "Actions or demonstrations that do not constitute a hostile act but are calculated to inconvenience, disrupt, or alarm. Harassment is provocative in nature but falls short of hostile intent or a hostile act, and therefore does not trigger self-defense rights under ROE (Newport Rules of Engagement (ROE) Handbook). Per Appendix 4 paragraph 4.3 of the Handbook, the line between harassment and hostile intent is highly contextual: the same act may be one or the other depending on the level of tension. Harassment is placed under &%Interference, defined at item 2b, alongside the interference classes of Series 20 and 21; what distinguishes it is that it is provocative and falls short of hostile intent, not that it impedes something different in kind.")
+(documentation Harassment EnglishWrittenLanguage "Actions or demonstrations that do not constitute a &%HostileAct but are calculated to inconvenience, disrupt, or alarm. Harassment is provocative in nature but falls short of &%HostileIntent or a &%HostileAct, and therefore does not trigger the right of self-defense (Newport Rules of Engagement (ROE) Handbook). The line between harassment and hostile intent depends on context: the same act may be one or the other depending on the level of tension.")
 
 (termFormat EnglishWrittenLanguage Harassment "harassment")
 
@@ -146,23 +184,9 @@
 
 ;; Rule 3 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
-;; Rule 4: Harassment has the purpose of interfering with a military operation
-;; of its target. An earlier version gave a process where &%desires and &%hasPurpose
-;; take a &%Formula; the purpose is now stated as a formula, and the condition
-;; that the operation is desired, which added nothing the agent relation does
-;; not, is dropped.
-(=>
-  (and
-    (instance ?H Harassment)
-    (patient ?H ?TARGET)
-    (instance ?TARGET AutonomousAgent)
-    (instance ?OP MilitaryOperation)
-    (agent ?OP ?TARGET))
-  (hasPurpose ?H
-    (exists (?I)
-      (and
-        (instance ?I Interference)
-        (patient ?I ?OP)))))
+;; Rule 4 removed. It stated that harassment has the purpose of hindering an
+;; activity its target desires to perform; Harassment now inherits this, in a
+;; stronger form, from the definition of Interference at item 2b.
 
 ;; 4. SelfDefense
 (subclass SelfDefense UseOfForce)
@@ -338,9 +362,9 @@
   (instance ?PROC UseOfForce))
 
 ;; 12. Deadly Force
-(subclass ForceCharacter InternalAttribute)
+(subclass ForceCharacter RelationalAttribute)
 
-(documentation ForceCharacter EnglishWrittenLanguage "An attribute characterizing the nature of force used, such as deadly or non-deadly, in rules of engagement contexts. Per the Newport glossary the distinction is a property of the force applied, not of the weapon employed: the same weapon may be used in a deadly or a non-deadly manner. It sits under &%InternalAttribute; SUMO has no class for the character of an application of force, and the attribute is kept rather than replaced by classes because the non-deadly action classes of ROE_Series.kif are defined through it.")
+(documentation ForceCharacter EnglishWrittenLanguage "An attribute characterizing the nature of force used, such as deadly or non-deadly, in rules of engagement contexts. Per the Newport glossary the distinction is a property of the force applied, not of the weapon employed: the same weapon may be used in a deadly or a non-deadly manner. It is a relation between the agent, the weapon and the target, since whether force is deadly depends on what the agent intends and on what the force is likely to cause to the target.")
 (termFormat EnglishWrittenLanguage ForceCharacter "force character")
 
 (instance DeadlyForce ForceCharacter)
@@ -349,20 +373,35 @@
 
 (termFormat EnglishWrittenLanguage DeadlyForce "deadly force")
 
-;; Rule 1: A process that causes death is an application of deadly force
+;; Rule 1: Deadly force is intended or likely to cause death or injury. SUMO
+;; has no class for serious injury, so &%Injuring stands for it.
 (=>
   (and
-    (instance ?P Process)
-    (instance ?E Death)
-    (causes ?P ?E))
-  (property ?P DeadlyForce))
+    (property ?P DeadlyForce)
+    (agent ?P ?A))
+  (or
+    (hasPurposeForAgent ?P ?A
+      (exists (?E)
+        (and
+          (or
+            (instance ?E Death)
+            (instance ?E Injuring))
+          (causes ?P ?E))))
+    (modalAttribute
+      (exists (?E)
+        (and
+          (or
+            (instance ?E Death)
+            (instance ?E Injuring))
+          (causes ?P ?E)))
+      Likely)))
 
-;; Rule 2 removed. It made every process causing &%Injuring an application of
-;; deadly force. The Handbook defines deadly force as force intended or likely
-;; to cause death or serious bodily harm, and non-deadly force can injure; with
-;; Rule 3 of item 13 (deadly implies not non-deadly), any non-deadly force that
-;; injured made the knowledge base inconsistent. Only Rule 1, death caused,
-;; remains as a sufficient condition.
+;; Earlier sufficient rules removed. One made every process causing &%Death an
+;; application of deadly force, another every process causing &%Injuring. The
+;; Handbook defines deadly force by intent or likelihood, regardless of the
+;; result, so the character cannot be derived from the result: a non-deadly
+;; application that unexpectedly caused death or injury received both
+;; characters, and &%contraryAttribute made the knowledge base inconsistent.
 
 ;; 13. Non-deadly Force
 (instance NonDeadlyForce ForceCharacter)
@@ -373,17 +412,6 @@
 
 ;; Rule 1: Deadly and non-deadly force are mutually exclusive
 (contraryAttribute DeadlyForce NonDeadlyForce)
-
-;; Rule 3: The contrary is also stated as an implication. SUMO derives it from
-;; &%contraryAttribute, but through an axiom carrying a row variable and
-;; &%ListOrderFn, which is among the most expensive paths in the knowledge
-;; base. Stating it directly lets a prover show that a deadly application of
-;; force is not an instance of a non-deadly action class, which is what the
-;; converse class definitions in ROE_Series.kif turn on.
-(=>
-  (property ?A DeadlyForce)
-  (not
-    (property ?A NonDeadlyForce)))
 
 ;; Rule 2: Ordering on the force scale, for the "up to and including deadly
 ;; force" ceiling used by the Newport measures
@@ -425,9 +453,16 @@
 
 ;; 15. Disabling Fire
 (subclass DisablingFire Shooting)
+
+;; DisablingFire is a UseOfForce by its purpose, so it is classified before it
+;; is fired. Deriving that status only from damage actually caused, through
+;; Rule 3a, would make the same planned act a use of force after the fact and
+;; not before, and a decision taken before firing could not rely on it.
+;; Warning shots and non-disabling fire are not fired to damage and are not
+;; classified as a use of force.
 (subclass DisablingFire UseOfForce)
 
-(documentation DisablingFire EnglishWrittenLanguage "Disabling fire is fire directed at a target (usually a vessel or vehicle) to impair its ability to function or maneuver, without necessarily destroying it (Newport Rules of Engagement (ROE) Series 24). It is a &%UseOfForce by its purpose, since it is fired in order to damage, and is classified so before it is fired. Deriving that status only from damage actually caused, through Rule 3a, would make the same planned act a use of force after the fact and not before, and a decision taken before firing could not rely on it. Warning shots and non-disabling fire are not fired to damage and are not classified as a use of force.")
+(documentation DisablingFire EnglishWrittenLanguage "Fire directed at a target, usually a vessel or vehicle, in order to impair its ability to function or maneuver, without necessarily destroying it (Newport Rules of Engagement (ROE) Series 24). It is a &%UseOfForce because it is fired in order to cause damage, whether or not damage results.")
 
 (termFormat EnglishWrittenLanguage DisablingFire "disabling fire")
 
@@ -532,9 +567,9 @@
 
 ;; 19. TacticalQuestioning
 (subclass TacticalQuestioning Questioning)
-(subclass TacticalQuestioning MilitaryOperation)
+(subclass TacticalQuestioning MilitaryProcess)
 
-(documentation TacticalQuestioning EnglishWrittenLanguage "Field-expedient initial questioning for information of immediate tactical value, conducted at or near the point of capture, prior to formal interrogation. It is a specialized form of Questioning used in operational self-defense / Rules of Engagement (ROE) contexts (Newport ROE Appendix 4).")
+(documentation TacticalQuestioning EnglishWrittenLanguage "The field-expedient initial questioning for information of immediate tactical value of a captured or detained person at or near the point of capture and before the individual is placed in a detention facility (Newport Rules of Engagement (ROE) Handbook, glossary and Series 25).")
 
 (termFormat EnglishWrittenLanguage TacticalQuestioning "tactical questioning")
 
@@ -546,32 +581,60 @@
       (instance ?P Human)
       (patient ?TQ ?P))))
 
-;; Rule 2: TacticalQuestioning -- agent doubts legality,
-;; requests a specific BoardingOperation from higher authority
+;; Rule 2: The person questioned is held, captured or detained, during the
+;; questioning. This is a necessary condition that distinguishes tactical
+;; questioning from other questioning; it is not a full definition, since not
+;; every &%Confining is a military capture or detention.
 (=>
   (and
     (instance ?TQ TacticalQuestioning)
-    (patient ?TQ ?P)
-    (instance ?P Human)
-    (agent ?TQ ?A)
-    (instance ?A CognitiveAgent)
-    (doubts ?A
-      (attribute ?P Legal)))
-  (exists (?REQ ?CMD ?BO ?SHIP)
+    (patient ?TQ ?P))
+  (exists (?D)
     (and
-      (instance ?REQ Requesting)
-      (agent ?REQ ?A)
-      (instance ?CMD CognitiveAgent)
-      (destination ?REQ ?CMD)
-      (instance ?BO BoardingOperation)
-      (patient ?BO ?SHIP)
-      (instance ?SHIP Ship)
-      (patient ?REQ ?BO)
-      (earlier
+      (instance ?D Confining)
+      (patient ?D ?P)
+      (during
         (WhenFn ?TQ)
-        (WhenFn ?REQ)))))
+        (WhenFn ?D)))))
 
-;; Rule 3 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
+;; 19b. VesselHailing
+(subclass VesselHailing Questioning)
+
+(documentation VesselHailing EnglishWrittenLanguage "A &%Questioning in which a ship, aircraft or shore station calls a vessel, usually by radio, to ask its identity, flag State, cargo, last port of call and destination. The vessel is not under the control of the hailing party and may refuse to answer. The answers are recorded and reported, and they may lead to a boarding.")
+
+(termFormat EnglishWrittenLanguage VesselHailing "hailing a vessel")
+
+;; Rule 1: A hailing is addressed to a vessel
+(=>
+  (instance ?H VesselHailing)
+  (exists (?V)
+    (and
+      (instance ?V WaterVehicle)
+      (destination ?H ?V))))
+
+;; Rule 2: The hailing party does not detain the crew of the hailed vessel
+;; during the hailing. This is what distinguishes hailing from tactical
+;; questioning. A detention by another party, such as the crew of a seized
+;; vessel held by another unit, is not excluded. Other forms of control, such
+;; as restricting movement without detention, are not covered.
+(=>
+  (and
+    (instance ?H VesselHailing)
+    (agent ?H ?A)
+    (destination ?H ?V)
+    (member ?P
+      (ShipCrewFn ?V)))
+  (not
+    (exists (?D)
+      (and
+        (instance ?D Detention)
+        (agent ?D ?A)
+        (patient ?D ?P)
+        (overlapsTemporally
+          (WhenFn ?D)
+          (WhenFn ?H))))))
+
+;; Rule 3 (the obligation to report a doubtful activity) is in ROE_Deontic.kif.
 
 ;; 20. BoardingOperation
 (subclass BoardingOperation MaritimeOperation)
@@ -579,7 +642,7 @@
 
 (disjoint CompliantBoarding NonCompliantBoarding)
 
-(documentation BoardingOperation EnglishWrittenLanguage "A Rules of Engagement (ROE)-regulated maritime boarding operation: the process of entering a vessel (typically a Ship) in order to search, inspect, or exercise control under applicable ROE (Newport ROE Series 93).")
+(documentation BoardingOperation EnglishWrittenLanguage "The process of entering a vessel, typically a &%Ship, in order to search, inspect, or take control of it (Newport ROE Series 93).")
 
 (termFormat EnglishWrittenLanguage BoardingOperation "boarding operation")
 
@@ -682,18 +745,43 @@
         (instance ?S Ship))) Possibility))
 
 ;; 23. SearchOperation
-(subclass SearchOperation Searching)
+(subclass SearchOperation Investigating)
 (subclass SearchOperation MilitaryOperation)
 
-(documentation SearchOperation EnglishWrittenLanguage "A Rules of Engagement (ROE)-regulated search operation: the systematic inspection of persons, vehicles, vessels, aircraft, or premises to locate weapons, contraband, or designated persons, consistent with Newport ROE Series 25.")
+(documentation SearchOperation EnglishWrittenLanguage "The systematic inspection of persons, vehicles, vessels, aircraft, or premises to locate weapons, contraband, or designated persons, consistent with Newport ROE Series 25.")
 
 (termFormat EnglishWrittenLanguage SearchOperation "search")
 
-;; Rule 1: A search operation has at least one target
+;; Rule 1: A search operation takes place at a person, a vehicle or premises,
+;; and its purpose is to learn whether something of a kind is there. The
+;; parent is &%Investigating, not &%Searching: SUMO's &%Searching asserts that
+;; the object sought exists and is located somewhere, so a search that finds
+;; nothing could not be a &%Searching. Either outcome serves the purpose here.
 (=>
-  (instance ?S SearchOperation)
-  (exists (?T)
-    (patient ?S ?T)))
+  (and
+    (instance ?S SearchOperation)
+    (agent ?S ?A))
+  (exists (?PLACE ?C)
+    (and
+      (eventLocated ?S ?PLACE)
+      (or
+        (instance ?PLACE Human)
+        (instance ?PLACE Vehicle)
+        (instance ?PLACE StationaryArtifact))
+      (subclass ?C Physical)
+      (hasPurposeForAgent ?S ?A
+        (or
+          (knows ?A
+            (exists (?OBJ)
+              (and
+                (instance ?OBJ ?C)
+                (located ?OBJ ?PLACE))))
+          (knows ?A
+            (not
+              (exists (?OBJ)
+                (and
+                  (instance ?OBJ ?C)
+                  (located ?OBJ ?PLACE))))))))))
 
 ;; Rule 2 moved to ROE_Deontic.kif (deontic layer, kept out of the main knowledge base).
 
@@ -725,7 +813,7 @@
 ;; 25. AutonomousWeaponSystem
 (subclass AutonomousWeaponSystem Weapon)
 
-(documentation AutonomousWeaponSystem EnglishWrittenLanguage "A weapon system that, once activated, can select and engage targets without further intervention by a human operator (Newport Rules of Engagement (ROE) Series 84). Note that Series 84 assumes the use of an autonomous weapon system is prohibited unless authorized by a rule, in contrast to Series 83 for semi-autonomous systems.")
+(documentation AutonomousWeaponSystem EnglishWrittenLanguage "A weapon system that, once activated, can select and engage targets without further intervention by a human operator (Newport Rules of Engagement (ROE) Series 84).")
 
 (termFormat EnglishWrittenLanguage AutonomousWeaponSystem "autonomous weapon system")
 
@@ -747,7 +835,7 @@
 ;; 26. SemiAutonomousWeaponSystem
 (subclass SemiAutonomousWeaponSystem Weapon)
 
-(documentation SemiAutonomousWeaponSystem EnglishWrittenLanguage "A weapon system that engages targets based on human-provided target selection or approval (Newport Rules of Engagement (ROE) Series 83). Series 83 assumes such use is permitted unless prohibited or limited by a rule.")
+(documentation SemiAutonomousWeaponSystem EnglishWrittenLanguage "A weapon system that engages targets based on human-provided target selection or approval (Newport Rules of Engagement (ROE) Series 83).")
 
 (termFormat EnglishWrittenLanguage SemiAutonomousWeaponSystem "semi-autonomous weapon system")
 
