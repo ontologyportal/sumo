@@ -333,41 +333,65 @@
       (instance ?BO BoardingOperation)
       (agent ?BO ?A))))
 
+;; --- Authority granted for an operation
+;;
+;; The rules below state authority that is granted, not inherent, so they use
+;; &%confersRight. The authority that confers it is the one whose ROE govern
+;; the operation (&%roeIssuingAuthority), and the right goes to the
+;; &%CognitiveAgent who acts: a boarding officer, a search team member, or the
+;; captain. Earlier versions stated (permits ?A ...) of the acting agent, so
+;; the agent permitted itself.
+
 ;; --- from item 20. BoardingOperation
 
-;; Rule 3: During a BoardingOperation, SearchOperation is permitted
+;; Rule 3: A boarding carried out within an operation carries the authority,
+;; conferred by the authority whose ROE govern the operation, to search the
+;; boarded vessel
 (=>
   (and
     (instance ?BO BoardingOperation)
     (agent ?BO ?A)
-    (instance ?A AutonomousAgent)
-    (patient ?BO ?P)
-    (instance ?P Physical))
-  (permits ?A
+    (instance ?A CognitiveAgent)
+    (patient ?BO ?V)
+    (instance ?V WaterVehicle)
+    (subProcess ?BO ?OP)
+    (roeIssuingAuthority ?OP ?HQ))
+  (confersRight ?HQ ?A
     (exists (?S)
       (and
         (instance ?S SearchOperation)
-        (eventLocated ?S ?P)
+        (eventLocated ?S ?V)
         (agent ?S ?A)
         (subProcess ?S ?BO)))))
 
 ;; --- from item 23. SearchOperation
 
-;; Rule 2: A SearchOperation may lead to Detention of persons or seizure of vessels
+;; Rule 2: If a search within an operation finds an object at the place
+;; searched, and the agent knows that its presence there is illegal, the
+;; authority whose ROE govern the operation confers the right to detain the
+;; person who possesses it. The legality is stated of the formula, since
+;; &%Illegal applies to formulas, not to objects or persons.
 (=>
   (and
     (instance ?S SearchOperation)
-    (patient ?S ?P)
-    (instance ?P Physical)
     (agent ?S ?A)
-    (instance ?A AutonomousAgent)
-    (property ?P Illegal))
-  (permits ?A
+    (instance ?A CognitiveAgent)
+    (eventLocated ?S ?PLACE)
+    (located ?OBJ ?PLACE)
+    (knows ?A
+      (modalAttribute
+        (located ?OBJ ?PLACE)
+        Illegal))
+    (instance ?P Human)
+    (possesses ?P ?OBJ)
+    (subProcess ?S ?OP)
+    (roeIssuingAuthority ?OP ?HQ))
+  (confersRight ?HQ ?A
     (exists (?D)
       (and
         (instance ?D Detention)
-        (patient ?D ?P)
         (agent ?D ?A)
+        (patient ?D ?P)
         (earlier
           (WhenFn ?S)
           (WhenFn ?D))))))
@@ -392,103 +416,126 @@
 
 ;; --- from item 28. OpposedBoarding
 
-;; Rule 2: OpposedBoarding triggers UnitSelfDefense
+;; Rule 2 removed. It permitted the boarding team unit self-defense against a
+;; hostile act or hostile intent, with the team permitting itself. The members
+;; of the team hold the right of individual self-defense under item 5 Rule 2,
+;; and their ship's captain the right of unit self-defense under item 6 Rule 3.
+
+;; Rule 3: A person who commits a hostile act or shows hostile intent against
+;; the boarding officer during an opposed boarding may be detained, on
+;; authority conferred by the authority whose ROE govern the operation
 (=>
   (and
     (instance ?OB OpposedBoarding)
-    (agent ?OB ?TEAM)
-    (instance ?TEAM MilitaryOrganization)
+    (agent ?OB ?A)
+    (instance ?A CognitiveAgent)
     (instance ?T HostileConduct)
-    (patient ?T ?TEAM))
-  (permits ?TEAM
-    (exists (?SD)
-      (and
-        (instance ?SD UnitSelfDefense)
-        (agent ?SD ?TEAM)
-        (causes ?T ?SD)))))
-
-;; Rule 3: After OpposedBoarding, Detention is permitted
-(=>
-  (and
-    (instance ?OB OpposedBoarding)
-    (agent ?OB ?TEAM)
-    (instance ?TEAM MilitaryOrganization)
-    (patient ?OB ?SHIP)
-    (instance ?SHIP Ship))
-  (permits ?TEAM
-    (exists (?DET ?P)
-      (and
-        (instance ?DET Detention)
-        (agent ?DET ?TEAM)
-        (instance ?P Human)
-        (patient ?DET ?P)
-        (earlier
-          (WhenFn ?OB)
-          (WhenFn ?DET))))))
-
-;; --- from item 32. MaritimeInterdictionOperation
-
-;; Rule 2: MIO permits SearchOperation and Detention
-(=>
-  (and
-    (instance ?MIO MaritimeInterdictionOperation)
-    (agent ?MIO ?A)
-    (instance ?A AutonomousAgent))
-  (permits ?A
-    (exists (?SO ?DET ?P)
-      (and
-        (instance ?SO SearchOperation)
-        (instance ?DET Detention)
-        (instance ?P Human)
-        (agent ?SO ?A)
-        (agent ?DET ?A)
-        (patient ?DET ?P)
-        (subProcess ?DET ?MIO)
-        (subProcess ?SO ?MIO)
-        (earlier
-          (WhenFn ?SO)
-          (WhenFn ?DET))))))
-
-;; --- from item 33. VisitAndSearchOperation
-
-;; Rule 2: If a searched person is found to be Illegal, Detention is permitted
-;; as a subprocess of VisitAndSearchOperation
-(=>
-  (and
-    (instance ?VAS VisitAndSearchOperation)
-    (instance ?SO SearchOperation)
-    (subProcess ?SO ?VAS)
-    (agent ?SO ?A)
-    (instance ?A AutonomousAgent)
-    (patient ?SO ?P)
+    (agent ?T ?P)
     (instance ?P Human)
-    (attribute ?P Illegal))
-  (permits ?A
+    (patient ?T ?A)
+    (overlapsTemporally
+      (WhenFn ?T)
+      (WhenFn ?OB))
+    (subProcess ?OB ?OP)
+    (roeIssuingAuthority ?OP ?HQ))
+  (confersRight ?HQ ?A
     (exists (?DET)
       (and
         (instance ?DET Detention)
         (agent ?DET ?A)
         (patient ?DET ?P)
-        (subProcess ?DET ?VAS)
         (earlier
-          (WhenFn ?SO)
+          (WhenFn ?T)
           (WhenFn ?DET))))))
+
+;; --- from item 32. MaritimeInterdictionOperation
+
+;; Rule 2: The authority whose ROE govern a maritime interdiction operation
+;; confers on its agents the right to search within it. Detention is no longer
+;; granted here for the whole operation: it follows from what a search finds
+;; (item 23 Rule 2) or from opposition to a boarding (item 28 Rule 3).
+(=>
+  (and
+    (instance ?MIO MaritimeInterdictionOperation)
+    (agent ?MIO ?A)
+    (instance ?A CognitiveAgent)
+    (roeIssuingAuthority ?MIO ?HQ))
+  (confersRight ?HQ ?A
+    (exists (?SO)
+      (and
+        (instance ?SO SearchOperation)
+        (agent ?SO ?A)
+        (subProcess ?SO ?MIO)))))
+
+;; --- from item 33. VisitAndSearchOperation
+
+;; Rule 2 removed. It permitted detention of a searched person found to be
+;; Illegal. A visit and search includes a &%SearchOperation, so item 23 Rule 2
+;; now covers it, with the legality stated of a formula rather than of the
+;; person.
+
+;; --- Valid zone prohibitions (items 39, 51 and 57)
+;; &%zoneRestriction (ROE_Master.kif) records what an authority announces;
+;; &%zoneProhibition records that the prohibition is legally valid. Whether it
+;; is valid is a legal judgment stated per scenario.
+;; The subrelation is a modelling choice, not a logical necessity: a valid
+;; prohibition is taken to have been announced, which fits announced zones but
+;; would be too strong for a valid restriction that was never announced.
+;; Known limits: the prohibition is general, on the occurrence of some process
+;; of the class in the zone (O not-exists x P(x)); nothing here derives that a
+;; particular process is prohibited or &%Illegal (for all x, P(x) -> O not-x).
+;; How a permission for a particular flight interacts with the general
+;; prohibition is also not modelled. Both are left for the normative
+;; architecture (Group 5).
+(instance zoneProhibition QuaternaryPredicate)
+(subrelation zoneProhibition zoneRestriction)
+(domain zoneProhibition 1 AutonomousAgent)
+(domain zoneProhibition 2 GeographicArea)
+(domainSubclass zoneProhibition 3 Process)
+(domainSubclass zoneProhibition 4 AutonomousAgent)
+(documentation zoneProhibition EnglishWrittenLanguage
+  "(&%zoneProhibition ?AUTH ?ZONE ?PROC ?AGENT) means that ?AUTH validly
+   prohibits processes of type ?PROC located in ?ZONE whose agent is an
+   instance of ?AGENT.")
+(termFormat EnglishWrittenLanguage zoneProhibition "zone prohibition")
+(format EnglishWrittenLanguage zoneProhibition
+  "%1 %n validly prohibits %3 in %2 by %4")
+
+;; Rule: While a zone prohibition holds, it is prohibited that a process of the
+;; class, by an agent of the class, occurs in the zone.
+(=>
+  (holdsDuring ?T
+    (zoneProhibition ?AUTH ?ZONE ?PROC ?AGENT))
+  (holdsDuring ?T
+    (modalAttribute
+      (exists (?X ?A)
+        (and
+          (instance ?X ?PROC)
+          (eventLocated ?X ?ZONE)
+          (agent ?X ?A)
+          (instance ?A ?AGENT)))
+      Prohibition)))
 
 ;; --- from item 41. HorsDeCombat
 
-;; Rule 1: HorsDeCombat person cannot be attacked
+;; Rule 1: While a person is hors de combat, an attack on the person is
+;; prohibited. The norm is stated with &%modalAttribute and &%Prohibition,
+;; since it comes from the law of armed conflict and binds every party; an
+;; earlier version stated (not (permits ?A ...)) of the attacker, so the
+;; attacker withheld a permission from itself, and it had no time.
 (=>
-  (and
-    (instance ?P Human)
-    (attribute ?P HorsDeCombat)
-    (instance ?A AutonomousAgent))
-  (not
-    (permits ?A
+  (holdsDuring ?T
+    (attribute ?P HorsDeCombat))
+  (holdsDuring ?T
+    (modalAttribute
       (exists (?ATK)
         (and
           (instance ?ATK Attack)
           (patient ?ATK ?P)
-          (agent ?ATK ?A))))))
+          (overlapsTemporally
+            (WhenFn ?ATK)
+            ?T)))
+      Prohibition)))
 
 ;; --- from item 59. NonCombatant
 
