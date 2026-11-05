@@ -60,8 +60,11 @@
 ;; attack on any Combatant, while the NoStrikeList, NonCombatant, HorsDeCombat
 ;; and FriendlyForce rules deny permission for the same formula, so a target
 ;; meeting both conditions made the main knowledge base inconsistent. The
-;; self-defense permissions and Harassment Rule 3 form another such pair. No
-;; test of the authorization layer used these rules.
+;; self-defense permissions and Harassment Rule 3 formed another such pair;
+;; they now state rights with &%holdsRight, and Harassment Rule 3 reaches only
+;; a self-defense caused by the harassment, which a hostile act cannot be, so
+;; the pair no longer conflicts. No test of the authorization layer used these
+;; rules.
 ;;
 ;; HigherHeadquarters Rule 3 has been corrected on the way: it used an
 ;; &%Order, a &%Sentence, as the agent of a process; the act of ordering is an
@@ -70,29 +73,57 @@
 
 ;; --- from item 3. Harassment
 
-;; Rule 3: Harassment does NOT trigger self-defense authorization
+;; Rule 3: Harassment does NOT give rise to a right of self-defense. The
+;; captain of the harassed ship does not hold the right to a self-defense by
+;; the crew against the harassing ship that is caused by the harassment. A
+;; self-defense caused by something else, such as a hostile act at the same
+;; time, is not reached. The right is the captain's: unit self-defense is the
+;; right of the unit commander to defend the unit (Newport glossary).
 (=>
   (and
     (instance ?H Harassment)
-    (patient ?H ?TARGET)
-    (instance ?TARGET AutonomousAgent))
+    (agent ?H ?A)
+    (patient ?H ?T)
+    (instance ?T Ship)
+    (member ?A
+      (ShipCrewFn ?S))
+    (member ?CAPT
+      (ShipCrewFn ?T))
+    (attribute ?CAPT ShipCaptain))
   (not
-    (permits ?TARGET
-      (exists (?S)
+    (holdsRight ?CAPT
+      (exists (?SD ?X)
         (and
-          (instance ?S SelfDefense)
-          (patient ?S ?H))))))
+          (instance ?SD SelfDefense)
+          (agent ?SD ?X)
+          (member ?X
+            (ShipCrewFn ?T))
+          (patient ?SD ?S)
+          (causes ?H ?SD))))))
+
+;; --- Rights of self-defense
+;;
+;; Self-defense is an inherent right, so these rules use &%holdsRight, which
+;; names the holder of a right and no source for it. &%permits is the act of
+;; an agent with the power to prohibit (Law.kif), and &%confersRight names an
+;; entity that grants the right; both fit authority granted by ROE, not an
+;; inherent right. SUMO draws the same line in MilitaryProcesses.kif. The
+;; holder must be a &%CognitiveAgent: for a ship it is the captain, and for a
+;; State its chief of state or head of government. Until SUMO can represent
+;; the intentions of an organization, the captain stands for the ship: the
+;; ship acts as a cognitive agent through its captain, and through the captain
+;; its crew.
 
 ;; --- from item 5. IndividualSelfDefense
 
-;; Rule 2: If HostileAct or HostileIntent targets a Human,
-;; that individual is permitted to use IndividualSelfDefense
+;; Rule 2: A human who is the target of a hostile act or hostile intent holds
+;; the right of individual self-defense against it
 (=>
   (and
     (instance ?T HostileConduct)
     (patient ?T ?A)
     (instance ?A Human))
-  (permits ?A
+  (holdsRight ?A
     (exists (?S)
       (and
         (instance ?S IndividualSelfDefense)
@@ -101,98 +132,133 @@
 
 ;; --- from item 6. UnitSelfDefense
 
-;; Rule 2: UnitSelfDefense protects units from the same State
+;; Rule 2: The captain of a ship holds the right to defend another ship of the
+;; same military organization against an attack
 (=>
   (and
     (instance ?T Attack)
-    (instance ?TARGET MilitaryOrganization)
     (patient ?T ?TARGET)
-    (instance ?U MilitaryOrganization)
+    (instance ?TARGET Ship)
+    (instance ?SHIP Ship)
     (not
-      (equal ?U ?TARGET))
-    (instance ?HQ MilitaryOrganization)
-    (subOrganization ?U ?HQ)
-    (subOrganization ?TARGET ?HQ))
-  (permits ?U
-    (exists (?S)
+      (equal ?SHIP ?TARGET))
+    (member ?CAPT
+      (ShipCrewFn ?SHIP))
+    (attribute ?CAPT ShipCaptain)
+    (member ?CAPT2
+      (ShipCrewFn ?TARGET))
+    (attribute ?CAPT2 ShipCaptain)
+    (instance ?ORG MilitaryOrganization)
+    (member ?CAPT ?ORG)
+    (member ?CAPT2 ?ORG))
+  (holdsRight ?CAPT
+    (exists (?S ?X)
       (and
         (instance ?S UnitSelfDefense)
-        (agent ?S ?U)
-        (patient ?S ?TARGET)
+        (agent ?S ?X)
+        (member ?X
+          (ShipCrewFn ?SHIP))
         (causes ?T ?S)))))
 
-;; Rule 3: If HostileAct or HostileIntent targets a MilitaryOrganization,
-;; UnitSelfDefense is permitted
+;; Rule 3: The captain of a ship that is the target of a hostile act or
+;; hostile intent holds the right of unit self-defense against it
 (=>
   (and
     (instance ?T HostileConduct)
-    (patient ?T ?U)
-    (instance ?U MilitaryOrganization))
-  (permits ?U
-    (exists (?S)
+    (patient ?T ?SHIP)
+    (instance ?SHIP Ship)
+    (member ?CAPT
+      (ShipCrewFn ?SHIP))
+    (attribute ?CAPT ShipCaptain))
+  (holdsRight ?CAPT
+    (exists (?S ?X)
       (and
         (instance ?S UnitSelfDefense)
-        (agent ?S ?U)
+        (agent ?S ?X)
+        (member ?X
+          (ShipCrewFn ?SHIP))
         (causes ?T ?S)))))
 
 ;; --- from item 7. DefenseOfOthers
 
-;; Rule: If a HostileAct or HostileIntent threatens a designated entity ?Y,
-;; then ?X who is protecting ?Y is permitted to use DefenseOfOthers.
+;; Rule: When a higher headquarters designates persons who are not part of the
+;; Force and the captain of a ship protects them, the headquarters confers on
+;; the captain the right to defend them against a hostile act or hostile
+;; intent. By Merge.kif, the captain then holds that right. Defense of others
+;; is conferred, not inherent, because the persons to be defended are
+;; specified by authority (Newport Series 12); for some States the right is
+;; inherent under national law, which this rule does not represent. A friendly
+;; unit of another State is not covered here: that is an extension of unit
+;; self-defense under Series 11.
 (=>
   (and
     (instance ?T HostileConduct)
     (patient ?T ?Y)
-    (instance ?Y AutonomousAgent)
+    (instance ?HQ HigherHeadquarters)
     (instance ?DES Designating)
+    (agent ?DES ?HQ)
     (patient ?DES ?Y)
     (instance ?PR Protecting)
-    (agent ?PR ?X)
+    (agent ?PR ?CAPT)
     (patient ?PR ?Y)
-    (instance ?X AutonomousAgent))
-  (permits ?X
-    (exists (?S)
+    (instance ?SHIP Ship)
+    (member ?CAPT
+      (ShipCrewFn ?SHIP))
+    (attribute ?CAPT ShipCaptain))
+  (confersRight ?HQ ?CAPT
+    (exists (?S ?X)
       (and
         (instance ?S DefenseOfOthers)
         (agent ?S ?X)
-        (patient ?S ?Y)
+        (member ?X
+          (ShipCrewFn ?SHIP))
         (causes ?T ?S)))))
 
 ;; --- from item 8. NationalSelfDefense
 
-;; Rule: If a Nation faces a HostileAct or HostileIntent,
-;; it is permitted to use NationalSelfDefense.
+;; Rule: The leader of a State that is the target of a hostile act or hostile
+;; intent holds the right of national self-defense against it. This is the
+;; inherent right recognized in Article 51 of the UN Charter (jus ad bellum).
+;; Which office decides differs between States, hence the disjunction; the
+;; Handbook says the decision is retained at the highest levels of
+;; governmental or executive authority.
 (=>
   (and
     (instance ?T HostileConduct)
     (patient ?T ?ST)
-    (instance ?ST Nation))
-  (permits ?ST
+    (instance ?ST Nation)
+    (or
+      (chiefOfState ?ST ?POS ?LEADER)
+      (headOfGovernment ?ST ?POS ?LEADER)))
+  (holdsRight ?LEADER
     (exists (?S)
       (and
         (instance ?S NationalSelfDefense)
-        (agent ?S ?ST)
         (causes ?T ?S)))))
 
 ;; --- from item 9. CollectiveSelfDefense
 
-;; Rule: If an allied Nation (?ALLY2) faces a HostileAct or HostileIntent,
-;; then another allied Nation (?ALLY1) is permitted to use CollectiveSelfDefense.
+;; Rule: If a State is the target of a hostile act or hostile intent, the
+;; leader of an allied State holds the right of collective self-defense to
+;; defend it (UN Charter, Article 51).
 (=>
   (and
-    (instance ?H HostileConduct)
-    (patient ?H ?ALLY2)
+    (instance ?T HostileConduct)
+    (patient ?T ?ALLY2)
     (instance ?ALLY2 Nation)
     (instance ?ALLY1 Nation)
     (not
       (equal ?ALLY1 ?ALLY2))
-    (allied ?ALLY1 ?ALLY2))
-  (permits ?ALLY1
+    (allied ?ALLY1 ?ALLY2)
+    (or
+      (chiefOfState ?ALLY1 ?POS ?LEADER)
+      (headOfGovernment ?ALLY1 ?POS ?LEADER)))
+  (holdsRight ?LEADER
     (exists (?CSD)
       (and
         (instance ?CSD CollectiveSelfDefense)
-        (agent ?CSD ?ALLY1)
-        (patient ?CSD ?ALLY2)))))
+        (patient ?CSD ?ALLY2)
+        (causes ?T ?CSD)))))
 
 ;; --- from item 10. Declared
 
@@ -215,7 +281,41 @@
         (agent ?E ?UNIT)
         (patient ?E ?F)))))
 
-;; --- from item 19. TacticalQuestioning
+;; --- from item 19b. VesselHailing
+
+;; Rule 3: If the agent of a hailing doubts that the activity of the hailed
+;; vessel is legal, the agent is obliged to report it to a higher
+;; headquarters. Whether a boarding follows is the decision of that
+;; headquarters, so the rule states an obligation to report, not a boarding.
+(=>
+  (and
+    (instance ?H VesselHailing)
+    (agent ?H ?A)
+    (instance ?A CognitiveAgent)
+    (destination ?H ?V)
+    (instance ?ACT IntentionalProcess)
+    (instrument ?ACT ?V)
+    (overlapsTemporally
+      (WhenFn ?ACT)
+      (WhenFn ?H))
+    (doubts ?A
+      (modalAttribute
+        (instrument ?ACT ?V)
+        Legal)))
+  (modalAttribute
+    (exists (?REP ?HQ)
+      (and
+        (instance ?REP Stating)
+        (agent ?REP ?A)
+        (instance ?HQ HigherHeadquarters)
+        (destination ?REP ?HQ)
+        (refers ?REP ?ACT)
+        (earlier
+          (WhenFn ?H)
+          (WhenFn ?REP))))
+    Obligation))
+
+;; --- requests for boarding (formerly under item 19. TacticalQuestioning)
 
 ;; Rule 3: If higher authority approves the requesting agent,
 ;; BoardingOperation is permitted
@@ -233,41 +333,65 @@
       (instance ?BO BoardingOperation)
       (agent ?BO ?A))))
 
+;; --- Authority granted for an operation
+;;
+;; The rules below state authority that is granted, not inherent, so they use
+;; &%confersRight. The authority that confers it is the one whose ROE govern
+;; the operation (&%roeIssuingAuthority), and the right goes to the
+;; &%CognitiveAgent who acts: a boarding officer, a search team member, or the
+;; captain. Earlier versions stated (permits ?A ...) of the acting agent, so
+;; the agent permitted itself.
+
 ;; --- from item 20. BoardingOperation
 
-;; Rule 3: During a BoardingOperation, SearchOperation is permitted
+;; Rule 3: A boarding carried out within an operation carries the authority,
+;; conferred by the authority whose ROE govern the operation, to search the
+;; boarded vessel
 (=>
   (and
     (instance ?BO BoardingOperation)
     (agent ?BO ?A)
-    (instance ?A AutonomousAgent)
-    (patient ?BO ?P)
-    (instance ?P Physical))
-  (permits ?A
+    (instance ?A CognitiveAgent)
+    (patient ?BO ?V)
+    (instance ?V WaterVehicle)
+    (subProcess ?BO ?OP)
+    (roeIssuingAuthority ?OP ?HQ))
+  (confersRight ?HQ ?A
     (exists (?S)
       (and
         (instance ?S SearchOperation)
-        (patient ?S ?P)
+        (eventLocated ?S ?V)
         (agent ?S ?A)
         (subProcess ?S ?BO)))))
 
 ;; --- from item 23. SearchOperation
 
-;; Rule 2: A SearchOperation may lead to Detention of persons or seizure of vessels
+;; Rule 2: If a search within an operation finds an object at the place
+;; searched, and the agent knows that its presence there is illegal, the
+;; authority whose ROE govern the operation confers the right to detain the
+;; person who possesses it. The legality is stated of the formula, since
+;; &%Illegal applies to formulas, not to objects or persons.
 (=>
   (and
     (instance ?S SearchOperation)
-    (patient ?S ?P)
-    (instance ?P Physical)
     (agent ?S ?A)
-    (instance ?A AutonomousAgent)
-    (property ?P Illegal))
-  (permits ?A
+    (instance ?A CognitiveAgent)
+    (eventLocated ?S ?PLACE)
+    (located ?OBJ ?PLACE)
+    (knows ?A
+      (modalAttribute
+        (located ?OBJ ?PLACE)
+        Illegal))
+    (instance ?P Human)
+    (possesses ?P ?OBJ)
+    (subProcess ?S ?OP)
+    (roeIssuingAuthority ?OP ?HQ))
+  (confersRight ?HQ ?A
     (exists (?D)
       (and
         (instance ?D Detention)
-        (patient ?D ?P)
         (agent ?D ?A)
+        (patient ?D ?P)
         (earlier
           (WhenFn ?S)
           (WhenFn ?D))))))
@@ -292,103 +416,126 @@
 
 ;; --- from item 28. OpposedBoarding
 
-;; Rule 2: OpposedBoarding triggers UnitSelfDefense
+;; Rule 2 removed. It permitted the boarding team unit self-defense against a
+;; hostile act or hostile intent, with the team permitting itself. The members
+;; of the team hold the right of individual self-defense under item 5 Rule 2,
+;; and their ship's captain the right of unit self-defense under item 6 Rule 3.
+
+;; Rule 3: A person who commits a hostile act or shows hostile intent against
+;; the boarding officer during an opposed boarding may be detained, on
+;; authority conferred by the authority whose ROE govern the operation
 (=>
   (and
     (instance ?OB OpposedBoarding)
-    (agent ?OB ?TEAM)
-    (instance ?TEAM MilitaryOrganization)
+    (agent ?OB ?A)
+    (instance ?A CognitiveAgent)
     (instance ?T HostileConduct)
-    (patient ?T ?TEAM))
-  (permits ?TEAM
-    (exists (?SD)
-      (and
-        (instance ?SD UnitSelfDefense)
-        (agent ?SD ?TEAM)
-        (causes ?T ?SD)))))
-
-;; Rule 3: After OpposedBoarding, Detention is permitted
-(=>
-  (and
-    (instance ?OB OpposedBoarding)
-    (agent ?OB ?TEAM)
-    (instance ?TEAM MilitaryOrganization)
-    (patient ?OB ?SHIP)
-    (instance ?SHIP Ship))
-  (permits ?TEAM
-    (exists (?DET ?P)
-      (and
-        (instance ?DET Detention)
-        (agent ?DET ?TEAM)
-        (instance ?P Human)
-        (patient ?DET ?P)
-        (earlier
-          (WhenFn ?OB)
-          (WhenFn ?DET))))))
-
-;; --- from item 32. MaritimeInterdictionOperation
-
-;; Rule 2: MIO permits SearchOperation and Detention
-(=>
-  (and
-    (instance ?MIO MaritimeInterdictionOperation)
-    (agent ?MIO ?A)
-    (instance ?A AutonomousAgent))
-  (permits ?A
-    (exists (?SO ?DET ?P)
-      (and
-        (instance ?SO SearchOperation)
-        (instance ?DET Detention)
-        (instance ?P Human)
-        (agent ?SO ?A)
-        (agent ?DET ?A)
-        (patient ?DET ?P)
-        (subProcess ?DET ?MIO)
-        (subProcess ?SO ?MIO)
-        (earlier
-          (WhenFn ?SO)
-          (WhenFn ?DET))))))
-
-;; --- from item 33. VisitAndSearchOperation
-
-;; Rule 2: If a searched person is found to be Illegal, Detention is permitted
-;; as a subprocess of VisitAndSearchOperation
-(=>
-  (and
-    (instance ?VAS VisitAndSearchOperation)
-    (instance ?SO SearchOperation)
-    (subProcess ?SO ?VAS)
-    (agent ?SO ?A)
-    (instance ?A AutonomousAgent)
-    (patient ?SO ?P)
+    (agent ?T ?P)
     (instance ?P Human)
-    (attribute ?P Illegal))
-  (permits ?A
+    (patient ?T ?A)
+    (overlapsTemporally
+      (WhenFn ?T)
+      (WhenFn ?OB))
+    (subProcess ?OB ?OP)
+    (roeIssuingAuthority ?OP ?HQ))
+  (confersRight ?HQ ?A
     (exists (?DET)
       (and
         (instance ?DET Detention)
         (agent ?DET ?A)
         (patient ?DET ?P)
-        (subProcess ?DET ?VAS)
         (earlier
-          (WhenFn ?SO)
+          (WhenFn ?T)
           (WhenFn ?DET))))))
+
+;; --- from item 32. MaritimeInterdictionOperation
+
+;; Rule 2: The authority whose ROE govern a maritime interdiction operation
+;; confers on its agents the right to search within it. Detention is no longer
+;; granted here for the whole operation: it follows from what a search finds
+;; (item 23 Rule 2) or from opposition to a boarding (item 28 Rule 3).
+(=>
+  (and
+    (instance ?MIO MaritimeInterdictionOperation)
+    (agent ?MIO ?A)
+    (instance ?A CognitiveAgent)
+    (roeIssuingAuthority ?MIO ?HQ))
+  (confersRight ?HQ ?A
+    (exists (?SO)
+      (and
+        (instance ?SO SearchOperation)
+        (agent ?SO ?A)
+        (subProcess ?SO ?MIO)))))
+
+;; --- from item 33. VisitAndSearchOperation
+
+;; Rule 2 removed. It permitted detention of a searched person found to be
+;; Illegal. A visit and search includes a &%SearchOperation, so item 23 Rule 2
+;; now covers it, with the legality stated of a formula rather than of the
+;; person.
+
+;; --- Valid zone prohibitions (items 39, 51 and 57)
+;; &%zoneRestriction (ROE_Master.kif) records what an authority announces;
+;; &%zoneProhibition records that the prohibition is legally valid. Whether it
+;; is valid is a legal judgment stated per scenario.
+;; The subrelation is a modelling choice, not a logical necessity: a valid
+;; prohibition is taken to have been announced, which fits announced zones but
+;; would be too strong for a valid restriction that was never announced.
+;; Known limits: the prohibition is general, on the occurrence of some process
+;; of the class in the zone (O not-exists x P(x)); nothing here derives that a
+;; particular process is prohibited or &%Illegal (for all x, P(x) -> O not-x).
+;; How a permission for a particular flight interacts with the general
+;; prohibition is also not modelled. Both are left for the normative
+;; architecture (Group 5).
+(instance zoneProhibition QuaternaryPredicate)
+(subrelation zoneProhibition zoneRestriction)
+(domain zoneProhibition 1 AutonomousAgent)
+(domain zoneProhibition 2 GeographicArea)
+(domainSubclass zoneProhibition 3 Process)
+(domainSubclass zoneProhibition 4 AutonomousAgent)
+(documentation zoneProhibition EnglishWrittenLanguage
+  "(&%zoneProhibition ?AUTH ?ZONE ?PROC ?AGENT) means that ?AUTH validly
+   prohibits processes of type ?PROC located in ?ZONE whose agent is an
+   instance of ?AGENT.")
+(termFormat EnglishWrittenLanguage zoneProhibition "zone prohibition")
+(format EnglishWrittenLanguage zoneProhibition
+  "%1 %n validly prohibits %3 in %2 by %4")
+
+;; Rule: While a zone prohibition holds, it is prohibited that a process of the
+;; class, by an agent of the class, occurs in the zone.
+(=>
+  (holdsDuring ?T
+    (zoneProhibition ?AUTH ?ZONE ?PROC ?AGENT))
+  (holdsDuring ?T
+    (modalAttribute
+      (exists (?X ?A)
+        (and
+          (instance ?X ?PROC)
+          (eventLocated ?X ?ZONE)
+          (agent ?X ?A)
+          (instance ?A ?AGENT)))
+      Prohibition)))
 
 ;; --- from item 41. HorsDeCombat
 
-;; Rule 1: HorsDeCombat person cannot be attacked
+;; Rule 1: While a person is hors de combat, an attack on the person is
+;; prohibited. The norm is stated with &%modalAttribute and &%Prohibition,
+;; since it comes from the law of armed conflict and binds every party; an
+;; earlier version stated (not (permits ?A ...)) of the attacker, so the
+;; attacker withheld a permission from itself, and it had no time.
 (=>
-  (and
-    (instance ?P Human)
-    (attribute ?P HorsDeCombat)
-    (instance ?A AutonomousAgent))
-  (not
-    (permits ?A
+  (holdsDuring ?T
+    (attribute ?P HorsDeCombat))
+  (holdsDuring ?T
+    (modalAttribute
       (exists (?ATK)
         (and
           (instance ?ATK Attack)
           (patient ?ATK ?P)
-          (agent ?ATK ?A))))))
+          (overlapsTemporally
+            (WhenFn ?ATK)
+            ?T)))
+      Prohibition)))
 
 ;; --- from item 59. NonCombatant
 
