@@ -1,0 +1,770 @@
+;; Load NavalModeling.kif for Tailhook, in addition to the transportation KB.
+
+;; ======================================================
+;; Minimum Landing Runway Length:
+;; Runway length required for one landing under its assessed conditions.
+;; ======================================================
+(instance minimumLandingRunwayLength BinaryPredicate)
+(domain minimumLandingRunwayLength 1 Landing)
+(domain minimumLandingRunwayLength 2 LengthMeasure)
+(documentation minimumLandingRunwayLength EnglishWrittenLanguage "(minimumLandingRunwayLength ?LANDING ?LENGTH) means that ?LANDING requires at least ?LENGTH of available runway under its assessed conditions and planned landing procedure.")
+
+;; ======================================================
+;; Available Landing Runway Length:
+;; Runway distance available for landing under the scenario conditions.
+;; ======================================================
+(instance availableLandingRunwayLength BinaryPredicate)
+(domain availableLandingRunwayLength 1 Runway)
+(domain availableLandingRunwayLength 2 LengthMeasure)
+(documentation availableLandingRunwayLength EnglishWrittenLanguage "(availableLandingRunwayLength ?RUNWAY ?LENGTH) means that ?LENGTH of ?RUNWAY is available for landing under the conditions assumed in the scenario. This may differ from the physical length of the runway.")
+
+;; ======================================================
+;; Violates Landing Runway Requirement:
+;; The assessed landing requires more runway than is available.
+;; ======================================================
+(instance violatesLandingRunwayRequirement BinaryPredicate)
+(domain violatesLandingRunwayRequirement 1 Landing)
+(domain violatesLandingRunwayRequirement 2 Runway)
+(documentation violatesLandingRunwayRequirement EnglishWrittenLanguage "(violatesLandingRunwayRequirement ?LANDING ?RUNWAY) means that ?RUNWAY is the destination runway of ?LANDING and the aircraft in ?LANDING requires more runway length than is available on ?RUNWAY.")
+
+;; Compare numerical magnitudes expressed in the same unit. Strict lessThan permits equality at the minimum length.
+;; Derive a runway-length violation when available distance is below the minimum.
+(=>
+  (and
+    (instance ?LANDING Landing)
+    (patient ?LANDING ?AIRCRAFT)
+    (instance ?AIRCRAFT Aircraft)
+    (destination ?LANDING ?RUNWAY)
+    (instance ?RUNWAY Runway)
+    (instance ?MINRUNWAY LengthMeasure)
+    (equal ?MINRUNWAY
+      (MeasureFn ?REQUIRED Meter))
+    (minimumLandingRunwayLength ?LANDING ?MINRUNWAY)
+    (instance ?AVAILRUNWAY LengthMeasure)
+    (equal ?AVAILRUNWAY
+      (MeasureFn ?AVAILABLE Meter))
+    (availableLandingRunwayLength ?RUNWAY ?AVAILRUNWAY)
+    (lessThan ?AVAILABLE ?REQUIRED))
+  (violatesLandingRunwayRequirement ?LANDING ?RUNWAY))
+
+;; Meeting the minimum proves length compliance only, not overall suitability.
+;; Derive explicit non-violation when available distance meets the minimum.
+(=>
+  (and
+    (instance ?LANDING Landing)
+    (patient ?LANDING ?AIRCRAFT)
+    (instance ?AIRCRAFT Aircraft)
+    (destination ?LANDING ?RUNWAY)
+    (instance ?RUNWAY Runway)
+    (minimumLandingRunwayLength ?LANDING ?MINRUNWAY)
+    (instance ?MINRUNWAY LengthMeasure)
+    (equal ?MINRUNWAY
+      (MeasureFn ?REQUIRED Meter))
+    (availableLandingRunwayLength ?RUNWAY ?AVAILRUNWAY)
+    (instance ?AVAILRUNWAY LengthMeasure)
+    (equal ?AVAILRUNWAY
+      (MeasureFn ?AVAILABLE Meter))
+    (greaterThanOrEqualTo ?AVAILABLE ?REQUIRED))
+  (not
+    (violatesLandingRunwayRequirement ?LANDING ?RUNWAY)))
+
+;; ======================================================
+;; Arresting Gear Available for Landing:
+;; Equipment assessed as usable and compatible for a planned arrestment.
+;; ======================================================
+(instance arrestingGearAvailableForLanding BinaryPredicate)
+(domain arrestingGearAvailableForLanding 1 Landing)
+(domain arrestingGearAvailableForLanding 2 ArrestingGear)
+
+(documentation arrestingGearAvailableForLanding EnglishWrittenLanguage
+  "(arrestingGearAvailableForLanding ?LANDING ?GEAR) means that ?GEAR
+   is assessed as available, serviceable, compatible with the aircraft,
+   and usable for the planned arrestment during ?LANDING. Equipment
+   presence alone does not establish this relation.")
+
+;; ======================================================
+;; Carrier Landing Compatible:
+;; Aircraft design and configuration support landing on a given carrier.
+;; ======================================================
+;; Tailhook or arresting gear presence alone does not establish compatibility.
+(instance carrierLandingCompatible BinaryPredicate)
+(domain carrierLandingCompatible 1 Aircraft)
+(domain carrierLandingCompatible 2 AircraftCarrier)
+(documentation carrierLandingCompatible EnglishWrittenLanguage
+  "(carrierLandingCompatible ?AIRCRAFT ?CARRIER) means that the aircraft design and configuration support planned landing operations aboard ?CARRIER. Equipment presence alone does not establish compatibility.")
+
+;; ======================================================
+;; Landing Site Available for Landing:
+;; A destination is available for one assessed landing in the scenario.
+;; ======================================================
+(instance landingSiteAvailableForLanding BinaryPredicate)
+(domain landingSiteAvailableForLanding 1 Landing)
+(domain landingSiteAvailableForLanding 2 Object)
+(documentation landingSiteAvailableForLanding EnglishWrittenLanguage
+  "(landingSiteAvailableForLanding ?LANDING ?SITE) means that ?SITE is available for the proposed ?LANDING under the assessed operational conditions. Assert explicit negation for a closed or unavailable site; missing availability information remains unknown.")
+
+;; ======================================================
+;; Landing Site Compatible:
+;; An aircraft design and configuration can use the assessed destination.
+;; ======================================================
+(instance landingSiteCompatible BinaryPredicate)
+(domain landingSiteCompatible 1 Aircraft)
+(domain landingSiteCompatible 2 Object)
+(documentation landingSiteCompatible EnglishWrittenLanguage
+  "(landingSiteCompatible ?AIRCRAFT ?SITE) means that the aircraft design and configuration are compatible with ?SITE for the assessment. Runway length, fuel and site availability are evaluated separately.")
+
+;; Transfer an established carrier compatibility assessment to the general check.
+(=>
+  (and
+    (instance ?CARRIER AircraftCarrier)
+    (carrierLandingCompatible ?AIRCRAFT ?CARRIER))
+  (landingSiteCompatible ?AIRCRAFT ?CARRIER))
+
+;; Transfer explicit carrier incompatibility without treating unknowns as failures.
+(=>
+  (and
+    (instance ?AIRCRAFT Aircraft)
+    (instance ?CARRIER AircraftCarrier)
+    (not (carrierLandingCompatible ?AIRCRAFT ?CARRIER)))
+  (not (landingSiteCompatible ?AIRCRAFT ?CARRIER)))
+
+;; ======================================================
+;; Recovery Option Meets Requirements:
+;; A candidate flight and landing pass the modeled destination and fuel checks.
+;; ======================================================
+(instance recoveryOptionMeetsRequirements BinaryPredicate)
+(domain recoveryOptionMeetsRequirements 1 Flying)
+(domain recoveryOptionMeetsRequirements 2 Object)
+(documentation recoveryOptionMeetsRequirements EnglishWrittenLanguage
+  "(recoveryOptionMeetsRequirements ?FLIGHT ?SITE) means that a proposed recovery flight has a landing at ?SITE satisfying the modeled checks. Land-runway acceptance requires fuel feasibility, site availability, aircraft compatibility and runway-length compliance. This is not a complete operational safety assessment. Use one destination landing and consistent quantities per candidate flight; represent alternatives as separate flights.")
+
+;; ======================================================
+;; Recovery Option Rejection Reason:
+;; Explicit failed checks explain why a candidate recovery is rejected.
+;; ======================================================
+(instance recoveryOptionRejectionReason TernaryPredicate)
+(domain recoveryOptionRejectionReason 1 Flying)
+(domain recoveryOptionRejectionReason 2 Object)
+(domain recoveryOptionRejectionReason 3 Attribute)
+(documentation recoveryOptionRejectionReason EnglishWrittenLanguage
+  "(recoveryOptionRejectionReason ?FLIGHT ?SITE ?REASON) identifies an established failed requirement for the proposed recovery. An option can have multiple reasons. Missing information alone does not establish a reason.")
+
+;; ======================================================
+;; Recovery Runway Too Short:
+;; Available landing distance is below the assessed minimum.
+;; ======================================================
+(instance RecoveryRunwayTooShort Attribute)
+
+;; ======================================================
+;; Recovery Fuel Insufficient:
+;; Available fuel cannot cover the trip and required reserve.
+;; ======================================================
+(instance RecoveryFuelInsufficient Attribute)
+
+;; ======================================================
+;; Recovery Aircraft Incompatible:
+;; The aircraft is explicitly incompatible with the proposed destination.
+;; ======================================================
+(instance RecoveryAircraftIncompatible Attribute)
+
+;; ======================================================
+;; Recovery Site Unavailable:
+;; The proposed destination is explicitly unavailable for the landing.
+;; ======================================================
+(instance RecoverySiteUnavailable Attribute)
+
+;; Accept a land-runway recovery only when every modeled requirement is established.
+(=>
+  (and
+    (instance ?FLIGHT FuelFeasibleFlight)
+    (instance ?LANDING Landing)
+    (subProcess ?LANDING ?FLIGHT)
+    (patient ?FLIGHT ?AIRCRAFT)
+    (patient ?LANDING ?AIRCRAFT)
+    (destination ?LANDING ?RUNWAY)
+    (instance ?RUNWAY Runway)
+    (landingSiteAvailableForLanding ?LANDING ?RUNWAY)
+    (landingSiteCompatible ?AIRCRAFT ?RUNWAY)
+    (not (violatesLandingRunwayRequirement ?LANDING ?RUNWAY)))
+  (recoveryOptionMeetsRequirements ?FLIGHT ?RUNWAY))
+
+;; Reject a candidate whose landing requires more runway than is available.
+(=>
+  (and
+    (instance ?FLIGHT Flying)
+    (subProcess ?LANDING ?FLIGHT)
+    (destination ?LANDING ?RUNWAY)
+    (violatesLandingRunwayRequirement ?LANDING ?RUNWAY))
+  (recoveryOptionRejectionReason ?FLIGHT ?RUNWAY RecoveryRunwayTooShort))
+
+;; Reject a candidate when its trip and reserve exceed the available fuel.
+(=>
+  (and
+    (instance ?FLIGHT Flying)
+    (not (instance ?FLIGHT FuelSufficientFlight))
+    (instance ?LANDING Landing)
+    (subProcess ?LANDING ?FLIGHT)
+    (destination ?LANDING ?SITE))
+  (recoveryOptionRejectionReason ?FLIGHT ?SITE RecoveryFuelInsufficient))
+
+;; Reject a candidate whose aircraft is explicitly incompatible with its destination.
+(=>
+  (and
+    (instance ?FLIGHT Flying)
+    (instance ?LANDING Landing)
+    (subProcess ?LANDING ?FLIGHT)
+    (patient ?FLIGHT ?AIRCRAFT)
+    (patient ?LANDING ?AIRCRAFT)
+    (destination ?LANDING ?SITE)
+    (not (landingSiteCompatible ?AIRCRAFT ?SITE)))
+  (recoveryOptionRejectionReason ?FLIGHT ?SITE RecoveryAircraftIncompatible))
+
+;; Reject a candidate only when site unavailability is explicitly established.
+(=>
+  (and
+    (instance ?FLIGHT Flying)
+    (instance ?LANDING Landing)
+    (subProcess ?LANDING ?FLIGHT)
+    (destination ?LANDING ?SITE)
+    (not (landingSiteAvailableForLanding ?LANDING ?SITE)))
+  (recoveryOptionRejectionReason ?FLIGHT ?SITE RecoverySiteUnavailable))
+
+;; Any established rejection reason explicitly excludes the candidate recovery.
+(=>
+  (recoveryOptionRejectionReason ?FLIGHT ?SITE ?REASON)
+  (not (recoveryOptionMeetsRequirements ?FLIGHT ?SITE)))
+
+;; ======================================================
+;; Closer Recovery Option:
+;; Compare route distances only between feasible recoveries for the same aircraft.
+;; ======================================================
+(instance closerRecoveryOption BinaryPredicate)
+(domain closerRecoveryOption 1 Flying)
+(domain closerRecoveryOption 2 Flying)
+(documentation closerRecoveryOption EnglishWrittenLanguage
+  "(closerRecoveryOption ?FIRST ?SECOND) means that both proposed recoveries meet the modeled requirements for the same aircraft and ?FIRST has a strictly shorter route distance. Assess candidates from the same scenario snapshot, with one route and consistent distance per flight. Compare magnitudes in a common unit. This is a pairwise ordering, not a claim that ?FIRST is closest among every possible destination; equal distances establish no strict preference.")
+
+;; Rank two eligible recoveries by nonnegative route lengths in the same unit.
+(=>
+  (and
+    (recoveryOptionMeetsRequirements ?FIRST ?SITE1)
+    (recoveryOptionMeetsRequirements ?SECOND ?SITE2)
+    (patient ?FIRST ?AIRCRAFT)
+    (patient ?SECOND ?AIRCRAFT)
+    (path ?FIRST ?ROUTE1)
+    (path ?SECOND ?ROUTE2)
+    (distanceOnPath ?LENGTH1 ?ROUTE1)
+    (distanceOnPath ?LENGTH2 ?ROUTE2)
+    (instance ?LENGTH1 LengthMeasure)
+    (instance ?LENGTH2 LengthMeasure)
+    (equal ?LENGTH1 (MeasureFn ?DISTANCE1 ?UNIT))
+    (equal ?LENGTH2 (MeasureFn ?DISTANCE2 ?UNIT))
+    (instance ?UNIT UnitOfLength)
+    (greaterThanOrEqualTo ?DISTANCE1 0)
+    (greaterThanOrEqualTo ?DISTANCE2 0)
+    (lessThan ?DISTANCE1 ?DISTANCE2))
+  (closerRecoveryOption ?FIRST ?SECOND))
+
+;; A strict distance preference cannot hold in the reverse direction.
+(=>
+  (closerRecoveryOption ?FIRST ?SECOND)
+  (not (closerRecoveryOption ?SECOND ?FIRST)))
+
+;; Exclude explicitly rejected candidates from either side of the feasible ranking.
+(=>
+  (and
+    (recoveryOptionRejectionReason ?REJECTED ?SITE ?REASON)
+    (instance ?OTHER Flying)
+    (patient ?REJECTED ?AIRCRAFT)
+    (patient ?OTHER ?AIRCRAFT))
+  (and
+    (not (closerRecoveryOption ?REJECTED ?OTHER))
+    (not (closerRecoveryOption ?OTHER ?REJECTED))))
+
+;; ======================================================
+;; Fuel Capacity:
+;; Total configured fuel-storage capacity, expressed as a quantity with units.
+;; ======================================================
+(instance fuelCapacity BinaryPredicate)
+(domain fuelCapacity 1 PoweredVehicle)
+(domain fuelCapacity 2 ConstantQuantity)
+(documentation fuelCapacity EnglishWrittenLanguage "(fuelCapacity ?VEHICLE ?QUANTITY) means that ?QUANTITY is the total maximum fuel-storage capacity of the GasTanks installed in ?VEHICLE, expressed in a specified measurement dimension.")
+
+;; Use the sole installed fuel tank's capacity as the vehicle's total capacity.
+(=>
+  (and
+    (instance ?VEHICLE PoweredVehicle)
+    (instance ?TANK GasTank)
+    (part ?TANK ?VEHICLE)
+    (capacity ?TANK ?QUANTITY)
+    (forall (?OTHER)
+      (=>
+        (and
+          (instance ?OTHER GasTank)
+          (part ?OTHER ?VEHICLE))
+        (equal ?OTHER ?TANK))))
+  (fuelCapacity ?VEHICLE ?QUANTITY))
+
+;; ======================================================
+;; Fuel Efficiency:
+;; Distance traveled per quantity of fuel under assumed operating conditions.
+;; ======================================================
+(instance fuelEfficiency BinaryPredicate)
+(domain fuelEfficiency 1 PoweredVehicle)
+(domain fuelEfficiency 2 FunctionQuantity)
+(documentation fuelEfficiency EnglishWrittenLanguage "(fuelEfficiency ?VEHICLE ?RATE) means that ?RATE is the distance traveled per quantity of fuel consumed by ?VEHICLE under the operating conditions assumed in the scenario.")
+
+;; ======================================================
+;; Required Flight Fuel:
+;; Fuel needed for the assessed trip, excluding the additional reserve.
+;; ======================================================
+(instance requiredFlightFuel BinaryPredicate)
+(domain requiredFlightFuel 1 Flying)
+(domain requiredFlightFuel 2 PhysicalQuantity)
+(documentation requiredFlightFuel EnglishWrittenLanguage "(requiredFlightFuel ?FLIGHT ?QUANTITY) states the fuel required for the trip, excluding reserve for ?FLIGHT. ?QUANTITY is a nonnegative mass or volume measurement. Use mutually consistent quantities for one assessment.")
+
+;; ======================================================
+;; Required Flight Fuel Reserve:
+;; Additional fuel required beyond the calculated trip consumption.
+;; ======================================================
+(instance requiredFlightFuelReserve BinaryPredicate)
+(domain requiredFlightFuelReserve 1 Flying)
+(domain requiredFlightFuelReserve 2 PhysicalQuantity)
+(documentation requiredFlightFuelReserve EnglishWrittenLanguage "(requiredFlightFuelReserve ?FLIGHT ?QUANTITY) states the additional fuel reserve required for ?FLIGHT. ?QUANTITY is a nonnegative mass or volume measurement. Use mutually consistent quantities for one assessment.")
+
+;; ======================================================
+;; Available Flight Fuel:
+;; Total usable fuel at departure, including fuel allocated to reserve.
+;; ======================================================
+(instance availableFlightFuel BinaryPredicate)
+(domain availableFlightFuel 1 Flying)
+(domain availableFlightFuel 2 PhysicalQuantity)
+(documentation availableFlightFuel EnglishWrittenLanguage "(availableFlightFuel ?FLIGHT ?QUANTITY) states the total usable fuel available at the start, including reserve for ?FLIGHT. ?QUANTITY is a nonnegative mass or volume measurement. Use mutually consistent quantities for one assessment.")
+
+;; ======================================================
+;; Fuel Sufficient Flight:
+;; Available fuel covers the trip and reserve under the assumed conditions.
+;; ======================================================
+(subclass FuelSufficientFlight Flying)
+(documentation FuelSufficientFlight EnglishWrittenLanguage "A flight whose usable fuel covers trip fuel plus reserve under the assumed planning conditions. Capacity compliance is a separate check.")
+
+;; Trip fuel = route distance / specific range, with matching distance units.
+;; Supports MPG and nautical miles per pound or kilogram.
+;; Calculate trip fuel by dividing route distance by the assumed specific range.
+(=>
+  (and
+    (instance ?FLIGHT Flying)
+    (patient ?FLIGHT ?VEHICLE)
+    (instance ?VEHICLE PoweredVehicle)
+    (path ?FLIGHT ?ROUTE)
+    (instance ?ROUTE Transitway)
+    (distanceOnPath ?DISTANCE ?ROUTE)
+    (instance ?DISTANCE LengthMeasure)
+    (equal ?DISTANCE
+      (MeasureFn ?D ?DU))
+    (instance ?DU UnitOfLength)
+    (fuelEfficiency ?VEHICLE ?RATE)
+    (instance ?RATE FunctionQuantity)
+    (equal ?RATE
+      (PerFn
+        (MeasureFn ?R ?DU)
+        (MeasureFn 1 ?FU)))
+    (or
+      (instance ?FU UnitOfMass)
+      (instance ?FU UnitOfVolume))
+    (greaterThanOrEqualTo ?D 0)
+    (greaterThan ?R 0))
+  (requiredFlightFuel ?FLIGHT
+    (MeasureFn
+      (DivisionFn ?D ?R) ?FU)))
+
+;; A unique aggregate fuel resource represents the complete usable load.
+;; Derive available fuel from the complete usable fuel resource at departure.
+(=>
+  (and
+    (instance ?FLIGHT Flying)
+    (resource ?FLIGHT ?FUEL)
+    (instance ?FUEL Fuel)
+    (forall (?OTHER)
+      (=>
+        (and
+          (resource ?FLIGHT ?OTHER)
+          (instance ?OTHER Fuel))
+        (equal ?OTHER ?FUEL)))
+    (holdsDuring
+      (BeginFn
+        (WhenFn ?FLIGHT))
+      (measure ?FUEL ?Q))
+    (equal ?Q
+      (MeasureFn ?N ?U))
+    (or
+      (instance ?U UnitOfMass)
+      (instance ?U UnitOfVolume))
+    (greaterThanOrEqualTo ?N 0))
+  (availableFlightFuel ?FLIGHT ?Q))
+
+;; Classify a flight as fuel sufficient when its load covers trip fuel and reserve.
+(=>
+  (and
+    (requiredFlightFuel ?FLIGHT ?TRIPQ)
+    (requiredFlightFuelReserve ?FLIGHT ?RESERVEQ)
+    (availableFlightFuel ?FLIGHT ?AVAILABLEQ)
+    (equal ?TRIPQ
+      (MeasureFn ?TRIP ?U))
+    (equal ?RESERVEQ
+      (MeasureFn ?RESERVE ?U))
+    (equal ?AVAILABLEQ
+      (MeasureFn ?AVAILABLE ?U))
+    (or
+      (instance ?U UnitOfMass)
+      (instance ?U UnitOfVolume))
+    (greaterThanOrEqualTo ?TRIP 0)
+    (greaterThanOrEqualTo ?RESERVE 0)
+    (greaterThanOrEqualTo ?AVAILABLE 0)
+    (greaterThanOrEqualTo ?AVAILABLE
+      (AdditionFn ?TRIP ?RESERVE)))
+  (instance ?FLIGHT FuelSufficientFlight))
+
+;; Exclude a flight from fuel sufficiency when its load cannot cover trip and reserve.
+(=>
+  (and
+    (requiredFlightFuel ?FLIGHT ?TRIPQ)
+    (requiredFlightFuelReserve ?FLIGHT ?RESERVEQ)
+    (availableFlightFuel ?FLIGHT ?AVAILABLEQ)
+    (equal ?TRIPQ
+      (MeasureFn ?TRIP ?U))
+    (equal ?RESERVEQ
+      (MeasureFn ?RESERVE ?U))
+    (equal ?AVAILABLEQ
+      (MeasureFn ?AVAILABLE ?U))
+    (or
+      (instance ?U UnitOfMass)
+      (instance ?U UnitOfVolume))
+    (greaterThanOrEqualTo ?TRIP 0)
+    (greaterThanOrEqualTo ?RESERVE 0)
+    (greaterThanOrEqualTo ?AVAILABLE 0)
+    (lessThan ?AVAILABLE
+      (AdditionFn ?TRIP ?RESERVE)))
+  (not
+    (instance ?FLIGHT FuelSufficientFlight)))
+
+;; ======================================================
+;; Fuel Feasible Flight:
+;; Enough fuel to complete the flight, within configured fuel capacity.
+;; ======================================================
+(subclass FuelFeasibleFlight FuelSufficientFlight)
+(documentation FuelFeasibleFlight EnglishWrittenLanguage
+  "A flight whose available fuel covers its trip and required reserve, and whose available fuel mass does not exceed the aircraft's configured fuel capacity. This assessment concerns fuel only.")
+
+;; Classify a fuel-sufficient flight as feasible when its load fits configured capacity.
+(=>
+  (and
+    (instance ?FLIGHT Flying)
+    (instance ?FLIGHT FuelSufficientFlight)
+    (patient ?FLIGHT ?AIRCRAFT)
+    (instance ?AIRCRAFT PoweredVehicle)
+    (fuelCapacity ?AIRCRAFT ?CAPACITY)
+    (instance ?CAPACITY MassMeasure)
+    (equal ?CAPACITY (MeasureFn ?LIMIT ?UNIT))
+    (availableFlightFuel ?FLIGHT ?AVAILABLE)
+    (instance ?AVAILABLE MassMeasure)
+    (equal ?AVAILABLE (MeasureFn ?LOADED ?UNIT))
+    (instance ?UNIT UnitOfMass)
+    (greaterThanOrEqualTo ?LOADED 0)
+    (lessThanOrEqualTo ?LOADED ?LIMIT))
+  (instance ?FLIGHT FuelFeasibleFlight))
+
+;; ======================================================
+;; Fuel Flow:
+;; Average total fuel mass consumed per unit time over a flight or segment.
+;; ======================================================
+(instance fuelFlow BinaryPredicate)
+(domain fuelFlow 1 Flying)
+(domain fuelFlow 2 FunctionQuantity)
+(documentation fuelFlow EnglishWrittenLanguage "(fuelFlow ?FLIGHT ?RATE) gives the assumed average total fuel mass consumed per unit time for ?FLIGHT, summed across its engines. It excludes reserve that is not consumed.")
+
+;; Calculate trip fuel by multiplying average fuel flow by flight duration.
+(=>
+  (and
+    (instance ?FLIGHT Flying)
+    (fuelFlow ?FLIGHT ?RATE)
+    (instance ?RATE FunctionQuantity)
+    (equal ?RATE
+      (PerFn
+        (MeasureFn ?FLOW ?MU)
+        (MeasureFn 1 ?TU)))
+    (instance ?MU UnitOfMass)
+    (instance ?TU UnitOfDuration)
+    (duration
+      (WhenFn ?FLIGHT) ?DURATION)
+    (instance ?DURATION TimeDuration)
+    (equal ?DURATION
+      (MeasureFn ?TIME ?TU))
+    (greaterThanOrEqualTo ?FLOW 0)
+    (greaterThanOrEqualTo ?TIME 0))
+  (requiredFlightFuel ?FLIGHT
+    (MeasureFn
+      (MultiplicationFn ?FLOW ?TIME) ?MU)))
+
+;; ======================================================
+;; Thrust Specific Fuel Consumption:
+;; Engine fuel mass flow per unit thrust under assumed operating conditions.
+;; ======================================================
+(instance thrustSpecificFuelConsumption BinaryPredicate)
+(domain thrustSpecificFuelConsumption 1 Engine)
+(domain thrustSpecificFuelConsumption 2 FunctionQuantity)
+(documentation thrustSpecificFuelConsumption EnglishWrittenLanguage "(thrustSpecificFuelConsumption ?ENGINE ?RATE) gives fuel mass flow per unit thrust under the operating conditions assumed in this scenario. Represent it as PerFn of a mass-per-time quantity and a force quantity. This is not distance per fuel mass; no conversion to specific range is implied.")
+
+;; ======================================================
+;; F-22 Raptor:
+;; Aircraft type with equipment and configuration-specific fuel specifications.
+;; ======================================================
+;; Published fuel capacities: USAF F-22 Raptor fact sheet.
+;; https://www.af.mil/About-Us/Fact-Sheets/Display/Article/104506/f-22-raptor/
+;; Use pounds as the canonical source unit. Do not also assert the rounded
+;; kilogram figures as exact equalities to these quantities.
+(subclass F22Raptor JetAirplane)
+(documentation F22Raptor EnglishWrittenLanguage
+  "The F-22 Raptor aircraft type. Fuel configuration subclasses describe the configuration assumed for a planning assessment.")
+
+;; ======================================================
+;; F-22 Raptor Internal Fuel Only:
+;; Aircraft configuration assessed with internal fuel storage only.
+;; ======================================================
+(subclass F22RaptorInternalFuelOnly F22Raptor)
+(documentation F22RaptorInternalFuelOnly EnglishWrittenLanguage
+  "An F-22 assessed with internal fuel storage only. Published nominal fuel capacity: 18000 pounds, from the USAF F-22 Raptor fact sheet.")
+
+;; ======================================================
+;; F-22 Raptor Internal Fuel Capacity:
+;; Published nominal internal capacity of 18000 pounds of fuel.
+;; ======================================================
+(instance F22RaptorInternalFuelCapacity MassMeasure)
+(equal F22RaptorInternalFuelCapacity (MeasureFn 18000 PoundMass))
+;; Assign the published internal fuel capacity to the internal-only configuration.
+(=>
+  (instance ?AIRCRAFT F22RaptorInternalFuelOnly)
+  (fuelCapacity ?AIRCRAFT F22RaptorInternalFuelCapacity))
+
+;; ======================================================
+;; F-22 Raptor with Two External Fuel Tanks:
+;; Aircraft configuration assessed with internal storage and two external tanks.
+;; ======================================================
+(subclass F22RaptorWithTwoExternalFuelTanks F22Raptor)
+(documentation F22RaptorWithTwoExternalFuelTanks EnglishWrittenLanguage
+  "An F-22 assessed with internal fuel storage and two external wing fuel tanks. Published nominal total fuel capacity: 26000 pounds, from the USAF F-22 Raptor fact sheet.")
+
+;; ======================================================
+;; F-22 Raptor External Configuration Fuel Capacity:
+;; Published nominal combined capacity of 26000 pounds of fuel.
+;; ======================================================
+(instance F22RaptorExternalConfigurationFuelCapacity MassMeasure)
+(equal F22RaptorExternalConfigurationFuelCapacity (MeasureFn 26000 PoundMass))
+
+;; Assign the published combined fuel capacity to the two-external-tank configuration.
+(=>
+  (instance ?AIRCRAFT F22RaptorWithTwoExternalFuelTanks)
+  (fuelCapacity ?AIRCRAFT F22RaptorExternalConfigurationFuelCapacity))
+
+;; Every F-22 has a tailhook as part of its installed equipment.
+(=>
+  (instance ?AIRCRAFT F22Raptor)
+  (exists (?HOOK)
+    (and
+      (instance ?HOOK Tailhook)
+      (part ?HOOK ?AIRCRAFT))))
+
+;; The standard F-22 is land-based, despite having an emergency arresting hook.
+;; Source: House Report 104-71 (1995), discussing GAO/NSIAD-94-118.
+;; https://www.congress.gov/104/crpt/hrpt71/CRPT-104hrpt71.pdf
+;; Exclude standard F-22 aircraft from compatibility with carrier landings.
+(=>
+  (and
+    (instance ?AIRCRAFT F22Raptor)
+    (instance ?CARRIER AircraftCarrier))
+  (not
+    (carrierLandingCompatible ?AIRCRAFT ?CARRIER)))
+
+;; ======================================================
+;; Relief Delivery Plan:
+;; Assess one consignment, destination and delivery window under stated conditions.
+;; ======================================================
+(subclass ReliefDeliveryPlan Plan)
+(documentation ReliefDeliveryPlan EnglishWrittenLanguage
+  "A proposed plan to deliver a specified relief consignment from one supply hub to one destination during one assessment window. Stocks and capacities are assessed inputs for that window. Alternative plans do not represent simultaneous allocations of the same supplies.")
+
+;; ======================================================
+;; Relief Plan Destination:
+;; Community or geographic area receiving the assessed consignment.
+;; ======================================================
+(instance reliefPlanDestination BinaryPredicate)
+(domain reliefPlanDestination 1 ReliefDeliveryPlan)
+(domain reliefPlanDestination 2 GeographicArea)
+(documentation reliefPlanDestination EnglishWrittenLanguage
+  "(reliefPlanDestination ?PLAN ?PLACE) identifies the single recipient area assessed by ?PLAN.")
+
+;; ======================================================
+;; Relief Plan Supply Hub:
+;; Location where usable supplies are available for the assessed delivery.
+;; ======================================================
+(instance reliefPlanSupplyHub BinaryPredicate)
+(domain reliefPlanSupplyHub 1 ReliefDeliveryPlan)
+(domain reliefPlanSupplyHub 2 Object)
+(documentation reliefPlanSupplyHub EnglishWrittenLanguage
+  "(reliefPlanSupplyHub ?PLAN ?HUB) identifies the hub holding the supplies assessed for ?PLAN. Expected arrivals are not automatically available stock.")
+
+;; ======================================================
+;; Relief Plan Assessment Window:
+;; Common period for the plan's demand, usable supplies and delivery capacity.
+;; ======================================================
+(instance reliefPlanAssessmentWindow BinaryPredicate)
+(domain reliefPlanAssessmentWindow 1 ReliefDeliveryPlan)
+(domain reliefPlanAssessmentWindow 2 TimeInterval)
+(documentation reliefPlanAssessmentWindow EnglishWrittenLanguage
+  "(reliefPlanAssessmentWindow ?PLAN ?WINDOW) scopes all quantities in ?PLAN to one delivery period. Use distinct plans for different windows or assumptions.")
+
+;; ======================================================
+;; Relief Plan Available Supplies:
+;; Mass of usable supplies allocated to this proposed delivery during its window.
+;; ======================================================
+(instance reliefPlanAvailableSupplies BinaryPredicate)
+(domain reliefPlanAvailableSupplies 1 ReliefDeliveryPlan)
+(domain reliefPlanAvailableSupplies 2 MassMeasure)
+(documentation reliefPlanAvailableSupplies EnglishWrittenLanguage
+  "(reliefPlanAvailableSupplies ?PLAN ?MASS) gives usable stock available at the plan's supply hub for this consignment, not merely incoming regional supplies.")
+
+;; ======================================================
+;; Relief Plan Delivery Requirement:
+;; Mass of the specified relief consignment needed during the assessment window.
+;; ======================================================
+(instance reliefPlanDeliveryRequirement BinaryPredicate)
+(domain reliefPlanDeliveryRequirement 1 ReliefDeliveryPlan)
+(domain reliefPlanDeliveryRequirement 2 MassMeasure)
+(documentation reliefPlanDeliveryRequirement EnglishWrittenLanguage
+  "(reliefPlanDeliveryRequirement ?PLAN ?MASS) gives the assessed demand for this consignment at the plan's destination during its window. It need not represent all needs of the entire community.")
+
+;; ======================================================
+;; Relief Plan Delivery Capacity:
+;; Assessed end-to-end throughput for the consignment within the delivery window.
+;; ======================================================
+(instance reliefPlanDeliveryCapacity BinaryPredicate)
+(domain reliefPlanDeliveryCapacity 1 ReliefDeliveryPlan)
+(domain reliefPlanDeliveryCapacity 2 MassMeasure)
+(documentation reliefPlanDeliveryCapacity EnglishWrittenLanguage
+  "(reliefPlanDeliveryCapacity ?PLAN ?MASS) gives the maximum consignment mass assessed as deliverable from the hub to the recipient during the plan's window. This is an input accounting for transport and unloading constraints, not a capacity calculated from vehicle counts by these rules.")
+
+;; ======================================================
+;; Relief Plan Route Available:
+;; A route can support the assessed delivery, possibly at restricted throughput.
+;; ======================================================
+(instance reliefPlanRouteAvailable BinaryPredicate)
+(domain reliefPlanRouteAvailable 1 ReliefDeliveryPlan)
+(domain reliefPlanRouteAvailable 2 Transitway)
+(documentation reliefPlanRouteAvailable EnglishWrittenLanguage
+  "(reliefPlanRouteAvailable ?PLAN ?ROUTE) means that ?ROUTE is usable under the assumptions of ?PLAN for its assessment window. A restricted route may remain usable at reduced delivery capacity. Missing availability remains unknown.")
+
+;; ======================================================
+;; Relief Plan Meets Delivery Requirement:
+;; Available stock and usable delivery capacity both cover the assessed demand.
+;; ======================================================
+(instance reliefPlanMeetsDeliveryRequirement BinaryPredicate)
+(domain reliefPlanMeetsDeliveryRequirement 1 ReliefDeliveryPlan)
+(domain reliefPlanMeetsDeliveryRequirement 2 GeographicArea)
+(documentation reliefPlanMeetsDeliveryRequirement EnglishWrittenLanguage
+  "(reliefPlanMeetsDeliveryRequirement ?PLAN ?PLACE) means that stock, route availability and assessed throughput cover the specified consignment demand in the plan's window. It does not claim that a delivery has occurred or that all relief needs are satisfied. Use consistent quantities in a common mass unit.")
+
+;; Accept a plan only when the route connects its hub to the recipient and both bounds meet demand.
+(=>
+  (and
+    (instance ?PLAN ReliefDeliveryPlan)
+    (reliefPlanDestination ?PLAN ?PLACE)
+    (reliefPlanSupplyHub ?PLAN ?HUB)
+    (reliefPlanAssessmentWindow ?PLAN ?WINDOW)
+    (reliefPlanRouteAvailable ?PLAN ?ROUTE)
+    (connects ?ROUTE ?HUB ?PLACE)
+    (reliefPlanAvailableSupplies ?PLAN ?STOCKQ)
+    (reliefPlanDeliveryRequirement ?PLAN ?DEMANDQ)
+    (reliefPlanDeliveryCapacity ?PLAN ?CAPACITYQ)
+    (equal ?STOCKQ (MeasureFn ?STOCK ?UNIT))
+    (equal ?DEMANDQ (MeasureFn ?DEMAND ?UNIT))
+    (equal ?CAPACITYQ (MeasureFn ?CAPACITY ?UNIT))
+    (instance ?UNIT UnitOfMass)
+    (greaterThanOrEqualTo ?DEMAND 0)
+    (greaterThanOrEqualTo ?STOCK ?DEMAND)
+    (greaterThanOrEqualTo ?CAPACITY ?DEMAND))
+  (reliefPlanMeetsDeliveryRequirement ?PLAN ?PLACE))
+
+;; ======================================================
+;; Relief Plan Rejection Reason:
+;; Explicit quantity shortfalls explain why the delivery requirement cannot be met.
+;; ======================================================
+(instance reliefPlanRejectionReason BinaryPredicate)
+(domain reliefPlanRejectionReason 1 ReliefDeliveryPlan)
+(domain reliefPlanRejectionReason 2 Attribute)
+(documentation reliefPlanRejectionReason EnglishWrittenLanguage
+  "(reliefPlanRejectionReason ?PLAN ?REASON) identifies an established failed check for ?PLAN. Unknown or missing inputs alone do not establish a rejection reason.")
+
+;; ======================================================
+;; Distribution Capacity Insufficient:
+;; Supplies cannot reach the recipient in sufficient quantity within the window.
+;; ======================================================
+(instance DistributionCapacityInsufficient Attribute)
+
+;; ======================================================
+;; Relief Supplies Insufficient:
+;; Allocated usable stock at the supply hub is below the consignment demand.
+;; ======================================================
+(instance ReliefSuppliesInsufficient Attribute)
+
+;; Identify a transport bottleneck when assessed delivery capacity is below demand.
+(=>
+  (and
+    (instance ?PLAN ReliefDeliveryPlan)
+    (reliefPlanAssessmentWindow ?PLAN ?WINDOW)
+    (reliefPlanDeliveryRequirement ?PLAN ?DEMANDQ)
+    (reliefPlanDeliveryCapacity ?PLAN ?CAPACITYQ)
+    (equal ?DEMANDQ (MeasureFn ?DEMAND ?UNIT))
+    (equal ?CAPACITYQ (MeasureFn ?CAPACITY ?UNIT))
+    (instance ?UNIT UnitOfMass)
+    (greaterThanOrEqualTo ?CAPACITY 0)
+    (lessThan ?CAPACITY ?DEMAND))
+  (reliefPlanRejectionReason ?PLAN DistributionCapacityInsufficient))
+
+;; Identify a supply shortage independently of the transport-capacity assessment.
+(=>
+  (and
+    (instance ?PLAN ReliefDeliveryPlan)
+    (reliefPlanAssessmentWindow ?PLAN ?WINDOW)
+    (reliefPlanDeliveryRequirement ?PLAN ?DEMANDQ)
+    (reliefPlanAvailableSupplies ?PLAN ?STOCKQ)
+    (equal ?DEMANDQ (MeasureFn ?DEMAND ?UNIT))
+    (equal ?STOCKQ (MeasureFn ?STOCK ?UNIT))
+    (instance ?UNIT UnitOfMass)
+    (greaterThanOrEqualTo ?STOCK 0)
+    (lessThan ?STOCK ?DEMAND))
+  (reliefPlanRejectionReason ?PLAN ReliefSuppliesInsufficient))
+
+;; An established rejection reason explicitly prevents the plan from meeting demand.
+(=>
+  (and
+    (reliefPlanDestination ?PLAN ?PLACE)
+    (reliefPlanRejectionReason ?PLAN ?REASON))
+  (not (reliefPlanMeetsDeliveryRequirement ?PLAN ?PLACE)))
+
+;; ======================================================
+;; Okinawa Relief Locations:
+;; Real locations for hypothetical relief assessments, not current operating reports.
+;; ======================================================
+;; Camp Kinser is a logistics installation in Urasoe, Okinawa, Japan.
+;; https://www.marines.mil/News/News-Display/Article/504814/marines-supply-tour-of-kinser-for-urasoe-city-mayor/
+;; https://www.okinawa.usmc-mccs.org/about/
+(instance CampKinser MilitaryInstallation)
+(instance UrasoeJapan City)
+(located CampKinser UrasoeJapan)
+(geographicSubregion UrasoeJapan Japan)
+
+;; Nago is a city in northern Okinawa; no emergency conditions are asserted here.
+;; https://www.city.nago.okinawa.jp/
+;; https://www.japan.travel/en/weather/okinawa/nago/
+(instance NagoJapan City)
+(geographicSubregion NagoJapan Japan)

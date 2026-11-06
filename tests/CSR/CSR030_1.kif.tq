@@ -1,0 +1,42 @@
+;; ======================================================
+;; F-22 runway-length compliance without arresting gear
+;; Verify that 2000 meters meets an assumed 1500-meter unarrested landing requirement.
+;; ======================================================
+(minLang tff)
+(note CSR030_1)
+(category CSR)
+(time 60)
+
+;; Aircraft and landing: assess an ordinary landing by a standard F-22.
+(instance RaptorTest001 F22Raptor)
+(instance TestLanding Landing)
+(patient TestLanding RaptorTest001)
+
+;; Destination: identify the land runway used by the proposed landing.
+(instance TestRunway Runway)
+(destination TestLanding TestRunway)
+
+;; Equipment: explicitly state that no arresting gear is installed or located here.
+(not
+  (exists (?GEAR)
+    (and
+      (instance ?GEAR ArrestingGear)
+      (or
+        (part ?GEAR TestRunway)
+        (located ?GEAR TestRunway)))))
+
+;; Assumed requirement: 1500 meters using ordinary braking; synthetic test data.
+(instance TestRequiredRunwayLength LengthMeasure)
+(equal TestRequiredRunwayLength (MeasureFn 1500 Meter))
+(minimumLandingRunwayLength TestLanding TestRequiredRunwayLength)
+
+;; Available distance: 2000 meters exceeds the assessed requirement.
+(instance TestAvailableRunwayLength LengthMeasure)
+(equal TestAvailableRunwayLength (MeasureFn 2000 Meter))
+(availableLandingRunwayLength TestRunway TestAvailableRunwayLength)
+
+;; Question: Does this landing meet the runway-length requirement despite having no arresting gear?
+(query
+  (not
+    (violatesLandingRunwayRequirement TestLanding TestRunway)))
+(answer yes)

@@ -1,0 +1,44 @@
+;; ======================================================
+;; F-22 internal-fuel flight feasibility
+;; Verify trip fuel plus reserve is available and the load fits the internal fuel capacity.
+;; ======================================================
+(note CSR032_1)
+(category CSR)
+(minLang tff)
+(time 60)
+
+;; Configuration: inherit the published nominal 18000-pound internal fuel capacity.
+(instance RaptorTest001 F22RaptorInternalFuelOnly)
+
+;; Flight: identify the aircraft participating in the proposed flight.
+(instance TestFlight Flying)
+(patient TestFlight RaptorTest001)
+
+;; Route: associate the proposed flight with its route.
+(instance TestRoute Transitway)
+(path TestFlight TestRoute)
+
+;; Distance: the route is 300 nautical miles long.
+(instance TestDistance LengthMeasure)
+(equal TestDistance (MeasureFn 300 NauticalMile))
+(distanceOnPath TestDistance TestRoute)
+
+;; Assumed specific range: 0.05 nmi/lb gives 6000 lb trip fuel; synthetic performance data.
+(instance RaptorTestSpecificRange FunctionQuantity)
+(equal RaptorTestSpecificRange
+  (PerFn (MeasureFn 0.05 NauticalMile) (MeasureFn 1 PoundMass)))
+(fuelEfficiency RaptorTest001 RaptorTestSpecificRange)
+
+;; Available fuel: 10000 lb covers trip and reserve and fits the 18000 lb capacity.
+(instance TestAvailableFuel MassMeasure)
+(equal TestAvailableFuel (MeasureFn 10000 PoundMass))
+(availableFlightFuel TestFlight TestAvailableFuel)
+
+;; Reserve: require 2000 lb beyond the calculated 6000 lb trip consumption.
+(instance TestReserveFuel MassMeasure)
+(equal TestReserveFuel (MeasureFn 2000 PoundMass))
+(requiredFlightFuelReserve TestFlight TestReserveFuel)
+
+;; Question: Is the flight fuel feasible, covering trip and reserve within configured capacity?
+(query (instance TestFlight FuelFeasibleFlight))
+(answer yes)

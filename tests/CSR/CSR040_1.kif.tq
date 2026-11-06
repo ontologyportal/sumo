@@ -1,0 +1,66 @@
+;; ======================================================
+;; Okinawa relief distribution: Camp Kinser to Nago
+;; Show that adequate hub stock cannot overcome restricted local transport.
+;; Compare that plan with a restored-road alternative for the same 24-hour window.
+;; Locations are real; storm effects, quantities and capacities are hypothetical.
+;; These figures are not published base capacities or actual emergency reports.
+;; ======================================================
+;; Verified with native Vampire 5.0.1 using these prover options.
+;; --mode vampire --sine_selection off --avatar off --theory_axioms off --unit_resulting_resolution on -t 60
+(minLang tff)
+(note CSR040_1)
+(category CSR)
+(time 60)
+
+;; Delivery period: a 24-hour window after the consignment is available at the hub.
+;; Incoming vessel arrival and unloading before the window are outside this test.
+(instance TestReliefWindow TimeInterval)
+(instance TestReliefWindowDuration TimeDuration)
+(equal TestReliefWindowDuration (MeasureFn 24 HourDuration))
+(duration TestReliefWindow TestReliefWindowDuration)
+
+;; Consignment: 20000 kg is available at Camp Kinser for a 10000 kg Nago requirement.
+;; Demand refers to this selected relief consignment, not all of Nago's needs.
+(instance TestReliefStock MassMeasure)
+(equal TestReliefStock (MeasureFn 20000 Kilogram))
+(instance TestReliefDemand MassMeasure)
+(equal TestReliefDemand (MeasureFn 10000 Kilogram))
+
+;; Route: a hypothetical road-delivery corridor from Camp Kinser to Nago.
+;; The route does not name a particular real highway or assert current road status.
+(instance TestKinserNagoRoute LandTransitway)
+(connects TestKinserNagoRoute CampKinser NagoJapan)
+
+;; Current-access plan: restricted but usable roads permit only 6000 kg in the window.
+(instance CurrentAccessPlan ReliefDeliveryPlan)
+(reliefPlanDestination CurrentAccessPlan NagoJapan)
+(reliefPlanSupplyHub CurrentAccessPlan CampKinser)
+(reliefPlanAssessmentWindow CurrentAccessPlan TestReliefWindow)
+(reliefPlanRouteAvailable CurrentAccessPlan TestKinserNagoRoute)
+(reliefPlanAvailableSupplies CurrentAccessPlan TestReliefStock)
+(reliefPlanDeliveryRequirement CurrentAccessPlan TestReliefDemand)
+(instance TestRestrictedDeliveryCapacity MassMeasure)
+(equal TestRestrictedDeliveryCapacity (MeasureFn 6000 Kilogram))
+(reliefPlanDeliveryCapacity CurrentAccessPlan TestRestrictedDeliveryCapacity)
+
+;; Restored-road plan: assume engineering work permits 12000 kg during that window.
+;; This is an alternative plan, not an extra allocation of the same 20000 kg stock.
+(instance ReopenedRoadPlan ReliefDeliveryPlan)
+(reliefPlanDestination ReopenedRoadPlan NagoJapan)
+(reliefPlanSupplyHub ReopenedRoadPlan CampKinser)
+(reliefPlanAssessmentWindow ReopenedRoadPlan TestReliefWindow)
+(reliefPlanRouteAvailable ReopenedRoadPlan TestKinserNagoRoute)
+(reliefPlanAvailableSupplies ReopenedRoadPlan TestReliefStock)
+(reliefPlanDeliveryRequirement ReopenedRoadPlan TestReliefDemand)
+(instance TestRestoredDeliveryCapacity MassMeasure)
+(equal TestRestoredDeliveryCapacity (MeasureFn 12000 Kilogram))
+(reliefPlanDeliveryCapacity ReopenedRoadPlan TestRestoredDeliveryCapacity)
+
+;; Question: Is current access explicitly insufficient because of distribution
+;; capacity, while the restored-road plan meets Nago's consignment requirement?
+(query
+  (and
+    (not (reliefPlanMeetsDeliveryRequirement CurrentAccessPlan NagoJapan))
+    (reliefPlanRejectionReason CurrentAccessPlan DistributionCapacityInsufficient)
+    (reliefPlanMeetsDeliveryRequirement ReopenedRoadPlan NagoJapan)))
+(answer yes)

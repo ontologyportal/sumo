@@ -1,0 +1,134 @@
+;; ======================================================
+;; F-22 diversion options with explained exclusions
+;; Assess four hypothetical recoveries: reject a short runway, an alternate
+;; beyond fuel reach, and a carrier; accept the remaining land runway.
+;; Distances, performance and landing requirements are synthetic test inputs.
+;; ======================================================
+;; Verified with native Vampire 5.0.1 using the following options.
+;; Set these in the prover options; comments do not configure the TQ runner.
+;; --mode vampire --decode lrs+10_1_to=lpo:si=on:bsr=unit_only:tha=off:random_seed=3943044773:avsq=on:s2a=on:s2at=5:avsqr=4463,131072:rtra=on_60 -t 60
+(minLang tff)
+(note CSR038_1)
+(category CSR)
+(time 60)
+
+;; Aircraft: all candidates assess the same internal-fuel-only F-22.
+(instance RaptorTest001 F22RaptorInternalFuelOnly)
+
+;; Shared planning assumptions: 0.05 nmi/lb, 10000 lb usable, 2000 lb reserve.
+;; These values apply independently to each alternative, not successive flights.
+(instance TestSpecificRange FunctionQuantity)
+(equal TestSpecificRange
+  (PerFn (MeasureFn 0.05 NauticalMile) (MeasureFn 1 PoundMass)))
+(fuelEfficiency RaptorTest001 TestSpecificRange)
+(instance TestAvailableFuel MassMeasure)
+(equal TestAvailableFuel (MeasureFn 10000 PoundMass))
+(instance TestReserveFuel MassMeasure)
+(equal TestReserveFuel (MeasureFn 2000 PoundMass))
+(instance TestRequiredRunwayLength LengthMeasure)
+(equal TestRequiredRunwayLength (MeasureFn 1500 Meter))
+
+;; Alternate A: reachable with reserve, but its 1200-meter runway is too short.
+(instance TestFlightA Flying)
+(patient TestFlightA RaptorTest001)
+(instance TestRouteA Transitway)
+(path TestFlightA TestRouteA)
+(instance TestDistanceA LengthMeasure)
+(equal TestDistanceA (MeasureFn 300 NauticalMile))
+(distanceOnPath TestDistanceA TestRouteA)
+(availableFlightFuel TestFlightA TestAvailableFuel)
+(requiredFlightFuelReserve TestFlightA TestReserveFuel)
+
+;; Landing A: site availability and compatibility pass; runway length must fail.
+(instance TestLandingA Landing)
+(subProcess TestLandingA TestFlightA)
+(patient TestLandingA RaptorTest001)
+(instance TestRunwayA Runway)
+(destination TestLandingA TestRunwayA)
+(landingSiteAvailableForLanding TestLandingA TestRunwayA)
+(landingSiteCompatible RaptorTest001 TestRunwayA)
+(minimumLandingRunwayLength TestLandingA TestRequiredRunwayLength)
+(instance TestRunwayLengthA LengthMeasure)
+(equal TestRunwayLengthA (MeasureFn 1200 Meter))
+(availableLandingRunwayLength TestRunwayA TestRunwayLengthA)
+
+;; Alternate B: 500 nmi requires 10000 lb trip fuel plus 2000 lb reserve.
+;; Its runway meets the length requirement, but the 10000 lb load is insufficient.
+(instance TestFlightB Flying)
+(patient TestFlightB RaptorTest001)
+(instance TestRouteB Transitway)
+(path TestFlightB TestRouteB)
+(instance TestDistanceB LengthMeasure)
+(equal TestDistanceB (MeasureFn 500 NauticalMile))
+(distanceOnPath TestDistanceB TestRouteB)
+(availableFlightFuel TestFlightB TestAvailableFuel)
+(requiredFlightFuelReserve TestFlightB TestReserveFuel)
+
+;; Landing B: an available, compatible 2000-meter runway does not fix fuel shortage.
+(instance TestLandingB Landing)
+(subProcess TestLandingB TestFlightB)
+(patient TestLandingB RaptorTest001)
+(instance TestRunwayB Runway)
+(destination TestLandingB TestRunwayB)
+(landingSiteAvailableForLanding TestLandingB TestRunwayB)
+(landingSiteCompatible RaptorTest001 TestRunwayB)
+(minimumLandingRunwayLength TestLandingB TestRequiredRunwayLength)
+(instance TestRunwayLengthB LengthMeasure)
+(equal TestRunwayLengthB (MeasureFn 2000 Meter))
+(availableLandingRunwayLength TestRunwayB TestRunwayLengthB)
+
+;; Alternate C: the carrier is only 100 nmi away, within fuel reach.
+(instance TestFlightC Flying)
+(patient TestFlightC RaptorTest001)
+(instance TestRouteC Transitway)
+(path TestFlightC TestRouteC)
+(instance TestDistanceC LengthMeasure)
+(equal TestDistanceC (MeasureFn 100 NauticalMile))
+(distanceOnPath TestDistanceC TestRouteC)
+(availableFlightFuel TestFlightC TestAvailableFuel)
+(requiredFlightFuelReserve TestFlightC TestReserveFuel)
+
+;; Landing C: installed carrier arresting gear does not make the F-22 compatible.
+(instance TestLandingC Landing)
+(subProcess TestLandingC TestFlightC)
+(patient TestLandingC RaptorTest001)
+(instance TestCarrierC AircraftCarrier)
+(destination TestLandingC TestCarrierC)
+(landingSiteAvailableForLanding TestLandingC TestCarrierC)
+(instance TestArrestingGearC ArrestingGear)
+(part TestArrestingGearC TestCarrierC)
+
+;; Alternate D: 300 nmi requires 6000 lb trip fuel plus 2000 lb reserve.
+;; The 10000 lb load covers both and fits the inherited 18000 lb capacity.
+(instance TestFlightD Flying)
+(patient TestFlightD RaptorTest001)
+(instance TestRouteD Transitway)
+(path TestFlightD TestRouteD)
+(instance TestDistanceD LengthMeasure)
+(equal TestDistanceD (MeasureFn 300 NauticalMile))
+(distanceOnPath TestDistanceD TestRouteD)
+(availableFlightFuel TestFlightD TestAvailableFuel)
+(requiredFlightFuelReserve TestFlightD TestReserveFuel)
+
+;; Landing D: the available, compatible runway provides 2000 meters.
+(instance TestLandingD Landing)
+(subProcess TestLandingD TestFlightD)
+(patient TestLandingD RaptorTest001)
+(instance TestRunwayD Runway)
+(destination TestLandingD TestRunwayD)
+(landingSiteAvailableForLanding TestLandingD TestRunwayD)
+(landingSiteCompatible RaptorTest001 TestRunwayD)
+(minimumLandingRunwayLength TestLandingD TestRequiredRunwayLength)
+(instance TestRunwayLengthD LengthMeasure)
+(equal TestRunwayLengthD (MeasureFn 2000 Meter))
+(availableLandingRunwayLength TestRunwayD TestRunwayLengthD)
+
+;; Question: Does D meet the modeled recovery requirements, while A, B and C
+;; are explicitly rejected for runway length, insufficient fuel and incompatibility?
+(query
+  (and
+    (recoveryOptionMeetsRequirements TestFlightD TestRunwayD)
+    (recoveryOptionRejectionReason TestFlightA TestRunwayA RecoveryRunwayTooShort)
+    (recoveryOptionRejectionReason TestFlightB TestRunwayB RecoveryFuelInsufficient)
+    (recoveryOptionRejectionReason TestFlightC TestCarrierC RecoveryAircraftIncompatible)))
+(answer yes)

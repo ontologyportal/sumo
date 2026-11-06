@@ -1,0 +1,60 @@
+;; ======================================================
+;; Single-tank capacity inheritance and fuel feasibility
+;; Derive total vehicle capacity from its sole tank and verify a feasible fuel load.
+;; ======================================================
+(minLang tff)
+(note CSR036_1)
+(category CSR)
+(time 60)
+
+;; Vehicle and tank: install one fuel tank for this synthetic scenario.
+(instance TestAircraft PoweredVehicle)
+(instance TestTank GasTank)
+(part TestTank TestAircraft)
+
+;; Configuration completeness: any installed fuel tank must be this same tank.
+(forall (?OTHER)
+  (=>
+    (and
+      (instance ?OTHER GasTank)
+      (part ?OTHER TestAircraft))
+    (equal ?OTHER TestTank)))
+
+;; Tank capacity: 8000 kg must be inherited as the total vehicle capacity.
+(instance TestCapacity MassMeasure)
+(equal TestCapacity (MeasureFn 8000 Kilogram))
+(capacity TestTank TestCapacity)
+
+;; Flight: identify the vehicle participating in the proposed flight.
+(instance TestFlight Flying)
+(patient TestFlight TestAircraft)
+
+;; Route and distance: travel 100 nautical miles along the specified route.
+(instance TestRoute Transitway)
+(path TestFlight TestRoute)
+(instance TestDistance LengthMeasure)
+(equal TestDistance (MeasureFn 100 NauticalMile))
+(distanceOnPath TestDistance TestRoute)
+
+;; Assumed specific range: 0.1 nmi/kg implies 1000 kg of trip fuel.
+(instance TestEfficiency FunctionQuantity)
+(equal TestEfficiency
+  (PerFn (MeasureFn 0.1 NauticalMile) (MeasureFn 1 Kilogram)))
+(fuelEfficiency TestAircraft TestEfficiency)
+
+;; Available fuel: 1500 kg covers the total requirement and fits the tank capacity.
+(instance TestAvailableFuel MassMeasure)
+(equal TestAvailableFuel (MeasureFn 1500 Kilogram))
+(availableFlightFuel TestFlight TestAvailableFuel)
+
+;; Reserve: require an additional 200 kg beyond the calculated trip fuel.
+(instance TestReserveFuel MassMeasure)
+(equal TestReserveFuel (MeasureFn 200 Kilogram))
+(requiredFlightFuelReserve TestFlight TestReserveFuel)
+
+;; Question: Does the vehicle inherit its tank capacity, and is the flight fuel feasible?
+(query
+  (and
+    (fuelCapacity TestAircraft TestCapacity)
+    (instance TestFlight FuelFeasibleFlight)))
+(answer yes)

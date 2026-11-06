@@ -1,0 +1,109 @@
+;; ======================================================
+;; Rank feasible F-22 diversion options by route distance
+;; Prefer D (300 nmi) to E (350 nmi), after checking both are feasible.
+;; Exclude A (200 nmi) because its runway is too short, despite being nearer.
+;; Performance values and assessed landing requirements are synthetic test inputs.
+;; ======================================================
+;; Prover options used for the diversion suite are recorded in VehicleTransportation_010.
+(minLang tff)
+(note CSR039_1)
+(category CSR)
+(time 60)
+
+;; Aircraft: all candidates assess the same internal-fuel-only F-22.
+(instance RaptorTest001 F22RaptorInternalFuelOnly)
+
+;; Shared assumptions: 10000 lb usable fuel, 2000 lb reserve, 0.05 nmi/lb.
+;; Candidates are alternative recoveries from one snapshot, not successive flights.
+(instance TestSpecificRange FunctionQuantity)
+(equal TestSpecificRange
+  (PerFn (MeasureFn 0.05 NauticalMile) (MeasureFn 1 PoundMass)))
+(fuelEfficiency RaptorTest001 TestSpecificRange)
+(instance TestAvailableFuel MassMeasure)
+(equal TestAvailableFuel (MeasureFn 10000 PoundMass))
+(instance TestReserveFuel MassMeasure)
+(equal TestReserveFuel (MeasureFn 2000 PoundMass))
+
+;; Landing quantities: all landings require 1500 m; suitable runways offer 2000 m.
+(instance TestRequiredRunwayLength LengthMeasure)
+(equal TestRequiredRunwayLength (MeasureFn 1500 Meter))
+(instance TestAdequateRunwayLength LengthMeasure)
+(equal TestAdequateRunwayLength (MeasureFn 2000 Meter))
+(instance TestShortRunwayLength LengthMeasure)
+(equal TestShortRunwayLength (MeasureFn 1200 Meter))
+
+;; Alternate A: Nearest candidate: 4000 lb trip fuel, but only 1200 m of runway.
+(instance TestFlightA Flying)
+(patient TestFlightA RaptorTest001)
+(instance TestRouteA Transitway)
+(path TestFlightA TestRouteA)
+(instance TestDistanceA LengthMeasure)
+(equal TestDistanceA (MeasureFn 200 NauticalMile))
+(distanceOnPath TestDistanceA TestRouteA)
+(availableFlightFuel TestFlightA TestAvailableFuel)
+(requiredFlightFuelReserve TestFlightA TestReserveFuel)
+
+;; Landing A: site availability and aircraft compatibility are assessed explicitly.
+(instance TestLandingA Landing)
+(subProcess TestLandingA TestFlightA)
+(patient TestLandingA RaptorTest001)
+(instance TestRunwayA Runway)
+(destination TestLandingA TestRunwayA)
+(landingSiteAvailableForLanding TestLandingA TestRunwayA)
+(landingSiteCompatible RaptorTest001 TestRunwayA)
+(minimumLandingRunwayLength TestLandingA TestRequiredRunwayLength)
+(availableLandingRunwayLength TestRunwayA TestShortRunwayLength)
+
+;; Alternate D: First feasible candidate: 6000 lb trip fuel plus 2000 lb reserve.
+(instance TestFlightD Flying)
+(patient TestFlightD RaptorTest001)
+(instance TestRouteD Transitway)
+(path TestFlightD TestRouteD)
+(instance TestDistanceD LengthMeasure)
+(equal TestDistanceD (MeasureFn 300 NauticalMile))
+(distanceOnPath TestDistanceD TestRouteD)
+(availableFlightFuel TestFlightD TestAvailableFuel)
+(requiredFlightFuelReserve TestFlightD TestReserveFuel)
+
+;; Landing D: site availability and aircraft compatibility are assessed explicitly.
+(instance TestLandingD Landing)
+(subProcess TestLandingD TestFlightD)
+(patient TestLandingD RaptorTest001)
+(instance TestRunwayD Runway)
+(destination TestLandingD TestRunwayD)
+(landingSiteAvailableForLanding TestLandingD TestRunwayD)
+(landingSiteCompatible RaptorTest001 TestRunwayD)
+(minimumLandingRunwayLength TestLandingD TestRequiredRunwayLength)
+(availableLandingRunwayLength TestRunwayD TestAdequateRunwayLength)
+
+;; Alternate E: Second feasible candidate: 7000 lb trip fuel plus 2000 lb reserve.
+(instance TestFlightE Flying)
+(patient TestFlightE RaptorTest001)
+(instance TestRouteE Transitway)
+(path TestFlightE TestRouteE)
+(instance TestDistanceE LengthMeasure)
+(equal TestDistanceE (MeasureFn 350 NauticalMile))
+(distanceOnPath TestDistanceE TestRouteE)
+(availableFlightFuel TestFlightE TestAvailableFuel)
+(requiredFlightFuelReserve TestFlightE TestReserveFuel)
+
+;; Landing E: site availability and aircraft compatibility are assessed explicitly.
+(instance TestLandingE Landing)
+(subProcess TestLandingE TestFlightE)
+(patient TestLandingE RaptorTest001)
+(instance TestRunwayE Runway)
+(destination TestLandingE TestRunwayE)
+(landingSiteAvailableForLanding TestLandingE TestRunwayE)
+(landingSiteCompatible RaptorTest001 TestRunwayE)
+(minimumLandingRunwayLength TestLandingE TestRequiredRunwayLength)
+(availableLandingRunwayLength TestRunwayE TestAdequateRunwayLength)
+
+;; Question: Does feasible D rank ahead of feasible E, without reversing that
+;; preference or admitting the nearer but runway-ineligible A into the ranking?
+(query
+  (and
+    (closerRecoveryOption TestFlightD TestFlightE)
+    (not (closerRecoveryOption TestFlightE TestFlightD))
+    (not (closerRecoveryOption TestFlightA TestFlightD))
+    (recoveryOptionRejectionReason TestFlightA TestRunwayA RecoveryRunwayTooShort)))
+(answer yes)

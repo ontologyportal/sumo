@@ -1,0 +1,65 @@
+;; Use typed first-order translation so the prover can evaluate arithmetic.
+;; Allow up to 60 seconds for this transportation test.
+(minLang tff)
+(note F22Raptor_fuel_planning)
+(category Transportation)
+(time 60)
+
+;; Aircraft configuration:
+;; The specification rules assign this aircraft an internal fuel capacity
+;; of 18000 pounds. Its class hierarchy also implies PoweredVehicle.
+(instance RaptorTest001 F22RaptorInternalFuelOnly)
+
+;; Flight:
+;; Identify the flight and the aircraft participating in it.
+(instance TestFlight Flying)
+(patient TestFlight RaptorTest001)
+
+;; Route:
+;; Associate the flight with the route whose distance it will travel.
+(instance TestRoute Transitway)
+(path TestFlight TestRoute)
+
+;; Route distance:
+;; Represent the total route length as a quantity of 300 nautical miles.
+(instance TestDistance LengthMeasure)
+(equal TestDistance
+  (MeasureFn 300 NauticalMile))
+(distanceOnPath TestDistance TestRoute)
+
+;; Assumed specific range:
+;; Use 0.05 nautical miles per pound of fuel for this scenario.
+;; This is a synthetic test assumption, not published F-22 performance data.
+;; Treat it as the effective rate for the entire route.
+;; The planning rule should derive trip fuel of 300 / 0.05 = 6000 pounds.
+(instance RaptorTestSpecificRange FunctionQuantity)
+(equal RaptorTestSpecificRange
+  (PerFn
+    (MeasureFn 0.05 NauticalMile)
+    (MeasureFn 1 PoundMass)))
+(fuelEfficiency RaptorTest001 RaptorTestSpecificRange)
+
+;; Available fuel:
+;; The flight starts with 10000 pounds of usable fuel.
+;; This total must cover both the trip fuel and the required reserve.
+(instance TestAvailableFuel MassMeasure)
+(equal TestAvailableFuel
+  (MeasureFn 10000 PoundMass))
+(availableFlightFuel TestFlight TestAvailableFuel)
+
+;; Reserve requirement:
+;; Require an additional 2000 pounds beyond the calculated trip fuel.
+;; Total fuel needed is therefore 6000 + 2000 = 8000 pounds.
+(instance TestReserveFuel MassMeasure)
+(equal TestReserveFuel
+  (MeasureFn 2000 PoundMass))
+(requiredFlightFuelReserve TestFlight TestReserveFuel)
+
+;; Expected result:
+;; Fuel sufficiency: 10000 pounds available >= 8000 pounds needed.
+;; Capacity compliance: 10000 pounds loaded <= 18000 pounds capacity.
+;; Together these satisfy the FuelFeasibleFlight rule.
+(query
+  (instance TestFlight FuelFeasibleFlight))
+
+(answer yes)

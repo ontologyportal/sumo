@@ -1,0 +1,39 @@
+;; ======================================================
+;; Fuel insufficiency using nautical miles per pound
+;; Verify 2100 pounds cannot cover a 2000-pound trip plus a 200-pound reserve.
+;; ======================================================
+(note CSR034_1)
+(category CSR)
+(minLang tff)
+(time 60)
+
+;; Vehicle and flight: identify the powered vehicle for this synthetic scenario.
+(instance TestAircraft PoweredVehicle)
+(instance TestFlight Flying)
+(patient TestFlight TestAircraft)
+
+;; Route and distance: travel 100 nautical miles along the specified route.
+(instance TestRoute Transitway)
+(path TestFlight TestRoute)
+(instance TestDistance LengthMeasure)
+(equal TestDistance (MeasureFn 100 NauticalMile))
+(distanceOnPath TestDistance TestRoute)
+
+;; Assumed specific range: 0.05 nmi/lb implies 2000 lb of trip fuel.
+(instance TestEfficiency FunctionQuantity)
+(equal TestEfficiency (PerFn (MeasureFn 0.05 NauticalMile) (MeasureFn 1 PoundMass)))
+(fuelEfficiency TestAircraft TestEfficiency)
+
+;; Reserve: require an additional 200 lb.
+(instance TestReserve PhysicalQuantity)
+(equal TestReserve (MeasureFn 200 PoundMass))
+(requiredFlightFuelReserve TestFlight TestReserve)
+
+;; Available fuel: 2100 lb falls short of the 2200 lb total requirement.
+(instance TestAvailable PhysicalQuantity)
+(equal TestAvailable (MeasureFn 2100 PoundMass))
+(availableFlightFuel TestFlight TestAvailable)
+
+;; Question: Is the flight explicitly not fuel sufficient because the load is below trip plus reserve?
+(query (not (instance TestFlight FuelSufficientFlight)))
+(answer yes)
