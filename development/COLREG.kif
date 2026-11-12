@@ -1,0 +1,2309 @@
+;; ===========================================================================
+;; COLREG.kif
+;;
+;; The International Regulations for Preventing Collisions at Sea (COLREGs,
+;; the Rules of the Road): vessel categories, lights and day shapes, encounter
+;; geometry, and the head-on, crossing and overtaking situations, with the
+;; give-way and stand-on duties and the obligatory next action of each vessel.
+;;
+;; Based on the Rules of the Road ontology by James W. Timberlake (NPS
+;; thesis, March 2025). Revised by Onur Orkut Genisel so that it loads with
+;; current SUMO and can serve as the COLREGs module of a combined COLREGs and
+;; ROE knowledge base (ROE_Master.kif, ROE_Supplementary.kif, ROE_Series.kif).
+;;
+;; Main changes from the original:
+;;  - Parentheses, misspelled terms and wrong arities are fixed. Terms are
+;;    aligned with SUMO (ShipCaptain, Decelerating, DirectionChange, Near,
+;;    EnglishWrittenLanguage). Sail, Starting and Stopping come from MILO.
+;;  - holdsObligation is used in (agent formula) order. Measures are typed
+;;    through (equal ?Q (MeasureFn ?N Unit)); distances are in nautical miles
+;;    and times in minutes.
+;;  - speedOverGround and courseOverGround are ternary (vessel, value, time).
+;;  - Rules that only created Skolem terms, or that cannot fire under the
+;;    open-world assumption, are commented out, with the reason above each.
+;;  - Scenario facts are not in this file. A scenario asserts the vessels and
+;;    their attributes, courses, speeds, relative bearing, cpa and cpat at a
+;;    time, and the cpa thresholds of own vessel.
+;;
+;; Requires Merge.kif, Mid-level-ontology.kif, Geography.kif,
+;; Transportation.kif, Weather.kif and engineering.kif.
+;; ===========================================================================
+
+; *******************************************************************
+; ************************** HIERARCHY ******************************
+; ******************************************************************* 
+
+(instance OwnVessel RotrAttribute) 
+(documentation OwnVessel EnglishWrittenLanguage "In reference to a rules of
+the road situation, own vessel refers to the 1st person view of the
+operators vessel. This is a linguistic deictic expression, it is 
+external to the formal system.")
+(termFormat EnglishWrittenLanguage OwnVessel "own vessel")  
+
+
+(=>
+  (and
+    (instance ?VES WaterVehicle)
+    (attribute ?VES OwnVessel))
+  (not (attribute ?VES TargetVessel)))
+
+  
+(instance TargetVessel RotrAttribute) 
+(documentation TargetVessel EnglishWrittenLanguage "In reference to a rules 
+of the road situation, target vessel refers to another vessel that
+is of interest to own vessel.")
+(termFormat EnglishWrittenLanguage TargetVessel "target vessel")  
+
+(=>
+  (and
+    (instance ?VES WaterVehicle)
+    (attribute ?VES TargetVessel))
+  (not (attribute ?VES OwnVessel)))
+  
+  
+
+; Seamanship
+(subclass Seamanship FieldOfStudy)
+(documentation Seamanship EnglishWrittenLanguage "The knowledge and skills
+required to operate a boat or ship.")
+(termFormat EnglishWrittenLanguage Seamanship "seamanship")   
+
+(=>
+  (attribute ?P Sailor)
+  (hasExpertise ?P Seamanship))
+ 
+(=>
+  (attribute ?P ShipDriver)
+  (hasExpertise ?P Seamanship))  
+  
+(=>
+  (attribute ?P ShipCaptain)
+  (hasExpertise ?P Seamanship))
+
+; define seamanship more
+  
+  
+; responsibleFor
+(instance responsibleFor CaseRole)
+(documentation responsibleFor EnglishWrittenLanguage "(responsibleFor ?PROCESS 
+?AGENT) means that ?AGENT is overall responsible for the Process 
+?PROCESS.")
+(termFormat EnglishWrittenLanguage responsibleFor "responsible for")   
+(domain responsibleFor 1 Process)
+(domain responsibleFor 2 AutonomousAgent)
+(format EnglishWrittenLanguage responsibleFor "%2 is %n responsible for %1")
+
+    
+(=>
+  (and
+    (instance ?SHIP WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?SHIP))
+  (exists (?CAPT)
+    (holdsDuring (WhenFn ?TRANS)
+      (and
+        (instance ?CAPT AutonomousAgent)
+        (responsibleFor ?TRANS ?CAPT)
+        (attribute ?CAPT ShipCaptain)))))
+
+(=>
+  (and
+    (instance ?V Vehicle)
+    (instance ?TRANS Translocation)
+    (instance ?DRIVE Driving) 
+    (objectTransferred ?TRANS ?V)
+    (agent ?DRIVE ?DRIVER)
+    (patient ?DRIVE ?V))
+  (holdsDuring (WhenFn ?TRANS)
+    (responsibleFor ?TRANS ?DRIVER)))
+        
+        
+; ShipDriver
+(subAttribute ShipDriver Sailor)
+(documentation ShipDriver EnglishWrittenLanguage "A ship driver is responsible
+for the navigation of a water vessel.")
+(termFormat EnglishWrittenLanguage ShipDriver "ship driver")   
+
+(=>
+  (and
+    (instance ?SHIP WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?SHIP))
+  (holdsDuring (WhenFn ?TRANS)
+    (exists (?DRIVER ?DRIVING)
+      (and
+        (instance ?DRIVER AutonomousAgent)
+        (instance ?DRIVING Driving)
+        (patient ?DRIVING ?SHIP)
+        (agent ?DRIVING ?DRIVER)
+        (attribute ?DRIVER ShipDriver)))))
+
+
+(subclass RotrAttribute Attribute)
+(documentation RotrAttribute EnglishWrittenLanguage "an attribute of a 
+water vehicle as defined by the COLREGs Rules of the Road.")
+(termFormat EnglishWrittenLanguage RotrAttribute "rules of the road attribute") 
+
+
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 NotUnderCommand))
+  (not
+    (or
+      (attribute ?VES1 RestrictedInAbilityToManeuver)
+      (attribute ?VES1 ConstrainedByDraft)
+      (attribute ?VES1 VesselEngagedInFishing)
+      (attribute ?VES1 SailingVessel)
+      (attribute ?VES1 PowerDrivenVessel))))
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 RestrictedInAbilityToManeuver))
+  (not
+    (or
+      (attribute ?VES1 NotUnderCommand)
+      (attribute ?VES1 ConstrainedByDraft)
+      (attribute ?VES1 VesselEngagedInFishing)
+      (attribute ?VES1 SailingVessel)
+      (attribute ?VES1 PowerDrivenVessel))))
+      
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 ConstrainedByDraft))
+  (not
+    (or
+      (attribute ?VES1 NotUnderCommand)
+      (attribute ?VES1 RestrictedInAbilityToManeuver)
+      (attribute ?VES1 VesselEngagedInFishing)
+      (attribute ?VES1 SailingVessel)
+      (attribute ?VES1 PowerDrivenVessel))))
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 VesselEngagedInFishing))
+  (not
+    (or
+      (attribute ?VES1 NotUnderCommand)
+      (attribute ?VES1 RestrictedInAbilityToManeuver)
+      (attribute ?VES1 ConstrainedByDraft)
+      (attribute ?VES1 SailingVessel)
+      (attribute ?VES1 PowerDrivenVessel))))
+     
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 SailingVessel))
+  (not
+    (or
+      (attribute ?VES1 NotUnderCommand)
+      (attribute ?VES1 RestrictedInAbilityToManeuver)
+      (attribute ?VES1 ConstrainedByDraft)
+      (attribute ?VES1 VesselEngagedInFishing)
+      (attribute ?VES1 PowerDrivenVessel))))
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 PowerDrivenVessel))
+  (not
+    (or
+      (attribute ?VES1 NotUnderCommand)
+      (attribute ?VES1 RestrictedInAbilityToManeuver)
+      (attribute ?VES1 ConstrainedByDraft)
+      (attribute ?VES1 VesselEngagedInFishing)
+      (attribute ?VES1 SailingVessel))))
+
+                   
+; NotUnderCommand
+(instance NotUnderCommand RotrAttribute)
+(documentation NotUnderCommand EnglishWrittenLanguage "A vessel which through
+some exceptional circumstance is unable to maneuver as required by these
+Rules and is therefore unable to keep out of the way of another vessel.")
+(termFormat EnglishWrittenLanguage NotUnderCommand "not under command")  
+
+
+;; DISABLED: NUC derivation: (not (instance ?NOTMOVE Maneuver)) with a free ?NOTMOVE; fires on any non-maneuver process. NUC is asserted per scenario.
+;(=>
+;  (and
+;    (instance ?VES WaterVehicle)
+;    (instance ?TRANS Translocation)
+;    (objectTransferred ?TRANS ?VES)
+;    (not (instance ?NOTMOVE Maneuver))
+;    (agent ?NOTMOVE ?VES))
+;  (holdsDuring (WhenFn ?TRANS)
+;    (attribute ?VES NotUnderCommand)))
+    
+    
+(=> 
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (attribute ?VES NotUnderCommand)
+    (attribute ?CO ShipCaptain)
+    (or
+      (and
+        (instance ?NIGHT NightTime)
+        (during (WhenFn ?TRANS) ?NIGHT))     
+      (and
+        (stoppingDistance ?VES ?SDQ)
+        (equal ?SDQ (MeasureFn ?SD NauticalMile))
+        (visibilityInMeteorology (WhereFn ?VES (BeginFn (WhenFn ?TRANS))) (WhenFn ?TRANS) ?VISQ)
+        (equal ?VISQ (MeasureFn ?VIS NauticalMile))
+        (lessThanOrEqualTo ?VIS ?SD)))
+    (responsibleFor ?TRANS ?CO))
+  (holdsObligation ?CO
+    (exists (?L1 ?L2 ?MAST) 
+      (and
+        (instance ?L1 TaskingLight)
+        (instance ?L2 TaskingLight)
+        (instance ?MAST Mast)
+        (part ?MAST ?VES)
+        (color ?L1 Red)
+        (color ?L2 Red)
+        (orientation ?L1 ?L2 Vertical)
+        (located ?L1 ?MAST)
+        (located ?L2 ?MAST)))))
+    
+    
+(=> 
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (attribute ?VES NotUnderCommand)
+    (attribute ?CO ShipCaptain)
+    (instance ?DAY DayTime)
+    (during (WhenFn ?TRANS) ?DAY)   
+    (responsibleFor ?TRANS ?CO))
+  (holdsObligation ?CO
+    (exists (?DS1 ?DS2 ?MAST) 
+      (and
+        (instance ?DS1 Artifact)
+        (instance ?DS2 Artifact)
+        (instance ?MAST Mast)
+        (part ?MAST ?VES)
+        (color ?DS1 Black)
+        (color ?DS2 Black)
+        (shape ?DS1 Sphere)
+        (shape ?DS2 Sphere)
+        (orientation ?DS1 ?DS2 Vertical)
+        (located ?DS1 ?MAST)
+        (located ?DS2 ?MAST)))))
+
+; RestrictedAbilityToManeuver
+(instance RestrictedInAbilityToManeuver RotrAttribute)
+(documentation RestrictedInAbilityToManeuver EnglishWrittenLanguage "a vessel which from 
+the nature of her work is restricted in her ability to maneuver as
+required by these Rules and is therefore unable to keep out of the way 
+of another vessel")
+(termFormat EnglishWrittenLanguage RestrictedInAbilityToManeuver "restricted 
+in her ability to maneuver")  
+
+;; DISABLED: RAM derivation: same open-world pattern as NUC. RAM is asserted per scenario or derived by the COLREG-ROE bridge.
+;(=>
+;  (and
+;    (instance ?VES WaterVehicle)
+;    (instance ?TRANS Translocation)
+;    (instance ?WORK Working)
+;    (instance ?SAILOR Sailor)
+;    (not (instance ?NOTMOVE Maneuver))
+;    (objectTransferred ?TRANS ?VES)
+;    (agent ?WORK ?SAILOR)
+;    (eventLocated ?WORK ?VES)
+;    (agent ?NOTMOVE ?VES))
+;  (holdsDuring (WhenFn ?TRANS)
+;    (attribute ?VES RestrictedInAbilityToManeuver)))
+
+
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 RestrictedInAbilityToManeuver)
+    (instance ?VES2 WaterVehicle)
+    (attribute ?VES2 NotUnderCommand)
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW))
+  (and
+    (giveWayVessel ?VES1 ?VES2 ?TIMENOW)
+    (standOnVessel ?VES2 ?VES1 ?TIMENOW)))
+
+    
+(=> 
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (attribute ?VES RestrictedInAbilityToManeuver)
+    (attribute ?CO ShipCaptain)
+    (or
+      (and
+        (instance ?NIGHT NightTime)
+        (during (WhenFn ?TRANS) ?NIGHT))     
+      (and
+        (stoppingDistance ?VES ?SDQ)
+        (equal ?SDQ (MeasureFn ?SD NauticalMile))
+        (visibilityInMeteorology (WhereFn ?VES (BeginFn (WhenFn ?TRANS))) (WhenFn ?TRANS) ?VISQ)
+        (equal ?VISQ (MeasureFn ?VIS NauticalMile))
+        (lessThanOrEqualTo ?VIS ?SD)))
+    (responsibleFor ?TRANS ?CO))
+  (holdsObligation ?CO
+    (exists (?L1 ?L2 ?L3 ?MAST) 
+      (and
+        (instance ?L1 TaskingLight)
+        (instance ?L2 TaskingLight)
+        (instance ?L3 TaskingLight)
+        (instance ?MAST Mast)
+        (color ?L1 Red)
+        (color ?L2 White)
+        (color ?L3 Red)
+        (orientation ?L1 ?L2 Vertical)
+        (orientation ?L2 ?L3 Vertical)
+        (orientation ?L1 ?L2 Above)
+        (orientation ?L2 ?L3 Above)
+        (located ?L1 ?MAST)
+        (located ?L2 ?MAST)
+        (located ?L3 ?MAST)))))
+ 
+    
+(=> 
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (attribute ?VES ConstrainedByDraft)
+    (attribute ?CO ShipCaptain)
+    (instance ?DAY DayTime)
+    (during (WhenFn ?TRANS) ?DAY)   
+    (responsibleFor ?TRANS ?CO))
+  (holdsObligation ?CO
+    (exists (?DS1 ?DS2 ?DS3 ?MAST) 
+      (and
+        (instance ?DS1 Artifact)
+        (instance ?DS2 Artifact)
+        (instance ?DS3 Artifact)
+        (instance ?MAST Mast)
+        (part ?MAST ?VES)
+        (color ?DS1 Black)
+        (color ?DS2 Black)
+        (color ?DS3 Black)
+        (shape ?DS1 Sphere)
+        (shape ?DS2 Cube)
+        (shape ?DS3 Sphere)
+        (orientation ?DS1 ?DS2 Vertical)
+        (orientation ?DS2 ?DS3 Vertical)
+        (orientation ?DS1 ?DS2 Above)
+        (orientation ?DS2 ?DS3 Above)
+        (located ?DS1 ?MAST)
+        (located ?DS2 ?MAST)
+        (located ?DS3 ?MAST)))))
+    
+       
+; ContstrainedByDraft
+(instance ConstrainedByDraft RotrAttribute)
+(documentation ConstrainedByDraft EnglishWrittenLanguage "A power-driven
+vessel which, because of her draft in relation to the available depth 
+and width of navigable water is severely restricted in her ability to 
+deviate from the course she is following.")
+(termFormat EnglishWrittenLanguage ConstrainedByDraft "constrained by her draft")  
+
+(=>
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?HULL ShipsHull)
+    (part ?HULL ?VES)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (instance ?AREA WaterArea)
+    (instance ?FLOOR SeabedArea)
+    (part ?FLOOR ?AREA)
+    (eventLocated ?TRANS ?AREA)
+    (instance ?INLAND InlandWaterSystem)
+    (not (equal ?INLAND ?AREA))
+    (orientation ?VES ?FLOOR Near))
+  (holdsDuring (WhenFn ?TRANS)
+    (attribute ?VES ConstrainedByDraft)))
+
+  
+
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 ConstrainedByDraft)
+    (instance ?VES2 WaterVehicle)
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW)
+    (or
+      (attribute ?VES2 NotUnderCommand)
+      (attribute ?VES2 RestrictedInAbilityToManeuver))
+    (not
+      (overtakingSituation ?VES2 ?VES1 ?TIMENOW)))
+  (and
+    (giveWayVessel ?VES1 ?VES2 ?TIMENOW)
+    (standOnVessel ?VES2 ?VES1 ?TIMENOW)))
+
+    
+(=> 
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (attribute ?VES ConstrainedByDraft)
+    (attribute ?CO ShipCaptain)
+    (or
+      (and
+        (instance ?NIGHT NightTime)
+        (during (WhenFn ?TRANS) ?NIGHT))     
+      (and
+        (stoppingDistance ?VES ?SDQ)
+        (equal ?SDQ (MeasureFn ?SD NauticalMile))
+        (visibilityInMeteorology (WhereFn ?VES (BeginFn (WhenFn ?TRANS))) (WhenFn ?TRANS) ?VISQ)
+        (equal ?VISQ (MeasureFn ?VIS NauticalMile))
+        (lessThanOrEqualTo ?VIS ?SD)))
+    (responsibleFor ?TRANS ?CO))
+  (holdsObligation ?CO
+    (exists (?L1 ?L2 ?L3 ?MAST) 
+      (and
+        (instance ?L1 TaskingLight)
+        (instance ?L2 TaskingLight)
+        (instance ?L3 TaskingLight)
+        (instance ?MAST Mast)
+        (part ?MAST ?VES)
+        (color ?L1 Red)
+        (color ?L2 Red)
+        (color ?L3 Red)
+        (orientation ?L1 ?L2 Vertical)
+        (orientation ?L2 ?L3 Vertical)
+        (located ?L1 ?MAST)
+        (located ?L2 ?MAST)
+        (located ?L3 ?MAST)))))
+
+    
+(=> 
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (attribute ?VES ConstrainedByDraft)
+    (attribute ?CO ShipCaptain)
+    (instance ?DAY DayTime)
+    (during (WhenFn ?TRANS) ?DAY)   
+    (responsibleFor ?TRANS ?CO))
+  (holdsObligation ?CO
+    (exists (?DS ?MAST) 
+      (and
+        (instance ?DS Artifact)
+        (instance ?MAST Mast)
+        (part ?MAST ?VES)
+        (color ?DS Black)
+        (shape ?DS Cylinder)
+        (located ?DS ?MAST)))))
+      
+    
+; Fishing
+(instance VesselEngagedInFishing RotrAttribute)
+(documentation VesselEngagedInFishing EnglishWrittenLanguage "Any vessel fishing with
+nets, lines, trawls or other fishing apparatus which restrict maneuverability,
+but does not include a vessel fishing with trolling lines or other fishing
+apparatus which do not restrict maneuverability")
+(termFormat EnglishWrittenLanguage VesselEngagedInFishing "fishing vessel")  
+
+(=>
+  (and
+    (instance ?VES FishingShip)
+    (instance ?TRANS Translocation)
+    (instance ?FISHING Fishing)
+    (objectTransferred ?TRANS ?VES)
+    (eventLocated ?FISHING ?VES))
+  (holdsDuring (WhenFn ?TRANS)
+    (attribute ?VES VesselEngagedInFishing)))
+
+
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)                 
+    (attribute ?VES1 VesselEngagedInFishing)
+    (instance ?VES2 WaterVehicle)                 
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW)  
+    (or
+      (attribute ?VES2 NotUnderCommand)
+      (attribute ?VES2 RestrictedInAbilityToManeuver)
+      (attribute ?VES2 ConstrainedByDraft))
+    (not
+      (overtakingSituation ?VES2 ?VES1 ?TIMENOW)))
+  (and
+    (giveWayVessel ?VES1 ?VES2 ?TIMENOW)
+    (standOnVessel ?VES2 ?VES1 ?TIMENOW)))
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)                
+    (attribute ?VES1 VesselEngagedInFishing)      
+    (instance ?VES2 WaterVehicle)                 
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW)  
+    (or
+      (attribute ?VES2 SailingVessel)
+      (attribute ?VES2 PowerDrivenVessel))       
+    (not
+      (overtakingSituation ?VES1 ?VES2 ?TIMENOW)))  
+  (and
+    (giveWayVessel ?VES2 ?VES1 ?TIMENOW)
+    (standOnVessel ?VES1 ?VES2 ?TIMENOW)))
+
+   
+(=> 
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (attribute ?VES VesselEngagedInFishing)
+    (attribute ?CO ShipCaptain)
+    (or
+      (and
+        (instance ?NIGHT NightTime)
+        (during (WhenFn ?TRANS) ?NIGHT))     
+      (and
+        (stoppingDistance ?VES ?SDQ)
+        (equal ?SDQ (MeasureFn ?SD NauticalMile))
+        (visibilityInMeteorology (WhereFn ?VES (BeginFn (WhenFn ?TRANS))) (WhenFn ?TRANS) ?VISQ)
+        (equal ?VISQ (MeasureFn ?VIS NauticalMile))
+        (lessThanOrEqualTo ?VIS ?SD)))
+    (responsibleFor ?TRANS ?CO))
+  (holdsObligation ?CO
+    (exists (?L1 ?L2 ?MAST) 
+      (and
+        (instance ?L1 TaskingLight)
+        (instance ?L2 TaskingLight)
+        (instance ?MAST Mast)
+        (part ?MAST ?VES)
+        (or
+          (and
+            (color ?L1 Red)
+            (color ?L2 White))
+          (and
+            (color ?L1 Green)
+            (color ?L2 White)))
+        (orientation ?L1 ?L2 Vertical)
+        (orientation ?L1 ?L2 Above)
+        (located ?L1 ?MAST)
+        (located ?L2 ?MAST)))))
+    
+     
+(=> 
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (attribute ?VES VesselEngagedInFishing)
+    (attribute ?CO ShipCaptain)
+    (instance ?DAY DayTime)
+    (during (WhenFn ?TRANS) ?DAY)   
+    (responsibleFor ?TRANS ?CO))
+  (holdsObligation ?CO
+    (exists (?DS1 ?DS2 ?MAST) 
+      (and
+        (instance ?DS1 Artifact)
+        (instance ?DS2 Artifact)
+        (instance ?MAST Mast)
+        (part ?MAST ?VES)
+        (color ?DS1 Black)
+        (color ?DS2 Black)
+        (shape ?DS1 Cone)           ; Needs to be upside down
+        (shape ?DS2 Cone)
+        (orientation ?DS1 ?DS2 On) 
+        (located ?DS1 ?MAST)
+        (located ?DS2 ?MAST)))))
+    
+    
+; Sail
+;; DISABLED: Sail is already a class in Mid-level-ontology.kif (subclass Sail Artifact); local (instance Sail Machine) clashed with it.
+;(instance Sail Machine)
+;(documentation Sail EnglishWrittenLanguage "an object used to convert wind
+;power into motion.")
+;(termFormat EnglishWrittenLanguage Sail "sail")  
+    
+
+(=>
+  (and
+    (instance ?VES Sailboat)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES))
+  (exists (?SAIL)
+    (and 
+      (instance ?SAIL Sail)
+      (hasPurpose ?SAIL
+        (instrument ?TRANS ?SAIL)))))
+    
+       
+; Sailing
+(instance SailingVessel RotrAttribute)
+(documentation SailingVessel EnglishWrittenLanguage "any vessel under sail 
+provided that propelling machinery, if fitted, is not being used.")
+(termFormat EnglishWrittenLanguage SailingVessel "sailing vessel")  
+
+;; DISABLED: (not (exists ?MOT ...)) in the antecedent. Absence of a motor is never provable in an open world, so the rule cannot fire; SailingVessel is asserted per scenario.
+;(=>
+;  (and
+;    (instance ?VES Sailboat)
+;    (instance ?TRANS Translocation)
+;    (objectTransferred ?TRANS ?VES)
+;    (instance ?SAIL Sail)
+;    (instrument ?TRANS ?SAIL)
+;    (not
+;      (exists (?MOT)
+;        (and
+;          (instance ?MOT Motor)
+;          (instrument ?TRANS ?MOT)))))
+;  (holdsDuring (WhenFn ?TRANS)
+;    (attribute ?VES SailingVessel))) 
+
+    
+    
+(=> 
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (attribute ?VES SailingVessel)
+    (attribute ?CO ShipCaptain)
+    (or
+      (and
+        (instance ?NIGHT NightTime)
+        (during (WhenFn ?TRANS) ?NIGHT))     
+      (and
+        (stoppingDistance ?VES ?SDQ)
+        (equal ?SDQ (MeasureFn ?SD NauticalMile))
+        (visibilityInMeteorology (WhereFn ?VES (BeginFn (WhenFn ?TRANS))) (WhenFn ?TRANS) ?VISQ)
+        (equal ?VISQ (MeasureFn ?VIS NauticalMile))
+        (lessThanOrEqualTo ?VIS ?SD)))
+    (responsibleFor ?TRANS ?CO))
+  (holdsObligation ?CO
+    (exists (?L1 ?L2 ?MAST) 
+      (and
+        (instance ?L1 TaskingLight)
+        (instance ?L2 TaskingLight)
+        (instance ?MAST Mast)
+        (part ?MAST ?VES)
+        (color ?L1 Red)
+        (color ?L2 Green)
+        (orientation ?L1 ?L2 Vertical)
+        (orientation ?L1 ?L2 Above)
+        (located ?L1 ?MAST)
+        (located ?L2 ?MAST)))))
+
+(=> 
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (attribute ?VES VesselEngagedInFishing)
+    (attribute ?CO ShipCaptain)
+    (instance ?DAY DayTime)
+    (during (WhenFn ?TRANS) ?DAY)   
+    (responsibleFor ?TRANS ?CO))
+  (holdsObligation ?CO
+    (exists (?DS ?MAST) 
+      (and
+        (instance ?DS Artifact)
+        (instance ?MAST Mast)
+        (part ?MAST ?VES)
+        (color ?DS Black)
+        (shape ?DS Cone)            ; needs to be upside down
+        (located ?DS ?MAST)))))
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 SailingVessel)
+    (instance ?VES2 WaterVehicle)
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW)
+    (or
+      (attribute ?VES2 NotUnderCommand)
+      (attribute ?VES2 RestrictedInAbilityToManeuver)
+      (attribute ?VES2 ConstrainedByDraft)
+      (attribute ?VES2 VesselEngagedInFishing))
+    (not
+      (overtakingSituation ?VES2 ?VES1 ?TIMENOW)))
+  (and
+    (giveWayVessel ?VES1 ?VES2 ?TIMENOW)
+    (standOnVessel ?VES2 ?VES1 ?TIMENOW)))
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 SailingVessel)
+    (instance ?VES2 WaterVehicle)
+    (attribute ?VES2 PowerDrivenVessel)
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW)
+    (not
+      (overtakingSituation ?VES1 ?VES2 ?TIMENOW)))
+  (and
+    (giveWayVessel ?VES2 ?VES1 ?TIMENOW)
+    (standOnVessel ?VES1 ?VES2 ?TIMENOW)))
+    
+; PowerDrivenVessel 
+(instance PowerDrivenVessel RotrAttribute)
+(documentation PowerDrivenVessel EnglishWrittenLanguage "Any maritime vessel
+propelled by machinery")
+(termFormat EnglishWrittenLanguage PowerDrivenVessel "power-driven vessel")  
+
+(=>
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?TRANS Translocation)
+    (objectTransferred ?TRANS ?VES)
+    (instance ?X Motor)
+    (instrument ?TRANS ?X))
+  (holdsDuring (WhenFn ?TRANS)
+    (attribute ?VES PowerDrivenVessel)))
+
+
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)                     
+    (attribute ?VES1 PowerDrivenVessel)
+    (instance ?VES2 WaterVehicle)                     
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW)      
+    (or
+      (attribute ?VES2 NotUnderCommand)
+      (attribute ?VES2 RestrictedInAbilityToManeuver)
+      (attribute ?VES2 ConstrainedByDraft)
+      (attribute ?VES2 VesselEngagedInFishing)        
+      (attribute ?VES2 SailingVessel))
+    (not
+      (overtakingSituation ?VES2 ?VES1 ?TIMENOW)))    
+  (and
+    (giveWayVessel ?VES1 ?VES2 ?TIMENOW)
+    (standOnVessel ?VES2 ?VES1 ?TIMENOW)))
+    
+
+
+; *******************************************************************
+; ************************** HELPERS ********************************
+; *******************************************************************  
+
+;; DISABLED: Starting and Stopping are already in Mid-level-ontology.kif with the same rules (corrected WhenFn form).
+;; starting
+;(subclass Starting Accelerating)
+;(documentation Starting EnglishWrittenLanguage "Increasing the speed with 
+;which someone or something is moving from 0.")
+;(termFormat EnglishWrittenLanguage Starting "starting")
+
+      
+;(=>
+;  (and
+;    (instance ?START Starting)
+;    (objectTransferred ?START ?O))
+;  (holdsDuring (BeginFn ?START)
+;      (measure ?O (MeasureFn 0 MilesPerHour))))
+
+      
+;(=>
+;  (and
+;    (instance ?START Starting)
+;    (objectTransferred ?START ?O)
+;    (holdsDuring (EndFn ?START)
+;      (measure ?O (MeasureFn ?N MilesPerHour))))
+;  (greaterThan ?N 0))
+
+
+;; stopping
+;(subclass Stopping Decelerating)
+;(documentation Stopping EnglishWrittenLanguage "Decreasing the speed with 
+;which someone or something is moving to 0.")
+;(termFormat EnglishWrittenLanguage Stopping "stopping")
+
+;(=>
+;  (and
+;    (instance ?STOP Stopping)
+;    (objectTransferred ?STOP ?O))
+;  (holdsDuring (EndFn ?STOP)
+;      (measure ?O (MeasureFn 0 MilesPerHour))))
+
+;(=>
+;  (and
+;    (instance ?STOP Stopping)
+;    (objectTransferred ?STOP ?O)
+;    (holdsDuring (BeginFn ?STOP)
+;      (measure ?O (MeasureFn ?N MilesPerHour))))
+;  (greaterThan ?N 0))
+ 
+            
+; stoppingDistance
+(instance stoppingDistance BinaryPredicate)
+(domain stoppingDistance 1 Vehicle)
+(domain stoppingDistance 2 LengthMeasure)
+(documentation stoppingDistance EnglishWrittenLanguage "The distance it would 
+take a vehicle to come to a complete stop without external interference.")
+(termFormat EnglishWrittenLanguage stoppingDistance "stopping distance")
+(format EnglishWrittenLanguage stoppingDistance "the stopping distance of %1 is 
+%2")
+;just for relations
+
+(=>
+  (and
+    (stoppingDistance ?V ?SDQ)
+    (equal ?SDQ (MeasureFn ?N1 NauticalMile))
+    (instance ?STOP Stopping)
+    (objectTransferred ?STOP ?V)
+    (path ?STOP ?P)
+    (distanceOnPath ?DQ ?P)
+    (equal ?DQ (MeasureFn ?N2 NauticalMile)))
+  (greaterThanOrEqualTo ?N2 ?N1))
+
+; stoppingTime
+(instance stoppingTime BinaryPredicate)
+(domain stoppingTime 1 Vehicle)
+(domain stoppingTime 2 TimeDuration)
+(documentation stoppingTime EnglishWrittenLanguage "The time it would 
+take a vehicle to come to a complete stop without external interference.")
+(termFormat EnglishWrittenLanguage stoppingTime "stopping time")
+(format EnglishWrittenLanguage stoppingTime "the stopping time of %1 is 
+%2")
+
+
+(=>
+  (and
+    (stoppingTime ?O ?STQ)
+    (equal ?STQ (MeasureFn ?T1 MinuteDuration))
+    (instance ?STOP Stopping)
+    (objectTransferred ?STOP ?O)
+    (duration (WhenFn ?STOP) ?DUR)
+    (equal ?DUR (MeasureFn ?T2 MinuteDuration)))
+  (greaterThanOrEqualTo ?T2 ?T1))
+
+
+
+; standOnVessel 
+(instance standOnVessel TernaryPredicate)
+(instance standOnVessel Relation)
+(domain standOnVessel 1 WaterVehicle)
+(domain standOnVessel 2 WaterVehicle)
+(domain standOnVessel 3 TimeInterval)
+(documentation standOnVessel EnglishWrittenLanguage "Where one of two vessels 
+is to keep out of the way the other shall keep her course and speed.
+The latter vessel may however take action to avoid collision by her
+maneuver alone, as soon as it becomes apparent to her that the vessel
+required to keep out of the way is not taking appropriate action in
+compliance with these Rules. When, from any cause, the vessel required 
+to keep her course and speed finds herself so close that collision 
+cannot be avoided by the action of the give-way vessel alone, she shall 
+take such action as will best aid to avoid collision
+(standOnVessel ?VES1 ?VES2) means VES1 stands on to VES2")
+(termFormat EnglishWrittenLanguage standOnVessel "stand on vessel")
+(format EnglishWrittenLanguage standOnVessel "vessel %1 stands on to vessel 
+%2 at time %3")
+
+
+; giveWayVessel 
+(instance giveWayVessel TernaryPredicate)
+(instance giveWayVessel Relation)
+(domain giveWayVessel 1 WaterVehicle)
+(domain giveWayVessel 2 WaterVehicle)
+(domain giveWayVessel 3 TimeInterval)
+(documentation giveWayVessel EnglishWrittenLanguage "Every vessel which is 
+directed to keep out of the way of another vessel shall, so far as 
+possible, take early and substantial action to keep well clear.
+(giveWayVessel ?VES1 ?VES2) means VES1 shall give way to VES2")
+(termFormat EnglishWrittenLanguage giveWayVessel "give way vessel")  
+(format EnglishWrittenLanguage giveWayVessel "vessel %1 gives way to vessel 
+%2 at time %3")
+  
+      
+; mutuallyVisibleAtTime
+(instance mutuallyVisibleAtTime TernaryPredicate)
+(instance mutuallyVisibleAtTime Relation)
+(domain mutuallyVisibleAtTime 1 WaterVehicle)
+(domain mutuallyVisibleAtTime 2 WaterVehicle)
+(domain mutuallyVisibleAtTime 3 TimeInterval)
+(format EnglishWrittenLanguage mutuallyVisibleAtTime "vessel %1 and vessel %2 are %n mutually visible at time %3")
+(documentation mutuallyVisibleAtTime EnglishWrittenLanguage 
+"(mutuallyVisibleAtTime ?OBJ1 ?OB2 ?TIME) means that ?OBJ1 and ?OBJ2 
+are in sight of eachother during time interval ?TIME")
+(termFormat EnglishWrittenLanguage mutuallyVisibleAtTime "mutually visible 
+at time")
+
+(=>
+  (mutuallyVisibleAtTime ?V1 ?V2 ?TIMENOW)
+  (mutuallyVisibleAtTime ?V2 ?V1 ?TIMENOW))
+  
+; reciprocalCourse
+(instance reciprocalCourse TernaryPredicate)
+(instance reciprocalCourse Relation)
+(domain reciprocalCourse 1 WaterVehicle)
+(domain reciprocalCourse 2 WaterVehicle)
+(domain reciprocalCourse 3 TimeInterval)
+(format EnglishWrittenLanguage reciprocalCourse "vessel %1 is %n on a reciprocal course to vessel %2 at time %3")
+(documentation reciprocalCourse EnglishWrittenLanguage "(reciprocalCourse 
+?OBJ1 ?OBJ2) means the direction OBJ1 is heading is nearly reciprocal 
+to the direction OBJ2 is heading. If OBJ1 is on course 090 True, then 
+OBJ2 is on course 270 True")
+(termFormat EnglishWrittenLanguage reciprocalCourse "reciprocal course")  
+ 
+
+  
+
+(=>
+  (and
+    (instance ?V1 WaterVehicle)
+    (attribute ?V1 OwnVessel)
+    (courseOverGround ?V1 ?COG1 ?TIMENOW)
+    (instance ?V2 WaterVehicle)
+    (attribute ?V2 TargetVessel)
+    (courseOverGround ?V2 ?COG2 ?TIMENOW)
+    (equal ?RECIP (RemainderFn (AdditionFn ?COG2 180.0) 360.0))
+    (equal ?ZERO (SubtractionFn ?RECIP ?COG1))
+    (greaterThanOrEqualTo ?ZERO -15.0)
+    (lessThanOrEqualTo ?ZERO 15.0))
+  (reciprocalCourse ?V1 ?V2 ?TIMENOW))
+
+
+(=>
+  (and
+    (instance ?V1 WaterVehicle)
+    (attribute ?V1 OwnVessel)
+    (courseOverGround ?V1 ?COG1 ?TIMENOW)
+    (instance ?V2 WaterVehicle)
+    (attribute ?V2 TargetVessel)
+    (courseOverGround ?V2 ?COG2 ?TIMENOW)
+    (equal ?RECIP (RemainderFn (AdditionFn ?COG2 180.0) 360.0))
+    (equal ?ZERO (SubtractionFn ?RECIP ?COG1))
+    (or
+      (lessThanOrEqualTo ?ZERO -16.0)
+      (greaterThanOrEqualTo ?ZERO 16.0)))
+  (not (reciprocalCourse ?V1 ?V2 ?TIMENOW)))
+   
+    
+; similarCourse
+(instance similarCourse TernaryPredicate)
+(instance similarCourse Relation)
+(domain similarCourse 1 WaterVehicle)
+(domain similarCourse 2 WaterVehicle)
+(domain similarCourse 3 TimeInterval)
+(format EnglishWrittenLanguage similarCourse "vessel %1 is %n on a similar course to vessel %2 at time %3")
+(documentation similarCourse EnglishWrittenLanguage "(similarCourse
+?OBJ1 ?OBJ2 ?TIME) means the course over ground of OBJ1 is within 10
+degrees of the course over ground of OBJ2 at time ?TIME.")
+(termFormat EnglishWrittenLanguage similarCourse "similar course")
+
+  
+(=>
+  (and
+    (instance ?V1 WaterVehicle)
+    (attribute ?V1 OwnVessel)
+    (courseOverGround ?V1 ?COG1 ?TIMENOW)
+    (instance ?V2 WaterVehicle)
+    (attribute ?V2 TargetVessel)
+    (courseOverGround ?V2 ?COG2 ?TIMENOW)
+    (equal ?ZERO (SubtractionFn ?COG1 ?COG2))
+    (or
+      (and
+        (greaterThanOrEqualTo ?ZERO -10.0)
+        (lessThanOrEqualTo ?ZERO 10.0))
+      (or
+        (greaterThanOrEqualTo ?ZERO 350.0)
+        (lessThanOrEqualTo ?ZERO -350.0))))
+  (similarCourse ?V1 ?V2 ?TIMENOW))
+
+
+  
+(=>
+  (and
+    (instance ?V1 WaterVehicle)
+    (attribute ?V1 OwnVessel)
+    (courseOverGround ?V1 ?COG1 ?TIMENOW)
+    (instance ?V2 WaterVehicle)
+    (attribute ?V2 TargetVessel)
+    (courseOverGround ?V2 ?COG2 ?TIMENOW)
+    (equal ?ZERO (SubtractionFn ?COG1 ?COG2))
+    (or
+      (and
+        (greaterThanOrEqualTo ?ZERO -349.0)
+        (lessThanOrEqualTo ?ZERO -11.0))
+      (and
+        (greaterThanOrEqualTo ?ZERO 11.0)
+        (lessThanOrEqualTo ?ZERO 349.0))))
+  (not (similarCourse ?V1 ?V2 ?TIMENOW)))
+    
+     
+; concurrentTranslocationAtTime 
+(instance concurrentTranslocationAtTime TernaryPredicate)
+(instance concurrentTranslocationAtTime Relation)
+(domain concurrentTranslocationAtTime 1 WaterVehicle)
+(domain concurrentTranslocationAtTime 2 WaterVehicle)
+(domain concurrentTranslocationAtTime 3 TimeInterval)
+(documentation concurrentTranslocationAtTime EnglishWrittenLanguage 
+"(concurrentTranslocationAtTime ?OBJ1 ?OB2 ?TIME) means that ?OBJ1 and ?OBJ2 
+are transiting at the same time ?TIME")
+(termFormat EnglishWrittenLanguage concurrentTranslocationAtTime "concurrent
+translocation at time")
+(format EnglishWrittenLanguage concurrentTranslocationAtTime "vessel %1 and 
+vessel %2 are concurrently translocating at time %3") 
+
+(=>
+  (concurrentTranslocationAtTime ?V1 ?V2 ?TIMENOW)
+  (concurrentTranslocationAtTime ?V2 ?V1 ?TIMENOW))
+
+  
+(=>
+  (and
+    (instance ?V1 WaterVehicle)
+    (instance ?V2 WaterVehicle) 
+    (instance ?TRANS1 Translocation)
+    (instance ?TRANS2 Translocation)
+    (objectTransferred ?TRANS1 ?V1)
+    (objectTransferred ?TRANS2 ?V2)
+    (orientation ?V1 ?V2 Near)
+    (equal 
+      (WhenFn ?TRANS1) 
+      (WhenFn ?TRANS2)))
+  (concurrentTranslocationAtTime ?V1 ?V2 (WhenFn ?TRANS1)))
+  
+
+; isStarboardOf
+(instance isStarboardOf TernaryPredicate)
+(instance isStarboardOf Relation)
+(domain isStarboardOf 1 WaterVehicle)
+(domain isStarboardOf 2 WaterVehicle)
+(domain isStarboardOf 3 TimeInterval)
+(documentation isStarboardOf EnglishWrittenLanguage "(isStarboardOf ?VES2 ?VES1)
+returns true if the relative bearing from VES1 to VES2 is greater than 0 
+and less than 112.5, meaning VES2 is to starboard of VES1")
+(termFormat EnglishWrittenLanguage isStarboardOf "is starboard of")  
+(format EnglishWrittenLanguage isStarboardOf "vessel %1 is starboard of vessel 
+%2 at time %3") 
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 OwnVessel)
+    (instance ?VES2 WaterVehicle)
+    (attribute ?VES2 TargetVessel)
+    (relativeBearingTo ?VES1 ?VES2 ?RELBEAR ?TIMENOW)
+    (greaterThan ?RELBEAR 0.0)
+    (lessThan ?RELBEAR 112.0))
+  (isStarboardOf ?VES2 ?VES1 ?TIMENOW))
+
+;(greaterThan ?RELBEAR 15)
+
+  
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 OwnVessel)
+    (instance ?VES2 WaterVehicle)
+    (attribute ?VES2 TargetVessel)
+    (relativeBearingTo ?VES1 ?VES2 ?RELBEAR ?TIMENOW)
+    (or
+      (lessThanOrEqualTo ?RELBEAR 0.0)
+      (greaterThanOrEqualTo ?RELBEAR 112.0)))
+  (not
+    (isStarboardOf ?VES2 ?VES1 ?TIMENOW)))
+
+;(lessThanOrEqualTo ?RELBEAR 15)
+
+    
+; isPortOf
+(instance isPortOf TernaryPredicate)
+(instance isPortOf Relation)
+(domain isPortOf 1 WaterVehicle)
+(domain isPortOf 2 WaterVehicle)
+(domain isPortOf 3 TimeInterval)
+(documentation isPortOf EnglishWrittenLanguage "(isPortOf ?VES2 ?VES1)
+returns true if the relative bearing from VES1 to VES2 is greater than 
+247.5 and less than 360, meaning VES2 is to port of VES1")
+(termFormat EnglishWrittenLanguage isPortOf "is port of")  
+(format EnglishWrittenLanguage isPortOf "vessel %1 is port of vessel %2 at time %3") 
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 OwnVessel)
+    (instance ?VES2 WaterVehicle)
+    (attribute ?VES2 TargetVessel)
+    (relativeBearingTo ?VES1 ?VES2 ?RELBEAR ?TIMENOW)
+    (greaterThan ?RELBEAR 247.0)
+    (lessThan ?RELBEAR 360.0))
+  (isPortOf ?VES2 ?VES1 ?TIMENOW))
+
+;(lessThan ?RELBEAR 345)
+  
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (attribute ?VES1 OwnVessel)
+    (instance ?VES2 WaterVehicle)
+    (attribute ?VES2 TargetVessel)
+    (relativeBearingTo ?VES1 ?VES2 ?RELBEAR ?TIMENOW)
+    (or
+      (lessThanOrEqualTo ?RELBEAR 247.0)
+      (greaterThanOrEqualTo ?RELBEAR 360.0)))
+  (not
+    (isPortOf ?VES2 ?VES1 ?TIMENOW)))
+
+
+    
+; showingStarboardAspect
+(instance showingStarboardAspect TernaryPredicate)
+(instance showingStarboardAspect Relation)
+(domain showingStarboardAspect 1 WaterVehicle)
+(domain showingStarboardAspect 2 WaterVehicle)
+(domain showingStarboardAspect 3 TimeInterval)
+(documentation showingStarboardAspect EnglishWrittenLanguage "(showingStarboardAspect
+ ?VES2 ?VES1 ?TIME) returns true if VES1 can see VES2's port bow")
+(termFormat EnglishWrittenLanguage showingStarboardAspect "showing starboard aspect")  
+(format EnglishWrittenLanguage showingStarboardAspect "vessel %1 is showing her 
+starboard aspect to vessel %2 at time %3") 
+
+(=>
+  (and
+    (instance ?V1 WaterVehicle)
+    (attribute ?V1 OwnVessel)
+    (courseOverGround ?V1 ?COG1 ?TIMENOW)
+    (instance ?V2 WaterVehicle)
+    (attribute ?V2 TargetVessel)
+    (courseOverGround ?V2 ?COG2 ?TIMENOW)
+    (relativeBearingTo ?V1 ?V2 ?RELBEAR ?TIMENOW)
+    (equal ?TB 
+      (RemainderFn 
+        (AdditionFn ?COG1 ?RELBEAR) 360.0))
+    (equal ?TA 
+      (RemainderFn
+        (AdditionFn 
+          (SubtractionFn ?TB ?COG2) 360.0) 360.0))
+    (greaterThanOrEqualTo ?TA 180.0)
+    (lessThanOrEqualTo ?TA 292.0))
+  (and
+    (showingStarboardAspect ?V2 ?V1 ?TIMENOW)
+    (not (showingPortAspect ?V2 ?V1 ?TIMENOW))))
+
+
+; showingPortAspect
+(instance showingPortAspect TernaryPredicate)
+(instance showingPortAspect Relation)
+(domain showingPortAspect 1 WaterVehicle)
+(domain showingPortAspect 2 WaterVehicle)
+(domain showingPortAspect 3 TimeInterval)
+(documentation showingPortAspect EnglishWrittenLanguage "(showingPortAspect
+ ?VES2 ?VES1 ?TIME) returns true if VES1 can see VES2's port bow")
+(termFormat EnglishWrittenLanguage showingPortAspect "showing port aspect")  
+(format EnglishWrittenLanguage showingPortAspect "vessel %1 is showing her port aspect
+to vessel %2 at time %3") 
+
+(=>
+  (and
+    (instance ?V1 WaterVehicle)
+    (attribute ?V1 OwnVessel)
+    (courseOverGround ?V1 ?COG1 ?TIMENOW)
+    (instance ?V2 WaterVehicle)
+    (attribute ?V2 TargetVessel)
+    (courseOverGround ?V2 ?COG2 ?TIMENOW)
+    (relativeBearingTo ?V1 ?V2 ?RELBEAR ?TIMENOW)
+    (equal ?TB 
+      (RemainderFn 
+        (AdditionFn ?COG1 ?RELBEAR) 360.0))
+    (equal ?TA 
+      (RemainderFn
+        (AdditionFn 
+          (SubtractionFn ?TB ?COG2) 360.0) 360.0))
+    (greaterThanOrEqualTo ?TA 68.0)
+    (lessThanOrEqualTo ?TA 179.0))
+  (and
+    (showingPortAspect ?V2 ?V1 ?TIMENOW)
+    (not (showingStarboardAspect ?V2 ?V1 ?TIMENOW))))
+    
+; showingSternAspect
+(instance showingSternAspect TernaryPredicate)
+(instance showingSternAspect Relation)
+(domain showingSternAspect 1 WaterVehicle)
+(domain showingSternAspect 2 WaterVehicle)
+(domain showingSternAspect 3 TimeInterval)
+(documentation showingSternAspect EnglishWrittenLanguage "(showingSternAspect
+ ?VES2 ?VES1 ?TIME) returns true if VES1 can see VES2's stern")
+(termFormat EnglishWrittenLanguage showingSternAspect "showing stern aspect")  
+(format EnglishWrittenLanguage showingSternAspect "vessel %1 is showing her stern
+to vessel %2 at time %3") 
+
+(=>
+  (and
+    (instance ?V1 WaterVehicle)
+    (attribute ?V1 OwnVessel)
+    (courseOverGround ?V1 ?COG1 ?TIMENOW)
+    (instance ?V2 WaterVehicle)
+    (attribute ?V2 TargetVessel)
+    (courseOverGround ?V2 ?COG2 ?TIMENOW)
+    (relativeBearingTo ?V1 ?V2 ?RELBEAR ?TIMENOW)
+    (equal ?TB 
+      (RemainderFn 
+        (AdditionFn ?COG1 ?RELBEAR) 360.0))
+    (equal ?TA 
+      (RemainderFn
+        (AdditionFn 
+          (SubtractionFn ?TB ?COG2) 360.0) 360.0))
+    (or
+      (greaterThanOrEqualTo ?TA 293.0)
+      (lessThanOrEqualTo ?TA 67.0)))
+  (and
+    (showingSternAspect ?V2 ?V1 ?TIMENOW)
+    (not (showingStarboardAspect ?V2 ?V1 ?TIMENOW))
+    (not (showingPortAspect ?V2 ?V1 ?TIMENOW)))) 
+
+
+    
+; riskOfCollision 
+(instance riskOfCollision TernaryPredicate)
+(instance riskOfCollision Relation)
+(domain riskOfCollision 1 WaterVehicle)
+(domain riskOfCollision 2 WaterVehicle)
+(domain riskOfCollision 3 TimeInterval)
+(documentation riskOfCollision EnglishWrittenLanguage "Define Risk of Collision")
+(termFormat EnglishWrittenLanguage riskOfCollision "risk of collision") 
+(format EnglishWrittenLanguage riskOfCollision "there is risk of collision 
+between %1 and %2 at time %3") 
+  
+(=> 
+  (and
+    (instance ?PDV1 WaterVehicle)
+    (attribute ?PDV1 OwnVessel)
+    (instance ?PDV2 WaterVehicle)
+    (attribute ?PDV2 TargetVessel)
+    (cpaThresh ?PDV1 ?TRANS1 ?CPAMIN)
+    (cpaTThresh ?PDV1 ?TRANS1 ?CPATMIN)
+    (cpa ?PDV1 ?PDV2 ?CPA ?TIMENOW)          
+    (cpat ?PDV1 ?PDV2 ?CPAT ?TIMENOW)       
+    (lessThanOrEqualTo ?CPA ?CPAMIN)         
+    (lessThanOrEqualTo ?CPAT ?CPATMIN)            
+    (greaterThanOrEqualTo ?CPAT 0.0))               
+  (riskOfCollision ?PDV1 ?PDV2 ?TIMENOW))
+
+(=> 
+  (and
+    (instance ?PDV1 WaterVehicle)
+    (attribute ?PDV1 OwnVessel)
+    (instance ?PDV2 WaterVehicle)
+    (attribute ?PDV2 TargetVessel)
+    (cpaThresh ?PDV1 ?TRANS1 ?CPAMIN)
+    (cpaTThresh ?PDV1 ?TRANS1 ?CPATMIN)
+    (cpa ?PDV1 ?PDV2 ?CPA ?TIMENOW)          
+    (cpat ?PDV1 ?PDV2 ?CPAT ?TIMENOW)       
+    (or
+      (greaterThan ?CPA ?CPAMIN)                   
+      (greaterThan ?CPAT ?CPATMIN)                 
+      (lessThan ?CPAT 0.0)))                   
+  (not
+    (riskOfCollision ?PDV1 ?PDV2 ?TIMENOW)))
+  
+(=>
+  (and
+    (instance ?PDV1 WaterVehicle)
+    (attribute ?PDV1 OwnVessel)
+    (instance ?PDV2 WaterVehicle)
+    (attribute ?PDV2 TargetVessel)
+    (riskOfCollision ?PDV1 ?PDV2 ?TIMENOW))
+  (riskOfCollision ?PDV2 ?PDV1 ?TIMENOW))
+    
+  
+  
+(=>
+  (riskOfCollision ?V1 ?V2 ?T)
+  (holdsDuring ?T 
+    (maritimeHazard ?V1 ?V2)))
+  
+     
+(subclass MaritimeVesselManeuver Translocation)
+(documentation MaritimeVesselManeuver EnglishWrittenLanguage "A class of 
+actions a maritime may take.")
+(termFormat EnglishWrittenLanguage MaritimeVesselManeuver "maritime vessel 
+maneuver") 
+
+;; DISABLED: Skolem generator: every vessel translocation creates a MaritimeVesselManeuver, which is itself a Translocation, so it loops. The exists also had two bodies without and.
+;(=>
+;  (and
+;    (instance ?V WaterVehicle)
+;    (instance ?T Translocation)
+;    (objectTransferred ?T ?V))
+;  (exists (?A)
+;    (instance ?A MaritimeVesselManeuver)
+;    (objectTransferred ?A ?V)))
+
+
+(subclass SpeedChange MaritimeVesselManeuver)
+(documentation SpeedChange EnglishWrittenLanguage "The process of an object
+changing the speed of it's motion.")
+(termFormat EnglishWrittenLanguage SpeedChange "speed change")
+
+
+
+(=>
+  (and
+    (instance ?OBJ Object)
+    (instance ?PROC Motion) 
+    (objectTransferred ?PROC ?OBJ)
+    (during ?T1 (WhenFn ?PROC))
+    (during ?T2 (WhenFn ?PROC))
+    (not (equal ?T1 ?T2))
+    (holdsDuring ?T1
+      (measure ?OBJ (SpeedFn ?L ?T)))
+    (holdsDuring ?T2
+      (measure ?OBJ (SpeedFn ?L2 ?T)))
+    (not (equal ?L ?L2)))
+  (instance ?PROC SpeedChange))
+
+     
+(=>
+  (and 
+    (instance ?PROC SpeedChange)
+    (instance ?OBJ Object)
+    (objectTransferred ?PROC ?OBJ))
+  (exists (?T ?T1 ?T2 ?L ?L2)
+    (and
+      (during ?T1 (WhenFn ?PROC))
+      (during ?T2 (WhenFn ?PROC))
+      (not (equal ?T1 ?T2))
+      (holdsDuring ?T1
+        (measure ?OBJ (SpeedFn ?L ?T)))
+      (holdsDuring ?T2
+        (measure ?OBJ (SpeedFn ?L2 ?T)))
+      (not (equal ?L ?L2)))))
+
+      
+(=> 
+  (and
+    (instance ?V WaterVehicle)
+    (instance ?S SpeedChange)
+    (objectTransferred ?S ?V))
+  (exists (?A) 
+    (and
+      (or
+        (and
+          (instance ?A Accelerating)
+          (not (instance ?A Decelerating)))
+        (and
+          (instance ?A Decelerating)
+          (not (instance ?A Accelerating))))
+      (objectTransferred ?A ?V))))
+
+
+(subclass AlterCourseStarboard MaritimeVesselManeuver)
+(documentation AlterCourseStarboard EnglishWrittenLanguage "The act of altering
+a vessel's course to starboard")
+(termFormat EnglishWrittenLanguage AlterCourseStarboard "alter course to 
+starboard")  
+
+(=>
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?MVM AlterCourseStarboard)
+    (objectTransferred ?MVM ?VES))
+  (exists (?TURN)
+    (and
+      (instance ?TURN DirectionChange)
+      (patient ?TURN ?VES))))
+
+
+(subclass AlterCoursePort MaritimeVesselManeuver)
+(documentation AlterCoursePort EnglishWrittenLanguage "The act of altering a 
+vessel's course to port.")
+(termFormat EnglishWrittenLanguage AlterCoursePort "alter course to 
+port")  
+
+
+(=>
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?MVM AlterCoursePort)
+    (objectTransferred ?MVM ?VES))
+  (exists (?TURN)
+    (and
+      (instance ?TURN DirectionChange)
+      (objectTransferred ?TURN ?VES))))
+
+
+      
+(subclass SlowDown MaritimeVesselManeuver)
+(documentation SlowDown EnglishWrittenLanguage "The act of reducing a
+vessel's speed so as to avoid collision or allow more time to assess
+the situation (COLREGs Rule 8(e)).")
+(termFormat EnglishWrittenLanguage SlowDown "slow down")
+
+; *************************************************************
+; ***** Accelerating exists... but not in the consequent ******
+; *************************************************************
+
+; (subclass SpeedUp MaritimeVesselManeuver)
+; (documentation SpeedUp EnglishWrittenLanguage "The process of an object
+; increasing the speed of it's motion.")
+; (termFormat EnglishWrittenLanguage SpeedUp "speed up") 
+  
+(=>
+  (and
+    (instance ?OBJ Object)
+    (instance ?PROC Motion) 
+    (objectTransferred ?PROC ?OBJ)
+    (during ?T1 (WhenFn ?PROC))
+    (during ?T2 (WhenFn ?PROC))
+    (before ?T1 ?T2)
+    (holdsDuring ?T1
+      (measure ?OBJ (SpeedFn ?L ?T)))
+    (holdsDuring ?T2
+      (measure ?OBJ (SpeedFn ?L2 ?T)))
+    (greaterThan ?L2 ?L))
+  (instance ?PROC Accelerating))
+  
+ 
+;(=>
+;  (and 
+;    (instance ?PROC SpeedUp)
+;    (instance ?OBJ Object)
+;    (objectTransferred ?PROC ?OBJ))
+;  (exists (?T ?T1 ?T2 ?L ?L2)
+;    (and
+;      (during ?T1 (WhenFn ?PROC))
+;      (during ?T2 (WhenFn ?PROC))
+;      (before ?T1 ?T2)
+;      (holdsDuring ?T1
+;        (measure ?OBJ (SpeedFn ?L ?T)))
+;      (holdsDuring ?T2
+;        (measure ?OBJ (SpeedFn ?L2 ?T)))
+;      (greaterThan ?L2 ?L))))
+  
+
+
+; *************************************************************
+; ***** Decelerating exists... but not defined like this *****
+; *************************************************************
+   
+;(subclass SlowDown SpeedChange)
+;(documentation SlowDown EnglishWrittenLanguage "The process of an object
+;decreasing the speed of it's motion.")
+;(termFormat EnglishWrittenLanguage SlowDown "slow down") 
+  
+(=>
+  (and
+    (instance ?OBJ Object)
+    (instance ?PROC Motion) 
+    (objectTransferred ?PROC ?OBJ)
+    (during ?T1 (WhenFn ?PROC))
+    (during ?T2 (WhenFn ?PROC))
+    (before ?T1 ?T2)
+    (not (equal ?T1 ?T2))
+    (holdsDuring ?T1
+      (measure ?OBJ (SpeedFn ?L ?T)))
+    (holdsDuring ?T2
+      (measure ?OBJ (SpeedFn ?L2 ?T)))
+    (lessThan ?L2 ?L))
+  (instance ?PROC Decelerating))
+
+
+;(=>
+;  (and 
+;    (instance ?PROC SlowDown)
+;    (instance ?OBJ Object)
+;    (objectTransferred ?PROC ?OBJ))
+;  (exists (?T ?T1 ?T2 ?L ?L2)
+;    (and
+;      (during ?T1 (WhenFn ?PROC))
+;      (during ?T2 (WhenFn ?PROC))
+;      (before ?T1 ?T2)
+;      (holdsDuring ?T1
+;        (measure ?OBJ (SpeedFn ?L ?T)))
+;      (holdsDuring ?T2
+;        (measure ?OBJ (SpeedFn ?L2 ?T)))
+;      (lessThan ?L2 ?L)))) 
+
+(subclass BackDownEngines MaritimeVesselManeuver)
+(documentation BackDownEngines EnglishWrittenLanguage "The act of turning a 
+vessel's engines in the astern direction. This does not necessarily
+indicate movement backwards.")
+(termFormat EnglishWrittenLanguage BackDownEngines "back down engines")  
+
+(=>
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?MVM BackDownEngines)
+    (agent ?MVM ?VES))
+  (exists (?BACK)
+    (and
+      (instance ?BACK Reversing)
+      (patient ?BACK ?VES))))
+
+
+(subclass MaintainCourseAndSpeed MaritimeVesselManeuver)
+(documentation MaintainCourseAndSpeed EnglishWrittenLanguage "The vessel is
+not to adjust course or speed")
+(termFormat EnglishWrittenLanguage MaintainCourseAndSpeed "maintain course
+and speed")  
+
+(=>
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?MVM MaintainCourseAndSpeed)
+    (agent ?MVM ?VES))
+  (not 
+    (exists (?TURN)
+      (and
+        (instance ?TURN DirectionChange)
+        (patient ?TURN ?VES)))))
+        
+(=>
+  (and
+    (instance ?VES WaterVehicle)
+    (instance ?MVM MaintainCourseAndSpeed)
+    (agent ?MVM ?VES))
+  (not 
+    (exists (?SPEED)
+      (and
+        (instance ?SPEED SpeedChange)
+        (objectTransferred ?SPEED ?VES)))))
+
+(subclass PassPortToPort MaritimeVesselManeuver)
+(documentation PassPortToPort EnglishWrittenLanguage "Indicates that two vessels
+meeting should pass with the other on her port side.")
+(termFormat EnglishWrittenLanguage PassPortToPort "pass port to port")  
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (instance ?PTP PassPortToPort)
+    (agent ?PTP ?VES1))
+  (exists (?VES2)
+    (and
+      (instance ?VES2 WaterVehicle)
+      (orientation ?VES1 ?VES2 Left)
+      (orientation ?VES2 ?VES1 Left))))
+
+
+
+(subclass PassAtASafeDistance MaritimeVesselManeuver)
+(documentation PassAtASafeDistance EnglishWrittenLanguage "Indicates one vessel
+should pass another at a safe distance.")
+(termFormat EnglishWrittenLanguage PassAtASafeDistance "pass at a safe 
+distance")  
+
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)
+    (instance ?SAFE PassAtASafeDistance)
+    (agent ?SAFE ?VES1))
+  (exists (?VES2)
+    (and
+      (instance ?VES2 WaterVehicle)
+      (not (orientation ?VES1 ?VES2 Near)))))
+
+  
+; obligatoryNextAction 
+(instance obligatoryNextAction QuaternaryPredicate)
+(instance obligatoryNextAction Relation)
+(domain obligatoryNextAction 1 WaterVehicle)
+(domain obligatoryNextAction 2 WaterVehicle)
+(domainSubclass obligatoryNextAction 3 Translocation)
+(domain obligatoryNextAction 4 TimeInterval)
+(documentation obligatoryNextAction EnglishWrittenLanguage "A predicate to 
+indicate the obligatory action for a vessel that is meeting another
+vessel where a COLREGs situation exists")
+(termFormat EnglishWrittenLanguage obligatoryNextAction "obligatory next action")
+(format EnglishWrittenLanguage obligatoryNextAction "the obligatory next action 
+of %1 in relation to %2 is %3 at time %4")
+
+;; DISABLED: Skolem generator: obligatoryNextAction with unknown ?Y ?Z. The situation rules already give concrete actions.
+;(=>
+;  (or
+;    (headOnSituation ?V1 ?V2 ?TIME)
+;    (crossingSituation ?V1 ?V2 ?TIME)
+;    (overtakingSituation ?V1 ?V2 ?TIME)
+;    (overtakingSituation ?V2 ?V1 ?TIME))
+;  (exists (?Y ?Z)
+;    (and
+;      (obligatoryNextAction ?V1 ?V2 ?Y ?TIME)
+;      (obligatoryNextAction ?V2 ?V1 ?Z ?TIME))))
+
+
+  
+; *******************************************************************
+; *************************** RULES *********************************
+; *******************************************************************    
+
+  
+; headOnSituation 
+(instance headOnSituation TernaryPredicate)
+(instance headOnSituation Relation)
+(domain headOnSituation 1 WaterVehicle)
+(domain headOnSituation 2 WaterVehicle)
+(domain headOnSituation 3 TimeInterval)
+(documentation headOnSituation EnglishWrittenLanguage "When two power-driven vessels 
+are meeting on reciprocal or nearly reciprocal courses so as to involve 
+risk of collision each shall alter her course to starboard so that each 
+shall pass on the port side of the other. When a vessel is in any doubt 
+as to whether such a situation exists she shall assume that it does exist 
+and act accordingly.")
+(termFormat EnglishWrittenLanguage headOnSituation "head-on situation")  
+(format EnglishWrittenLanguage headOnSituation "there is a head on situation 
+between %1 and %2 at time %3")
+
+
+(=>
+  (and
+    (instance ?PDV1 WaterVehicle)
+    (attribute ?PDV1 PowerDrivenVessel)
+    (attribute ?PDV1 OwnVessel)
+    (instance ?PDV2 WaterVehicle)
+    (attribute ?PDV2 PowerDrivenVessel)
+    (attribute ?PDV2 TargetVessel)  
+    (mutuallyVisibleAtTime ?PDV1 ?PDV2 ?TIMENOW)
+    (concurrentTranslocationAtTime ?PDV1 ?PDV2 ?TIMENOW)
+    (reciprocalCourse ?PDV1 ?PDV2 ?TIMENOW)
+    (riskOfCollision ?PDV1 ?PDV2 ?TIMENOW))
+  (and
+    (headOnSituation ?PDV1 ?PDV2 ?TIMENOW)
+    (giveWayVessel ?PDV1 ?PDV2 ?TIMENOW)
+    (giveWayVessel ?PDV2 ?PDV1 ?TIMENOW)
+    (obligatoryNextAction ?PDV1 ?PDV2 AlterCourseStarboard ?TIMENOW)
+    (obligatoryNextAction ?PDV2 ?PDV1 AlterCourseStarboard ?TIMENOW)
+    (obligatoryNextAction ?PDV1 ?PDV2 PassPortToPort ?TIMENOW)
+    (obligatoryNextAction ?PDV2 ?PDV1 PassPortToPort ?TIMENOW)))
+
+
+(=>
+  (and
+    (instance ?PDV1 WaterVehicle)
+    (attribute ?PDV1 OwnVessel)
+    (instance ?PDV2 WaterVehicle)
+    (attribute ?PDV2 TargetVessel)  
+    (mutuallyVisibleAtTime ?PDV1 ?PDV2 ?TIMENOW)
+    (concurrentTranslocationAtTime ?PDV1 ?PDV2 ?TIMENOW)
+    (or
+      (not (attribute ?PDV2 PowerDrivenVessel))
+      (not (attribute ?PDV1 PowerDrivenVessel))
+      (not (reciprocalCourse ?PDV1 ?PDV2 ?TIMENOW))
+      (not (riskOfCollision ?PDV1 ?PDV2 ?TIMENOW))))
+  (not (headOnSituation ?PDV1 ?PDV2 ?TIMENOW)))
+
+    
+; crossingSituation
+(instance crossingSituation TernaryPredicate)
+(instance crossingSituation Relation)
+(domain crossingSituation 1 WaterVehicle)
+(domain crossingSituation 2 WaterVehicle)
+(domain crossingSituation 3 TimeInterval)
+(documentation crossingSituation EnglishWrittenLanguage "When two power-driven vessels are 
+crossing so as to involve risk of collision, the vessel which has the 
+other on her own starboard side shall keep out of the way and shall, 
+if the circumstances of the case admit, avoid crossing ahead of the 
+other vessel. (crossingSituation ?PDV1 ?PDV2 ?TIMENOW) means there
+is a crossing situation and ?PDV1 is the give-way vessel.")
+(termFormat EnglishWrittenLanguage crossingSituation "crossing situation") 
+(format EnglishWrittenLanguage crossingSituation "there is a crossing 
+situation between %1 and %2 at time %3")
+
+
+(=>
+  (and
+    (instance ?PDV1 WaterVehicle)
+    (attribute ?PDV1 PowerDrivenVessel)
+    (attribute ?PDV1 OwnVessel)
+    (instance ?PDV2 WaterVehicle)
+    (attribute ?PDV2 PowerDrivenVessel)
+    (attribute ?PDV2 TargetVessel)  
+    (isStarboardOf ?PDV2 ?PDV1 ?TIMENOW)
+    (showingPortAspect ?PDV2 ?PDV1 ?TIMENOW)
+    (mutuallyVisibleAtTime ?PDV1 ?PDV2 ?TIMENOW)
+    (concurrentTranslocationAtTime ?PDV1 ?PDV2 ?TIMENOW)
+    (riskOfCollision ?PDV1 ?PDV2 ?TIMENOW)
+    (not (reciprocalCourse ?PDV1 ?PDV2 ?TIMENOW))
+    (not (similarCourse ?PDV1 ?PDV2 ?TIMENOW)))
+  (and
+    (crossingSituation ?PDV1 ?PDV2 ?TIMENOW)
+    (giveWayVessel ?PDV1 ?PDV2 ?TIMENOW)
+    (not (giveWayVessel ?PDV2 ?PDV1 ?TIMENOW))
+    (or
+      (obligatoryNextAction ?PDV1 ?PDV2 AlterCourseStarboard ?TIMENOW)
+      (obligatoryNextAction ?PDV1 ?PDV2 SlowDown ?TIMENOW))
+    (not (obligatoryNextAction ?PDV1 ?PDV2 MaintainCourseAndSpeed ?TIMENOW))
+    (standOnVessel ?PDV2 ?PDV1 ?TIMENOW)
+    (not (standOnVessel ?PDV1 ?PDV2 ?TIMENOW))
+    (obligatoryNextAction ?PDV2 ?PDV1 MaintainCourseAndSpeed ?TIMENOW)
+    (not (obligatoryNextAction ?PDV2 ?PDV1 AlterCourseStarboard ?TIMENOW))
+    (not (obligatoryNextAction ?PDV2 ?PDV1 SlowDown ?TIMENOW))
+    (not (obligatoryNextAction ?PDV2 ?PDV1 AlterCoursePort ?TIMENOW))))
+    
+
+(=>
+  (and
+    (instance ?PDV1 WaterVehicle)
+    (attribute ?PDV1 PowerDrivenVessel)
+    (attribute ?PDV1 OwnVessel)
+    (instance ?PDV2 WaterVehicle)
+    (attribute ?PDV2 PowerDrivenVessel)
+    (attribute ?PDV2 TargetVessel)  
+    (isPortOf ?PDV2 ?PDV1 ?TIMENOW)
+    (showingStarboardAspect ?PDV2 ?PDV1 ?TIMENOW)
+    (mutuallyVisibleAtTime ?PDV1 ?PDV2 ?TIMENOW)
+    (concurrentTranslocationAtTime ?PDV1 ?PDV2 ?TIMENOW)
+    (riskOfCollision ?PDV1 ?PDV2 ?TIMENOW)
+    (not (reciprocalCourse ?PDV1 ?PDV2 ?TIMENOW))
+    (not (similarCourse ?PDV1 ?PDV2 ?TIMENOW)))
+  (and
+    (crossingSituation ?PDV2 ?PDV1 ?TIMENOW)
+    (giveWayVessel ?PDV2 ?PDV1 ?TIMENOW)
+    (not (giveWayVessel ?PDV1 ?PDV2 ?TIMENOW))
+    (or
+      (obligatoryNextAction ?PDV2 ?PDV1 AlterCourseStarboard ?TIMENOW)
+      (obligatoryNextAction ?PDV2 ?PDV1 SlowDown ?TIMENOW))
+    (not (obligatoryNextAction ?PDV2 ?PDV1 MaintainCourseAndSpeed ?TIMENOW))
+    (standOnVessel ?PDV1 ?PDV2 ?TIMENOW)
+    (not (standOnVessel ?PDV2 ?PDV1 ?TIMENOW))
+    (obligatoryNextAction ?PDV1 ?PDV2 MaintainCourseAndSpeed ?TIMENOW)
+    (not (obligatoryNextAction ?PDV1 ?PDV2 AlterCourseStarboard ?TIMENOW))
+    (not (obligatoryNextAction ?PDV1 ?PDV2 SlowDown ?TIMENOW))
+    (not (obligatoryNextAction ?PDV1 ?PDV2 AlterCoursePort ?TIMENOW))))
+
+
+     
+(=>
+  (and
+    (instance ?PDV1 WaterVehicle)
+    (attribute ?PDV1 OwnVessel)       
+    (instance ?PDV2 WaterVehicle) 
+    (attribute ?PDV2 TargetVessel)
+    (mutuallyVisibleAtTime ?PDV1 ?PDV2 ?TIMENOW)
+    (concurrentTranslocationAtTime ?PDV1 ?PDV2 ?TIMENOW)
+    (or
+      (similarCourse ?PDV1 ?PDV2 ?TIMENOW)
+      (reciprocalCourse ?PDV1 ?PDV2 ?TIMENOW)
+      (not (attribute ?PDV1 PowerDrivenVessel))
+      (not (attribute ?PDV2 PowerDrivenVessel))
+      (not (riskOfCollision ?PDV1 ?PDV2 ?TIMENOW))
+      (and
+        (not (isPortOf ?PDV2 ?PDV1 ?TIMENOW))
+        (not (isStarboardOf ?PDV2 ?PDV1 ?TIMENOW)))
+      (and
+        (isStarboardOf ?PDV2 ?PDV1 ?TIMENOW)
+        (not (showingPortAspect ?PDV2 ?PDV1 ?TIMENOW)))
+      (and
+        (isPortOf ?PDV2 ?PDV1 ?TIMENOW)
+        (not (showingStarboardAspect ?PDV2 ?PDV1 ?TIMENOW)))))
+  (and
+    (not (crossingSituation ?PDV1 ?PDV2 ?TIMENOW))
+    (not (crossingSituation ?PDV2 ?PDV1 ?TIMENOW))))
+      
+    
+; overtakingSituation
+(instance overtakingSituation TernaryPredicate)
+(instance overtakingSituation Relation)
+(domain overtakingSituation 1 WaterVehicle)
+(domain overtakingSituation 2 WaterVehicle)
+(domain overtakingSituation 3 TimeInterval)
+(documentation overtakingSituation EnglishWrittenLanguage "A vessel shall be 
+deemed to be overtaking when coming up with another vessel from a 
+direction more than 22.5 degrees abaft her beam. (overtaking ?VES1 ?VES2) 
+means VES1 is overtaking VES2.")
+(termFormat EnglishWrittenLanguage overtakingSituation "overtaking") 
+(format EnglishWrittenLanguage overtakingSituation "there is an overtaking 
+situation between %1 and %2 at time %3")
+
+; VES2 overtaking VES1
+; POV of VES1 "I am being overtaken" 
+(=>
+  (and
+    (instance ?VES1 WaterVehicle)  
+    (attribute ?VES1 OwnVessel)      
+    (instance ?VES2 WaterVehicle) 
+    (attribute ?VES2 TargetVessel)
+    (speedOverGround ?VES1 ?SPEED1 ?TIMENOW)
+    (speedOverGround ?VES2 ?SPEED2 ?TIMENOW)
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW)
+    (concurrentTranslocationAtTime ?VES1 ?VES2 ?TIMENOW)
+    (similarCourse ?VES1 ?VES2 ?TIMENOW)
+    (relativeBearingTo ?VES1 ?VES2 ?RELBEAR ?TIMENOW)
+    (greaterThanOrEqualTo ?RELBEAR 112.0)
+    (lessThanOrEqualTo ?RELBEAR 247.0)
+    (greaterThanOrEqualTo ?SPEED2 ?SPEED1))
+  (and
+    (overtakingSituation ?VES2 ?VES1 ?TIMENOW)
+    (giveWayVessel ?VES2 ?VES1 ?TIMENOW)
+    (standOnVessel ?VES1 ?VES2 ?TIMENOW)
+    (obligatoryNextAction ?VES2 ?VES1 PassAtASafeDistance ?TIMENOW)
+    (obligatoryNextAction ?VES1 ?VES2 MaintainCourseAndSpeed ?TIMENOW)))
+
+; "I am NOT being overtaken"
+(=>
+  (and
+    (instance ?VES1 WaterVehicle) 
+    (attribute ?VES1 OwnVessel)       
+    (instance ?VES2 WaterVehicle) 
+    (attribute ?VES2 TargetVessel)
+    (speedOverGround ?VES1 ?SPEED1 ?TIMENOW)
+    (speedOverGround ?VES2 ?SPEED2 ?TIMENOW)
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW)
+    (concurrentTranslocationAtTime ?VES1 ?VES2 ?TIMENOW)
+    (relativeBearingTo ?VES1 ?VES2 ?RELBEAR ?TIMENOW)
+    (or
+      (not (similarCourse ?VES1 ?VES2 ?TIMENOW))
+      (lessThanOrEqualTo ?RELBEAR 111.0)
+      (greaterThanOrEqualTo ?RELBEAR 248.0)
+      (lessThan ?SPEED2 ?SPEED1)))
+  (not
+    (overtakingSituation ?VES2 ?VES1 ?TIMENOW)))
+  
+    
+; VES1 overtaking VES2
+; "I am overtaking"
+(=>
+  (and
+    (instance ?VES1 WaterVehicle) 
+    (attribute ?VES1 OwnVessel)       
+    (instance ?VES2 WaterVehicle) 
+    (attribute ?VES2 TargetVessel)
+    (speedOverGround ?VES1 ?SPEED1 ?TIMENOW)
+    (speedOverGround ?VES2 ?SPEED2 ?TIMENOW)
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW)
+    (concurrentTranslocationAtTime ?VES1 ?VES2 ?TIMENOW)
+    (similarCourse ?VES1 ?VES2 ?TIMENOW)
+    (relativeBearingTo ?VES1 ?VES2 ?RELBEAR ?TIMENOW)
+    (or
+      (greaterThanOrEqualTo ?RELBEAR 292.0)
+      (lessThanOrEqualTo ?RELBEAR 68.0))
+    (greaterThanOrEqualTo ?SPEED1 ?SPEED2))
+  (and
+    (overtakingSituation ?VES1 ?VES2 ?TIMENOW)
+    (giveWayVessel ?VES1 ?VES2 ?TIMENOW)
+    (standOnVessel ?VES2 ?VES1 ?TIMENOW)
+    (obligatoryNextAction ?VES1 ?VES2 PassAtASafeDistance ?TIMENOW)
+    (obligatoryNextAction ?VES2 ?VES1 MaintainCourseAndSpeed ?TIMENOW)))
+
+; "I am NOT overtaking them"
+(=>
+  (and
+    (instance ?VES1 WaterVehicle) 
+    (attribute ?VES1 OwnVessel)       
+    (instance ?VES2 WaterVehicle) 
+    (attribute ?VES2 TargetVessel)
+    (speedOverGround ?VES1 ?SPEED1 ?TIMENOW)
+    (speedOverGround ?VES2 ?SPEED2 ?TIMENOW)
+    (mutuallyVisibleAtTime ?VES1 ?VES2 ?TIMENOW)
+    (concurrentTranslocationAtTime ?VES1 ?VES2 ?TIMENOW)
+    (relativeBearingTo ?VES1 ?VES2 ?RELBEAR ?TIMENOW)
+    (or
+      (not (similarCourse ?VES1 ?VES2 ?TIMENOW))
+      (lessThan ?SPEED1 ?SPEED2)
+      (and
+        (lessThanOrEqualTo ?RELBEAR 291.0)
+        (greaterThanOrEqualTo ?RELBEAR 69.0))))
+  (not
+    (overtakingSituation ?VES1 ?VES2 ?TIMENOW)))
+
+          
+
+    
+; noRotrSituation    
+(instance noRotrSituation TernaryPredicate)
+(instance noRotrSituation Relation)
+(domain noRotrSituation 1 WaterVehicle)
+(domain noRotrSituation 2 WaterVehicle)
+(domain noRotrSituation 3 TimeInterval)
+(format EnglishWrittenLanguage noRotrSituation "vessel %1 and vessel %2 are %n free of any rules of the road situation at time %3")
+(documentation noRotrSituation EnglishWrittenLanguage "VES1 and VES2 are not
+in a Rules of the Road situation")
+(termFormat EnglishWrittenLanguage noRotrSituation "no rules of the road situation") 
+
+;; DISABLED: Negated antecedent: never fires without closure facts (open world).
+;(=> 
+;  (not
+;    (or
+;      (overtakingSituation ?VES1 ?VES2 ?TIMENOW)
+;      (crossingSituation ?VES1 ?VES2 ?TIMENOW)
+;      (headOnSituation ?VES1 ?VES2 ?TIMENOW)))
+;  (noRotrSituation ?VES1 ?VES2 ?TIMENOW))
+
+
+; *******************************************************************
+; *************************** INPUTS ********************************
+; *******************************************************************  
+
+
+
+; speedOverGround
+(instance speedOverGround TernaryPredicate)
+(domain speedOverGround 1 WaterVehicle)
+;(domain speedOverGround 2 FunctionQuantity)
+(domain speedOverGround 2 RealNumber)
+;(domain speedOverGround 3 Translocation)
+(domain speedOverGround 3 TimeInterval) 
+(documentation speedOverGround EnglishWrittenLanguage "The speed in 
+reference to the ground in which a vessel is moving.")
+(termFormat EnglishWrittenLanguage speedOverGround "speed over ground")
+(format EnglishWrittenLanguage speedOverGround "the speed over ground of %1 is %2
+at time %3")
+
+; *******************************************************************
+; ****** CANNOT USE BECUASE SPEEDFN RETURNS FUNCTION QUANATITY ******
+
+;(=>
+;  (instance ?V WaterVehicle)
+;  (exists (?DIST ?TIME ?DUR ?U)
+;    (and
+;      (duration ?TIME (MeasureFn ?DUR ?U))
+;      (instance ?U TimeDuration)
+;      (equal ?X 
+;        (SpeedFn 
+;          (MeasureFn ?DIST NauticalMile)
+;          (MeasureFn ?DUR ?U)))
+;      (speedOverGround ?V ?X ?TIME ))))
+; *******************************************************************
+
+    
+;; DISABLED: Skolem generator: SOG and COG for every vessel translocation. These are scenario inputs.
+;(=>
+;  (and
+;    (instance ?X WaterVehicle)
+;    (instance ?TRANS Translocation)
+;    (objectTransferred ?TRANS ?X))
+;  (exists (?SOG ?COG)
+;    (and
+;      (speedOverGround ?X ?SOG (WhenFn ?TRANS))
+;      (courseOverGround ?X ?COG (WhenFn ?TRANS)))))
+      
+    
+
+
+; courseOverGround
+(instance courseOverGround TernaryPredicate)
+(domain courseOverGround 1 WaterVehicle)
+;(domain courseOverGround 2 PlaneAngleMeasure)
+(domain courseOverGround 2 RealNumber)
+;(domain courseOverGround 3 Translocation)
+(domain courseOverGround 3 TimeInterval) 
+(documentation courseOverGround EnglishWrittenLanguage "The direction in 
+reference to the ground in which a vessel is actually following 
+expressed as angular distance from north, usually from 000' at north, 
+clockwise through 360' {from Bowditch}. (courseOverGround ?VEH 
+?HEADING) means that the course heading of the vehicle is ?HEADING, 
+in AngularDegrees, with the reference point of 000 degrees being true
+North.")
+(termFormat EnglishWrittenLanguage courseOverGround "course over ground")
+(format EnglishWrittenLanguage courseOverGround "the course over ground of %1 is %2
+at time %3")
+
+; subrelation COG Trajectory 
+; 3D - trajectory 
+; 2D - COG
+; Trajectory is a sequence of points in multi-dimensional space 
+; vector is a time and list of points 
+
+
+        
+;; DISABLED: Skolem generator for COG; also used undefined ObjectTransferred and an unbound ?VES.
+;(=>
+;  (and 
+;    (instance ?VES WaterVehicle)
+;    (instance ?TRANS Translocation)
+;    (ObjectTransferred ?TRANS ?W))
+;  (exists (?X)
+;    (courseOverGround ?VES ?X (WhenFn ?TRANS))))
+
+
+; CPA  
+(instance cpa QuaternaryPredicate)
+(domain cpa 1 WaterVehicle)
+(domain cpa 2 WaterVehicle)
+;(domain cpa 3 LengthMeasure)
+(domain cpa 3 RealNumber)
+(domain cpa 4 TimeInterval)  
+(documentation cpa EnglishWrittenLanguage "An estimated point in which the 
+distance between two objects, of which at least one is in motion, 
+will reach its minimum value. {from Wiktionary}")
+(termFormat EnglishWrittenLanguage cpa "Closest Point of Approach (CPA)")  
+(format EnglishWrittenLanguage cpa "the CPA between %1 and %2 is %3 
+at time %4")
+
+
+(=>
+  (and
+    (instance ?V1 WaterVehicle)
+    (instance ?V2 WaterVehicle) 
+    (instance ?TRANS1 Translocation)
+    (instance ?TRANS2 Translocation)
+    (instrument ?TRANS1 ?V1)
+    (instrument ?TRANS2 ?V2)
+    (equal (WhenFn ?TRANS1) (WhenFn ?TRANS2))
+    (equal ?TIME (WhenFn ?TRANS1))
+    (instance ?UNIT UnitOfLength)
+    (holdsDuring ?T2
+      (distance ?V1 ?V2 (MeasureFn ?N ?UNIT)))
+    (during ?T2 ?TIME)
+    (not 
+      (exists (?T3 ?N2)
+        (and
+          (holdsDuring ?T3
+            (distance ?V1 ?V2 (MeasureFn ?N2 ?UNIT)))
+          (during ?T3 ?TIME)
+          (lessThan ?N2 ?N)))))
+  (and
+    (cpa ?V1 ?V2 ?N ?TIME)))
+    
+;(cpat ?V1 ?V2 ?T2 ?TIME)))
+  
+
+; CPAt  
+(instance cpat QuaternaryPredicate)
+(domain cpat 1 WaterVehicle)
+(domain cpat 2 WaterVehicle)
+;(domain cpat 3 TimePoint)
+(domain cpat 3 RealNumber)
+(domain cpat 4 TimeInterval)  
+(documentation cpat EnglishWrittenLanguage "The time remaining until CPA
+ is reached. (cpat ?V1 ?V2 ?TIME ?TIMENOW) means at ?TIMENOW, the
+ time until cpa happens is ?TIME.")
+(termFormat EnglishWrittenLanguage cpat "CPA time")  
+(format EnglishWrittenLanguage cpat "the CPAt between %1 and %2 is %3 
+at time %4")
+
+
+(=>
+  (cpa ?V1 ?V2 ?N ?TIME)
+  (exists (?T2) 
+    (cpat ?V1 ?V2 ?T2 ?TIME)))
+
+
+; CPAThresh
+(instance cpaThresh TernaryPredicate)
+(domain cpaThresh 1 WaterVehicle)
+(domain cpaThresh 2 Translocation)
+(domain cpaThresh 3 RealNumber)  
+(documentation cpaThresh EnglishWrittenLanguage "An input from a vessel's 
+operator or captain pertaining to the relative confort level for how 
+close they would allow other vessels to get to own vessel")
+(termFormat EnglishWrittenLanguage cpaThresh "CPA Threshold")  
+(format EnglishWrittenLanguage cpaThresh "the CPA threshold of %1 during 
+translocation %2 is %3")
+
+; CPAtThresh 
+(instance cpaTThresh TernaryPredicate)
+(domain cpaTThresh 1 WaterVehicle)
+(domain cpaTThresh 2 Translocation)
+(domain cpaTThresh 3 RealNumber)  
+(documentation cpaTThresh EnglishWrittenLanguage "An input from a vessel's 
+operator or captain pertaining to the threshold for how long until 
+CPA is reached by another vessel")
+(termFormat EnglishWrittenLanguage cpaTThresh "CPAt Threshold, set by the ship")  
+(format EnglishWrittenLanguage cpaTThresh "the CPAt threshold of %1 during 
+translocation %2 is %3")
+
+(=>
+  (and
+    (instance ?V WaterVehicle)
+    (instance ?T Translocation)
+    (objectTransferred ?T ?V)
+    (attribute ?CO Sailor)
+    (attribute ?CO ShipCaptain)
+    (responsibleFor ?T ?CO))
+  (exists (?A ?B) 
+    (and
+      (cpaTThresh ?V ?T ?A)
+      (cpaThresh ?V ?T ?B))))
+
+
+; relativeBearingTo
+(instance relativeBearingTo QuaternaryPredicate)
+(domain relativeBearingTo 1 WaterVehicle)
+(domain relativeBearingTo 2 WaterVehicle)
+(domain relativeBearingTo 3 RealNumber)  
+(domain relativeBearingTo 4 TimeInterval) 
+(documentation relativeBearingTo EnglishWrittenLanguage "the relative bearing 
+from VES1 to VES2 at time ?TIME. (relativeBearingTo ?VES1 ?VES2 
+?REALNUM ?TIME) means the relative bearing from VES1 to VES2 is 
+REALNUM at time ?TIME")
+(termFormat EnglishWrittenLanguage relativeBearingTo "relative bearing to")  
+(format EnglishWrittenLanguage relativeBearingTo "the relative bearing between 
+%1 and %2 is %3 at time %4")
+
+;(=>
+;  (and
+;    (instance ?V1 WaterVehicle)
+;    (instance ?V2 WaterVehicle) 
+;    (instance ?NOTHING Object)
+;    (betweenOnPath ?V1 ?NOTHING ?V2 ?BEAR)
+;    (courseOverGround ?V1 ?Y ?TIME)
+;  (exists (?UNIT )
+;    (and
+;      (instance ?UNIT UnitOfAngularMeasure)
+      
+;; DISABLED: Skolem generator: relativeBearingTo asserted to exist for every pair of Objects. This is a scenario input.
+;(=>
+;  (and
+;    (instance ?X Object)
+;    (instance ?Y Object) 
+;    (not (equal ?X ?Y)))
+;  (exists (?RELBEAR ?T)
+;    (holdsDuring ?T
+;      (relativeBearingTo ?X ?Y ?RELBEAR ?T))))
+
+
+; rangeBetweenVessels
+(instance rangeBetweenVessels QuaternaryPredicate)
+(domain rangeBetweenVessels 1 WaterVehicle)
+(domain rangeBetweenVessels 2 WaterVehicle)
+;(domain rangeBetweenVessels 3 UnitOfLength) 
+(domain rangeBetweenVessels 3 RealNumber)
+(domain rangeBetweenVessels 4 TimeInterval)
+(documentation rangeBetweenVessels EnglishWrittenLanguage "The range between 
+VES1 and VES2 at time ?TIME.")
+(termFormat EnglishWrittenLanguage rangeBetweenVessels "range between vessels")
+(format EnglishWrittenLanguage rangeBetweenVessels "the range between %1 and %2 
+is %3 at time %4")
+
+(=>
+  (and
+    (instance ?V1 WaterVehicle)
+    (instance ?V2 WaterVehicle) 
+    (orientation ?V1 ?V2 Near)
+    (instance ?TRANS1 Translocation)
+    (instrument ?TRANS1 ?V1))
+  (exists (?X ?DIST)
+    (and
+      (equal ?X (MeasureFn ?DIST NauticalMile))
+      (distance ?V1 ?V2 ?X)
+      (rangeBetweenVessels ?V1 ?V2 ?DIST (WhenFn ?TRANS1)))))
+
+
+(subclass ColregsLights VehicleLight)
+(documentation ColregsLights EnglishWrittenLanguage "Lights defined under
+rule 21 of COLREGs.")
+(termFormat EnglishWrittenLanguage ColregsLights "COLREGs lights")
+
+(=>
+  (and 
+    (instance ?V WaterVehicle)
+    (instance ?ATTR RotrAttribute)
+    (attribute ?V ?ATTR))
+  (exists (?L)
+    (and
+      (instance ?L ColregsLights)
+      (located ?L ?V))))
+
+(subclass MastHeadLight ColregsLights)
+(documentation MastHeadLight EnglishWrittenLanguage "A white light placed over
+the fore and aft centerline of the vessel showing an ubroken light over
+an arc of the horizon of 225 degrees and so fixed as to show the light
+from right ahead to 22.5 degrees abaft the beam on either side of
+the vessel {from COLREGs}.")
+(termFormat EnglishWrittenLanguage MastHeadLight "masthead light")
+
+(=>
+  (instance ?L MastHeadLight)
+  (exists (?V ?M)
+    (and
+      (instance ?V WaterVehicle)
+      (instance ?M Mast)
+      (color ?L White)
+      (part ?M ?V)
+      (orientation ?L ?M On))))
+      
+(subclass TaskingLight ColregsLights)
+(documentation TaskingLight EnglishWrittenLanguage "A light on the mast of a 
+vessel whose color indicates the type of vessel.")
+(termFormat EnglishWrittenLanguage TaskingLight "tasking light")
+
+(=>
+  (instance ?L TaskingLight)
+  (exists (?V ?M)
+    (and
+      (instance ?V WaterVehicle)
+      (instance ?M Mast)
+      (part ?M ?V)
+      (orientation ?L ?M On))))
+
+
+(subclass SternLight ColregsLights)
+(documentation SternLight EnglishWrittenLanguage "a white light placed as 
+nearly as practicable at the stern showing an unbroken light over an 
+arc of the horizon of 135 degrees and so fixed as to show the light 
+67.5 degrees from right aft on each side of the vessel. {from COLREGs}")
+(termFormat EnglishWrittenLanguage SternLight "stern light")
+
+
+(=>
+  (instance ?L SternLight)
+  (exists (?V)
+    (and
+      (instance ?V WaterVehicle)
+      (color ?L White)
+      (part ?L
+        (BackFn ?V)))))
+
+
+(subclass PortSideLight ColregsLights)
+(documentation PortSideLight EnglishWrittenLanguage "a red light on the port 
+side showing an unbroken light over an arc of the horizon of 112.5 
+degrees and so fixed as to show the light from right ahead to 22.5 
+degrees abaft the beam on it respective side. {from COLREGs}")
+(termFormat EnglishWrittenLanguage PortSideLight "port side light")
+
+(=>
+  (instance ?L PortSideLight)
+  (exists (?V)
+    (and
+      (instance ?V WaterVehicle)
+      (color ?L Red)
+      (part ?L (FrontFn ?V))
+      (orientation ?L ?V Left))))
+
+(subclass StarboardSideLight ColregsLights)
+(documentation StarboardSideLight EnglishWrittenLanguage "a green light on the 
+starboard side showing an unbroken light over an arc of the horizon of 112.5 
+degrees and so fixed as to show the light from right ahead to 22.5 
+degrees abaft the beam on it respective side. {from COLREGs}")
+(termFormat EnglishWrittenLanguage StarboardSideLight "starboard side light")
+
+(=>
+  (instance ?L StarboardSideLight)
+  (exists (?V)
+    (and
+      (instance ?V WaterVehicle)
+      (color ?L Green)
+      (part ?L (FrontFn ?V))
+      (orientation ?L ?V Right))))
+
+(subclass TowingLight ColregsLights)
+(documentation TowingLight EnglishWrittenLanguage "a yellow light having the 
+same characteristics as a sternlight. {from COLREGs}")
+(termFormat EnglishWrittenLanguage TowingLight "towing light")
+
+
+
+(=>
+  (instance ?L TowingLight)
+  (exists (?V)
+    (and
+      (instance ?V WaterVehicle)
+      (color ?L Yellow)
+      (part ?L
+        (BackFn ?V)))))
+
+
+(subclass AllroundLight ColregsLights)
+(documentation AllroundLight EnglishWrittenLanguage "a light showing an 
+unbroken light over an arc of the horizon of 360 degrees. from {COLREGs}")
+(termFormat EnglishWrittenLanguage AllroundLight "allround light")
+
+
+(=>
+  (instance ?L AllroundLight)
+  (exists (?V ?M)
+    (and
+      (instance ?V WaterVehicle)
+      (instance ?M Mast)
+      (part ?M ?V)
+      (orientation ?L ?M On))))
+
+(subclass FlashingMaritimeVesselLight ColregsLights)
+(documentation FlashingMaritimeVesselLight EnglishWrittenLanguage "a light flashing at regular
+intervals at a frequency of 120 flashes or more per minute. {from COLREGs}")
+(termFormat EnglishWrittenLanguage FlashingMaritimeVesselLight "flashing light")
