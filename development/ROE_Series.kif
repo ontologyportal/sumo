@@ -1500,40 +1500,88 @@
 (not (subclass NonDamagingHarassment PotentiallyDamagingHarassment))
 (not (subclass PotentiallyDamagingHarassment NonDamagingHarassment))
 
-(subclass HarassmentResponse MilitaryProcess)
+(subclass HarassmentResponse IntentionalProcess)
 ;; Rule 61 F authorizes responses of a specified type.
 (documentation HarassmentResponse EnglishWrittenLanguage
-  "An intentional process carried out by the crew of a ship that is the target
-   of a &%Harassment against the ship whose crew carries out the harassment.")
+  "An &%IntentionalProcess carried out by the crew of a &%Ship that is the
+   target of a &%Harassment, directed against the ship whose crew carries out
+   the &%Harassment, with the purpose that the &%Harassment not continue.")
 (termFormat EnglishWrittenLanguage HarassmentResponse "response to harassment")
 
-;; The response is carried out by the crew of the harassed ship against the
-;; harassing ship, and begins no earlier than the harassment. The parties are
-;; ships and their crews, as for Interference: a ship is an Artifact and cannot
-;; be an agent. The temporal condition is a partial mitigation: it does not
-;; establish that the response was caused by, or undertaken in response to,
-;; the harassment, so an unrelated act of the target against the harasser that
-;; begins after the harassment is also classified. The causal link is not
-;; required, because a response ordered by the commander is caused by the
-;; order, and causes is not transitive.
+;; The class is narrower than a response in the ordinary sense. Moving away
+;; from the harassing ship, or ignoring it, is not directed against that ship
+;; and needs no authorization under rule 61 F, so it is not in this class.
+;; The class is the condition that Rule 4c adds to the type supplied for rule
+;; 61 F: without it, the activation would authorize every act of that type.
+;; Only necessary conditions are given. The agent, patient and time of an act
+;; do not establish that it was done in response to the harassment, so whether
+;; an act is a response is stated in the scenario. The parties are ships and
+;; their crews, as for Interference: a ship is an Artifact and cannot be an
+;; agent. causes is not used, because a response ordered by the commander is
+;; caused by the order, and causes is not transitive.
+
+;; Rule 1a: A response to harassment is carried out by the crew of the
+;; harassed ship against the harassing ship, and begins no earlier than the
+;; harassment.
 (=>
-  (and
-    (instance ?H Harassment)
-    (agent ?H ?A)
-    (patient ?H ?T)
-    (member ?A
-      (ShipCrewFn ?S))
-    (instance ?R IntentionalProcess)
-    (agent ?R ?X)
-    (member ?X
-      (ShipCrewFn ?T))
-    (patient ?R ?S)
-    (beforeOrEqual
-      (BeginFn
-        (WhenFn ?H))
-      (BeginFn
-        (WhenFn ?R))))
-  (instance ?R HarassmentResponse))
+  (instance ?R HarassmentResponse)
+  (exists (?H ?A ?S ?T ?X)
+    (and
+      (instance ?H Harassment)
+      (agent ?H ?A)
+      (member ?A
+        (ShipCrewFn ?S))
+      (patient ?H ?T)
+      (agent ?R ?X)
+      (member ?X
+        (ShipCrewFn ?T))
+      (patient ?R ?S)
+      (beforeOrEqual
+        (BeginFn
+          (WhenFn ?H))
+        (BeginFn
+          (WhenFn ?R))))))
+
+;; Rule 1b: The response also has the purpose that harassment of the same ship
+;; by the crew of the harassing ship not continue after it.
+;; Rule 1b repeats the conditions of Rule 1a so that the purpose refers to the
+;; same ships. Rule 1a is kept separately because Rule 1b has a Formula
+;; argument and is left out of the first-order translation. ImmediateFutureFn
+;; is a short interval of unspecified length, so the purpose is that the
+;; harassment not continue right after the response, not that it never recur.
+;; It covers both stopping a harassment in progress and deterring a repeat
+;; after it has ended.
+(=>
+  (instance ?R HarassmentResponse)
+  (exists (?H ?A ?S ?T ?X)
+    (and
+      (instance ?H Harassment)
+      (agent ?H ?A)
+      (member ?A
+        (ShipCrewFn ?S))
+      (patient ?H ?T)
+      (agent ?R ?X)
+      (member ?X
+        (ShipCrewFn ?T))
+      (patient ?R ?S)
+      (beforeOrEqual
+        (BeginFn
+          (WhenFn ?H))
+        (BeginFn
+          (WhenFn ?R)))
+      (hasPurpose ?R
+        (not
+          (exists (?H2 ?A2)
+            (and
+              (instance ?H2 Harassment)
+              (agent ?H2 ?A2)
+              (member ?A2
+                (ShipCrewFn ?S))
+              (patient ?H2 ?T)
+              (overlapsTemporally
+                (ImmediateFutureFn
+                  (WhenFn ?R))
+                (WhenFn ?H2)))))))))
 
 (instance ROESeries61 ROESeries)
 (instance ROESeries61 AuthoritySeries)
