@@ -25,6 +25,21 @@
 ;; Term format
 (termFormat EnglishWrittenLanguage HostileAct "hostile act")
 
+;; Scenario modelling convention. A hostile act may be modelled as a composite
+;; &%Attack that includes the launch of a weapon and its travel while the
+;; weapon poses an active threat; the launch and the travel may be
+;; subprocesses of the same attack. This is not a rule about the duration of
+;; every hostile act, and continuing damage is not continuing hostile conduct.
+;; The end of a hostile act does not end a threat of further attack: when the
+;; attacker keeps the capability and there are indications of a new attack,
+;; for example a second torpedo, that threat is a separate &%HostileIntent,
+;; stated in the scenario from those indications. It is not inferred from the
+;; earlier hostile act, or from the continued danger of a weapon already
+;; launched. A right of self-defense rests on the hostile conduct that is
+;; going on when the defense begins (ROE_Deontic.kif), so a defense that
+;; begins after the hostile act has ended rests on such a hostile intent;
+;; without one it is a reprisal, not self-defense.
+
 ;; Rule 1: Every HostileAct has some agent. That it is unlawful follows from
 ;; &%CriminalAction, an intentional process that violates a law. An earlier
 ;; version also stated (property ?HA Illegal); &%Illegal is a
@@ -281,24 +296,44 @@
       (instance ?A AutonomousAgent)
       (agent ?S ?A))))
 
-;; Rule 2: SelfDefense is caused by a HostileAct or HostileIntent
-;; directed at the defending agent
+;; Rule 2: A self-defense begins no earlier than some hostile act or hostile
+;; intent. The hostile conduct may have ended before the defense begins, as
+;; for a torpedo intercepted after the launch, or it may still go on. The rule
+;; states only a necessary temporal condition. It does not establish that the
+;; hostile conduct justifies the self-defense or is the conduct defended
+;; against, nor that a threat is still present; who or what is defended, and
+;; against which threat, are conditions of the rights in ROE_Deontic.kif. The
+;; rule assumes that every self-defense answers a hostile act or hostile
+;; intent; if the class is extended to defense without hostile conduct, the
+;; rule has to be reviewed.
+;;
+;; It replaces a rule that the self-defense is caused by a hostile conduct
+;; directed at the defending agent. That rule was false in two ways. In SUMO
+;; &%causes requires the cause to end before the effect begins, so a defense
+;; during an attack in progress was excluded. And the hostile conduct is
+;; directed at the defending agent only in some cases: in unit self-defense,
+;; defense of others, national and collective self-defense the target is the
+;; ship, the protected persons, the nationals or another State, and even in
+;; individual self-defense the target may be the vehicle the person is in.
 (=>
   (instance ?S SelfDefense)
-  (exists (?A ?T)
+  (exists (?T)
     (and
-      (instance ?A AutonomousAgent)
-      (agent ?S ?A)
       (instance ?T HostileConduct)
-      (patient ?T ?A)
-      (causes ?T ?S))))
+      (beforeOrEqual
+        (BeginFn
+          (WhenFn ?T))
+        (BeginFn
+          (WhenFn ?S))))))
 
 ;; 5. IndividualSelfDefense
 (subclass IndividualSelfDefense SelfDefense)
 
 (documentation IndividualSelfDefense EnglishWrittenLanguage
-  "The right of an individual to defend himself or herself against hostile
-   acts or hostile intent.")
+  "A &%SelfDefense in which an individual defends himself or herself against
+   a hostile act or hostile intent.")
+;; The class is the exercise of the right. The right itself is given in
+;; ROE_Deontic.kif (item 5) with &%holdsRight.
 
 ;; Term format
 (termFormat EnglishWrittenLanguage IndividualSelfDefense
@@ -340,8 +375,10 @@
 ;; In some States, this is both a right and an obligation, in others only a
 ;; right.
 (documentation UnitSelfDefense EnglishWrittenLanguage
-  "The right of a unit commander to defend his or her unit and other units
-   from the same State against hostile acts or hostile intent.")
+  "A &%SelfDefense in which a unit defends itself, or other units of the same
+   State, against a hostile act or hostile intent.")
+;; The class is the exercise of the right. The right is the unit commander's
+;; and is given in ROE_Deontic.kif (item 6) with &%holdsRight.
 
 ;; Term format
 (termFormat EnglishWrittenLanguage UnitSelfDefense "unit self-defense")
@@ -377,9 +414,13 @@
 (subclass NationalSelfDefense SelfDefense)
 
 (documentation NationalSelfDefense EnglishWrittenLanguage
-  "As recognized in Article 51 of the UN Charter and customary international
-   law, the right of a State to use force to defend itself, its nationals, and
-   their property against hostile acts and hostile intent.")
+  "A &%SelfDefense in which a State uses force to defend itself, its
+   nationals or their property against a hostile act or hostile intent.")
+;; The class is the exercise of the right, not the right itself. The right is
+;; recognized in Article 51 of the UN Charter and in customary international
+;; law; it is given in ROE_Deontic.kif (item 8) with &%holdsRight. That a
+;; process is a NationalSelfDefense does not establish that the legal
+;; conditions of Article 51 are met.
 
 ;; Term format
 (termFormat EnglishWrittenLanguage NationalSelfDefense "national self-defense")
@@ -391,10 +432,15 @@
 (subclass CollectiveSelfDefense SelfDefense)
 
 (documentation CollectiveSelfDefense EnglishWrittenLanguage
-  "As recognized in Article 51 of the UN Charter and customary international
-   law, the right of a State to use force to defend another State, its
-   persons, its forces, and/or its property in response to an armed attack or
-   imminent armed attack.")
+  "A &%SelfDefense in which one or more States use force to defend another
+   State, its persons, its forces or its property against an armed attack or
+   an imminent armed attack.")
+
+;; The class is the exercise of the right, not the right itself. The right is
+;; recognized in Article 51 of the UN Charter and in customary international
+;; law; it is given in ROE_Deontic.kif (item 9) with &%holdsRight. That a
+;; process is a CollectiveSelfDefense does not establish that the use of force
+;; meets the legal conditions of Article 51.
 
 ;; Term format
 (termFormat EnglishWrittenLanguage CollectiveSelfDefense
@@ -1005,14 +1051,18 @@
 ;; 24. Detention
 (subclass Detention Confining)
 (subclass Detention MilitaryProcess)
-(disjoint Detention Imprisoning)
+;; Detention is not disjoint from &%Imprisoning. In SUMO &%Imprisoning is a
+;; &%Confining in a &%Prison, and a &%Prison is any installation of a
+;; government for confining people, so a person detained in such a facility is
+;; both detained and imprisoned. The difference the Handbook draws is in the
+;; purpose of the holding, not in the place.
 
 (documentation Detention EnglishWrittenLanguage
   "The temporary holding of a &%Human by an agent acting on authority
    conferred by a competent military authority, for example to prevent escape
-   or to maintain security. Unlike &%Imprisoning, it is not the execution of a
-   sentence, and unlike an arrest in law enforcement it does not place the
-   person in judicial custody (Newport ROE Handbook).")
+   or to maintain security. It is not the execution of a sentence, and in the
+   context of rules of engagement it does not by itself hand the person over
+   to a criminal justice process (Newport ROE Handbook).")
 
 (termFormat EnglishWrittenLanguage Detention "detention")
 
@@ -1039,6 +1089,23 @@
       (instance ?HQ HigherHeadquarters)
       (confersRight ?HQ ?A
         (agent ?D ?A)))))
+
+;; Rule 3: A detention is temporary: it does not last until PositiveInfinity.
+;; The rule states only that a detention has a finite end. It gives no
+;; maximum duration, so a detention that ends after many years also satisfies
+;; it. In doctrine a detention lasts only as long as it is necessary, and ends
+;; with release or transfer to another authority. That is a norm, not a fact
+;; about every detention, and it would need the reason for the detention, which
+;; is not represented. No rule is given for custody: a detention and an arrest
+;; are already different kinds of process, a keeping and a capturing, and a
+;; detention by a law enforcement detachment is a law enforcement activity.
+(=>
+  (instance ?D Detention)
+  (not
+    (equal
+      (EndFn
+        (WhenFn ?D))
+      PositiveInfinity)))
 
 ;; 25. AutonomousWeaponSystem
 (subclass AutonomousWeaponSystem Weapon)
@@ -2112,13 +2179,18 @@
                 (WhenFn ?LE)))))))))
 
 ;; 50. RulesOfEngagement
-(subclass RulesOfEngagement Ordering)
+(subclass RulesOfEngagement Policy)
 ;; ROE do not alter pre-existing rights and obligations under LOAC, and must
 ;; always remain consistent with LOAC obligations (Newport ROE Handbook).
-;; RulesOfEngagement is a subclass of Ordering, hence a Process, so instances
-;; are promulgation events. The normative content they carry is expressed by
-;; confersNorm and modalAttribute rather than by the event itself. An action
-;; forbidden by ROE but permitted by LOAC is unauthorized, not unlawful.
+;; ROE are a proposition, the content of directives, not the act of issuing
+;; them (Pease, 4 Nov). Policy is the content of a Declaring by an
+;; organization and has a policyOwner. Issuing ROE is a Declaring (item 73,
+;; ROEAuthorization) or a Directing (item 74, ROEImplementation); a message
+;; carries them through containsInformation. That a ROE is a proposition, or
+;; is contained in a message, does not mean that it is authorized or in
+;; force: approval is roeAuthorizesMeasure and being in force is roeInForce.
+;; An action forbidden by ROE but permitted by LOAC is unauthorized, not
+;; unlawful.
 (documentation RulesOfEngagement EnglishWrittenLanguage
   "Directives issued by competent military authority that delineate the
    circumstances, conditions, degree, and manner in which the use of force may
@@ -2126,12 +2198,10 @@
 (termFormat EnglishWrittenLanguage RulesOfEngagement "rules of engagement")
 (conventionalShortName "ROE" RulesOfEngagement)
 
-;; Rule 1: LOAC ceiling -- no authority may permit what LOAC prohibits
-(=>
-  (modalAttribute ?F Prohibition)
-  (not
-    (exists (?AUTH)
-      (confersNorm ?AUTH Permission ?F))))
+;; The old Rule 1 (no authority may confer Permission on what is under
+;; Prohibition) was removed: ROE-level prohibitions are also written with
+;; Prohibition, and an ROE authorization may lift one. The LOAC ceiling
+;; (Pease, 23 Oct) is kept as separate work.
 
 ;; 51. MaritimeWarningZone
 (subclass MaritimeWarningZone GeographicArea)
@@ -2270,8 +2340,8 @@
       (patient ?MD ?TARGET))))
 
 ;; Rule 2: The purpose of a military deception is that the adversary does an
-;; act the deception brings about, or does not do an act he desires to do: the
-;; "actions or inactions" of the Handbook. The desire is stated outside the
+;; act of some kind, or does not do an act he desires to do: the "actions or
+;; inactions" of the Handbook. The desire is stated outside the
 ;; purpose, so the inaction concerns an existing desire of the adversary. The
 ;; kinds of act are existential; a scenario states which ones. A third purpose
 ;; Prof. Pease named, that the deceiving side can do what it wants, is not
@@ -2295,13 +2365,18 @@
           (exists (?ACT)
             (and
               (instance ?ACT ?C1)
-              (agent ?ACT ?TARGET)
-              (causes ?MD ?ACT)))
+              (agent ?ACT ?TARGET)))
           (not
             (exists (?ACT)
               (and
                 (instance ?ACT ?C2)
                 (agent ?ACT ?TARGET)))))))))
+
+;; An earlier version required that the deception cause the act. In SUMO
+;; &%causes requires the cause to end before the effect begins, but a
+;; deception may go on while the adversary acts. The purpose now states only
+;; that the act occurs, so the distinction between bringing the act about and
+;; wanting it to occur is not represented.
 
 ;; Rule 3: The purpose of a military deception is that the adversary decision
 ;; maker believes something false. It does not follow that the false belief is
@@ -2547,18 +2622,28 @@
       (patient ?NEO ?P)
       (origin ?NEO ?STATE))))
 
-;; Rule 3: NEO is triggered by armed conflict, civil unrest, or natural disaster
+;; Rule 3: A NEO has the purpose that the evacuated persons are, when it ends,
+;; at the place to which they are evacuated. The place need not be outside the
+;; State, and that it is a place of safety is not represented. The rule states
+;; a purpose, so a failed evacuation is still a NEO. It replaces an earlier
+;; rule that a NEO is caused by a ViolentContest or a GeologicalProcess. That
+;; rule was false in three ways: in SUMO &%causes requires the cause to end
+;; before the effect begins, but an evacuation is often carried out while the
+;; conflict goes on; a NEO may be carried out against a danger that is expected
+;; but has not yet occurred; and a storm or a flood is not a GeologicalProcess.
 (=>
-  (instance ?NEO NonCombatantEvacuationOperation)
-  (or
-    (exists (?VC)
+  (and
+    (instance ?NEO NonCombatantEvacuationOperation)
+    (patient ?NEO ?P)
+    (property ?P NonCombatant))
+  (hasPurpose ?NEO
+    (exists (?L)
       (and
-        (instance ?VC ViolentContest)
-        (causes ?VC ?NEO)))
-    (exists (?GP)
-      (and
-        (instance ?GP GeologicalProcess)
-        (causes ?GP ?NEO)))))
+        (destination ?NEO ?L)
+        (holdsDuring
+          (EndFn
+            (WhenFn ?NEO))
+          (located ?P ?L))))))
 
 ;; Rule 4: Attack is not permitted during NEO
 (=>
@@ -2752,9 +2837,11 @@
 ;; force, so it neither creates an identification nor replaces one.
 
 ;; 64. PrecisionGuidedMunition
-(subclass PrecisionGuidedMunition Projectile)
+(subclass PrecisionGuidedMunition Weapon)
+;; Weapon, not Projectile: a projectile is fired from a weapon, while laser- or
+;; GPS-guided bombs are released, and a Bomb is not a Projectile in SUMO.
 (documentation PrecisionGuidedMunition EnglishWrittenLanguage
-  "A projectile that uses precision guidance technology to strike targets more
+  "A munition that uses precision guidance technology to strike targets more
    accurately, with the intention of reducing unintended damage to persons or
    property compared to non-precision-guided munitions. Sometimes referred to
    as smart munitions (Newport ROE Handbook).")
@@ -2762,29 +2849,58 @@
   "precision-guided munition")
 (conventionalShortName "PGM" PrecisionGuidedMunition)
 
-;; Rule 1: PGM is directed toward a specific target
-(=>
-  (and
-    (instance ?PGM PrecisionGuidedMunition)
-    (instance ?ATK Attack)
-    (instrument ?ATK ?PGM))
-  (exists (?T)
-    (and
-      (instance ?T Physical)
-      (target ?ATK ?T))))
+(subclass GuidanceAttribute InternalAttribute)
+(documentation GuidanceAttribute EnglishWrittenLanguage
+  "The class of &%Attributes that describe how a munition is guided to its
+   target after it is released.")
+(termFormat EnglishWrittenLanguage GuidanceAttribute "guidance attribute")
 
-;; Rule 2: PGM use has the purpose of confining damage to military objectives
+(instance GPSGuidance GuidanceAttribute)
+(documentation GPSGuidance EnglishWrittenLanguage
+  "Guidance by satellite navigation signals toward the coordinates of the
+   target.")
+(termFormat EnglishWrittenLanguage GPSGuidance "GPS guidance")
+
+(instance LaserGuidance GuidanceAttribute)
+(documentation LaserGuidance EnglishWrittenLanguage
+  "Guidance toward the reflection of a &%Laser beam on the target.")
+(termFormat EnglishWrittenLanguage LaserGuidance "laser guidance")
+
+(instance InfraredGuidance GuidanceAttribute)
+(documentation InfraredGuidance EnglishWrittenLanguage
+  "Guidance toward infrared radiation (&%RadiatingInfrared) from the
+   target.")
+(termFormat EnglishWrittenLanguage InfraredGuidance "infrared guidance")
+
+(instance RadarGuidance GuidanceAttribute)
+(documentation RadarGuidance EnglishWrittenLanguage
+  "Guidance by &%Radar returns from the target.")
+(termFormat EnglishWrittenLanguage RadarGuidance "radar guidance")
+
+;; The four kinds of guidance enumerated with Pease (30 Oct) are not mutually
+;; exclusive: a munition may combine GPS and laser guidance. Other kinds may be
+;; added as further instances. An aimed but unguided munition, such as a
+;; bullet or a howitzer shell, has no guidance attribute.
+
+;; Rule 1: A precision-guided munition has at least one kind of guidance.
 (=>
-  (and
-    (instance ?PGM PrecisionGuidedMunition)
-    (instance ?ATK Attack)
-    (instrument ?ATK ?PGM))
-  (hasPurpose ?ATK
-    (not
-      (exists (?CD)
-        (and
-          (instance ?CD CollateralDamage)
-          (causes ?ATK ?CD))))))
+  (instance ?PGM PrecisionGuidedMunition)
+  (exists (?G)
+    (and
+      (instance ?G GuidanceAttribute)
+      (attribute ?PGM ?G))))
+
+;; The rule is one way: a guided munition is not thereby a precision-guided
+;; munition (whether, for example, a heat-seeking missile counts was left
+;; open, Pease 30 Oct). Removed: an attack with a PGM has a target, which is
+;; true of any weapon, a rifle as well (Pease, 30 Oct); and an attack with a
+;; PGM has the purpose that it causes no collateral damage, which used
+;; causes and said that every user of a PGM intends no incidental harm.
+;; Pease's "less likely to damage something that is not the target" is a
+;; comparative likelihood that the available relations do not represent.
+;; Open: whether PrecisionGuidedMunition should be a subclass of SUMO's
+;; HighPrecisionWeapon (MilitaryProcesses.kif), whose axiom gives the weapon
+;; itself the purpose of damaging nothing but the patient of the process.
 
 ;; 65. ArticleFive
 ;; Article 5 is a provision of the North Atlantic Treaty, not a process. A
@@ -2899,18 +3015,34 @@
 (termFormat EnglishWrittenLanguage Covert "covert")
 (contraryAttribute Covert Overt)
 
-;; Rule 1: A covert entity's sponsor is not known to the opposing agent
+;; Rule 1: The sponsor of a covert operation has the purpose that at least
+;; one other cognitive agent does not know, during the operation, that it is
+;; the sponsor.
 (=>
   (and
     (property ?OP Covert)
-    (instance ?OP Process)
-    (agent ?OP ?A)
-    (instance ?TARGET CognitiveAgent)
-    (not
-      (equal ?A ?TARGET)))
-  (not
-    (knows ?TARGET
-      (agent ?OP ?A))))
+    (operationSponsor ?OP ?S))
+  (exists (?OBS)
+    (and
+      (instance ?OBS CognitiveAgent)
+      (not
+        (equal ?OBS ?S))
+      (hasPurposeForAgent ?OP ?S
+        (holdsDuring (WhenFn ?OP)
+          (not
+            (knows ?OBS
+              (operationSponsor ?OP ?S))))))))
+
+;; It is a purpose, not a claim about reality: a covert operation that is
+;; discovered is still a covert operation, and the commander who ordered it
+;; knows the sponsor. Only the sponsor is concerned, not every agent: a proxy
+;; force may openly claim an operation whose sponsor stays hidden. The
+;; concealment is during the operation; an operation whose sponsor is
+;; disclosed right after it was still conducted covertly. Known limits: the
+;; agent from whom the sponsor is concealed is not restricted to the opposing
+;; side, and plausible deniability is not represented in full. Covert and
+;; clandestine are independent: clandestine conceals the operation itself
+;; (not represented), and an operation may be both.
 
 ;; 67. Overt
 (instance Overt RelationalAttribute)
@@ -2921,21 +3053,35 @@
    operation (Newport ROE Handbook).")
 (termFormat EnglishWrittenLanguage Overt "overt")
 
-;; Old Rule 1 (an observer who sees an overt operation knows its agent) was
-;; removed: observing an operation does not give knowledge of who carried it
-;; out (a radar contact can be detected without being identified).
-;; No rule yet. Known limits and open points:
-;; - Conducting an operation openly does not mean that others observe it or
-;;   know who carried it out.
-;; - The absence of a purpose of concealment does not mean that disclosure is
-;;   intended or that the agent accepts it.
-;; - Overt and Covert depend on how the operation is conducted, on the identity
-;;   of the sponsor (who is not always the agent), and on the parties from
-;;   whom something is or is not concealed. These must be settled for both
-;;   terms together.
-;; - Possibility of knowledge (Pease, 30 Oct) is not used: that it is possible
-;;   for the opponent to know is a different proposition from the opponent
-;;   knowing being acceptable to the agent.
+;; Rule 1: The sponsor of an overt operation has no purpose that any other
+;; cognitive agent does not know, during the operation, that it is the
+;; sponsor.
+(=>
+  (and
+    (property ?OP Overt)
+    (operationSponsor ?OP ?S)
+    (instance ?OBS CognitiveAgent)
+    (not
+      (equal ?OBS ?S)))
+  (not
+    (hasPurposeForAgent ?OP ?S
+      (holdsDuring (WhenFn ?OP)
+        (not
+          (knows ?OBS
+            (operationSponsor ?OP ?S)))))))
+
+;; With item 66 Rule 1 this excludes an operation that is both covert and
+;; overt for the same sponsor, beyond the contraryAttribute statement. The
+;; rule does not require that anyone observes the operation or knows the
+;; sponsor, and it does not forbid concealing other information, such as the
+;; time or route, or the participation of agents other than the sponsor. The
+;; nature of the operation, also named in the definition, is not represented.
+;; Having no purpose of concealment is close to, but not the same as, the
+;; sponsor accepting that the other side knows (Pease, 30 Oct). Possibility
+;; of knowledge is not used: that the opponent can know is a different
+;; proposition from the opponent knowing being acceptable to the sponsor. The
+;; old Rule 1 (an observer who sees an overt operation knows its agent) was
+;; removed: a radar contact can be detected without being identified.
 
 ;; 68. CovertOperation
 (subclass CovertOperation MilitaryOperation)
@@ -2951,16 +3097,9 @@
   (instance ?CO CovertOperation)
   (property ?CO Covert))
 
-;; Rule 2: In a CovertOperation, the sponsor is concealed from the target
-(=>
-  (and
-    (instance ?CO CovertOperation)
-    (agent ?CO ?SPONSOR)
-    (patient ?CO ?TARGET)
-    (instance ?TARGET CognitiveAgent))
-  (not
-    (knows ?TARGET
-      (agent ?CO ?SPONSOR))))
+;; The purpose of concealing the sponsor follows from Rule 1 and item 66
+;; Rule 1. The old Rule 2 (the target does not know the sponsor) was removed:
+;; it was a claim about reality, and it took every agent for the sponsor.
 
 ;; 69. OvertOperation
 (subclass OvertOperation MilitaryOperation)
@@ -3010,19 +3149,24 @@
 ;; surveillance does not have.
 
 ;; Rule 2: A surveillance operation has the purpose that, when it ends, some
-;; cognitive agent knows something that refers to what is observed (Pease,
-;; 30 Oct).
+;; cognitive agent knows where the observed entity is or knows an attribute
+;; of it (Pease, 30 Oct).
 (=>
   (and
     (instance ?S SurveillanceOperation)
     (patient ?S ?X))
   (hasPurpose ?S
-    (exists (?AG ?F)
-      (and
-        (instance ?AG CognitiveAgent)
-        (refers ?F ?X)
-        (holdsDuring (EndFn (WhenFn ?S))
-          (knows ?AG ?F))))))
+    (holdsDuring (EndFn (WhenFn ?S))
+      (exists (?AG)
+        (and
+          (instance ?AG CognitiveAgent)
+          (or
+            (exists (?L)
+              (knows ?AG
+                (located ?X ?L)))
+            (exists (?ATTR)
+              (knows ?AG
+                (attribute ?X ?ATTR)))))))))
 
 ;; Knowledge is a purpose, not an outcome: a failed surveillance does not
 ;; contradict this rule. The knower is not required to be the agent (an
@@ -3031,13 +3175,15 @@
 ;; was unknown before: keeping track of a known contact is also surveillance.
 ;; containsFormula, as in ReconnaissanceOperation, is not used: its first
 ;; argument must be a ContentBearingPhysical, which a SurveillanceOperation
-;; is not. ?F is a formula variable; see Pease's THF note on Investigating
-;; in Merge.kif.
-;; Known limits: refers is broader than "is about": ?F may refer to ?X without
-;; being the information the surveillance seeks (for example the year the
-;; observed ship was built). The rule gives the purpose of acquiring
-;; information at a general level only; mission-relevant information is not
-;; represented. The rule applies to every patient of the operation.
+;; is not. The earlier form, "knows some ?F that refers to ?X", used ?F both
+;; as an entity (refers) and as a formula (knows), which has no translation
+;; to THF (17 Nov 2026 THF tests); the purpose is now stated with two
+;; concrete forms of knowledge, as in item 71 Rule 4.
+;; Known limits: location and attributes do not cover everything a
+;; surveillance may seek (for example the activity of the observed ship);
+;; an attribute may be one that is not relevant to the mission. The rule
+;; gives the purpose of acquiring information at a general level only. The
+;; rule applies to every patient of the operation.
 
 ;; 71. Shadowing
 (subclass Shadowing SurveillanceOperation)
@@ -3060,21 +3206,14 @@
       (instance ?TARGET Physical)
       (patient ?SH ?TARGET))))
 
-;; Rule 2: Shadowing may be covert or overt
-(=>
-  (instance ?SH Shadowing)
-  (or
-    (property ?SH Covert)
-    (property ?SH Overt)))
-
-;; The Handbook says shadowing "may be carried out overtly or covertly"; the
-;; disjunction adds the assumption that the two cases are exhaustive. Kept
-;; until Covert, Overt and CovertOperation (66-68) are revised together.
-;; Removed: covert shadowing means the target does not know it is shadowed
-;; (a claim about reality; a detected covert shadowing is still covert
-;; shadowing). A purpose form is kept as a candidate for the 66-68 work,
-;; since covert shadowing hides the shadowing itself, while Covert hides the
-;; sponsor.
+;; Removed: every shadowing is covert or overt. The Handbook says shadowing
+;; "may be carried out overtly or covertly", which does not make the two an
+;; exhaustive classification; a shadowing the target is not meant to detect
+;; may be neither. Also removed: covert shadowing means the target does not know
+;; it is shadowed (a claim about reality; a detected covert shadowing is still
+;; covert shadowing). Covert shadowing in the Handbook hides the shadowing
+;; itself, which is the clandestine sense, while Covert hides the sponsor; a
+;; purpose form is kept as a candidate for a future Clandestine term.
 
 ;; Rule 3: Shadowing is conducted with a military vehicle (aircraft,
 ;; submarines or ships, Newport ROE Handbook). The military organization as
@@ -3149,13 +3288,13 @@
       (occupiesPosition ?SUP ?POS_SUP ?MIL)
       (subordinatePosition ?MIL ?POS_CMD ?POS_SUP))))
 
-;; Rule 3: ROERequest concerns RulesOfEngagement
+;; Rule 3: An ROERequest message contains rules of engagement.
 (=>
   (instance ?REQ ROERequest)
   (exists (?ROE)
     (and
       (instance ?ROE RulesOfEngagement)
-      (patient ?REQ ?ROE))))
+      (containsInformation ?REQ ?ROE))))
 
 ;; Rule 4: ROERequest includes a justification
 (=>
@@ -3199,13 +3338,13 @@
 ;; request, earlier gives only the order of the two messages, not the
 ;; response relation, which is not represented yet.
 
-;; Rule 3: ROEAuthorization concerns RulesOfEngagement
+;; Rule 3: An ROEAuthorization message contains rules of engagement.
 (=>
   (instance ?AUTH ROEAuthorization)
   (exists (?ROE)
     (and
       (instance ?ROE RulesOfEngagement)
-      (patient ?AUTH ?ROE))))
+      (containsInformation ?AUTH ?ROE))))
 
 ;; Rule 4: An ROE authorization approves at least one ROE measure.
 (=>
@@ -3255,13 +3394,17 @@
         (WhenFn ?AUTH)
         (WhenFn ?IMP)))))
 
-;; Rule 2: ROEImplementation concerns RulesOfEngagement
+;; Rule 2: An ROEImplementation message contains rules of engagement.
 (=>
   (instance ?IMP ROEImplementation)
   (exists (?ROE)
     (and
       (instance ?ROE RulesOfEngagement)
-      (patient ?IMP ?ROE))))
+      (containsInformation ?IMP ?ROE))))
+
+;; In items 72-74 containsInformation gives only the content of the message;
+;; it does not by itself mean that the ROE are requested, approved or in
+;; force.
 
 ;; Rule 3: An implementation that places an authorizing measure in force is
 ;; preceded by an ROE authorization that approves that measure.
@@ -3371,21 +3514,36 @@
    has been positively identified as hostile (MTP-01).")
 (termFormat EnglishWrittenLanguage WeaponsTight "weapons tight")
 
-;; Rule: Under WeaponsTight, attack requires positive hostile identification
+;; Rule 1: A unit that is weapons tight when an attack begins is obligated to
+;; have the target positively identified before the attack.
 (=>
   (and
-    (attribute ?UNIT WeaponsTight)
-    (instance ?UNIT MilitaryOrganization)
     (instance ?ATK Attack)
     (agent ?ATK ?UNIT)
-    (patient ?ATK ?TARGET))
-  (exists (?PID)
-    (and
-      (instance ?PID PositiveFoeIdentification)
-      (patient ?PID ?TARGET)
-      (earlier
-        (WhenFn ?PID)
-        (WhenFn ?ATK)))))
+    (instance ?UNIT MilitaryOrganization)
+    (targetInAttack ?ATK ?TARGET)
+    (holdsDuring (BeginFn (WhenFn ?ATK))
+      (attribute ?UNIT WeaponsTight)))
+  (modalAttribute
+    (exists (?PID)
+      (and
+        (instance ?PID PositiveFoeIdentification)
+        (patient ?PID ?TARGET)
+        (earlier
+          (WhenFn ?PID)
+          (WhenFn ?ATK))))
+    Obligation))
+
+;; It is an obligation, not a claim about reality (Pease, 30 Oct): an attack
+;; without identification is a violation, not a contradiction. The old rule
+;; stated that every such attack was preceded by an identification. The
+;; identification may be made by another unit. Every instance of
+;; PositiveFoeIdentification has a positive result by its definition (item
+;; 63); an identification that finds the target friendly or neutral is not
+;; one. The result is a belief with reasonable certainty and may be wrong.
+;; Whether the identification is still valid when the attack is made, and how
+;; a Classifying process is recognized as an identification, are not
+;; represented (item 63).
 
 ;; 78. WeaponsSafe
 (instance WeaponsSafe WeaponControlStatus)
@@ -3395,24 +3553,43 @@
    (MTP-01).")
 (termFormat EnglishWrittenLanguage WeaponsSafe "weapons safe")
 
-;; Rule: Under WeaponsSafe, attack is only permitted in self-defense
+;; Rule 1: A unit that is weapons safe when an attack begins is obligated to
+;; attack only in self-defense or under an order to make that attack.
 (=>
   (and
-    (attribute ?UNIT WeaponsSafe)
-    (instance ?UNIT MilitaryOrganization)
     (instance ?ATK Attack)
-    (agent ?ATK ?UNIT))
-  (or
-    (exists (?SD)
-      (and
-        (instance ?SD SelfDefense)
-        (agent ?SD ?UNIT)
-        (causes ?SD ?ATK)))
-    (exists (?ORD)
-      (and
-        (instance ?ORD Directing)
-        (destination ?ORD ?UNIT)
-        (causes ?ORD ?ATK)))))
+    (agent ?ATK ?UNIT)
+    (instance ?UNIT MilitaryOrganization)
+    (holdsDuring (BeginFn (WhenFn ?ATK))
+      (attribute ?UNIT WeaponsSafe)))
+  (modalAttribute
+    (or
+      (exists (?SD)
+        (and
+          (instance ?SD SelfDefense)
+          (subProcess ?ATK ?SD)))
+      (exists (?ORD)
+        (and
+          (instance ?ORD Ordering)
+          (destination ?ORD ?UNIT)
+          (ordersAttack ?ORD ?ATK)
+          (earlier
+            (WhenFn ?ORD)
+            (WhenFn ?ATK)))))
+    Obligation))
+
+;; It is an obligation, not a claim about reality (Pease, 30 Oct). The old
+;; rule used causes in both branches: in self-defense the attack is a part of
+;; the self-defense, not its effect, and a Directing includes requests. An
+;; Ordering carries authority by its definition (disobedience involves
+;; sanctions); the orderer is not required to be a MilitaryCommander, since
+;; fire orders are also given under delegated authority (for example by a
+;; tactical action officer). ordersAttack ties the order to the attack, so an
+;; unrelated earlier order does not satisfy the obligation. Whether the order
+;; is valid under the ROE and the authority of the orderer are not
+;; represented, nor are the conditions of self-defense, which belong to
+;; SelfDefense. "Must cease" (ending fire already in progress when the status
+;; is set) is not represented.
 
 ;; Contrary attributes -- mutually exclusive
 (contraryAttribute WeaponsFree WeaponsTight WeaponsSafe)
@@ -3459,23 +3636,41 @@
 ;; incidental harm counts in the proportionality assessment is a question for
 ;; item 80, not part of the definition of collateral damage.
 
-;; Rule 4: PrecisionGuidedMunition has the purpose of decreasing
-;; CollateralDamage
+;; Rule 3: An attack is obligated to be preceded by planning that has the
+;; purpose that the attack harms no person or object incidentally.
 (=>
-  (and
-    (instance ?ATK Attack)
-    (instance ?PGM PrecisionGuidedMunition)
-    (instrument ?ATK ?PGM))
-  (hasPurpose ?ATK
-    (exists (?D ?CD)
+  (instance ?ATK Attack)
+  (modalAttribute
+    (exists (?P)
       (and
-        (instance ?D Decreasing)
-        (instance ?CD CollateralDamage)
-        (patient ?D ?CD)
-        (causes ?ATK ?D)))))
+        (instance ?P Planning)
+        (beforeOrEqual
+          (BeginFn (WhenFn ?P))
+          (BeginFn (WhenFn ?ATK)))
+        (hasPurpose ?P
+          (not
+            (exists (?D ?X)
+              (incidentalEffectOn ?ATK ?D ?X))))))
+    Obligation))
+
+;; An approximation of precautions in attack (AP I, Art. 57(2)(a)(ii): "with a
+;; view to avoiding, and in any event to minimizing" incidental harm), not a
+;; full formalization. It requires a planning with that purpose, not that
+;; harm is avoided: incidental harm after such planning is consistent. Not
+;; represented: who plans or decides the attack (the agent of the attack need
+;; not be the one who decides it), the feasibility of precautions, the
+;; precautions actually taken, and minimizing. Planning may continue during
+;; the attack, so it is only required to begin no later than the attack.
+;; Pease (4 Nov) also said that at the least the commander does not want the
+;; collateral damage; as a statement about a mental state this would make a
+;; commander who wants it a contradiction, so it is not stated.
+
+;; Rule 4 removed: an attack with a precision-guided munition has the purpose
+;; of decreasing collateral damage. It used causes, and the purpose of a
+;; precision-guided munition is a question for item 64.
 
 ;; 80. ProportionateAttack
-(instance ProportionateAttack DeonticAttribute)
+(instance ProportionateAttack NormativeAttribute)
 ;; This is the LOAC sense of proportionality. It is distinct from proportionate
 ;; response in self-defense, where the nature, duration, and scope of the force
 ;; used should not exceed what is required to neutralize the threat, and where a
@@ -3488,16 +3683,28 @@
    Handbook).")
 (termFormat EnglishWrittenLanguage ProportionateAttack "proportionate attack")
 
-;; Rule: If an attack is NOT proportionate and causes collateral damage,
-;; it is Illegal
+;; It is a NormativeAttribute, an assessment of the attack; the norm to meet
+;; it is given by Obligation in Rule 1.
+
+;; Rule 1: Every attack is obligated to be proportionate.
 (=>
-  (and
-    (instance ?ATK Attack)
-    (instance ?CD CollateralDamage)
-    (causes ?ATK ?CD)
-    (not
-      (property ?ATK ProportionateAttack)))
-  (property ?ATK Illegal))
+  (instance ?ATK Attack)
+  (modalAttribute
+    (property ?ATK ProportionateAttack)
+    Obligation))
+
+;; The obligation does not depend on incidental harm actually occurring, and
+;; it does not state that an attack is proportionate. How expected harm is
+;; weighed against military advantage is not represented, and no common
+;; measure is assumed. Rule 1 and item 79 Rule 3 are independent: precautions
+;; taken do not make an attack proportionate, and the reverse.
+;; Removed: an attack that is not proportionate and causes collateral damage
+;; is Illegal (negated antecedent that cannot be proved, causes, Illegal).
+;; Pease (4 Nov) suggested an upper bound for a response attack: no more than
+;; 50% more deaths than the attack it answers. It is not stated: it compares
+;; two attacks, while proportionality in attack weighs expected incidental
+;; harm against military advantage, and proportionality in self-defense
+;; allows a decisive response to exceed the hostile act.
 
 ;; 81. MilitaryNecessity
 ;; A principle, represented as a &%Proposition. It is not a &%NormativeAttribute
@@ -3569,7 +3776,7 @@
 ;; Rule 8), are not represented by the available relations. The term keeps its
 ;; meaning in the law of armed conflict, an object; an operational objective,
 ;; a state of affairs a military unit's commander wants to bring about, is a
-;; different concept, for a separate relation when needed.
+;; different concept, the relation operationalObjective (item 87).
 
 ;; Rule 2 removed. It concluded (property ?OP MilitaryNecessity) for an
 ;; operation that destroys or neutralizes a military objective; military
@@ -3638,28 +3845,21 @@
    (Newport ROE Handbook).")
 (termFormat EnglishWrittenLanguage DormantROE "dormant ROE")
 
-;; Rule 1: DormantROE is authorized by ROEAuthorization
+;; Rule 1: Dormant ROE are contained in an ROE authorization.
 (=>
   (instance ?DROE DormantROE)
   (exists (?AUTH)
     (and
       (instance ?AUTH ROEAuthorization)
-      (patient ?AUTH ?DROE))))
+      (containsInformation ?AUTH ?DROE))))
 
-;; Rule 2: Trigger event plus ROEImplementation activates DormantROE
-(=>
-  (and
-    (instance ?DROE DormantROE)
-    (instance ?EVENT Process)
-    (causes ?EVENT ?IMP)
-    (instance ?IMP ROEImplementation)
-    (patient ?IMP ?DROE)
-    (instance ?OP MilitaryOperation)
-    (earlier
-      (WhenFn ?IMP)
-      (WhenFn ?OP)))
-  (confersNorm ?DROE Permission
-    (instance ?OP MilitaryOperation)))
+;; containsInformation does not by itself mean approval; roeAuthorizesMeasure
+;; applies to measures, not to a body of ROE. The old Rule 2 (a trigger event
+;; causes an implementation and the dormant ROE confers Permission that an
+;; operation is a military operation) was removed: the norm was conferred by
+;; the ROE itself, the formula was empty, and the trigger does not cause the
+;; implementation. Activation is represented by ROEActivation and item 74
+;; Rule 3; the triggering event is not represented yet.
 
 ;; 85. CivilianProperty
 (subclass CivilianProperty Object)
@@ -3693,28 +3893,149 @@
 ;; scenario pipeline.
 
 ;; 86. FriendlyForce
-(subclass FriendlyForce MilitaryOrganization)
-;; Positive identification of friendly forces is essential to prevent
-;; fratricide. Friendly forces must not be engaged under any weapon control
-;; status (Newport ROE Handbook).
-(documentation FriendlyForce EnglishWrittenLanguage
-  "A military force that is allied or cooperating with one's own force
-   (Newport ROE Handbook).")
-(termFormat EnglishWrittenLanguage FriendlyForce "friendly force")
+;; A relation, not a class: no force is friendly in itself, only from the
+;; perspective of some agent (Pease, 4 Nov). Positive identification of
+;; friendly forces is essential to prevent fratricide, and friendly forces
+;; must not be engaged under any weapon control status (Newport ROE
+;; Handbook). The relation is not symmetric and not transitive: two forces
+;; that are both friendly to one State need not be friendly to each other
+;; (for example a partner in a bilateral exercise and an alliance member).
+(instance friendlyForce BinaryPredicate)
+(domain friendlyForce 1 MilitaryOrganization)
+(domain friendlyForce 2 AutonomousAgent)
+(documentation friendlyForce EnglishWrittenLanguage
+  "(&%friendlyForce ?F ?A) means that the military force ?F is friendly from
+   the perspective of ?A: it belongs to the forces of ?A, or is allied or
+   cooperating with ?A.")
+(termFormat EnglishWrittenLanguage friendlyForce "friendly force")
+(format EnglishWrittenLanguage friendlyForce "%1 is %n a friendly force of %2")
 
-;; Rule 1: FriendlyForce cannot have DeclaredHostileStatus
+;; Rule 1: A friendly force is not an enemy during the same time.
 (=>
-  (instance ?FF FriendlyForce)
-  (not
-    (property ?FF DeclaredHostileStatus)))
+  (holdsDuring ?T
+    (friendlyForce ?F ?A))
+  (holdsDuring ?T
+    (not
+      (enemy ?F ?A))))
 
-;; Rule 2: Attack on FriendlyForce is Illegal
+;; It does not make a mistaken declaration of hostility impossible; it says
+;; that a relation that is friendly is not at the same time one of enmity.
+;; Conflicting intelligence assessments would need an epistemic
+;; representation (believes).
+
+;; Rule 2: An allied military force is a friendly force.
+(=>
+  (and
+    (instance ?F MilitaryOrganization)
+    (holdsDuring ?T
+      (allied ?F ?A)))
+  (holdsDuring ?T
+    (friendlyForce ?F ?A)))
+
+;; Rule 3: A military suborganization of an organization is friendly to it.
+(=>
+  (and
+    (instance ?F MilitaryOrganization)
+    (subOrganization ?F ?A))
+  (friendlyForce ?F ?A))
+
+;; Rule 4: The military of a nation is friendly to it. A Nation is not an
+;; Organization in SUMO, so subOrganization cannot relate a force to a State.
+(=>
+  (and
+    (instance ?N Nation)
+    (militaryOfArea ?F ?N))
+  (friendlyForce ?F ?N))
+
+;; Rules 3 and 4 have no time: historical membership (a unit that leaves an
+;; organization) is not represented.
+
+;; Rule 5: A force friendly to an organization is friendly to its
+;; suborganizations during the same time.
+(=>
+  (and
+    (holdsDuring ?T
+      (friendlyForce ?F ?A))
+    (holdsDuring ?T
+      (subOrganization ?U ?A)))
+  (holdsDuring ?T
+    (friendlyForce ?F ?U)))
+
+;; Rule 6: A force friendly to a nation is friendly to the military of that
+;; nation during the same time.
+(=>
+  (and
+    (holdsDuring ?T
+      (friendlyForce ?F ?N))
+    (instance ?N Nation)
+    (militaryOfArea ?M ?N))
+  (holdsDuring ?T
+    (friendlyForce ?F ?M)))
+
+;; In scenarios that need temporal reasoning, subOrganization must be given
+;; with holdsDuring for Rule 5 to apply.
+
+;; Rule 7: A unit that attacks a force friendly to it when the attack begins
+;; is obligated either not to target that force or to attack in
+;; self-defense.
 (=>
   (and
     (instance ?ATK Attack)
-    (patient ?ATK ?FF)
-    (instance ?FF FriendlyForce))
-  (property ?ATK Illegal))
+    (agent ?ATK ?UNIT)
+    (targetInAttack ?ATK ?F)
+    (holdsDuring (BeginFn (WhenFn ?ATK))
+      (friendlyForce ?F ?UNIT)))
+  (modalAttribute
+    (or
+      (not
+        (targetInAttack ?ATK ?F))
+      (exists (?SD)
+        (and
+          (instance ?SD SelfDefense)
+          (subProcess ?ATK ?SD))))
+    Obligation))
 
-;; Rule 3 moved to ROE_Deontic.kif (deontic layer, kept out of the main
-;; knowledge base).
+;; It holds under any weapon control status. An attack on a friendly force by
+;; mistake is a violation, not a contradiction. Removed: the class
+;; FriendlyForce; the rule that a friendly force has no declared hostile
+;; status (a claim about reality); the rule that an attack on a friendly
+;; force is Illegal (an accidental attack is not unlawful as such, and the
+;; target was given by patient); and the ROE_Deontic rule that no weapon
+;; control status permits such an attack, replaced by Rule 7.
+
+;; 87. operationalObjective
+;; A relation between a military unit and a formula, not an object (Pease,
+;; 4 Nov). It is not a MilitaryObjective (item 82), which is an object that
+;; may lawfully be attacked. An operational objective does not mean that the
+;; objective is achieved, nor that force may be used to achieve it.
+(instance operationalObjective BinaryPredicate)
+(domain operationalObjective 1 MilitaryOrganization)
+(domain operationalObjective 2 Formula)
+(documentation operationalObjective EnglishWrittenLanguage
+  "(&%operationalObjective ?UNIT ?F) means that the state of affairs
+   expressed by ?F is an objective that the military unit ?UNIT is to bring
+   about in its operations.")
+(termFormat EnglishWrittenLanguage operationalObjective
+  "operational objective")
+(format EnglishWrittenLanguage operationalObjective
+  "%2 is %n an operational objective of %1")
+
+;; Rule 1: During a time in which a unit has an operational objective and a
+;; leader, the leader desires that the objective be true (Pease, 4 Nov).
+(=>
+  (and
+    (holdsDuring ?T
+      (operationalObjective ?UNIT ?F))
+    (holdsDuring ?T
+      (leader ?UNIT ?L)))
+  (holdsDuring ?T
+    (desires ?L ?F)))
+
+;; The rule applies when the objective and the leadership hold during the
+;; same time interval; a change of leader is covered where those temporal
+;; facts are given. It says nothing about a former leader after the change.
+;; The desire of the leader is a necessary condition, not a definition of an
+;; objective. Not represented: who assigned the objective and to which
+;; operation it belongs. organizationalObjective (Government.kif) is not used
+;; because its second argument is an AreaOfConcern, not a formula. The
+;; argument order of leader follows Merge.kif, (leader ?INSTITUTION ?PERSON).
